@@ -1,0 +1,24 @@
+"""FastAPI application factory and router registration."""
+
+from fastapi import FastAPI
+
+from routes import leaderboard, scores, search, services
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    application = FastAPI(title="Rhumb API", version="0.0.1")
+    application.include_router(services.router, prefix="/v1", tags=["services"])
+    application.include_router(scores.router, prefix="/v1", tags=["scores"])
+    application.include_router(search.router, prefix="/v1", tags=["search"])
+    application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
+
+    @application.get("/healthz")
+    async def healthz() -> dict[str, str]:
+        """Simple liveness endpoint."""
+        return {"status": "ok"}
+
+    return application
+
+
+app = create_app()
