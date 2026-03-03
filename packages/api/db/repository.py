@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -73,7 +73,7 @@ class InMemoryScoreRepository:
             tier=tier,
             explanation=explanation,
             dimension_snapshot=dimension_snapshot,
-            calculated_at=datetime.utcnow(),
+            calculated_at=datetime.now(timezone.utc),
         )
         self._rows.append(entry)
         return entry.id
@@ -82,7 +82,8 @@ class InMemoryScoreRepository:
         matches = [row for row in self._rows if row.service_slug == service_slug]
         if not matches:
             return None
-        return sorted(matches, key=lambda row: row.calculated_at or datetime.min)[-1]
+        min_utc = datetime.min.replace(tzinfo=timezone.utc)
+        return sorted(matches, key=lambda row: row.calculated_at or min_utc)[-1]
 
     def query_by_score_range(
         self, min_score: float = 0.0, max_score: float = 10.0

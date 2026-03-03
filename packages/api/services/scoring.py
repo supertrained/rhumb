@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -394,7 +394,7 @@ class ScoringService:
             tier=tier,
             explanation=explanation,
             dimension_snapshot=snapshot,
-            calculated_at=datetime.utcnow(),
+            calculated_at=datetime.now(timezone.utc),
         )
 
     def save_score(self, service_slug: str, result: ANScoreResult) -> UUID | None:
