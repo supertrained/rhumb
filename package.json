@@ -1,0 +1,11 @@
+{
+  "name": "rhumb",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "lint": "cd packages/web && npm run lint",
+    "type-check": "cd packages/web && npm run type-check",
+    "test": "cd packages/web && npm run test",
+    "build": "cd packages/web && npm run build"
+  }
+}

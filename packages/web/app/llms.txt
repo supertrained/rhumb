@@ -1,0 +1,2 @@
+Rhumb is an agent-native tool discovery and scoring platform.
+Public endpoints are documented at /v1/* via the API package.
