@@ -1,8 +1,133 @@
 """`rhumb score` command."""
 
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+
+import httpx
 import typer
 
+from client import RhumbAPIClient
+from formatting import render_output
 
-def score(service: str, dimensions: bool = False) -> None:
+
+def _confidence_label(confidence: float) -> str:
+    if confidence >= 0.8:
+        return "high"
+    if confidence >= 0.55:
+        return "medium"
+    return "low"
+
+
+def _tier_badge(tier: str) -> str:
+    return {
+        "L1": "🔵 Emerging",
+        "L2": "🟡 Developing",
+        "L3": "🟢 Ready",
+        "L4": "⭐ Native",
+    }.get(tier, tier)
+
+
+def _bar(score: float, width: int = 10) -> str:
+    filled = max(0, min(width, int(round((score / 10) * width))))
+    return "█" * filled + "░" * (width - filled)
+
+
+def _format_timestamp(value: str | None) -> str:
+    if not value:
+        return "unknown"
+    try:
+        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return value
+    return timestamp.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def _render_human(payload: dict[str, Any], show_dimensions: bool) -> str:
+    service_slug = str(payload.get("service_slug", "unknown"))
+    score = float(payload.get("score", 0.0))
+    tier = str(payload.get("tier", ""))
+    confidence = float(payload.get("confidence", 0.0))
+    explanation = str(payload.get("explanation", ""))
+    calculated_at = _format_timestamp(payload.get("calculated_at"))
+
+    snapshot = payload.get("dimension_snapshot", {})
+    category_scores = snapshot.get("category_scores", {})
+    dimensions = snapshot.get("dimensions", {})
+    active_failures = snapshot.get("active_failures", [])
+    alternatives = snapshot.get("alternatives", [])
+
+    lines = [
+        f"━━━ {service_slug.title()} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "",
+        (
+            f"  AN Score: {score:.1f} {_tier_badge(tier):<16} "
+            f"confidence: {_confidence_label(confidence)}"
+        ),
+        f"  Tested: {calculated_at}",
+        "",
+        f'  "{explanation}"',
+        "",
+    ]
+
+    for label, key in (
+        ("Infrastructure", "infrastructure"),
+        ("Interface", "interface"),
+        ("Operational", "operational"),
+    ):
+        category_score = float(category_scores.get(key, 0.0))
+        lines.append(f"  {label:<14} {_bar(category_score)}  {category_score:.1f}")
+
+    if show_dimensions and isinstance(dimensions, dict):
+        lines.append("")
+        lines.append("  Dimensions")
+        for dimension, value in sorted(dimensions.items()):
+            if value is None:
+                lines.append(f"    {dimension}: N/A")
+            else:
+                lines.append(f"    {dimension}: {float(value):.1f}")
+
+    lines.append("")
+    lines.append(f"  Active Failures: {len(active_failures)}")
+    for failure in active_failures:
+        failure_id = str(failure.get("id", "unknown"))
+        summary = str(failure.get("summary", ""))
+        lines.append(f"  └─ {failure_id}: {summary}")
+
+    if alternatives:
+        rendered_alts = ", ".join(
+            f"{str(item.get('service', 'unknown')).title()} ({float(item.get('score', 0.0)):.1f})"
+            for item in alternatives
+        )
+        lines.append("")
+        lines.append(f"  Alternatives: {rendered_alts}")
+
+    return "\n".join(lines)
+
+
+def score(
+    service: str,
+    dimensions: bool = typer.Option(False, "--dimensions", help="Show all dimension scores."),
+    as_json: bool = typer.Option(False, "--json", help="Return raw JSON payload."),
+) -> None:
     """Show AN score for a service."""
-    typer.echo(f"score scaffold: service={service}, dimensions={dimensions}")
+    client = RhumbAPIClient()
+
+    try:
+        payload = client.get(f"/services/{service}/score")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            typer.echo(f"No AN score available for '{service}'.")
+            raise typer.Exit(code=1) from exc
+        typer.echo(f"API error: {exc}")
+        raise typer.Exit(code=1) from exc
+    except httpx.HTTPError as exc:
+        typer.echo(f"API error: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if as_json:
+        typer.echo(render_output(payload, as_json=True))
+        return
+
+    typer.echo(_render_human(payload, show_dimensions=dimensions))

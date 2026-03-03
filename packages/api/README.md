@@ -1,6 +1,6 @@
 # rhumb-api
 
-FastAPI backend scaffold for Rhumb.
+FastAPI backend for Rhumb scoring, discovery, and service metadata.
 
 ## Run
 
@@ -16,3 +16,39 @@ uvicorn main:app --reload --port 8000
 ```bash
 pytest
 ```
+
+## Scoring Example (end-to-end)
+
+### 1) Calculate + persist a score
+
+```bash
+curl -X POST http://localhost:8000/v1/score \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_slug": "stripe",
+    "dimensions": {
+      "I1": 9.5, "I2": 9.0, "I3": 8.5, "I4": 9.5, "I5": 9.0, "I6": 8.0, "I7": 9.0,
+      "F1": 9.0, "F2": 9.5, "F3": 9.5, "F4": 8.5, "F5": 10.0, "F6": 9.0, "F7": 9.0,
+      "O1": 9.0, "O2": 9.0, "O3": 8.0
+    },
+    "evidence_count": 72,
+    "freshness": "12 minutes ago",
+    "probe_types": ["health", "auth", "schema", "load", "idempotency"],
+    "production_telemetry": true
+  }'
+```
+
+Returns:
+- `score` (0.0–10.0)
+- `confidence` (0.0–1.0)
+- `tier` (`L1`–`L4`)
+- `explanation` (single sentence, max 150 chars)
+- `dimension_snapshot` (raw + normalized dimensions/category rollups)
+
+### 2) Fetch latest score for a service
+
+```bash
+curl http://localhost:8000/v1/services/stripe/score
+```
+
+This route returns the latest persisted score; if absent, it falls back to hand-scored fixtures for the initial five calibration services.

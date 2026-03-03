@@ -64,4 +64,9 @@ make db-migrate # apply schema v0
 
 ## Status
 
-This scaffold implements Work Unit 0.4 foundation only (structure + skeletons). Business logic lands in WU 1.x.
+Work Unit 0.4 scaffold is complete and Work Unit 1.1 (AN score engine) is implemented:
+- Weighted 17-dimension scoring + N/A redistribution
+- Confidence calculation from evidence quality
+- Tier assignment (L1-L4)
+- `POST /v1/score` endpoint with persistence
+- `rhumb score <service>` CLI output with `--json` and `--dimensions`

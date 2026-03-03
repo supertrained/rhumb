@@ -4,8 +4,18 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, Text, func
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    Text,
+    Uuid,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -18,7 +28,7 @@ class Service(Base):
 
     __tablename__ = "services"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[str] = mapped_column(Text, nullable=False)
@@ -36,7 +46,7 @@ class DimensionScore(Base):
 
     __tablename__ = "dimension_scores"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
     dimension: Mapped[str] = mapped_column(Text, nullable=False)
     score: Mapped[float] = mapped_column(Numeric(3, 1), nullable=False)
@@ -54,7 +64,7 @@ class ANScore(Base):
     __tablename__ = "an_scores"
     __table_args__ = (Index("idx_an_scores_service", "service_id", "calculated_at"),)
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
     score: Mapped[float] = mapped_column(Numeric(3, 1), nullable=False)
     confidence: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False)
@@ -72,7 +82,7 @@ class ProbeResult(Base):
     __tablename__ = "probe_results"
     __table_args__ = (Index("idx_probe_results_service", "service_id", "probed_at"),)
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
     probe_type: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
@@ -90,7 +100,7 @@ class SchemaSnapshot(Base):
     __tablename__ = "schema_snapshots"
     __table_args__ = (Index("idx_schema_snapshots_service", "service_id", "captured_at"),)
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
     endpoint: Mapped[str] = mapped_column(Text, nullable=False)
     schema_hash: Mapped[str] = mapped_column(Text, nullable=False)
@@ -109,7 +119,7 @@ class FailureMode(Base):
     __tablename__ = "failure_modes"
     __table_args__ = (Index("idx_failure_modes_service", "service_id", "resolved_at"),)
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
     category: Mapped[str] = mapped_column(Text, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
