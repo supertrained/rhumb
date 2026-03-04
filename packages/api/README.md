@@ -52,3 +52,35 @@ curl http://localhost:8000/v1/services/stripe/score
 ```
 
 This route returns the latest persisted score; if absent, it falls back to hand-scored fixtures for the initial five calibration services.
+
+## Probe Scheduler (WU 1.2)
+
+### Dry run scheduled batch
+
+```bash
+curl -X POST http://localhost:8000/v1/probes/schedule/run \
+  -H "Content-Type: application/json" \
+  -d '{"service_slugs": ["stripe", "openai"], "dry_run": true}'
+```
+
+### Execute scheduled batch
+
+```bash
+curl -X POST http://localhost:8000/v1/probes/schedule/run \
+  -H "Content-Type: application/json" \
+  -d '{"service_slugs": ["stripe", "openai", "hubspot"], "sample_count": 3}'
+```
+
+### Fetch latest probe for a service
+
+```bash
+curl "http://localhost:8000/v1/services/stripe/probes/latest?probe_type=health"
+```
+
+### Cron wiring example
+
+Run every 15 minutes (adjust host/port to deployment):
+
+```bash
+*/15 * * * * curl -s -X POST http://localhost:8000/v1/probes/schedule/run -H "Content-Type: application/json" -d '{"sample_count":3}' >/tmp/rhumb-probes.log 2>&1
+```

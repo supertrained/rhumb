@@ -60,6 +60,33 @@ def test_confidence_reflects_count_freshness_and_diversity() -> None:
     assert high > 0.9
 
 
+def test_confidence_rewards_fresh_low_latency_probe_telemetry() -> None:
+    """Probe freshness + latency telemetry should increase confidence when all else is equal."""
+    scoring = ScoringService()
+
+    baseline = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+        )
+    )
+
+    with_probe_telemetry = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="5 minutes ago",
+            probe_latency_distribution_ms={"p50": 110, "p95": 290, "p99": 510, "samples": 12},
+        )
+    )
+
+    assert with_probe_telemetry > baseline
+
+
 @pytest.mark.parametrize(
     ("score", "expected_tier"),
     [
@@ -142,6 +169,8 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
         "freshness": fixture["freshness"],
         "probe_types": fixture["probe_types"],
         "production_telemetry": fixture["production_telemetry"],
+        "probe_freshness": "8 minutes ago",
+        "probe_latency_distribution_ms": {"p50": 115, "p95": 320, "p99": 615, "samples": 9},
     }
 
     response = client.post("/v1/score", json=payload)

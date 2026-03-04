@@ -18,6 +18,8 @@ class ScoreRequestSchema(BaseModel):
     freshness: str = Field(default="unknown")
     probe_types: list[str] = Field(default_factory=list)
     production_telemetry: bool = False
+    probe_freshness: str | None = None
+    probe_latency_distribution_ms: dict[str, int] | None = None
 
     @field_validator("dimensions")
     @classmethod

@@ -77,6 +77,8 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         freshness=payload.freshness,
         probe_types=payload.probe_types,
         production_telemetry=payload.production_telemetry,
+        probe_freshness=payload.probe_freshness,
+        probe_latency_distribution_ms=payload.probe_latency_distribution_ms,
     )
 
     result = await scoring_service.score_service(

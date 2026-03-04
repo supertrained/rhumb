@@ -73,6 +73,7 @@ class ProbeService:
         metadata: dict[str, Any] = {
             "runner": "scaffold",
             "service_slug": service_slug,
+            "probe_type": probe_type,
             "sample_count": sample_count,
         }
         if payload:
@@ -84,7 +85,12 @@ class ProbeService:
                 "message": "Probe runner scaffold executed",
                 "service_slug": service_slug,
                 "probe_type": probe_type,
+                "mode": "no_target_url",
             }
+            if probe_type == "auth":
+                raw["expected_behavior"] = "Target should reject unauthenticated requests (401/403)"
+            elif probe_type == "schema":
+                raw["expected_behavior"] = "Target response schema hash should remain stable"
             latency_ms = int((perf_counter() - started) * 1000)
             distribution = self._latency_distribution([latency_ms])
             if distribution:
@@ -140,17 +146,46 @@ class ProbeService:
                 error_message="Probe returned no response",
             )
 
+        parsed_json: dict[str, Any] | list[Any] | None = None
+        try:
+            parsed_json = last_response.json()
+        except ValueError:
+            parsed_json = None
+
         response_payload = {
             "url": str(last_response.url),
             "headers": dict(last_response.headers),
             "text_preview": last_response.text[:500],
+            "json": parsed_json,
         }
+
+        if probe_type == "schema":
+            if isinstance(parsed_json, dict):
+                metadata["schema_keys"] = sorted(parsed_json.keys())
+            elif isinstance(parsed_json, list):
+                metadata["schema_kind"] = "list"
+            else:
+                metadata["schema_kind"] = "text"
 
         distribution = self._latency_distribution(latencies)
         if distribution:
             metadata["latency_distribution_ms"] = distribution
 
         status = "ok" if last_response.is_success else "error"
+        error_message = None if last_response.is_success else f"HTTP {last_response.status_code}"
+
+        if probe_type == "auth":
+            expected_codes = {401, 403}
+            metadata["expected_response_codes"] = sorted(expected_codes)
+            if last_response.status_code in expected_codes:
+                status = "ok"
+                error_message = None
+            else:
+                status = "error"
+                error_message = (
+                    f"Auth probe expected 401/403, received HTTP {last_response.status_code}"
+                )
+
         return ProbeExecutionResult(
             status=status,
             latency_ms=self._percentile(latencies, 50),
@@ -158,7 +193,7 @@ class ProbeService:
             response_schema_hash=self._hash_payload(response_payload),
             raw_response=response_payload,
             probe_metadata=metadata,
-            error_message=None if last_response.is_success else f"HTTP {last_response.status_code}",
+            error_message=error_message,
         )
 
     @staticmethod

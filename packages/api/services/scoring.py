@@ -84,6 +84,8 @@ class EvidenceInput:
     freshness: str
     probe_types: list[str]
     production_telemetry: bool = False
+    probe_freshness: str | None = None
+    probe_latency_distribution_ms: dict[str, int] | None = None
 
 
 @dataclass(slots=True)
@@ -207,8 +209,42 @@ class ScoringService:
             score = min(1.0, score + 0.1)
         return score
 
+    def _confidence_from_probe_freshness(self, probe_freshness: str | None) -> float:
+        if not probe_freshness:
+            return 0.5
+
+        freshness_hours = self._parse_freshness_hours(probe_freshness)
+        if freshness_hours <= 1:
+            return 1.0
+        if freshness_hours <= 6:
+            return 0.9
+        if freshness_hours <= 24:
+            return 0.75
+        if freshness_hours <= 72:
+            return 0.55
+        return 0.35
+
+    def _confidence_from_probe_latency(self, latency_distribution_ms: dict[str, int] | None) -> float:
+        if not latency_distribution_ms:
+            return 0.5
+
+        p95 = latency_distribution_ms.get("p95")
+        p99 = latency_distribution_ms.get("p99")
+        if p95 is None:
+            return 0.5
+
+        if p95 <= 300 and (p99 is None or p99 <= 800):
+            return 1.0
+        if p95 <= 700 and (p99 is None or p99 <= 1500):
+            return 0.8
+        if p95 <= 1200:
+            return 0.6
+        if p95 <= 2500:
+            return 0.4
+        return 0.25
+
     def calculate_confidence(self, evidence: EvidenceInput) -> float:
-        """Compute confidence (0.0-1.0) from evidence count/freshness/diversity."""
+        """Compute confidence (0.0-1.0) from evidence count/freshness/diversity + probe telemetry."""
         count_score = self._confidence_from_count(evidence.evidence_count)
         freshness_score = self._confidence_from_freshness(
             self._parse_freshness_hours(evidence.freshness)
@@ -216,7 +252,18 @@ class ScoringService:
         diversity_score = self._confidence_from_diversity(
             evidence.probe_types, evidence.production_telemetry
         )
-        confidence = (0.45 * count_score) + (0.35 * freshness_score) + (0.20 * diversity_score)
+        probe_freshness_score = self._confidence_from_probe_freshness(evidence.probe_freshness)
+        probe_latency_score = self._confidence_from_probe_latency(
+            evidence.probe_latency_distribution_ms
+        )
+
+        confidence = (
+            (0.40 * count_score)
+            + (0.30 * freshness_score)
+            + (0.15 * diversity_score)
+            + (0.10 * probe_freshness_score)
+            + (0.05 * probe_latency_score)
+        )
         return round(max(0.0, min(1.0, confidence)), 2)
 
     def assign_tier(self, score: float) -> str:

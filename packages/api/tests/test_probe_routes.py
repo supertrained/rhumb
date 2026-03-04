@@ -50,6 +50,46 @@ def test_probe_run_and_latest_fetch_round_trip(client, monkeypatch: pytest.Monke
     assert latest_body["trigger_source"] == "internal-test"
 
 
+@pytest.mark.parametrize(
+    ("probe_type", "expected_behavior"),
+    [
+        ("auth", "Target should reject unauthenticated requests (401/403)"),
+        ("schema", "Target response schema hash should remain stable"),
+    ],
+)
+def test_probe_run_supports_auth_and_schema_probe_types(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    probe_type: str,
+    expected_behavior: str,
+) -> None:
+    """Auth/schema probes should store their type-specific scaffold metadata."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+    monkeypatch.setattr(
+        probe_routes,
+        "get_probe_service",
+        lambda: ProbeService(repository=InMemoryProbeRepository()),
+    )
+
+    response = client.post(
+        "/v1/probes/run",
+        json={
+            "service_slug": "stripe",
+            "probe_type": probe_type,
+            "trigger_source": "internal-test",
+        },
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["probe_type"] == probe_type
+    assert body["metadata"]["probe_type"] == probe_type
+    assert body["raw_response"]["expected_behavior"] == expected_behavior
+
+
 def test_latest_probe_returns_404_when_missing(client, monkeypatch: pytest.MonkeyPatch) -> None:
     """GET latest probe should return 404 when a service has no probe history."""
     from routes import probes as probe_routes
