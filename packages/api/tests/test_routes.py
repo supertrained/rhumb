@@ -56,3 +56,4 @@ def test_post_routes_accept_requests(client: TestClient) -> None:
     assert client.post("/v1/evaluate").status_code == 200
     assert client.post("/v1/services/stripe/report").status_code == 200
     assert client.post("/v1/probes/run", json={"service_slug": "stripe"}).status_code == 200
+    assert client.post("/v1/probes/schedule/run", json={"dry_run": True}).status_code == 200

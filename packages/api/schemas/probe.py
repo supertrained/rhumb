@@ -15,6 +15,27 @@ class ProbeRunRequestSchema(BaseModel):
     target_url: str | None = None
     payload: dict[str, Any] | None = None
     trigger_source: str = Field(default="internal", min_length=1)
+    sample_count: int = Field(default=1, ge=1, le=20)
+
+
+class ProbeBatchRunRequestSchema(BaseModel):
+    """Input payload for POST /v1/probes/schedule/run."""
+
+    service_slugs: list[str] | None = None
+    sample_count: int = Field(default=3, ge=1, le=20)
+    dry_run: bool = False
+
+
+class ProbeBatchRunResponseSchema(BaseModel):
+    """Serialized scheduler batch run summary."""
+
+    total_specs: int
+    selected_services: list[str]
+    executed: int
+    succeeded: int
+    failed: int
+    probe_ids: list[str]
+    by_service: dict[str, str]
 
 
 class ProbeResultSchema(BaseModel):

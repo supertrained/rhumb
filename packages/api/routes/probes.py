@@ -13,7 +13,13 @@ from db.repository import (
     SQLAlchemyProbeRepository,
     StoredProbe,
 )
-from schemas.probe import ProbeResultSchema, ProbeRunRequestSchema
+from schemas.probe import (
+    ProbeBatchRunRequestSchema,
+    ProbeBatchRunResponseSchema,
+    ProbeResultSchema,
+    ProbeRunRequestSchema,
+)
+from services.probe_scheduler import ProbeScheduler
 from services.probes import ProbeService
 
 router = APIRouter()
@@ -28,6 +34,12 @@ def get_probe_service() -> ProbeService:
     except Exception:
         repository = InMemoryProbeRepository()
     return ProbeService(repository=repository)
+
+
+@lru_cache
+def get_probe_scheduler() -> ProbeScheduler:
+    """Create singleton scheduler object for recurring probe batches."""
+    return ProbeScheduler(probe_service=get_probe_service())
 
 
 def _stored_to_schema(stored: StoredProbe) -> ProbeResultSchema:
@@ -59,12 +71,46 @@ async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
         target_url=payload.target_url,
         payload=payload.payload,
         trigger_source=payload.trigger_source,
+        sample_count=payload.sample_count,
     )
 
     if stored is None:
         raise HTTPException(status_code=500, detail="Probe repository is not configured")
 
     return _stored_to_schema(stored)
+
+
+@router.post("/probes/schedule/run", response_model=ProbeBatchRunResponseSchema)
+async def run_scheduled_probe_batch(payload: ProbeBatchRunRequestSchema) -> ProbeBatchRunResponseSchema:
+    """Run one scheduler batch for recurring probe specifications."""
+    scheduler = get_probe_scheduler()
+    selected = scheduler.list_specs(service_slugs=payload.service_slugs)
+
+    if payload.dry_run:
+        return ProbeBatchRunResponseSchema(
+            total_specs=len(scheduler.list_specs()),
+            selected_services=[spec.service_slug for spec in selected],
+            executed=0,
+            succeeded=0,
+            failed=0,
+            probe_ids=[],
+            by_service={},
+        )
+
+    summary = await scheduler.run_once(
+        service_slugs=payload.service_slugs,
+        sample_count=payload.sample_count,
+    )
+
+    return ProbeBatchRunResponseSchema(
+        total_specs=summary.total_specs,
+        selected_services=summary.selected_services,
+        executed=summary.executed,
+        succeeded=summary.succeeded,
+        failed=summary.failed,
+        probe_ids=summary.probe_ids,
+        by_service=summary.by_service,
+    )
 
 
 @router.get("/services/{slug}/probes/latest", response_model=ProbeResultSchema)
