@@ -19,9 +19,21 @@ class ProbeSpec:
 
 
 DEFAULT_PROBE_SPECS: tuple[ProbeSpec, ...] = (
-    ProbeSpec(service_slug="stripe", probe_type="health", target_url="https://status.stripe.com/api/v2/status.json"),
-    ProbeSpec(service_slug="openai", probe_type="health", target_url="https://status.openai.com/api/v2/status.json"),
-    ProbeSpec(service_slug="hubspot", probe_type="health", target_url="https://status.hubspot.com/api/v2/status.json"),
+    ProbeSpec(
+        service_slug="stripe",
+        probe_type="health",
+        target_url="https://status.stripe.com/api/v2/status.json",
+    ),
+    ProbeSpec(
+        service_slug="openai",
+        probe_type="health",
+        target_url="https://status.openai.com/api/v2/status.json",
+    ),
+    ProbeSpec(
+        service_slug="hubspot",
+        probe_type="health",
+        target_url="https://status.hubspot.com/api/v2/status.json",
+    ),
 )
 
 

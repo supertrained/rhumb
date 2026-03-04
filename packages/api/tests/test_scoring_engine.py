@@ -7,7 +7,11 @@ from typing import Any
 
 import pytest
 
-from db.repository import InMemoryProbeRepository, InMemoryScoreRepository, SQLAlchemyScoreRepository
+from db.repository import (
+    InMemoryProbeRepository,
+    InMemoryScoreRepository,
+    SQLAlchemyScoreRepository,
+)
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import EvidenceInput, ScoringService
 

@@ -94,7 +94,9 @@ async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
 
 
 @router.post("/probes/schedule/run", response_model=ProbeBatchRunResponseSchema)
-async def run_scheduled_probe_batch(payload: ProbeBatchRunRequestSchema) -> ProbeBatchRunResponseSchema:
+async def run_scheduled_probe_batch(
+    payload: ProbeBatchRunRequestSchema,
+) -> ProbeBatchRunResponseSchema:
     """Run one scheduler batch for recurring probe specifications."""
     scheduler = get_probe_scheduler()
     selected = scheduler.list_specs(service_slugs=payload.service_slugs)

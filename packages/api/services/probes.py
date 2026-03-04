@@ -94,7 +94,10 @@ class ProbeService:
                 for item in sampled
             ]
             unique_items = sorted(
-                {json.dumps(item, sort_keys=True, separators=(",", ":")) for item in item_descriptors}
+                {
+                    json.dumps(item, sort_keys=True, separators=(",", ":"))
+                    for item in item_descriptors
+                }
             )
             return {
                 "type": "array",
@@ -243,7 +246,11 @@ class ProbeService:
 
         response_schema_hash: str | None = self._hash_any(response_payload)
         if probe_type == "schema":
-            schema_target = parsed_json if parsed_json is not None else {"text_preview": response_payload["text_preview"]}
+            schema_target = (
+                parsed_json
+                if parsed_json is not None
+                else {"text_preview": response_payload["text_preview"]}
+            )
             schema_fingerprint, schema_descriptor = self._schema_fingerprint(schema_target)
             metadata["schema_signature_version"] = "v2"
             metadata["schema_fingerprint_v2"] = schema_fingerprint
@@ -320,7 +327,9 @@ class ProbeService:
             error_message=execution.error_message,
         )
 
-    def fetch_latest_probe(self, service_slug: str, probe_type: str | None = None) -> StoredProbe | None:
+    def fetch_latest_probe(
+        self, service_slug: str, probe_type: str | None = None
+    ) -> StoredProbe | None:
         """Fetch the latest stored probe for a service."""
         if self._repository is None:
             return None

@@ -224,7 +224,9 @@ class ScoringService:
             return 0.55
         return 0.35
 
-    def _confidence_from_probe_latency(self, latency_distribution_ms: dict[str, int] | None) -> float:
+    def _confidence_from_probe_latency(
+        self, latency_distribution_ms: dict[str, int] | None
+    ) -> float:
         if not latency_distribution_ms:
             return 0.5
 
