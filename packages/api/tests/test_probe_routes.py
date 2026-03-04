@@ -89,6 +89,11 @@ def test_probe_run_supports_auth_and_schema_probe_types(
     assert body["metadata"]["probe_type"] == probe_type
     assert body["raw_response"]["expected_behavior"] == expected_behavior
 
+    if probe_type == "schema":
+        assert body["metadata"]["schema_signature_version"] == "v2"
+        assert body["metadata"]["schema_fingerprint_v2"]
+        assert body["response_schema_hash"] == body["metadata"]["schema_fingerprint_v2"]
+
 
 def test_latest_probe_returns_404_when_missing(client, monkeypatch: pytest.MonkeyPatch) -> None:
     """GET latest probe should return 404 when a service has no probe history."""

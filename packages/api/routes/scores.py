@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from functools import lru_cache
 
 from fastapi import APIRouter, HTTPException
 
 from config import settings
 from db.repository import (
+    InMemoryProbeRepository,
     InMemoryScoreRepository,
+    ProbeRepository,
+    SQLAlchemyProbeRepository,
     SQLAlchemyScoreRepository,
     ScoreRepository,
+    StoredProbe,
     StoredScore,
 )
 from schemas.score import ANScoreSchema, ScoreRequestSchema
@@ -29,6 +34,15 @@ def get_scoring_service() -> ScoringService:
     except Exception:
         repository = InMemoryScoreRepository()
     return ScoringService(repository=repository)
+
+
+@lru_cache
+def get_probe_repository() -> ProbeRepository:
+    """Create singleton probe repository for score telemetry hydration."""
+    try:
+        return SQLAlchemyProbeRepository.from_url(settings.database_url)
+    except Exception:
+        return InMemoryProbeRepository()
 
 
 def _result_to_schema(
@@ -68,17 +82,108 @@ def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
     )
 
 
+def _coerce_latency_distribution(value: dict | None) -> dict[str, int] | None:
+    if not value or not isinstance(value, dict):
+        return None
+
+    p50 = value.get("p50")
+    p95 = value.get("p95")
+    p99 = value.get("p99")
+    samples = value.get("samples", 1)
+
+    if p50 is None or p95 is None or p99 is None:
+        return None
+
+    try:
+        normalized = {
+            "p50": int(p50),
+            "p95": int(p95),
+            "p99": int(p99),
+            "samples": max(1, int(samples)),
+        }
+    except (TypeError, ValueError):
+        return None
+
+    return normalized
+
+
+def _extract_probe_latency_distribution(probe: StoredProbe) -> dict[str, int] | None:
+    metadata = probe.probe_metadata or {}
+    from_metadata = _coerce_latency_distribution(metadata.get("latency_distribution_ms"))
+    if from_metadata is not None:
+        return from_metadata
+
+    if probe.latency_ms is None:
+        return None
+
+    latency = int(probe.latency_ms)
+    return {
+        "p50": latency,
+        "p95": latency,
+        "p99": latency,
+        "samples": 1,
+    }
+
+
+def _format_probe_freshness(probed_at: datetime | None) -> str | None:
+    if probed_at is None:
+        return None
+
+    normalized = probed_at
+    if normalized.tzinfo is None:
+        normalized = normalized.replace(tzinfo=timezone.utc)
+
+    delta_seconds = max(0, int((datetime.now(timezone.utc) - normalized).total_seconds()))
+
+    if delta_seconds < 60:
+        return "just now"
+
+    if delta_seconds < 3600:
+        minutes = max(1, delta_seconds // 60)
+        return f"{minutes} minutes ago"
+
+    if delta_seconds < 86400:
+        hours = max(1, delta_seconds // 3600)
+        return f"{hours} hours ago"
+
+    if delta_seconds < 86400 * 7:
+        days = max(1, delta_seconds // 86400)
+        return f"{days} days ago"
+
+    weeks = max(1, delta_seconds // (86400 * 7))
+    return f"{weeks} weeks ago"
+
+
 @router.post("/score", response_model=ANScoreSchema)
 async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     """Calculate and persist an AN score from dimensional inputs."""
     scoring_service = get_scoring_service()
+
+    probe_freshness = payload.probe_freshness
+    probe_latency_distribution_ms = payload.probe_latency_distribution_ms
+
+    if payload.hydrate_probe_telemetry and (
+        probe_freshness is None or probe_latency_distribution_ms is None
+    ):
+        probe_repository = get_probe_repository()
+        try:
+            latest_probe = probe_repository.fetch_latest_probe(payload.service_slug)
+        except Exception:
+            latest_probe = None
+
+        if latest_probe is not None:
+            if probe_freshness is None:
+                probe_freshness = _format_probe_freshness(latest_probe.probed_at)
+            if probe_latency_distribution_ms is None:
+                probe_latency_distribution_ms = _extract_probe_latency_distribution(latest_probe)
+
     evidence = EvidenceInput(
         evidence_count=payload.evidence_count,
         freshness=payload.freshness,
         probe_types=payload.probe_types,
         production_telemetry=payload.production_telemetry,
-        probe_freshness=payload.probe_freshness,
-        probe_latency_distribution_ms=payload.probe_latency_distribution_ms,
+        probe_freshness=probe_freshness,
+        probe_latency_distribution_ms=probe_latency_distribution_ms,
     )
 
     result = await scoring_service.score_service(

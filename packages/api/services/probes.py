@@ -61,6 +61,80 @@ class ProbeService:
             "samples": len(latencies),
         }
 
+    @classmethod
+    def _schema_descriptor(
+        cls,
+        value: Any,
+        *,
+        depth: int = 0,
+        max_depth: int = 4,
+        max_keys: int = 40,
+        max_items: int = 10,
+    ) -> dict[str, Any]:
+        """Build a shape descriptor that captures nested semantic schema, not just top-level keys."""
+        if depth >= max_depth:
+            return {"type": "max_depth"}
+
+        if value is None:
+            return {"type": "null"}
+
+        if isinstance(value, bool):
+            return {"type": "boolean"}
+
+        if isinstance(value, (int, float)):
+            return {"type": "number"}
+
+        if isinstance(value, str):
+            return {"type": "string"}
+
+        if isinstance(value, list):
+            sampled = value[:max_items]
+            item_descriptors = [
+                cls._schema_descriptor(item, depth=depth + 1, max_depth=max_depth)
+                for item in sampled
+            ]
+            unique_items = sorted(
+                {json.dumps(item, sort_keys=True, separators=(",", ":")) for item in item_descriptors}
+            )
+            return {
+                "type": "array",
+                "sample_size": len(sampled),
+                "item_variants": [json.loads(item) for item in unique_items[:5]],
+            }
+
+        if isinstance(value, dict):
+            keys = sorted(value.keys())
+            limited_keys = keys[:max_keys]
+            return {
+                "type": "object",
+                "keys": limited_keys,
+                "truncated_keys": max(0, len(keys) - len(limited_keys)),
+                "properties": {
+                    key: cls._schema_descriptor(
+                        value[key],
+                        depth=depth + 1,
+                        max_depth=max_depth,
+                        max_keys=max_keys,
+                        max_items=max_items,
+                    )
+                    for key in limited_keys
+                },
+            }
+
+        return {"type": type(value).__name__}
+
+    @staticmethod
+    def _hash_any(payload: Any) -> str:
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode(
+            "utf-8"
+        )
+        return hashlib.sha256(encoded).hexdigest()
+
+    @classmethod
+    def _schema_fingerprint(cls, payload: Any) -> tuple[str, dict[str, Any]]:
+        descriptor = cls._schema_descriptor(payload)
+        return cls._hash_any(descriptor), descriptor
+
     async def _execute_probe(
         self,
         service_slug: str,
@@ -91,6 +165,10 @@ class ProbeService:
                 raw["expected_behavior"] = "Target should reject unauthenticated requests (401/403)"
             elif probe_type == "schema":
                 raw["expected_behavior"] = "Target response schema hash should remain stable"
+                schema_fingerprint, schema_descriptor = self._schema_fingerprint(raw)
+                metadata["schema_signature_version"] = "v2"
+                metadata["schema_fingerprint_v2"] = schema_fingerprint
+                metadata["schema_descriptor"] = schema_descriptor
             latency_ms = int((perf_counter() - started) * 1000)
             distribution = self._latency_distribution([latency_ms])
             if distribution:
@@ -100,7 +178,11 @@ class ProbeService:
                 status="ok",
                 latency_ms=latency_ms,
                 response_code=200,
-                response_schema_hash=self._hash_payload(raw),
+                response_schema_hash=(
+                    metadata.get("schema_fingerprint_v2")
+                    if probe_type == "schema"
+                    else self._hash_any(raw)
+                ),
                 raw_response=raw,
                 probe_metadata=metadata,
             )
@@ -159,7 +241,15 @@ class ProbeService:
             "json": parsed_json,
         }
 
+        response_schema_hash: str | None = self._hash_any(response_payload)
         if probe_type == "schema":
+            schema_target = parsed_json if parsed_json is not None else {"text_preview": response_payload["text_preview"]}
+            schema_fingerprint, schema_descriptor = self._schema_fingerprint(schema_target)
+            metadata["schema_signature_version"] = "v2"
+            metadata["schema_fingerprint_v2"] = schema_fingerprint
+            metadata["schema_descriptor"] = schema_descriptor
+            response_schema_hash = schema_fingerprint
+
             if isinstance(parsed_json, dict):
                 metadata["schema_keys"] = sorted(parsed_json.keys())
             elif isinstance(parsed_json, list):
@@ -190,18 +280,11 @@ class ProbeService:
             status=status,
             latency_ms=self._percentile(latencies, 50),
             response_code=last_response.status_code,
-            response_schema_hash=self._hash_payload(response_payload),
+            response_schema_hash=response_schema_hash,
             raw_response=response_payload,
             probe_metadata=metadata,
             error_message=error_message,
         )
-
-    @staticmethod
-    def _hash_payload(payload: dict[str, Any] | None) -> str | None:
-        if payload is None:
-            return None
-        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        return hashlib.sha256(encoded).hexdigest()
 
     async def run_probe(
         self,

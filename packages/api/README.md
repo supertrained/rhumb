@@ -34,7 +34,8 @@ curl -X POST http://localhost:8000/v1/score \
     "evidence_count": 72,
     "freshness": "12 minutes ago",
     "probe_types": ["health", "auth", "schema", "load", "idempotency"],
-    "production_telemetry": true
+    "production_telemetry": true,
+    "hydrate_probe_telemetry": true
   }'
 ```
 
@@ -44,6 +45,8 @@ Returns:
 - `tier` (`L1`–`L4`)
 - `explanation` (single sentence, max 150 chars)
 - `dimension_snapshot` (raw + normalized dimensions/category rollups)
+
+When `hydrate_probe_telemetry=true`, `/v1/score` auto-loads probe freshness + latency distribution from the latest stored probe if those telemetry fields are omitted in the request.
 
 ### 2) Fetch latest score for a service
 
@@ -76,6 +79,8 @@ curl -X POST http://localhost:8000/v1/probes/schedule/run \
 ```bash
 curl "http://localhost:8000/v1/services/stripe/probes/latest?probe_type=health"
 ```
+
+Schema probes now persist a semantic shape fingerprint (`schema_fingerprint_v2`) derived from nested response structure, not only top-level keys.
 
 ### Cron wiring example
 

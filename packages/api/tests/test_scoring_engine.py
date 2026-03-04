@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from db.repository import InMemoryScoreRepository, SQLAlchemyScoreRepository
+from db.repository import InMemoryProbeRepository, InMemoryScoreRepository, SQLAlchemyScoreRepository
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import EvidenceInput, ScoringService
 
@@ -182,6 +182,55 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
 
     assert body["service_slug"] == "stripe"
     assert body["tier"] == "L4"
+
+
+def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Hydration flag should pull probe freshness/latency from latest stored probe when omitted."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    score_routes.get_probe_repository.cache_clear()
+
+    scoring_service = ScoringService(repository=InMemoryScoreRepository())
+    probe_repository = InMemoryProbeRepository()
+    probe_repository.save_probe(
+        service_slug="stripe",
+        probe_type="health",
+        status="ok",
+        latency_ms=180,
+        probe_metadata={
+            "latency_distribution_ms": {"p50": 120, "p95": 280, "p99": 460, "samples": 8}
+        },
+    )
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", lambda: scoring_service)
+    monkeypatch.setattr(score_routes, "get_probe_repository", lambda: probe_repository)
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    payload = {
+        "service_slug": "stripe",
+        "dimensions": fixture["dimensions"],
+        "evidence_count": 30,
+        "freshness": "6 hours ago",
+        "probe_types": ["health", "schema"],
+        "production_telemetry": False,
+    }
+
+    baseline_response = client.post("/v1/score", json=payload)
+    assert baseline_response.status_code == 200
+    baseline_confidence = baseline_response.json()["confidence"]
+
+    hydrated_response = client.post(
+        "/v1/score",
+        json={**payload, "hydrate_probe_telemetry": True},
+    )
+    assert hydrated_response.status_code == 200
+    hydrated_confidence = hydrated_response.json()["confidence"]
+
+    assert hydrated_confidence > baseline_confidence
 
 
 def test_score_endpoint_validation_errors(client) -> None:
