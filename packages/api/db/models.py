@@ -76,14 +76,36 @@ class ANScore(Base):
     )
 
 
+class ProbeRun(Base):
+    """Probe runner execution metadata."""
+
+    __tablename__ = "probe_runs"
+    __table_args__ = (Index("idx_probe_runs_service", "service_id", "finished_at"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
+    probe_type: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    trigger_source: Mapped[str] = mapped_column(Text, default="internal")
+    runner_version: Mapped[str] = mapped_column(Text, default="scaffold-v1")
+    error_message: Mapped[str | None] = mapped_column(Text)
+    run_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class ProbeResult(Base):
     """Raw probe capture for evidence and diffing."""
 
     __tablename__ = "probe_results"
-    __table_args__ = (Index("idx_probe_results_service", "service_id", "probed_at"),)
+    __table_args__ = (
+        Index("idx_probe_results_service", "service_id", "probed_at"),
+        Index("idx_probe_results_run", "run_id", "probed_at"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     service_id: Mapped[UUID | None] = mapped_column(ForeignKey("services.id"))
+    run_id: Mapped[UUID | None] = mapped_column(ForeignKey("probe_runs.id"))
     probe_type: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     latency_ms: Mapped[int | None] = mapped_column(Integer)

@@ -2,13 +2,14 @@
 
 from fastapi import FastAPI
 
-from routes import leaderboard, scores, search, services
+from routes import leaderboard, probes, scores, search, services
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     application = FastAPI(title="Rhumb API", version="0.0.1")
     application.include_router(services.router, prefix="/v1", tags=["services"])
+    application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])
     application.include_router(search.router, prefix="/v1", tags=["search"])
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])

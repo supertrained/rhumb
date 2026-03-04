@@ -6,13 +6,18 @@ from db.models import (
     DimensionScore,
     FailureMode,
     ProbeResult,
+    ProbeRun,
     SchemaSnapshot,
     Service,
 )
 from db.repository import (
+    InMemoryProbeRepository,
     InMemoryScoreRepository,
+    ProbeRepository,
+    SQLAlchemyProbeRepository,
     SQLAlchemyScoreRepository,
     ScoreRepository,
+    StoredProbe,
     StoredScore,
 )
 
@@ -22,10 +27,15 @@ __all__ = [
     "DimensionScore",
     "FailureMode",
     "ProbeResult",
+    "ProbeRun",
     "SchemaSnapshot",
     "Service",
     "InMemoryScoreRepository",
     "SQLAlchemyScoreRepository",
     "ScoreRepository",
     "StoredScore",
+    "InMemoryProbeRepository",
+    "SQLAlchemyProbeRepository",
+    "ProbeRepository",
+    "StoredProbe",
 ]
