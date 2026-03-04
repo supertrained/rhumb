@@ -30,7 +30,9 @@ def get_probe_service() -> ProbeService:
     """Create singleton probe service for API routes."""
     repository: ProbeRepository
     try:
-        repository = SQLAlchemyProbeRepository.from_url(settings.database_url)
+        sql_repository = SQLAlchemyProbeRepository.from_url(settings.database_url)
+        sql_repository.create_tables()
+        repository = sql_repository
     except Exception:
         repository = InMemoryProbeRepository()
     return ProbeService(repository=repository)
@@ -65,14 +67,25 @@ def _stored_to_schema(stored: StoredProbe) -> ProbeResultSchema:
 async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
     """Run a single internal probe and persist the result."""
     probe_service = get_probe_service()
-    stored = await probe_service.run_probe(
-        service_slug=payload.service_slug,
-        probe_type=payload.probe_type,
-        target_url=payload.target_url,
-        payload=payload.payload,
-        trigger_source=payload.trigger_source,
-        sample_count=payload.sample_count,
-    )
+    try:
+        stored = await probe_service.run_probe(
+            service_slug=payload.service_slug,
+            probe_type=payload.probe_type,
+            target_url=payload.target_url,
+            payload=payload.payload,
+            trigger_source=payload.trigger_source,
+            sample_count=payload.sample_count,
+        )
+    except Exception:
+        fallback_service = ProbeService(repository=InMemoryProbeRepository())
+        stored = await fallback_service.run_probe(
+            service_slug=payload.service_slug,
+            probe_type=payload.probe_type,
+            target_url=payload.target_url,
+            payload=payload.payload,
+            trigger_source=payload.trigger_source,
+            sample_count=payload.sample_count,
+        )
 
     if stored is None:
         raise HTTPException(status_code=500, detail="Probe repository is not configured")
