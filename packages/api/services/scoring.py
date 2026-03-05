@@ -33,6 +33,17 @@ DIMENSION_WEIGHTS: dict[str, float] = {
     "O3": 0.03,
 }
 
+ACCESS_DIMENSION_WEIGHTS: dict[str, float] = {
+    "A1": 0.24,
+    "A2": 0.20,
+    "A3": 0.18,
+    "A4": 0.14,
+    "A5": 0.14,
+    "A6": 0.10,
+}
+
+AN_SCORE_VERSION = "0.2"
+
 CATEGORY_DIMENSIONS: dict[str, tuple[str, ...]] = {
     "infrastructure": ("I1", "I2", "I3", "I4", "I5", "I6", "I7"),
     "interface": ("F1", "F2", "F3", "F4", "F5", "F6", "F7"),
@@ -95,6 +106,10 @@ class ANScoreResult:
     service_slug: str
     score: float
     score_raw: float
+    execution_score: float
+    access_readiness_score: float | None
+    aggregate_recommendation_score: float
+    an_score_version: str
     confidence: float
     tier: str
     explanation: str
@@ -109,12 +124,15 @@ class ScoringService:
         self._repository = repository
 
     def _normalized_dimension_weights(
-        self, dimensions: dict[str, float | None]
+        self,
+        dimensions: dict[str, float | None],
+        weight_map: dict[str, float] | None = None,
     ) -> tuple[dict[str, float], dict[str, float]]:
+        selected_weights = weight_map or DIMENSION_WEIGHTS
         applicable = {
-            key: DIMENSION_WEIGHTS[key]
+            key: selected_weights[key]
             for key, value in dimensions.items()
-            if key in DIMENSION_WEIGHTS and value is not None
+            if key in selected_weights and value is not None
         }
         total_weight = sum(applicable.values())
         if total_weight <= 0:
@@ -138,6 +156,48 @@ class ScoringService:
         if not normalized:
             return 0.0
         return sum(float(dimensions[dim] or 0.0) * weight for dim, weight in normalized.items())
+
+    def calculate_access_readiness(
+        self, access_dimensions: dict[str, float | None] | None
+    ) -> float | None:
+        """Calculate weighted Access Readiness score (0.0-10.0) when access dimensions exist."""
+        raw = self._calculate_access_readiness_raw(access_dimensions)
+        if raw is None:
+            return None
+        return round(raw, 1)
+
+    def _calculate_access_readiness_raw(
+        self, access_dimensions: dict[str, float | None] | None
+    ) -> float | None:
+        if not access_dimensions:
+            return None
+
+        _, normalized = self._normalized_dimension_weights(
+            access_dimensions,
+            weight_map=ACCESS_DIMENSION_WEIGHTS,
+        )
+        if not normalized:
+            return None
+
+        return sum(
+            float(access_dimensions[dim] or 0.0) * weight for dim, weight in normalized.items()
+        )
+
+    def calculate_aggregate_recommendation(
+        self,
+        execution_score_raw: float,
+        access_readiness_score_raw: float | None,
+    ) -> float:
+        """Calculate aggregate recommendation score.
+
+        Slice-1 contract behavior: until access scoring is fully wired, aggregate aliases execution
+        when access dimensions are missing.
+        """
+        if access_readiness_score_raw is None:
+            return round(execution_score_raw, 1)
+
+        aggregate = (execution_score_raw * 0.70) + (access_readiness_score_raw * 0.30)
+        return round(aggregate, 1)
 
     def _parse_freshness_hours(self, freshness: str) -> float:
         normalized = freshness.strip().lower()
@@ -408,9 +468,20 @@ class ScoringService:
             return llm_generated
         return self._normalize_explanation(fallback, fallback)
 
-    def build_dimension_snapshot(self, dimensions: dict[str, float | None]) -> dict[str, Any]:
+    def build_dimension_snapshot(
+        self,
+        dimensions: dict[str, float | None],
+        execution_score: float,
+        access_dimensions: dict[str, float | None] | None,
+        access_readiness_score: float | None,
+        aggregate_recommendation_score: float,
+    ) -> dict[str, Any]:
         """Build normalized score snapshot returned by API and persisted in DB."""
         applicable_weights, normalized_weights = self._normalized_dimension_weights(dimensions)
+        access_raw_weights, access_normalized_weights = self._normalized_dimension_weights(
+            access_dimensions or {},
+            weight_map=ACCESS_DIMENSION_WEIGHTS,
+        )
         return {
             "dimensions": {
                 key: value for key, value in dimensions.items() if key in DIMENSION_WEIGHTS
@@ -419,6 +490,20 @@ class ScoringService:
             "normalized_weights": normalized_weights,
             "category_scores": self._category_scores(dimensions),
             "tier_labels": TIER_LABELS,
+            "access_dimensions": {
+                key: value
+                for key, value in (access_dimensions or {}).items()
+                if key in ACCESS_DIMENSION_WEIGHTS
+            },
+            "access_raw_weights": access_raw_weights,
+            "access_normalized_weights": access_normalized_weights,
+            "score_breakdown": {
+                "execution": execution_score,
+                "access_readiness": access_readiness_score,
+                "aggregate_recommendation": aggregate_recommendation_score,
+                "version": AN_SCORE_VERSION,
+                "aggregate_aliases_score": True,
+            },
         }
 
     async def score_service(
@@ -426,19 +511,37 @@ class ScoringService:
         service_slug: str,
         dimensions: dict[str, float | None],
         evidence: EvidenceInput,
+        access_dimensions: dict[str, float | None] | None = None,
     ) -> ANScoreResult:
         """Calculate AN score bundle for a service."""
-        raw_score = self._calculate_composite_raw(dimensions)
-        rounded_score = round(raw_score, 1)
+        execution_raw = self._calculate_composite_raw(dimensions)
+        execution_score = round(execution_raw, 1)
+        access_raw = self._calculate_access_readiness_raw(access_dimensions)
+        access_readiness_score = round(access_raw, 1) if access_raw is not None else None
+        aggregate_recommendation_score = self.calculate_aggregate_recommendation(
+            execution_raw,
+            access_raw,
+        )
+
         confidence = self.calculate_confidence(evidence)
-        tier = self.assign_tier(raw_score)
-        explanation = await self.generate_explanation(service_slug, rounded_score, dimensions)
-        snapshot = self.build_dimension_snapshot(dimensions)
+        tier = self.assign_tier(float(aggregate_recommendation_score))
+        explanation = await self.generate_explanation(service_slug, execution_score, dimensions)
+        snapshot = self.build_dimension_snapshot(
+            dimensions=dimensions,
+            execution_score=execution_score,
+            access_dimensions=access_dimensions,
+            access_readiness_score=access_readiness_score,
+            aggregate_recommendation_score=aggregate_recommendation_score,
+        )
 
         return ANScoreResult(
             service_slug=service_slug,
-            score=rounded_score,
-            score_raw=raw_score,
+            score=aggregate_recommendation_score,
+            score_raw=float(aggregate_recommendation_score),
+            execution_score=execution_score,
+            access_readiness_score=access_readiness_score,
+            aggregate_recommendation_score=aggregate_recommendation_score,
+            an_score_version=AN_SCORE_VERSION,
             confidence=confidence,
             tier=tier,
             explanation=explanation,

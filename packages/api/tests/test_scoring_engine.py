@@ -181,11 +181,65 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
     assert response.status_code == 200
 
     body = dict(response.json())
-    for field in ["score", "confidence", "tier", "explanation", "dimension_snapshot"]:
+    for field in [
+        "score",
+        "execution_score",
+        "access_readiness_score",
+        "aggregate_recommendation_score",
+        "an_score_version",
+        "confidence",
+        "tier",
+        "explanation",
+        "dimension_snapshot",
+    ]:
         assert field in body
 
     assert body["service_slug"] == "stripe"
     assert body["tier"] == "L4"
+    assert body["score"] == body["aggregate_recommendation_score"]
+    assert body["access_readiness_score"] is None
+
+
+def test_score_endpoint_supports_access_dimensions_contract(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /v1/score should expose v0.2 dual-score contract fields when access dimensions are provided."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    payload = {
+        "service_slug": "stripe",
+        "dimensions": fixture["dimensions"],
+        "access_dimensions": {
+            "A1": 8.0,
+            "A2": 7.0,
+            "A3": 9.0,
+            "A4": 8.0,
+            "A5": 8.0,
+            "A6": 7.0,
+        },
+        "evidence_count": fixture["evidence_count"],
+        "freshness": fixture["freshness"],
+        "probe_types": fixture["probe_types"],
+        "production_telemetry": fixture["production_telemetry"],
+    }
+
+    response = client.post("/v1/score", json=payload)
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["an_score_version"] == "0.2"
+    assert body["access_readiness_score"] is not None
+    assert body["execution_score"] >= body["access_readiness_score"]
+    assert body["score"] == body["aggregate_recommendation_score"]
 
 
 def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
@@ -242,6 +296,7 @@ def test_score_endpoint_validation_errors(client) -> None:
     bad_payload: dict[str, Any] = {
         "service_slug": "example",
         "dimensions": {"X1": 9.0, "I1": 11.0},
+        "access_dimensions": {"A9": 7.0},
         "evidence_count": 2,
         "freshness": "12 minutes ago",
     }
