@@ -18,6 +18,8 @@ rhumb score stripe --mode access --dimensions
 rhumb score stripe --json
 rhumb find "payment routing"
 rhumb find "payment routing" --limit 5 --json
+rhumb test-battery stripe
+rhumb test-battery stripe --no-persist-probes
 ```
 
 `rhumb score` supports v0.2 dual-score output:

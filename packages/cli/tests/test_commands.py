@@ -259,3 +259,74 @@ def test_find_command_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert "Results: 0" in result.stdout
     assert "No matching services found." in result.stdout
+
+
+def _sample_test_battery_payload() -> dict[str, Any]:
+    return {
+        "service_slug": "stripe",
+        "battery_file": "/tmp/batteries/stripe-health.yaml",
+        "artifact_path": "/tmp/artifacts/stripe-default-v1-20260305T123700000000Z.json",
+        "run": {
+            "service_slug": "stripe",
+            "battery_version": 1,
+            "profile": "default",
+            "started_at": "2026-03-05T20:36:00+00:00",
+            "completed_at": "2026-03-05T20:36:00+00:00",
+            "status": "ok",
+            "steps": [
+                {
+                    "id": "health",
+                    "kind": "http",
+                    "status": "ok",
+                    "latency_ms": 42,
+                    "response_code": 200,
+                    "error": None,
+                    "metadata": {"attempts": 1, "retries": 0},
+                }
+            ],
+            "summary": {
+                "success_rate": 1.0,
+                "p95_latency_ms": 42,
+                "failures": 0,
+            },
+        },
+        "persisted_probe_ids": ["a", "b"],
+        "persisted_probe_types": ["health", "schema"],
+    }
+
+
+def test_test_battery_command_human_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """test-battery command should render summary output in human mode."""
+
+    def fake_post(self: RhumbAPIClient, path: str, json: dict[str, Any]) -> dict[str, Any]:
+        assert path == "/tester-fleet/run"
+        assert json["service_slug"] == "stripe"
+        assert json["profile"] == "default"
+        assert json["persist_probes"] is True
+        return _sample_test_battery_payload()
+
+    monkeypatch.setattr(RhumbAPIClient, "post", fake_post)
+    result = runner.invoke(app, ["test-battery", "stripe"])
+
+    assert result.exit_code == 0
+    assert "Tester Fleet: stripe" in result.stdout
+    assert "Status: ok" in result.stdout
+    assert "Failures: 0" in result.stdout
+    assert "Persisted Probes: health, schema" in result.stdout
+
+
+def test_test_battery_command_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """test-battery command should support --json passthrough."""
+
+    def fake_post(self: RhumbAPIClient, path: str, json: dict[str, Any]) -> dict[str, Any]:
+        assert path == "/tester-fleet/run"
+        assert json["service_slug"] == "stripe"
+        assert json["persist_probes"] is False
+        return _sample_test_battery_payload()
+
+    monkeypatch.setattr(RhumbAPIClient, "post", fake_post)
+    result = runner.invoke(app, ["test-battery", "stripe", "--no-persist-probes", "--json"])
+
+    assert result.exit_code == 0
+    assert '"service_slug": "stripe"' in result.stdout
+    assert '"persisted_probe_types": [' in result.stdout

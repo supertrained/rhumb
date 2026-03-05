@@ -327,6 +327,11 @@ class ProbeService:
             error_message=execution.error_message,
         )
 
+    @property
+    def repository(self) -> ProbeRepository | None:
+        """Expose the configured repository for bridge integrations."""
+        return self._repository
+
     def fetch_latest_probe(
         self, service_slug: str, probe_type: str | None = None
     ) -> StoredProbe | None:
