@@ -171,3 +171,91 @@ def test_score_command_dimension_breakdown(monkeypatch: pytest.MonkeyPatch) -> N
     assert "Dimensions" in result.stdout
     assert "I1: 9.5" in result.stdout
     assert "O3: 8.0" in result.stdout
+
+
+def _sample_find_payload() -> dict[str, Any]:
+    return {
+        "data": {
+            "query": "payment routing",
+            "results": [
+                {
+                    "service_slug": "stripe",
+                    "name": "Stripe",
+                    "aggregate_recommendation_score": 8.9,
+                    "tier": "L4",
+                    "confidence": 0.95,
+                    "why": "Best default for payment flows with strong reliability.",
+                },
+                {
+                    "service_slug": "resend",
+                    "name": "Resend",
+                    "score": 8.1,
+                    "tier": "L3",
+                    "confidence": 0.89,
+                    "reason": "Strong API ergonomics for transactional notifications.",
+                },
+            ],
+        },
+        "error": None,
+    }
+
+
+def test_find_command_human_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Find command should render ranked service matches in human mode."""
+
+    def fake_get(
+        self: RhumbAPIClient,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/search"
+        assert params == {"q": "payment routing", "limit": 10}
+        return _sample_find_payload()
+
+    monkeypatch.setattr(RhumbAPIClient, "get", fake_get)
+    result = runner.invoke(app, ["find", "payment routing"])
+
+    assert result.exit_code == 0
+    assert 'Find: "payment routing"' in result.stdout
+    assert "Results: 2" in result.stdout
+    assert "1. Stripe (stripe)" in result.stdout
+    assert "2. Resend (resend)" in result.stdout
+    assert "Why: Best default for payment flows" in result.stdout
+
+
+def test_find_command_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Find command should support --json mode."""
+
+    def fake_get(
+        self: RhumbAPIClient,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        assert path == "/search"
+        assert params == {"q": "payment routing", "limit": 5}
+        return _sample_find_payload()
+
+    monkeypatch.setattr(RhumbAPIClient, "get", fake_get)
+    result = runner.invoke(app, ["find", "payment routing", "--limit", "5", "--json"])
+
+    assert result.exit_code == 0
+    assert '"query": "payment routing"' in result.stdout
+    assert '"service_slug": "stripe"' in result.stdout
+
+
+def test_find_command_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Find command should report an explicit empty state when no matches exist."""
+
+    def fake_get(
+        self: RhumbAPIClient,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return {"data": {"query": "unknown", "results": []}, "error": None}
+
+    monkeypatch.setattr(RhumbAPIClient, "get", fake_get)
+    result = runner.invoke(app, ["find", "unknown"])
+
+    assert result.exit_code == 0
+    assert "Results: 0" in result.stdout
+    assert "No matching services found." in result.stdout

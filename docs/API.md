@@ -85,6 +85,35 @@ In v0.2, `score` remains a backward-compatible alias of `aggregate_recommendatio
 
 Fetch latest persisted score for a service. For the initial calibration set (`stripe`, `hubspot`, `sendgrid`, `resend`, `github`), this route can bootstrap from hand-scored fixtures when no DB row exists yet.
 
+## Search Endpoint
+
+### `GET /v1/search?q=<query>&limit=<n>`
+
+Search indexed services by free-text query. Used by `rhumb find <query>`.
+
+**Response body**
+
+```json
+{
+  "data": {
+    "query": "payment routing",
+    "results": [
+      {
+        "service_slug": "stripe",
+        "name": "Stripe",
+        "aggregate_recommendation_score": 8.9,
+        "tier": "L4",
+        "confidence": 0.95,
+        "why": "Best default for payment flows with strong reliability."
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+`limit` is optional and can be used by clients to cap result count.
+
 ## Probe Endpoints
 
 ### `POST /v1/probes/run`
