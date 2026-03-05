@@ -1,0 +1,15 @@
+version: 1
+service_slug: stripe
+profile: default
+steps:
+  - id: health
+    kind: http
+    method: GET
+    url: https://api.stripe.com/v1/charges?limit=1
+    expect_status: [200]
+    timeout_ms: 8000
+    retries: 1
+  - id: schema
+    kind: schema_capture
+    source_step: health
+    fingerprint: semantic_v2
