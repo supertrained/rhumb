@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from uuid import uuid4
+
 import pytest
 
-from db.repository import InMemoryProbeRepository
+from db.repository import InMemoryProbeRepository, StoredProbe
 from services.probe_scheduler import ProbeScheduler, ProbeSpec
 from services.probes import ProbeService
 
@@ -147,6 +150,9 @@ def test_scheduler_entrypoint_runs_seed_specs(client, monkeypatch: pytest.Monkey
     assert len(body["probe_ids"]) == 2
     assert body["by_service"]["stripe"] == "ok"
     assert body["by_service"]["openai"] == "ok"
+    assert body["cadence_by_service"]["stripe"]["base_interval_minutes"] == 30
+    assert body["cadence_by_service"]["stripe"]["next_interval_minutes"] >= 5
+    assert body["cadence_by_service"]["stripe"]["next_interval_minutes"] <= 1440
 
     latest_response = client.get("/v1/services/stripe/probes/latest")
     assert latest_response.status_code == 200
@@ -178,3 +184,99 @@ def test_scheduler_entrypoint_supports_dry_run(client, monkeypatch: pytest.Monke
     assert body["succeeded"] == 0
     assert body["failed"] == 0
     assert body["probe_ids"] == []
+    assert body["cadence_by_service"]["stripe"]["base_interval_minutes"] == 30
+
+
+def test_scheduler_guardrails_apply_interval_floor_and_failure_backoff(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cadence policy should clamp base interval and back off on repeated failures."""
+    from routes import probes as probe_routes
+
+    class StubProbeService:
+        async def run_probe(
+            self,
+            service_slug: str,
+            probe_type: str = "health",
+            target_url: str | None = None,
+            payload: dict | None = None,
+            trigger_source: str = "internal",
+            sample_count: int = 1,
+        ) -> StoredProbe:
+            return StoredProbe(
+                id=uuid4(),
+                run_id=uuid4(),
+                service_slug=service_slug,
+                probe_type=probe_type,
+                status="error",
+                latency_ms=180,
+                response_code=500,
+                response_schema_hash=None,
+                raw_response={"error": "boom"},
+                probe_metadata={"latency_distribution_ms": {"p50": 180, "p95": 220, "p99": 260}},
+                runner_version="scaffold-v1",
+                trigger_source=trigger_source,
+                probed_at=datetime.now(timezone.utc),
+            )
+
+        def list_recent_probes(
+            self,
+            service_slug: str,
+            probe_type: str | None = None,
+            limit: int = 10,
+        ) -> list[StoredProbe]:
+            now = datetime.now(timezone.utc)
+            return [
+                StoredProbe(
+                    id=uuid4(),
+                    run_id=uuid4(),
+                    service_slug=service_slug,
+                    probe_type=probe_type or "health",
+                    status="error",
+                    latency_ms=250,
+                    response_code=500,
+                    response_schema_hash=None,
+                    raw_response={"error": "recent-failure-1"},
+                    probe_metadata=None,
+                    runner_version="scaffold-v1",
+                    trigger_source="scheduler",
+                    probed_at=now,
+                ),
+                StoredProbe(
+                    id=uuid4(),
+                    run_id=uuid4(),
+                    service_slug=service_slug,
+                    probe_type=probe_type or "health",
+                    status="error",
+                    latency_ms=240,
+                    response_code=500,
+                    response_schema_hash=None,
+                    raw_response={"error": "recent-failure-2"},
+                    probe_metadata=None,
+                    runner_version="scaffold-v1",
+                    trigger_source="scheduler",
+                    probed_at=now,
+                ),
+            ]
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    scheduler = ProbeScheduler(
+        probe_service=StubProbeService(),
+        specs=[ProbeSpec(service_slug="stripe")],
+    )
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", lambda: scheduler)
+
+    response = client.post(
+        "/v1/probes/schedule/run",
+        json={"service_slugs": ["stripe"], "base_interval_minutes": 1},
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    cadence = body["cadence_by_service"]["stripe"]
+    assert cadence["base_interval_minutes"] == 5
+    assert cadence["consecutive_failures"] == 2
+    assert cadence["next_interval_minutes"] == 20

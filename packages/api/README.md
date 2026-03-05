@@ -75,8 +75,10 @@ curl -X POST http://localhost:8000/v1/probes/schedule/run \
 ```bash
 curl -X POST http://localhost:8000/v1/probes/schedule/run \
   -H "Content-Type: application/json" \
-  -d '{"service_slugs": ["stripe", "openai", "hubspot"], "sample_count": 3}'
+  -d '{"service_slugs": ["stripe", "openai", "hubspot"], "sample_count": 3, "base_interval_minutes": 30}'
 ```
+
+Batch responses now include `cadence_by_service` with guardrails (`base_interval_minutes`, `next_interval_minutes`, `consecutive_failures`, `jitter_seconds`).
 
 ### Fetch latest probe for a service
 
@@ -85,6 +87,14 @@ curl "http://localhost:8000/v1/services/stripe/probes/latest?probe_type=health"
 ```
 
 Schema probes now persist a semantic shape fingerprint (`schema_fingerprint_v2`) derived from nested response structure, not only top-level keys.
+
+### Fetch drift alerts
+
+```bash
+curl "http://localhost:8000/v1/alerts?limit=20"
+```
+
+Current primitive alerts: `schema_drift` and `latency_regression`.
 
 ### Cron wiring example
 

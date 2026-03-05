@@ -334,3 +334,18 @@ class ProbeService:
         if self._repository is None:
             return None
         return self._repository.fetch_latest_probe(service_slug=service_slug, probe_type=probe_type)
+
+    def list_recent_probes(
+        self,
+        service_slug: str,
+        probe_type: str | None = None,
+        limit: int = 10,
+    ) -> list[StoredProbe]:
+        """Fetch a descending list of recent probes for a service."""
+        if self._repository is None:
+            return []
+        return self._repository.list_recent_probes(
+            service_slug=service_slug,
+            probe_type=probe_type,
+            limit=limit,
+        )

@@ -142,12 +142,30 @@ Example:
 {
   "service_slugs": ["stripe", "openai"],
   "sample_count": 3,
+  "base_interval_minutes": 30,
   "dry_run": false
 }
 ```
+
+Response includes `cadence_by_service` guardrails with:
+- `base_interval_minutes` (clamped to a minimum of 5 and maximum of 1440)
+- `next_interval_minutes` (failure-aware exponential backoff)
+- `consecutive_failures`
+- `jitter_seconds` (deterministic per service)
 
 ### `GET /v1/services/{slug}/probes/latest`
 
 Fetch the latest persisted probe result for a service (optional `probe_type` query param).
 
 For `probe_type=schema`, metadata includes `schema_signature_version=v2` and `schema_fingerprint_v2`, which are derived from nested response shape descriptors (semantic drift guardrail beyond top-level key lists).
+
+### `GET /v1/alerts`
+
+Fetch probe-derived drift alerts.
+
+Current primitive alert types:
+- `schema_drift` — latest schema fingerprint differs from previous schema probe
+- `latency_regression` — p95 health latency regressed beyond threshold versus previous probe
+
+Optional query params:
+- `limit` (default 50, max 100)
