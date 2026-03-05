@@ -9,7 +9,12 @@ vi.mock("../lib/api", () => ({
     accessReadinessScore: 8.4,
     confidence: 0.98,
     tier: "L4",
-    explanation: "Reliable payment API"
+    tierLabel: "Agent Native",
+    explanation: "Reliable payment API",
+    calculatedAt: "2026-03-05T23:00:00Z",
+    evidenceFreshness: "12 minutes ago",
+    activeFailures: [],
+    alternatives: []
   }))
 }));
 

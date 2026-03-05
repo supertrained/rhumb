@@ -65,7 +65,24 @@ describe("web adapters", () => {
       access_readiness_score: 8.4,
       confidence: 0.98,
       tier: "L4",
-      explanation: "Reliable payment API"
+      tier_label: "Agent Native",
+      explanation: "Reliable payment API",
+      calculated_at: "2026-03-05T23:00:00Z",
+      dimension_snapshot: {
+        probe_freshness: "12 minutes ago",
+        active_failures: [
+          {
+            id: "AF-oauth-redirect",
+            summary: "Token refresh requires browser redirect in some flows"
+          }
+        ],
+        alternatives: [
+          {
+            service: "square",
+            score: 7.4
+          }
+        ]
+      }
     };
 
     const parsed = parseServiceScoreResponse(payload);
@@ -77,7 +94,22 @@ describe("web adapters", () => {
       accessReadinessScore: 8.4,
       confidence: 0.98,
       tier: "L4",
-      explanation: "Reliable payment API"
+      tierLabel: "Agent Native",
+      explanation: "Reliable payment API",
+      calculatedAt: "2026-03-05T23:00:00Z",
+      evidenceFreshness: "12 minutes ago",
+      activeFailures: [
+        {
+          id: "AF-oauth-redirect",
+          summary: "Token refresh requires browser redirect in some flows"
+        }
+      ],
+      alternatives: [
+        {
+          serviceSlug: "square",
+          score: 7.4
+        }
+      ]
     });
   });
 
