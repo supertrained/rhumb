@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getServiceScore } from "../../../lib/api";
@@ -21,6 +22,74 @@ function freshnessLabel(score: ServiceScoreViewModel): string {
   return "Freshness pending";
 }
 
+function buildServiceJsonLd(score: ServiceScoreViewModel): Record<string, unknown> {
+  const additionalProperty = [
+    score.executionScore !== null
+      ? {
+          "@type": "PropertyValue",
+          name: "execution_score",
+          value: score.executionScore.toFixed(1)
+        }
+      : null,
+    score.accessReadinessScore !== null
+      ? {
+          "@type": "PropertyValue",
+          name: "access_readiness_score",
+          value: score.accessReadinessScore.toFixed(1)
+        }
+      : null,
+    score.tierLabel ?? score.tier
+      ? {
+          "@type": "PropertyValue",
+          name: "tier",
+          value: score.tierLabel ?? score.tier ?? "Pending"
+        }
+      : null,
+    score.confidence !== null
+      ? {
+          "@type": "PropertyValue",
+          name: "confidence",
+          value: score.confidence.toFixed(2)
+        }
+      : null
+  ].filter((property): property is { "@type": "PropertyValue"; name: string; value: string } => property !== null);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: score.serviceSlug,
+    url: `/service/${score.serviceSlug}`,
+    description: score.explanation ?? "AN Score profile from Rhumb",
+    ...(score.aggregateRecommendationScore !== null
+      ? {
+          aggregateRating: {
+            "@type": "Rating",
+            ratingValue: score.aggregateRecommendationScore.toFixed(1),
+            bestRating: "10"
+          }
+        }
+      : {}),
+    ...(additionalProperty.length > 0 ? { additionalProperty } : {})
+  };
+}
+
+function renderJsonLd(payload: Record<string, unknown>): JSX.Element {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(payload) }} />;
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  return {
+    title: `${slug} service profile | Rhumb`,
+    description: `Execution and access-readiness profile for ${slug} with live AN Score evidence.`
+  };
+}
+
 export default async function ServicePage({
   params
 }: {
@@ -33,8 +102,11 @@ export default async function ServicePage({
     notFound();
   }
 
+  const structuredData = buildServiceJsonLd(score);
+
   return (
     <section>
+      {renderJsonLd(structuredData)}
       <h1>{score.serviceSlug}</h1>
       <p style={{ marginTop: 8, color: "#475569" }}>Freshness: {freshnessLabel(score)}</p>
 

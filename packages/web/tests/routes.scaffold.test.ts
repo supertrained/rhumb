@@ -21,7 +21,7 @@ vi.mock("../lib/api", () => ({
 describe("round 7 slice A route scaffold", () => {
   it("renders home route component", async () => {
     const module = await import("../app/page");
-    const node = module.default();
+    const node = await module.default();
 
     expect(node).toBeTruthy();
   });

@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { getLeaderboard } from "../../../lib/api";
 import type { LeaderboardItem } from "../../../lib/types";
@@ -43,6 +44,73 @@ function freshnessLabel(item: LeaderboardItem): string {
   return "Freshness pending";
 }
 
+function buildLeaderboardJsonLd(category: string, items: LeaderboardItem[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${category} leaderboard`,
+    itemListOrder: "https://schema.org/ItemListOrderAscending",
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => {
+      const additionalProperty = [
+        item.aggregateRecommendationScore !== null
+          ? {
+              "@type": "PropertyValue",
+              name: "aggregate_recommendation_score",
+              value: item.aggregateRecommendationScore.toFixed(1)
+            }
+          : null,
+        item.executionScore !== null
+          ? {
+              "@type": "PropertyValue",
+              name: "execution_score",
+              value: item.executionScore.toFixed(1)
+            }
+          : null,
+        item.accessReadinessScore !== null
+          ? {
+              "@type": "PropertyValue",
+              name: "access_readiness_score",
+              value: item.accessReadinessScore.toFixed(1)
+            }
+          : null
+      ].filter(
+        (property): property is { "@type": "PropertyValue"; name: string; value: string } =>
+          property !== null
+      );
+
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "SoftwareApplication",
+          name: item.name,
+          url: `/service/${item.serviceSlug}`,
+          identifier: item.serviceSlug,
+          ...(additionalProperty.length > 0 ? { additionalProperty } : {})
+        }
+      };
+    })
+  };
+}
+
+function renderJsonLd(payload: Record<string, unknown>): JSX.Element {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(payload) }} />;
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ category: string }>;
+}): Promise<Metadata> {
+  const { category } = await params;
+
+  return {
+    title: `${category} leaderboard | Rhumb`,
+    description: `Top agent-native services in ${category} ranked by aggregate, execution, and access-readiness scores.`
+  };
+}
+
 export default async function LeaderboardPage({
   params,
   searchParams
@@ -57,9 +125,14 @@ export default async function LeaderboardPage({
   const limit = parseLimit(query.limit);
   const leaderboard = await getLeaderboard(category, { limit });
 
+  const resolvedCategory = leaderboard.error ? category : leaderboard.category;
+  const visibleItems = leaderboard.error ? [] : leaderboard.items.slice(0, limit);
+  const structuredData = buildLeaderboardJsonLd(resolvedCategory, visibleItems);
+
   if (leaderboard.error) {
     return (
       <section>
+        {renderJsonLd(structuredData)}
         <h1>{category} leaderboard</h1>
         <p>We could not load leaderboard data right now.</p>
         <p>{leaderboard.error}</p>
@@ -67,10 +140,10 @@ export default async function LeaderboardPage({
     );
   }
 
-  const visibleItems = leaderboard.items.slice(0, limit);
   if (visibleItems.length === 0) {
     return (
       <section>
+        {renderJsonLd(structuredData)}
         <h1>{leaderboard.category} leaderboard</h1>
         <p>No ranked services yet for this category.</p>
         <p>Try another category with ?category=&lt;name&gt;.</p>
@@ -80,6 +153,7 @@ export default async function LeaderboardPage({
 
   return (
     <section>
+      {renderJsonLd(structuredData)}
       <h1>{leaderboard.category} leaderboard</h1>
       <p>
         Showing top {visibleItems.length} result{visibleItems.length === 1 ? "" : "s"}.

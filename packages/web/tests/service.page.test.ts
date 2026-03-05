@@ -29,6 +29,14 @@ describe("service page", () => {
     });
   });
 
+  it("generates baseline metadata", async () => {
+    const module = await import("../app/service/[slug]/page");
+    const metadata = await module.generateMetadata({ params: Promise.resolve({ slug: "stripe" }) });
+
+    expect(metadata.title).toBe("stripe service profile | Rhumb");
+    expect(metadata.description).toContain("stripe");
+  });
+
   it("renders score breakdown, explanation, failures, and alternatives", async () => {
     getServiceScoreMock.mockResolvedValue({
       serviceSlug: "stripe",
@@ -65,6 +73,9 @@ describe("service page", () => {
     expect(html).toContain("Token refresh requires browser redirect in some flows");
     expect(html).toContain("href=\"/service/square\"");
     expect(html).toContain("square</a> (7.4)");
+    expect(html).toContain("application/ld+json");
+    expect(html).toContain('"@type":"SoftwareApplication"');
+    expect(html).toContain('"name":"stripe"');
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 
