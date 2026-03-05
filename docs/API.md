@@ -33,7 +33,10 @@ Calculate an AN Score from explicit dimension inputs and persist it to `an_score
   "evidence_count": 72,
   "freshness": "12 minutes ago",
   "probe_types": ["health", "auth", "schema", "load", "idempotency"],
-  "production_telemetry": true
+  "production_telemetry": true,
+  "probe_freshness": "18 minutes ago",
+  "probe_latency_distribution_ms": {"p50": 120, "p95": 340, "p99": 620, "samples": 9},
+  "hydrate_probe_telemetry": true
 }
 ```
 
@@ -62,6 +65,46 @@ Calculate an AN Score from explicit dimension inputs and persist it to `an_score
 }
 ```
 
+`hydrate_probe_telemetry` is optional. When true, the API auto-hydrates `probe_freshness` and `probe_latency_distribution_ms` from the latest stored probe result when those fields are omitted.
+
 ### `GET /v1/services/{slug}/score`
 
 Fetch latest persisted score for a service. For the initial calibration set (`stripe`, `hubspot`, `sendgrid`, `resend`, `github`), this route can bootstrap from hand-scored fixtures when no DB row exists yet.
+
+## Probe Endpoints
+
+### `POST /v1/probes/run`
+
+Run and persist one internal probe.
+
+Example:
+
+```json
+{
+  "service_slug": "stripe",
+  "probe_type": "schema",
+  "target_url": "https://status.stripe.com/api/v2/status.json",
+  "sample_count": 3,
+  "trigger_source": "internal"
+}
+```
+
+### `POST /v1/probes/schedule/run`
+
+Execute a batch run from seed specs (Stripe/OpenAI/HubSpot).
+
+Example:
+
+```json
+{
+  "service_slugs": ["stripe", "openai"],
+  "sample_count": 3,
+  "dry_run": false
+}
+```
+
+### `GET /v1/services/{slug}/probes/latest`
+
+Fetch the latest persisted probe result for a service (optional `probe_type` query param).
+
+For `probe_type=schema`, metadata includes `schema_signature_version=v2` and `schema_fingerprint_v2`, which are derived from nested response shape descriptors (semantic drift guardrail beyond top-level key lists).
