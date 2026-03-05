@@ -19,7 +19,9 @@ from db.repository import (
     StoredScore,
 )
 from schemas.score import ANScoreSchema, ScoreRequestSchema
+from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
+from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
 
 router = APIRouter()
@@ -368,6 +370,32 @@ async def evaluate_stack() -> dict:
 
 
 @router.get("/alerts")
-async def get_alerts() -> dict:
-    """Fetch schema/score change alerts for authenticated users."""
-    return {"data": {"alerts": []}, "error": None}
+async def get_alerts(limit: int = 50) -> dict:
+    """Fetch schema/score change alerts derived from probe telemetry."""
+    safe_limit = max(1, min(limit, 100))
+    service_slugs = [spec.service_slug for spec in DEFAULT_PROBE_SPECS]
+    alert_service = ProbeAlertService(
+        repository=get_probe_repository(),
+        watched_services=service_slugs,
+    )
+    alerts = alert_service.generate_alerts(limit=safe_limit)
+
+    return {
+        "data": {
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "type": alert.type,
+                    "severity": alert.severity,
+                    "service_slug": alert.service_slug,
+                    "probe_type": alert.probe_type,
+                    "title": alert.title,
+                    "summary": alert.summary,
+                    "details": alert.details,
+                    "detected_at": alert.detected_at,
+                }
+                for alert in alerts
+            ]
+        },
+        "error": None,
+    }

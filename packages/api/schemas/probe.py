@@ -23,6 +23,7 @@ class ProbeBatchRunRequestSchema(BaseModel):
 
     service_slugs: list[str] | None = None
     sample_count: int = Field(default=3, ge=1, le=20)
+    base_interval_minutes: int = Field(default=30, ge=1, le=1440)
     dry_run: bool = False
 
 
@@ -36,6 +37,7 @@ class ProbeBatchRunResponseSchema(BaseModel):
     failed: int
     probe_ids: list[str]
     by_service: dict[str, str]
+    cadence_by_service: dict[str, dict[str, int]]
 
 
 class ProbeResultSchema(BaseModel):

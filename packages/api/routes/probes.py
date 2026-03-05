@@ -102,6 +102,10 @@ async def run_scheduled_probe_batch(
     selected = scheduler.list_specs(service_slugs=payload.service_slugs)
 
     if payload.dry_run:
+        cadence_preview = scheduler.preview_cadence(
+            selected_specs=selected,
+            base_interval_minutes=payload.base_interval_minutes,
+        )
         return ProbeBatchRunResponseSchema(
             total_specs=len(scheduler.list_specs()),
             selected_services=[spec.service_slug for spec in selected],
@@ -110,11 +114,13 @@ async def run_scheduled_probe_batch(
             failed=0,
             probe_ids=[],
             by_service={},
+            cadence_by_service=cadence_preview,
         )
 
     summary = await scheduler.run_once(
         service_slugs=payload.service_slugs,
         sample_count=payload.sample_count,
+        base_interval_minutes=payload.base_interval_minutes,
     )
 
     return ProbeBatchRunResponseSchema(
@@ -125,6 +131,7 @@ async def run_scheduled_probe_batch(
         failed=summary.failed,
         probe_ids=summary.probe_ids,
         by_service=summary.by_service,
+        cadence_by_service=summary.cadence_by_service,
     )
 
 

@@ -89,6 +89,13 @@ class ProbeRepository(Protocol):
         self, service_slug: str, probe_type: str | None = None
     ) -> StoredProbe | None: ...
 
+    def list_recent_probes(
+        self,
+        service_slug: str,
+        probe_type: str | None = None,
+        limit: int = 10,
+    ) -> list[StoredProbe]: ...
+
 
 @dataclass(slots=True)
 class InMemoryScoreRepository:
@@ -188,6 +195,20 @@ class InMemoryProbeRepository:
             return None
         min_utc = datetime.min.replace(tzinfo=timezone.utc)
         return sorted(matches, key=lambda row: row.probed_at or min_utc)[-1]
+
+    def list_recent_probes(
+        self,
+        service_slug: str,
+        probe_type: str | None = None,
+        limit: int = 10,
+    ) -> list[StoredProbe]:
+        matches = [row for row in self._rows if row.service_slug == service_slug]
+        if probe_type:
+            matches = [row for row in matches if row.probe_type == probe_type]
+
+        min_utc = datetime.min.replace(tzinfo=timezone.utc)
+        ordered = sorted(matches, key=lambda row: row.probed_at or min_utc, reverse=True)
+        return ordered[: max(1, limit)]
 
 
 class SQLAlchemyScoreRepository:
@@ -471,3 +492,35 @@ class SQLAlchemyProbeRepository:
                 runner_version=runner_version,
                 trigger_source=trigger_source,
             )
+
+    def list_recent_probes(
+        self,
+        service_slug: str,
+        probe_type: str | None = None,
+        limit: int = 10,
+    ) -> list[StoredProbe]:
+        if not self._initialized:
+            self.create_tables()
+
+        with self._sessionmaker() as session:
+            stmt = (
+                select(ProbeResult, Service.slug, ProbeRun.runner_version, ProbeRun.trigger_source)
+                .join(Service, Service.id == ProbeResult.service_id)
+                .outerjoin(ProbeRun, ProbeRun.id == ProbeResult.run_id)
+                .where(Service.slug == service_slug)
+                .order_by(ProbeResult.probed_at.desc())
+                .limit(max(1, limit))
+            )
+            if probe_type:
+                stmt = stmt.where(ProbeResult.probe_type == probe_type)
+
+            rows = session.execute(stmt).all()
+            return [
+                self._to_stored_probe(
+                    probe_record,
+                    service_slug=slug,
+                    runner_version=runner_version,
+                    trigger_source=trigger_source,
+                )
+                for probe_record, slug, runner_version, trigger_source in rows
+            ]
