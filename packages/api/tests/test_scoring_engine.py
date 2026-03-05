@@ -316,6 +316,56 @@ def test_score_endpoint_supports_access_dimensions_contract(
     assert body["score"] == body["aggregate_recommendation_score"]
 
 
+def test_get_service_score_fixture_fallback_exposes_dual_scores(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/services/{slug}/score should return v0.2 fields from fixture fallback."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    response = client.get("/v1/services/stripe/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["an_score_version"] == "0.2"
+    assert body["access_readiness_score"] is not None
+    assert body["score"] == body["aggregate_recommendation_score"]
+
+
+def test_compare_route_exposes_dual_score_fields(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/compare should include dual-score fields for each compared service."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    response = client.get("/v1/compare?services=stripe,resend")
+    assert response.status_code == 200
+
+    payload = response.json()["data"]["comparison"]
+    assert len(payload) == 2
+
+    for item in payload:
+        assert item["an_score_version"] == "0.2"
+        assert item["score"] == item["aggregate_recommendation_score"]
+        assert item["execution_score"] >= 0.0
+        assert item["access_readiness_score"] is not None
+
+
 def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
     client,
     monkeypatch: pytest.MonkeyPatch,
