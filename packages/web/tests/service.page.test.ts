@@ -1,0 +1,77 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { getServiceScoreMock, notFoundMock } = vi.hoisted(() => ({
+  getServiceScoreMock: vi.fn(),
+  notFoundMock: vi.fn()
+}));
+
+vi.mock("../lib/api", () => ({
+  getServiceScore: getServiceScoreMock
+}));
+
+vi.mock("next/navigation", () => ({
+  notFound: notFoundMock
+}));
+
+async function renderServicePage(slug = "stripe"): Promise<string> {
+  const module = await import("../app/service/[slug]/page");
+  const page = await module.default({ params: Promise.resolve({ slug }) });
+  return renderToStaticMarkup(page);
+}
+
+describe("service page", () => {
+  beforeEach(() => {
+    getServiceScoreMock.mockReset();
+    notFoundMock.mockReset();
+    notFoundMock.mockImplementation(() => {
+      throw new Error("NEXT_NOT_FOUND");
+    });
+  });
+
+  it("renders score breakdown, explanation, failures, and alternatives", async () => {
+    getServiceScoreMock.mockResolvedValue({
+      serviceSlug: "stripe",
+      aggregateRecommendationScore: 8.9,
+      executionScore: 9.1,
+      accessReadinessScore: 8.4,
+      confidence: 0.98,
+      tier: "L4",
+      tierLabel: "Agent Native",
+      explanation: "Reliable payment API",
+      calculatedAt: "2026-03-05T23:00:00Z",
+      evidenceFreshness: "12 minutes ago",
+      activeFailures: [
+        {
+          id: "AF-oauth-redirect",
+          summary: "Token refresh requires browser redirect in some flows"
+        }
+      ],
+      alternatives: [
+        {
+          serviceSlug: "square",
+          score: 7.4
+        }
+      ]
+    });
+
+    const html = await renderServicePage();
+
+    expect(html).toContain("Aggregate 8.9");
+    expect(html).toContain("Execution 9.1");
+    expect(html).toContain("Access 8.4");
+    expect(html).toContain("Tier: <strong>Agent Native</strong> · Confidence 0.98");
+    expect(html).toContain("Reliable payment API");
+    expect(html).toContain("Token refresh requires browser redirect in some flows");
+    expect(html).toContain("href=\"/service/square\"");
+    expect(html).toContain("square</a> (7.4)");
+    expect(notFoundMock).not.toHaveBeenCalled();
+  });
+
+  it("maps missing services to not-found", async () => {
+    getServiceScoreMock.mockResolvedValue(null);
+
+    await expect(renderServicePage("missing-service")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFoundMock).toHaveBeenCalledTimes(1);
+  });
+});

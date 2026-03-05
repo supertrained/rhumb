@@ -1,4 +1,11 @@
-import type { LeaderboardItem, LeaderboardViewModel, Service, ServiceScoreViewModel } from "./types";
+import type {
+  LeaderboardItem,
+  LeaderboardViewModel,
+  Service,
+  ServiceAlternative,
+  ServiceFailureMode,
+  ServiceScoreViewModel
+} from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -77,6 +84,38 @@ export function parseLeaderboardResponse(payload: unknown): LeaderboardViewModel
   return { category, items, error: null };
 }
 
+function parseFailureMode(item: Record<string, unknown>): ServiceFailureMode | null {
+  const summary = asString(item.summary);
+  if (!summary) {
+    return null;
+  }
+
+  return {
+    id: asString(item.id),
+    summary
+  };
+}
+
+function parseAlternative(item: Record<string, unknown>): ServiceAlternative | null {
+  const serviceSlug = asString(item.service) ?? asString(item.service_slug);
+  if (!serviceSlug) {
+    return null;
+  }
+
+  return {
+    serviceSlug,
+    score: asNumber(item.score)
+  };
+}
+
+function parseEvidenceFreshness(snapshot: Record<string, unknown>): string | null {
+  return (
+    asString(snapshot.probe_freshness) ??
+    asString(snapshot.freshness) ??
+    asString(snapshot.evidence_freshness)
+  );
+}
+
 export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewModel | null {
   if (!isRecord(payload)) {
     return null;
@@ -87,6 +126,14 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     return null;
   }
 
+  const snapshot = isRecord(payload.dimension_snapshot) ? payload.dimension_snapshot : {};
+  const activeFailures = asItems(snapshot.active_failures)
+    .map((item) => parseFailureMode(item))
+    .filter((item): item is ServiceFailureMode => item !== null);
+  const alternatives = asItems(snapshot.alternatives)
+    .map((item) => parseAlternative(item))
+    .filter((item): item is ServiceAlternative => item !== null);
+
   return {
     serviceSlug,
     aggregateRecommendationScore: asNumber(payload.aggregate_recommendation_score),
@@ -94,6 +141,11 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     accessReadinessScore: asNumber(payload.access_readiness_score),
     confidence: asNumber(payload.confidence),
     tier: asString(payload.tier),
-    explanation: asString(payload.explanation)
+    tierLabel: asString(payload.tier_label),
+    explanation: asString(payload.explanation),
+    calculatedAt: asString(payload.calculated_at),
+    evidenceFreshness: parseEvidenceFreshness(snapshot) ?? asString(payload.probe_freshness),
+    activeFailures,
+    alternatives
   };
 }
