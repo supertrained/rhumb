@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from datetime import datetime
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -80,3 +81,36 @@ class BatteryDefinition(BaseModel):
             raise ValueError("Battery must include at least one http step")
 
         return self
+
+
+class BatteryStepResult(BaseModel):
+    """Serialized result payload for a single executed battery step."""
+
+    id: str
+    kind: str
+    status: Literal["ok", "error"]
+    latency_ms: int | None = None
+    response_code: int | None = None
+    error: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class BatteryRunSummary(BaseModel):
+    """Aggregate execution summary for a battery run."""
+
+    success_rate: float = Field(ge=0, le=1)
+    p95_latency_ms: int | None = None
+    failures: int = Field(ge=0)
+
+
+class BatteryRunArtifact(BaseModel):
+    """Top-level runner output contract for tester fleet batteries."""
+
+    service_slug: str
+    battery_version: int
+    profile: str
+    started_at: datetime
+    completed_at: datetime
+    status: Literal["ok", "error"]
+    steps: list[BatteryStepResult]
+    summary: BatteryRunSummary
