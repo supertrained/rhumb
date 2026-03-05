@@ -16,6 +16,10 @@ export type LeaderboardItem = {
   serviceSlug: string;
   name: string;
   aggregateRecommendationScore: number | null;
+  executionScore: number | null;
+  accessReadinessScore: number | null;
+  freshness: string | null;
+  calculatedAt: string | null;
   tier: string | null;
   confidence: number | null;
 };
@@ -23,6 +27,7 @@ export type LeaderboardItem = {
 export type LeaderboardViewModel = {
   category: string;
   items: LeaderboardItem[];
+  error: string | null;
 };
 
 export type ServiceScoreViewModel = {

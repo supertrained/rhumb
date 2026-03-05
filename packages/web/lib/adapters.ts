@@ -55,6 +55,10 @@ function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | 
     serviceSlug,
     name: asString(item.name) ?? serviceSlug,
     aggregateRecommendationScore: asNumber(item.aggregate_recommendation_score),
+    executionScore: asNumber(item.execution_score),
+    accessReadinessScore: asNumber(item.access_readiness_score),
+    freshness: asString(item.probe_freshness) ?? asString(item.freshness),
+    calculatedAt: asString(item.calculated_at),
     tier: asString(item.tier),
     confidence: asNumber(item.confidence)
   };
@@ -62,7 +66,7 @@ function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | 
 
 export function parseLeaderboardResponse(payload: unknown): LeaderboardViewModel {
   if (!isRecord(payload) || !isRecord(payload.data)) {
-    return { category: "unknown", items: [] };
+    return { category: "unknown", items: [], error: "Invalid leaderboard payload" };
   }
 
   const category = asString(payload.data.category) ?? "unknown";
@@ -70,7 +74,7 @@ export function parseLeaderboardResponse(payload: unknown): LeaderboardViewModel
     .map((item) => parseLeaderboardItem(item))
     .filter((item): item is LeaderboardItem => item !== null);
 
-  return { category, items };
+  return { category, items, error: null };
 }
 
 export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewModel | null {
