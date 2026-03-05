@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -13,6 +14,7 @@ import httpx
 import yaml
 from pydantic import ValidationError
 
+from db.repository import ProbeRepository, StoredProbe
 from schemas.tester_fleet import (
     BatteryDefinition,
     BatteryRunArtifact,
@@ -269,6 +271,173 @@ class BatteryRunner:
             steps=step_results,
             summary=summary,
         )
+
+
+class BatteryArtifactWriter:
+    """Persist battery run artifacts as JSON documents on disk."""
+
+    def __init__(self, output_dir: str | Path) -> None:
+        self._output_dir = Path(output_dir)
+
+    @staticmethod
+    def _filename_for(artifact: BatteryRunArtifact) -> str:
+        stamp = artifact.completed_at.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        return (
+            f"{artifact.service_slug}-{artifact.profile}-v{artifact.battery_version}-{stamp}.json"
+        )
+
+    def write(self, artifact: BatteryRunArtifact) -> Path:
+        """Write a battery artifact JSON file and return the absolute path."""
+        self._output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = self._output_dir / self._filename_for(artifact)
+        payload = artifact.model_dump(mode="json")
+        output_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        return output_path.resolve()
+
+
+class BatteryProbeBridge:
+    """Translate battery artifacts into probe-compatible metadata and records."""
+
+    def __init__(self, repository: ProbeRepository) -> None:
+        self._repository = repository
+
+    @staticmethod
+    def _http_steps(artifact: BatteryRunArtifact) -> list[BatteryStepResult]:
+        return [step for step in artifact.steps if step.kind == "http"]
+
+    @staticmethod
+    def _schema_step(artifact: BatteryRunArtifact) -> BatteryStepResult | None:
+        for step in artifact.steps:
+            if step.kind == "schema_capture":
+                return step
+        return None
+
+    @classmethod
+    def _latency_distribution(cls, artifact: BatteryRunArtifact) -> dict[str, int] | None:
+        latencies = [
+            step.latency_ms for step in cls._http_steps(artifact) if step.latency_ms is not None
+        ]
+        if not latencies:
+            return None
+
+        p50 = BatteryRunner._percentile(latencies, 50)
+        p95 = BatteryRunner._percentile(latencies, 95)
+        p99 = BatteryRunner._percentile(latencies, 99)
+
+        if p50 is None or p95 is None or p99 is None:
+            return None
+
+        return {
+            "p50": p50,
+            "p95": p95,
+            "p99": p99,
+            "samples": len(latencies),
+        }
+
+    @classmethod
+    def build_probe_metadata(
+        cls,
+        artifact: BatteryRunArtifact,
+        *,
+        artifact_path: str | Path | None = None,
+    ) -> dict[str, Any]:
+        """Build a probe metadata payload that nests tester-fleet details."""
+        step_status = {step.id: step.status for step in artifact.steps}
+        tester_fleet_metadata: dict[str, Any] = {
+            "battery_version": artifact.battery_version,
+            "profile": artifact.profile,
+            "status": artifact.status,
+            "summary": artifact.summary.model_dump(mode="json"),
+            "step_status": step_status,
+        }
+        if artifact_path is not None:
+            tester_fleet_metadata["artifact_path"] = str(Path(artifact_path))
+
+        metadata: dict[str, Any] = {
+            "runner": "tester-fleet-v0",
+            "service_slug": artifact.service_slug,
+            "tester_fleet": tester_fleet_metadata,
+        }
+
+        latency_distribution = cls._latency_distribution(artifact)
+        if latency_distribution is not None:
+            metadata["latency_distribution_ms"] = latency_distribution
+
+        schema_step = cls._schema_step(artifact)
+        schema_metadata = schema_step.metadata if schema_step else None
+        if isinstance(schema_metadata, dict):
+            schema_fingerprint = schema_metadata.get("schema_fingerprint_v2")
+            if isinstance(schema_fingerprint, str) and schema_fingerprint:
+                metadata["schema_signature_version"] = schema_metadata.get(
+                    "schema_signature_version", "v2"
+                )
+                metadata["schema_fingerprint_v2"] = schema_fingerprint
+                metadata["schema_descriptor"] = schema_metadata.get("schema_descriptor")
+
+        return metadata
+
+    def persist(
+        self,
+        artifact: BatteryRunArtifact,
+        *,
+        artifact_path: str | Path | None = None,
+        trigger_source: str = "tester_fleet",
+    ) -> list[StoredProbe]:
+        """Persist bridge probe records (`health` + optional `schema`) for an artifact."""
+        probe_metadata = self.build_probe_metadata(artifact, artifact_path=artifact_path)
+
+        persisted: list[StoredProbe] = []
+        http_steps = self._http_steps(artifact)
+        http_latencies = [step.latency_ms for step in http_steps if step.latency_ms is not None]
+        latest_http = http_steps[-1] if http_steps else None
+        health_error = next((step.error for step in http_steps if step.status != "ok"), None)
+
+        if latest_http is not None:
+            persisted.append(
+                self._repository.save_probe(
+                    service_slug=artifact.service_slug,
+                    probe_type="health",
+                    status="ok" if all(step.status == "ok" for step in http_steps) else "error",
+                    latency_ms=BatteryRunner._percentile(http_latencies, 50),
+                    response_code=latest_http.response_code,
+                    response_schema_hash=None,
+                    raw_response={
+                        "tester_fleet": {
+                            "artifact_status": artifact.status,
+                            "summary": artifact.summary.model_dump(mode="json"),
+                        }
+                    },
+                    probe_metadata=probe_metadata,
+                    trigger_source=trigger_source,
+                    runner_version="tester-fleet-v0",
+                    error_message=health_error,
+                )
+            )
+
+        schema_step = self._schema_step(artifact)
+        if schema_step is not None:
+            schema_metadata = schema_step.metadata or {}
+            schema_fingerprint = schema_metadata.get("schema_fingerprint_v2")
+            response_schema_hash = (
+                schema_fingerprint if isinstance(schema_fingerprint, str) else None
+            )
+            persisted.append(
+                self._repository.save_probe(
+                    service_slug=artifact.service_slug,
+                    probe_type="schema",
+                    status=schema_step.status,
+                    latency_ms=None,
+                    response_code=None,
+                    response_schema_hash=response_schema_hash,
+                    raw_response={"tester_fleet_schema_step": schema_step.model_dump(mode="json")},
+                    probe_metadata=probe_metadata,
+                    trigger_source=trigger_source,
+                    runner_version="tester-fleet-v0",
+                    error_message=schema_step.error,
+                )
+            )
+
+        return persisted
 
 
 def _validate_payload(payload: dict[str, Any]) -> BatteryDefinition:
