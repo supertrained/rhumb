@@ -112,6 +112,80 @@ def test_tier_assignment_boundaries(score: float, expected_tier: str) -> None:
     assert scoring.assign_tier(score) == expected_tier
 
 
+def test_v02_aggregate_uses_execution_access_70_30_split() -> None:
+    """Aggregate should blend execution and access readiness at 70/30 in v0.2."""
+    scoring = ScoringService()
+
+    aggregate = scoring.calculate_aggregate_recommendation(
+        execution_score_raw=8.9,
+        access_readiness_score_raw=6.5,
+    )
+
+    assert aggregate == 8.2
+
+
+def test_v02_tier_guardrail_caps_high_aggregate_when_access_is_low() -> None:
+    """Access readiness below 4.0 should cap tier to L2 even if aggregate suggests L3/L4."""
+    scoring = ScoringService()
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    result = asyncio.run(
+        scoring.score_service(
+            service_slug="stripe",
+            dimensions=dict(fixture["dimensions"]),
+            access_dimensions={
+                "A1": 3.0,
+                "A2": 3.0,
+                "A3": 3.0,
+                "A4": 3.0,
+                "A5": 3.0,
+                "A6": 3.0,
+            },
+            evidence=EvidenceInput(
+                evidence_count=fixture["evidence_count"],
+                freshness=fixture["freshness"],
+                probe_types=list(fixture["probe_types"]),
+                production_telemetry=bool(fixture["production_telemetry"]),
+            ),
+        )
+    )
+
+    assert result.aggregate_recommendation_score >= 6.0
+    assert result.access_readiness_score == 3.0
+    assert result.tier == "L2"
+
+
+def test_v02_tier_guardrail_caps_high_aggregate_when_execution_is_low() -> None:
+    """Execution below 6.0 should cap tier to L2 even when access score is high."""
+    scoring = ScoringService()
+
+    dimensions = {dimension: 5.0 for dimension in HAND_SCORED_FIXTURES["stripe"]["dimensions"]}
+    result = asyncio.run(
+        scoring.score_service(
+            service_slug="example",
+            dimensions=dimensions,
+            access_dimensions={
+                "A1": 9.0,
+                "A2": 9.0,
+                "A3": 9.0,
+                "A4": 9.0,
+                "A5": 9.0,
+                "A6": 9.0,
+            },
+            evidence=EvidenceInput(
+                evidence_count=25,
+                freshness="2 hours ago",
+                probe_types=["health", "schema"],
+                production_telemetry=False,
+            ),
+        )
+    )
+
+    assert result.execution_score == 5.0
+    assert result.aggregate_recommendation_score >= 6.0
+    assert result.tier == "L2"
+
+
 def test_explanation_is_one_sentence_and_within_limit() -> None:
     """Explanation generation should always produce concise one-sentence output."""
     scoring = ScoringService()

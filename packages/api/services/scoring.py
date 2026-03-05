@@ -14,23 +14,25 @@ from config import settings
 from db.repository import ScoreRepository, StoredScore
 
 DIMENSION_WEIGHTS: dict[str, float] = {
-    "I1": 0.10,
-    "I2": 0.08,
-    "I3": 0.10,
-    "I4": 0.06,
-    "I5": 0.05,
-    "I6": 0.04,
-    "I7": 0.05,
-    "F1": 0.08,
-    "F2": 0.07,
-    "F3": 0.06,
-    "F4": 0.06,
-    "F5": 0.05,
-    "F6": 0.05,
-    "F7": 0.05,
-    "O1": 0.04,
-    "O2": 0.03,
-    "O3": 0.03,
+    # v0.2 category rebalance: Infrastructure=0.44, Interface=0.40, Operational=0.16
+    "I1": 0.09166666666666667,
+    "I2": 0.07333333333333333,
+    "I3": 0.09166666666666667,
+    "I4": 0.055,
+    "I5": 0.04583333333333334,
+    "I6": 0.03666666666666667,
+    "I7": 0.04583333333333334,
+    "F1": 0.0761904761904762,
+    "F2": 0.06666666666666667,
+    "F3": 0.05714285714285715,
+    "F4": 0.05714285714285715,
+    "F5": 0.04761904761904762,
+    "F6": 0.04761904761904762,
+    "F7": 0.04761904761904762,
+    # v0.2 operational rebalance: O1=0.07, O2=0.04, O3=0.05
+    "O1": 0.07,
+    "O2": 0.04,
+    "O3": 0.05,
 }
 
 ACCESS_DIMENSION_WEIGHTS: dict[str, float] = {
@@ -338,6 +340,25 @@ class ScoringService:
             return "L3"
         return "L4"
 
+    def apply_v02_tier_guardrails(
+        self,
+        base_tier: str,
+        execution_score: float,
+        access_readiness_score: float | None,
+    ) -> str:
+        """Apply v0.2 tier caps for weak execution/access readiness."""
+        tier_order = {"L1": 1, "L2": 2, "L3": 3, "L4": 4}
+        l2_cap_required = execution_score < 6.0 or (
+            access_readiness_score is not None and access_readiness_score < 4.0
+        )
+
+        if not l2_cap_required:
+            return base_tier
+
+        if tier_order.get(base_tier, 1) > tier_order["L2"]:
+            return "L2"
+        return base_tier
+
     def _category_scores(self, dimensions: dict[str, float | None]) -> dict[str, float]:
         category_scores: dict[str, float] = {}
 
@@ -524,7 +545,12 @@ class ScoringService:
         )
 
         confidence = self.calculate_confidence(evidence)
-        tier = self.assign_tier(float(aggregate_recommendation_score))
+        base_tier = self.assign_tier(float(aggregate_recommendation_score))
+        tier = self.apply_v02_tier_guardrails(
+            base_tier=base_tier,
+            execution_score=execution_score,
+            access_readiness_score=access_readiness_score,
+        )
         explanation = await self.generate_explanation(service_slug, execution_score, dimensions)
         snapshot = self.build_dimension_snapshot(
             dimensions=dimensions,
