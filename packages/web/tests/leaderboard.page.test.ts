@@ -29,6 +29,14 @@ describe("leaderboard page", () => {
     getLeaderboardMock.mockReset();
   });
 
+  it("generates baseline metadata", async () => {
+    const module = await import("../app/leaderboard/[category]/page");
+    const metadata = await module.generateMetadata({ params: Promise.resolve({ category: "payments" }) });
+
+    expect(metadata.title).toBe("payments leaderboard | Rhumb");
+    expect(metadata.description).toContain("payments");
+  });
+
   it("renders ranked entries with execution/access badges and freshness", async () => {
     getLeaderboardMock.mockResolvedValue({
       category: "payments",
@@ -66,6 +74,9 @@ describe("leaderboard page", () => {
     expect(html).toContain("Execution 9.1");
     expect(html).toContain("Access 8.4");
     expect(html).toContain("Freshness: 12 minutes ago");
+    expect(html).toContain("application/ld+json");
+    expect(html).toContain('"@type":"ItemList"');
+    expect(html).toContain('"name":"payments leaderboard"');
     expect(html).not.toContain("Resend");
   });
 
@@ -79,7 +90,7 @@ describe("leaderboard page", () => {
     const html = await renderLeaderboardPage();
 
     expect(html).toMatchInlineSnapshot(
-      '"<section><h1>payments leaderboard</h1><p>No ranked services yet for this category.</p><p>Try another category with ?category=&lt;name&gt;.</p></section>"'
+      '"<section><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"ItemList\",\"name\":\"payments leaderboard\",\"itemListOrder\":\"https://schema.org/ItemListOrderAscending\",\"numberOfItems\":0,\"itemListElement\":[]}</script><h1>payments leaderboard</h1><p>No ranked services yet for this category.</p><p>Try another category with ?category=&lt;name&gt;.</p></section>"'
     );
   });
 
@@ -93,7 +104,7 @@ describe("leaderboard page", () => {
     const html = await renderLeaderboardPage();
 
     expect(html).toMatchInlineSnapshot(
-      '"<section><h1>payments leaderboard</h1><p>We could not load leaderboard data right now.</p><p>Unable to load leaderboard right now.</p></section>"'
+      '"<section><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"ItemList\",\"name\":\"payments leaderboard\",\"itemListOrder\":\"https://schema.org/ItemListOrderAscending\",\"numberOfItems\":0,\"itemListElement\":[]}</script><h1>payments leaderboard</h1><p>We could not load leaderboard data right now.</p><p>Unable to load leaderboard right now.</p></section>"'
     );
   });
 });
