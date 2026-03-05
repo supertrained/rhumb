@@ -6,6 +6,7 @@ router = APIRouter()
 
 
 @router.get("/search")
-async def search_services(q: str) -> dict:
+async def search_services(q: str, limit: int = 10) -> dict:
     """Semantic search endpoint."""
-    return {"data": {"query": q, "results": []}, "error": None}
+    bounded_limit = max(1, min(limit, 50))
+    return {"data": {"query": q, "limit": bounded_limit, "results": []}, "error": None}

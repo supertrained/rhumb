@@ -70,3 +70,4 @@ Work Unit 0.4 scaffold is complete and Work Unit 1.1 (AN score engine) is implem
 - Tier assignment (L1-L4)
 - `POST /v1/score` endpoint with persistence
 - `rhumb score <service>` CLI output with `--mode aggregate|execution|access`, `--json`, and `--dimensions`
+- `rhumb find <query>` CLI output with human-ranked results, `--limit`, and `--json`

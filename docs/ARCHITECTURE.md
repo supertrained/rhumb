@@ -47,3 +47,9 @@
 - category bars
 - optional dimension breakdown (`--dimensions`)
 - raw payload (`--json`)
+
+`rhumb find <query>` reads `GET /v1/search` and renders:
+- ranked service matches with score/tier/confidence
+- optional rationale lines (`why`/`reason`/`explanation`)
+- raw payload (`--json`)
+- result limit control (`--limit`)
