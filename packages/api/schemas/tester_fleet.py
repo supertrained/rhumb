@@ -114,3 +114,23 @@ class BatteryRunArtifact(BaseModel):
     status: Literal["ok", "error"]
     steps: list[BatteryStepResult]
     summary: BatteryRunSummary
+
+
+class BatteryRunRequestSchema(BaseModel):
+    """Input payload for POST /v1/tester-fleet/run."""
+
+    service_slug: str = Field(min_length=1)
+    profile: str = Field(default="default", min_length=1)
+    persist_probes: bool = True
+    trigger_source: str = Field(default="tester_fleet_cli", min_length=1)
+
+
+class BatteryRunResponseSchema(BaseModel):
+    """Serialized tester-fleet run + persistence envelope."""
+
+    service_slug: str
+    battery_file: str
+    artifact_path: str
+    run: BatteryRunArtifact
+    persisted_probe_ids: list[str]
+    persisted_probe_types: list[str]
