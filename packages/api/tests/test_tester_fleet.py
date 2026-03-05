@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 
+from db.repository import InMemoryProbeRepository
 from schemas.tester_fleet import HttpBatteryStep, SchemaCaptureBatteryStep
 from services.tester_fleet import (
+    BatteryArtifactWriter,
     BatteryParseError,
+    BatteryProbeBridge,
     BatteryRunner,
     load_battery_file,
     parse_battery_yaml,
@@ -276,3 +281,127 @@ steps:
     assert artifact.steps[1].status == "error"
     assert artifact.steps[1].error
     assert "not implemented" in artifact.steps[1].error
+
+
+def test_slice_c_artifact_writer_persists_json_artifact(tmp_path) -> None:
+    """Slice C writer should persist a deterministic JSON artifact to disk."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code=200, json={"ok": True, "service": "stripe"})
+
+    battery = parse_battery_yaml(
+        """
+version: 1
+service_slug: stripe
+profile: smoke
+steps:
+  - id: health
+    kind: http
+    method: GET
+    url: https://api.stripe.com/v1/charges?limit=1
+  - id: schema
+    kind: schema_capture
+    source_step: health
+"""
+    )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        artifact = BatteryRunner(client=client).run_battery(battery)
+
+    writer = BatteryArtifactWriter(output_dir=tmp_path / "artifacts")
+    artifact_path = writer.write(artifact)
+
+    assert artifact_path.exists()
+    payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert payload["service_slug"] == "stripe"
+    assert payload["profile"] == "smoke"
+    assert payload["summary"]["failures"] == 0
+
+
+def test_slice_c_probe_bridge_builds_tester_fleet_metadata(tmp_path) -> None:
+    """Bridge metadata should include tester_fleet payload + probe-compatible keys."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code=200, json={"object": "list", "data": [{"id": "x"}]})
+
+    battery = parse_battery_yaml(
+        """
+version: 1
+service_slug: stripe
+steps:
+  - id: health
+    kind: http
+    method: GET
+    url: https://api.stripe.com/v1/charges?limit=1
+  - id: schema
+    kind: schema_capture
+    source_step: health
+"""
+    )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        artifact = BatteryRunner(client=client).run_battery(battery)
+
+    metadata = BatteryProbeBridge.build_probe_metadata(
+        artifact,
+        artifact_path=tmp_path / "artifacts" / "stripe.json",
+    )
+
+    assert metadata["runner"] == "tester-fleet-v0"
+    assert metadata["service_slug"] == "stripe"
+    assert metadata["tester_fleet"]["status"] == "ok"
+    assert metadata["tester_fleet"]["artifact_path"].endswith("stripe.json")
+    assert metadata["latency_distribution_ms"]["samples"] == 1
+    assert metadata["schema_signature_version"] == "v2"
+    assert metadata["schema_fingerprint_v2"]
+
+
+def test_slice_c_probe_bridge_persists_health_and_schema_records(tmp_path) -> None:
+    """Bridge persistence should write health + schema probe rows with tester_fleet metadata."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code=200, json={"ok": True, "nested": {"value": 1}})
+
+    battery = parse_battery_yaml(
+        """
+version: 1
+service_slug: stripe
+steps:
+  - id: health
+    kind: http
+    method: GET
+    url: https://api.stripe.com/v1/charges?limit=1
+  - id: schema
+    kind: schema_capture
+    source_step: health
+"""
+    )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        artifact = BatteryRunner(client=client).run_battery(battery)
+
+    writer = BatteryArtifactWriter(output_dir=tmp_path / "artifacts")
+    artifact_path = writer.write(artifact)
+
+    repository = InMemoryProbeRepository()
+    persisted = BatteryProbeBridge(repository).persist(
+        artifact,
+        artifact_path=artifact_path,
+        trigger_source="tester-fleet-test",
+    )
+
+    assert len(persisted) == 2
+    probe_types = {probe.probe_type for probe in persisted}
+    assert probe_types == {"health", "schema"}
+
+    latest_health = repository.fetch_latest_probe("stripe", probe_type="health")
+    latest_schema = repository.fetch_latest_probe("stripe", probe_type="schema")
+
+    assert latest_health is not None
+    assert latest_schema is not None
+    assert latest_health.trigger_source == "tester-fleet-test"
+    assert latest_health.probe_metadata is not None
+    assert latest_health.probe_metadata["tester_fleet"]["summary"]["failures"] == 0
+    assert (
+        latest_schema.response_schema_hash == latest_schema.probe_metadata["schema_fingerprint_v2"]
+    )
