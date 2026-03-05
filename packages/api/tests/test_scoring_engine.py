@@ -12,6 +12,7 @@ from db.repository import (
     InMemoryScoreRepository,
     SQLAlchemyScoreRepository,
 )
+from services.calibration import V02_CALIBRATION_CASES
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import EvidenceInput, ScoringService
 
@@ -91,6 +92,47 @@ def test_confidence_rewards_fresh_low_latency_probe_telemetry() -> None:
     assert with_probe_telemetry > baseline
 
 
+def test_confidence_uses_probe_freshness_and_latency_as_separate_inputs() -> None:
+    """Probe freshness and probe latency should independently affect confidence in v0.2."""
+    scoring = ScoringService()
+
+    stale_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="4 days ago",
+            probe_latency_distribution_ms={"p50": 120, "p95": 290, "p99": 500, "samples": 8},
+        )
+    )
+
+    fresh_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="6 minutes ago",
+            probe_latency_distribution_ms={"p50": 120, "p95": 290, "p99": 500, "samples": 8},
+        )
+    )
+
+    high_latency_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="6 minutes ago",
+            probe_latency_distribution_ms={"p50": 600, "p95": 2800, "p99": 4200, "samples": 8},
+        )
+    )
+
+    assert fresh_probe > stale_probe
+    assert fresh_probe > high_latency_probe
+
+
 @pytest.mark.parametrize(
     ("score", "expected_tier"),
     [
@@ -122,6 +164,47 @@ def test_v02_aggregate_uses_execution_access_70_30_split() -> None:
     )
 
     assert aggregate == 8.2
+
+
+def test_v02_calibration_dataset_reproduces_expected_aggregate_scores() -> None:
+    """20-service calibration set should preserve expected v0.2 aggregate outputs."""
+    scoring = ScoringService()
+
+    for case in V02_CALIBRATION_CASES:
+        aggregate = scoring.calculate_aggregate_recommendation(
+            execution_score_raw=case.execution_score,
+            access_readiness_score_raw=case.access_readiness_score,
+        )
+        assert aggregate == case.expected_aggregate_score
+
+
+def test_v02_calibration_rank_delta_matches_expected_ordering() -> None:
+    """Rank ordering from the calibration set should match the v0.2 rank-delta artifact."""
+    ranked = sorted(
+        V02_CALIBRATION_CASES,
+        key=lambda case: (case.expected_aggregate_raw, case.execution_score, case.service_slug),
+        reverse=True,
+    )
+
+    computed_rank_by_slug = {case.service_slug: index for index, case in enumerate(ranked, start=1)}
+
+    for case in V02_CALIBRATION_CASES:
+        assert computed_rank_by_slug[case.service_slug] == case.expected_v02_rank
+
+
+@pytest.mark.parametrize(
+    ("service_slug", "expected_shift"),
+    [
+        ("supabase", +3),
+        ("openai", +3),
+        ("postmark", -4),
+    ],
+)
+def test_v02_calibration_high_signal_rank_shifts(service_slug: str, expected_shift: int) -> None:
+    """Largest positive/negative shifts should match calibration expectations."""
+    case = next(item for item in V02_CALIBRATION_CASES if item.service_slug == service_slug)
+    shift = case.expected_execution_rank - case.expected_v02_rank
+    assert shift == expected_shift
 
 
 def test_v02_tier_guardrail_caps_high_aggregate_when_access_is_low() -> None:
