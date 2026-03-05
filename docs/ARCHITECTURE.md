@@ -40,7 +40,8 @@
 ### CLI Integration
 
 `rhumb score <service>` reads `GET /v1/services/{slug}/score` and renders:
-- tiered headline
+- selected headline mode (`--mode aggregate|execution|access`)
+- aggregate recommendation + execution + access readiness lines
 - confidence label
 - explanation sentence
 - category bars

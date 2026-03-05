@@ -69,4 +69,4 @@ Work Unit 0.4 scaffold is complete and Work Unit 1.1 (AN score engine) is implem
 - Confidence calculation from evidence quality
 - Tier assignment (L1-L4)
 - `POST /v1/score` endpoint with persistence
-- `rhumb score <service>` CLI output with `--json` and `--dimensions`
+- `rhumb score <service>` CLI output with `--mode aggregate|execution|access`, `--json`, and `--dimensions`

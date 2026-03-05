@@ -40,7 +40,11 @@ curl -X POST http://localhost:8000/v1/score \
 ```
 
 Returns:
-- `score` (0.0–10.0)
+- `score` (0.0–10.0, backward-compatible alias of aggregate recommendation)
+- `execution_score` (0.0–10.0)
+- `access_readiness_score` (0.0–10.0 when A1–A6 are provided)
+- `aggregate_recommendation_score` (0.0–10.0)
+- `an_score_version` (currently `0.2`)
 - `confidence` (0.0–1.0)
 - `tier` (`L1`–`L4`)
 - `explanation` (single sentence, max 150 chars)

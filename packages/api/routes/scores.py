@@ -48,6 +48,10 @@ def get_probe_repository() -> ProbeRepository:
 def _result_to_schema(
     service_slug: str,
     score: float,
+    execution_score: float,
+    access_readiness_score: float | None,
+    aggregate_recommendation_score: float,
+    an_score_version: str,
     confidence: float,
     tier: str,
     explanation: str,
@@ -58,6 +62,12 @@ def _result_to_schema(
     return ANScoreSchema(
         service_slug=service_slug,
         score=round(score, 1),
+        execution_score=round(execution_score, 1),
+        access_readiness_score=(
+            None if access_readiness_score is None else round(access_readiness_score, 1)
+        ),
+        aggregate_recommendation_score=round(aggregate_recommendation_score, 1),
+        an_score_version=an_score_version,
         confidence=round(confidence, 2),
         tier=tier,
         tier_label=TIER_LABELS.get(tier, tier),
@@ -69,10 +79,22 @@ def _result_to_schema(
 
 
 def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
+    breakdown = (stored.dimension_snapshot or {}).get("score_breakdown", {})
+    execution_score = float(breakdown.get("execution", stored.score))
+    access_readiness_score = breakdown.get("access_readiness")
+    aggregate_recommendation_score = float(breakdown.get("aggregate_recommendation", stored.score))
+    score_version = str(breakdown.get("version", "0.1"))
+
     calculated_at = stored.calculated_at.isoformat() if stored.calculated_at else None
     return _result_to_schema(
         service_slug=stored.service_slug,
         score=stored.score,
+        execution_score=execution_score,
+        access_readiness_score=(
+            float(access_readiness_score) if access_readiness_score is not None else None
+        ),
+        aggregate_recommendation_score=aggregate_recommendation_score,
+        an_score_version=score_version,
         confidence=stored.confidence,
         tier=stored.tier,
         explanation=stored.explanation,
@@ -190,6 +212,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         service_slug=payload.service_slug,
         dimensions=payload.dimensions,
         evidence=evidence,
+        access_dimensions=payload.access_dimensions,
     )
 
     score_id: str | None = None
@@ -202,6 +225,10 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     return _result_to_schema(
         service_slug=result.service_slug,
         score=result.score,
+        execution_score=result.execution_score,
+        access_readiness_score=result.access_readiness_score,
+        aggregate_recommendation_score=result.aggregate_recommendation_score,
+        an_score_version=result.an_score_version,
         confidence=result.confidence,
         tier=result.tier,
         explanation=result.explanation,
@@ -236,6 +263,7 @@ async def get_score(slug: str) -> ANScoreSchema:
             service_slug=slug,
             dimensions=dict(fixture["dimensions"]),
             evidence=evidence,
+            access_dimensions=fixture.get("access_dimensions"),
         )
 
         result.dimension_snapshot["active_failures"] = fixture.get("active_failures", [])
@@ -251,6 +279,10 @@ async def get_score(slug: str) -> ANScoreSchema:
         return _result_to_schema(
             service_slug=slug,
             score=result.score,
+            execution_score=result.execution_score,
+            access_readiness_score=result.access_readiness_score,
+            aggregate_recommendation_score=result.aggregate_recommendation_score,
+            an_score_version=result.an_score_version,
             confidence=result.confidence,
             tier=result.tier,
             explanation=result.explanation,
@@ -268,20 +300,61 @@ async def compare_services(services: str) -> dict:
     scoring_service = get_scoring_service()
     requested = [service.strip() for service in services.split(",") if service.strip()]
 
-    comparisons: list[dict[str, float | str]] = []
+    comparisons: list[dict[str, float | str | None]] = []
     for service_slug in requested:
+        schema_payload: ANScoreSchema | None = None
+
         try:
             latest = scoring_service.fetch_latest_score(service_slug)
         except Exception:
             latest = None
-        if latest is None:
+
+        if latest is not None:
+            schema_payload = _stored_to_schema(latest)
+        else:
+            fixture = HAND_SCORED_FIXTURES.get(service_slug)
+            if fixture is not None:
+                evidence = EvidenceInput(
+                    evidence_count=fixture["evidence_count"],
+                    freshness=fixture["freshness"],
+                    probe_types=list(fixture["probe_types"]),
+                    production_telemetry=bool(fixture["production_telemetry"]),
+                )
+                result = await scoring_service.score_service(
+                    service_slug=service_slug,
+                    dimensions=dict(fixture["dimensions"]),
+                    evidence=evidence,
+                    access_dimensions=fixture.get("access_dimensions"),
+                )
+                schema_payload = _result_to_schema(
+                    service_slug=service_slug,
+                    score=result.score,
+                    execution_score=result.execution_score,
+                    access_readiness_score=result.access_readiness_score,
+                    aggregate_recommendation_score=result.aggregate_recommendation_score,
+                    an_score_version=result.an_score_version,
+                    confidence=result.confidence,
+                    tier=result.tier,
+                    explanation=result.explanation,
+                    dimension_snapshot=result.dimension_snapshot,
+                    score_id=None,
+                    calculated_at=result.calculated_at.isoformat(),
+                )
+
+        if schema_payload is None:
             continue
+
         comparisons.append(
             {
-                "service_slug": service_slug,
-                "score": latest.score,
-                "confidence": latest.confidence,
-                "tier": latest.tier,
+                "service_slug": schema_payload.service_slug,
+                "score": schema_payload.score,
+                "execution_score": schema_payload.execution_score,
+                "access_readiness_score": schema_payload.access_readiness_score,
+                "aggregate_recommendation_score": schema_payload.aggregate_recommendation_score,
+                "an_score_version": schema_payload.an_score_version,
+                "confidence": schema_payload.confidence,
+                "tier": schema_payload.tier,
+                "tier_label": schema_payload.tier_label,
             }
         )
 

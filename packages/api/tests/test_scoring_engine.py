@@ -12,6 +12,7 @@ from db.repository import (
     InMemoryScoreRepository,
     SQLAlchemyScoreRepository,
 )
+from services.calibration import V02_CALIBRATION_CASES
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import EvidenceInput, ScoringService
 
@@ -91,6 +92,47 @@ def test_confidence_rewards_fresh_low_latency_probe_telemetry() -> None:
     assert with_probe_telemetry > baseline
 
 
+def test_confidence_uses_probe_freshness_and_latency_as_separate_inputs() -> None:
+    """Probe freshness and probe latency should independently affect confidence in v0.2."""
+    scoring = ScoringService()
+
+    stale_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="4 days ago",
+            probe_latency_distribution_ms={"p50": 120, "p95": 290, "p99": 500, "samples": 8},
+        )
+    )
+
+    fresh_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="6 minutes ago",
+            probe_latency_distribution_ms={"p50": 120, "p95": 290, "p99": 500, "samples": 8},
+        )
+    )
+
+    high_latency_probe = scoring.calculate_confidence(
+        EvidenceInput(
+            evidence_count=30,
+            freshness="6 hours ago",
+            probe_types=["health", "schema"],
+            production_telemetry=False,
+            probe_freshness="6 minutes ago",
+            probe_latency_distribution_ms={"p50": 600, "p95": 2800, "p99": 4200, "samples": 8},
+        )
+    )
+
+    assert fresh_probe > stale_probe
+    assert fresh_probe > high_latency_probe
+
+
 @pytest.mark.parametrize(
     ("score", "expected_tier"),
     [
@@ -110,6 +152,121 @@ def test_tier_assignment_boundaries(score: float, expected_tier: str) -> None:
     """Tier boundaries must follow the AN score spec exactly."""
     scoring = ScoringService()
     assert scoring.assign_tier(score) == expected_tier
+
+
+def test_v02_aggregate_uses_execution_access_70_30_split() -> None:
+    """Aggregate should blend execution and access readiness at 70/30 in v0.2."""
+    scoring = ScoringService()
+
+    aggregate = scoring.calculate_aggregate_recommendation(
+        execution_score_raw=8.9,
+        access_readiness_score_raw=6.5,
+    )
+
+    assert aggregate == 8.2
+
+
+def test_v02_calibration_dataset_reproduces_expected_aggregate_scores() -> None:
+    """20-service calibration set should preserve expected v0.2 aggregate outputs."""
+    scoring = ScoringService()
+
+    for case in V02_CALIBRATION_CASES:
+        aggregate = scoring.calculate_aggregate_recommendation(
+            execution_score_raw=case.execution_score,
+            access_readiness_score_raw=case.access_readiness_score,
+        )
+        assert aggregate == case.expected_aggregate_score
+
+
+def test_v02_calibration_rank_delta_matches_expected_ordering() -> None:
+    """Rank ordering from the calibration set should match the v0.2 rank-delta artifact."""
+    ranked = sorted(
+        V02_CALIBRATION_CASES,
+        key=lambda case: (case.expected_aggregate_raw, case.execution_score, case.service_slug),
+        reverse=True,
+    )
+
+    computed_rank_by_slug = {case.service_slug: index for index, case in enumerate(ranked, start=1)}
+
+    for case in V02_CALIBRATION_CASES:
+        assert computed_rank_by_slug[case.service_slug] == case.expected_v02_rank
+
+
+@pytest.mark.parametrize(
+    ("service_slug", "expected_shift"),
+    [
+        ("supabase", +3),
+        ("openai", +3),
+        ("postmark", -4),
+    ],
+)
+def test_v02_calibration_high_signal_rank_shifts(service_slug: str, expected_shift: int) -> None:
+    """Largest positive/negative shifts should match calibration expectations."""
+    case = next(item for item in V02_CALIBRATION_CASES if item.service_slug == service_slug)
+    shift = case.expected_execution_rank - case.expected_v02_rank
+    assert shift == expected_shift
+
+
+def test_v02_tier_guardrail_caps_high_aggregate_when_access_is_low() -> None:
+    """Access readiness below 4.0 should cap tier to L2 even if aggregate suggests L3/L4."""
+    scoring = ScoringService()
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    result = asyncio.run(
+        scoring.score_service(
+            service_slug="stripe",
+            dimensions=dict(fixture["dimensions"]),
+            access_dimensions={
+                "A1": 3.0,
+                "A2": 3.0,
+                "A3": 3.0,
+                "A4": 3.0,
+                "A5": 3.0,
+                "A6": 3.0,
+            },
+            evidence=EvidenceInput(
+                evidence_count=fixture["evidence_count"],
+                freshness=fixture["freshness"],
+                probe_types=list(fixture["probe_types"]),
+                production_telemetry=bool(fixture["production_telemetry"]),
+            ),
+        )
+    )
+
+    assert result.aggregate_recommendation_score >= 6.0
+    assert result.access_readiness_score == 3.0
+    assert result.tier == "L2"
+
+
+def test_v02_tier_guardrail_caps_high_aggregate_when_execution_is_low() -> None:
+    """Execution below 6.0 should cap tier to L2 even when access score is high."""
+    scoring = ScoringService()
+
+    dimensions = {dimension: 5.0 for dimension in HAND_SCORED_FIXTURES["stripe"]["dimensions"]}
+    result = asyncio.run(
+        scoring.score_service(
+            service_slug="example",
+            dimensions=dimensions,
+            access_dimensions={
+                "A1": 9.0,
+                "A2": 9.0,
+                "A3": 9.0,
+                "A4": 9.0,
+                "A5": 9.0,
+                "A6": 9.0,
+            },
+            evidence=EvidenceInput(
+                evidence_count=25,
+                freshness="2 hours ago",
+                probe_types=["health", "schema"],
+                production_telemetry=False,
+            ),
+        )
+    )
+
+    assert result.execution_score == 5.0
+    assert result.aggregate_recommendation_score >= 6.0
+    assert result.tier == "L2"
 
 
 def test_explanation_is_one_sentence_and_within_limit() -> None:
@@ -181,11 +338,115 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
     assert response.status_code == 200
 
     body = dict(response.json())
-    for field in ["score", "confidence", "tier", "explanation", "dimension_snapshot"]:
+    for field in [
+        "score",
+        "execution_score",
+        "access_readiness_score",
+        "aggregate_recommendation_score",
+        "an_score_version",
+        "confidence",
+        "tier",
+        "explanation",
+        "dimension_snapshot",
+    ]:
         assert field in body
 
     assert body["service_slug"] == "stripe"
     assert body["tier"] == "L4"
+    assert body["score"] == body["aggregate_recommendation_score"]
+    assert body["access_readiness_score"] is None
+
+
+def test_score_endpoint_supports_access_dimensions_contract(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /v1/score should expose v0.2 dual-score contract fields when access dimensions are provided."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    payload = {
+        "service_slug": "stripe",
+        "dimensions": fixture["dimensions"],
+        "access_dimensions": {
+            "A1": 8.0,
+            "A2": 7.0,
+            "A3": 9.0,
+            "A4": 8.0,
+            "A5": 8.0,
+            "A6": 7.0,
+        },
+        "evidence_count": fixture["evidence_count"],
+        "freshness": fixture["freshness"],
+        "probe_types": fixture["probe_types"],
+        "production_telemetry": fixture["production_telemetry"],
+    }
+
+    response = client.post("/v1/score", json=payload)
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["an_score_version"] == "0.2"
+    assert body["access_readiness_score"] is not None
+    assert body["execution_score"] >= body["access_readiness_score"]
+    assert body["score"] == body["aggregate_recommendation_score"]
+
+
+def test_get_service_score_fixture_fallback_exposes_dual_scores(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/services/{slug}/score should return v0.2 fields from fixture fallback."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    response = client.get("/v1/services/stripe/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["an_score_version"] == "0.2"
+    assert body["access_readiness_score"] is not None
+    assert body["score"] == body["aggregate_recommendation_score"]
+
+
+def test_compare_route_exposes_dual_score_fields(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/compare should include dual-score fields for each compared service."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    response = client.get("/v1/compare?services=stripe,resend")
+    assert response.status_code == 200
+
+    payload = response.json()["data"]["comparison"]
+    assert len(payload) == 2
+
+    for item in payload:
+        assert item["an_score_version"] == "0.2"
+        assert item["score"] == item["aggregate_recommendation_score"]
+        assert item["execution_score"] >= 0.0
+        assert item["access_readiness_score"] is not None
 
 
 def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
@@ -242,6 +503,7 @@ def test_score_endpoint_validation_errors(client) -> None:
     bad_payload: dict[str, Any] = {
         "service_slug": "example",
         "dimensions": {"X1": 9.0, "I1": 11.0},
+        "access_dimensions": {"A9": 7.0},
         "evidence_count": 2,
         "freshness": "12 minutes ago",
     }

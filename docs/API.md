@@ -30,6 +30,14 @@ Calculate an AN Score from explicit dimension inputs and persist it to `an_score
     "O2": 9.0,
     "O3": 8.0
   },
+  "access_dimensions": {
+    "A1": 6.0,
+    "A2": 5.5,
+    "A3": 6.0,
+    "A4": 7.5,
+    "A5": 8.0,
+    "A6": 8.0
+  },
   "evidence_count": 72,
   "freshness": "12 minutes ago",
   "probe_types": ["health", "auth", "schema", "load", "idempotency"],
@@ -46,6 +54,10 @@ Calculate an AN Score from explicit dimension inputs and persist it to `an_score
 {
   "service_slug": "stripe",
   "score": 8.9,
+  "execution_score": 9.1,
+  "access_readiness_score": 8.4,
+  "aggregate_recommendation_score": 8.9,
+  "an_score_version": "0.2",
   "confidence": 0.98,
   "tier": "L4",
   "tier_label": "Native",
@@ -66,6 +78,8 @@ Calculate an AN Score from explicit dimension inputs and persist it to `an_score
 ```
 
 `hydrate_probe_telemetry` is optional. When true, the API auto-hydrates `probe_freshness` and `probe_latency_distribution_ms` from the latest stored probe result when those fields are omitted.
+
+In v0.2, `score` remains a backward-compatible alias of `aggregate_recommendation_score`.
 
 ### `GET /v1/services/{slug}/score`
 
