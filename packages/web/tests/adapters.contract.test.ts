@@ -16,6 +16,10 @@ describe("web adapters", () => {
             service_slug: "stripe",
             name: "Stripe",
             aggregate_recommendation_score: 8.9,
+            execution_score: 9.1,
+            access_readiness_score: 8.4,
+            probe_freshness: "12 minutes ago",
+            calculated_at: "2026-03-05T22:00:00Z",
             tier: "L4",
             confidence: 0.95
           }
@@ -32,10 +36,25 @@ describe("web adapters", () => {
         serviceSlug: "stripe",
         name: "Stripe",
         aggregateRecommendationScore: 8.9,
+        executionScore: 9.1,
+        accessReadinessScore: 8.4,
+        freshness: "12 minutes ago",
+        calculatedAt: "2026-03-05T22:00:00Z",
         tier: "L4",
         confidence: 0.95
       }
     ]);
+    expect(parsed.error).toBeNull();
+  });
+
+  it("returns a typed error for invalid leaderboard payload", () => {
+    const parsed = parseLeaderboardResponse(null);
+
+    expect(parsed).toEqual({
+      category: "unknown",
+      items: [],
+      error: "Invalid leaderboard payload"
+    });
   });
 
   it("parses score payload contract", () => {

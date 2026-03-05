@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../lib/api", () => ({
-  getLeaderboard: vi.fn(async () => ({ category: "payments", items: [] })),
+  getLeaderboard: vi.fn(async () => ({ category: "payments", items: [], error: null })),
   getServiceScore: vi.fn(async () => ({
     serviceSlug: "stripe",
     aggregateRecommendationScore: 8.9,
@@ -23,7 +23,10 @@ describe("round 7 slice A route scaffold", () => {
 
   it("renders leaderboard route component", async () => {
     const module = await import("../app/leaderboard/[category]/page");
-    const node = await module.default({ params: Promise.resolve({ category: "payments" }) });
+    const node = await module.default({
+      params: Promise.resolve({ category: "payments" }),
+      searchParams: Promise.resolve({})
+    });
 
     expect(node).toBeTruthy();
   });
