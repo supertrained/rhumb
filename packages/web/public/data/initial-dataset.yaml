@@ -1,0 +1,351 @@
+# Initial 50 Service Dataset (WU 1.7 - Slice A)
+# Curated for operator frequency, cross-cutting dependencies, and category balance
+# Generated: 2026-03-05 22:15 PST
+
+version: "1.0"
+metadata:
+  curated_at: "2026-03-06T08:06:00-08:00"
+  total_services: 50
+  categories: 10
+  description: "Initial curated dataset of 50 essential services for Rhumb leaderboard MVP"
+
+services:
+  # Email (5 services)
+  - slug: sendgrid
+    name: SendGrid
+    category: email
+    description: "Email delivery platform with high-volume SMTP + API"
+    official_docs: "https://sendgrid.com/docs/"
+    
+  - slug: resend
+    name: Resend
+    category: email
+    description: "Modern transactional email API built for developers"
+    official_docs: "https://resend.com/docs"
+    
+  - slug: postmark
+    name: Postmark
+    category: email
+    description: "Hosted email infrastructure with bounce management"
+    official_docs: "https://postmarkapp.com/developer"
+    
+  - slug: mailgun
+    name: Mailgun
+    category: email
+    description: "Email API with powerful webhooks and validation"
+    official_docs: "https://documentation.mailgun.com/"
+    
+  - slug: amazon-ses
+    name: Amazon SES
+    category: email
+    description: "AWS Simple Email Service for scalable email sending"
+    official_docs: "https://docs.aws.amazon.com/ses/"
+
+  # CRM (5 services)
+  - slug: hubspot
+    name: HubSpot
+    category: crm
+    description: "CRM platform with free tier, API, and workflow automation"
+    official_docs: "https://developers.hubspot.com/"
+    
+  - slug: salesforce
+    name: Salesforce
+    category: crm
+    description: "Enterprise CRM with extensive API ecosystem"
+    official_docs: "https://developer.salesforce.com/"
+    
+  - slug: pipedrive
+    name: Pipedrive
+    category: crm
+    description: "Sales-focused CRM with visual pipeline management"
+    official_docs: "https://developers.pipedrive.com/"
+    
+  - slug: copper
+    name: Copper
+    category: crm
+    description: "Gmail-native CRM for small business"
+    official_docs: "https://developer.copper.com/"
+    
+  - slug: zoho-crm
+    name: Zoho CRM
+    category: crm
+    description: "Cost-effective CRM with Deluge automation"
+    official_docs: "https://www.zoho.com/crm/developer/docs/"
+
+  # Payments (6 services)
+  - slug: stripe
+    name: Stripe
+    category: payments
+    description: "Payment processing with comprehensive API"
+    official_docs: "https://stripe.com/docs/api"
+    
+  - slug: adyen
+    name: Adyen
+    category: payments
+    description: "Enterprise payment platform with global reach"
+    official_docs: "https://docs.adyen.com/"
+    
+  - slug: braintree
+    name: Braintree
+    category: payments
+    description: "PayPal-owned payment processor"
+    official_docs: "https://developer.paypal.com/braintree/docs/"
+    
+  - slug: paypal
+    name: PayPal
+    category: payments
+    description: "Classic payment processor and marketplace"
+    official_docs: "https://developer.paypal.com/docs/api/"
+    
+  - slug: square
+    name: Square
+    category: payments
+    description: "Payment processor with strong POS integration"
+    official_docs: "https://developer.squareup.com/reference"
+    
+  - slug: lemon-squeezy
+    name: Lemon Squeezy
+    category: payments
+    description: "Merchant platform for digital product sales"
+    official_docs: "https://docs.lemonsqueezy.com/"
+
+  # Auth (5 services)
+  - slug: auth0
+    name: Auth0
+    category: auth
+    description: "Universal authentication platform with SAML/OAuth/OIDC"
+    official_docs: "https://auth0.com/docs/"
+    
+  - slug: okta
+    name: Okta
+    category: auth
+    description: "Enterprise identity and access management"
+    official_docs: "https://developer.okta.com/docs/"
+    
+  - slug: firebase-auth
+    name: Firebase Auth
+    category: auth
+    description: "Google's backend auth service for mobile/web"
+    official_docs: "https://firebase.google.com/docs/auth"
+    
+  - slug: clerk
+    name: Clerk
+    category: auth
+    description: "Modern auth platform optimized for developers"
+    official_docs: "https://clerk.com/docs"
+    
+  - slug: cognito
+    name: Amazon Cognito
+    category: auth
+    description: "AWS user authentication and identity management"
+    official_docs: "https://docs.aws.amazon.com/cognito/"
+
+  # Calendar (5 services)
+  - slug: cal-com
+    name: Cal.com
+    category: calendar
+    description: "Open-source scheduling infrastructure"
+    official_docs: "https://cal.com/docs"
+    
+  - slug: calendly
+    name: Calendly
+    category: calendar
+    description: "Scheduling assistant with workflow automation"
+    official_docs: "https://developer.calendly.com/"
+    
+  - slug: google-calendar
+    name: Google Calendar API
+    category: calendar
+    description: "Google's calendar service with extensive integration options"
+    official_docs: "https://developers.google.com/calendar"
+    
+  - slug: microsoft-outlook
+    name: Microsoft Outlook Calendar API
+    category: calendar
+    description: "Outlook/Microsoft Graph calendar integration"
+    official_docs: "https://docs.microsoft.com/en-us/graph/api/resources/calendar"
+    
+  - slug: when2meet
+    name: When2Meet
+    category: calendar
+    description: "Collaborative meeting scheduling"
+    official_docs: "https://when2meet.com/api"
+
+  # Analytics (5 services)
+  - slug: mixpanel
+    name: Mixpanel
+    category: analytics
+    description: "Product analytics with cohort analysis"
+    official_docs: "https://developer.mixpanel.com/docs"
+    
+  - slug: segment
+    name: Segment
+    category: analytics
+    description: "Customer data platform for unified analytics"
+    official_docs: "https://segment.com/docs/apis/"
+    
+  - slug: posthog
+    name: PostHog
+    category: analytics
+    description: "Open-source product analytics"
+    official_docs: "https://posthog.com/docs/api"
+    
+  - slug: amplitude
+    name: Amplitude
+    category: analytics
+    description: "Product intelligence and cohort analysis"
+    official_docs: "https://www.docs.developers.amplitude.com/"
+    
+  - slug: heap
+    name: Heap
+    category: analytics
+    description: "Automatic event capture analytics"
+    official_docs: "https://docs.heapanalytics.com/"
+
+  # Search/Indexing (4 services)
+  - slug: algolia
+    name: Algolia
+    category: search
+    description: "Hosted search API with faceted search"
+    official_docs: "https://www.algolia.com/doc/"
+    
+  - slug: meilisearch
+    name: Meilisearch
+    category: search
+    description: "Open-source search engine optimized for UX"
+    official_docs: "https://docs.meilisearch.com/"
+    
+  - slug: elasticsearch
+    name: Elasticsearch
+    category: search
+    description: "Distributed search and analytics engine"
+    official_docs: "https://www.elastic.co/guide/en/elasticsearch/reference/"
+    
+  - slug: typesense
+    name: Typesense
+    category: search
+    description: "Fast open-source search engine"
+    official_docs: "https://typesense.org/docs/"
+
+  # DevOps/Infrastructure (6 services)
+  - slug: vercel
+    name: Vercel
+    category: devops
+    description: "Frontend deployment platform optimized for Next.js"
+    official_docs: "https://vercel.com/docs"
+    
+  - slug: netlify
+    name: Netlify
+    category: devops
+    description: "Jamstack platform for web projects"
+    official_docs: "https://docs.netlify.com/"
+    
+  - slug: aws
+    name: Amazon Web Services
+    category: devops
+    description: "Comprehensive cloud infrastructure"
+    official_docs: "https://docs.aws.amazon.com/"
+    
+  - slug: digital-ocean
+    name: DigitalOcean
+    category: devops
+    description: "Cloud platform for app deployment and databases"
+    official_docs: "https://docs.digitalocean.com/"
+    
+  - slug: render
+    name: Render
+    category: devops
+    description: "Modern cloud platform for full-stack apps"
+    official_docs: "https://render.com/docs"
+    
+  - slug: heroku
+    name: Heroku
+    category: devops
+    description: "Platform-as-a-service for app deployment"
+    official_docs: "https://devcenter.heroku.com/"
+
+  # Social/Distribution (3 services)
+  - slug: twitter-api
+    name: Twitter API
+    category: social
+    description: "Twitter's API for posts, threads, and analytics"
+    official_docs: "https://developer.twitter.com/en/docs"
+    
+  - slug: linkedin-api
+    name: LinkedIn API
+    category: social
+    description: "LinkedIn's API for enterprise networking"
+    official_docs: "https://docs.microsoft.com/en-us/linkedin/shared/api-reference/api-reference-v2"
+    
+  - slug: bluesky-api
+    name: Bluesky API
+    category: social
+    description: "Decentralized social network API"
+    official_docs: "https://github.com/bluesky-social/atproto/tree/main/packages/api"
+
+  # AI/ML (6 services)
+  - slug: openai
+    name: OpenAI
+    category: ai
+    description: "GPT models and embeddings API"
+    official_docs: "https://platform.openai.com/docs"
+    
+  - slug: anthropic
+    name: Anthropic
+    category: ai
+    description: "Claude language models API"
+    official_docs: "https://docs.anthropic.com/"
+    
+  - slug: huggingface
+    name: Hugging Face
+    category: ai
+    description: "Open-source ML models and hub"
+    official_docs: "https://huggingface.co/docs"
+    
+  - slug: replicate
+    name: Replicate
+    category: ai
+    description: "API for running machine learning models"
+    official_docs: "https://replicate.com/docs"
+    
+  - slug: cohere
+    name: Cohere
+    category: ai
+    description: "Large language models for enterprise"
+    official_docs: "https://docs.cohere.com/"
+    
+  - slug: together-ai
+    name: Together AI
+    category: ai
+    description: "Open-source model inference API"
+    official_docs: "https://www.together.ai/docs"
+
+categories:
+  - email: "Email delivery, SMTP, transactional messaging"
+  - crm: "Customer relationship management, sales pipelines"
+  - payments: "Payment processing, billing, checkout"
+  - auth: "Authentication, identity management, OAuth/OIDC"
+  - calendar: "Scheduling, calendar API, availability management"
+  - analytics: "Product analytics, tracking, cohort analysis"
+  - search: "Search indexing, full-text search, faceted navigation"
+  - devops: "Infrastructure, deployment, hosting"
+  - social: "Social media APIs, content distribution"
+  - ai: "Language models, embeddings, ML inference"
+
+distribution:
+  email: 5
+  crm: 5
+  payments: 6
+  auth: 5
+  calendar: 5
+  analytics: 5
+  search: 4
+  devops: 6
+  social: 3
+  ai: 6
+
+notes:
+  - "Curated based on operator frequency from 26-panel research (130+ personas)"
+  - "Balanced for diversity: foundational infra, emerging patterns, established platforms"
+  - "All services have public APIs and documented integrations"
+  - "Categories prioritized for representativeness, not alphabetical order"
