@@ -11,12 +11,19 @@ import {
   GetAlternativesInputSchema,
   GetFailureModesInputSchema
 } from "./types.js";
+import { createApiClient, type RhumbApiClient } from "./api-client.js";
+import { handleFindTools } from "./tools/find.js";
+import { handleGetScore } from "./tools/score.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
- * Tool handlers are stubs in Slice A — real implementations come in Slices B/C.
+ *
+ * @param apiClient Optional API client override (for testing). Uses default
+ *                  createApiClient() when omitted.
  */
-export function createServer(): McpServer {
+export function createServer(apiClient?: RhumbApiClient): McpServer {
+  const client = apiClient ?? createApiClient();
+
   const server = new McpServer({
     name: "rhumb",
     version: "0.0.1"
@@ -31,9 +38,9 @@ export function createServer(): McpServer {
       limit: z.number().min(1).max(50).optional().describe(FindToolInputSchema.properties.limit.description)
     },
     async ({ query, limit }) => {
-      // Stub — Slice B implements real handler
+      const result = await handleFindTools({ query, limit }, client);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ tools: [] }) }]
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };
     }
   );
@@ -46,9 +53,9 @@ export function createServer(): McpServer {
       slug: z.string().describe(GetScoreInputSchema.properties.slug.description)
     },
     async ({ slug }) => {
-      // Stub — Slice B implements real handler
+      const result = await handleGetScore({ slug }, client);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ slug, aggregateScore: null, executionScore: null, accessScore: null, confidence: 0, tier: "unknown", explanation: "Not yet implemented", freshness: "unknown" }) }]
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };
     }
   );
