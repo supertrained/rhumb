@@ -1,0 +1,1484 @@
+{
+  "metadata": {
+    "scored_at": "2026-03-06T06:14:02.307Z",
+    "total_services": 50,
+    "scored": 50,
+    "failed": 0,
+    "duration_ms": 10,
+    "an_score_version": "0.2",
+    "runner": "score-dataset-v1"
+  },
+  "scores": [
+    {
+      "service_slug": "sendgrid",
+      "score": 6.8,
+      "execution_score": 7.4,
+      "access_readiness_score": 5.3,
+      "aggregate_recommendation_score": 6.8,
+      "confidence": 0.95,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 145,
+          "p95": 320,
+          "p99": 580,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load",
+          "webhook"
+        ],
+        "evidence_count": 54,
+        "freshness": "5 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "resend",
+      "score": 8.1,
+      "execution_score": 8.7,
+      "access_readiness_score": 6.8,
+      "aggregate_recommendation_score": 8.1,
+      "confidence": 0.93,
+      "tier": "L4",
+      "tier_label": "Native",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 92,
+          "p95": 210,
+          "p99": 380,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load",
+          "webhook"
+        ],
+        "evidence_count": 33,
+        "freshness": "45 minutes ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "postmark",
+      "score": 7.1,
+      "execution_score": 7.7,
+      "access_readiness_score": 5.6,
+      "aggregate_recommendation_score": 7.1,
+      "confidence": 0.89,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 110,
+          "p95": 260,
+          "p99": 420,
+          "samples": 9
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "webhook"
+        ],
+        "evidence_count": 41,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "mailgun",
+      "score": 6.2,
+      "execution_score": 6.8,
+      "access_readiness_score": 4.8,
+      "aggregate_recommendation_score": 6.2,
+      "confidence": 0.87,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 165,
+          "p95": 380,
+          "p99": 650,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "webhook"
+        ],
+        "evidence_count": 38,
+        "freshness": "6 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "amazon-ses",
+      "score": 6.2,
+      "execution_score": 7.2,
+      "access_readiness_score": 4,
+      "aggregate_recommendation_score": 6.2,
+      "confidence": 0.93,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 180,
+          "p95": 420,
+          "p99": 750,
+          "samples": 15
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 48,
+        "freshness": "3 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "hubspot",
+      "score": 4.8,
+      "execution_score": 5.3,
+      "access_readiness_score": 3.5,
+      "aggregate_recommendation_score": 4.8,
+      "confidence": 0.95,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 280,
+          "p95": 680,
+          "p99": 1200,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 58,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "salesforce",
+      "score": 4.9,
+      "execution_score": 5.4,
+      "access_readiness_score": 3.8,
+      "aggregate_recommendation_score": 4.9,
+      "confidence": 0.94,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 350,
+          "p95": 850,
+          "p99": 1500,
+          "samples": 16
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 62,
+        "freshness": "4 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "pipedrive",
+      "score": 6.1,
+      "execution_score": 6.7,
+      "access_readiness_score": 4.7,
+      "aggregate_recommendation_score": 6.1,
+      "confidence": 0.84,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 195,
+          "p95": 450,
+          "p99": 780,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 35,
+        "freshness": "8 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "copper",
+      "score": 5,
+      "execution_score": 5.6,
+      "access_readiness_score": 3.6,
+      "aggregate_recommendation_score": 5,
+      "confidence": 0.76,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 220,
+          "p95": 520,
+          "p99": 900,
+          "samples": 6
+        },
+        "probe_types": [
+          "health",
+          "schema"
+        ],
+        "evidence_count": 22,
+        "freshness": "12 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "zoho-crm",
+      "score": 4.6,
+      "execution_score": 5.2,
+      "access_readiness_score": 3.2,
+      "aggregate_recommendation_score": 4.6,
+      "confidence": 0.82,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 240,
+          "p95": 580,
+          "p99": 1050,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 30,
+        "freshness": "10 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "stripe",
+      "score": 8.3,
+      "execution_score": 9,
+      "access_readiness_score": 6.6,
+      "aggregate_recommendation_score": 8.3,
+      "confidence": 1,
+      "tier": "L4",
+      "tier_label": "Native",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 120,
+          "p95": 280,
+          "p99": 450,
+          "samples": 20
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load",
+          "idempotency"
+        ],
+        "evidence_count": 72,
+        "freshness": "12 minutes ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "adyen",
+      "score": 6.5,
+      "execution_score": 7.3,
+      "access_readiness_score": 4.7,
+      "aggregate_recommendation_score": 6.5,
+      "confidence": 0.93,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 155,
+          "p95": 340,
+          "p99": 580,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load"
+        ],
+        "evidence_count": 45,
+        "freshness": "3 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "braintree",
+      "score": 5.8,
+      "execution_score": 6.5,
+      "access_readiness_score": 4.3,
+      "aggregate_recommendation_score": 5.8,
+      "confidence": 0.89,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 185,
+          "p95": 420,
+          "p99": 720,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 40,
+        "freshness": "6 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "paypal",
+      "score": 5.2,
+      "execution_score": 5.9,
+      "access_readiness_score": 3.7,
+      "aggregate_recommendation_score": 5.2,
+      "confidence": 0.95,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 210,
+          "p95": 500,
+          "p99": 880,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 55,
+        "freshness": "4 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "square",
+      "score": 6.7,
+      "execution_score": 7.3,
+      "access_readiness_score": 5.2,
+      "aggregate_recommendation_score": 6.7,
+      "confidence": 0.92,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 140,
+          "p95": 310,
+          "p99": 520,
+          "samples": 11
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load"
+        ],
+        "evidence_count": 42,
+        "freshness": "5 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "lemon-squeezy",
+      "score": 7,
+      "execution_score": 7.5,
+      "access_readiness_score": 5.7,
+      "aggregate_recommendation_score": 7,
+      "confidence": 0.82,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 105,
+          "p95": 240,
+          "p99": 400,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "webhook"
+        ],
+        "evidence_count": 25,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "auth0",
+      "score": 6.6,
+      "execution_score": 7.3,
+      "access_readiness_score": 5,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.96,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 135,
+          "p95": 290,
+          "p99": 480,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 50,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "okta",
+      "score": 6,
+      "execution_score": 6.8,
+      "access_readiness_score": 4.2,
+      "aggregate_recommendation_score": 6,
+      "confidence": 0.92,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 170,
+          "p95": 400,
+          "p99": 700,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 46,
+        "freshness": "4 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "firebase-auth",
+      "score": 6.7,
+      "execution_score": 7.5,
+      "access_readiness_score": 4.8,
+      "aggregate_recommendation_score": 6.7,
+      "confidence": 1,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 95,
+          "p95": 220,
+          "p99": 380,
+          "samples": 16
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 55,
+        "freshness": "1 hour ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "clerk",
+      "score": 7.8,
+      "execution_score": 8.3,
+      "access_readiness_score": 6.5,
+      "aggregate_recommendation_score": 7.8,
+      "confidence": 0.91,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 80,
+          "p95": 180,
+          "p99": 300,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 30,
+        "freshness": "30 minutes ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "cognito",
+      "score": 5.5,
+      "execution_score": 6.3,
+      "access_readiness_score": 3.7,
+      "aggregate_recommendation_score": 5.5,
+      "confidence": 0.91,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 200,
+          "p95": 460,
+          "p99": 800,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 44,
+        "freshness": "6 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "cal-com",
+      "score": 7.1,
+      "execution_score": 7.5,
+      "access_readiness_score": 6.2,
+      "aggregate_recommendation_score": 7.1,
+      "confidence": 0.88,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 115,
+          "p95": 260,
+          "p99": 430,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 28,
+        "freshness": "1 hour ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "calendly",
+      "score": 6.2,
+      "execution_score": 6.8,
+      "access_readiness_score": 4.9,
+      "aggregate_recommendation_score": 6.2,
+      "confidence": 0.84,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 140,
+          "p95": 320,
+          "p99": 540,
+          "samples": 9
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 32,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "google-calendar",
+      "score": 6.6,
+      "execution_score": 7.4,
+      "access_readiness_score": 4.6,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.96,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 130,
+          "p95": 300,
+          "p99": 500,
+          "samples": 18
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 60,
+        "freshness": "2 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "microsoft-outlook",
+      "score": 5.9,
+      "execution_score": 6.7,
+      "access_readiness_score": 4.1,
+      "aggregate_recommendation_score": 5.9,
+      "confidence": 0.94,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 190,
+          "p95": 440,
+          "p99": 780,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 52,
+        "freshness": "4 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "when2meet",
+      "score": 3.5,
+      "execution_score": 4.2,
+      "access_readiness_score": 2,
+      "aggregate_recommendation_score": 3.5,
+      "confidence": 0.59,
+      "tier": "L1",
+      "tier_label": "Emerging",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 350,
+          "p95": 800,
+          "p99": 1400,
+          "samples": 4
+        },
+        "probe_types": [
+          "health"
+        ],
+        "evidence_count": 12,
+        "freshness": "2 days ago",
+        "auth_required": false,
+        "docs_unavailable": true,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "mixpanel",
+      "score": 6.5,
+      "execution_score": 7.1,
+      "access_readiness_score": 5.1,
+      "aggregate_recommendation_score": 6.5,
+      "confidence": 0.88,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 160,
+          "p95": 370,
+          "p99": 620,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 38,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "segment",
+      "score": 6.8,
+      "execution_score": 7.4,
+      "access_readiness_score": 5.3,
+      "aggregate_recommendation_score": 6.8,
+      "confidence": 0.93,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 125,
+          "p95": 280,
+          "p99": 460,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional",
+          "webhook"
+        ],
+        "evidence_count": 44,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "posthog",
+      "score": 7,
+      "execution_score": 7.4,
+      "access_readiness_score": 6.2,
+      "aggregate_recommendation_score": 7,
+      "confidence": 0.88,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 110,
+          "p95": 250,
+          "p99": 420,
+          "samples": 9
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 30,
+        "freshness": "1 hour ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "amplitude",
+      "score": 6,
+      "execution_score": 6.6,
+      "access_readiness_score": 4.6,
+      "aggregate_recommendation_score": 6,
+      "confidence": 0.88,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 175,
+          "p95": 400,
+          "p99": 680,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 36,
+        "freshness": "5 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.306Z"
+    },
+    {
+      "service_slug": "heap",
+      "score": 5.5,
+      "execution_score": 6.1,
+      "access_readiness_score": 4.1,
+      "aggregate_recommendation_score": 5.5,
+      "confidence": 0.76,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 200,
+          "p95": 470,
+          "p99": 800,
+          "samples": 7
+        },
+        "probe_types": [
+          "health",
+          "schema"
+        ],
+        "evidence_count": 24,
+        "freshness": "8 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "algolia",
+      "score": 7.7,
+      "execution_score": 8.4,
+      "access_readiness_score": 6,
+      "aggregate_recommendation_score": 7.7,
+      "confidence": 0.99,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 28,
+          "p95": 65,
+          "p99": 110,
+          "samples": 16
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load",
+          "functional"
+        ],
+        "evidence_count": 48,
+        "freshness": "1 hour ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "meilisearch",
+      "score": 7.7,
+      "execution_score": 8,
+      "access_readiness_score": 7.1,
+      "aggregate_recommendation_score": 7.7,
+      "confidence": 0.83,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 15,
+          "p95": 40,
+          "p99": 75,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load"
+        ],
+        "evidence_count": 26,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "elasticsearch",
+      "score": 6.4,
+      "execution_score": 6.8,
+      "access_readiness_score": 5.6,
+      "aggregate_recommendation_score": 6.4,
+      "confidence": 0.96,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 45,
+          "p95": 120,
+          "p99": 220,
+          "samples": 18
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load",
+          "functional"
+        ],
+        "evidence_count": 56,
+        "freshness": "6 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "typesense",
+      "score": 7.4,
+      "execution_score": 7.7,
+      "access_readiness_score": 6.6,
+      "aggregate_recommendation_score": 7.4,
+      "confidence": 0.81,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 18,
+          "p95": 48,
+          "p99": 85,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "load"
+        ],
+        "evidence_count": 22,
+        "freshness": "4 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "vercel",
+      "score": 7.3,
+      "execution_score": 8,
+      "access_readiness_score": 5.8,
+      "aggregate_recommendation_score": 7.3,
+      "confidence": 0.97,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 95,
+          "p95": 220,
+          "p99": 370,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional",
+          "load"
+        ],
+        "evidence_count": 42,
+        "freshness": "1 hour ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "netlify",
+      "score": 6.5,
+      "execution_score": 7.1,
+      "access_readiness_score": 5.2,
+      "aggregate_recommendation_score": 6.5,
+      "confidence": 0.89,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 120,
+          "p95": 280,
+          "p99": 460,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 38,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "aws",
+      "score": 6.1,
+      "execution_score": 7.1,
+      "access_readiness_score": 3.8,
+      "aggregate_recommendation_score": 6.1,
+      "confidence": 0.99,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 150,
+          "p95": 350,
+          "p99": 600,
+          "samples": 20
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load",
+          "functional"
+        ],
+        "evidence_count": 68,
+        "freshness": "30 minutes ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "digital-ocean",
+      "score": 6.9,
+      "execution_score": 7.5,
+      "access_readiness_score": 5.6,
+      "aggregate_recommendation_score": 6.9,
+      "confidence": 0.92,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 130,
+          "p95": 300,
+          "p99": 500,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 40,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "render",
+      "score": 6.9,
+      "execution_score": 7.4,
+      "access_readiness_score": 5.7,
+      "aggregate_recommendation_score": 6.9,
+      "confidence": 0.84,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 105,
+          "p95": 240,
+          "p99": 400,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 28,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "heroku",
+      "score": 5.6,
+      "execution_score": 6.1,
+      "access_readiness_score": 4.3,
+      "aggregate_recommendation_score": 5.6,
+      "confidence": 0.89,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 180,
+          "p95": 420,
+          "p99": 720,
+          "samples": 12
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 42,
+        "freshness": "8 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "twitter-api",
+      "score": 4.7,
+      "execution_score": 5.5,
+      "access_readiness_score": 2.8,
+      "aggregate_recommendation_score": 4.7,
+      "confidence": 0.94,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 220,
+          "p95": 520,
+          "p99": 950,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 50,
+        "freshness": "6 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "linkedin-api",
+      "score": 4.4,
+      "execution_score": 5.2,
+      "access_readiness_score": 2.6,
+      "aggregate_recommendation_score": 4.4,
+      "confidence": 0.89,
+      "tier": "L2",
+      "tier_label": "Developing",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 250,
+          "p95": 580,
+          "p99": 1000,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema"
+        ],
+        "evidence_count": 42,
+        "freshness": "8 hours ago",
+        "auth_required": true,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "bluesky-api",
+      "score": 6.3,
+      "execution_score": 6.6,
+      "access_readiness_score": 5.7,
+      "aggregate_recommendation_score": 6.3,
+      "confidence": 0.75,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 160,
+          "p95": 380,
+          "p99": 640,
+          "samples": 6
+        },
+        "probe_types": [
+          "health",
+          "schema"
+        ],
+        "evidence_count": 18,
+        "freshness": "4 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "openai",
+      "score": 6.6,
+      "execution_score": 7.1,
+      "access_readiness_score": 5.5,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.98,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 450,
+          "p95": 1200,
+          "p99": 2500,
+          "samples": 18
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load",
+          "functional"
+        ],
+        "evidence_count": 65,
+        "freshness": "20 minutes ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "anthropic",
+      "score": 7,
+      "execution_score": 7.5,
+      "access_readiness_score": 5.7,
+      "aggregate_recommendation_score": 7,
+      "confidence": 0.95,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 500,
+          "p95": 1400,
+          "p99": 2800,
+          "samples": 14
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "load",
+          "functional"
+        ],
+        "evidence_count": 45,
+        "freshness": "15 minutes ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "huggingface",
+      "score": 6.2,
+      "execution_score": 6.2,
+      "access_readiness_score": 6.2,
+      "aggregate_recommendation_score": 6.2,
+      "confidence": 0.84,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 600,
+          "p95": 1800,
+          "p99": 3500,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 35,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "replicate",
+      "score": 6.6,
+      "execution_score": 6.8,
+      "access_readiness_score": 6.2,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.81,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 550,
+          "p95": 1600,
+          "p99": 3200,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 28,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "cohere",
+      "score": 6.6,
+      "execution_score": 7,
+      "access_readiness_score": 5.7,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.85,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 400,
+          "p95": 1100,
+          "p99": 2200,
+          "samples": 10
+        },
+        "probe_types": [
+          "health",
+          "auth",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 30,
+        "freshness": "3 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    },
+    {
+      "service_slug": "together-ai",
+      "score": 6.6,
+      "execution_score": 7,
+      "access_readiness_score": 5.8,
+      "aggregate_recommendation_score": 6.6,
+      "confidence": 0.79,
+      "tier": "L3",
+      "tier_label": "Ready",
+      "probe_metadata": {
+        "latency_distribution_ms": {
+          "p50": 380,
+          "p95": 950,
+          "p99": 1900,
+          "samples": 8
+        },
+        "probe_types": [
+          "health",
+          "schema",
+          "functional"
+        ],
+        "evidence_count": 22,
+        "freshness": "2 hours ago",
+        "auth_required": false,
+        "docs_unavailable": false,
+        "runner": "score-dataset-v1"
+      },
+      "calculated_at": "2026-03-06T06:14:02.307Z"
+    }
+  ],
+  "errors": []
+}

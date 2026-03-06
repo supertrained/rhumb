@@ -24,11 +24,9 @@ describe("Initial Dataset Schema Validation", () => {
   it("should have all required service fields", () => {
     const requiredFields = ["slug", "name", "category", "description", "official_docs"];
 
-    dataset.services.forEach((service: any, idx: number) => {
+    dataset.services.forEach((service: Record<string, unknown>, idx: number) => {
       requiredFields.forEach((field) => {
-        expect(service[field]).toBeDefined(
-          `Service ${idx} (${service.slug}) missing field: ${field}`
-        );
+        expect(service[field]).toBeDefined();
         expect(typeof service[field]).toBe("string");
       });
     });
@@ -37,23 +35,20 @@ describe("Initial Dataset Schema Validation", () => {
   it("should have valid slug format (alphanumeric + dashes, 3-50 chars)", () => {
     const slugRegex = /^[a-z0-9-]{3,50}$/;
 
-    dataset.services.forEach((service: any) => {
-      expect(service.slug).toMatch(
-        slugRegex,
-        `Invalid slug format: ${service.slug}`
-      );
+    dataset.services.forEach((service: Record<string, string>) => {
+      expect(service.slug).toMatch(slugRegex);
     });
   });
 
   it("should have unique slugs", () => {
-    const slugs = dataset.services.map((s: any) => s.slug);
+    const slugs = dataset.services.map((s: Record<string, string>) => s.slug);
     const uniqueSlugs = new Set(slugs);
 
     expect(uniqueSlugs.size).toBe(slugs.length);
 
     // Report duplicates if found
-    const duplicates = slugs.filter((slug, idx) => slugs.indexOf(slug) !== idx);
-    expect(duplicates.length).toBe(0, `Duplicate slugs: ${duplicates.join(", ")}`);
+    const duplicates = slugs.filter((slug: string, idx: number) => slugs.indexOf(slug) !== idx);
+    expect(duplicates.length).toBe(0);
   });
 
   it("should have valid category assignments (exactly one per service)", () => {
@@ -70,18 +65,15 @@ describe("Initial Dataset Schema Validation", () => {
       "ai",
     ]);
 
-    dataset.services.forEach((service: any) => {
-      expect(validCategories.has(service.category)).toBe(
-        true,
-        `Invalid category '${service.category}' for ${service.slug}`
-      );
+    dataset.services.forEach((service: Record<string, string>) => {
+      expect(validCategories.has(service.category)).toBe(true);
     });
   });
 
   it("should have consistent category distribution", () => {
-    const categoryCount = {};
+    const categoryCount: Record<string, number> = {};
 
-    dataset.services.forEach((service: any) => {
+    dataset.services.forEach((service: Record<string, string>) => {
       if (!categoryCount[service.category]) {
         categoryCount[service.category] = 0;
       }
@@ -95,7 +87,7 @@ describe("Initial Dataset Schema Validation", () => {
   });
 
   it("should have descriptions under 120 characters", () => {
-    dataset.services.forEach((service: any) => {
+    dataset.services.forEach((service: Record<string, string>) => {
       expect(service.description.length).toBeLessThanOrEqual(120);
       expect(service.description.length).toBeGreaterThan(10);
     });
@@ -104,11 +96,8 @@ describe("Initial Dataset Schema Validation", () => {
   it("should have valid documentation URLs", () => {
     const urlRegex = /^https?:\/\/.+/;
 
-    dataset.services.forEach((service: any) => {
-      expect(service.official_docs).toMatch(
-        urlRegex,
-        `Invalid URL for ${service.slug}: ${service.official_docs}`
-      );
+    dataset.services.forEach((service: Record<string, string>) => {
+      expect(service.official_docs).toMatch(urlRegex);
     });
   });
 
@@ -119,7 +108,7 @@ describe("Initial Dataset Schema Validation", () => {
 
   it("should have correct distribution totals", () => {
     let total = 0;
-    Object.entries(dataset.distribution).forEach(([key, count]: any) => {
+    Object.entries(dataset.distribution).forEach(([key, count]) => {
       if (typeof count === "number" && key !== "total") {
         total += count;
       }
@@ -136,9 +125,9 @@ describe("Initial Dataset Schema Validation", () => {
   });
 
   it("should have consistent category membership", () => {
-    const categoryCounts = {};
+    const categoryCounts: Record<string, string[]> = {};
 
-    dataset.services.forEach((service: any) => {
+    dataset.services.forEach((service: Record<string, string>) => {
       if (!categoryCounts[service.category]) {
         categoryCounts[service.category] = [];
       }
@@ -146,7 +135,7 @@ describe("Initial Dataset Schema Validation", () => {
     });
 
     // Verify each service is in exactly one category
-    const allSlugs = dataset.services.map((s: any) => s.slug);
+    const allSlugs = dataset.services.map((s: Record<string, string>) => s.slug);
     const memberships = Object.values(categoryCounts).flat();
 
     expect(memberships.length).toBe(allSlugs.length);
