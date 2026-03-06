@@ -1,0 +1,21 @@
+{
+  "name": "rhumb-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.1",
+    "tsx": "^4.19.0",
+    "typescript": "5.6.3",
+    "vitest": "2.1.3"
+  }
+}
