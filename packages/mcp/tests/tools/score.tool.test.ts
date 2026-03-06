@@ -14,7 +14,9 @@ const mockScoreResponse: ServiceScoreItem = {
   confidence: 0.95,
   tier: "ready",
   explanation: "Reliable email API with strong SDK support and mature documentation",
-  freshness: "2026-03-01T00:00:00Z"
+  freshness: "2026-03-01T00:00:00Z",
+  failureModes: [],
+  tags: []
 };
 
 function createMockClient(
@@ -51,7 +53,9 @@ describe("get_score handler", () => {
       confidence: 0.95,
       tier: "ready",
       explanation: "Reliable email API with strong SDK support and mature documentation",
-      freshness: "2026-03-01T00:00:00Z"
+      freshness: "2026-03-01T00:00:00Z",
+      failureModes: [],
+      tags: []
     });
   });
 
