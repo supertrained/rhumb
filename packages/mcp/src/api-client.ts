@@ -18,6 +18,14 @@ export interface ServiceSearchItem {
   explanation: string;
 }
 
+export interface FailureModeItem {
+  pattern: string;
+  impact: string;
+  frequency: string;
+  workaround: string;
+  tags: string[];
+}
+
 export interface ServiceScoreItem {
   slug: string;
   aggregateScore: number | null;
@@ -27,6 +35,8 @@ export interface ServiceScoreItem {
   tier: string;
   explanation: string;
   freshness: string;
+  failureModes: FailureModeItem[];
+  tags: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +118,31 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         ? payload.dimension_snapshot
         : {};
 
+      // Parse failure_modes array from API response
+      const rawFailures = Array.isArray(payload.failure_modes)
+        ? payload.failure_modes
+        : [];
+
+      const failureModes: FailureModeItem[] = rawFailures
+        .filter((fm: unknown): fm is Record<string, unknown> => isRecord(fm))
+        .map((fm) => ({
+          pattern: asString(fm.pattern) ?? "unknown",
+          impact: asString(fm.impact) ?? "unknown",
+          frequency: asString(fm.frequency) ?? "unknown",
+          workaround: asString(fm.workaround) ?? "none",
+          tags: Array.isArray(fm.tags)
+            ? (fm.tags as unknown[]).filter((t): t is string => typeof t === "string")
+            : []
+        }));
+
+      // Collect unique tags from all failure modes
+      const tagSet = new Set<string>();
+      for (const fm of failureModes) {
+        for (const tag of fm.tags) {
+          tagSet.add(tag);
+        }
+      }
+
       return {
         slug: serviceSlug,
         aggregateScore: asNumber(payload.aggregate_recommendation_score),
@@ -121,7 +156,9 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
           asString(snapshot.freshness) ??
           asString(snapshot.evidence_freshness) ??
           asString(payload.probe_freshness) ??
-          "unknown"
+          "unknown",
+        failureModes,
+        tags: [...tagSet]
       };
     }
   };

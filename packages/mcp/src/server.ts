@@ -14,6 +14,8 @@ import {
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindTools } from "./tools/find.js";
 import { handleGetScore } from "./tools/score.js";
+import { handleGetAlternatives } from "./tools/alternatives.js";
+import { handleGetFailureModes } from "./tools/failures.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -68,9 +70,9 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
       slug: z.string().describe(GetAlternativesInputSchema.properties.slug.description)
     },
     async ({ slug }) => {
-      // Stub — Slice C implements real handler
+      const result = await handleGetAlternatives({ slug }, client);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ alternatives: [] }) }]
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };
     }
   );
@@ -83,9 +85,9 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
       slug: z.string().describe(GetFailureModesInputSchema.properties.slug.description)
     },
     async ({ slug }) => {
-      // Stub — Slice C implements real handler
+      const result = await handleGetFailureModes({ slug }, client);
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ failures: [] }) }]
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };
     }
   );
