@@ -3,7 +3,6 @@
 import pytest
 import sys
 from pathlib import Path
-from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
@@ -50,15 +49,16 @@ class TestProxyRouter:
             assert "auth_type" in service
             assert "rate_limit" in service
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_successful_request(self, mock_request, client):
+    def test_proxy_successful_request(self, client, httpx_mock):
         """Test successful proxy request."""
         # Mock response
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"id": "cus_123", "email": "test@example.com"}
-        mock_response.headers = {"content-type": "application/json"}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers/cus_123",
+            json={"id": "cus_123", "email": "test@example.com"},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
 
         response = client.post(
             "/proxy/",
@@ -80,14 +80,15 @@ class TestProxyRouter:
         assert data["path"] == "/v1/customers/cus_123"
         assert data["latency_ms"] >= 0
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_latency_measurement(self, mock_request, client):
+    def test_proxy_latency_measurement(self, client, httpx_mock):
         """Test that latency is measured correctly."""
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {}
-        mock_response.headers = {}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={},
+            status_code=200,
+            headers={},
+        )
 
         response = client.post(
             "/proxy/",
@@ -123,17 +124,18 @@ class TestProxyRouter:
         data = response.json()
         assert "Service 'nonexistent' not found" in data["detail"]
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_auth_header_injection(self, mock_request, client):
+    def test_proxy_auth_header_injection(self, client, httpx_mock):
         """Test that Authorization header is properly injected."""
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {}
-        mock_response.headers = {}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.stripe.com/v1/customers",
+            json={},
+            status_code=200,
+            headers={},
+        )
 
         auth_token = "Bearer sk_test_12345"
-        client.post(
+        response = client.post(
             "/proxy/",
             json={
                 "service": "stripe",
@@ -146,22 +148,23 @@ class TestProxyRouter:
             headers={"Authorization": auth_token},
         )
 
-        # Verify that the Authorization header was passed to the mock request
-        called_headers = mock_request.call_args[1]["headers"]
-        assert "Authorization" in called_headers
-        assert called_headers["Authorization"] == auth_token
+        # Verify request was made with Authorization header
+        assert response.status_code == 200
+        request = httpx_mock.get_request()
+        assert request.headers["Authorization"] == auth_token
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_custom_headers(self, mock_request, client):
+    def test_proxy_custom_headers(self, client, httpx_mock):
         """Test that custom headers are preserved."""
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {}
-        mock_response.headers = {}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.stripe.com/v1/customers",
+            json={},
+            status_code=200,
+            headers={},
+        )
 
         custom_headers = {"X-Custom-Header": "custom-value"}
-        client.post(
+        response = client.post(
             "/proxy/",
             json={
                 "service": "stripe",
@@ -173,19 +176,20 @@ class TestProxyRouter:
             },
         )
 
-        called_headers = mock_request.call_args[1]["headers"]
-        assert "X-Custom-Header" in called_headers
-        assert called_headers["X-Custom-Header"] == "custom-value"
+        assert response.status_code == 200
+        request = httpx_mock.get_request()
+        assert request.headers["X-Custom-Header"] == "custom-value"
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_response_body_parsing_json(self, mock_request, client):
+    def test_proxy_response_body_parsing_json(self, client, httpx_mock):
         """Test JSON response body parsing."""
         expected_body = {"id": "ch_123", "amount": 1000}
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = expected_body
-        mock_response.headers = {"content-type": "application/json"}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.stripe.com/v1/charges",
+            json=expected_body,
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
 
         response = client.post(
             "/proxy/",
@@ -202,15 +206,16 @@ class TestProxyRouter:
         data = response.json()
         assert data["body"] == expected_body
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_response_body_parsing_text(self, mock_request, client):
+    def test_proxy_response_body_parsing_text(self, client, httpx_mock):
         """Test fallback to text response parsing."""
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.side_effect = ValueError("Not JSON")
-        mock_response.text = "Plain text response"
-        mock_response.headers = {}
-        mock_request.return_value = mock_response
+        # httpx_mock with plain text content (not JSON)
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/test",
+            text="Plain text response",
+            status_code=200,
+            headers={},
+        )
 
         response = client.post(
             "/proxy/",
@@ -227,14 +232,15 @@ class TestProxyRouter:
         data = response.json()
         assert data["body"] == "Plain text response"
 
-    @patch("routes.proxy.httpx.AsyncClient.request")
-    def test_proxy_error_response(self, mock_request, client):
+    def test_proxy_error_response(self, client, httpx_mock):
         """Test proxy error handling."""
-        mock_response = AsyncMock()
-        mock_response.status_code = 401
-        mock_response.json.return_value = {"error": "Unauthorized"}
-        mock_response.headers = {"content-type": "application/json"}
-        mock_request.return_value = mock_response
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={"error": "Unauthorized"},
+            status_code=401,
+            headers={"content-type": "application/json"},
+        )
 
         response = client.post(
             "/proxy/",
@@ -277,24 +283,26 @@ class TestProxyRequest:
         )
         assert response.status_code == 422  # Validation error
 
-    def test_proxy_request_valid(self, client):
+    def test_proxy_request_valid(self, client, httpx_mock):
         """Test valid proxy request structure."""
-        with patch("routes.proxy.httpx.AsyncClient.request") as mock_request:
-            mock_response = AsyncMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {}
-            mock_response.headers = {}
-            mock_request.return_value = mock_response
+        # Mock expects the URL with query params included
+        httpx_mock.add_response(
+            method="POST",
+            url="https://api.stripe.com/v1/customers?limit=10",
+            json={},
+            status_code=200,
+            headers={},
+        )
 
-            response = client.post(
-                "/proxy/",
-                json={
-                    "service": "stripe",
-                    "method": "POST",
-                    "path": "/v1/customers",
-                    "body": {"email": "test@example.com"},
-                    "params": {"limit": 10},
-                    "headers": {"X-Custom": "value"},
-                },
-            )
-            assert response.status_code == 200
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "stripe",
+                "method": "POST",
+                "path": "/v1/customers",
+                "body": {"email": "test@example.com"},
+                "params": {"limit": 10},
+                "headers": {"X-Custom": "value"},
+            },
+        )
+        assert response.status_code == 200

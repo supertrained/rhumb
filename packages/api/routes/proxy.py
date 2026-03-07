@@ -1,9 +1,8 @@
 """Proxy route implementation for provisioning and agent-gated access."""
 
-import json
 import time
 from typing import Any, Optional
-from fastapi import APIRouter, Body, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 import httpx
 
@@ -122,7 +121,7 @@ async def proxy_request(
 
     try:
         # Validate service
-        config = _get_service_config(request.service)
+        _get_service_config(request.service)
 
         # Build URL
         url = _build_url(request.service, request.path)
