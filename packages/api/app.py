@@ -2,7 +2,16 @@
 
 from fastapi import FastAPI
 
-from routes import leaderboard, probes, proxy, scores, search, services, tester_fleet
+from routes import (
+    admin_agents,
+    leaderboard,
+    probes,
+    proxy,
+    scores,
+    search,
+    services,
+    tester_fleet,
+)
 
 
 def create_app() -> FastAPI:
@@ -15,6 +24,9 @@ def create_app() -> FastAPI:
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
     application.include_router(tester_fleet.router, prefix="/v1", tags=["tester-fleet"])
     application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
+    application.include_router(
+        admin_agents.router, prefix="/v1/admin", tags=["admin-agents"]
+    )
 
     @application.get("/healthz")
     async def healthz() -> dict[str, str]:
