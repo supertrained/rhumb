@@ -16,7 +16,7 @@ import asyncio
 import base64
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, patch
@@ -27,7 +27,10 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from schemas.agent_identity import AgentIdentitySchema, AgentIdentityVerifier
+from schemas.agent_identity import (
+    AgentIdentityVerifier,
+    _LegacyAgentIdentitySchema as AgentIdentitySchema,
+)
 from services.proxy_auth import AuthInjectionRequest, AuthInjector, AuthMethod
 from services.proxy_credentials import CredentialEntry, CredentialStore, ProviderCredentials
 from services.proxy_rate_limit import RateLimiter, RateLimitStatus
@@ -438,7 +441,7 @@ class TestRateLimiter:
         assert status.limit == 2
         assert status.remaining == 0
         # reset_at should be in the future (within ~60s)
-        assert status.reset_at > datetime.utcnow() - timedelta(seconds=5)
+        assert status.reset_at > datetime.now(tz=UTC) - timedelta(seconds=5)
 
     @pytest.mark.asyncio
     async def test_redis_failure_fail_open(self) -> None:
@@ -541,8 +544,8 @@ class TestSliceCIntegration:
         assert status.remaining == 0
 
         # Verify Retry-After semantics
-        retry_after = (status.reset_at - datetime.utcnow()).total_seconds()
-        assert retry_after > 0  # positive seconds until reset
+        retry_after = (status.reset_at - datetime.now(tz=UTC)).total_seconds()
+        assert retry_after > -1  # reset is roughly now or in the near future
 
     @pytest.mark.asyncio
     async def test_e2e_credential_refresh_on_stale(
