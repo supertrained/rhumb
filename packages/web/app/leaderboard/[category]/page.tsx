@@ -107,7 +107,13 @@ export async function generateMetadata({
 
   return {
     title: `${category} leaderboard | Rhumb`,
-    description: `Top agent-native services in ${category} ranked by aggregate, execution, and access-readiness scores.`
+    description: `Top agent-native services in ${category} ranked by aggregate, execution, and access-readiness scores.`,
+    alternates: { canonical: `/leaderboard/${category}` },
+    openGraph: {
+      title: `${category} leaderboard | Rhumb`,
+      description: `Top agent-native services in ${category}.`,
+      images: [{ url: `/leaderboard/${category}/og`, width: 1200, height: 630 }],
+    },
   };
 }
 
