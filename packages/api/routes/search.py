@@ -56,7 +56,7 @@ def _load_scores() -> dict:
 @router.get("/search")
 async def search_services(
     q: str,
-    limit: Optional[int] = Query(default=10, ge=1, le=50)
+    limit: int = Query(default=10, ge=1, le=50)
 ) -> dict:
     """
     Search services by free-text query (slug, name, category, description).
@@ -67,6 +67,10 @@ async def search_services(
 
     Returns matching services ranked by score match.
     """
+    # Handle both direct function calls (Query object) and HTTP calls (unwrapped int)
+    if hasattr(limit, 'default'):  # It's a Query object
+        limit = limit.default
+    
     query_lower = q.lower().strip()
 
     if not query_lower:

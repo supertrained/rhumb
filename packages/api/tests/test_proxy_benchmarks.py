@@ -174,8 +174,11 @@ class TestCircuitBreakerTransitions:
         assert breaker._state == BreakerState.OPEN
 
         # OPEN -> HALF_OPEN (via mock time)
+        # Capture the real time when OPEN state was entered
+        real_opened_at = breaker._opened_at
         with patch("services.proxy_breaker.time.monotonic") as mock_time:
-            mock_time.return_value = time.monotonic() + 1.0
+            # Return a time value that is enough to exceed cooldown_seconds
+            mock_time.return_value = real_opened_at + 1.0
             assert breaker.state == BreakerState.HALF_OPEN
 
         # HALF_OPEN -> CLOSED
