@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTierInfo } from "../../../lib/utils";
 
 export const metadata: Metadata = {
   title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents | Rhumb",
@@ -84,8 +85,7 @@ const TOOLS = [
     tier: "L2",
     tierLabel: "Developing",
     p50: 185,
-    whyHigh:
-      "PayPal ecosystem integration. Mature SDK with good type coverage.",
+    whyHigh: "PayPal ecosystem integration. Mature SDK with good type coverage.",
     whyLow:
       "XML error responses in some endpoints. Complex sandbox provisioning. Rate limits are opaque (no Retry-After header). Legacy API patterns mixed with modern ones.",
   },
@@ -105,257 +105,245 @@ const TOOLS = [
   },
 ];
 
-function tierColor(tier: string): string {
-  switch (tier) {
-    case "L4":
-      return "#7c3aed";
-    case "L3":
-      return "#059669";
-    case "L2":
-      return "#2563eb";
-    case "L1":
-      return "#6b7280";
-    default:
-      return "#0f172a";
-  }
+// Score bar for inline display
+function MiniScoreBar({ value, max = 10 }: { value: number; max?: number }) {
+  const tier = getTierInfo(value);
+  const pct = Math.min((value / max) * 100, 100);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: tier.hex }} />
+      </div>
+      <span className={`font-mono font-bold text-sm w-7 text-right ${tier.textClass}`}>
+        {value.toFixed(1)}
+      </span>
+    </div>
+  );
 }
 
 export default function PaymentsForAgents() {
   return (
-    <article style={{ maxWidth: 720, margin: "0 auto", padding: "40px 20px" }}>
-      <header>
-        <p style={{ color: "#7c3aed", fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-          TOOL AUTOPSY
-        </p>
-        <h1 style={{ fontSize: 32, lineHeight: 1.2, marginBottom: 16 }}>
-          Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents
-        </h1>
-        <p style={{ color: "#64748b", fontSize: 15, marginBottom: 32 }}>
-          We scored 6 payment APIs on how well they work for AI agents — not humans.
-          The most popular one scored the worst.{" "}
-          <span style={{ color: "#94a3b8" }}>March 9, 2026 · Pedro Nunes</span>
-        </p>
-      </header>
+    <div className="bg-navy min-h-screen">
+      <article className="max-w-3xl mx-auto px-6 pt-14 pb-24">
 
-      {/* Intro */}
-      <section style={{ marginBottom: 40, lineHeight: 1.7, fontSize: 16 }}>
-        <p>
-          When a human picks a payment processor, they compare pricing pages, read case studies,
-          and ask their network. When an AI agent picks one, it needs to know: <em>Can I call this
-          API without getting stuck?</em>
-        </p>
-        <p style={{ marginTop: 16 }}>
-          &quot;Great documentation&quot; means nothing when your user is a language model. What
-          matters is: Are errors machine-readable? Are operations idempotent? Can I retry safely
-          without human intervention?
-        </p>
-        <p style={{ marginTop: 16 }}>
-          We built the{" "}
-          <Link href="/leaderboard/payments" style={{ color: "#7c3aed", textDecoration: "underline" }}>
-            Agent-Native Score
-          </Link>{" "}
-          to answer this. Here&apos;s what we found when we scored the 6 most common payment
-          APIs that agents actually use.
-        </p>
-      </section>
-
-      {/* Leaderboard summary */}
-      <section style={{ marginBottom: 40 }}>
-        <h2 style={{ fontSize: 22, marginBottom: 16 }}>The Leaderboard</h2>
-        <div
-          style={{
-            border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          {TOOLS.map((tool, i) => (
-            <div
-              key={tool.slug}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px 20px",
-                borderBottom: i < TOOLS.length - 1 ? "1px solid #f1f5f9" : "none",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span
-                  style={{ fontWeight: 700, fontSize: 14, color: "#94a3b8", width: 24 }}
-                >
-                  #{i + 1}
-                </span>
-                <Link
-                  href={`/service/${tool.slug}`}
-                  style={{
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    textDecoration: "none",
-                    fontSize: 16,
-                  }}
-                >
-                  {tool.name}
-                </Link>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: tierColor(tool.tier),
-                    border: `1px solid ${tierColor(tool.tier)}`,
-                    borderRadius: 999,
-                    padding: "1px 8px",
-                  }}
-                >
-                  {tool.tier} {tool.tierLabel}
-                </span>
-              </div>
-              <span style={{ fontWeight: 700, fontSize: 20, color: "#0f172a" }}>
-                {tool.agg.toFixed(1)}
-              </span>
-            </div>
-          ))}
-        </div>
-        <p style={{ marginTop: 12, fontSize: 13, color: "#94a3b8" }}>
-          Agent-Native Score v0.2 · Execution (70%) + Access (30%) · Higher is better ·{" "}
-          <Link href="/leaderboard/payments" style={{ color: "#7c3aed" }}>
-            Full leaderboard →
-          </Link>
-        </p>
-      </section>
-
-      {/* Individual breakdowns */}
-      {TOOLS.map((tool) => (
-        <section key={tool.slug} style={{ marginBottom: 48 }}>
-          <h2 style={{ fontSize: 20, marginBottom: 8 }}>
-            <Link
-              href={`/service/${tool.slug}`}
-              style={{ color: "#0f172a", textDecoration: "none" }}
-            >
-              {tool.name}
-            </Link>{" "}
-            <span style={{ color: tierColor(tool.tier), fontWeight: 400, fontSize: 16 }}>
-              {tool.agg.toFixed(1)} · {tool.tier}
+        {/* Article header */}
+        <header className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+              Tool Autopsy
             </span>
-          </h2>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 16,
-              marginBottom: 16,
-              fontSize: 14,
-              color: "#475569",
-            }}
-          >
-            <span>
-              Execution: <strong>{tool.exec.toFixed(1)}</strong>
-            </span>
-            <span>
-              Access: <strong>{tool.access.toFixed(1)}</strong>
-            </span>
-            <span>
-              P50 latency: <strong>{tool.p50}ms</strong>
-            </span>
+            <span className="text-slate-700">·</span>
+            <span className="text-xs font-mono text-slate-500">March 9, 2026</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-xs font-mono text-slate-600">Pedro Nunes</span>
           </div>
 
-          <div style={{ lineHeight: 1.7, fontSize: 15 }}>
+          <h1 className="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+            Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents
+          </h1>
+
+          <p className="text-lg text-slate-400 leading-relaxed border-l-2 border-amber/50 pl-4">
+            We scored 6 payment APIs on how well they work for AI agents — not humans.
+            The most popular one scored the worst.
+          </p>
+        </header>
+
+        {/* Intro */}
+        <section className="prose-rhumb mb-12">
+          <p>
+            When a human picks a payment processor, they compare pricing pages, read case studies,
+            and ask their network. When an AI agent picks one, it needs to know:{" "}
+            <em>Can I call this API without getting stuck?</em>
+          </p>
+          <p>
+            &quot;Great documentation&quot; means nothing when your user is a language model. What
+            matters is: Are errors machine-readable? Are operations idempotent? Can I retry safely
+            without human intervention?
+          </p>
+          <p>
+            We built the{" "}
+            <Link href="/leaderboard/payments" className="text-amber hover:underline underline-offset-2">
+              Agent-Native Score
+            </Link>{" "}
+            to answer this. Here&apos;s what we found when we scored the 6 most common payment
+            APIs that agents actually use.
+          </p>
+        </section>
+
+        {/* Leaderboard summary */}
+        <section className="mb-12">
+          <h2 className="font-display font-semibold text-xl text-slate-100 mb-5">The Leaderboard</h2>
+
+          <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden">
+            {TOOLS.map((tool, i) => {
+              const tier = getTierInfo(tool.agg);
+              return (
+                <div
+                  key={tool.slug}
+                  className={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-elevated ${
+                    i < TOOLS.length - 1 ? "border-b border-slate-800" : ""
+                  }`}
+                >
+                  {/* Rank */}
+                  <span className="font-mono text-sm text-slate-600 w-5 shrink-0">#{i + 1}</span>
+
+                  {/* Score badge */}
+                  <div
+                    className={`w-11 h-11 rounded-full flex flex-col items-center justify-center border shrink-0 ${tier.bgClass} ${tier.borderClass} ${tier.glowClass}`}
+                  >
+                    <span className={`font-mono font-bold text-sm leading-none ${tier.textClass}`}>
+                      {tool.agg.toFixed(1)}
+                    </span>
+                  </div>
+
+                  {/* Name + tier */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={`/service/${tool.slug}`}
+                        className="font-display font-semibold text-slate-100 hover:text-amber transition-colors"
+                      >
+                        {tool.name}
+                      </Link>
+                      <span
+                        className={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}
+                      >
+                        {tool.tier} {tool.tierLabel}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex gap-4 text-xs font-mono text-slate-600">
+                      <span>Exec: {tool.exec.toFixed(1)}</span>
+                      <span>Access: {tool.access.toFixed(1)}</span>
+                      <span>P50: {tool.p50}ms</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-3 text-xs font-mono text-slate-600">
+            Agent-Native Score v0.2 · Execution (70%) + Access (30%) · Higher is better ·{" "}
+            <Link href="/leaderboard/payments" className="text-amber hover:underline">
+              Full leaderboard →
+            </Link>
+          </p>
+        </section>
+
+        {/* Individual breakdowns */}
+        {TOOLS.map((tool) => {
+          const tier = getTierInfo(tool.agg);
+          return (
+            <section key={tool.slug} className="mb-10">
+              <div className="flex items-baseline gap-3 mb-4">
+                <h2 className="font-display font-bold text-xl text-slate-100">
+                  <Link
+                    href={`/service/${tool.slug}`}
+                    className="hover:text-amber transition-colors"
+                  >
+                    {tool.name}
+                  </Link>
+                </h2>
+                <span className={`font-mono font-bold text-lg ${tier.textClass}`}>
+                  {tool.agg.toFixed(1)}
+                </span>
+                <span className={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}>
+                  {tool.tier}
+                </span>
+              </div>
+
+              {/* Score bars */}
+              <div className="mb-4 bg-surface border border-slate-800 rounded-lg p-4 space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-slate-500 w-14 shrink-0">Execution</span>
+                  <div className="flex-1"><MiniScoreBar value={tool.exec} /></div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-slate-500 w-14 shrink-0">Access</span>
+                  <div className="flex-1"><MiniScoreBar value={tool.access} /></div>
+                </div>
+                <div className="pt-1 border-t border-slate-800 text-xs font-mono text-slate-600">
+                  P50 latency: <span className="text-slate-400">{tool.p50}ms</span>
+                </div>
+              </div>
+
+              <div className="prose-rhumb space-y-3">
+                <p>
+                  <span className="text-score-native font-semibold">What works for agents:</span>{" "}
+                  {tool.whyHigh}
+                </p>
+                <p>
+                  <span className="text-score-limited font-semibold">Where agents get stuck:</span>{" "}
+                  {tool.whyLow}
+                </p>
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Key insight */}
+        <section className="my-12 bg-surface border border-l-4 border-amber rounded-xl p-7">
+          <h2 className="font-display font-bold text-lg text-amber mb-4">The Pattern</h2>
+          <div className="prose-rhumb">
             <p>
-              <strong style={{ color: "#059669" }}>What works for agents:</strong>{" "}
-              {tool.whyHigh}
+              The gap between Stripe (8.3) and PayPal (5.2) isn&apos;t about features — both
+              process payments. It&apos;s about{" "}
+              <strong>execution ergonomics</strong>: idempotency, structured errors, retry safety,
+              and predictable latency.
             </p>
-            <p style={{ marginTop: 8 }}>
-              <strong style={{ color: "#dc2626" }}>Where agents get stuck:</strong>{" "}
-              {tool.whyLow}
+            <p>
+              Stripe was built API-first. PayPal was built for checkout buttons and added an API
+              later. That architectural decision from 2011 still shows up in every agent interaction
+              in 2026.
+            </p>
+            <p>
+              For AI automation teams: if your agent is spending tokens parsing error messages or
+              implementing custom retry logic, the tool isn&apos;t saving you time. It&apos;s
+              costing you compute.
             </p>
           </div>
         </section>
-      ))}
 
-      {/* Key insight */}
-      <section
-        style={{
-          marginBottom: 40,
-          padding: 24,
-          background: "#f8fafc",
-          borderRadius: 12,
-          borderLeft: "4px solid #7c3aed",
-        }}
-      >
-        <h2 style={{ fontSize: 18, marginBottom: 12, color: "#7c3aed" }}>
-          The Pattern
-        </h2>
-        <div style={{ lineHeight: 1.7, fontSize: 15 }}>
-          <p>
-            The gap between Stripe (8.3) and PayPal (5.2) isn&apos;t about features — both
-            process payments. It&apos;s about <strong>execution ergonomics</strong>: idempotency,
-            structured errors, retry safety, and predictable latency.
-          </p>
-          <p style={{ marginTop: 12 }}>
-            Stripe was built API-first. PayPal was built for checkout buttons and added an API
-            later. That architectural decision from 2011 still shows up in every agent interaction
-            in 2026.
-          </p>
-          <p style={{ marginTop: 12 }}>
-            For AI automation teams: if your agent is spending tokens parsing error messages or
-            implementing custom retry logic, the tool isn&apos;t saving you time. It&apos;s
-            costing you compute.
-          </p>
-        </div>
-      </section>
+        {/* Methodology */}
+        <section className="mb-12">
+          <h2 className="font-display font-bold text-lg text-slate-100 mb-4">Methodology</h2>
+          <div className="prose-rhumb">
+            <p>
+              The <strong>Agent-Native Score</strong> evaluates tools across 17 dimensions grouped
+              into Execution (how well the API works when called) and Access (how easy it is for an
+              agent to start using it autonomously). Scores are weighted 70/30 Execution/Access.
+            </p>
+            <p>
+              Key dimensions include: schema stability, error ergonomics, idempotency guarantees,
+              latency distribution (P50/P95/P99), cold-start behavior, token cost of integration,
+              and graceful degradation under load.
+            </p>
+            <p>
+              All scores are based on live probe data, not documentation review.{" "}
+              <Link href="/leaderboard/payments" className="text-amber hover:underline">
+                View the full payments leaderboard →
+              </Link>
+            </p>
+          </div>
+        </section>
 
-      {/* Methodology */}
-      <section style={{ marginBottom: 40 }}>
-        <h2 style={{ fontSize: 18, marginBottom: 12 }}>Methodology</h2>
-        <div style={{ lineHeight: 1.7, fontSize: 15, color: "#475569" }}>
-          <p>
-            The <strong>Agent-Native Score</strong> evaluates tools across 17 dimensions grouped into
-            Execution (how well the API works when called) and Access (how easy it is for an agent
-            to start using it autonomously). Scores are weighted 70/30 Execution/Access.
+        {/* CTA */}
+        <section className="bg-surface border border-slate-800 rounded-xl p-8 text-center">
+          <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
+            Want to see how your tools stack up?
+          </h2>
+          <p className="text-slate-400 text-sm mb-6">
+            We&apos;ve scored 50+ developer tools across 10 categories.
           </p>
-          <p style={{ marginTop: 12 }}>
-            Key dimensions include: schema stability, error ergonomics, idempotency guarantees,
-            latency distribution (P50/P95/P99), cold-start behavior, token cost of integration,
-            and graceful degradation under load.
-          </p>
-          <p style={{ marginTop: 12 }}>
-            All scores are based on live probe data, not documentation review.{" "}
-            <Link href="/leaderboard/payments" style={{ color: "#7c3aed" }}>
-              View the full payments leaderboard →
-            </Link>
-          </p>
-        </div>
-      </section>
+          <Link
+            href="/leaderboard"
+            className="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
+          >
+            Browse all categories →
+          </Link>
+        </section>
 
-      {/* CTA */}
-      <section
-        style={{
-          padding: 24,
-          border: "1px solid #e2e8f0",
-          borderRadius: 12,
-          textAlign: "center",
-        }}
-      >
-        <h2 style={{ fontSize: 18, marginBottom: 8 }}>
-          Want to see how your tools stack up?
-        </h2>
-        <p style={{ color: "#64748b", marginBottom: 16 }}>
-          We&apos;ve scored 50 developer tools across 10 categories.
-        </p>
-        <Link
-          href="/leaderboard"
-          style={{
-            display: "inline-block",
-            padding: "10px 24px",
-            background: "#7c3aed",
-            color: "white",
-            borderRadius: 8,
-            textDecoration: "none",
-            fontWeight: 600,
-          }}
-        >
-          Browse all categories →
-        </Link>
-      </section>
-    </article>
+      </article>
+    </div>
   );
 }

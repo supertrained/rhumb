@@ -1,9 +1,16 @@
 /** Tag list for failure mode categories. */
 export function FailureModeTags({ tags }: { tags: string[] }): JSX.Element {
+  if (tags.length === 0) {
+    return <p className="text-sm text-slate-500 font-mono">No failure modes reported.</p>;
+  }
+
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    <div className="flex flex-wrap gap-2">
       {tags.map((tag) => (
-        <span key={tag} style={{ padding: "2px 8px", border: "1px solid #cbd5e1", borderRadius: 8 }}>
+        <span
+          key={tag}
+          className="px-2.5 py-1 text-xs font-mono rounded-md border border-score-limited/30 bg-score-limited/10 text-score-limited"
+        >
           {tag}
         </span>
       ))}

@@ -15,50 +15,65 @@ const POSTS = [
       "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
     date: "March 9, 2026",
     tag: "Tool Autopsy",
+    readTime: "8 min read",
   },
 ];
 
 export default function BlogIndex() {
   return (
-    <section style={{ maxWidth: 720, margin: "0 auto", padding: "40px 20px" }}>
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Blog</h1>
-      <p style={{ color: "#64748b", marginBottom: 32 }}>
-        Tool autopsies, scoring methodology deep-dives, and agent infrastructure insights.
-      </p>
+    <div className="bg-navy min-h-screen">
+      {/* Header */}
+      <section className="relative border-b border-slate-800 overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+        <div className="relative max-w-3xl mx-auto px-6 py-14">
+          <p className="text-xs font-mono text-amber uppercase tracking-widest mb-3">Writing</p>
+          <h1 className="font-display font-bold text-4xl sm:text-5xl text-slate-100 tracking-tight">Blog</h1>
+          <p className="mt-3 text-slate-400 leading-relaxed">
+            Tool autopsies, scoring methodology deep-dives, and agent infrastructure insights.
+          </p>
+        </div>
+      </section>
 
-      {POSTS.map((post) => (
-        <Link
-          key={post.slug}
-          href={`/blog/${post.slug}`}
-          style={{ textDecoration: "none", color: "inherit", display: "block" }}
-        >
-          <article
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 24,
-              marginBottom: 16,
-            }}
-          >
-            <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "#7c3aed",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                }}
-              >
-                {post.tag}
-              </span>
-              <span style={{ fontSize: 12, color: "#94a3b8" }}>{post.date}</span>
-            </div>
-            <h2 style={{ fontSize: 20, marginBottom: 8 }}>{post.title}</h2>
-            <p style={{ color: "#64748b", fontSize: 15 }}>{post.description}</p>
-          </article>
-        </Link>
-      ))}
-    </section>
+      {/* Post list */}
+      <section className="max-w-3xl mx-auto px-6 py-12">
+        <div className="space-y-4">
+          {POSTS.map((post) => (
+            <Link
+              key={post.slug}
+              href={`/blog/${post.slug}`}
+              className="block group"
+            >
+              <article className="bg-surface border border-slate-800 rounded-xl p-7 transition-all duration-200 hover:border-slate-600 hover:bg-elevated">
+                {/* Meta row */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+                    {post.tag}
+                  </span>
+                  <span className="text-slate-800">·</span>
+                  <span className="text-xs font-mono text-slate-500">{post.date}</span>
+                  <span className="text-slate-800">·</span>
+                  <span className="text-xs font-mono text-slate-600">{post.readTime}</span>
+                </div>
+
+                {/* Title */}
+                <h2 className="font-display font-bold text-xl text-slate-100 leading-snug group-hover:text-amber transition-colors mb-3">
+                  {post.title}
+                </h2>
+
+                {/* Excerpt */}
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  {post.description}
+                </p>
+
+                {/* Read link */}
+                <div className="mt-5 text-xs font-mono text-slate-600 group-hover:text-amber transition-colors">
+                  Read post →
+                </div>
+              </article>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
