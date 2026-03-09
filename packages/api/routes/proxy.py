@@ -1,20 +1,32 @@
 """Proxy route implementation for provisioning and agent-gated access.
 
 Slice B additions: connection pool manager, circuit breaker, latency tracking.
+Round 13 additions: schema fingerprinting, change detection, and alert pipeline.
 """
 
+from __future__ import annotations
+
 import time
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from services.proxy_breaker import BreakerRegistry, BreakerState
+from services.proxy_breaker import BreakerRegistry
 from services.proxy_latency import LatencyTracker
 from services.proxy_pool import PoolManager
+from services.schema_alert_pipeline import AlertDispatcher, get_alert_dispatcher
+from services.schema_change_detector import (
+    SchemaChange,
+    SchemaChangeDetector,
+    get_schema_change_detector,
+)
+from services.schema_fingerprint import SchemaFingerprint, fingerprint_response
 
 router = APIRouter(tags=["proxy"])
+admin_router = APIRouter(tags=["schema-admin"])
 
 # Service registry: maps service names to provider domains and auth patterns
 SERVICE_REGISTRY = {
@@ -22,26 +34,31 @@ SERVICE_REGISTRY = {
         "domain": "api.stripe.com",
         "auth_type": "bearer_token",
         "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
     },
     "slack": {
         "domain": "slack.com",
         "auth_type": "bearer_token",
         "rate_limit": "60/min",
+        "schema_alert_mode": "breaking_only",
     },
     "sendgrid": {
         "domain": "api.sendgrid.com",
         "auth_type": "bearer_token",
         "rate_limit": "300/min",
+        "schema_alert_mode": "breaking_only",
     },
     "github": {
         "domain": "api.github.com",
         "auth_type": "bearer_token",
         "rate_limit": "5000/hour",
+        "schema_alert_mode": "breaking_only",
     },
     "twilio": {
         "domain": "api.twilio.com",
         "auth_type": "basic_auth",
         "rate_limit": "1000/min",
+        "schema_alert_mode": "breaking_only",
     },
 }
 
@@ -77,6 +94,11 @@ class ProxyResponse(BaseModel):
 _pool_manager: Optional[PoolManager] = None
 _breaker_registry: Optional[BreakerRegistry] = None
 _latency_tracker: Optional[LatencyTracker] = None
+_schema_detector: Optional[SchemaChangeDetector] = None
+_schema_alert_dispatcher: Optional[AlertDispatcher] = None
+
+# Lightweight in-memory schema events storage.
+_schema_events: list[dict[str, Any]] = []
 
 # Legacy fallback client (used only if pool manager is not initialized)
 _http_client: Optional[httpx.AsyncClient] = None
@@ -106,6 +128,22 @@ def get_latency_tracker() -> LatencyTracker:
     return _latency_tracker
 
 
+def get_schema_detector() -> SchemaChangeDetector:
+    """Get or create the global schema change detector."""
+    global _schema_detector
+    if _schema_detector is None:
+        _schema_detector = get_schema_change_detector()
+    return _schema_detector
+
+
+def get_schema_alert_dispatcher() -> AlertDispatcher:
+    """Get or create the global schema alert dispatcher."""
+    global _schema_alert_dispatcher
+    if _schema_alert_dispatcher is None:
+        _schema_alert_dispatcher = get_alert_dispatcher()
+    return _schema_alert_dispatcher
+
+
 async def get_http_client() -> httpx.AsyncClient:
     """Get or create HTTP client (legacy fallback, prefer pool manager)."""
     global _http_client
@@ -122,7 +160,10 @@ def _get_service_config(service: str) -> dict:
     if service not in SERVICE_REGISTRY:
         raise HTTPException(
             status_code=400,
-            detail=f"Service '{service}' not found. Available: {', '.join(SERVICE_REGISTRY.keys())}",
+            detail=(
+                f"Service '{service}' not found. "
+                f"Available: {', '.join(SERVICE_REGISTRY.keys())}"
+            ),
         )
     return SERVICE_REGISTRY[service]
 
@@ -136,14 +177,91 @@ def _build_url(service: str, path: str) -> str:
     return f"https://{domain}{path}"
 
 
+def _schema_endpoint_key(agent_id: str, endpoint_path: str) -> str:
+    clean_path = endpoint_path.lstrip("/")
+    return f"{agent_id}:{clean_path}"
+
+
+def _append_schema_events(
+    *,
+    service: str,
+    endpoint: str,
+    fingerprint: SchemaFingerprint,
+    status_code: int,
+    changes: tuple[SchemaChange, ...],
+    warnings: tuple[str, ...],
+) -> None:
+    timestamp = datetime.now(tz=UTC).isoformat()
+
+    if not changes:
+        _schema_events.append(
+            {
+                "service": service,
+                "endpoint": endpoint,
+                "fingerprint_hash": fingerprint.fingerprint_hash,
+                "change_type": "none",
+                "severity": "advisory",
+                "captured_at": timestamp,
+                "status_code": status_code,
+                "warnings": list(warnings),
+            }
+        )
+        return
+
+    for change in changes:
+        _schema_events.append(
+            {
+                "service": service,
+                "endpoint": endpoint,
+                "fingerprint_hash": fingerprint.fingerprint_hash,
+                "change_type": change.change_type,
+                "severity": change.severity,
+                "path": change.path,
+                "old_type": change.old_type,
+                "new_type": change.new_type,
+                "detail": change.detail,
+                "similarity": change.similarity,
+                "captured_at": timestamp,
+                "status_code": status_code,
+                "warnings": list(warnings),
+            }
+        )
+
+
+async def _dispatch_schema_alert_task(
+    *,
+    service: str,
+    endpoint: str,
+    changes: tuple[SchemaChange, ...],
+    alert_mode: str,
+) -> None:
+    dispatcher = get_schema_alert_dispatcher()
+    await dispatcher.dispatch(
+        service=service,
+        endpoint=endpoint,
+        changes=changes,
+        alert_mode=alert_mode,
+    )
+
+
+def _max_severity(changes: tuple[SchemaChange, ...]) -> str:
+    severities = {change.severity for change in changes}
+    if "breaking" in severities:
+        return "breaking"
+    if "non_breaking" in severities:
+        return "non_breaking"
+    return "advisory"
+
+
 @router.post("/", response_model=ProxyResponse)
 async def proxy_request(
     request: ProxyRequest,
+    background_tasks: BackgroundTasks,
     authorization: Optional[str] = Header(None),
 ) -> ProxyResponse:
     """Proxy a request to a provider API.
 
-    Integrates connection pooling, circuit breaker, and latency tracking.
+    Integrates connection pooling, circuit breaker, latency tracking.
 
     The proxy:
     - Checks circuit breaker state (fail-open if OPEN)
@@ -151,11 +269,11 @@ async def proxy_request(
     - Forwards the request with auth headers
     - Measures latency with perf_counter precision
     - Records metrics
+    - Performs schema drift detection (non-blocking alerts)
     - Returns response with circuit breaker signal
     """
     agent_id = request.agent_id or "default"
     perf_start = time.perf_counter()
-    start_time = time.time()
 
     # Circuit breaker check
     breaker_reg = get_breaker_registry()
@@ -179,7 +297,7 @@ async def proxy_request(
 
     try:
         # Validate service
-        _get_service_config(request.service)
+        service_config = _get_service_config(request.service)
 
         # Build URL
         url = _build_url(request.service, request.path)
@@ -234,9 +352,46 @@ async def proxy_request(
 
         # Parse response body
         try:
-            response_body = proxied_response.json()
+            response_body: Any = proxied_response.json()
         except Exception:
             response_body = proxied_response.text
+
+        # Schema detection (non-blocking alert dispatch)
+        schema_endpoint = _schema_endpoint_key(agent_id, request.path)
+        fingerprint = fingerprint_response(
+            response_body,
+            status_code=proxied_response.status_code,
+            headers=proxied_response.headers,
+            latency_ms=latency_ms,
+        )
+        detector = get_schema_detector()
+        detection = detector.detect_changes(
+            request.service,
+            schema_endpoint,
+            fingerprint,
+            status_code=proxied_response.status_code,
+        )
+
+        _append_schema_events(
+            service=request.service,
+            endpoint=schema_endpoint,
+            fingerprint=fingerprint,
+            status_code=proxied_response.status_code,
+            changes=detection.changes,
+            warnings=detection.warnings,
+        )
+
+        if detection.changes and detector.alert_required(
+            detection.changes,
+            include_non_breaking=(service_config.get("schema_alert_mode") == "all"),
+        ):
+            background_tasks.add_task(
+                _dispatch_schema_alert_task,
+                service=request.service,
+                endpoint=schema_endpoint,
+                changes=detection.changes,
+                alert_mode=str(service_config.get("schema_alert_mode", "breaking_only")),
+            )
 
         return ProxyResponse(
             status_code=proxied_response.status_code,
@@ -364,6 +519,96 @@ async def proxy_metrics(service: str, agent_id: str = "default") -> dict:
                 "utilization": round(pool_metrics.utilization, 3) if pool_metrics else 0.0,
                 "reuse_ratio": round(pool_metrics.reuse_ratio, 3) if pool_metrics else 0.0,
             },
+        },
+        "error": None,
+    }
+
+
+@admin_router.get("/admin/schema/{service}/{endpoint:path}")
+async def get_schema_snapshot(
+    service: str,
+    endpoint: str,
+    agent_id: str = Query(default="default"),
+    limit: int = Query(default=5, ge=1, le=50),
+) -> dict[str, Any]:
+    """Return latest schema fingerprint and recent change history."""
+    _get_service_config(service)
+
+    detector = get_schema_detector()
+    schema_endpoint = _schema_endpoint_key(agent_id, endpoint)
+    fingerprint = detector.get_latest_fingerprint(service, schema_endpoint, status_code=200)
+    history = detector.get_change_history(
+        service,
+        schema_endpoint,
+        limit=limit,
+        status_code=200,
+    )
+
+    recent_events = [
+        event
+        for event in reversed(_schema_events)
+        if event.get("service") == service and event.get("endpoint") == schema_endpoint
+    ][:limit]
+
+    return {
+        "data": {
+            "service": service,
+            "endpoint": endpoint,
+            "agent_id": agent_id,
+            "latest_fingerprint": {
+                "hash": fingerprint.fingerprint_hash if fingerprint else None,
+                "schema_tree": fingerprint.schema_tree if fingerprint else None,
+                "max_depth": fingerprint.max_depth if fingerprint else 0,
+            },
+            "changes": [
+                {
+                    "change_type": change.change_type,
+                    "path": change.path,
+                    "severity": change.severity,
+                    "old_type": change.old_type,
+                    "new_type": change.new_type,
+                    "detail": change.detail,
+                    "similarity": change.similarity,
+                }
+                for change in history
+            ],
+            "events": recent_events,
+        },
+        "error": None,
+    }
+
+
+@admin_router.get("/admin/schema-alerts")
+async def list_schema_alerts(
+    service: str | None = Query(default=None),
+    severity: str | None = Query(default=None),
+    limit: int = Query(default=10, ge=1, le=100),
+) -> dict[str, Any]:
+    """Query recent schema alerts (in-app channel)."""
+    dispatcher = get_schema_alert_dispatcher()
+    alerts = dispatcher.query_alerts(service=service, severity=severity, limit=limit)
+
+    return {
+        "data": {
+            "alerts": [
+                {
+                    "alert_id": alert.alert_id,
+                    "service": alert.service,
+                    "endpoint": alert.endpoint,
+                    "severity": alert.severity,
+                    "change_detail": alert.change_detail,
+                    "alert_sent_at": (
+                        alert.alert_sent_at.isoformat() if alert.alert_sent_at else None
+                    ),
+                    "webhook_url": alert.webhook_url,
+                    "webhook_status": alert.webhook_status,
+                    "retry_count": alert.retry_count,
+                    "retry_at": alert.retry_at.isoformat() if alert.retry_at else None,
+                    "created_at": alert.created_at.isoformat(),
+                }
+                for alert in alerts
+            ],
+            "count": len(alerts),
         },
         "error": None,
     }
