@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from routes import (
     admin_agents,
+    admin_billing,
     leaderboard,
     probes,
     proxy,
@@ -26,6 +27,9 @@ def create_app() -> FastAPI:
     application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
     application.include_router(
         admin_agents.router, prefix="/v1/admin", tags=["admin-agents"]
+    )
+    application.include_router(
+        admin_billing.router, prefix="/v1", tags=["admin-billing"]
     )
 
     @application.get("/healthz")
