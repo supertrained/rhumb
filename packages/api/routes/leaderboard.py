@@ -2,8 +2,11 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
+
 from fastapi import APIRouter, Query
+
+from services.schema_change_detector import get_schema_change_detector
 
 router = APIRouter()
 
@@ -11,10 +14,23 @@ router = APIRouter()
 DATASET_SCORES_PATH = Path(__file__).parent.parent.parent / "web" / "public" / "data" / "initial-dataset.yaml"
 SCORES_PATH = Path(__file__).parent.parent / "artifacts" / "dataset-scores.json"
 
-_cached_scores = None
+_cached_scores: dict[str, Any] | None = None
 
 
-def _load_scores() -> dict:
+def _schema_freshness_multiplier(service_slug: str) -> tuple[float, float | None]:
+    """Return confidence multiplier based on schema stability window."""
+    detector = get_schema_change_detector()
+    stability_days = detector.get_service_stability_days(service_slug)
+    if stability_days is None:
+        return 1.0, None
+    if stability_days >= 30:
+        return 1.05, stability_days
+    if stability_days >= 14:
+        return 1.02, stability_days
+    return 1.0, stability_days
+
+
+def _load_scores() -> dict[str, Any]:
     """Load cached scores from artifact."""
     global _cached_scores
     if _cached_scores is not None:
@@ -32,14 +48,15 @@ def _load_scores() -> dict:
 def _get_service_categories() -> dict[str, list[str]]:
     """Load service categories from dataset YAML."""
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
+
         if not DATASET_SCORES_PATH.exists():
             return {}
 
         with open(DATASET_SCORES_PATH, "r") as f:
-            dataset = yaml.safe_load(f)
+            dataset: dict[str, Any] = yaml.safe_load(f) or {}
 
-        categories = {}
+        categories: dict[str, list[str]] = {}
         for service in dataset.get("services", []):
             slug = service.get("slug")
             category = service.get("category")
@@ -88,6 +105,13 @@ async def get_leaderboard(
         if score_item.get("service_slug") not in category_slugs:
             continue
 
+        multiplier, stability_days = _schema_freshness_multiplier(
+            str(score_item.get("service_slug"))
+        )
+        confidence = score_item.get("confidence")
+        if isinstance(confidence, (int, float)):
+            confidence = round(min(1.0, float(confidence) * multiplier), 4)
+
         items.append({
             "service_slug": score_item.get("service_slug"),
             "score": score_item.get("aggregate_recommendation_score"),
@@ -95,9 +119,11 @@ async def get_leaderboard(
             "access_score": score_item.get("access_readiness_score"),
             "tier": score_item.get("tier"),
             "tier_label": score_item.get("tier_label"),
-            "confidence": score_item.get("confidence"),
+            "confidence": confidence,
             "freshness": score_item.get("probe_metadata", {}).get("freshness"),
-            "calculated_at": score_item.get("calculated_at")
+            "schema_stability_days": round(stability_days, 3) if stability_days else None,
+            "freshness_multiplier": multiplier,
+            "calculated_at": score_item.get("calculated_at"),
         })
 
     # Sort by aggregate score descending

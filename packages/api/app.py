@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
     application.include_router(tester_fleet.router, prefix="/v1", tags=["tester-fleet"])
     application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
+    application.include_router(proxy.admin_router, prefix="/v1", tags=["schema-admin"])
     application.include_router(
         admin_agents.router, prefix="/v1/admin", tags=["admin-agents"]
     )
