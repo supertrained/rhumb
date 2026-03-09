@@ -237,16 +237,19 @@ Every friction I hit is a Rhumb data point (dogfood loop).
 - **Depends on:** WU 1.7 (scored dataset), AAG v0.1 (complete)
 - **Output:** Updated scores, new dimension documentation, payment primitives research
 
-### Work Unit 3.4: AAG Blog + Content SEO (THIS WEEK)
+### Work Unit 3.4: AAG Blog + Content (MEO-Optimized) (THIS WEEK)
 - **Owner:** Pedro (writing) + Claude Code (web implementation)
-- **Description:** Publish AAG as SEO-optimized blog content. "The WCAG for AI Agents."
+- **Description:** Publish AAG as MEO-optimized blog content. "The WCAG for AI Agents."
+- **MEO Strategy:** Position Rhumb in meaning-space near "agent accessibility," "agent-native tools," "AI agent payments." Every piece follows the 8 MEO principles (see memory/entities/meo-framework.md).
 - **Tasks:**
-  - [ ] Adapt AAG spec into publishable blog post with examples
-  - [ ] "Payments for Agents" Tool Autopsy — who actually lets agents pay?
-  - [ ] Add structured data / schema.org markup for SEO
-  - [ ] Internal linking from leaderboard → blog → methodology
+  - [ ] Adapt AAG spec into publishable blog post — answer-first architecture, 200-500 token self-contained paragraphs, specific AN Score data points, question-based headings
+  - [ ] "Payments for Agents" Tool Autopsy — who actually lets agents pay? (semantic density: concrete x402/Stripe/crypto comparisons, not vague claims)
+  - [ ] Rhumb entity description on every page with natural variation
+  - [ ] Schema.org structured data (for SEO layer) + llms.txt update (for MEO layer)
+  - [ ] Internal linking from leaderboard → blog → methodology (cross-referencing principle)
+  - [ ] Author attribution: "Pedro Nunes, Operator at Rhumb" on every post
 - **Depends on:** WU 3.2 (blog infrastructure), AAG v0.1 (complete)
-- **Format:** Blog posts optimized for "agent accessibility" / "agent-native tools" / "AI agent payments" keywords
+- **Content evaluation:** Semantic density (distinct meaning per paragraph), conceptual distinctiveness (what do we say that nobody else does?), query proximity (what do agents/developers actually search for?)
 
 ### Work Unit 3.5: Usage Analytics Stub (THIS WEEK)
 - **Owner:** Pedro (direct) or Codex sub-agent
