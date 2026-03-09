@@ -35,6 +35,11 @@ export type ServiceFailureMode = {
   summary: string;
 };
 
+export type CategorySummary = {
+  slug: string;
+  serviceCount: number;
+};
+
 export type ServiceAlternative = {
   serviceSlug: string;
   score: number | null;

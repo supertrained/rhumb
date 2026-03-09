@@ -1,4 +1,4 @@
-import type { LeaderboardViewModel, Service, ServiceScoreViewModel } from "./types";
+import type { CategorySummary, LeaderboardViewModel, Service, ServiceScoreViewModel } from "./types";
 
 // Supabase direct mode (production) vs Python API mode (local dev)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -148,6 +148,17 @@ async function getServiceScoreFromSupabase(
   };
 }
 
+async function getCategoriesFromSupabase(): Promise<CategorySummary[]> {
+  const data = await supabaseFetch<{ category: string }[]>("services?select=category");
+  if (!data) return [];
+
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    counts[row.category] = (counts[row.category] ?? 0) + 1;
+  }
+  return Object.entries(counts).map(([slug, serviceCount]) => ({ slug, serviceCount }));
+}
+
 // ---------- Python API implementations (original) ----------
 
 import { parseLeaderboardResponse, parseServiceScoreResponse, parseServicesResponse } from "./adapters";
@@ -222,4 +233,16 @@ export async function getServiceScore(
   return useSupabase
     ? getServiceScoreFromSupabase(slug)
     : getServiceScoreFromAPI(slug);
+}
+
+/** Fetch all categories with service counts. */
+export async function getCategories(): Promise<CategorySummary[]> {
+  if (useSupabase) return getCategoriesFromSupabase();
+  // In API mode, derive from services list
+  const services = await getServicesFromAPI();
+  const counts: Record<string, number> = {};
+  for (const s of services) {
+    counts[s.category] = (counts[s.category] ?? 0) + 1;
+  }
+  return Object.entries(counts).map(([slug, serviceCount]) => ({ slug, serviceCount }));
 }

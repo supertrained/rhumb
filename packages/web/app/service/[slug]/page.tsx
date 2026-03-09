@@ -86,7 +86,13 @@ export async function generateMetadata({
 
   return {
     title: `${slug} service profile | Rhumb`,
-    description: `Execution and access-readiness profile for ${slug} with live AN Score evidence.`
+    description: `Execution and access-readiness profile for ${slug} with live AN Score evidence.`,
+    alternates: { canonical: `/service/${slug}` },
+    openGraph: {
+      title: `${slug} | Rhumb`,
+      description: `AN Score profile for ${slug}: execution, access, and tier breakdown.`,
+      images: [{ url: `/service/${slug}/og`, width: 1200, height: 630 }],
+    },
   };
 }
 
