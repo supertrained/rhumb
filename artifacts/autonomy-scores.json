@@ -1,0 +1,261 @@
+{
+  "metadata": {
+    "scored_at": "2026-03-09T23:00:00Z",
+    "an_score_version": "0.3",
+    "dimensions_added": ["P1", "G1", "W1"],
+    "scorer": "pedro-operator",
+    "methodology": "manual-research-v1"
+  },
+  "scores": {
+    "stripe": {
+      "P1": 10, "P1_rationale": "API billing, consumption model, Stripe Issuing native, x402 via ACP with OpenAI, programmatic everything",
+      "G1": 10, "G1_rationale": "Per-key RBAC (restricted keys), immutable audit log (Events API), SOC 2 Type II, PCI-DSS L1, SCIM, data residency, webhook coverage for all mutations",
+      "W1": 8, "W1_rationale": "Dashboard is well-structured React app, good semantic HTML, keyboard-navigable. Minor: some custom chart components lack ARIA. Full API parity."
+    },
+    "resend": {
+      "P1": 8, "P1_rationale": "Self-serve credit card via web, usage-based billing, API key management. No x402 but straightforward automation.",
+      "G1": 7, "G1_rationale": "API key scoping (send-only, full access), team management, basic activity logs. Missing granular RBAC and audit log export.",
+      "W1": 8, "W1_rationale": "Clean, modern dashboard. Good semantic structure. Minimal JS complexity. API parity strong."
+    },
+    "clerk": {
+      "P1": 7, "P1_rationale": "Self-serve billing, usage-based (MAU), credit card via web form. No API billing management.",
+      "G1": 8, "G1_rationale": "Per-key permissions, RBAC for organizations, audit logs, SOC 2 Type II, SCIM, SSO/SAML. Strong governance.",
+      "W1": 7, "W1_rationale": "Dashboard is React SPA with decent accessibility. Most forms labeled. Some custom components without ARIA."
+    },
+    "algolia": {
+      "P1": 6, "P1_rationale": "Self-serve plan with credit card. Enterprise requires sales. Usage-based pricing available.",
+      "G1": 8, "G1_rationale": "API key scoping (search-only, admin, custom), team management, analytics/logs, SOC 2, multiple data centers for residency.",
+      "W1": 6, "W1_rationale": "Dashboard functional but complex SPA. Search-specific UI patterns. API parity good."
+    },
+    "meilisearch": {
+      "P1": 8, "P1_rationale": "Meilisearch Cloud is self-serve with simple pricing. Open-source option = zero payment. Straightforward card form.",
+      "G1": 6, "G1_rationale": "API key scoping (search, admin, custom). Basic team features. No audit logs. No compliance certs listed for cloud.",
+      "W1": 7, "W1_rationale": "Clean dashboard, semantic HTML. Simple UI. Good keyboard navigation."
+    },
+    "typesense": {
+      "P1": 7, "P1_rationale": "Typesense Cloud self-serve billing. Usage-based. Credit card via web. Open-source option also.",
+      "G1": 6, "G1_rationale": "API key scoping. Basic access controls. No audit logs or compliance certs publicly documented for cloud.",
+      "W1": 7, "W1_rationale": "Simple, clean dashboard. Good structure."
+    },
+    "vercel": {
+      "P1": 8, "P1_rationale": "API billing management, usage-based, credit card via API. Team billing programmatic. Strong automation path.",
+      "G1": 8, "G1_rationale": "Team RBAC, API token scoping, audit logs (enterprise), SOC 2, SSO/SAML. Deploy protection controls.",
+      "W1": 7, "W1_rationale": "Dashboard is polished React app. Good semantic structure. Some complex deployment UI components. API does ~95% of what dashboard does."
+    },
+    "postmark": {
+      "P1": 7, "P1_rationale": "Self-serve credit card billing. Usage-based (per email). Clear pricing. No API billing management.",
+      "G1": 7, "G1_rationale": "API token scoping (server tokens, account tokens), activity logs, data processing agreement. SOC 2 compliance.",
+      "W1": 7, "W1_rationale": "Clean, well-structured dashboard. Good semantic HTML. Simple forms."
+    },
+    "cal-com": {
+      "P1": 8, "P1_rationale": "Open-source self-hosted = free. Cloud is self-serve. Simple card billing. Open core model reduces payment friction.",
+      "G1": 5, "G1_rationale": "Basic API keys. Team management. No granular RBAC. No audit logs. Limited compliance documentation.",
+      "W1": 7, "W1_rationale": "Modern Next.js app with good accessibility basics. Semantic forms. Some complex scheduling UI."
+    },
+    "lemon-squeezy": {
+      "P1": 7, "P1_rationale": "Self-serve billing platform. Usage/revenue based. Credit card via web.",
+      "G1": 5, "G1_rationale": "API keys, basic team roles. No audit log export. Limited compliance documentation.",
+      "W1": 6, "W1_rationale": "Dashboard functional. Standard web forms. Some areas require visual interpretation of charts."
+    },
+    "posthog": {
+      "P1": 8, "P1_rationale": "Self-serve with generous free tier. Usage-based pricing. Open-source self-hosted option. Credit card via web.",
+      "G1": 7, "G1_rationale": "Project-level API keys, team RBAC, activity log (enterprise), SOC 2 Type II. Data residency (US/EU).",
+      "W1": 7, "W1_rationale": "React SPA dashboard. Good semantic structure. API parity for most features."
+    },
+    "anthropic": {
+      "P1": 7, "P1_rationale": "Self-serve API billing. Usage-based. Credit card via web. Auto-recharge. Prepay credits available.",
+      "G1": 6, "G1_rationale": "API key per workspace. Usage limits. Basic team management. SOC 2 Type II. No granular RBAC per key.",
+      "W1": 5, "W1_rationale": "Console is minimal. API-first company. Dashboard is secondary to API. Limited web-only features."
+    },
+    "digital-ocean": {
+      "P1": 7, "P1_rationale": "Self-serve billing. API for infrastructure management. Credit card via web. Usage-based for most services.",
+      "G1": 7, "G1_rationale": "Team management, API token scoping, basic audit logs, SOC 2/ISO 27001. Data center selection for residency.",
+      "W1": 6, "W1_rationale": "Dashboard is complex SPA. Infrastructure management UI. API parity good but UI has more features."
+    },
+    "render": {
+      "P1": 7, "P1_rationale": "Self-serve billing. Credit card via web. Usage-based pricing. Simple pricing model.",
+      "G1": 5, "G1_rationale": "API keys, team management. No audit logs. Limited compliance documentation. No RBAC granularity.",
+      "W1": 6, "W1_rationale": "Clean dashboard. Good basics. Some deploy-specific UI complexity."
+    },
+    "sendgrid": {
+      "P1": 6, "P1_rationale": "Self-serve with credit card. Usage-based. But owned by Twilio now — pricing can be complex. Plan upgrades may need dashboard.",
+      "G1": 7, "G1_rationale": "API key scoping (mail send, full access, custom), team management, activity feed, SOC 2. Twilio's compliance umbrella.",
+      "W1": 5, "W1_rationale": "Older dashboard design. Functional but not modern. Some accessibility gaps. Transitioning to Twilio UI."
+    },
+    "segment": {
+      "P1": 5, "P1_rationale": "Free tier available. Paid plans require sales/demo for higher tiers. Business tier is sales-led.",
+      "G1": 8, "G1_rationale": "Workspace RBAC, API tokens, audit trail, SOC 2, HIPAA eligible, GDPR. Twilio compliance umbrella. Data residency.",
+      "W1": 6, "W1_rationale": "Dashboard is functional SPA. Good structure. Complex source/destination configuration UI."
+    },
+    "square": {
+      "P1": 6, "P1_rationale": "Self-serve developer account. Payment processing fees (no monthly). API-heavy. OAuth for merchants.",
+      "G1": 7, "G1_rationale": "OAuth scoping, application-level permissions, webhook events, PCI-DSS, SOC 2. Good audit via transaction logs.",
+      "W1": 5, "W1_rationale": "Developer dashboard is adequate. Merchant dashboard is more complex. Some custom components."
+    },
+    "firebase-auth": {
+      "P1": 7, "P1_rationale": "Free tier generous (50K MAU). Paid via Google Cloud billing. API-manageable. Usage-based.",
+      "G1": 8, "G1_rationale": "Google Cloud IAM integration, per-service account keys, Cloud Audit Logs, SOC 2/ISO 27001, data residency via GCP regions.",
+      "W1": 6, "W1_rationale": "Firebase Console is Google's standard UI. Functional. Some complex SPA patterns."
+    },
+    "auth0": {
+      "P1": 6, "P1_rationale": "Free tier available. Self-serve billing for Developer tier. Enterprise is sales-led.",
+      "G1": 9, "G1_rationale": "Extensive RBAC, custom roles, audit logs with export, SOC 2 Type II, HIPAA, ISO 27001, SCIM, SSO, data residency. Enterprise-grade.",
+      "W1": 6, "W1_rationale": "Dashboard is functional SPA. Complex auth configuration UI. Decent accessibility."
+    },
+    "google-calendar": {
+      "P1": 7, "P1_rationale": "Free for personal. Google Workspace pricing is self-serve. API access via GCP (free tier available).",
+      "G1": 8, "G1_rationale": "Google Workspace admin: RBAC, audit logs, data residency, SOC 2/ISO 27001, SCIM, DLP controls.",
+      "W1": 6, "W1_rationale": "Google Calendar web UI is well-built but complex SPA. API parity is good for most operations."
+    },
+    "openai": {
+      "P1": 7, "P1_rationale": "Self-serve API billing. Usage-based. Credit card via web. Auto-recharge. Prepay credits.",
+      "G1": 6, "G1_rationale": "API key per project, usage limits per key. Basic team roles. SOC 2 Type II. No granular RBAC per key.",
+      "W1": 5, "W1_rationale": "Playground/dashboard is functional but secondary to API. Limited web-only features."
+    },
+    "replicate": {
+      "P1": 8, "P1_rationale": "Self-serve, pay-per-prediction. Usage-based. Credit card via web. Simple pricing.",
+      "G1": 5, "G1_rationale": "API tokens, basic team features. No audit logs. Limited compliance documentation.",
+      "W1": 6, "W1_rationale": "Clean web dashboard. Simple UI. Good basics."
+    },
+    "cohere": {
+      "P1": 7, "P1_rationale": "Self-serve API billing. Usage-based. Free tier available. Credit card via web.",
+      "G1": 6, "G1_rationale": "API keys, basic team management. SOC 2 Type II. Limited RBAC granularity.",
+      "W1": 5, "W1_rationale": "Dashboard/playground is functional. API-first company."
+    },
+    "together-ai": {
+      "P1": 7, "P1_rationale": "Self-serve API billing. Usage-based. Credit card via web. Simple pricing.",
+      "G1": 5, "G1_rationale": "API keys, basic team features. Limited compliance documentation.",
+      "W1": 5, "W1_rationale": "Minimal dashboard. API-first."
+    },
+    "adyen": {
+      "P1": 4, "P1_rationale": "Enterprise/sales-led primarily. Self-serve available but complex onboarding. High minimum volumes.",
+      "G1": 9, "G1_rationale": "PCI-DSS Level 1, SOC 2, extensive audit logs, RBAC, data residency (multi-region), regulatory compliance across jurisdictions.",
+      "W1": 5, "W1_rationale": "Enterprise dashboard. Complex but functional. Good governance UI."
+    },
+    "mixpanel": {
+      "P1": 6, "P1_rationale": "Self-serve with free tier. Usage-based pricing. Credit card via web. Growth plan is self-serve.",
+      "G1": 7, "G1_rationale": "Project-level access, team RBAC, data governance, SOC 2 Type II. EU data residency option.",
+      "W1": 6, "W1_rationale": "Dashboard is complex analytics SPA. Functional but chart-heavy (visual interpretation needed)."
+    },
+    "netlify": {
+      "P1": 7, "P1_rationale": "Self-serve billing. Generous free tier. Usage-based. Credit card via web.",
+      "G1": 6, "G1_rationale": "Team management, API access, basic audit log (enterprise). SOC 2. Limited RBAC granularity.",
+      "W1": 6, "W1_rationale": "Clean dashboard. Modern UI. Good basics. Some deploy-specific complexity."
+    },
+    "elasticsearch": {
+      "P1": 6, "P1_rationale": "Elastic Cloud self-serve. Usage-based. Open-source self-hosted option. Credit card via web.",
+      "G1": 8, "G1_rationale": "API keys with scoping, RBAC, audit logging, SOC 2/ISO 27001, HIPAA eligible. Data residency (multi-region).",
+      "W1": 5, "W1_rationale": "Kibana dashboard is complex SPA. Feature-rich but heavy. Good for API use."
+    },
+    "bluesky-api": {
+      "P1": 9, "P1_rationale": "Free API. AT Protocol is open. No payment required for API access. Self-hosted option.",
+      "G1": 3, "G1_rationale": "App passwords for API access. No RBAC, no audit logs, no compliance certifications. Early-stage.",
+      "W1": 7, "W1_rationale": "Web client is React with good semantic structure. Open protocol. Good accessibility basics."
+    },
+    "mailgun": {
+      "P1": 6, "P1_rationale": "Self-serve billing. Usage-based. Credit card via web. Plans can be complex.",
+      "G1": 6, "G1_rationale": "API keys, basic domain-level access, activity logs. SOC 2. Limited RBAC.",
+      "W1": 5, "W1_rationale": "Older dashboard design. Functional but dated. Some accessibility gaps."
+    },
+    "amazon-ses": {
+      "P1": 7, "P1_rationale": "AWS billing (API-manageable). Usage-based. Part of AWS account. Complex but automated.",
+      "G1": 9, "G1_rationale": "AWS IAM (granular RBAC), CloudTrail audit logs, SOC 2/ISO 27001/HIPAA, multi-region, SCIM via AWS SSO.",
+      "W1": 4, "W1_rationale": "AWS Console is complex, heavy SPA. Many unlabeled elements. Not designed for agent navigation."
+    },
+    "calendly": {
+      "P1": 6, "P1_rationale": "Self-serve billing. Credit card via web. Standard SaaS pricing tiers.",
+      "G1": 5, "G1_rationale": "Team management, OAuth scoping, basic activity. SOC 2. Limited RBAC granularity.",
+      "W1": 6, "W1_rationale": "Dashboard is clean modern app. Good form structure. Some scheduling widget complexity."
+    },
+    "huggingface": {
+      "P1": 8, "P1_rationale": "Generous free tier. Pro/Enterprise self-serve. Usage-based for inference. Credit card via web.",
+      "G1": 5, "G1_rationale": "API tokens, organization management. Limited RBAC. No audit logs. Basic compliance.",
+      "W1": 7, "W1_rationale": "Good semantic HTML. Model hub is well-structured. Community-oriented UI."
+    },
+    "pipedrive": {
+      "P1": 5, "P1_rationale": "Self-serve billing with credit card. Per-seat pricing. Higher tiers may need sales.",
+      "G1": 5, "G1_rationale": "API tokens, team roles (admin/regular). Basic activity log. SOC 2. Limited RBAC.",
+      "W1": 5, "W1_rationale": "CRM dashboard. Functional but complex pipeline UI. Some custom components."
+    },
+    "aws": {
+      "P1": 7, "P1_rationale": "API billing, usage-based, credit card manageable via API. Complex but fully automated path.",
+      "G1": 10, "G1_rationale": "IAM is industry gold standard. Per-action RBAC, CloudTrail, Config, GuardDuty, multi-region, SOC 2/ISO/HIPAA/FedRAMP, SCIM, SSO.",
+      "W1": 3, "W1_rationale": "AWS Console is notoriously complex. Heavy SPA, inconsistent UI patterns across services. Not agent-friendly."
+    },
+    "okta": {
+      "P1": 4, "P1_rationale": "Enterprise-first pricing. Developer tier exists but paid tiers are sales-heavy. Complex pricing.",
+      "G1": 10, "G1_rationale": "Identity IS governance. RBAC/ABAC, audit logs, compliance suite (SOC 2/ISO/HIPAA/FedRAMP), SCIM, universal SSO.",
+      "W1": 5, "W1_rationale": "Admin dashboard is functional enterprise app. Complex but structured. Heavy JS."
+    },
+    "amplitude": {
+      "P1": 5, "P1_rationale": "Free tier available. Growth/Enterprise require demo. Credit card for starter.",
+      "G1": 7, "G1_rationale": "Team RBAC, project-level access, audit logs (enterprise), SOC 2, HIPAA eligible, EU hosting.",
+      "W1": 5, "W1_rationale": "Analytics dashboard. Chart-heavy, requires visual interpretation. Complex SPA."
+    },
+    "microsoft-outlook": {
+      "P1": 6, "P1_rationale": "Microsoft 365 self-serve billing. API via Graph. Credit card via web. Complex licensing.",
+      "G1": 9, "G1_rationale": "Azure AD/Entra, granular RBAC, unified audit log, SOC 2/ISO 27001/HIPAA/FedRAMP, SCIM, data residency.",
+      "W1": 5, "W1_rationale": "Outlook web is complex. Microsoft 365 admin is heavy. Enterprise-focused UI."
+    },
+    "braintree": {
+      "P1": 5, "P1_rationale": "Self-serve sandbox. Production requires PayPal business account. Merchant onboarding process.",
+      "G1": 7, "G1_rationale": "PCI-DSS Level 1, SOC 2, transaction-level audit, role-based access on merchant account. PayPal compliance umbrella.",
+      "W1": 4, "W1_rationale": "Older dashboard design. PayPal integration complexity. Some dated UI patterns."
+    },
+    "heroku": {
+      "P1": 6, "P1_rationale": "Self-serve billing. Credit card via web. Usage-based for dynos. Part of Salesforce now.",
+      "G1": 5, "G1_rationale": "Team/enterprise spaces, API tokens. SOC 2 via Salesforce. Limited audit logging.",
+      "W1": 5, "W1_rationale": "Dashboard is clean but limited. Mostly CLI-driven. Web UI is secondary."
+    },
+    "cognito": {
+      "P1": 7, "P1_rationale": "AWS billing (API-manageable). Usage-based (per MAU). Part of AWS account.",
+      "G1": 9, "G1_rationale": "AWS IAM integration, CloudTrail, SOC 2/ISO/HIPAA. Granular RBAC via IAM policies.",
+      "W1": 4, "W1_rationale": "AWS Console is complex. Cognito-specific UI is functional but heavy."
+    },
+    "heap": {
+      "P1": 4, "P1_rationale": "Free tier. Growth/Pro require demo/sales contact. Limited self-serve.",
+      "G1": 6, "G1_rationale": "Team management, project access controls, audit log (enterprise). SOC 2.",
+      "W1": 5, "W1_rationale": "Analytics dashboard. Chart-heavy. Requires visual interpretation."
+    },
+    "paypal": {
+      "P1": 5, "P1_rationale": "Business account self-serve. But complex onboarding, identity verification required. Payments API is good once set up.",
+      "G1": 6, "G1_rationale": "PCI-DSS, SOC 2. Transaction-level logging. Basic role management. Complex account structure.",
+      "W1": 4, "W1_rationale": "Dashboard is complex, older design. Many verification/CAPTCHA steps. Not agent-friendly."
+    },
+    "copper": {
+      "P1": 5, "P1_rationale": "Self-serve billing with credit card. Per-seat pricing. Standard SaaS.",
+      "G1": 4, "G1_rationale": "Basic API key. Team roles (admin/member). Limited audit trail. SOC 2.",
+      "W1": 5, "W1_rationale": "CRM dashboard. Google Workspace integration. Standard web app."
+    },
+    "salesforce": {
+      "P1": 2, "P1_rationale": "Enterprise-first. Sales-led pricing. Annual contracts. No self-serve for most products.",
+      "G1": 10, "G1_rationale": "Industry-leading governance: granular RBAC (profiles/permission sets), Shield for audit trail/encryption, SOC 2/ISO/HIPAA/FedRAMP, multi-region, field-level security.",
+      "W1": 4, "W1_rationale": "Lightning Experience is complex SPA. Many custom components. Enterprise-heavy UI. API parity is excellent though."
+    },
+    "hubspot": {
+      "P1": 5, "P1_rationale": "Free tier. Self-serve for Starter. Professional/Enterprise require demo or sales.",
+      "G1": 7, "G1_rationale": "API key scoping, team RBAC, audit logs (enterprise), SOC 2. Good CRM-level access controls.",
+      "W1": 5, "W1_rationale": "Dashboard is functional but complex CRM SPA. Many custom UI elements."
+    },
+    "twitter-api": {
+      "P1": 4, "P1_rationale": "Free tier extremely limited. Basic tier $100/mo via web. Pro $5K/mo+ requires agreement. Enterprise is sales-led.",
+      "G1": 3, "G1_rationale": "OAuth app management. No RBAC. Minimal audit trail. No compliance certifications for API consumers.",
+      "W1": 5, "W1_rationale": "Developer portal is functional. X (Twitter) web UI has anti-bot measures."
+    },
+    "zoho-crm": {
+      "P1": 5, "P1_rationale": "Self-serve billing. Credit card. Standard SaaS tiers. Free tier available.",
+      "G1": 6, "G1_rationale": "Team RBAC, profile-based permissions, audit trail, SOC 2. Data residency options.",
+      "W1": 4, "W1_rationale": "Complex CRM dashboard. Heavy SPA. Some accessibility issues. Many custom components."
+    },
+    "linkedin-api": {
+      "P1": 2, "P1_rationale": "API access requires partnership/application approval. LinkedIn Marketing Solutions is sales-led. Very restricted.",
+      "G1": 3, "G1_rationale": "OAuth scoping. No granular RBAC for API consumers. LinkedIn's compliance is platform-level, not consumer-facing.",
+      "W1": 3, "W1_rationale": "LinkedIn web has anti-bot detection. Dashboard limited for API consumers. Not agent-friendly."
+    },
+    "when2meet": {
+      "P1": 9, "P1_rationale": "Completely free. No payment required. No account required. Zero payment friction.",
+      "G1": 1, "G1_rationale": "No API. No access controls. No audit trail. No compliance. Just a web page.",
+      "W1": 5, "W1_rationale": "Simple HTML interface. But custom time-grid requires visual/mouse interaction. No API."
+    }
+  }
+}
