@@ -1,19 +1,148 @@
-:root {
-  color-scheme: light;
+@import "tailwindcss";
+
+@theme {
+  /* Background colors */
+  --color-navy: #0B1120;
+  --color-surface: #151D2E;
+  --color-elevated: #1C2640;
+
+  /* Accent */
+  --color-amber: #F59E0B;
+  --color-amber-dark: #D97706;
+
+  /* Score tier colors */
+  --color-score-native: #10B981;
+  --color-score-ready: #3B82F6;
+  --color-score-developing: #F59E0B;
+  --color-score-limited: #EF4444;
+
+  /* Typography */
+  --font-display: var(--font-dm-sans), "DM Sans", sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
 }
 
-* {
+/* ── Base ────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  background: #0B1120;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  background: #0B1120;
+  color: #F1F5F9;
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
 a {
   color: inherit;
   text-decoration: none;
 }
+
+::selection {
+  background: rgba(245, 158, 11, 0.25);
+  color: #F1F5F9;
+}
+
+/* ── Score glow utilities ─────────────────────────────────── */
+
+.glow-native {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+}
+
+.glow-ready {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
+}
+
+.glow-developing {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+}
+
+.glow-limited {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+}
+
+/* ── Ambient grid background ─────────────────────────────── */
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(30, 41, 59, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 41, 59, 0.4) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Prose styles for blog ───────────────────────────────── */
+
+.prose-rhumb {
+  line-height: 1.8;
+  font-size: 1.0625rem;
+  color: #CBD5E1;
+}
+
+.prose-rhumb p {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
+}
+
+.prose-rhumb p:first-child {
+  margin-top: 0;
+}
+
+.prose-rhumb strong {
+  color: #F1F5F9;
+  font-weight: 600;
+}
+
+.prose-rhumb em {
+  color: #94A3B8;
+  font-style: italic;
+}
+
+.prose-rhumb a {
+  color: #F59E0B;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(245, 158, 11, 0.4);
+}
+
+.prose-rhumb a:hover {
+  text-decoration-color: #F59E0B;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease both;
+}
+
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+.animate-delay-600 { animation-delay: 600ms; }

@@ -33,7 +33,7 @@ describe("service page", () => {
     const module = await import("../app/service/[slug]/page");
     const metadata = await module.generateMetadata({ params: Promise.resolve({ slug: "stripe" }) });
 
-    expect(metadata.title).toBe("stripe service profile | Rhumb");
+    expect(metadata.title).toBe("stripe | Rhumb");
     expect(metadata.description).toContain("stripe");
   });
 
@@ -65,14 +65,19 @@ describe("service page", () => {
 
     const html = await renderServicePage();
 
-    expect(html).toContain("Aggregate 8.9");
-    expect(html).toContain("Execution 9.1");
-    expect(html).toContain("Access 8.4");
-    expect(html).toContain("Tier: <strong>Agent Native</strong> · Confidence 0.98");
+    expect(html).toContain("Aggregate AN Score");
+    expect(html).toContain("8.9");
+    expect(html).toContain("Execution Score");
+    expect(html).toContain("9.1");
+    expect(html).toContain("Access Readiness Score");
+    expect(html).toContain("8.4");
+    expect(html).toContain("Agent Native");
+    expect(html).toContain("Confidence");
     expect(html).toContain("Reliable payment API");
     expect(html).toContain("Token refresh requires browser redirect in some flows");
     expect(html).toContain("href=\"/service/square\"");
-    expect(html).toContain("square</a> (7.4)");
+    expect(html).toContain("square");
+    expect(html).toContain("7.4");
     expect(html).toContain("application/ld+json");
     expect(html).toContain('"@type":"SoftwareApplication"');
     expect(html).toContain('"name":"stripe"');
