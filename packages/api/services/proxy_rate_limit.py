@@ -7,7 +7,7 @@ Falls open (allows requests) when Redis is unavailable.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 
@@ -66,7 +66,7 @@ class RateLimiter:
             ``(allowed, status)`` — *allowed* is ``True`` when under limit.
         """
         key = f"ratelimit:{agent_id}:{service}"
-        now = datetime.utcnow()
+        now = datetime.now(tz=UTC)
         now_ts = now.timestamp()
         window_start_ts = (now - timedelta(seconds=60)).timestamp()
 
@@ -75,7 +75,7 @@ class RateLimiter:
         remaining = max(0, limit_qpm - count)
         is_limited = remaining <= 0
 
-        reset_at = datetime.utcfromtimestamp(window_start_ts) + timedelta(seconds=60)
+        reset_at = datetime.fromtimestamp(window_start_ts, tz=UTC) + timedelta(seconds=60)
 
         status = RateLimitStatus(
             remaining=remaining,
