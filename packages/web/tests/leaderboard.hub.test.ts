@@ -37,33 +37,33 @@ describe("leaderboard hub page", () => {
   // ── Static exports ──
 
   it("ORDERED_SLUGS starts with payments", async () => {
-    const mod = await import("../app/leaderboard/page");
-    expect(mod.ORDERED_SLUGS[0]).toBe("payments");
+    const { ORDERED_SLUGS } = await import("../lib/categories");
+    expect(ORDERED_SLUGS[0]).toBe("payments");
   });
 
   it("ORDERED_SLUGS contains exactly 10 categories", async () => {
-    const mod = await import("../app/leaderboard/page");
-    expect(mod.ORDERED_SLUGS).toHaveLength(10);
+    const { ORDERED_SLUGS } = await import("../lib/categories");
+    expect(ORDERED_SLUGS).toHaveLength(10);
   });
 
   it("ORDERED_SLUGS has remaining categories in alphabetical order", async () => {
-    const mod = await import("../app/leaderboard/page");
-    const rest = mod.ORDERED_SLUGS.slice(1);
+    const { ORDERED_SLUGS } = await import("../lib/categories");
+    const rest = ORDERED_SLUGS.slice(1);
     const sorted = [...rest].sort();
     expect(rest).toEqual(sorted);
   });
 
   it("CATEGORY_INFO has all 10 slugs", async () => {
-    const mod = await import("../app/leaderboard/page");
+    const { CATEGORY_INFO } = await import("../lib/categories");
     for (const slug of ALL_CATEGORIES) {
-      expect(mod.CATEGORY_INFO[slug]).toBeDefined();
+      expect(CATEGORY_INFO[slug]).toBeDefined();
     }
   });
 
   it("each CATEGORY_INFO entry has non-empty name and description", async () => {
-    const mod = await import("../app/leaderboard/page");
+    const { CATEGORY_INFO } = await import("../lib/categories");
     for (const slug of ALL_CATEGORIES) {
-      const info = mod.CATEGORY_INFO[slug];
+      const info = CATEGORY_INFO[slug];
       expect(info.name.length).toBeGreaterThan(0);
       expect(info.description.length).toBeGreaterThan(0);
     }
