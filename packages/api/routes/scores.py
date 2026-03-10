@@ -52,6 +52,7 @@ def _result_to_schema(
     score: float,
     execution_score: float,
     access_readiness_score: float | None,
+    autonomy_score: float | None,
     aggregate_recommendation_score: float,
     an_score_version: str,
     confidence: float,
@@ -61,6 +62,17 @@ def _result_to_schema(
     score_id: str | None,
     calculated_at: str | None,
 ) -> ANScoreSchema:
+    autonomy_section = None
+    if isinstance(dimension_snapshot, dict):
+        candidate = dimension_snapshot.get("autonomy")
+        if isinstance(candidate, dict):
+            autonomy_section = candidate
+
+    resolved_autonomy_score = autonomy_score
+    if resolved_autonomy_score is None and autonomy_section is not None:
+        avg_value = autonomy_section.get("avg")
+        resolved_autonomy_score = float(avg_value) if avg_value is not None else None
+
     return ANScoreSchema(
         service_slug=service_slug,
         score=round(score, 1),
@@ -68,6 +80,10 @@ def _result_to_schema(
         access_readiness_score=(
             None if access_readiness_score is None else round(access_readiness_score, 1)
         ),
+        autonomy_score=(
+            None if resolved_autonomy_score is None else round(float(resolved_autonomy_score), 1)
+        ),
+        autonomy=autonomy_section,
         aggregate_recommendation_score=round(aggregate_recommendation_score, 1),
         an_score_version=an_score_version,
         confidence=round(confidence, 2),
@@ -84,6 +100,7 @@ def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
     breakdown = (stored.dimension_snapshot or {}).get("score_breakdown", {})
     execution_score = float(breakdown.get("execution", stored.score))
     access_readiness_score = breakdown.get("access_readiness")
+    autonomy_score = breakdown.get("autonomy")
     aggregate_recommendation_score = float(breakdown.get("aggregate_recommendation", stored.score))
     score_version = str(breakdown.get("version", "0.1"))
 
@@ -95,6 +112,7 @@ def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
         access_readiness_score=(
             float(access_readiness_score) if access_readiness_score is not None else None
         ),
+        autonomy_score=float(autonomy_score) if autonomy_score is not None else None,
         aggregate_recommendation_score=aggregate_recommendation_score,
         an_score_version=score_version,
         confidence=stored.confidence,
@@ -215,6 +233,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         dimensions=payload.dimensions,
         evidence=evidence,
         access_dimensions=payload.access_dimensions,
+        autonomy_dimensions=payload.autonomy_dimensions,
     )
 
     score_id: str | None = None
@@ -229,6 +248,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         score=result.score,
         execution_score=result.execution_score,
         access_readiness_score=result.access_readiness_score,
+        autonomy_score=result.autonomy_score,
         aggregate_recommendation_score=result.aggregate_recommendation_score,
         an_score_version=result.an_score_version,
         confidence=result.confidence,
@@ -283,6 +303,7 @@ async def get_score(slug: str) -> ANScoreSchema:
             score=result.score,
             execution_score=result.execution_score,
             access_readiness_score=result.access_readiness_score,
+            autonomy_score=result.autonomy_score,
             aggregate_recommendation_score=result.aggregate_recommendation_score,
             an_score_version=result.an_score_version,
             confidence=result.confidence,
@@ -333,6 +354,7 @@ async def compare_services(services: str) -> dict:
                     score=result.score,
                     execution_score=result.execution_score,
                     access_readiness_score=result.access_readiness_score,
+                    autonomy_score=result.autonomy_score,
                     aggregate_recommendation_score=result.aggregate_recommendation_score,
                     an_score_version=result.an_score_version,
                     confidence=result.confidence,
@@ -352,6 +374,7 @@ async def compare_services(services: str) -> dict:
                 "score": schema_payload.score,
                 "execution_score": schema_payload.execution_score,
                 "access_readiness_score": schema_payload.access_readiness_score,
+                "autonomy_score": schema_payload.autonomy_score,
                 "aggregate_recommendation_score": schema_payload.aggregate_recommendation_score,
                 "an_score_version": schema_payload.an_score_version,
                 "confidence": schema_payload.confidence,

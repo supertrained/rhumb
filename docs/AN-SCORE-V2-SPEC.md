@@ -3,8 +3,8 @@
 > **Work Unit:** WU 3.3
 > **Author:** Pedro (operator)
 > **Date:** 2026-03-09
-> **Status:** Research complete, scoring rubrics defined
-> **AN Score Version:** 0.3 (proposed)
+> **Status:** Implemented (engine + API + migrations)
+> **AN Score Version:** 0.3
 
 ## Overview
 
@@ -112,21 +112,27 @@ v0.3 adds a third axis: **Agent Autonomy** — measuring a tool's support for fu
 
 ## Weight Distribution (v0.3)
 
-The three new dimensions add a fourth scoring axis. Proposed weight allocation:
+The three new dimensions add a third aggregate axis. Implemented weight allocation:
 
 ```
-Agent Autonomy Axis (total: 0.15)
-  P1 (Payment Autonomy):        0.06
-  G1 (Governance Readiness):    0.05
-  W1 (Web Agent Accessibility): 0.04
-
-Rebalanced totals:
-  Execution (I1-I7, F1-F7, O1-O3): 0.85 × current weights → effective 0.425
-  Access (A1-A6):                   remains separate (not aggregated into execution)
-  Autonomy (P1, G1, W1):           0.15 of aggregate
+Execution axis (I1-I7, F1-F7, O1-O3): 0.45
+Access axis (A1-A6):                   0.40
+Autonomy axis (P1, G1, W1):            0.15
+  - P1 (Payment Autonomy):             0.06
+  - G1 (Governance Readiness):         0.05
+  - W1 (Web Agent Accessibility):      0.04
 ```
 
-**Rationale:** These dimensions are forward-looking. Today, most agents don't pay autonomously. But the trajectory is clear: Stripe ACP + x402 + Coinbase AgentKit = payment autonomy within 12 months. Governance is already gating enterprise adoption. Web accessibility is the present (agents browse NOW). Weight at 15% of aggregate reflects importance without overwhelming the well-validated execution/access scores.
+**Aggregate formula (v0.3):**
+
+`AN = (execution × 0.45) + (access × 0.40) + (autonomy × 0.15)`
+
+Where:
+- `execution` is the weighted I/F/O score (0-10)
+- `access` is the weighted A1-A6 score (0-10)
+- `autonomy` is the weighted P1/G1/W1 score (0-10)
+
+**Rationale:** These dimensions are forward-looking. Today, most agents don't pay autonomously. But the trajectory is clear: Stripe ACP + x402 + Coinbase AgentKit = payment autonomy within 12 months. Governance is already gating enterprise adoption. Web accessibility is the present (agents browse now). Weighting autonomy at 15% of aggregate reflects importance without overwhelming validated execution/access signal.
 
 ## Implementation Plan
 
@@ -140,14 +146,37 @@ For each of the 50 services in `artifacts/dataset-scores.json`:
 
 **Output:** Updated dataset with 3 new dimension scores per service.
 
-### Phase 2: Engine Update
+### Phase 2: Engine Update ✅
 
-1. Add `P1`, `G1`, `W1` to `DIMENSION_WEIGHTS` in `scoring.py`
-2. Add `AUTONOMY_DIMENSION_WEIGHTS` dictionary
-3. Add dimension summaries for contextual explanations
-4. Update `AN_SCORE_VERSION` to `"0.3"`
-5. Rebalance aggregate calculation to include autonomy axis
-6. Update Supabase schema to include new dimensions
+1. Added `P1`, `G1`, `W1` autonomy weighting (`0.06/0.05/0.04`) in `scoring.py`
+2. Added `AUTONOMY_DIMENSION_WEIGHTS` and three calculator functions:
+   - `calculate_payment_autonomy()`
+   - `calculate_governance_readiness()`
+   - `calculate_web_accessibility()`
+3. Updated `AN_SCORE_VERSION` to `"0.3"`
+4. Rebalanced aggregate formula to `execution(0.45) + access(0.40) + autonomy(0.15)`
+5. Added Supabase migrations:
+   - `0009_autonomy_dimensions.sql`
+   - `0010_seed_autonomy_scores.sql`
+
+#### API Response Contract (v0.3)
+
+`GET /v1/services/{slug}/score` now includes an `autonomy` section:
+
+```json
+{
+  "autonomy_score": 9.3,
+  "autonomy": {
+    "avg": 9.3,
+    "confidence": 0.9,
+    "dimensions": [
+      {"code": "P1", "name": "payment_autonomy", "score": 10.0, "rationale": "x402 / API-native payments", "confidence": 0.9},
+      {"code": "G1", "name": "governance_readiness", "score": 10.0, "rationale": "RBAC + audit logs", "confidence": 0.9},
+      {"code": "W1", "name": "web_accessibility", "score": 8.0, "rationale": "AAG AA/AAA structure", "confidence": 0.9}
+    ]
+  }
+}
+```
 
 ### Phase 3: Web Surface
 

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -13,8 +16,9 @@ import httpx
 from config import settings
 from db.repository import ScoreRepository, StoredScore
 
-DIMENSION_WEIGHTS: dict[str, float] = {
-    # v0.2 category rebalance: Infrastructure=0.44, Interface=0.40, Operational=0.16
+# Execution dimensions keep legacy v0.2 relative shape (sum = 1.0) and are now
+# blended into aggregate scoring with a 45% axis weight.
+EXECUTION_DIMENSION_WEIGHTS: dict[str, float] = {
     "I1": 0.09166666666666667,
     "I2": 0.07333333333333333,
     "I3": 0.09166666666666667,
@@ -29,7 +33,6 @@ DIMENSION_WEIGHTS: dict[str, float] = {
     "F5": 0.04761904761904762,
     "F6": 0.04761904761904762,
     "F7": 0.04761904761904762,
-    # v0.2 operational rebalance: O1=0.07, O2=0.04, O3=0.05
     "O1": 0.07,
     "O2": 0.04,
     "O3": 0.05,
@@ -44,7 +47,58 @@ ACCESS_DIMENSION_WEIGHTS: dict[str, float] = {
     "A6": 0.10,
 }
 
-AN_SCORE_VERSION = "0.2"
+# Aggregate axis weights for v0.3.
+AXIS_WEIGHTS: dict[str, float] = {
+    "execution": 0.45,
+    "access": 0.40,
+    "autonomy": 0.15,
+}
+
+# New autonomy dimensions (15% total).
+AUTONOMY_DIMENSION_WEIGHTS: dict[str, float] = {
+    "P1": 0.06,
+    "G1": 0.05,
+    "W1": 0.04,
+}
+
+# Effective aggregate weights by dimension (sum = 1.0).
+DIMENSION_WEIGHTS: dict[str, float] = {
+    **{key: weight * AXIS_WEIGHTS["execution"] for key, weight in EXECUTION_DIMENSION_WEIGHTS.items()},
+    **{key: weight * AXIS_WEIGHTS["access"] for key, weight in ACCESS_DIMENSION_WEIGHTS.items()},
+    **AUTONOMY_DIMENSION_WEIGHTS,
+}
+
+AUTONOMY_DIMENSION_NAME_MAP: dict[str, str] = {
+    "P1": "payment_autonomy",
+    "G1": "governance_readiness",
+    "W1": "web_accessibility",
+}
+
+AN_SCORE_VERSION = "0.3"
+
+
+@lru_cache(maxsize=1)
+def load_autonomy_score_artifact() -> dict[str, dict[str, Any]]:
+    """Load autonomy reference scores from artifacts/autonomy-scores.json."""
+    artifact_path = Path(__file__).resolve().parents[3] / "artifacts" / "autonomy-scores.json"
+    if not artifact_path.exists():
+        return {}
+
+    try:
+        with artifact_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    raw_scores = payload.get("scores")
+    if not isinstance(raw_scores, dict):
+        return {}
+
+    return {
+        str(service_slug): value
+        for service_slug, value in raw_scores.items()
+        if isinstance(value, dict)
+    }
 
 CATEGORY_DIMENSIONS: dict[str, tuple[str, ...]] = {
     "infrastructure": ("I1", "I2", "I3", "I4", "I5", "I6", "I7"),
@@ -110,6 +164,7 @@ class ANScoreResult:
     score_raw: float
     execution_score: float
     access_readiness_score: float | None
+    autonomy_score: float | None
     aggregate_recommendation_score: float
     an_score_version: str
     confidence: float
@@ -130,7 +185,7 @@ class ScoringService:
         dimensions: dict[str, float | None],
         weight_map: dict[str, float] | None = None,
     ) -> tuple[dict[str, float], dict[str, float]]:
-        selected_weights = weight_map or DIMENSION_WEIGHTS
+        selected_weights = weight_map or EXECUTION_DIMENSION_WEIGHTS
         applicable = {
             key: selected_weights[key]
             for key, value in dimensions.items()
@@ -185,20 +240,186 @@ class ScoringService:
             float(access_dimensions[dim] or 0.0) * weight for dim, weight in normalized.items()
         )
 
+    def _extract_service_slug(self, service_profile: dict[str, Any] | str) -> str:
+        if isinstance(service_profile, str):
+            return service_profile.strip().lower()
+
+        for key in ("slug", "service_slug", "service"):
+            value = service_profile.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip().lower()
+
+        return ""
+
+    def _autonomy_reference(self, service_slug: str, dimension: str) -> float | None:
+        if not service_slug:
+            return None
+
+        service_scores = load_autonomy_score_artifact().get(service_slug)
+        if not service_scores:
+            return None
+
+        value = service_scores.get(dimension)
+        if value is None:
+            return None
+
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _autonomy_rationale(self, dimension: str, score: float) -> str:
+        if dimension == "P1":
+            if score >= 9:
+                return "x402 / API-native payments"
+            if score >= 7:
+                return "automated card billing"
+            if score >= 5:
+                return "semi-automated payment flow"
+            if score >= 2:
+                return "human-gated billing path"
+            return "manual payment required"
+
+        if dimension == "G1":
+            if score >= 9:
+                return "RBAC + audit logs"
+            if score >= 7:
+                return "strong access controls"
+            if score >= 5:
+                return "basic governance controls"
+            if score >= 2:
+                return "limited governance coverage"
+            return "no governance primitives"
+
+        if score >= 8:
+            return "AAG AA/AAA structure"
+        if score >= 6:
+            return "AAG AA navigable UI"
+        if score >= 4:
+            return "AAG A parseable UI"
+        if score >= 2:
+            return "limited accessibility signals"
+        return "agent-hostile web UI"
+
+    def calculate_payment_autonomy(
+        self, service_profile: dict[str, Any] | str
+    ) -> tuple[float, str, float]:
+        """Return P1 payment autonomy score tuple (score, rationale, confidence)."""
+        service_slug = self._extract_service_slug(service_profile)
+        score = self._autonomy_reference(service_slug, "P1")
+        if score is None:
+            return (0.0, "manual payment required", 0.35)
+        return (score, self._autonomy_rationale("P1", score), 0.9)
+
+    def calculate_governance_readiness(
+        self, service_profile: dict[str, Any] | str
+    ) -> tuple[float, str, float]:
+        """Return G1 governance readiness tuple (score, rationale, confidence)."""
+        service_slug = self._extract_service_slug(service_profile)
+        score = self._autonomy_reference(service_slug, "G1")
+        if score is None:
+            return (0.0, "no governance primitives", 0.35)
+        return (score, self._autonomy_rationale("G1", score), 0.9)
+
+    def calculate_web_accessibility(
+        self, service_profile: dict[str, Any] | str
+    ) -> tuple[float, str, float]:
+        """Return W1 web accessibility tuple (score, rationale, confidence)."""
+        service_slug = self._extract_service_slug(service_profile)
+        score = self._autonomy_reference(service_slug, "W1")
+        if score is None:
+            return (0.0, "agent-hostile web UI", 0.35)
+        return (score, self._autonomy_rationale("W1", score), 0.9)
+
+    def _calculate_autonomy_dimensions(
+        self,
+        service_slug: str,
+        autonomy_dimensions: dict[str, float | None] | None = None,
+    ) -> tuple[dict[str, float], dict[str, str], dict[str, float]]:
+        computed_scores: dict[str, float] = {}
+        rationales: dict[str, str] = {}
+        confidences: dict[str, float] = {}
+
+        prefilled = autonomy_dimensions or {}
+        for dimension in AUTONOMY_DIMENSION_WEIGHTS:
+            candidate = prefilled.get(dimension)
+            if candidate is not None:
+                score = float(candidate)
+                computed_scores[dimension] = score
+                rationales[dimension] = self._autonomy_rationale(dimension, score)
+                confidences[dimension] = 0.7
+                continue
+
+            calculator_map = {
+                "P1": self.calculate_payment_autonomy,
+                "G1": self.calculate_governance_readiness,
+                "W1": self.calculate_web_accessibility,
+            }
+            score, rationale, confidence = calculator_map[dimension](service_slug)
+            computed_scores[dimension] = float(score)
+            rationales[dimension] = rationale
+            confidences[dimension] = float(confidence)
+
+        return computed_scores, rationales, confidences
+
+    def _calculate_autonomy_raw(
+        self,
+        service_slug: str,
+        autonomy_dimensions: dict[str, float | None] | None = None,
+    ) -> tuple[float | None, dict[str, float], dict[str, str], dict[str, float], float | None]:
+        scores, rationales, confidences = self._calculate_autonomy_dimensions(
+            service_slug,
+            autonomy_dimensions=autonomy_dimensions,
+        )
+        if not scores:
+            return None, {}, {}, {}, None
+
+        _, normalized = self._normalized_dimension_weights(
+            {key: value for key, value in scores.items()},
+            weight_map=AUTONOMY_DIMENSION_WEIGHTS,
+        )
+        if not normalized:
+            return None, {}, {}, {}, None
+
+        autonomy_raw = sum(scores[dimension] * weight for dimension, weight in normalized.items())
+        autonomy_confidence = sum(
+            confidences.get(dimension, 0.5) * weight for dimension, weight in normalized.items()
+        )
+
+        return autonomy_raw, scores, rationales, confidences, autonomy_confidence
+
     def calculate_aggregate_recommendation(
         self,
         execution_score_raw: float,
         access_readiness_score_raw: float | None,
+        autonomy_score_raw: float | None,
     ) -> float:
-        """Calculate aggregate recommendation score.
+        """Calculate aggregate recommendation score using v0.3 three-axis weighting.
 
-        Slice-1 contract behavior: until access scoring is fully wired, aggregate aliases execution
-        when access dimensions are missing.
+        Formula: (execution × 0.45) + (access × 0.40) + (autonomy × 0.15)
+        Missing axes are re-normalized across available weights.
         """
-        if access_readiness_score_raw is None:
-            return round(execution_score_raw, 1)
+        axes = {
+            "execution": execution_score_raw,
+            "access": access_readiness_score_raw,
+            "autonomy": autonomy_score_raw,
+        }
+        available = {
+            axis: value
+            for axis, value in axes.items()
+            if value is not None and axis in AXIS_WEIGHTS
+        }
+        if not available:
+            return 0.0
 
-        aggregate = (execution_score_raw * 0.70) + (access_readiness_score_raw * 0.30)
+        available_weight_total = sum(AXIS_WEIGHTS[axis] for axis in available)
+        if available_weight_total <= 0:
+            return 0.0
+
+        aggregate = sum(
+            float(value) * (AXIS_WEIGHTS[axis] / available_weight_total)
+            for axis, value in available.items()
+        )
         return round(aggregate, 1)
 
     def _parse_freshness_hours(self, freshness: str) -> float:
@@ -340,13 +561,13 @@ class ScoringService:
             return "L3"
         return "L4"
 
-    def apply_v02_tier_guardrails(
+    def apply_tier_guardrails(
         self,
         base_tier: str,
         execution_score: float,
         access_readiness_score: float | None,
     ) -> str:
-        """Apply v0.2 tier caps for weak execution/access readiness."""
+        """Apply tier caps for weak execution/access readiness."""
         tier_order = {"L1": 1, "L2": 2, "L3": 3, "L4": 4}
         l2_cap_required = execution_score < 6.0 or (
             access_readiness_score is not None and access_readiness_score < 4.0
@@ -368,9 +589,10 @@ class ScoringService:
                 category_scores[category] = 0.0
                 continue
 
-            raw_weight = sum(DIMENSION_WEIGHTS[dim] for dim in applicable)
+            raw_weight = sum(EXECUTION_DIMENSION_WEIGHTS[dim] for dim in applicable)
             weighted_score = sum(
-                float(dimensions[dim] or 0.0) * DIMENSION_WEIGHTS[dim] for dim in applicable
+                float(dimensions[dim] or 0.0) * EXECUTION_DIMENSION_WEIGHTS[dim]
+                for dim in applicable
             )
             category_scores[category] = round(weighted_score / raw_weight, 1) if raw_weight else 0.0
 
@@ -495,17 +717,46 @@ class ScoringService:
         execution_score: float,
         access_dimensions: dict[str, float | None] | None,
         access_readiness_score: float | None,
+        autonomy_scores: dict[str, float],
+        autonomy_rationales: dict[str, str],
+        autonomy_confidences: dict[str, float],
+        autonomy_score: float | None,
+        autonomy_confidence: float | None,
         aggregate_recommendation_score: float,
     ) -> dict[str, Any]:
         """Build normalized score snapshot returned by API and persisted in DB."""
-        applicable_weights, normalized_weights = self._normalized_dimension_weights(dimensions)
+        applicable_weights, normalized_weights = self._normalized_dimension_weights(
+            dimensions,
+            weight_map=EXECUTION_DIMENSION_WEIGHTS,
+        )
         access_raw_weights, access_normalized_weights = self._normalized_dimension_weights(
             access_dimensions or {},
             weight_map=ACCESS_DIMENSION_WEIGHTS,
         )
+        autonomy_raw_weights, autonomy_normalized_weights = self._normalized_dimension_weights(
+            {key: value for key, value in autonomy_scores.items()},
+            weight_map=AUTONOMY_DIMENSION_WEIGHTS,
+        )
+
+        autonomy_dimension_payload = []
+        for dimension in ("P1", "G1", "W1"):
+            if dimension not in autonomy_scores:
+                continue
+            autonomy_dimension_payload.append(
+                {
+                    "code": dimension,
+                    "name": AUTONOMY_DIMENSION_NAME_MAP[dimension],
+                    "score": round(float(autonomy_scores[dimension]), 1),
+                    "rationale": autonomy_rationales.get(dimension, ""),
+                    "confidence": round(float(autonomy_confidences.get(dimension, 0.5)), 2),
+                }
+            )
+
         return {
             "dimensions": {
-                key: value for key, value in dimensions.items() if key in DIMENSION_WEIGHTS
+                key: value
+                for key, value in dimensions.items()
+                if key in EXECUTION_DIMENSION_WEIGHTS
             },
             "raw_weights": applicable_weights,
             "normalized_weights": normalized_weights,
@@ -518,12 +769,25 @@ class ScoringService:
             },
             "access_raw_weights": access_raw_weights,
             "access_normalized_weights": access_normalized_weights,
+            "autonomy_dimensions": autonomy_scores,
+            "autonomy_raw_weights": autonomy_raw_weights,
+            "autonomy_normalized_weights": autonomy_normalized_weights,
+            "autonomy": {
+                "avg": None if autonomy_score is None else round(autonomy_score, 1),
+                "confidence": (
+                    None if autonomy_confidence is None else round(float(autonomy_confidence), 2)
+                ),
+                "dimensions": autonomy_dimension_payload,
+            },
             "score_breakdown": {
                 "execution": execution_score,
                 "access_readiness": access_readiness_score,
+                "autonomy": autonomy_score,
                 "aggregate_recommendation": aggregate_recommendation_score,
+                "axis_weights": AXIS_WEIGHTS,
+                "autonomy_dimension_weights": AUTONOMY_DIMENSION_WEIGHTS,
                 "version": AN_SCORE_VERSION,
-                "aggregate_aliases_score": True,
+                "aggregate_aliases_score": False,
             },
         }
 
@@ -533,20 +797,35 @@ class ScoringService:
         dimensions: dict[str, float | None],
         evidence: EvidenceInput,
         access_dimensions: dict[str, float | None] | None = None,
+        autonomy_dimensions: dict[str, float | None] | None = None,
     ) -> ANScoreResult:
         """Calculate AN score bundle for a service."""
         execution_raw = self._calculate_composite_raw(dimensions)
         execution_score = round(execution_raw, 1)
         access_raw = self._calculate_access_readiness_raw(access_dimensions)
         access_readiness_score = round(access_raw, 1) if access_raw is not None else None
+
+        (
+            autonomy_raw,
+            autonomy_scores,
+            autonomy_rationales,
+            autonomy_confidences,
+            autonomy_confidence,
+        ) = self._calculate_autonomy_raw(service_slug, autonomy_dimensions=autonomy_dimensions)
+        autonomy_score = round(autonomy_raw, 1) if autonomy_raw is not None else None
+
         aggregate_recommendation_score = self.calculate_aggregate_recommendation(
             execution_raw,
             access_raw,
+            autonomy_raw,
         )
 
         confidence = self.calculate_confidence(evidence)
+        if autonomy_confidence is not None:
+            confidence = round((confidence * 0.85) + (autonomy_confidence * 0.15), 2)
+
         base_tier = self.assign_tier(float(aggregate_recommendation_score))
-        tier = self.apply_v02_tier_guardrails(
+        tier = self.apply_tier_guardrails(
             base_tier=base_tier,
             execution_score=execution_score,
             access_readiness_score=access_readiness_score,
@@ -557,6 +836,11 @@ class ScoringService:
             execution_score=execution_score,
             access_dimensions=access_dimensions,
             access_readiness_score=access_readiness_score,
+            autonomy_scores=autonomy_scores,
+            autonomy_rationales=autonomy_rationales,
+            autonomy_confidences=autonomy_confidences,
+            autonomy_score=autonomy_score,
+            autonomy_confidence=autonomy_confidence,
             aggregate_recommendation_score=aggregate_recommendation_score,
         )
 
@@ -566,6 +850,7 @@ class ScoringService:
             score_raw=float(aggregate_recommendation_score),
             execution_score=execution_score,
             access_readiness_score=access_readiness_score,
+            autonomy_score=autonomy_score,
             aggregate_recommendation_score=aggregate_recommendation_score,
             an_score_version=AN_SCORE_VERSION,
             confidence=confidence,
