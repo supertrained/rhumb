@@ -5,6 +5,17 @@ export const metadata: Metadata = {
   title: "Blog | Rhumb",
   description: "Tool autopsies and agent-native infrastructure insights.",
   alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Blog | Rhumb",
+    description: "Tool autopsies and agent-native infrastructure insights.",
+    url: "https://rhumb.dev/blog",
+    images: [{ url: "/api/og", width: 1200, height: 630 }],
+  },
+  twitter: {
+    title: "Blog | Rhumb",
+    description: "Tool autopsies and agent-native infrastructure insights.",
+    images: ["/api/og"],
+  },
 };
 
 const POSTS = [

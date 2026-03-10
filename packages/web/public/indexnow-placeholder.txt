@@ -1,0 +1,6 @@
+# IndexNow verification file
+# Rename this file to match your INDEXNOW_KEY value: <INDEXNOW_KEY>.txt
+# The file contents should be exactly your key (UUID without dashes).
+# Example: if INDEXNOW_KEY=a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+# then rename to: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.txt
+# with file contents: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
