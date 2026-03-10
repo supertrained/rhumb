@@ -72,7 +72,14 @@ export async function generateMetadata({
     openGraph: {
       title: `${slug} | Rhumb`,
       description: `AN Score profile for ${slug}: execution, access, and tier breakdown.`,
+      url: `https://rhumb.dev/service/${slug}`,
       images: [{ url: `/service/${slug}/og`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image" as const,
+      title: `${slug} | Rhumb`,
+      description: `AN Score profile for ${slug}: execution, access, and tier breakdown.`,
+      images: [`/service/${slug}/og`],
     },
   };
 }

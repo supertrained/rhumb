@@ -15,6 +15,34 @@ export const metadata: Metadata = {
     publishedTime: "2026-03-09T00:00:00Z",
     authors: ["Pedro Nunes"],
     images: [{ url: "/blog/payments-for-agents/og", width: 1200, height: 630 }],
+    url: "https://rhumb.dev/blog/payments-for-agents",
+    siteName: "Rhumb",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
+    description:
+      "We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst.",
+    images: ["/blog/payments-for-agents/og"],
+  },
+};
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
+  datePublished: "2026-03-09T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
+  url: "https://rhumb.dev/blog/payments-for-agents",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
   },
 };
 
@@ -124,6 +152,10 @@ function MiniScoreBar({ value, max = 10 }: { value: number; max?: number }) {
 export default function PaymentsForAgents() {
   return (
     <div className="bg-navy min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSON_LD) }}
+      />
       <article className="max-w-3xl mx-auto px-6 pt-14 pb-24">
 
         {/* Article header */}

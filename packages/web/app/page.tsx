@@ -11,6 +11,29 @@ export const metadata: Metadata = {
   title: "Rhumb | Agent-native tool discovery",
   description:
     "Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents.",
+  openGraph: {
+    title: "Rhumb | Agent-native tool discovery",
+    description:
+      "Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents.",
+    url: "https://rhumb.dev/",
+    images: [{ url: "/api/og", width: 1200, height: 630 }],
+  },
+  twitter: {
+    title: "Rhumb | Agent-native tool discovery",
+    description:
+      "Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents.",
+    images: ["/api/og"],
+  },
+};
+
+const HOME_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Rhumb",
+  url: "https://rhumb.dev",
+  description:
+    "Agent-native tool discovery and scoring platform. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+  logo: "https://rhumb.dev/favicon.ico",
 };
 
 function scoreLabel(value: number | null): string {
@@ -36,6 +59,10 @@ export default async function HomePage(): Promise<JSX.Element> {
 
   return (
     <div className="bg-navy min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(HOME_JSON_LD) }}
+      />
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         {/* Grid background */}
