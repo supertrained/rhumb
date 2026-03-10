@@ -3,8 +3,9 @@
 # Generated: 2026-03-05 22:15 PST
 
 version: "1.0"
+
 metadata:
-  curated_at: "2026-03-09T18:33:15+00:00"
+  curated_at: "2026-03-10T22:16:31Z"
   total_services: 50
   categories: 10
   description: "Initial curated dataset of 50 essential services for Rhumb leaderboard MVP"
