@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -7,6 +9,7 @@ import { getServiceScore } from "../../../lib/api";
 import type { ServiceScoreViewModel } from "../../../lib/types";
 import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
 import { AutonomySection } from "../../../components/autonomy-section";
+import { GuideSection } from "../../../components/guide-section";
 import { getTierInfo, getTierInfoFromString } from "../../../lib/utils";
 
 function scoreLabel(value: number | null): string {
@@ -137,6 +140,11 @@ export default async function ServicePage({
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 
+  const guidePath = path.join(process.cwd(), "public", "guides", `${slug}.md`);
+  const guideContent = fs.existsSync(guidePath)
+    ? fs.readFileSync(guidePath, "utf8")
+    : null;
+
   return (
     <div className="bg-navy min-h-screen">
       {renderJsonLd(structuredData)}
@@ -243,6 +251,8 @@ export default async function ServicePage({
               <p className="text-sm text-slate-500">No active failure modes reported.</p>
             )}
           </section>
+
+          {guideContent && <GuideSection guideContent={guideContent} />}
 
           {/* Agent consumption */}
           <section className="bg-surface border border-slate-800 rounded-xl p-6">
