@@ -20,6 +20,16 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "aag-framework",
+    title:
+      "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base",
+    description:
+      "Agent Accessibility Guidelines (AAG): 6 interaction channels × 3 compliance levels. The framework for making web apps work for autonomous AI agents.",
+    date: "March 10, 2026",
+    tag: "Framework",
+    readTime: "10 min read",
+  },
+  {
     slug: "payments-for-agents",
     title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
     description:
