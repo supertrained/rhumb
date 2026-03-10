@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import re
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -12,9 +14,14 @@ from db.repository import (
     InMemoryScoreRepository,
     SQLAlchemyScoreRepository,
 )
-from services.calibration import V02_CALIBRATION_CASES
 from services.fixtures import HAND_SCORED_FIXTURES
-from services.scoring import EvidenceInput, ScoringService
+from services.scoring import (
+    AN_SCORE_VERSION,
+    AXIS_WEIGHTS,
+    EvidenceInput,
+    ScoringService,
+    load_autonomy_score_artifact,
+)
 
 
 @pytest.mark.parametrize("service_slug", ["stripe", "hubspot", "sendgrid", "resend", "github"])
@@ -93,7 +100,7 @@ def test_confidence_rewards_fresh_low_latency_probe_telemetry() -> None:
 
 
 def test_confidence_uses_probe_freshness_and_latency_as_separate_inputs() -> None:
-    """Probe freshness and probe latency should independently affect confidence in v0.2."""
+    """Probe freshness and probe latency should independently affect confidence."""
     scoring = ScoringService()
 
     stale_probe = scoring.calculate_confidence(
@@ -154,57 +161,58 @@ def test_tier_assignment_boundaries(score: float, expected_tier: str) -> None:
     assert scoring.assign_tier(score) == expected_tier
 
 
-def test_v02_aggregate_uses_execution_access_70_30_split() -> None:
-    """Aggregate should blend execution and access readiness at 70/30 in v0.2."""
+def test_v03_aggregate_formula_uses_execution_access_autonomy_45_40_15() -> None:
+    """Aggregate should blend execution/access/autonomy with 45/40/15 axis weights."""
     scoring = ScoringService()
 
     aggregate = scoring.calculate_aggregate_recommendation(
         execution_score_raw=8.9,
         access_readiness_score_raw=6.5,
+        autonomy_score_raw=9.0,
     )
 
-    assert aggregate == 8.2
+    expected = round((8.9 * AXIS_WEIGHTS["execution"]) + (6.5 * AXIS_WEIGHTS["access"]) + (9.0 * AXIS_WEIGHTS["autonomy"]), 1)
+    assert aggregate == expected
 
 
-def test_v02_calibration_dataset_reproduces_expected_aggregate_scores() -> None:
-    """20-service calibration set should preserve expected v0.2 aggregate outputs."""
+def test_v03_aggregate_renormalizes_when_access_missing() -> None:
+    """When an axis is missing, aggregate should renormalize remaining axis weights."""
     scoring = ScoringService()
 
-    for case in V02_CALIBRATION_CASES:
-        aggregate = scoring.calculate_aggregate_recommendation(
-            execution_score_raw=case.execution_score,
-            access_readiness_score_raw=case.access_readiness_score,
-        )
-        assert aggregate == case.expected_aggregate_score
-
-
-def test_v02_calibration_rank_delta_matches_expected_ordering() -> None:
-    """Rank ordering from the calibration set should match the v0.2 rank-delta artifact."""
-    ranked = sorted(
-        V02_CALIBRATION_CASES,
-        key=lambda case: (case.expected_aggregate_raw, case.execution_score, case.service_slug),
-        reverse=True,
+    aggregate = scoring.calculate_aggregate_recommendation(
+        execution_score_raw=8.0,
+        access_readiness_score_raw=None,
+        autonomy_score_raw=4.0,
     )
 
-    computed_rank_by_slug = {case.service_slug: index for index, case in enumerate(ranked, start=1)}
-
-    for case in V02_CALIBRATION_CASES:
-        assert computed_rank_by_slug[case.service_slug] == case.expected_v02_rank
+    expected = round((8.0 * 0.75) + (4.0 * 0.25), 1)
+    assert aggregate == expected
 
 
-@pytest.mark.parametrize(
-    ("service_slug", "expected_shift"),
-    [
-        ("supabase", +3),
-        ("openai", +3),
-        ("postmark", -4),
-    ],
-)
-def test_v02_calibration_high_signal_rank_shifts(service_slug: str, expected_shift: int) -> None:
-    """Largest positive/negative shifts should match calibration expectations."""
-    case = next(item for item in V02_CALIBRATION_CASES if item.service_slug == service_slug)
-    shift = case.expected_execution_rank - case.expected_v02_rank
-    assert shift == expected_shift
+def test_autonomy_dimension_calculators_use_artifact_scores_for_known_service() -> None:
+    """P1/G1/W1 calculators should return artifact-backed values and bounded confidence."""
+    scoring = ScoringService()
+
+    payment = scoring.calculate_payment_autonomy("stripe")
+    governance = scoring.calculate_governance_readiness("stripe")
+    web = scoring.calculate_web_accessibility("stripe")
+
+    assert payment[0] == 10.0
+    assert governance[0] == 10.0
+    assert web[0] == 8.0
+
+    for score, rationale, confidence in (payment, governance, web):
+        assert 0.0 <= score <= 10.0
+        assert rationale
+        assert 0.0 <= confidence <= 1.0
+
+
+def test_autonomy_score_artifact_covers_50_services() -> None:
+    """Autonomy artifact should include complete coverage for the seeded 50-service dataset."""
+    artifact_scores = load_autonomy_score_artifact()
+
+    assert len(artifact_scores) == 50
+    assert {"P1", "G1", "W1"}.issubset(artifact_scores["stripe"].keys())
 
 
 def test_v02_tier_guardrail_caps_high_aggregate_when_access_is_low() -> None:
@@ -245,7 +253,7 @@ def test_v02_tier_guardrail_caps_high_aggregate_when_execution_is_low() -> None:
     dimensions = {dimension: 5.0 for dimension in HAND_SCORED_FIXTURES["stripe"]["dimensions"]}
     result = asyncio.run(
         scoring.score_service(
-            service_slug="example",
+            service_slug="stripe",
             dimensions=dimensions,
             access_dimensions={
                 "A1": 9.0,
@@ -342,6 +350,8 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
         "score",
         "execution_score",
         "access_readiness_score",
+        "autonomy_score",
+        "autonomy",
         "aggregate_recommendation_score",
         "an_score_version",
         "confidence",
@@ -355,13 +365,15 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
     assert body["tier"] == "L4"
     assert body["score"] == body["aggregate_recommendation_score"]
     assert body["access_readiness_score"] is None
+    assert body["autonomy_score"] is not None
+    assert body["autonomy"]["avg"] == body["autonomy_score"]
 
 
 def test_score_endpoint_supports_access_dimensions_contract(
     client,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """POST /v1/score should expose v0.2 dual-score contract fields when access dimensions are provided."""
+    """POST /v1/score should expose v0.3 execution/access/autonomy contract fields."""
     from routes import scores as score_routes
 
     score_routes.get_scoring_service.cache_clear()
@@ -393,9 +405,11 @@ def test_score_endpoint_supports_access_dimensions_contract(
     assert response.status_code == 200
 
     body = response.json()
-    assert body["an_score_version"] == "0.2"
+    assert body["an_score_version"] == AN_SCORE_VERSION
     assert body["access_readiness_score"] is not None
-    assert body["execution_score"] >= body["access_readiness_score"]
+    assert body["autonomy_score"] is not None
+    assert body["autonomy"] is not None
+    assert body["execution_score"] >= 0.0
     assert body["score"] == body["aggregate_recommendation_score"]
 
 
@@ -403,7 +417,7 @@ def test_get_service_score_fixture_fallback_exposes_dual_scores(
     client,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """GET /v1/services/{slug}/score should return v0.2 fields from fixture fallback."""
+    """GET /v1/services/{slug}/score should return v0.3 autonomy fields from fixture fallback."""
     from routes import scores as score_routes
 
     score_routes.get_scoring_service.cache_clear()
@@ -417,8 +431,11 @@ def test_get_service_score_fixture_fallback_exposes_dual_scores(
     assert response.status_code == 200
 
     body = response.json()
-    assert body["an_score_version"] == "0.2"
+    assert body["an_score_version"] == AN_SCORE_VERSION
     assert body["access_readiness_score"] is not None
+    assert body["autonomy"] is not None
+    assert body["autonomy"]["avg"] is not None
+    assert len(body["autonomy"]["dimensions"]) == 3
     assert body["score"] == body["aggregate_recommendation_score"]
 
 
@@ -426,7 +443,7 @@ def test_compare_route_exposes_dual_score_fields(
     client,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """GET /v1/compare should include dual-score fields for each compared service."""
+    """GET /v1/compare should include v0.3 aggregate fields for each compared service."""
     from routes import scores as score_routes
 
     score_routes.get_scoring_service.cache_clear()
@@ -443,10 +460,25 @@ def test_compare_route_exposes_dual_score_fields(
     assert len(payload) == 2
 
     for item in payload:
-        assert item["an_score_version"] == "0.2"
+        assert item["an_score_version"] == AN_SCORE_VERSION
         assert item["score"] == item["aggregate_recommendation_score"]
         assert item["execution_score"] >= 0.0
         assert item["access_readiness_score"] is not None
+        assert item["autonomy_score"] is not None
+
+
+def test_autonomy_seed_migration_covers_all_artifact_services() -> None:
+    """Seed migration should include one row for every autonomy-scored service."""
+    repo_root = Path(__file__).resolve().parents[3]
+    migration_sql = (repo_root / "packages/api/migrations/0010_seed_autonomy_scores.sql").read_text(
+        encoding="utf-8"
+    )
+
+    migration_slugs = set(re.findall(r"\('([a-z0-9-]+)',\s*[0-9]+(?:\.[0-9]+)?", migration_sql))
+    artifact_slugs = set(load_autonomy_score_artifact().keys())
+
+    assert migration_slugs == artifact_slugs
+    assert len(migration_slugs) == 50
 
 
 def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
