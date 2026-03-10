@@ -41,7 +41,10 @@ describe("web adapters", () => {
         freshness: "12 minutes ago",
         calculatedAt: "2026-03-05T22:00:00Z",
         tier: "L4",
-        confidence: 0.95
+        confidence: 0.95,
+        p1Score: null,
+        g1Score: null,
+        w1Score: null
       }
     ]);
     expect(parsed.error).toBeNull();
@@ -109,7 +112,14 @@ describe("web adapters", () => {
           serviceSlug: "square",
           score: 7.4
         }
-      ]
+      ],
+      p1Score: null,
+      g1Score: null,
+      w1Score: null,
+      p1Rationale: null,
+      g1Rationale: null,
+      w1Rationale: null,
+      autonomyTier: null
     });
   });
 

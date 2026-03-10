@@ -22,6 +22,9 @@ export type LeaderboardItem = {
   calculatedAt: string | null;
   tier: string | null;
   confidence: number | null;
+  p1Score: number | null;
+  g1Score: number | null;
+  w1Score: number | null;
 };
 
 export type LeaderboardViewModel = {
@@ -58,4 +61,11 @@ export type ServiceScoreViewModel = {
   evidenceFreshness: string | null;
   activeFailures: ServiceFailureMode[];
   alternatives: ServiceAlternative[];
+  p1Score: number | null;
+  g1Score: number | null;
+  w1Score: number | null;
+  p1Rationale: string | null;
+  g1Rationale: string | null;
+  w1Rationale: string | null;
+  autonomyTier: string | null;
 };

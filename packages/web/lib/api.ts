@@ -42,6 +42,13 @@ type SupabaseScore = {
   tier_label: string | null;
   probe_metadata: Record<string, unknown> | null;
   calculated_at: string | null;
+  p1_score: number | null;
+  g1_score: number | null;
+  w1_score: number | null;
+  p1_rationale: string | null;
+  g1_rationale: string | null;
+  w1_rationale: string | null;
+  autonomy_tier: string | null;
 };
 
 // ---------- Supabase implementations ----------
@@ -115,6 +122,9 @@ async function getLeaderboardFromSupabase(
       calculatedAt: sc.calculated_at,
       tier: sc.tier,
       confidence: sc.confidence,
+      p1Score: sc.p1_score ?? null,
+      g1Score: sc.g1_score ?? null,
+      w1Score: sc.w1_score ?? null,
     }));
 
   return { category, items, error: null };
@@ -145,6 +155,13 @@ async function getServiceScoreFromSupabase(
       (sc.probe_metadata as Record<string, string> | null)?.freshness ?? null,
     activeFailures: [],
     alternatives: [],
+    p1Score: sc.p1_score ?? null,
+    g1Score: sc.g1_score ?? null,
+    w1Score: sc.w1_score ?? null,
+    p1Rationale: sc.p1_rationale ?? null,
+    g1Rationale: sc.g1_rationale ?? null,
+    w1Rationale: sc.w1_rationale ?? null,
+    autonomyTier: sc.autonomy_tier ?? null,
   };
 }
 

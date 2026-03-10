@@ -67,7 +67,10 @@ function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | 
     freshness: asString(item.probe_freshness) ?? asString(item.freshness),
     calculatedAt: asString(item.calculated_at),
     tier: asString(item.tier),
-    confidence: asNumber(item.confidence)
+    confidence: asNumber(item.confidence),
+    p1Score: asNumber(item.p1_score),
+    g1Score: asNumber(item.g1_score),
+    w1Score: asNumber(item.w1_score)
   };
 }
 
@@ -146,6 +149,13 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     calculatedAt: asString(payload.calculated_at),
     evidenceFreshness: parseEvidenceFreshness(snapshot) ?? asString(payload.probe_freshness),
     activeFailures,
-    alternatives
+    alternatives,
+    p1Score: asNumber(payload.p1_score),
+    g1Score: asNumber(payload.g1_score),
+    w1Score: asNumber(payload.w1_score),
+    p1Rationale: asString(payload.p1_rationale),
+    g1Rationale: asString(payload.g1_rationale),
+    w1Rationale: asString(payload.w1_rationale),
+    autonomyTier: asString(payload.autonomy_tier)
   };
 }

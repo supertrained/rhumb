@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { getServiceScore } from "../../../lib/api";
 import type { ServiceScoreViewModel } from "../../../lib/types";
 import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
+import { AutonomySection } from "../../../components/autonomy-section";
 import { getTierInfo, getTierInfoFromString } from "../../../lib/utils";
 
 function scoreLabel(value: number | null): string {
@@ -202,6 +203,17 @@ export default async function ServicePage({
               description="Composite score: 70% execution + 30% access readiness."
             />
           </section>
+
+          {/* Autonomy breakdown */}
+          <AutonomySection
+            p1Score={score.p1Score ?? null}
+            g1Score={score.g1Score ?? null}
+            w1Score={score.w1Score ?? null}
+            p1Rationale={score.p1Rationale ?? null}
+            g1Rationale={score.g1Rationale ?? null}
+            w1Rationale={score.w1Rationale ?? null}
+            autonomyTier={score.autonomyTier ?? null}
+          />
 
           {/* Active failure modes */}
           <section className="bg-surface border border-slate-800 rounded-xl p-6">

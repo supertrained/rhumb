@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { getLeaderboard } from "../../../lib/api";
 import type { LeaderboardItem } from "../../../lib/types";
 import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
+import { AutonomyBadges } from "../../../components/autonomy-badges";
 import { getTierInfo } from "../../../lib/utils";
 
 type SearchParams = {
@@ -244,6 +245,15 @@ export default async function LeaderboardPage({
                   <div className="mt-2 space-y-1 max-w-xs">
                     <ScoreBar label="Execution" value={item.executionScore} />
                     <ScoreBar label="Access" value={item.accessReadinessScore} />
+                  </div>
+
+                  {/* Autonomy micro-badges */}
+                  <div className="mt-2">
+                    <AutonomyBadges
+                      p1Score={item.p1Score ?? null}
+                      g1Score={item.g1Score ?? null}
+                      w1Score={item.w1Score ?? null}
+                    />
                   </div>
                 </div>
 
