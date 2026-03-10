@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { getLeaderboard } from "../lib/api";
 import type { LeaderboardItem } from "../lib/types";
 import { ScoreDisplay, TierBadge } from "../components/ScoreDisplay";
+import { CopyInstall } from "../components/copy-install";
 
 export const metadata: Metadata = {
   title: "Rhumb | Agent-native tool discovery",
@@ -104,12 +105,7 @@ export default async function HomePage(): Promise<JSX.Element> {
             >
               Explore Leaderboard →
             </Link>
-            <a
-              href="#install"
-              className="px-5 py-2.5 rounded-lg border border-slate-800 text-sm text-slate-500 hover:border-slate-700 hover:text-slate-400 transition-colors duration-200 font-mono"
-            >
-              $ rhumb install
-            </a>
+            <CopyInstall command="npm install -g rhumb" />
           </div>
         </div>
       </section>
