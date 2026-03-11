@@ -262,12 +262,13 @@ export default async function ServicePage({
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
-                <span className="ml-2 text-xs font-mono text-slate-600">cli</span>
+                <span className="ml-2 text-xs font-mono text-slate-600">mcp</span>
               </div>
               <div className="p-4 font-mono text-sm text-slate-400">
                 <div>
-                  <span className="text-slate-600">$ </span>
-                  <span className="text-amber">rhumb score {score.serviceSlug}</span>
+                  <span className="text-slate-600">→ </span>
+                  <span className="text-amber">get_score</span>
+                  <span className="text-slate-500">(&quot;{score.serviceSlug}&quot;)</span>
                 </div>
                 {score.aggregateRecommendationScore !== null && (
                   <div className="mt-2 pl-4 space-y-0.5">
