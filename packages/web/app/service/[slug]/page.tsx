@@ -236,14 +236,50 @@ export default async function ServicePage({
               Active failure modes
             </h2>
             {score.activeFailures.length > 0 ? (
-              <ul className="space-y-2">
+              <ul className="space-y-4">
                 {score.activeFailures.map((failure) => (
                   <li
                     key={failure.id ?? failure.summary}
-                    className="flex items-start gap-3 text-sm text-slate-400"
+                    className="bg-elevated border border-slate-800 rounded-lg p-4"
                   >
-                    <span className="text-score-limited mt-0.5 shrink-0">▲</span>
-                    {failure.summary}
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-0.5 shrink-0 text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${
+                        failure.severity === 'critical' ? 'bg-red-900/40 text-red-400' :
+                        failure.severity === 'high' ? 'bg-amber-900/40 text-amber' :
+                        failure.severity === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                        'bg-slate-800 text-slate-400'
+                      }`}>
+                        {(failure.severity ?? 'unknown').toUpperCase()}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-slate-200">{failure.summary}</h3>
+                        {failure.description && (
+                          <p className="text-sm text-slate-400 mt-1">{failure.description}</p>
+                        )}
+                        {failure.agentImpact && (
+                          <p className="text-sm text-slate-500 mt-2">
+                            <span className="text-slate-400 font-medium">Agent impact:</span> {failure.agentImpact}
+                          </p>
+                        )}
+                        {failure.workaround && (
+                          <p className="text-sm text-emerald-400/70 mt-2">
+                            <span className="font-medium">Workaround:</span> {failure.workaround}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {failure.frequency && (
+                            <span className="text-xs font-mono text-slate-500">
+                              {failure.frequency}
+                            </span>
+                          )}
+                          {failure.category && (
+                            <span className="text-xs font-mono text-slate-600">
+                              {failure.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>

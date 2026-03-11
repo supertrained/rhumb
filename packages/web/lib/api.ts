@@ -141,6 +141,31 @@ async function getServiceScoreFromSupabase(
   if (!scores || scores.length === 0) return null;
   const sc = scores[0];
 
+  // Fetch active failure modes from Supabase
+  const failures = await supabaseFetch<Array<{
+    id: string;
+    title: string;
+    description: string;
+    severity: string;
+    frequency: string;
+    agent_impact: string | null;
+    workaround: string | null;
+    category: string;
+  }>>(
+    `failure_modes?service_slug=eq.${encodeURIComponent(slug)}&resolved_at=is.null&order=severity.asc`
+  );
+
+  const activeFailures = (failures ?? []).map(f => ({
+    id: f.id,
+    summary: f.title,
+    description: f.description,
+    severity: f.severity,
+    frequency: f.frequency,
+    agentImpact: f.agent_impact,
+    workaround: f.workaround,
+    category: f.category,
+  }));
+
   return {
     serviceSlug: sc.service_slug,
     aggregateRecommendationScore: sc.aggregate_recommendation_score,
@@ -153,7 +178,7 @@ async function getServiceScoreFromSupabase(
     calculatedAt: sc.calculated_at,
     evidenceFreshness:
       (sc.probe_metadata as Record<string, string> | null)?.freshness ?? null,
-    activeFailures: [],
+    activeFailures,
     alternatives: [],
     p1Score: sc.payment_autonomy ?? null,
     g1Score: sc.governance_readiness ?? null,

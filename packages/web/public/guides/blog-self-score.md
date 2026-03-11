@@ -1,8 +1,3 @@
-export const metadata = {
-  title: "We Scored Ourselves First — Here's What We Found",
-  description: "Rhumb's honest assessment of its own agent-nativeness. 3.5 → 6.0.",
-  ogImage: "/blog/self-score-og.png",
-};
 
 # We Scored Ourselves First — Here's What We Found
 

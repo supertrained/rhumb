@@ -36,6 +36,12 @@ export type LeaderboardViewModel = {
 export type ServiceFailureMode = {
   id: string | null;
   summary: string;
+  description?: string;
+  severity?: string;
+  frequency?: string;
+  agentImpact?: string | null;
+  workaround?: string | null;
+  category?: string;
 };
 
 export type CategorySummary = {
