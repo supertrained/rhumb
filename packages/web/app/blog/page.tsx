@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "self-score",
+    title: "We Scored Ourselves First — Here's What We Found",
+    description:
+      "Rhumb's honest assessment of its own agent-nativeness using our own framework. 3.5/10 (Limited). Why transparency is the credibility moat.",
+    date: "March 11, 2026",
+    tag: "Transparency",
+    readTime: "12 min read",
+  },
+  {
     slug: "aag-framework",
     title:
       "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base",
