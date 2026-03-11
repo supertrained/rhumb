@@ -148,6 +148,28 @@ async def get_service_score(slug: str) -> dict:
     sc = scores[0]
     probe_metadata = sc.get("probe_metadata") or {}
 
+    # Synthesize explanation from available rationale fields
+    parts: list[str] = []
+    agg = sc.get("aggregate_recommendation_score")
+    exec_s = sc.get("execution_score")
+    access_s = sc.get("access_readiness_score")
+    if agg is not None:
+        parts.append(f"Scores {agg:.1f}/10 overall")
+    if exec_s is not None and access_s is not None:
+        parts.append(f"with execution at {exec_s:.1f} and access readiness at {access_s:.1f}")
+    # Add rationale snippets
+    for field, label in [
+        ("payment_autonomy_rationale", "Payment"),
+        ("governance_readiness_rationale", "Governance"),
+        ("web_accessibility_rationale", "Web accessibility"),
+    ]:
+        val = sc.get(field)
+        if val:
+            # Take first sentence only
+            first_sentence = val.split(". ")[0].rstrip(".")
+            parts.append(f"{label}: {first_sentence}")
+    explanation = ". ".join(parts) + "." if parts else ""
+
     # Fetch active failure modes
     failures = await supabase_fetch(
         f"failure_modes?service_slug=eq.{quote(slug)}"
@@ -178,7 +200,7 @@ async def get_service_score(slug: str) -> dict:
         "confidence": sc.get("confidence", 0),
         "tier": sc.get("tier", "unknown"),
         "tier_label": sc.get("tier_label", "Unknown"),
-        "explanation": sc.get("explanation", ""),
+        "explanation": explanation,
         "dimension_snapshot": {
             "probe_freshness": probe_metadata.get("freshness"),
         },
