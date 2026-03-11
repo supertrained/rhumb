@@ -123,6 +123,53 @@ async def get_service(slug: str) -> dict:
     }
 
 
+@router.get("/services/{slug}/score")
+async def get_service_score(slug: str) -> dict:
+    """Get the latest AN score for a service (Supabase REST)."""
+    scores = await supabase_fetch(
+        f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
+    )
+    if not scores:
+        return {
+            "service_slug": slug,
+            "score": None,
+            "execution_score": None,
+            "access_readiness_score": None,
+            "confidence": 0,
+            "tier": "unknown",
+            "tier_label": "Unknown",
+            "explanation": f"No score found for '{slug}'",
+            "aggregate_recommendation_score": None,
+            "an_score_version": "0.3",
+            "dimension_snapshot": {},
+            "calculated_at": None,
+        }
+
+    sc = scores[0]
+    probe_metadata = sc.get("probe_metadata") or {}
+
+    return {
+        "service_slug": sc.get("service_slug", slug),
+        "score": sc.get("aggregate_recommendation_score"),
+        "execution_score": sc.get("execution_score"),
+        "access_readiness_score": sc.get("access_readiness_score"),
+        "autonomy_score": sc.get("autonomy_score"),
+        "aggregate_recommendation_score": sc.get("aggregate_recommendation_score"),
+        "an_score_version": "0.3",
+        "confidence": sc.get("confidence", 0),
+        "tier": sc.get("tier", "unknown"),
+        "tier_label": sc.get("tier_label", "Unknown"),
+        "explanation": sc.get("explanation", ""),
+        "dimension_snapshot": {
+            "probe_freshness": probe_metadata.get("freshness"),
+        },
+        "calculated_at": sc.get("calculated_at"),
+        "payment_autonomy": sc.get("payment_autonomy"),
+        "governance_readiness": sc.get("governance_readiness"),
+        "web_accessibility": sc.get("web_accessibility"),
+    }
+
+
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
