@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 
+from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
     admin_agents,
     admin_billing,
@@ -18,6 +19,11 @@ from routes import (
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     application = FastAPI(title="Rhumb API", version="0.0.1")
+
+    # ── Middleware ──
+    application.add_middleware(QueryLoggingMiddleware)
+
+    # ── Routers ──
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])
