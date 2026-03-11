@@ -73,7 +73,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
   return {
     async searchServices(query: string): Promise<ServiceSearchItem[]> {
-      const url = `${base}/services?query=${encodeURIComponent(query)}`;
+      const url = `${base}/search?q=${encodeURIComponent(query)}`;
       const res = await fetch(url);
       if (!res.ok) {
         throw new Error(`API returned ${res.status}`);
@@ -84,13 +84,17 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         return [];
       }
 
-      const items = Array.isArray(payload.data.items) ? payload.data.items : [];
+      const items = Array.isArray(payload.data.results)
+        ? payload.data.results
+        : Array.isArray(payload.data.items)
+          ? payload.data.items
+          : [];
 
       return items
         .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
         .map((item) => ({
-          name: asString(item.name) ?? asString(item.slug) ?? "unknown",
-          slug: asString(item.slug) ?? "unknown",
+          name: asString(item.name) ?? asString(item.slug) ?? asString(item.service_slug) ?? "unknown",
+          slug: asString(item.service_slug) ?? asString(item.slug) ?? "unknown",
           aggregateScore: asNumber(item.aggregate_recommendation_score),
           executionScore: asNumber(item.execution_score),
           accessScore: asNumber(item.access_readiness_score),
