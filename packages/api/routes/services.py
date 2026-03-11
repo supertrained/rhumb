@@ -148,6 +148,25 @@ async def get_service_score(slug: str) -> dict:
     sc = scores[0]
     probe_metadata = sc.get("probe_metadata") or {}
 
+    # Fetch active failure modes
+    failures = await supabase_fetch(
+        f"failure_modes?service_slug=eq.{quote(slug)}"
+        f"&resolved_at=is.null"
+        f"&order=severity.asc"
+        f"&select=title,description,severity,frequency,agent_impact,workaround"
+    )
+    failure_modes = []
+    if failures:
+        failure_modes = [
+            {
+                "pattern": f.get("title", ""),
+                "impact": f.get("agent_impact", f.get("description", "")),
+                "frequency": f.get("frequency", "unknown"),
+                "workaround": f.get("workaround", ""),
+            }
+            for f in failures
+        ]
+
     return {
         "service_slug": sc.get("service_slug", slug),
         "score": sc.get("aggregate_recommendation_score"),
@@ -167,14 +186,42 @@ async def get_service_score(slug: str) -> dict:
         "payment_autonomy": sc.get("payment_autonomy"),
         "governance_readiness": sc.get("governance_readiness"),
         "web_accessibility": sc.get("web_accessibility"),
+        "failure_modes": failure_modes,
     }
 
 
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
-    # TODO: Wire to failure_modes table when it exists
-    return {"data": {"slug": slug, "failures": []}, "error": None}
+    failures = await supabase_fetch(
+        f"failure_modes?service_slug=eq.{quote(slug)}"
+        f"&resolved_at=is.null"
+        f"&order=severity.asc,frequency.asc"
+        f"&select=id,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"
+    )
+    if failures is None:
+        return {"data": {"slug": slug, "failures": []}, "error": "Unable to load failure modes."}
+
+    return {
+        "data": {
+            "slug": slug,
+            "failure_modes": [
+                {
+                    "pattern": f.get("title", ""),
+                    "impact": f.get("agent_impact", f.get("description", "")),
+                    "frequency": f.get("frequency", "unknown"),
+                    "workaround": f.get("workaround", ""),
+                    "category": f.get("category", ""),
+                    "severity": f.get("severity", ""),
+                    "description": f.get("description", ""),
+                    "last_verified": f.get("last_verified"),
+                    "evidence_count": f.get("evidence_count", 0),
+                }
+                for f in failures
+            ],
+        },
+        "error": None,
+    }
 
 
 @router.get("/services/{slug}/history")
