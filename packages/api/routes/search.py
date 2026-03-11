@@ -1,161 +1,120 @@
-"""Search route implementation."""
+"""Search route implementation — queries Supabase for live data."""
 
-import json
-from pathlib import Path
-from typing import Optional
-import difflib
+from __future__ import annotations
+
+from urllib.parse import quote
+
 from fastapi import APIRouter, Query
 
+from routes._supabase import supabase_fetch
+
 router = APIRouter()
-
-# Load scored dataset at module load time
-DATASET_SCORES_PATH = Path(__file__).parent.parent.parent / "web" / "public" / "data" / "initial-dataset.yaml"
-SCORES_PATH = Path(__file__).parent.parent / "artifacts" / "dataset-scores.json"
-
-_cached_services = None
-_cached_scores = None
-
-
-def _load_dataset() -> list[dict]:
-    """Load service dataset from YAML."""
-    global _cached_services
-    if _cached_services is not None:
-        return _cached_services
-
-    try:
-        import yaml
-        if not DATASET_SCORES_PATH.exists():
-            return []
-
-        with open(DATASET_SCORES_PATH, "r") as f:
-            data = yaml.safe_load(f)
-
-        _cached_services = data.get("services", [])
-        return _cached_services
-    except Exception:
-        return []
-
-
-def _load_scores() -> dict:
-    """Load scored dataset."""
-    global _cached_scores
-    if _cached_scores is not None:
-        return _cached_scores
-
-    try:
-        if not SCORES_PATH.exists():
-            return {"metadata": {}, "scores": []}
-
-        with open(SCORES_PATH, "r") as f:
-            _cached_scores = json.load(f)
-        return _cached_scores
-    except Exception:
-        return {"metadata": {}, "scores": []}
 
 
 @router.get("/search")
 async def search_services(
     q: str,
-    limit: int = Query(default=10, ge=1, le=50)
+    limit: int = Query(default=10, ge=1, le=50),
 ) -> dict:
-    """
-    Search services by free-text query (slug, name, category, description).
+    """Search services by free-text query (slug, name, category, description).
 
     Parameters:
     - q: search query string
     - limit: max results (1-50, default 10)
 
-    Returns matching services ranked by score match.
+    Returns matching services ranked by relevance then score.
     """
-    # Handle both direct function calls (Query object) and HTTP calls (unwrapped int)
-    if hasattr(limit, 'default'):  # It's a Query object
-        limit = limit.default
-    
-    query_lower = q.lower().strip()
+    query_lower = q.strip()
 
     if not query_lower:
         return {
-            "data": {
-                "query": q,
-                "limit": limit,
-                "results": []
-            },
-            "error": "Query cannot be empty"
+            "data": {"query": q, "limit": limit, "results": []},
+            "error": "Query cannot be empty",
         }
 
-    dataset = _load_dataset()
-    scores_data = _load_scores()
+    # Use Supabase PostgREST ilike filter for text search
+    encoded = quote(f"*{query_lower}*")
+    path = (
+        f"services?or=(slug.ilike.{encoded},"
+        f"name.ilike.{encoded},"
+        f"category.ilike.{encoded},"
+        f"description.ilike.{encoded})"
+        f"&select=slug,name,category,description"
+        f"&order=name.asc"
+    )
 
-    # Index scores by slug
-    scores_by_slug = {}
-    for score_item in scores_data.get("scores", []):
-        slug = score_item.get("service_slug")
-        if slug:
-            scores_by_slug[slug] = score_item
+    services = await supabase_fetch(path)
+    if services is None:
+        return {
+            "data": {"query": q, "limit": limit, "results": []},
+            "error": "Search unavailable.",
+        }
 
-    # Search across dataset
-    matches = []
-    for service in dataset:
-        slug = service.get("slug", "")
-        name = service.get("name", "")
-        category = service.get("category", "")
-        description = service.get("description", "")
+    if not services:
+        return {
+            "data": {"query": q, "limit": limit, "results": []},
+            "error": None,
+        }
 
-        # Match criteria
-        slug_match = query_lower in slug.lower()
-        name_match = query_lower in name.lower()
-        category_match = query_lower in category.lower()
-        description_match = query_lower in description.lower()
+    # Get scores for matching services
+    slugs = [s["slug"] for s in services]
+    slug_filter = ",".join(f'"{s}"' for s in slugs)
 
-        if not any([slug_match, name_match, category_match, description_match]):
-            continue
+    scores_data = await supabase_fetch(
+        f"scores?service_slug=in.({slug_filter})"
+        f"&order=aggregate_recommendation_score.desc.nullslast"
+    )
 
-        # Similarity score for ranking
-        similarity = difflib.SequenceMatcher(
-            None,
-            query_lower,
-            f"{slug} {name} {category}".lower()
-        ).ratio()
+    # Index scores by slug (keep best per slug)
+    scores_by_slug: dict[str, dict] = {}
+    if scores_data:
+        for sc in scores_data:
+            slug = sc.get("service_slug")
+            if slug and slug not in scores_by_slug:
+                scores_by_slug[slug] = sc
 
-        # Get score data
-        score_item = scores_by_slug.get(slug, {})
+    # Build results with scores
+    results = []
+    for svc in services:
+        slug = svc["slug"]
+        sc = scores_by_slug.get(slug, {})
 
-        matches.append({
+        freshness = None
+        probe_metadata = sc.get("probe_metadata")
+        if isinstance(probe_metadata, dict):
+            freshness = probe_metadata.get("freshness")
+
+        results.append({
             "service_slug": slug,
-            "name": name,
-            "category": category,
-            "description": description,
-            "aggregate_recommendation_score": score_item.get("aggregate_recommendation_score"),
-            "execution_score": score_item.get("execution_score"),
-            "access_readiness_score": score_item.get("access_readiness_score"),
-            "tier": score_item.get("tier"),
-            "tier_label": score_item.get("tier_label"),
-            "confidence": score_item.get("confidence"),
-            "freshness": score_item.get("probe_metadata", {}).get("freshness"),
-            "_similarity": similarity
+            "name": svc.get("name"),
+            "category": svc.get("category"),
+            "description": svc.get("description"),
+            "aggregate_recommendation_score": sc.get("aggregate_recommendation_score"),
+            "execution_score": sc.get("execution_score"),
+            "access_readiness_score": sc.get("access_readiness_score"),
+            "tier": sc.get("tier"),
+            "tier_label": sc.get("tier_label"),
+            "confidence": sc.get("confidence"),
+            "freshness": freshness,
         })
 
-    # Sort by: exact name match, similarity, then score
-    matches.sort(
+    # Sort: exact name match first, then by score descending
+    ql = query_lower.lower()
+    results.sort(
         key=lambda x: (
-            x["name"].lower() != query_lower,  # Exact match first
-            -x["_similarity"],  # Then by similarity
-            -(x.get("aggregate_recommendation_score") or 0),  # Then by score
+            (x.get("name") or "").lower() != ql,  # exact match first
+            -(x.get("aggregate_recommendation_score") or 0),  # then by score
         )
     )
 
-    # Remove similarity score from output
-    for match in matches:
-        match.pop("_similarity", None)
-
     # Apply limit
-    results = matches[:limit]
+    results = results[:limit]
 
     return {
         "data": {
             "query": q,
             "limit": limit,
-            "results": results
+            "results": results,
         },
-        "error": None
+        "error": None,
     }

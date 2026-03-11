@@ -1,158 +1,131 @@
-"""Leaderboard route implementation."""
+"""Leaderboard route implementation — queries Supabase for live data."""
 
-import json
-from pathlib import Path
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, Query
 
-from services.schema_change_detector import get_schema_change_detector
+from routes._supabase import supabase_fetch
 
 router = APIRouter()
-
-# Load scored dataset at module load time
-DATASET_SCORES_PATH = Path(__file__).parent.parent.parent / "web" / "public" / "data" / "initial-dataset.yaml"
-SCORES_PATH = Path(__file__).parent.parent / "artifacts" / "dataset-scores.json"
-
-_cached_scores: dict[str, Any] | None = None
-
-
-def _schema_freshness_multiplier(service_slug: str) -> tuple[float, float | None]:
-    """Return confidence multiplier based on schema stability window."""
-    detector = get_schema_change_detector()
-    stability_days = detector.get_service_stability_days(service_slug)
-    if stability_days is None:
-        return 1.0, None
-    if stability_days >= 30:
-        return 1.05, stability_days
-    if stability_days >= 14:
-        return 1.02, stability_days
-    return 1.0, stability_days
-
-
-def _load_scores() -> dict[str, Any]:
-    """Load cached scores from artifact."""
-    global _cached_scores
-    if _cached_scores is not None:
-        return _cached_scores
-
-    if not SCORES_PATH.exists():
-        return {"metadata": {}, "scores": []}
-
-    with open(SCORES_PATH, "r") as f:
-        _cached_scores = json.load(f)
-
-    return _cached_scores
-
-
-def _get_service_categories() -> dict[str, list[str]]:
-    """Load service categories from dataset YAML."""
-    try:
-        import yaml  # type: ignore[import-untyped]
-
-        if not DATASET_SCORES_PATH.exists():
-            return {}
-
-        with open(DATASET_SCORES_PATH, "r") as f:
-            dataset: dict[str, Any] = yaml.safe_load(f) or {}
-
-        categories: dict[str, list[str]] = {}
-        for service in dataset.get("services", []):
-            slug = service.get("slug")
-            category = service.get("category")
-            if slug and category:
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append(slug)
-
-        return categories
-    except Exception:
-        return {}
 
 
 @router.get("/leaderboard/{category}")
 async def get_leaderboard(
     category: str,
-    limit: Optional[int] = Query(default=10, ge=1, le=50)
+    limit: Optional[int] = Query(default=10, ge=1, le=50),
 ) -> dict:
-    """
-    Fetch ranked services by category.
+    """Fetch ranked services by category.
 
     Parameters:
-    - category: service category (e.g., 'email', 'api-management')
+    - category: service category slug (e.g., 'payments', 'auth')
     - limit: max results (1-50, default 10)
 
     Returns leaderboard items ranked by aggregate AN Score.
     """
-    scores_data = _load_scores()
-    categories = _get_service_categories()
-
-    if category not in categories:
-        return {
-            "data": {
-                "category": category,
-                "items": []
-            },
-            "error": f"Category not found. Available: {', '.join(sorted(categories.keys()))}"
-        }
-
-    # Get all services in this category
-    category_slugs = set(categories[category])
-
-    # Build leaderboard from scores
-    items = []
-    for score_item in scores_data.get("scores", []):
-        if score_item.get("service_slug") not in category_slugs:
-            continue
-
-        multiplier, stability_days = _schema_freshness_multiplier(
-            str(score_item.get("service_slug"))
-        )
-        confidence = score_item.get("confidence")
-        if isinstance(confidence, (int, float)):
-            confidence = round(min(1.0, float(confidence) * multiplier), 4)
-
-        items.append({
-            "service_slug": score_item.get("service_slug"),
-            "score": score_item.get("aggregate_recommendation_score"),
-            "execution_score": score_item.get("execution_score"),
-            "access_score": score_item.get("access_readiness_score"),
-            "tier": score_item.get("tier"),
-            "tier_label": score_item.get("tier_label"),
-            "confidence": confidence,
-            "freshness": score_item.get("probe_metadata", {}).get("freshness"),
-            "schema_stability_days": round(stability_days, 3) if stability_days else None,
-            "freshness_multiplier": multiplier,
-            "calculated_at": score_item.get("calculated_at"),
-        })
-
-    # Sort by aggregate score descending
-    items.sort(
-        key=lambda x: (x.get("score") or -999, x.get("service_slug")),
-        reverse=True
+    # Get services in this category
+    services = await supabase_fetch(
+        f"services?category=eq.{quote(category)}&select=slug,name"
     )
 
-    # Apply limit
+    if not services:
+        # Check if category exists at all
+        all_services = await supabase_fetch("services?select=category")
+        if all_services:
+            categories = sorted(set(s["category"] for s in all_services))
+            return {
+                "data": {"category": category, "items": []},
+                "error": f"Category not found. Available: {', '.join(categories)}",
+            }
+        return {
+            "data": {"category": category, "items": []},
+            "error": "Unable to load categories.",
+        }
+
+    slugs = [s["slug"] for s in services]
+    name_map = {s["slug"]: s["name"] for s in services}
+    slug_filter = ",".join(f'"{s}"' for s in slugs)
+
+    # Get scores for all services in category
+    scores = await supabase_fetch(
+        f"scores?service_slug=in.({slug_filter})"
+        f"&order=aggregate_recommendation_score.desc.nullslast"
+        f"&limit={limit * 2}"  # fetch extra to handle dedup
+    )
+
+    if scores is None:
+        return {
+            "data": {"category": category, "items": []},
+            "error": "Unable to load scores.",
+        }
+
+    # Deduplicate: keep highest-scored entry per service_slug
+    seen: set[str] = set()
+    items: list[dict] = []
+    for sc in scores:
+        slug = sc.get("service_slug")
+        if slug in seen:
+            continue
+        seen.add(slug)
+
+        freshness = None
+        probe_metadata = sc.get("probe_metadata")
+        if isinstance(probe_metadata, dict):
+            freshness = probe_metadata.get("freshness")
+
+        items.append({
+            "service_slug": slug,
+            "name": name_map.get(slug, slug),
+            "score": sc.get("aggregate_recommendation_score"),
+            "execution_score": sc.get("execution_score"),
+            "access_score": sc.get("access_readiness_score"),
+            "tier": sc.get("tier"),
+            "tier_label": sc.get("tier_label"),
+            "confidence": sc.get("confidence"),
+            "freshness": freshness,
+            "calculated_at": sc.get("calculated_at"),
+            "payment_autonomy": sc.get("payment_autonomy"),
+            "governance_readiness": sc.get("governance_readiness"),
+            "web_accessibility": sc.get("web_accessibility"),
+        })
+
+    # Apply limit (already partially limited by query)
     items = items[:limit]
 
     return {
         "data": {
             "category": category,
             "items": items,
-            "count": len(items)
+            "count": len(items),
         },
-        "error": None
+        "error": None,
     }
 
 
 @router.get("/leaderboard")
 async def list_categories() -> dict:
-    """List all available leaderboard categories."""
-    categories = _get_service_categories()
+    """List all available leaderboard categories with service counts."""
+    data = await supabase_fetch("services?select=category")
+    if data is None:
+        return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
+
+    counts: dict[str, int] = {}
+    for row in data:
+        cat = row.get("category")
+        if cat:
+            counts[cat] = counts.get(cat, 0) + 1
+
+    categories = [
+        {"slug": slug, "service_count": count}
+        for slug, count in sorted(counts.items())
+    ]
+
     return {
         "data": {
-            "categories": sorted(categories.keys()),
-            "total": len(categories)
+            "categories": categories,
+            "total": len(categories),
         },
-        "error": None
+        "error": None,
     }
