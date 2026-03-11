@@ -345,6 +345,16 @@ export default async function ServicePage({
               <p className="text-sm text-slate-500">No alternatives captured yet.</p>
             )}
           </section>
+
+          {/* Dispute score */}
+          <div className="text-center pt-2">
+            <a
+              href={`mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`}
+              className="text-xs text-slate-600 hover:text-amber transition-colors"
+            >
+              Dispute this score →
+            </a>
+          </div>
         </div>
       </div>
     </div>
