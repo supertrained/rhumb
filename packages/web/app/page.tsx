@@ -79,7 +79,7 @@ export default async function HomePage(): Promise<JSX.Element> {
           <div className="animate-fade-up flex items-center gap-2 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-amber" />
             <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">
-              Agent-Native Score v0.2
+              Agent-Native Score v0.3
             </span>
           </div>
 
@@ -132,7 +132,7 @@ export default async function HomePage(): Promise<JSX.Element> {
             >
               Explore Leaderboard →
             </Link>
-            <CopyInstall command="npm install -g rhumb" />
+            <CopyInstall command="npx rhumb-mcp" />
           </div>
         </div>
       </section>
@@ -237,16 +237,16 @@ export default async function HomePage(): Promise<JSX.Element> {
         </p>
       </section>
 
-      {/* ── Install CLI ───────────────────────────────────────── */}
+      {/* ── MCP Server ───────────────────────────────────────── */}
       <section id="install" className="border-t border-slate-800 bg-surface/30">
         <div className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="text-xs font-mono text-amber uppercase tracking-widest mb-3">CLI</p>
+            <p className="text-xs font-mono text-amber uppercase tracking-widest mb-3">MCP</p>
             <h2 className="font-display font-bold text-2xl text-slate-100 mb-4">
               Query Rhumb from your agents
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Use the Rhumb CLI to fetch AN Scores programmatically. Perfect for
+              Add Rhumb to any MCP-compatible agent. AN Scores at decision time. Perfect for
               agent routing logic, tool-selection prompts, and automated dependency
               evaluation.
             </p>
@@ -268,27 +268,22 @@ export default async function HomePage(): Promise<JSX.Element> {
             <div className="p-5 font-mono text-sm space-y-2">
               <div>
                 <span className="text-slate-600">$ </span>
-                <span className="text-amber">rhumb score stripe</span>
+                <span className="text-amber">npx rhumb-mcp</span>
+                <span className="text-slate-600"> # starts MCP server</span>
               </div>
               <div className="text-slate-400 pl-4 space-y-0.5">
-                <div>
-                  <span className="text-score-native">●</span>
-                  {" "}Stripe{" "}
-                  <span className="text-slate-100 font-bold">8.3</span>
-                  {" "}
-                  <span className="text-score-native">L4 Native</span>
-                </div>
-                <div className="text-slate-600">  exec: 9.0 · access: 6.6</div>
-                <div className="text-slate-600">  updated: 2 hours ago</div>
+                <div className="text-score-native">✓ Rhumb MCP server running</div>
+                <div className="text-slate-600">  tools: find_tools, get_score, get_alternatives, get_failure_modes</div>
               </div>
-              <div className="pt-1">
-                <span className="text-slate-600">$ </span>
-                <span className="text-amber">rhumb leaderboard payments --limit 3</span>
+              <div className="pt-2">
+                <span className="text-slate-600">→ </span>
+                <span className="text-amber">find_tools</span>
+                <span className="text-slate-500">{" "}(&quot;payment processing&quot;)</span>
               </div>
               <div className="text-slate-400 pl-4">
-                <div><span className="text-slate-600">1.</span> stripe <span className="text-score-native">8.3</span></div>
-                <div><span className="text-slate-600">2.</span> lemon-squeezy <span className="text-score-ready">7.0</span></div>
-                <div><span className="text-slate-600">3.</span> square <span className="text-score-ready">6.7</span></div>
+                <div><span className="text-slate-600">1.</span> stripe <span className="text-score-native">8.1</span> <span className="text-score-native">L4 Native</span></div>
+                <div><span className="text-slate-600">2.</span> lemon-squeezy <span className="text-score-ready">6.6</span> <span className="text-score-ready">L3 Ready</span></div>
+                <div><span className="text-slate-600">3.</span> square <span className="text-score-ready">6.3</span> <span className="text-score-ready">L3 Ready</span></div>
               </div>
             </div>
           </div>

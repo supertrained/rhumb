@@ -28,10 +28,11 @@ and autonomy dimensions (payment, governance, web accessibility).
 Install the MCP server for programmatic access:
   npx rhumb-mcp
 
-Or use the CLI:
-  npm install -g rhumb
-  rhumb score stripe
-  rhumb leaderboard payments --limit 5
+MCP tools available:
+  find_tools("payment processing") — discover services by need
+  get_score("stripe") — detailed AN Score breakdown
+  get_alternatives("stripe") — comparable services ranked
+  get_failure_modes("stripe") — known failure patterns
 
 ## API Endpoints
 - GET /v1/services — list all scored services

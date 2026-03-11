@@ -72,7 +72,7 @@ export default function RootLayout({ children }: { children: ReactNode }): JSX.E
                 Search
               </Link>
               <a
-                href="https://github.com/rhumb-dev"
+                href="https://github.com/supertrained/rhumb"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-amber transition-colors duration-200"
