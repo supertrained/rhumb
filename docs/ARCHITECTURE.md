@@ -29,7 +29,9 @@
 
 5. **Persistence + retrieval**
    - repository abstraction (`ScoreRepository`)
-   - SQLAlchemy implementation writes to `services` + `an_scores`
+   - legacy SQLAlchemy lineage writes to `services` + `an_scores`
+   - current product-facing Supabase surfaces read from `services` + `scores`
+   - canonical public read contract is `scores` (see `docs/CANONICAL-SCORE-CONTRACT.md`)
    - in-memory fallback for tests/dev resilience
 
 ### API Integration
