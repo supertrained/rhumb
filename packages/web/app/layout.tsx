@@ -52,34 +52,93 @@ export default function RootLayout({ children }: { children: ReactNode }): JSX.E
         <Navigation />
         <main className="flex-1">{children}</main>
 
-        <footer className="border-t border-slate-800 mt-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-100 font-display font-bold text-sm tracking-tight">
-                rhumb<span className="text-amber">.</span>
-              </span>
-              <span className="text-slate-600 text-sm">·</span>
-              <span className="text-slate-500 text-sm font-mono">Built by agents, for agents.</span>
+        <footer className="border-t border-slate-800 mt-auto bg-[linear-gradient(180deg,rgba(11,17,32,0)_0%,rgba(245,158,11,0.03)_100%)]">
+          <div className="max-w-6xl mx-auto px-6 py-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-md">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-100 font-display font-bold text-sm tracking-tight">
+                    rhumb<span className="text-amber">.</span>
+                  </span>
+                  <span className="text-slate-600 text-sm">·</span>
+                  <span className="text-slate-500 text-sm font-mono">Built by agents, for agents.</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-400">
+                  Operational intelligence for humans choosing tools today, and for agents routing
+                  between them tomorrow.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-4">
+                <div>
+                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Product</p>
+                  <div className="flex flex-col gap-2 text-slate-400">
+                    <Link href="/leaderboard" className="hover:text-amber transition-colors duration-200">
+                      Leaderboard
+                    </Link>
+                    <Link href="/search" className="hover:text-amber transition-colors duration-200">
+                      Search
+                    </Link>
+                    <Link href="/docs" className="hover:text-amber transition-colors duration-200">
+                      Docs
+                    </Link>
+                    <Link href="/pricing" className="hover:text-amber transition-colors duration-200">
+                      Pricing
+                    </Link>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Trust</p>
+                  <div className="flex flex-col gap-2 text-slate-400">
+                    <Link href="/about" className="hover:text-amber transition-colors duration-200">
+                      About
+                    </Link>
+                    <Link href="/methodology" className="hover:text-amber transition-colors duration-200">
+                      Methodology
+                    </Link>
+                    <Link href="/trust" className="hover:text-amber transition-colors duration-200">
+                      Trust
+                    </Link>
+                    <Link href="/providers" className="hover:text-amber transition-colors duration-200">
+                      Providers
+                    </Link>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Updates</p>
+                  <div className="flex flex-col gap-2 text-slate-400">
+                    <Link href="/blog" className="hover:text-amber transition-colors duration-200">
+                      Blog
+                    </Link>
+                    <Link href="/changelog" className="hover:text-amber transition-colors duration-200">
+                      Changelog
+                    </Link>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Legal</p>
+                  <div className="flex flex-col gap-2 text-slate-400">
+                    <Link href="/privacy" className="hover:text-amber transition-colors duration-200">
+                      Privacy
+                    </Link>
+                    <Link href="/terms" className="hover:text-amber transition-colors duration-200">
+                      Terms
+                    </Link>
+                    <a
+                      href="https://github.com/supertrained/rhumb"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-amber transition-colors duration-200"
+                    >
+                      GitHub
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
-            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-              <Link href="/leaderboard" className="hover:text-amber transition-colors duration-200">
-                Leaderboard
-              </Link>
-              <Link href="/blog" className="hover:text-amber transition-colors duration-200">
-                Blog
-              </Link>
-              <Link href="/search" className="hover:text-amber transition-colors duration-200">
-                Search
-              </Link>
-              <a
-                href="https://github.com/supertrained/rhumb"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-amber transition-colors duration-200"
-              >
-                GitHub
-              </a>
-            </nav>
           </div>
         </footer>
       </body>

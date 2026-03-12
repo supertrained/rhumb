@@ -330,6 +330,39 @@ export default async function ServicePage({
 
         {/* Right column: alternatives + meta */}
         <div className="space-y-6">
+          {/* Trust / provenance */}
+          <section className="bg-surface border border-amber/20 rounded-xl p-5">
+            <p className="text-xs font-mono text-amber uppercase tracking-[0.24em] mb-3">
+              Trust & provenance
+            </p>
+            <div className="space-y-3 text-sm leading-relaxed text-slate-400">
+              <p>
+                Current scoring on Rhumb is <span className="text-slate-200">documentation-derived</span>, with
+                freshness and confidence shown on this page while execution-verified scoring is built out.
+              </p>
+              <p>
+                Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
+              </p>
+            </div>
+            <div className="mt-4 flex flex-col gap-2 text-sm">
+              <Link href="/methodology" className="text-slate-300 hover:text-amber transition-colors">
+                Methodology →
+              </Link>
+              <Link href="/trust" className="text-slate-300 hover:text-amber transition-colors">
+                Trust process →
+              </Link>
+              <Link href="/blog/self-score" className="text-slate-300 hover:text-amber transition-colors">
+                Why we scored ourselves first →
+              </Link>
+              <a
+                href={`mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`}
+                className="text-slate-300 hover:text-amber transition-colors"
+              >
+                Dispute this score →
+              </a>
+            </div>
+          </section>
+
           {/* Tier card */}
           <div
             className={`bg-surface border rounded-xl p-5 ${tierInfo.borderClass}`}

@@ -7,7 +7,9 @@ import { usePathname } from "next/navigation";
 const NAV_LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/search", label: "Search" },
+  { href: "/docs", label: "Docs" },
   { href: "/blog", label: "Blog" },
+  { href: "/about", label: "About" },
 ];
 
 /** Primary app navigation — sticky, glass-morphism, mobile-responsive. */
