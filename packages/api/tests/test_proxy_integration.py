@@ -11,6 +11,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+# Bypass constants (must match conftest values)
+_BYPASS_AGENT_ID = "00000000-0000-0000-0000-bypass000001"
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from routes.proxy import (
@@ -62,8 +66,8 @@ def app(fresh_state):
 
 @pytest.fixture
 def client(app):
-    """Create test client."""
-    return TestClient(app)
+    """Create test client with bypass auth header."""
+    return TestClient(app, headers={"X-Rhumb-Key": "rhumb_test_bypass_key_0000"})
 
 
 class TestIntegrationProxyRequest:
@@ -117,7 +121,8 @@ class TestIntegrationProxyRequest:
 
         tracker = proxy_module._latency_tracker
         assert tracker is not None
-        assert tracker.record_count("stripe") == 1
+        # Auth enforcement uses real agent_id — check count for the bypass agent
+        assert tracker.record_count("stripe", _BYPASS_AGENT_ID) == 1
 
     def test_5xx_records_breaker_failure(self, client, httpx_mock) -> None:
         """5xx response records a failure in the circuit breaker."""
@@ -142,7 +147,8 @@ class TestIntegrationProxyRequest:
 
         breaker_reg = proxy_module._breaker_registry
         assert breaker_reg is not None
-        breaker = breaker_reg.get("stripe", "default")
+        # Auth enforcement uses real agent_id — check the bypass agent's breaker
+        breaker = breaker_reg.get("stripe", _BYPASS_AGENT_ID)
         assert breaker.metrics.consecutive_failures == 1
 
     def test_circuit_open_returns_fail_open(self, client, httpx_mock) -> None:
@@ -151,7 +157,8 @@ class TestIntegrationProxyRequest:
         import routes.proxy as proxy_module
 
         proxy_module._breaker_registry = BreakerRegistry()
-        breaker = proxy_module._breaker_registry.get("stripe", "default")
+        # Pre-populate for the bypass agent_id (not "default")
+        breaker = proxy_module._breaker_registry.get("stripe", _BYPASS_AGENT_ID)
         for _ in range(5):
             breaker.record_failure(status_code=500)
 
@@ -172,7 +179,7 @@ class TestIntegrationProxyRequest:
         assert data["status_code"] == 503
 
     def test_auth_header_forwarded(self, client, httpx_mock) -> None:
-        """Authorization header is forwarded through the proxy."""
+        """Vault credential is injected — caller-supplied auth is NOT forwarded."""
         httpx_mock.add_response(
             method="POST",
             url="https://api.stripe.com/v1/charges",
@@ -189,14 +196,17 @@ class TestIntegrationProxyRequest:
                 "path": "/v1/charges",
                 "body": {"amount": 1000},
             },
-            headers={"Authorization": "Bearer sk_test_xyz"},
+            headers={"Authorization": "Bearer sk_caller_should_be_dropped"},
         )
 
         request = httpx_mock.get_request()
-        assert request.headers["Authorization"] == "Bearer sk_test_xyz"
+        # Vault credential injected — provider gets vault key, not caller's token
+        assert "Authorization" in request.headers
+        assert request.headers["Authorization"] != "Bearer sk_caller_should_be_dropped"
+        assert request.headers["Authorization"].startswith("Bearer ")
 
     def test_service_not_found_still_works(self, client) -> None:
-        """Invalid service returns 400 without pool/breaker errors."""
+        """Unknown/ungrantable service returns 403 (ACL fires before registry lookup)."""
         response = client.post(
             "/proxy/",
             json={
@@ -206,8 +216,9 @@ class TestIntegrationProxyRequest:
             },
         )
 
-        assert response.status_code == 400
-        assert "not found" in response.json()["detail"].lower()
+        # With auth enforcement, ACL fires before service registry lookup.
+        # The bypass agent has no grant for "nonexistent", so 403 is correct.
+        assert response.status_code == 403
 
 
 class TestIntegrationStats:
@@ -259,7 +270,8 @@ class TestIntegrationStats:
             },
         )
 
-        response = client.get("/proxy/metrics/stripe")
+        # Pass the bypass agent_id so the metrics endpoint looks at the right bucket
+        response = client.get(f"/proxy/metrics/stripe?agent_id={_BYPASS_AGENT_ID}")
         assert response.status_code == 200
         data = response.json()["data"]
         assert "latency" in data
@@ -299,7 +311,7 @@ class TestIntegrationErrorCascade:
         import routes.proxy as proxy_module
 
         if proxy_module._breaker_registry:
-            breaker = proxy_module._breaker_registry.get("stripe", "default")
+            breaker = proxy_module._breaker_registry.get("stripe", _BYPASS_AGENT_ID)
             assert breaker.metrics.total_failures >= 1
 
     def test_cascade_failures_trip_breaker(self, client, httpx_mock) -> None:
@@ -325,7 +337,7 @@ class TestIntegrationErrorCascade:
 
         import routes.proxy as proxy_module
 
-        breaker = proxy_module._breaker_registry.get("stripe", "default")
+        breaker = proxy_module._breaker_registry.get("stripe", _BYPASS_AGENT_ID)
         assert breaker.state == BreakerState.OPEN
 
     def test_breaker_open_then_fail_open(self, client, httpx_mock) -> None:
@@ -389,9 +401,9 @@ class TestIntegrationErrorCascade:
 
         tracker = proxy_module._latency_tracker
         assert tracker is not None
-        assert tracker.record_count("stripe") == 20
+        assert tracker.record_count("stripe", _BYPASS_AGENT_ID) == 20
 
-        snapshot = tracker.get_snapshot("stripe")
+        snapshot = tracker.get_snapshot("stripe", _BYPASS_AGENT_ID)
         assert snapshot.count == 20
         assert snapshot.p50_ms > 0
         assert snapshot.p95_ms >= snapshot.p50_ms
