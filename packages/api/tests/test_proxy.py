@@ -1,5 +1,6 @@
 """Tests for proxy router (Slice A: Router Foundation)."""
 
+import asyncio
 import pytest
 import sys
 from pathlib import Path
@@ -9,7 +10,89 @@ from fastapi import FastAPI
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import routes.proxy as proxy_module
 from routes.proxy import router as proxy_router
+from schemas.agent_identity import AgentIdentityStore, reset_identity_store
+from services.agent_access_control import AgentAccessControl, reset_agent_access_control
+from services.agent_rate_limit import AgentRateLimitChecker, reset_agent_rate_limit_checker
+from services.proxy_credentials import CredentialStore
+from services.proxy_auth import AuthInjector
+from services.usage_metering import UsageMeterEngine, reset_usage_meter_engine
+
+# ── Test bypass constants ────────────────────────────────────────────
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
+_VAULT_STRIPE_KEY = "sk_test_vault_injected"
+
+
+def _run(coro):
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+@pytest.fixture(autouse=True)
+def _inject_bypass_auth():
+    """Inject fully-wired control-plane singletons into the proxy module.
+
+    This allows existing router tests to pass without supplying real
+    X-Rhumb-Key headers — a fixed bypass key is used via the client
+    fixture's default headers.
+    """
+    # Identity store: register one bypass agent with stripe grant
+    identity_store = AgentIdentityStore(supabase_client=None)
+    _bypass_agent_id, _bypass_api_key_internal = _run(
+        identity_store.register_agent(name="test-bypass", organization_id="org-test")
+    )
+    # We need the bypass key to match _BYPASS_KEY — re-inject directly
+    from schemas.agent_identity import hash_api_key
+    identity_store._key_index[hash_api_key(_BYPASS_KEY)] = _bypass_agent_id
+    _run(identity_store.grant_service_access(_bypass_agent_id, "stripe"))
+    _run(identity_store.grant_service_access(_bypass_agent_id, "slack"))
+    _run(identity_store.grant_service_access(_bypass_agent_id, "github"))
+    _run(identity_store.grant_service_access(_bypass_agent_id, "twilio"))
+    _run(identity_store.grant_service_access(_bypass_agent_id, "sendgrid"))
+
+    # Credential store: seed stripe test credential
+    cred_store = CredentialStore(auto_load=False)
+    cred_store.set_credential("stripe", "api_key", _VAULT_STRIPE_KEY)
+    cred_store.set_credential("slack", "oauth_token", "xoxb-test-vault")
+    cred_store.set_credential("github", "api_token", "ghp_test_vault")
+    cred_store.set_credential("sendgrid", "api_key", "SG.test_vault")
+
+    # Auth injector backed by the seeded store
+    auth_injector = AuthInjector(cred_store)
+
+    # Real ACL and rate checker backed by the identity store
+    acl = AgentAccessControl(identity_store=identity_store)
+    rate_checker = AgentRateLimitChecker(
+        identity_store=identity_store,
+        rate_limiter=None,  # in-memory fallback
+    )
+
+    # Meter: real in-memory engine
+    meter = UsageMeterEngine(identity_store=identity_store)
+
+    # Inject into proxy module singletons
+    proxy_module._identity_store = identity_store
+    proxy_module._acl_instance = acl
+    proxy_module._rate_checker_instance = rate_checker
+    proxy_module._auth_injector_instance = auth_injector
+    proxy_module._meter_instance = meter
+
+    yield
+
+    # Teardown
+    proxy_module._identity_store = None
+    proxy_module._acl_instance = None
+    proxy_module._rate_checker_instance = None
+    proxy_module._auth_injector_instance = None
+    proxy_module._meter_instance = None
+    reset_identity_store()
+    reset_agent_access_control()
+    reset_agent_rate_limit_checker()
+    reset_usage_meter_engine()
 
 
 @pytest.fixture
@@ -22,8 +105,8 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Create test client."""
-    return TestClient(app)
+    """Create test client with bypass auth header pre-set."""
+    return TestClient(app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
 
 class TestProxyRouter:
@@ -107,7 +190,13 @@ class TestProxyRouter:
         assert data["latency_ms"] >= 0
 
     def test_proxy_service_not_found(self, client):
-        """Test error when service not found."""
+        """Test error when service not found or not granted.
+
+        With auth enforcement active, the ACL check fires before the service
+        registry lookup. An unknown/ungrantable service returns 403 (no access)
+        rather than 400 (service not found) — the correct security posture
+        is to not leak whether a service exists.
+        """
         response = client.post(
             "/proxy/",
             json={
@@ -120,12 +209,10 @@ class TestProxyRouter:
             },
         )
 
-        assert response.status_code == 400
-        data = response.json()
-        assert "Service 'nonexistent' not found" in data["detail"]
+        assert response.status_code == 403
 
     def test_proxy_auth_header_injection(self, client, httpx_mock):
-        """Test that Authorization header is properly injected."""
+        """Test that vault credential is injected — caller-supplied auth is NOT forwarded."""
         httpx_mock.add_response(
             method="POST",
             url="https://api.stripe.com/v1/customers",
@@ -134,7 +221,7 @@ class TestProxyRouter:
             headers={},
         )
 
-        auth_token = "Bearer sk_test_12345"
+        caller_token = "Bearer sk_caller_should_be_dropped"
         response = client.post(
             "/proxy/",
             json={
@@ -145,13 +232,14 @@ class TestProxyRouter:
                 "params": None,
                 "headers": None,
             },
-            headers={"Authorization": auth_token},
+            headers={"Authorization": caller_token},
         )
 
-        # Verify request was made with Authorization header
+        # Vault credential injected — provider gets vault key, not caller's token
         assert response.status_code == 200
         request = httpx_mock.get_request()
-        assert request.headers["Authorization"] == auth_token
+        assert request.headers["Authorization"] == f"Bearer {_VAULT_STRIPE_KEY}"
+        assert request.headers["Authorization"] != caller_token
 
     def test_proxy_custom_headers(self, client, httpx_mock):
         """Test that custom headers are preserved."""
