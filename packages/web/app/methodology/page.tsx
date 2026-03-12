@@ -229,6 +229,40 @@ export default function MethodologyPage() {
           </div>
         </section>
 
+        {/* Agent-native parity */}
+        <section className="mb-16">
+          <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            Agent-native parity
+          </h2>
+          <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-4">
+            <p className="text-slate-400 text-sm leading-relaxed">
+              This page explains the scoring system in human language, but the
+              method should not be trapped here. The same model is exposed in
+              machine-readable form through Rhumb&apos;s public interfaces.
+            </p>
+            <ul className="space-y-3 text-sm text-slate-400 leading-relaxed">
+              <li>
+                <strong className="text-slate-200">llms.txt:</strong>{" "}
+                <Link href="/llms.txt" className="text-amber hover:underline underline-offset-2">
+                  discover the available routes and tools
+                </Link>
+              </li>
+              <li>
+                <strong className="text-slate-200">Docs:</strong>{" "}
+                <Link href="/docs" className="text-amber hover:underline underline-offset-2">
+                  API and MCP usage
+                </Link>{" "}
+                for programmatic retrieval of scores, alternatives, and failure modes
+              </li>
+              <li>
+                <strong className="text-slate-200">Service pages:</strong> each score page links back to methodology,
+                trust, self-score, and dispute flow so provenance is visible at
+                the moment of evaluation
+              </li>
+            </ul>
+          </div>
+        </section>
+
         {/* Three Axes */}
         <section className="mb-16">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">

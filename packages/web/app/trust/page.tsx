@@ -72,6 +72,48 @@ export default function TrustPage() {
           </p>
         </header>
 
+        {/* Agent-native trust */}
+        <section className="mb-16">
+          <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            Trust should be inspectable
+          </h2>
+          <div className="bg-surface border border-slate-800 rounded-xl p-6 space-y-4">
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Agent-native trust means we do not ask humans or agents to rely on
+              vibes. Each trust claim on this page should resolve to a public,
+              inspectable artifact.
+            </p>
+            <ul className="space-y-3 text-sm text-slate-400 leading-relaxed">
+              <li>
+                <strong className="text-slate-200">Method:</strong>{" "}
+                <Link href="/methodology" className="text-amber hover:underline underline-offset-2">
+                  published methodology
+                </Link>
+              </li>
+              <li>
+                <strong className="text-slate-200">Self-audit:</strong>{" "}
+                <Link href="/blog/self-score" className="text-amber hover:underline underline-offset-2">
+                  Rhumb scored itself first
+                </Link>
+              </li>
+              <li>
+                <strong className="text-slate-200">Machine-readable entry point:</strong>{" "}
+                <Link href="/llms.txt" className="text-amber hover:underline underline-offset-2">
+                  llms.txt
+                </Link>{" "}
+                and{" "}
+                <Link href="/docs" className="text-amber hover:underline underline-offset-2">
+                  docs
+                </Link>
+              </li>
+              <li>
+                <strong className="text-slate-200">Dispute path:</strong> public GitHub issue or provider email,
+                both linked below
+              </li>
+            </ul>
+          </div>
+        </section>
+
         {/* Trust signals */}
         <div className="space-y-8">
           {/* Neutrality */}

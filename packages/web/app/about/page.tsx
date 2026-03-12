@@ -166,6 +166,51 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* Agent access */}
+        <section className="mb-16">
+          <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            For agents
+          </h2>
+          <div className="bg-surface border border-slate-800 rounded-xl p-6">
+            <p className="text-slate-400 text-sm leading-relaxed mb-4">
+              This page is written for humans first, but the important facts are
+              exposed for agents too. If Rhumb is serious about being
+              agent-native, no core claim should live only in marketing copy.
+            </p>
+            <ul className="space-y-3 text-sm text-slate-400 leading-relaxed">
+              <li>
+                <strong className="text-slate-200">Discovery surface:</strong>{" "}
+                <Link href="/llms.txt" className="text-amber hover:underline underline-offset-2">
+                  llms.txt
+                </Link>{" "}
+                lists the machine-readable entry points for agents.
+              </li>
+              <li>
+                <strong className="text-slate-200">Programmatic access:</strong>{" "}
+                <Link href="/docs" className="text-amber hover:underline underline-offset-2">
+                  Docs
+                </Link>{" "}
+                covers the API and MCP interface, including the
+                <code className="font-mono text-xs bg-elevated px-1.5 py-0.5 rounded text-amber ml-1">
+                  npx rhumb-mcp
+                </code>{" "}
+                install path.
+              </li>
+              <li>
+                <strong className="text-slate-200">Trust + methodology:</strong>{" "}
+                <Link href="/methodology" className="text-amber hover:underline underline-offset-2">
+                  Methodology
+                </Link>{" "}
+                and{" "}
+                <Link href="/trust" className="text-amber hover:underline underline-offset-2">
+                  Trust
+                </Link>{" "}
+                publish how scores are calculated, limited, and disputed.
+              </li>
+            </ul>
+          </div>
+        </section>
+
         {/* Contact */}
         <section className="bg-surface border border-slate-800 rounded-xl p-8">
           <h2 className="font-display font-bold text-xl text-slate-100 mb-4">
