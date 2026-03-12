@@ -3,12 +3,12 @@ import Link from "next/link";
 import { getTierInfo } from "../../../lib/utils";
 
 export const metadata: Metadata = {
-  title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents | Rhumb",
+  title: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents | Rhumb",
   description:
-    "We scored 6 payment APIs on how well they work for AI agents — not humans. The results surprised us.",
+    "We scored 6 payment APIs on how well they work for AI agents — not humans. The results still surprised us.",
   alternates: { canonical: "/blog/payments-for-agents" },
   openGraph: {
-    title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
+    title: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
     description:
       "We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst.",
     type: "article",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
+    title: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
     description:
       "We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst.",
     images: ["/blog/payments-for-agents/og"],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents",
+  headline: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
   datePublished: "2026-03-09T00:00:00Z",
   author: {
     "@type": "Person",
@@ -51,7 +51,7 @@ const TOOLS = [
   {
     name: "Stripe",
     slug: "stripe",
-    agg: 8.3,
+    agg: 8.1,
     exec: 9.0,
     access: 6.6,
     tier: "L4",
@@ -120,7 +120,7 @@ const TOOLS = [
   {
     name: "PayPal",
     slug: "paypal",
-    agg: 5.2,
+    agg: 4.9,
     exec: 5.9,
     access: 3.7,
     tier: "L2",
@@ -171,7 +171,7 @@ export default function PaymentsForAgents() {
           </div>
 
           <h1 className="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
-            Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents
+            Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents
           </h1>
 
           <p className="text-lg text-slate-400 leading-relaxed border-l-2 border-amber/50 pl-4">
@@ -318,7 +318,7 @@ export default function PaymentsForAgents() {
           <h2 className="font-display font-bold text-lg text-amber mb-4">The Pattern</h2>
           <div className="prose-rhumb">
             <p>
-              The gap between Stripe (8.3) and PayPal (5.2) isn&apos;t about features — both
+              The gap between Stripe (8.1) and PayPal (4.9) isn&apos;t about features — both
               process payments. It&apos;s about{" "}
               <strong>execution ergonomics</strong>: idempotency, structured errors, retry safety,
               and predictable latency.
@@ -351,7 +351,7 @@ export default function PaymentsForAgents() {
               and graceful degradation under load.
             </p>
             <p>
-              All scores are based on live probe data, not documentation review.{" "}
+              These scores are based on Rhumb&apos;s current scoring dataset and methodology. They are not solely documentation-derived, and not every dimension is probe-backed yet.{" "}
               <Link href="/leaderboard/payments" className="text-amber hover:underline">
                 View the full payments leaderboard →
               </Link>

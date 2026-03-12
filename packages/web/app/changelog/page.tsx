@@ -32,7 +32,7 @@ const ENTRIES = [
     version: "v0.3.1",
     date: "March 10, 2026",
     items: [
-      "55 service integration guides (72,488 words across all scored services)",
+      "Service integration guides expanded across scored services (guide count under re-verification)",
       "Analytics trifecta: GA4, Google Search Console, and Microsoft Clarity all live",
       "Access Layer deployed to Railway (proxy router, circuit breaker, agent identity, schema detection)",
       "8 Supabase migrations applied (agents, usage events, organizations, schema fingerprints)",
