@@ -1,10 +1,19 @@
 # API Reference
 
+This repo currently contains two score-schema lineages:
+- **canonical public/product read surface:** `scores`
+- **legacy engine/SQLAlchemy lineage:** `an_scores` + `dimension_scores`
+
+Unless explicitly noted otherwise, public/product-facing read flows should be understood as reading from `scores`.
+See `docs/CANONICAL-SCORE-CONTRACT.md` and `docs/SCORE-CONTRACT-CONSUMER-AUDIT.md`.
+
 ## Scoring Endpoint
 
 ### `POST /v1/score`
 
-Calculate an AN Score from explicit dimension inputs and persist it to `an_scores`.
+Legacy/internal scoring-engine endpoint.
+
+Calculates an AN Score from explicit dimension inputs. In the legacy engine lineage, this path persists score records via the SQLAlchemy-backed scoring layer rather than the canonical public `scores` read surface.
 
 **Request body**
 
@@ -83,7 +92,7 @@ In v0.2, `score` remains a backward-compatible alias of `aggregate_recommendatio
 
 ### `GET /v1/services/{slug}/score`
 
-Fetch latest persisted score for a service. For the initial calibration set (`stripe`, `hubspot`, `sendgrid`, `resend`, `github`), this route can bootstrap from hand-scored fixtures when no DB row exists yet.
+Fetch the latest persisted score for a service from the current product-facing score surface. For the initial calibration set (`stripe`, `hubspot`, `sendgrid`, `resend`, `github`), this route can bootstrap from hand-scored fixtures when no DB row exists yet.
 
 ## Search Endpoint
 
