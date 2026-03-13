@@ -153,7 +153,7 @@ class ProvisioningFlowStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("provisioning_flows").insert(record).execute()
+            await self.supabase.table("provisioning_flows").insert(record).execute()
         else:
             self._mem[flow_id] = record
 
@@ -164,7 +164,7 @@ class ProvisioningFlowStore:
         data: Optional[Dict[str, Any]] = None
 
         if self.supabase is not None:
-            response = (
+            response = await (
                 self.supabase.table("provisioning_flows")
                 .select("*")
                 .eq("flow_id", flow_id)
@@ -238,7 +238,7 @@ class ProvisioningFlowStore:
             update["error_message"] = error_message
 
         if self.supabase is not None:
-            self.supabase.table("provisioning_flows").update(update).eq(
+            await self.supabase.table("provisioning_flows").update(update).eq(
                 "flow_id", flow_id
             ).execute()
         else:
@@ -262,7 +262,7 @@ class ProvisioningFlowStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("provisioning_flows").update(update).eq(
+            await self.supabase.table("provisioning_flows").update(update).eq(
                 "flow_id", flow_id
             ).execute()
         else:
@@ -277,7 +277,7 @@ class ProvisioningFlowStore:
         new_retries = flow.retries + 1
 
         if self.supabase is not None:
-            self.supabase.table("provisioning_flows").update(
+            await self.supabase.table("provisioning_flows").update(
                 {"retries": new_retries, "updated_at": datetime.utcnow().isoformat()}
             ).eq("flow_id", flow_id).execute()
         else:
@@ -308,7 +308,7 @@ class ProvisioningFlowStore:
                     "error_message": "Flow expired",
                 }
                 if self.supabase is not None:
-                    self.supabase.table("provisioning_flows").update(update).eq(
+                    await self.supabase.table("provisioning_flows").update(update).eq(
                         "flow_id", flow_id
                     ).execute()
                 else:
@@ -362,7 +362,7 @@ class ProvisioningFlowStore:
             )
             if state is not None:
                 query = query.eq("state", state.value)
-            response = query.execute()
+            response = await query.execute()
             for row in response.data or []:
                 flow = await self.get_flow(row["flow_id"])
                 if flow:

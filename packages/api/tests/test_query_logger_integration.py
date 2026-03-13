@@ -32,7 +32,7 @@ class CaptureSupabase:
         self.rows.extend(rows)
         return self
 
-    def execute(self) -> None:
+    async def execute(self) -> None:
         pass
 
 

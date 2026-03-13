@@ -260,7 +260,7 @@ class LatencyTracker:
         }
 
         try:
-            result = supabase_client.table("proxy_metrics").insert(row).execute()  # type: ignore[attr-defined,union-attr]
+            result = await supabase_client.table("proxy_metrics").insert(row).execute()  # type: ignore[attr-defined,union-attr]
             return result.data  # type: ignore[attr-defined,union-attr]
         except Exception:
             # Don't let metrics persistence failures break the proxy

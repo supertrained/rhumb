@@ -25,7 +25,7 @@ class MockSupabaseTable:
         self.inserted.append(rows)
         return self
 
-    def execute(self) -> None:
+    async def execute(self) -> None:
         pass
 
 
