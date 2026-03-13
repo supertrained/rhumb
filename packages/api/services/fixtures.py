@@ -35,7 +35,7 @@ HAND_SCORED_FIXTURES: dict[str, dict[str, Any]] = {
             "A6": 8.0,
         },
         "evidence_count": 72,
-        "freshness": "12 minutes ago",
+        "freshness": "Initial evaluation",
         "probe_types": ["health", "auth", "schema", "load", "idempotency"],
         "production_telemetry": True,
         "active_failures": [
@@ -79,7 +79,7 @@ HAND_SCORED_FIXTURES: dict[str, dict[str, Any]] = {
             "A6": 6.0,
         },
         "evidence_count": 58,
-        "freshness": "2 hours ago",
+        "freshness": "Initial evaluation",
         "probe_types": ["health", "auth", "schema", "functional"],
         "production_telemetry": True,
         "active_failures": [
@@ -121,7 +121,7 @@ HAND_SCORED_FIXTURES: dict[str, dict[str, Any]] = {
             "A6": 7.0,
         },
         "evidence_count": 54,
-        "freshness": "5 hours ago",
+        "freshness": "Initial evaluation",
         "probe_types": ["health", "schema", "load", "webhook"],
         "production_telemetry": True,
         "active_failures": [
@@ -165,7 +165,7 @@ HAND_SCORED_FIXTURES: dict[str, dict[str, Any]] = {
             "A6": 8.0,
         },
         "evidence_count": 33,
-        "freshness": "45 minutes ago",
+        "freshness": "Initial evaluation",
         "probe_types": ["health", "schema", "load", "webhook"],
         "production_telemetry": False,
         "active_failures": [],
@@ -204,7 +204,7 @@ HAND_SCORED_FIXTURES: dict[str, dict[str, Any]] = {
             "A6": 8.5,
         },
         "evidence_count": 61,
-        "freshness": "1 day ago",
+        "freshness": "Initial evaluation",
         "probe_types": ["health", "auth", "schema", "functional", "webhook"],
         "production_telemetry": True,
         "active_failures": [
