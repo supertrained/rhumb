@@ -9,9 +9,12 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 
 from services.proxy_credentials import CredentialStore, get_credential_store
+
+if TYPE_CHECKING:
+    from services.operational_fact_emitter import OperationalFactEmitter
 
 
 class AuthMethod(str, Enum):
@@ -67,8 +70,25 @@ class AuthInjector:
         },
     }
 
-    def __init__(self, credential_store: CredentialStore) -> None:
+    def __init__(
+        self,
+        credential_store: CredentialStore,
+        emitter: Optional["OperationalFactEmitter"] = None,
+    ) -> None:
         self.credentials = credential_store
+        self._emitter = emitter
+
+    @property
+    def emitter(self) -> "OperationalFactEmitter":
+        if self._emitter is None:
+            from services.operational_fact_emitter import get_operational_fact_emitter
+
+            self._emitter = get_operational_fact_emitter()
+        return self._emitter
+
+    @emitter.setter
+    def emitter(self, value: "OperationalFactEmitter") -> None:
+        self._emitter = value
 
     # ------------------------------------------------------------------
     # Public API
@@ -90,27 +110,62 @@ class AuthInjector:
         """
         service = request.service
         auth_method = request.auth_method
+        header_name: Optional[str] = None
 
         if service not in self.AUTH_PATTERNS:
-            raise ValueError(
+            error = ValueError(
                 f"Service '{service}' not supported. "
                 f"Available: {', '.join(self.AUTH_PATTERNS)}"
             )
+            self._emit_credential_lifecycle(
+                request,
+                event_type="credential_lookup_failed",
+                outcome="error",
+                error=error,
+            )
+            raise error
 
         pattern = self.AUTH_PATTERNS[service]
         allowed_methods: list[str] = pattern["methods"]  # type: ignore[assignment]
+        header_name = pattern["header"]  # type: ignore[assignment]
         if auth_method.value not in allowed_methods:
-            raise ValueError(
+            error = ValueError(
                 f"Auth method '{auth_method.value}' not supported for '{service}'. "
                 f"Supported: {allowed_methods}"
             )
+            self._emit_credential_lifecycle(
+                request,
+                event_type="credential_lookup_failed",
+                outcome="error",
+                header_name=header_name,
+                error=error,
+            )
+            raise error
 
         # Retrieve credential
-        credential = self.credentials.get_credential(service, auth_method.value)
+        try:
+            credential = self.credentials.get_credential(service, auth_method.value)
+        except Exception as error:
+            self._emit_credential_lifecycle(
+                request,
+                event_type="credential_lookup_failed",
+                outcome="error",
+                header_name=header_name,
+                error=error,
+            )
+            raise
         if credential is None:
-            raise RuntimeError(
+            error = RuntimeError(
                 f"Credential not found for {service}/{auth_method.value}"
             )
+            self._emit_credential_lifecycle(
+                request,
+                event_type="credential_missing",
+                outcome="missing",
+                header_name=header_name,
+                error=error,
+            )
+            raise error
 
         # For Twilio basic-auth the credential value is "account_sid:auth_token".
         # We must base64-encode it before injection.
@@ -121,13 +176,54 @@ class AuthInjector:
         formatted = fmt.format(credential=credential)
 
         headers = request.existing_headers.copy()
-        header_name: str = pattern["header"]  # type: ignore[assignment]
+        assert header_name is not None
         headers[header_name] = formatted
 
         # Audit
         self.credentials.audit_log(service, request.agent_id, "auth_injected")
+        self._emit_credential_lifecycle(
+            request,
+            event_type="credential_injected",
+            outcome="success",
+            header_name=header_name,
+        )
 
         return headers
+
+    def _emit_credential_lifecycle(
+        self,
+        request: AuthInjectionRequest,
+        *,
+        event_type: str,
+        outcome: str,
+        header_name: str | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        error_type = type(error).__name__ if error is not None else None
+        self.emitter.schedule_credential_lifecycle(
+            service=request.service,
+            agent_id=request.agent_id,
+            event_type=event_type,
+            auth_method=request.auth_method.value,
+            header_name=header_name,
+            outcome=outcome,
+            error_type=error_type,
+            error_message=self._sanitize_error_message(error),
+        )
+
+    @staticmethod
+    def _sanitize_error_message(error: Exception | None) -> str | None:
+        if error is None:
+            return None
+        if isinstance(error, RuntimeError):
+            return "credential not found"
+        if isinstance(error, ValueError):
+            message = str(error)
+            if "not supported" in message and "Service" in message:
+                return "service not supported"
+            if "not supported" in message and "Auth method" in message:
+                return "auth method not supported"
+        return "credential lookup failed"
 
     # ------------------------------------------------------------------
     # Convenience: determine default auth method for a service
@@ -152,9 +248,13 @@ class AuthInjector:
 _injector: Optional[AuthInjector] = None
 
 
-def get_auth_injector() -> AuthInjector:
+def get_auth_injector(
+    emitter: Optional["OperationalFactEmitter"] = None,
+) -> AuthInjector:
     """Return (or create) the global :class:`AuthInjector` singleton."""
     global _injector
     if _injector is None:
-        _injector = AuthInjector(get_credential_store())
+        _injector = AuthInjector(get_credential_store(), emitter=emitter)
+    elif emitter is not None:
+        _injector.emitter = emitter
     return _injector

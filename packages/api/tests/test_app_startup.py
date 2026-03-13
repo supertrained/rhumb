@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app import create_app
+from services import operational_fact_emitter as operational_fact_emitter_module
 from services import proxy_auth as proxy_auth_module
 from services import proxy_credentials as proxy_credentials_module
 
@@ -77,20 +78,35 @@ def test_lifespan_warms_auth_injector(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     events: list[str] = []
+    emitter_sentinel = object()
 
-    def fake_get_auth_injector() -> object:
+    def fake_get_operational_fact_emitter(supabase: object | None = None) -> object:
+        events.append("emitter")
+        assert supabase is not None
+        return emitter_sentinel
+
+    def fake_get_auth_injector(*, emitter: object | None = None) -> object:
         events.append("auth")
+        assert emitter is emitter_sentinel
         return object()
 
     _patch_startup_dependencies(monkeypatch, events=events)
+    monkeypatch.setattr(
+        operational_fact_emitter_module,
+        "get_operational_fact_emitter",
+        fake_get_operational_fact_emitter,
+    )
     monkeypatch.setattr(proxy_auth_module, "get_auth_injector", fake_get_auth_injector)
 
     with caplog.at_level(logging.INFO):
         with TestClient(create_app()):
             pass
 
+    assert "emitter" in events
     assert "auth" in events
+    assert events.index("emitter") < events.index("auth")
     assert events.index("auth") < events.index("finalizer_start")
+    assert "Operational fact emitter: Supabase client initialized" in caplog.text
     assert "Auth injector: credential store warmed" in caplog.text
 
 
@@ -102,6 +118,7 @@ def test_lifespan_startup_succeeds_when_sop_missing(
 
     proxy_auth_module._injector = None
     proxy_credentials_module._credential_store = None
+    operational_fact_emitter_module.reset_operational_fact_emitter()
     monkeypatch.setattr(
         proxy_credentials_module.subprocess,
         "run",
@@ -118,3 +135,4 @@ def test_lifespan_startup_succeeds_when_sop_missing(
 
     proxy_auth_module._injector = None
     proxy_credentials_module._credential_store = None
+    operational_fact_emitter_module.reset_operational_fact_emitter()

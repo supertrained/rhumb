@@ -48,6 +48,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     from schemas.agent_identity import AgentIdentityStore, hash_api_key, reset_identity_store
     from services.agent_access_control import AgentAccessControl, reset_agent_access_control
     from services.agent_rate_limit import AgentRateLimitChecker, reset_agent_rate_limit_checker
+    from services.operational_fact_emitter import reset_operational_fact_emitter
     from services.proxy_credentials import CredentialStore
     from services.proxy_auth import AuthInjector
     from services.usage_metering import UsageMeterEngine, reset_usage_meter_engine
@@ -100,6 +101,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     proxy_module._rate_checker_instance = rate_checker
     proxy_module._auth_injector_instance = auth_injector
     proxy_module._meter_instance = meter
+    reset_operational_fact_emitter()
 
     yield
 
@@ -112,6 +114,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     reset_agent_access_control()
     reset_agent_rate_limit_checker()
     reset_usage_meter_engine()
+    reset_operational_fact_emitter()
 
 
 @pytest.fixture

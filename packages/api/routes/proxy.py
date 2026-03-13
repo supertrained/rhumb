@@ -16,7 +16,13 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from services.proxy_breaker import BreakerRegistry, DEFAULT_TIMEOUT_THRESHOLD_MS
+from services.proxy_breaker import (
+    DEFAULT_TIMEOUT_THRESHOLD_MS,
+    BreakerState,
+    BreakerRegistry,
+    CircuitBreaker,
+)
+from services.operational_fact_emitter import get_operational_fact_emitter
 from services.proxy_latency import LatencyTracker
 from services.proxy_pool import PoolManager
 from services.schema_alert_pipeline import AlertDispatcher, get_alert_dispatcher
@@ -161,7 +167,7 @@ def get_breaker_registry() -> BreakerRegistry:
     """Get or create the global breaker registry."""
     global _breaker_registry
     if _breaker_registry is None:
-        _breaker_registry = BreakerRegistry()
+        _breaker_registry = BreakerRegistry(on_transition=_schedule_circuit_state_fact)
     return _breaker_registry
 
 
@@ -326,6 +332,44 @@ async def _dispatch_schema_alert_task(
         endpoint=endpoint,
         changes=changes,
         alert_mode=alert_mode,
+    )
+
+
+def _schedule_circuit_state_fact(
+    breaker: CircuitBreaker,
+    previous_state: BreakerState,
+    new_state: BreakerState,
+) -> None:
+    event_type_by_state = {
+        "open": "circuit_opened",
+        "half_open": "circuit_half_opened",
+        "closed": "circuit_closed",
+    }
+    event_type = event_type_by_state.get(new_state.value)
+    if event_type is None:
+        return
+
+    get_operational_fact_emitter().schedule_circuit_state(
+        service=breaker.service,
+        agent_id=breaker.agent_id,
+        event_type=event_type,
+        new_state=new_state.value,
+        failure_threshold=breaker.failure_threshold,
+        timeout_threshold_ms=breaker.timeout_threshold_ms,
+        cooldown_seconds=breaker.cooldown_seconds,
+        metrics={
+            "previous_state": previous_state.value,
+            "total_calls": breaker.metrics.total_calls,
+            "consecutive_failures": breaker.metrics.consecutive_failures,
+            "total_failures": breaker.metrics.total_failures,
+            "total_successes": breaker.metrics.total_successes,
+            "times_opened": breaker.metrics.times_opened,
+            "times_half_opened": breaker.metrics.times_half_opened,
+            "times_closed": breaker.metrics.times_closed,
+            "last_failure_time": breaker.metrics.last_failure_time,
+            "last_success_time": breaker.metrics.last_success_time,
+            "last_state_change": breaker.metrics.last_state_change,
+        },
     )
 
 
@@ -697,6 +741,7 @@ async def proxy_stats() -> dict:
     tracker = get_latency_tracker()
     breaker_reg = get_breaker_registry()
     pool = get_pool_manager()
+    emitter = get_operational_fact_emitter()
 
     global_snapshot = tracker.get_global_snapshot()
     per_service = tracker.get_all_snapshots()
@@ -725,6 +770,7 @@ async def proxy_stats() -> dict:
                 }
                 for key, m in pool.get_all_metrics().items()
             },
+            "operational_facts": emitter.get_stats(),
         },
         "error": None,
     }

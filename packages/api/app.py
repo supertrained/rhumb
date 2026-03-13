@@ -29,6 +29,7 @@ async def _lifespan(app: FastAPI):
     # ACL/rate-limit path, and durable metering all point at the same identity source.
     from db.client import get_supabase_client
     from schemas.agent_identity import get_agent_identity_store
+    from services.operational_fact_emitter import get_operational_fact_emitter
     from services.proxy_auth import get_auth_injector
     from services.proxy_finalizer import get_proxy_finalizer
     from services.usage_metering import get_usage_meter_engine
@@ -37,7 +38,10 @@ async def _lifespan(app: FastAPI):
     get_agent_identity_store(supabase)
     logger.info("Agent identity: Supabase client initialized")
 
-    get_auth_injector()
+    emitter = get_operational_fact_emitter(supabase)
+    logger.info("Operational fact emitter: Supabase client initialized")
+
+    get_auth_injector(emitter=emitter)
     logger.info("Auth injector: credential store warmed")
 
     meter = get_usage_meter_engine()

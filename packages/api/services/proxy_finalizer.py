@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
+from services.operational_fact_emitter import get_operational_fact_emitter
 from services.usage_metering import MeterWriteTimings, MeteredUsageEvent, UsageMeterEngine
 
 logger = logging.getLogger(__name__)
@@ -134,6 +135,19 @@ class ProxyFinalizer:
                     return
 
                 timings = await self._meter.finalize_prepared_event(job.event)
+                get_operational_fact_emitter().schedule_latency_snapshot(
+                    event=job.event,
+                    path=job.path,
+                    upstream_latency_ms=job.upstream_latency_ms,
+                    response_parse_ms=job.response_parse_ms,
+                    schema_detect_ms=job.schema_detect_ms,
+                    build_event_ms=job.build_event_ms,
+                    persist_ms=timings.persist_ms,
+                    identity_touch_ms=timings.identity_touch_ms,
+                    total_worker_ms=timings.total_ms,
+                    queue_depth=self.queue_depth,
+                    finalizer_mode="queued",
+                )
                 logger.info(
                     "proxy_finalizer worker service=%s path=%s persist_ms=%.1f identity_touch_ms=%.1f total_worker_ms=%.1f queue_depth=%d",
                     job.service,
@@ -155,6 +169,19 @@ class ProxyFinalizer:
         reason: str,
     ) -> MeterWriteTimings:
         timings = await self._meter.finalize_prepared_event(job.event)
+        get_operational_fact_emitter().schedule_latency_snapshot(
+            event=job.event,
+            path=job.path,
+            upstream_latency_ms=job.upstream_latency_ms,
+            response_parse_ms=job.response_parse_ms,
+            schema_detect_ms=job.schema_detect_ms,
+            build_event_ms=job.build_event_ms,
+            persist_ms=timings.persist_ms,
+            identity_touch_ms=timings.identity_touch_ms,
+            total_worker_ms=timings.total_ms,
+            queue_depth=self.queue_depth,
+            finalizer_mode="inline_fallback",
+        )
         logger.warning(
             "proxy_finalizer inline_fallback reason=%s service=%s path=%s persist_ms=%.1f identity_touch_ms=%.1f total_worker_ms=%.1f queue_depth=%d",
             reason,

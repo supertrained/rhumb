@@ -4,13 +4,17 @@ State machine: CLOSED (healthy) -> OPEN (failing) -> HALF_OPEN (testing) -> CLOS
 Triggers on consecutive failures (5xx) or timeout thresholds.
 """
 
+from __future__ import annotations
+
 import enum
+import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 DEFAULT_TIMEOUT_THRESHOLD_MS = 5000.0
+logger = logging.getLogger(__name__)
 
 
 class BreakerState(enum.Enum):
@@ -37,6 +41,9 @@ class BreakerMetrics:
     last_state_change: float = 0.0
 
 
+TransitionCallback = Callable[["CircuitBreaker", BreakerState, BreakerState], None]
+
+
 @dataclass
 class CircuitBreaker:
     """Circuit breaker for a single service+agent pair.
@@ -60,6 +67,7 @@ class CircuitBreaker:
     failure_threshold: int = 5
     timeout_threshold_ms: float = DEFAULT_TIMEOUT_THRESHOLD_MS
     cooldown_seconds: float = 30.0
+    on_transition: Optional[TransitionCallback] = field(default=None, repr=False)
     _state: BreakerState = field(default=BreakerState.CLOSED, init=False)
     _opened_at: float = field(default=0.0, init=False)
     metrics: BreakerMetrics = field(default_factory=BreakerMetrics)
@@ -75,6 +83,10 @@ class CircuitBreaker:
 
     def _transition_to(self, new_state: BreakerState) -> None:
         """Execute a state transition."""
+        previous_state = self._state
+        if previous_state == new_state:
+            return
+
         self._state = new_state
         self.metrics.last_state_change = time.monotonic()
         if new_state == BreakerState.OPEN:
@@ -85,6 +97,13 @@ class CircuitBreaker:
         elif new_state == BreakerState.CLOSED:
             self.metrics.times_closed += 1
             self.metrics.consecutive_failures = 0
+
+        callback = self.on_transition
+        if callback is not None:
+            try:
+                callback(self, previous_state, new_state)
+            except Exception:
+                logger.warning("circuit breaker transition callback failed", exc_info=True)
 
     def allow_request(self) -> bool:
         """Check if a request should be allowed through.
@@ -191,11 +210,13 @@ class BreakerRegistry:
         failure_threshold: int = 5,
         timeout_threshold_ms: float = DEFAULT_TIMEOUT_THRESHOLD_MS,
         cooldown_seconds: float = 30.0,
+        on_transition: Optional[TransitionCallback] = None,
     ) -> None:
         self._breakers: dict[str, CircuitBreaker] = {}
         self._failure_threshold = failure_threshold
         self._timeout_threshold_ms = timeout_threshold_ms
         self._cooldown_seconds = cooldown_seconds
+        self._on_transition = on_transition
 
     def _key(self, service: str, agent_id: str) -> str:
         """Generate registry lookup key."""
@@ -230,6 +251,7 @@ class BreakerRegistry:
                     else self._timeout_threshold_ms
                 ),
                 cooldown_seconds=self._cooldown_seconds,
+                on_transition=self._on_transition,
             )
         return self._breakers[key]
 
