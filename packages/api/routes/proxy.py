@@ -25,6 +25,12 @@ from services.schema_change_detector import (
 )
 from services.schema_fingerprint import SchemaFingerprint, fingerprint_response
 
+from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.agent_access_control import AgentAccessControl, get_agent_access_control
+from services.agent_rate_limit import AgentRateLimitChecker, get_agent_rate_limit_checker
+from services.proxy_auth import AuthInjectionRequest, AuthMethod, AuthInjector, get_auth_injector
+from services.usage_metering import UsageMeterEngine, get_usage_meter_engine
+
 router = APIRouter(tags=["proxy"])
 admin_router = APIRouter(tags=["schema-admin"])
 
@@ -100,6 +106,13 @@ _schema_alert_dispatcher: Optional[AlertDispatcher] = None
 # Lightweight in-memory schema events storage.
 _schema_events: list[dict[str, Any]] = []
 
+# Control-plane singletons (GAP-1)
+_identity_store: Optional[AgentIdentityStore] = None
+_acl_instance: Optional[AgentAccessControl] = None
+_rate_checker_instance: Optional[AgentRateLimitChecker] = None
+_auth_injector_instance: Optional[AuthInjector] = None
+_meter_instance: Optional[UsageMeterEngine] = None
+
 # Legacy fallback client (used only if pool manager is not initialized)
 _http_client: Optional[httpx.AsyncClient] = None
 
@@ -142,6 +155,41 @@ def get_schema_alert_dispatcher() -> AlertDispatcher:
     if _schema_alert_dispatcher is None:
         _schema_alert_dispatcher = get_alert_dispatcher()
     return _schema_alert_dispatcher
+
+
+def _get_identity_store() -> AgentIdentityStore:
+    global _identity_store
+    if _identity_store is None:
+        _identity_store = get_agent_identity_store()
+    return _identity_store
+
+
+def _get_acl() -> AgentAccessControl:
+    global _acl_instance
+    if _acl_instance is None:
+        _acl_instance = get_agent_access_control()
+    return _acl_instance
+
+
+def _get_rate_checker() -> AgentRateLimitChecker:
+    global _rate_checker_instance
+    if _rate_checker_instance is None:
+        _rate_checker_instance = get_agent_rate_limit_checker()
+    return _rate_checker_instance
+
+
+def _get_auth_injector() -> AuthInjector:
+    global _auth_injector_instance
+    if _auth_injector_instance is None:
+        _auth_injector_instance = get_auth_injector()
+    return _auth_injector_instance
+
+
+def _get_meter() -> UsageMeterEngine:
+    global _meter_instance
+    if _meter_instance is None:
+        _meter_instance = get_usage_meter_engine()
+    return _meter_instance
 
 
 async def get_http_client() -> httpx.AsyncClient:
@@ -257,7 +305,7 @@ def _max_severity(changes: tuple[SchemaChange, ...]) -> str:
 async def proxy_request(
     request: ProxyRequest,
     background_tasks: BackgroundTasks,
-    authorization: Optional[str] = Header(None),
+    x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
 ) -> ProxyResponse:
     """Proxy a request to a provider API.
 
@@ -272,7 +320,33 @@ async def proxy_request(
     - Performs schema drift detection (non-blocking alerts)
     - Returns response with circuit breaker signal
     """
-    agent_id = request.agent_id or "default"
+    # --- Control plane: Authenticate agent via X-Rhumb-Key header ---
+    if not x_rhumb_key:
+        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
+    agent_id = await _get_identity_store().verify_api_key(x_rhumb_key)
+    if agent_id is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+
+    # --- Control plane: ACL check ---
+    allowed, deny_reason = await _get_acl().can_access_service(
+        agent_id=agent_id,
+        service=request.service,
+    )
+    if not allowed:
+        raise HTTPException(status_code=403, detail=deny_reason or "Access denied")
+
+    # --- Control plane: Rate limit check ---
+    rate_result = await _get_rate_checker().check_rate_limit(
+        agent_id=agent_id,
+        service=request.service,
+    )
+    if not rate_result.allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {rate_result.retry_after_seconds}s",
+            headers={"Retry-After": str(rate_result.retry_after_seconds or 60)},
+        )
+
     perf_start = time.perf_counter()
 
     # Circuit breaker check
@@ -302,10 +376,22 @@ async def proxy_request(
         # Build URL
         url = _build_url(request.service, request.path)
 
-        # Prepare headers
+        # --- Control plane: Inject provider credential from vault ---
         headers = request.headers or {}
-        if authorization:
-            headers["Authorization"] = authorization
+        auth_method = AuthInjector.default_method_for(request.service)
+        if auth_method is None:
+            raise HTTPException(status_code=500, detail=f"No auth method configured for '{request.service}'")
+        try:
+            headers = _get_auth_injector().inject(
+                AuthInjectionRequest(
+                    service=request.service,
+                    agent_id=agent_id,
+                    auth_method=auth_method,
+                    existing_headers=headers,
+                )
+            )
+        except RuntimeError as e:
+            raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
 
         # Acquire pooled client
         client = await pool.acquire(request.service, agent_id)
@@ -393,6 +479,15 @@ async def proxy_request(
                 alert_mode=str(service_config.get("schema_alert_mode", "breaking_only")),
             )
 
+        # --- Control plane: Record metered usage ---
+        await _get_meter().record_metered_call(
+            agent_id=agent_id,
+            service=request.service,
+            success=is_success,
+            latency_ms=latency_ms,
+            response_size_bytes=len(str(response_body)),
+        )
+
         return ProxyResponse(
             status_code=proxied_response.status_code,
             headers=dict(proxied_response.headers),
@@ -420,6 +515,14 @@ async def proxy_request(
             perf_end=perf_end,
             status_code=500,
             success=False,
+        )
+
+        await _get_meter().record_metered_call(
+            agent_id=agent_id,
+            service=request.service,
+            success=False,
+            latency_ms=latency_ms,
+            response_size_bytes=0,
         )
 
         raise HTTPException(
