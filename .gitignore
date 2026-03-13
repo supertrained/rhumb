@@ -34,3 +34,4 @@ coverage/
 # Supabase local
 supabase/.temp/
 .vercel
+uv.lock
