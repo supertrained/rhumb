@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import time as _time
 import uuid
 from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -146,6 +147,10 @@ class AgentIdentityStore:
         self._mem_access: Dict[str, Dict[str, Any]] = {}
         # Hash → hydrated agent cache (legacy tests may still seed agent_id strings).
         self._key_index: Dict[str, AgentIdentitySchema | str] = {}
+        self.ACL_CACHE_TTL_SECONDS: float = 60.0
+        self._acl_cache: Dict[
+            Tuple[str, str], Tuple[Optional[AgentServiceAccessSchema], float]
+        ] = {}
 
     def _cache_agent_key(self, agent: AgentIdentitySchema) -> None:
         """Cache a hydrated agent for warm API-key verification."""
@@ -445,6 +450,7 @@ class AgentIdentityStore:
         else:
             self._mem_access[access_id] = access_row
 
+        self._acl_cache.pop((agent_id, service), None)
         return access_id
 
     async def revoke_service_access(self, access_id: str) -> bool:
@@ -454,16 +460,33 @@ class AgentIdentityStore:
             "status": "revoked",
             "revoked_at": now.isoformat(),
         }
+        cache_key: Optional[Tuple[str, str]] = None
 
         if self.supabase is not None:
+            try:
+                response = await (
+                    self.supabase.table("agent_service_access")
+                    .select("agent_id, service")
+                    .eq("access_id", access_id)
+                    .single()
+                    .execute()
+                )
+                if response.data:
+                    cache_key = (response.data["agent_id"], response.data["service"])
+            except Exception:
+                pass
             await self.supabase.table("agent_service_access").update(update).eq(
                 "access_id", access_id
             ).execute()
         else:
-            if access_id not in self._mem_access:
+            row = self._mem_access.get(access_id)
+            if row is None:
                 return False
-            self._mem_access[access_id].update(update)
+            cache_key = (row["agent_id"], row["service"])
+            row.update(update)
 
+        if cache_key is not None:
+            self._acl_cache.pop(cache_key, None)
         return True
 
     async def revoke_service_access_by_agent_service(
@@ -480,9 +503,11 @@ class AgentIdentityStore:
                 .execute()
             )
             if not response.data:
+                self._acl_cache.pop((agent_id, service), None)
                 return False
             for row in response.data:
                 await self.revoke_service_access(row["access_id"])
+            self._acl_cache.pop((agent_id, service), None)
             return True
         else:
             found = False
@@ -495,6 +520,7 @@ class AgentIdentityStore:
                     row["status"] = "revoked"
                     row["revoked_at"] = _utcnow().isoformat()
                     found = True
+            self._acl_cache.pop((agent_id, service), None)
             return found
 
     async def get_agent_services(
@@ -525,6 +551,16 @@ class AgentIdentityStore:
         self, agent_id: str, service: str
     ) -> Optional[AgentServiceAccessSchema]:
         """Get a specific service access grant for an agent."""
+        cache_key = (agent_id, service)
+        now = _time.monotonic()
+        cached = self._acl_cache.get(cache_key)
+        if cached is not None:
+            value, expires_at = cached
+            if now < expires_at:
+                return value
+            del self._acl_cache[cache_key]
+
+        result: Optional[AgentServiceAccessSchema] = None
         if self.supabase is not None:
             try:
                 response = await (
@@ -537,10 +573,9 @@ class AgentIdentityStore:
                     .execute()
                 )
                 if response.data:
-                    return AgentServiceAccessSchema(**response.data)
+                    result = AgentServiceAccessSchema(**response.data)
             except Exception:
                 pass
-            return None
         else:
             for row in self._mem_access.values():
                 if (
@@ -548,8 +583,15 @@ class AgentIdentityStore:
                     and row["service"] == service
                     and row["status"] == "active"
                 ):
-                    return AgentServiceAccessSchema(**row)
-            return None
+                    result = AgentServiceAccessSchema(**row)
+                    break
+
+        self._acl_cache[cache_key] = (result, now + self.ACL_CACHE_TTL_SECONDS)
+        return result
+
+    def clear_acl_cache(self) -> None:
+        """Clear the ACL grant cache."""
+        self._acl_cache.clear()
 
     # ── Usage Recording ──────────────────────────────────────────────
 
@@ -565,6 +607,8 @@ class AgentIdentityStore:
             "last_used_at": now.isoformat(),
             "last_used_result": result,
         }
+        cache_key = (agent_id, service)
+        updated_row: Optional[Dict[str, Any]] = None
 
         if self.supabase is not None:
             await self.supabase.table("agent_service_access").update(update).eq(
@@ -578,7 +622,33 @@ class AgentIdentityStore:
                     and row["status"] == "active"
                 ):
                     row.update(update)
+                    updated_row = row
                     break
+
+        cached = self._acl_cache.get(cache_key)
+        if cached is None:
+            return
+
+        access, expires_at = cached
+        if access is None:
+            return
+
+        if updated_row is not None:
+            self._acl_cache[cache_key] = (
+                AgentServiceAccessSchema(**updated_row),
+                expires_at,
+            )
+            return
+
+        self._acl_cache[cache_key] = (
+            access.model_copy(
+                update={
+                    "last_used_at": now,
+                    "last_used_result": result,
+                }
+            ),
+            expires_at,
+        )
 
     # ── Helpers ──────────────────────────────────────────────────────
 

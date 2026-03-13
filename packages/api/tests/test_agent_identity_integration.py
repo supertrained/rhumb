@@ -16,22 +16,23 @@ Target: 20+ tests.
 from __future__ import annotations
 
 import asyncio
-from typing import Generator
+from typing import Any, Generator
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app import create_app
 from routes.admin_agents import set_test_stores
+from schemas import agent_identity as agent_identity_module
 from schemas.agent_identity import (
     AgentIdentitySchema,
     AgentIdentityStore,
     AgentServiceAccessSchema,
+    api_key_prefix,
     generate_api_key,
     hash_api_key,
-    verify_api_key,
-    api_key_prefix,
     reset_identity_store,
+    verify_api_key,
 )
 from services.agent_access_control import AgentAccessControl, reset_agent_access_control
 from services.agent_rate_limit import (
@@ -114,6 +115,94 @@ def admin_client(
     set_test_stores(identity_store, analytics, acl)
     app = create_app()
     return TestClient(app)
+
+
+class _FakeResponse:
+    def __init__(self, data: Any) -> None:
+        self.data = data
+
+
+class _FakeSupabaseQuery:
+    def __init__(self, client: "_FakeSupabaseClient", table_name: str) -> None:
+        self._client = client
+        self._table_name = table_name
+        self._selected_columns = "*"
+        self._filters: list[tuple[str, Any]] = []
+        self._single = False
+        self._insert_payload: dict[str, Any] | None = None
+        self._update_payload: dict[str, Any] | None = None
+
+    def select(self, columns: str) -> "_FakeSupabaseQuery":
+        self._selected_columns = columns
+        return self
+
+    def eq(self, column: str, value: Any) -> "_FakeSupabaseQuery":
+        self._filters.append((column, value))
+        return self
+
+    def single(self) -> "_FakeSupabaseQuery":
+        self._single = True
+        return self
+
+    def insert(self, payload: dict[str, Any]) -> "_FakeSupabaseQuery":
+        self._insert_payload = payload
+        return self
+
+    def update(self, payload: dict[str, Any]) -> "_FakeSupabaseQuery":
+        self._update_payload = payload
+        return self
+
+    async def execute(self) -> _FakeResponse:
+        return self._client.execute(self)
+
+
+class _FakeSupabaseClient:
+    def __init__(self) -> None:
+        self.access_rows: dict[str, dict[str, Any]] = {}
+        self.get_service_access_queries = 0
+
+    def table(self, table_name: str) -> _FakeSupabaseQuery:
+        return _FakeSupabaseQuery(self, table_name)
+
+    def execute(self, query: _FakeSupabaseQuery) -> _FakeResponse:
+        if query._table_name != "agent_service_access":
+            return _FakeResponse(None)
+
+        if query._insert_payload is not None:
+            payload = dict(query._insert_payload)
+            self.access_rows[payload["access_id"]] = payload
+            return _FakeResponse(payload)
+
+        rows = [
+            row
+            for row in self.access_rows.values()
+            if all(row.get(column) == value for column, value in query._filters)
+        ]
+
+        if query._update_payload is not None:
+            for row in rows:
+                row.update(query._update_payload)
+            data: Any = rows[0] if query._single and rows else rows
+            return _FakeResponse(data)
+
+        if query._selected_columns == "*":
+            self.get_service_access_queries += 1
+
+        if query._selected_columns == "*":
+            selected_rows = [dict(row) for row in rows]
+        else:
+            selected_columns = [
+                column.strip() for column in query._selected_columns.split(",")
+            ]
+            selected_rows = [
+                {column: row[column] for column in selected_columns if column in row}
+                for row in rows
+            ]
+
+        data = selected_rows[0] if query._single else selected_rows
+        if query._single and not selected_rows:
+            data = None
+        return _FakeResponse(data)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -327,6 +416,115 @@ class TestServiceAccessGrants:
         assert access is not None
         assert access.last_used_at is not None
         assert access.last_used_result == "success"
+
+
+class TestServiceAccessCache:
+    """Targeted tests for the ACL grant cache."""
+
+    def test_cache_miss_queries_backend(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        access_id = _run(store.grant_service_access("agent-cache-miss", "stripe"))
+
+        access = _run(store.get_service_access("agent-cache-miss", "stripe"))
+
+        assert access is not None
+        assert access.access_id == access_id
+        assert client.get_service_access_queries == 1
+
+    def test_cache_hit_avoids_backend_query(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        access_id = _run(store.grant_service_access("agent-cache-hit", "stripe"))
+
+        first = _run(store.get_service_access("agent-cache-hit", "stripe"))
+        second = _run(store.get_service_access("agent-cache-hit", "stripe"))
+
+        assert first is not None
+        assert second is not None
+        assert first.access_id == access_id
+        assert second.access_id == access_id
+        assert client.get_service_access_queries == 1
+
+    def test_cache_expiry_requeries_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        _run(store.grant_service_access("agent-cache-expiry", "stripe"))
+        now = [100.0]
+        monkeypatch.setattr(agent_identity_module._time, "monotonic", lambda: now[0])
+
+        first = _run(store.get_service_access("agent-cache-expiry", "stripe"))
+        now[0] += store.ACL_CACHE_TTL_SECONDS + 1.0
+        second = _run(store.get_service_access("agent-cache-expiry", "stripe"))
+
+        assert first is not None
+        assert second is not None
+        assert client.get_service_access_queries == 2
+
+    def test_negative_caching_avoids_repeat_backend_query(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        now = [200.0]
+        monkeypatch.setattr(agent_identity_module._time, "monotonic", lambda: now[0])
+
+        first = _run(store.get_service_access("agent-negative", "slack"))
+        second = _run(store.get_service_access("agent-negative", "slack"))
+
+        assert first is None
+        assert second is None
+        assert client.get_service_access_queries == 1
+
+    def test_grant_service_access_invalidates_negative_cache(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+
+        assert _run(store.get_service_access("agent-grant-invalidate", "github")) is None
+        assert client.get_service_access_queries == 1
+
+        access_id = _run(store.grant_service_access("agent-grant-invalidate", "github"))
+        access = _run(store.get_service_access("agent-grant-invalidate", "github"))
+
+        assert access is not None
+        assert access.access_id == access_id
+        assert client.get_service_access_queries == 2
+
+    def test_revoke_service_access_invalidates_positive_cache(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        access_id = _run(store.grant_service_access("agent-revoke-id", "stripe"))
+
+        assert _run(store.get_service_access("agent-revoke-id", "stripe")) is not None
+        assert client.get_service_access_queries == 1
+
+        assert _run(store.revoke_service_access(access_id)) is True
+        assert _run(store.get_service_access("agent-revoke-id", "stripe")) is None
+        assert client.get_service_access_queries == 2
+
+    def test_revoke_by_agent_service_invalidates_positive_cache(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        _run(store.grant_service_access("agent-revoke-pair", "slack"))
+
+        assert _run(store.get_service_access("agent-revoke-pair", "slack")) is not None
+        assert client.get_service_access_queries == 1
+
+        assert _run(store.revoke_service_access_by_agent_service("agent-revoke-pair", "slack"))
+        assert _run(store.get_service_access("agent-revoke-pair", "slack")) is None
+        assert client.get_service_access_queries == 2
+
+    def test_clear_acl_cache(self) -> None:
+        client = _FakeSupabaseClient()
+        store = AgentIdentityStore(supabase_client=client)
+        _run(store.grant_service_access("agent-clear-cache", "stripe"))
+
+        assert _run(store.get_service_access("agent-clear-cache", "stripe")) is not None
+        assert store._acl_cache
+
+        store.clear_acl_cache()
+
+        assert store._acl_cache == {}
 
 
 # ═══════════════════════════════════════════════════════════════════════
