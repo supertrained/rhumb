@@ -3,20 +3,29 @@
 Tracks every proxy call with result status and provides aggregation
 queries for usage summaries — per-agent, per-service, and per-org.
 
-Stores events in an in-memory list (or Supabase ``agent_usage_events``
-table in production). Designed to feed Round 12 billing pipeline.
+GAP-3: ``UsageMeterEngine`` is the canonical durable writer for
+``agent_usage_events``.  This module retains ``record_event()`` for
+backward compatibility (direct callers, identity-integration tests)
+but the metering engine no longer delegates event persistence here.
+
+Reads are now durable-aware: when a Supabase client is present,
+``_query_events`` and ``get_recent_events`` query the durable table
+so both analytics and billing share a single source of truth.
 
 Round 11 (WU 2.2): Usage analytics layer.
 """
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+
+logger = logging.getLogger(__name__)
 
 
 class UsageEvent:
@@ -53,8 +62,9 @@ class UsageEvent:
 class AgentUsageAnalytics:
     """Track and aggregate usage per agent per service.
 
-    In-memory implementation for v1. Production will persist to
-    ``agent_usage_events`` in Supabase.
+    When a Supabase client is present, reads query the durable
+    ``agent_usage_events`` table.  Otherwise falls back to in-memory
+    storage for dev/test.
     """
 
     def __init__(
@@ -64,7 +74,7 @@ class AgentUsageAnalytics:
     ) -> None:
         self._identity_store = identity_store
         self.supabase = supabase_client
-        # In-memory event store
+        # In-memory event store (dev/test fallback)
         self._events: List[UsageEvent] = []
 
     @property
@@ -84,8 +94,12 @@ class AgentUsageAnalytics:
     ) -> str:
         """Record a usage event.
 
-        Also updates the ``last_used_at`` and ``last_used_result`` on
-        the agent's service access record via the identity store.
+        .. note::
+
+            In production, prefer ``UsageMeterEngine.record_metered_call``
+            which writes the canonical durable row with full schema
+            (including ``response_size_bytes``).  This method is retained
+            for backward compat and direct callers.
 
         Returns:
             ``event_id`` (UUID).
@@ -133,11 +147,11 @@ class AgentUsageAnalytics:
         events = self._query_events(agent_id, service, cutoff)
 
         total = len(events)
-        success = sum(1 for e in events if e.result == "success")
-        failed = sum(1 for e in events if e.result in ("error", "auth_failed"))
-        rate_limited = sum(1 for e in events if e.result == "rate_limited")
+        success = sum(1 for e in events if e["result"] == "success")
+        failed = sum(1 for e in events if e["result"] in ("error", "auth_failed"))
+        rate_limited = sum(1 for e in events if e["result"] == "rate_limited")
         avg_latency = (
-            sum(e.latency_ms for e in events) / total if total > 0 else 0.0
+            sum(float(e["latency_ms"]) for e in events) / total if total > 0 else 0.0
         )
 
         # Per-service breakdown
@@ -145,9 +159,9 @@ class AgentUsageAnalytics:
             lambda: {"calls": 0, "successes": 0}
         )
         for e in events:
-            by_service[e.service]["calls"] += 1
-            if e.result == "success":
-                by_service[e.service]["successes"] += 1
+            by_service[e["service"]]["calls"] += 1
+            if e["result"] == "success":
+                by_service[e["service"]]["successes"] += 1
 
         services_summary: Dict[str, Dict[str, Any]] = {}
         for svc, counts in by_service.items():
@@ -173,16 +187,7 @@ class AgentUsageAnalytics:
         organization_id: str,
         days: int = 30,
     ) -> Dict[str, Any]:
-        """Aggregate usage across all agents in an organization.
-
-        Returns:
-            {
-                "organization_id": str,
-                "period_days": int,
-                "total_calls": int,
-                "agents": { "<agent_id>": <usage_summary> },
-            }
-        """
+        """Aggregate usage across all agents in an organization."""
         agents = await self.identity_store.list_agents(
             organization_id=organization_id
         )
@@ -209,9 +214,25 @@ class AgentUsageAnalytics:
         agent_id: str,
         service: Optional[str],
         cutoff: datetime,
-    ) -> List[UsageEvent]:
-        """Query in-memory events (production: query Supabase)."""
-        results = []
+    ) -> List[Dict[str, Any]]:
+        """Query events from durable storage or in-memory fallback.
+
+        Returns a list of dicts with at least ``result``, ``latency_ms``,
+        and ``service`` keys — uniform across both paths.
+        """
+        if self.supabase is not None:
+            query = (
+                self.supabase.table("agent_usage_events")
+                .select("event_id,agent_id,service,result,latency_ms,created_at")
+                .eq("agent_id", agent_id)
+                .gte("created_at", cutoff.isoformat())
+            )
+            if service:
+                query = query.eq("service", service)
+            rows = query.execute().data or []
+            return rows
+
+        results: List[Dict[str, Any]] = []
         for e in self._events:
             if e.agent_id != agent_id:
                 continue
@@ -219,7 +240,7 @@ class AgentUsageAnalytics:
                 continue
             if service and e.service != service:
                 continue
-            results.append(e)
+            results.append(e.to_dict())
         return results
 
     def get_recent_events(
@@ -228,13 +249,24 @@ class AgentUsageAnalytics:
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Get recent events for an agent (most recent first)."""
+        if self.supabase is not None:
+            rows = (
+                self.supabase.table("agent_usage_events")
+                .select("event_id,agent_id,service,result,latency_ms,created_at")
+                .eq("agent_id", agent_id)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            ).data or []
+            return rows
+
         agent_events = [e for e in self._events if e.agent_id == agent_id]
         agent_events.sort(key=lambda e: e.created_at, reverse=True)
         return [e.to_dict() for e in agent_events[:limit]]
 
     @property
     def total_events(self) -> int:
-        """Total number of tracked events."""
+        """Total number of tracked events (in-memory only)."""
         return len(self._events)
 
 
