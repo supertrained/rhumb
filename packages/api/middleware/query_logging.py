@@ -22,7 +22,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from services.query_logger import extract_agent_id, query_logger
+from services.query_logger import classify_query_source, extract_agent_id, query_logger
 
 # Route patterns to instrument
 # Each entry: (compiled regex, query_type, extractor function)
@@ -141,7 +141,9 @@ class QueryLoggingMiddleware(BaseHTTPMiddleware):
         # Extract request metadata
         query_text, query_params = extractor(request, match)
         user_agent_str = request.headers.get("user-agent")
-        agent_id = extract_agent_id(user_agent_str, dict(request.headers))
+        header_map = dict(request.headers)
+        agent_id = extract_agent_id(user_agent_str, header_map)
+        source = classify_query_source(user_agent_str, header_map, agent_id)
 
         # Execute the actual request
         response = await call_next(request)
@@ -159,7 +161,7 @@ class QueryLoggingMiddleware(BaseHTTPMiddleware):
         # Log the query (non-blocking, fire-and-forget)
         try:
             await query_logger.log(
-                source="web",
+                source=source,
                 query_type=query_type,
                 query_text=query_text,
                 query_params=query_params,

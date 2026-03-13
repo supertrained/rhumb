@@ -60,7 +60,11 @@ describe("service page", () => {
           serviceSlug: "square",
           score: 7.4
         }
-      ]
+      ],
+      baseUrl: "https://stripe.com",
+      docsUrl: "https://docs.stripe.com",
+      openapiUrl: null,
+      mcpServerUrl: null
     });
 
     const html = await renderServicePage();
@@ -76,6 +80,10 @@ describe("service page", () => {
     expect(html).toContain("Reliable payment API");
     expect(html).toContain("Token refresh requires browser redirect in some flows");
     expect(html).toContain("href=\"/service/square\"");
+    expect(html).toContain("Official links");
+    expect(html).toContain("href=\"/go?to=https%3A%2F%2Fstripe.com&amp;event=provider_click");
+    expect(html).toContain("href=\"/go?to=https%3A%2F%2Fdocs.stripe.com&amp;event=docs_click");
+    expect(html).toContain("href=\"/go?to=mailto%3Ateam%40supertrained.ai");
     expect(html).toContain("square");
     expect(html).toContain("7.4");
     expect(html).toContain("application/ld+json");

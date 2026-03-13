@@ -11,6 +11,7 @@ import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
 import { AutonomySection } from "../../../components/autonomy-section";
 import { GuideSection } from "../../../components/guide-section";
 import { getTierInfo, getTierInfoFromString } from "../../../lib/utils";
+import { buildTrackedOutboundHref } from "../../../lib/tracking";
 
 function scoreLabel(value: number | null): string {
   return value === null ? "—" : value.toFixed(1);
@@ -139,6 +140,56 @@ export default async function ServicePage({
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+  const pagePath = `/service/${score.serviceSlug}`;
+  const disputeHref = buildTrackedOutboundHref({
+    destinationUrl: `mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`,
+    eventType: "dispute_click",
+    serviceSlug: score.serviceSlug,
+    pagePath,
+    sourceSurface: "service_page",
+  });
+  const outboundLinks = [
+    score.baseUrl ? {
+      label: "Official site",
+      href: buildTrackedOutboundHref({
+        destinationUrl: score.baseUrl,
+        eventType: "provider_click",
+        serviceSlug: score.serviceSlug,
+        pagePath,
+        sourceSurface: "service_page",
+      }),
+    } : null,
+    score.docsUrl ? {
+      label: "Docs",
+      href: buildTrackedOutboundHref({
+        destinationUrl: score.docsUrl,
+        eventType: "docs_click",
+        serviceSlug: score.serviceSlug,
+        pagePath,
+        sourceSurface: "service_page",
+      }),
+    } : null,
+    score.openapiUrl ? {
+      label: "OpenAPI",
+      href: buildTrackedOutboundHref({
+        destinationUrl: score.openapiUrl,
+        eventType: "docs_click",
+        serviceSlug: score.serviceSlug,
+        pagePath,
+        sourceSurface: "service_page",
+      }),
+    } : null,
+    score.mcpServerUrl ? {
+      label: "MCP server",
+      href: buildTrackedOutboundHref({
+        destinationUrl: score.mcpServerUrl,
+        eventType: "provider_click",
+        serviceSlug: score.serviceSlug,
+        pagePath,
+        sourceSurface: "service_page",
+      }),
+    } : null,
+  ].filter((item): item is { label: string; href: string } => item !== null);
 
   const guidePath = path.join(process.cwd(), "public", "guides", `${slug}.md`);
   const guideContent = fs.existsSync(guidePath)
@@ -333,6 +384,26 @@ export default async function ServicePage({
 
         {/* Right column: alternatives + meta */}
         <div className="space-y-6">
+          {outboundLinks.length > 0 && (
+            <section className="bg-surface border border-slate-800 rounded-xl p-5">
+              <p className="text-xs font-mono text-slate-500 mb-3">Official links</p>
+              <div className="space-y-2 text-sm">
+                {outboundLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between text-slate-300 hover:text-amber transition-colors"
+                  >
+                    <span>{link.label}</span>
+                    <span className="text-xs font-mono text-slate-600">open</span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Trust / provenance */}
           <section className="bg-surface border border-amber/20 rounded-xl p-5">
             <p className="text-xs font-mono text-amber uppercase tracking-[0.24em] mb-3">
@@ -357,7 +428,7 @@ export default async function ServicePage({
                 Why we scored ourselves first →
               </Link>
               <a
-                href={`mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`}
+                href={disputeHref}
                 className="text-slate-300 hover:text-amber transition-colors"
               >
                 Dispute this score →
@@ -421,7 +492,7 @@ export default async function ServicePage({
           {/* Dispute score */}
           <div className="text-center pt-2">
             <a
-              href={`mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`}
+              href={disputeHref}
               className="text-xs text-slate-600 hover:text-amber transition-colors"
             >
               Dispute this score →

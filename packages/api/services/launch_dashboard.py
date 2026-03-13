@@ -1,0 +1,212 @@
+"""Aggregation helpers for the internal launch dashboard."""
+
+from __future__ import annotations
+
+from collections import Counter
+from datetime import UTC, datetime, timedelta
+from typing import Any, Iterable
+
+LAUNCH_WINDOW_START = datetime(2026, 3, 13, tzinfo=UTC)
+SUPPORTED_WINDOWS = {"24h", "7d", "launch"}
+
+
+def resolve_window_start(window: str, *, now: datetime) -> datetime:
+    """Resolve the start timestamp for a supported dashboard window."""
+    if window == "24h":
+        return now - timedelta(hours=24)
+    if window == "7d":
+        return now - timedelta(days=7)
+    if window == "launch":
+        return LAUNCH_WINDOW_START
+    raise ValueError(f"Unsupported window: {window}")
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    candidate = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _top_counts(counter: Counter[str], *, limit: int = 5) -> list[dict[str, Any]]:
+    return [
+        {"key": key, "count": count}
+        for key, count in counter.most_common(limit)
+    ]
+
+
+def _normalize_service_slug(value: Any) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def _client_key(row: dict[str, Any]) -> str | None:
+    agent_id = row.get("agent_id")
+    if isinstance(agent_id, str) and agent_id:
+        return f"agent:{agent_id}"
+
+    user_agent = row.get("user_agent")
+    if isinstance(user_agent, str) and user_agent:
+        return f"ua:{user_agent}"
+
+    return None
+
+
+def build_launch_dashboard(
+    *,
+    query_logs: Iterable[dict[str, Any]],
+    click_events: Iterable[dict[str, Any]],
+    service_rows: Iterable[dict[str, Any]],
+    window: str,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Build dashboard metrics from recent query logs and click events."""
+    now_utc = (now or datetime.now(tz=UTC)).astimezone(UTC)
+    start_at = resolve_window_start(window, now=now_utc)
+
+    query_rows = []
+    for row in query_logs:
+        created_at = _parse_timestamp(row.get("created_at"))
+        if created_at is None or created_at < start_at:
+            continue
+        query_rows.append({**row, "_created_at": created_at})
+
+    click_rows = []
+    for row in click_events:
+        created_at = _parse_timestamp(row.get("created_at"))
+        if created_at is None or created_at < start_at:
+            continue
+        click_rows.append({**row, "_created_at": created_at})
+
+    by_source = Counter[str]()
+    by_query_type = Counter[str]()
+    top_services = Counter[str]()
+    top_searches = Counter[str]()
+    client_counts = Counter[str]()
+    repeat_clients = 0
+
+    for row in query_rows:
+        source = str(row.get("source") or "unknown")
+        by_source[source] += 1
+
+        query_type = str(row.get("query_type") or "unknown")
+        by_query_type[query_type] += 1
+
+        if query_type == "score_lookup":
+            service_slug = _normalize_service_slug(
+                (row.get("query_params") or {}).get("slug")
+                if isinstance(row.get("query_params"), dict)
+                else None
+            ) or _normalize_service_slug(row.get("query_text"))
+            if service_slug:
+                top_services[service_slug] += 1
+
+        if query_type == "search":
+            query_text = row.get("query_text")
+            if isinstance(query_text, str) and query_text:
+                top_searches[query_text] += 1
+
+        client_key = _client_key(row)
+        if client_key:
+            client_counts[client_key] += 1
+
+    repeat_clients = sum(1 for count in client_counts.values() if count > 1)
+    unique_clients = len(client_counts)
+
+    provider_clicks = Counter[str]()
+    provider_clicks_by_service = Counter[str]()
+    dispute_clicks_by_type = Counter[str]()
+    clicks_by_surface = Counter[str]()
+
+    for row in click_rows:
+        event_type = str(row.get("event_type") or "unknown")
+        surface = str(row.get("source_surface") or "unknown")
+        clicks_by_surface[surface] += 1
+
+        if event_type == "provider_click":
+            domain = str(row.get("destination_domain") or row.get("service_slug") or "unknown")
+            provider_clicks[domain] += 1
+            service_slug = _normalize_service_slug(row.get("service_slug"))
+            if service_slug:
+                provider_clicks_by_service[service_slug] += 1
+
+        if event_type in {"dispute_click", "github_dispute_click", "contact_click"}:
+            dispute_clicks_by_type[event_type] += 1
+
+    service_views = Counter[str]()
+    for row in query_rows:
+        if row.get("query_type") != "score_lookup":
+            continue
+        service_slug = _normalize_service_slug(
+            (row.get("query_params") or {}).get("slug")
+            if isinstance(row.get("query_params"), dict)
+            else None
+        ) or _normalize_service_slug(row.get("query_text"))
+        if service_slug:
+            service_views[service_slug] += 1
+
+    ctr_rows = []
+    for service_slug, clicks in provider_clicks_by_service.items():
+        views = service_views.get(service_slug, 0)
+        ctr_rows.append({
+            "service_slug": service_slug,
+            "clicks": clicks,
+            "views": views,
+            "ctr": round(clicks / views, 4) if views > 0 else None,
+        })
+    ctr_rows.sort(
+        key=lambda row: (
+            row["ctr"] is None,
+            -(row["ctr"] or 0.0),
+            -row["clicks"],
+            row["service_slug"],
+        )
+    )
+
+    machine_queries = sum(
+        count for source, count in by_source.items() if source in {"api_direct", "cli", "mcp", "unknown_agent"}
+    )
+
+    latest_query_at = max((row["_created_at"] for row in query_rows), default=None)
+    latest_click_at = max((row["_created_at"] for row in click_rows), default=None)
+
+    return {
+        "window": window,
+        "start_at": start_at.isoformat(),
+        "generated_at": now_utc.isoformat(),
+        "coverage": {
+            "public_service_count": sum(1 for _ in service_rows),
+        },
+        "queries": {
+            "total": len(query_rows),
+            "machine_total": machine_queries,
+            "by_source": _top_counts(by_source, limit=10),
+            "top_query_types": _top_counts(by_query_type, limit=5),
+            "top_services": _top_counts(top_services, limit=5),
+            "top_searches": _top_counts(top_searches, limit=5),
+            "unique_clients": unique_clients,
+            "repeat_clients": repeat_clients,
+            "repeat_client_rate": round(repeat_clients / unique_clients, 4) if unique_clients else None,
+            "latest_activity_at": latest_query_at.isoformat() if latest_query_at else None,
+        },
+        "clicks": {
+            "total": len(click_rows),
+            "provider_clicks": sum(provider_clicks.values()),
+            "top_provider_domains": _top_counts(provider_clicks, limit=5),
+            "top_source_surfaces": _top_counts(clicks_by_surface, limit=5),
+            "provider_ctr": ctr_rows[:10],
+            "dispute_clicks": {
+                "email": dispute_clicks_by_type.get("dispute_click", 0),
+                "github": dispute_clicks_by_type.get("github_dispute_click", 0),
+                "contact": dispute_clicks_by_type.get("contact_click", 0),
+            },
+            "latest_activity_at": latest_click_at.isoformat() if latest_click_at else None,
+        },
+    }

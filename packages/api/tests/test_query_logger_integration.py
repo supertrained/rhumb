@@ -37,11 +37,94 @@ class CaptureSupabase:
 
 
 @pytest.fixture
-def capture_client():
+def capture_client(monkeypatch):
     """Patch the global query_logger with a capturing Supabase mock."""
     capture = CaptureSupabase()
     query_logger.reset()
     query_logger._supabase = capture
+
+    async def fake_supabase_fetch(path: str):
+        if path.startswith("services?or=("):
+            return [
+                {
+                    "slug": "stripe",
+                    "name": "Stripe",
+                    "category": "payments",
+                    "description": "Payments API",
+                }
+            ]
+        if path.startswith('scores?service_slug=in.("stripe")'):
+            return [
+                {
+                    "service_slug": "stripe",
+                    "aggregate_recommendation_score": 8.9,
+                    "execution_score": 9.1,
+                    "access_readiness_score": 8.4,
+                    "tier": "L4",
+                    "tier_label": "Agent Native",
+                    "confidence": 0.98,
+                    "probe_metadata": {"freshness": "12 minutes ago"},
+                    "calculated_at": "2026-03-13T00:00:00Z",
+                }
+            ]
+        if path.startswith("services?category=eq.payments&select=slug,name"):
+            return [{"slug": "stripe", "name": "Stripe"}]
+        if path == "services?select=category":
+            return [{"category": "payments"}, {"category": "auth"}]
+        if path.startswith("scores?service_slug=in.(\"stripe\")"):
+            return [
+                {
+                    "service_slug": "stripe",
+                    "aggregate_recommendation_score": 8.9,
+                    "execution_score": 9.1,
+                    "access_readiness_score": 8.4,
+                    "tier": "L4",
+                    "tier_label": "Agent Native",
+                    "confidence": 0.98,
+                    "probe_metadata": {"freshness": "12 minutes ago"},
+                    "calculated_at": "2026-03-13T00:00:00Z",
+                }
+            ]
+        if path.startswith("services?slug=eq.stripe&select=slug,name,category,description&limit=1"):
+            return [
+                {
+                    "slug": "stripe",
+                    "name": "Stripe",
+                    "category": "payments",
+                    "description": "Payments API",
+                }
+            ]
+        if path.startswith("scores?service_slug=eq.stripe&order=calculated_at.desc&limit=1"):
+            return [
+                {
+                    "service_slug": "stripe",
+                    "aggregate_recommendation_score": 8.9,
+                    "execution_score": 9.1,
+                    "access_readiness_score": 8.4,
+                    "confidence": 0.98,
+                    "tier": "L4",
+                    "tier_label": "Agent Native",
+                    "probe_metadata": {"freshness": "12 minutes ago"},
+                    "calculated_at": "2026-03-13T00:00:00Z",
+                }
+            ]
+        if path.startswith("failure_modes?service_slug=eq.stripe"):
+            return []
+        if path.startswith("services?slug=eq.stripe&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"):
+            return [
+                {
+                    "slug": "stripe",
+                    "base_url": "https://stripe.com",
+                    "docs_url": "https://docs.stripe.com",
+                    "openapi_url": None,
+                    "mcp_server_url": None,
+                }
+            ]
+        return []
+
+    monkeypatch.setattr("routes.search.supabase_fetch", fake_supabase_fetch)
+    monkeypatch.setattr("routes.leaderboard.supabase_fetch", fake_supabase_fetch)
+    monkeypatch.setattr("routes.services.supabase_fetch", fake_supabase_fetch)
 
     client = TestClient(app)
     yield client, capture
@@ -178,6 +261,25 @@ def test_no_agent_id_for_plain_browser(capture_client: tuple) -> None:
 
     assert len(capture.rows) >= 1
     assert capture.rows[0]["agent_id"] is None
+
+
+def test_explicit_client_header_is_logged_as_mcp(capture_client: tuple) -> None:
+    """Requests with X-Rhumb-Client=mcp should preserve that source."""
+    client, capture = capture_client
+
+    response = client.get(
+        "/v1/search?q=test",
+        headers={
+            "User-Agent": "rhumb-mcp/0.0.1",
+            "X-Rhumb-Client": "mcp",
+        },
+    )
+    assert response.status_code == 200
+
+    _flush_sync()
+
+    assert len(capture.rows) >= 1
+    assert capture.rows[0]["source"] == "mcp"
 
 
 # ── Test: Latency is recorded correctly ──────────────────────────

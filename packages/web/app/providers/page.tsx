@@ -1,5 +1,8 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+
+import { buildTrackedOutboundHref } from "../../lib/tracking";
 
 export const metadata: Metadata = {
   title: "For API Providers",
@@ -81,6 +84,25 @@ const FAQ = [
 ];
 
 export default function ProvidersPage() {
+  const githubDisputeHref = buildTrackedOutboundHref({
+    destinationUrl: "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
+    eventType: "github_dispute_click",
+    pagePath: "/providers",
+    sourceSurface: "providers_page",
+  });
+  const privateDisputeHref = buildTrackedOutboundHref({
+    destinationUrl: "mailto:providers@supertrained.ai?subject=Score%20Dispute%20(Private)",
+    eventType: "dispute_click",
+    pagePath: "/providers",
+    sourceSurface: "providers_page",
+  });
+  const contactHref = buildTrackedOutboundHref({
+    destinationUrl: "mailto:providers@supertrained.ai",
+    eventType: "contact_click",
+    pagePath: "/providers",
+    sourceSurface: "providers_page",
+  });
+
   return (
     <div className="bg-navy min-h-screen">
       <div className="max-w-3xl mx-auto px-6 pt-14 pb-24">
@@ -171,7 +193,7 @@ export default function ProvidersPage() {
           </p>
           <div className="flex flex-wrap gap-3 mb-4">
             <a
-              href="https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md"
+              href={githubDisputeHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex px-4 py-2.5 rounded-lg bg-surface border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
@@ -179,7 +201,7 @@ export default function ProvidersPage() {
               Public: GitHub issue →
             </a>
             <a
-              href="mailto:providers@supertrained.ai?subject=Score%20Dispute%20(Private)"
+              href={privateDisputeHref}
               className="inline-flex px-4 py-2.5 rounded-lg bg-surface border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
             >
               Private: Email →
@@ -225,7 +247,7 @@ export default function ProvidersPage() {
             love to hear from you.
           </p>
           <a
-            href="mailto:providers@supertrained.ai"
+            href={contactHref}
             className="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
           >
             providers@supertrained.ai

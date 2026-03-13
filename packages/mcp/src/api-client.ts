@@ -70,11 +70,16 @@ function asNumber(v: unknown): number | null {
 
 export function createApiClient(baseUrl?: string): RhumbApiClient {
   const base = baseUrl ?? process.env.RHUMB_API_BASE_URL ?? "http://localhost:8000/v1";
+  const defaultHeaders = {
+    "User-Agent": "rhumb-mcp/0.0.1",
+    "X-Rhumb-Client": "mcp",
+    "X-Agent-Name": "rhumb-mcp"
+  };
 
   return {
     async searchServices(query: string): Promise<ServiceSearchItem[]> {
       const url = `${base}/search?q=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: defaultHeaders });
       if (!res.ok) {
         throw new Error(`API returned ${res.status}`);
       }
@@ -105,7 +110,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
     async getServiceScore(slug: string): Promise<ServiceScoreItem | null> {
       const url = `${base}/services/${encodeURIComponent(slug)}/score`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: defaultHeaders });
 
       if (!res.ok) {
         if (res.status === 404) return null;

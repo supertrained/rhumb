@@ -140,6 +140,12 @@ async def get_service(slug: str) -> dict:
 @router.get("/services/{slug}/score")
 async def get_service_score(slug: str) -> dict:
     """Get the latest AN score for a service (Supabase REST)."""
+    service_rows = await supabase_fetch(
+        f"services?slug=eq.{quote(slug)}"
+        f"&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"
+    )
+    service = service_rows[0] if service_rows else {}
+
     scores = await supabase_fetch(
         f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
     )
@@ -157,6 +163,10 @@ async def get_service_score(slug: str) -> dict:
             "an_score_version": "0.3",
             "dimension_snapshot": {},
             "calculated_at": None,
+            "base_url": service.get("base_url"),
+            "docs_url": service.get("docs_url"),
+            "openapi_url": service.get("openapi_url"),
+            "mcp_server_url": service.get("mcp_server_url"),
         }
 
     sc = scores[0]
@@ -223,6 +233,10 @@ async def get_service_score(slug: str) -> dict:
         "governance_readiness": sc.get("governance_readiness"),
         "web_accessibility": sc.get("web_accessibility"),
         "failure_modes": failure_modes,
+        "base_url": service.get("base_url"),
+        "docs_url": service.get("docs_url"),
+        "openapi_url": service.get("openapi_url"),
+        "mcp_server_url": service.get("mcp_server_url"),
     }
 
 

@@ -27,6 +27,19 @@ function asItems(value: unknown): Record<string, unknown>[] {
   return value.filter((item): item is Record<string, unknown> => isRecord(item));
 }
 
+function parseDashboardCounts(value: unknown): { key: string; count: number }[] {
+  return asItems(value)
+    .map((item) => {
+      const key = asString(item.key);
+      const count = asNumber(item.count);
+      if (!key || count === null) {
+        return null;
+      }
+      return { key, count };
+    })
+    .filter((item): item is { key: string; count: number } => item !== null);
+}
+
 export function parseServicesResponse(payload: unknown): Service[] {
   if (!isRecord(payload) || !isRecord(payload.data)) {
     return [];
@@ -156,6 +169,77 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     p1Rationale: asString(payload.p1_rationale),
     g1Rationale: asString(payload.g1_rationale),
     w1Rationale: asString(payload.w1_rationale),
-    autonomyTier: asString(payload.autonomy_tier)
+    autonomyTier: asString(payload.autonomy_tier),
+    baseUrl: asString(payload.base_url),
+    docsUrl: asString(payload.docs_url),
+    openapiUrl: asString(payload.openapi_url),
+    mcpServerUrl: asString(payload.mcp_server_url)
+  };
+}
+
+export function parseLaunchDashboardResponse(payload: unknown) {
+  if (!isRecord(payload) || !isRecord(payload.data)) {
+    return null;
+  }
+
+  const data = payload.data;
+  const coverage = isRecord(data.coverage) ? data.coverage : {};
+  const queries = isRecord(data.queries) ? data.queries : {};
+  const clicks = isRecord(data.clicks) ? data.clicks : {};
+  const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
+
+  const providerCtr = asItems(clicks.provider_ctr).map((row) => ({
+    service_slug: asString(row.service_slug) ?? "unknown",
+    clicks: asNumber(row.clicks) ?? 0,
+    views: asNumber(row.views) ?? 0,
+    ctr: asNumber(row.ctr),
+  }));
+
+  const window = asString(data.window);
+  const startAt = asString(data.start_at);
+  const generatedAt = asString(data.generated_at);
+
+  if (
+    (window !== "24h" && window !== "7d" && window !== "launch")
+    || !startAt
+    || !generatedAt
+  ) {
+    return null;
+  }
+
+  const parsedWindow: "24h" | "7d" | "launch" = window;
+
+  return {
+    window: parsedWindow,
+    startAt,
+    generatedAt,
+    coverage: {
+      publicServiceCount: asNumber(coverage.public_service_count) ?? 0,
+    },
+    queries: {
+      total: asNumber(queries.total) ?? 0,
+      machineTotal: asNumber(queries.machine_total) ?? 0,
+      bySource: parseDashboardCounts(queries.by_source),
+      topQueryTypes: parseDashboardCounts(queries.top_query_types),
+      topServices: parseDashboardCounts(queries.top_services),
+      topSearches: parseDashboardCounts(queries.top_searches),
+      uniqueClients: asNumber(queries.unique_clients) ?? 0,
+      repeatClients: asNumber(queries.repeat_clients) ?? 0,
+      repeatClientRate: asNumber(queries.repeat_client_rate),
+      latestActivityAt: asString(queries.latest_activity_at),
+    },
+    clicks: {
+      total: asNumber(clicks.total) ?? 0,
+      providerClicks: asNumber(clicks.provider_clicks) ?? 0,
+      topProviderDomains: parseDashboardCounts(clicks.top_provider_domains),
+      topSourceSurfaces: parseDashboardCounts(clicks.top_source_surfaces),
+      providerCtr,
+      disputeClicks: {
+        email: asNumber(disputeClicks.email) ?? 0,
+        github: asNumber(disputeClicks.github) ?? 0,
+        contact: asNumber(disputeClicks.contact) ?? 0,
+      },
+      latestActivityAt: asString(clicks.latest_activity_at),
+    },
   };
 }

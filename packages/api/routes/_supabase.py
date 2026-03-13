@@ -38,3 +38,20 @@ async def supabase_fetch(path: str) -> Any | None:
             return resp.json()
     except Exception:
         return None
+
+
+async def supabase_insert(table: str, payload: dict[str, Any]) -> bool:
+    """Insert a row into a Supabase table via PostgREST."""
+    url = f"{settings.supabase_url}/rest/v1/{table}"
+    headers = {
+        **_get_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=payload, timeout=10.0)
+            return resp.status_code in (200, 201, 204)
+    except Exception:
+        return False

@@ -1,4 +1,10 @@
-import type { CategorySummary, LeaderboardViewModel, Service, ServiceScoreViewModel } from "./types";
+import type {
+  CategorySummary,
+  LaunchDashboardViewModel,
+  LeaderboardViewModel,
+  Service,
+  ServiceScoreViewModel,
+} from "./types";
 
 // Supabase direct mode (production) vs Python API mode (local dev)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,6 +55,13 @@ type SupabaseScore = {
   governance_readiness_rationale: string | null;
   web_accessibility_rationale: string | null;
   autonomy_score: number | null;
+};
+
+type SupabaseServiceLinks = {
+  base_url: string | null;
+  docs_url: string | null;
+  openapi_url: string | null;
+  mcp_server_url: string | null;
 };
 
 // ---------- Supabase implementations ----------
@@ -140,6 +153,15 @@ async function getServiceScoreFromSupabase(
 
   if (!scores || scores.length === 0) return null;
   const sc = scores[0];
+  const serviceLinks = await supabaseFetch<SupabaseServiceLinks[]>(
+    `services?slug=eq.${encodeURIComponent(slug)}&select=base_url,docs_url,openapi_url,mcp_server_url&limit=1`
+  );
+  const links = serviceLinks?.[0] ?? {
+    base_url: null,
+    docs_url: null,
+    openapi_url: null,
+    mcp_server_url: null,
+  };
 
   // Fetch active failure modes from Supabase
   const failures = await supabaseFetch<Array<{
@@ -187,6 +209,10 @@ async function getServiceScoreFromSupabase(
     g1Rationale: sc.governance_readiness_rationale ?? null,
     w1Rationale: sc.web_accessibility_rationale ?? null,
     autonomyTier: sc.autonomy_score != null ? (sc.autonomy_score >= 7.5 ? 'L4' : sc.autonomy_score >= 6.0 ? 'L3' : sc.autonomy_score >= 5.0 ? 'L2' : 'L1') : null,
+    baseUrl: links.base_url,
+    docsUrl: links.docs_url,
+    openapiUrl: links.openapi_url,
+    mcpServerUrl: links.mcp_server_url,
   };
 }
 
@@ -203,11 +229,37 @@ async function getCategoriesFromSupabase(): Promise<CategorySummary[]> {
 
 // ---------- Python API implementations (original) ----------
 
-import { parseLeaderboardResponse, parseServiceScoreResponse, parseServicesResponse } from "./adapters";
+import {
+  parseLaunchDashboardResponse,
+  parseLeaderboardResponse,
+  parseServiceScoreResponse,
+  parseServicesResponse,
+} from "./adapters";
 
 async function fetchPayload(path: string): Promise<unknown> {
   try {
-    const response = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+    const response = await fetch(`${API_BASE}${path}`, {
+      cache: "no-store",
+      headers: {
+        "X-Rhumb-Client": "web",
+      },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAdminPayload(path: string, adminKey: string): Promise<unknown> {
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      cache: "no-store",
+      headers: {
+        "X-Rhumb-Admin-Key": adminKey,
+        "X-Rhumb-Client": "web",
+      },
+    });
     if (!response.ok) return null;
     return (await response.json()) as unknown;
   } catch {
@@ -287,4 +339,16 @@ export async function getCategories(): Promise<CategorySummary[]> {
     counts[s.category] = (counts[s.category] ?? 0) + 1;
   }
   return Object.entries(counts).map(([slug, serviceCount]) => ({ slug, serviceCount }));
+}
+
+/** Fetch launch dashboard data from the admin API. */
+export async function getLaunchDashboard(
+  window: "24h" | "7d" | "launch",
+  adminKey: string,
+): Promise<LaunchDashboardViewModel | null> {
+  const payload = await fetchAdminPayload(
+    `/admin/launch/dashboard?window=${encodeURIComponent(window)}`,
+    adminKey,
+  );
+  return parseLaunchDashboardResponse(payload);
 }

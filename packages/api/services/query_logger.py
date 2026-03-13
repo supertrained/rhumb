@@ -17,7 +17,6 @@ import os
 import re
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -32,6 +31,15 @@ AGENT_PATTERNS = [
     (re.compile(r"\bBot\b", re.IGNORECASE), "bot"),
     (re.compile(r"\bAgent\b", re.IGNORECASE), "agent"),
 ]
+
+EXPLICIT_SOURCE_MAP = {
+    "api": "api_direct",
+    "api_direct": "api_direct",
+    "cli": "cli",
+    "mcp": "mcp",
+    "unknown_agent": "unknown_agent",
+    "web": "web",
+}
 
 
 def extract_agent_id(user_agent: Optional[str], headers: Optional[Dict[str, str]] = None) -> Optional[str]:
@@ -64,6 +72,37 @@ def extract_agent_id(user_agent: Optional[str], headers: Optional[Dict[str, str]
             return match.group(0).strip()
 
     return None
+
+
+def classify_query_source(
+    user_agent: Optional[str],
+    headers: Optional[Dict[str, str]] = None,
+    agent_id: Optional[str] = None,
+) -> str:
+    """Classify query source using explicit client headers first, then safe heuristics."""
+    normalized_headers = {k.lower(): v for k, v in (headers or {}).items()}
+
+    explicit_source = (
+        normalized_headers.get("x-rhumb-client")
+        or normalized_headers.get("x-rhumb-source")
+        or ""
+    ).strip().lower()
+    if explicit_source in EXPLICIT_SOURCE_MAP:
+        return EXPLICIT_SOURCE_MAP[explicit_source]
+
+    normalized_ua = (user_agent or "").lower()
+    if "rhumb-mcp" in normalized_ua or " modelcontextprotocol" in normalized_ua:
+        return "mcp"
+    if "rhumb-cli" in normalized_ua:
+        return "cli"
+
+    if normalized_headers.get("x-rhumb-key") or normalized_headers.get("authorization"):
+        return "api_direct"
+
+    if agent_id:
+        return "unknown_agent"
+
+    return "web"
 
 
 class QueryLogger:

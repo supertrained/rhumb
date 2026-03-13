@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.query_logger import QueryLogger, extract_agent_id
+from services.query_logger import QueryLogger, classify_query_source, extract_agent_id
 
 
 # ── Helper: mock Supabase client ──────────────────────────────────
@@ -259,6 +259,42 @@ def test_extract_agent_id_bot_with_name() -> None:
 def test_extract_agent_id_agent_with_name() -> None:
     result = extract_agent_id("Agent: rhumb-tester/1.0")
     assert result is not None
+
+
+def test_classify_query_source_prefers_explicit_client_header() -> None:
+    source = classify_query_source(
+        "Mozilla/5.0",
+        {"x-rhumb-client": "mcp"},
+        agent_id=None,
+    )
+    assert source == "mcp"
+
+
+def test_classify_query_source_detects_cli_user_agent() -> None:
+    source = classify_query_source(
+        "rhumb-cli/0.0.1",
+        {},
+        agent_id=None,
+    )
+    assert source == "cli"
+
+
+def test_classify_query_source_marks_authenticated_requests_as_api_direct() -> None:
+    source = classify_query_source(
+        "python-httpx/0.27.0",
+        {"x-rhumb-key": "test-key"},
+        agent_id=None,
+    )
+    assert source == "api_direct"
+
+
+def test_classify_query_source_falls_back_to_unknown_agent() -> None:
+    source = classify_query_source(
+        "Claude-Web/1.0",
+        {},
+        agent_id="claude",
+    )
+    assert source == "unknown_agent"
 
 
 def test_extract_agent_id_plain_browser() -> None:

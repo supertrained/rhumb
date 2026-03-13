@@ -74,4 +74,54 @@ export type ServiceScoreViewModel = {
   g1Rationale: string | null;
   w1Rationale: string | null;
   autonomyTier: string | null;
+  baseUrl: string | null;
+  docsUrl: string | null;
+  openapiUrl: string | null;
+  mcpServerUrl: string | null;
+};
+
+export type LaunchDashboardCount = {
+  key: string;
+  count: number;
+};
+
+export type LaunchDashboardCtrRow = {
+  service_slug: string;
+  clicks: number;
+  views: number;
+  ctr: number | null;
+};
+
+export type LaunchDashboardViewModel = {
+  window: "24h" | "7d" | "launch";
+  startAt: string;
+  generatedAt: string;
+  coverage: {
+    publicServiceCount: number;
+  };
+  queries: {
+    total: number;
+    machineTotal: number;
+    bySource: LaunchDashboardCount[];
+    topQueryTypes: LaunchDashboardCount[];
+    topServices: LaunchDashboardCount[];
+    topSearches: LaunchDashboardCount[];
+    uniqueClients: number;
+    repeatClients: number;
+    repeatClientRate: number | null;
+    latestActivityAt: string | null;
+  };
+  clicks: {
+    total: number;
+    providerClicks: number;
+    topProviderDomains: LaunchDashboardCount[];
+    topSourceSurfaces: LaunchDashboardCount[];
+    providerCtr: LaunchDashboardCtrRow[];
+    disputeClicks: {
+      email: number;
+      github: number;
+      contact: number;
+    };
+    latestActivityAt: string | null;
+  };
 };
