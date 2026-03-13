@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from config import settings
+from routes.admin_auth import require_admin_key
 from db.repository import (
     InMemoryProbeRepository,
     ProbeRepository,
@@ -63,7 +64,7 @@ def _stored_to_schema(stored: StoredProbe) -> ProbeResultSchema:
     )
 
 
-@router.post("/probes/run", response_model=ProbeResultSchema)
+@router.post("/probes/run", response_model=ProbeResultSchema, dependencies=[Depends(require_admin_key)])
 async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
     """Run a single internal probe and persist the result."""
     probe_service = get_probe_service()
@@ -93,7 +94,7 @@ async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
     return _stored_to_schema(stored)
 
 
-@router.post("/probes/schedule/run", response_model=ProbeBatchRunResponseSchema)
+@router.post("/probes/schedule/run", response_model=ProbeBatchRunResponseSchema, dependencies=[Depends(require_admin_key)])
 async def run_scheduled_probe_batch(
     payload: ProbeBatchRunRequestSchema,
 ) -> ProbeBatchRunResponseSchema:

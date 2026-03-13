@@ -3,7 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
@@ -18,6 +18,7 @@ from routes import (
     services,
     tester_fleet,
 )
+from routes.admin_auth import require_admin_key
 
 logger = logging.getLogger(__name__)
 
@@ -75,14 +76,22 @@ def create_app() -> FastAPI:
     application.include_router(search.router, prefix="/v1", tags=["search"])
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
     application.include_router(reviews.router, prefix="/v1", tags=["reviews"])
-    application.include_router(tester_fleet.router, prefix="/v1", tags=["tester-fleet"])
-    application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
-    application.include_router(proxy.admin_router, prefix="/v1", tags=["schema-admin"])
     application.include_router(
-        admin_agents.router, prefix="/v1/admin", tags=["admin-agents"]
+        tester_fleet.router, prefix="/v1", tags=["tester-fleet"],
+        dependencies=[Depends(require_admin_key)],
+    )
+    application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
+    application.include_router(
+        proxy.admin_router, prefix="/v1", tags=["schema-admin"],
+        dependencies=[Depends(require_admin_key)],
     )
     application.include_router(
-        admin_billing.router, prefix="/v1", tags=["admin-billing"]
+        admin_agents.router, prefix="/v1/admin", tags=["admin-agents"],
+        dependencies=[Depends(require_admin_key)],
+    )
+    application.include_router(
+        admin_billing.router, prefix="/v1", tags=["admin-billing"],
+        dependencies=[Depends(require_admin_key)],
     )
 
     @application.get("/healthz")

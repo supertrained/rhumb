@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from functools import lru_cache
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from config import settings
+from routes.admin_auth import require_admin_key
 from db.repository import (
     InMemoryProbeRepository,
     InMemoryScoreRepository,
@@ -196,7 +197,7 @@ def _format_probe_freshness(probed_at: datetime | None) -> str | None:
     return f"{weeks} weeks ago"
 
 
-@router.post("/score", response_model=ANScoreSchema)
+@router.post("/score", response_model=ANScoreSchema, dependencies=[Depends(require_admin_key)])
 async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     """Calculate and persist an AN score from dimensional inputs."""
     scoring_service = get_scoring_service()
@@ -386,7 +387,7 @@ async def compare_services(services: str) -> dict:
     return {"data": {"services": requested, "comparison": comparisons}, "error": None}
 
 
-@router.post("/evaluate")
+@router.post("/evaluate", dependencies=[Depends(require_admin_key)])
 async def evaluate_stack() -> dict:
     """Evaluate an agent tool stack."""
     return {"data": {"accepted": True, "result": None}, "error": None}
