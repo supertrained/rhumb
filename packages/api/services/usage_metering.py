@@ -195,7 +195,7 @@ class UsageMeterEngine:
         )
 
         if self._is_durable:
-            self._supabase.table("agent_usage_events").insert(
+            await self._supabase.table("agent_usage_events").insert(
                 {
                     "event_id": event.event_id,
                     "agent_id": event.agent_id,
@@ -230,14 +230,15 @@ class UsageMeterEngine:
         cutoff_iso = datetime.fromtimestamp(cutoff, tz=UTC).isoformat()
 
         if self._is_durable:
-            rows = (
+            resp = await (
                 self._supabase.table("agent_usage_events")
                 .select("result,latency_ms,response_size_bytes")
                 .eq("agent_id", agent_id)
                 .eq("service", service)
                 .gte("created_at", cutoff_iso)
                 .execute()
-            ).data or []
+            )
+            rows = resp.data or []
 
             if not rows:
                 return None
@@ -288,14 +289,15 @@ class UsageMeterEngine:
         month_start, month_end = _month_bounds(month)
 
         if self._is_durable:
-            rows = (
+            resp = await (
                 self._supabase.table("agent_usage_events")
                 .select("service")
                 .eq("agent_id", agent_id)
                 .gte("created_at", month_start.isoformat())
                 .lt("created_at", month_end.isoformat())
                 .execute()
-            ).data or []
+            )
+            rows = resp.data or []
 
             by_service_counts: Dict[str, int] = defaultdict(int)
             for r in rows:
@@ -376,7 +378,7 @@ class UsageMeterEngine:
         if self._is_durable and agent_ids:
             window_calls = 0
             for aid in agent_ids:
-                rows = (
+                rows = await (
                     self._supabase.table("agent_usage_events")
                     .select("event_id", count="exact")
                     .eq("agent_id", aid)

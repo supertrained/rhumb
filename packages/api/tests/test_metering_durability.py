@@ -90,7 +90,7 @@ class _MockQueryBuilder:
         self._limit_val = n
         return self
 
-    def execute(self) -> "_MockResult":
+    async def execute(self) -> "_MockResult":
         rows = self._tables.get(self._table_name, [])
 
         if self._insert_data is not None:
@@ -496,7 +496,7 @@ class TestAnalyticsDurableReads:
         _run(analytics.record_event("agent_1", "stripe", "success", 10.0))
         _run(analytics.record_event("agent_1", "stripe", "error", 20.0))
 
-        recent = analytics.get_recent_events("agent_1", limit=10)
+        recent = _run(analytics.get_recent_events("agent_1", limit=10))
         assert len(recent) == 2
 
     def test_analytics_inmemory_fallback(

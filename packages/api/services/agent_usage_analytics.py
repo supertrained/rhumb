@@ -112,7 +112,7 @@ class AgentUsageAnalytics:
         )
 
         if self.supabase is not None:
-            self.supabase.table("agent_usage_events").insert(event.to_dict()).execute()
+            await self.supabase.table("agent_usage_events").insert(event.to_dict()).execute()
         else:
             self._events.append(event)
 
@@ -144,7 +144,7 @@ class AgentUsageAnalytics:
             }
         """
         cutoff = datetime.now(tz=UTC) - timedelta(days=days)
-        events = self._query_events(agent_id, service, cutoff)
+        events = await self._query_events(agent_id, service, cutoff)
 
         total = len(events)
         success = sum(1 for e in events if e["result"] == "success")
@@ -209,7 +209,7 @@ class AgentUsageAnalytics:
 
     # ── Query Helpers ────────────────────────────────────────────────
 
-    def _query_events(
+    async def _query_events(
         self,
         agent_id: str,
         service: Optional[str],
@@ -229,7 +229,8 @@ class AgentUsageAnalytics:
             )
             if service:
                 query = query.eq("service", service)
-            rows = query.execute().data or []
+            resp = await query.execute()
+            rows = resp.data or []
             return rows
 
         results: List[Dict[str, Any]] = []
@@ -243,22 +244,22 @@ class AgentUsageAnalytics:
             results.append(e.to_dict())
         return results
 
-    def get_recent_events(
+    async def get_recent_events(
         self,
         agent_id: str,
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Get recent events for an agent (most recent first)."""
         if self.supabase is not None:
-            rows = (
+            resp = await (
                 self.supabase.table("agent_usage_events")
                 .select("event_id,agent_id,service,result,latency_ms,created_at")
                 .eq("agent_id", agent_id)
                 .order("created_at", desc=True)
                 .limit(limit)
                 .execute()
-            ).data or []
-            return rows
+            )
+            return resp.data or []
 
         agent_events = [e for e in self._events if e.agent_id == agent_id]
         agent_events.sort(key=lambda e: e.created_at, reverse=True)
