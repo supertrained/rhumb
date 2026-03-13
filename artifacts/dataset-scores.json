@@ -1,10 +1,10 @@
 {
   "metadata": {
-    "scored_at": "2026-03-10T22:15:53.301Z",
+    "scored_at": "2026-03-11T22:35:23.623Z",
     "total_services": 50,
     "scored": 50,
     "failed": 0,
-    "duration_ms": 16,
+    "duration_ms": 38,
     "an_score_version": "0.2",
     "runner": "score-dataset-v1"
   },
@@ -37,7 +37,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "resend",
@@ -67,7 +67,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "postmark",
@@ -96,7 +96,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "mailgun",
@@ -125,7 +125,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "amazon-ses",
@@ -154,7 +154,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "hubspot",
@@ -184,7 +184,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "salesforce",
@@ -214,7 +214,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "pipedrive",
@@ -243,7 +243,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.622Z"
     },
     {
       "service_slug": "copper",
@@ -271,7 +271,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "zoho-crm",
@@ -300,7 +300,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "stripe",
@@ -331,7 +331,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "adyen",
@@ -361,7 +361,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.300Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "braintree",
@@ -390,7 +390,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "paypal",
@@ -420,7 +420,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "square",
@@ -450,7 +450,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "lemon-squeezy",
@@ -479,7 +479,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "auth0",
@@ -509,7 +509,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "okta",
@@ -538,7 +538,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "firebase-auth",
@@ -568,7 +568,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "clerk",
@@ -598,7 +598,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "cognito",
@@ -627,7 +627,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "cal-com",
@@ -656,7 +656,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "calendly",
@@ -685,7 +685,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "google-calendar",
@@ -715,7 +715,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "microsoft-outlook",
@@ -744,7 +744,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "when2meet",
@@ -771,7 +771,7 @@
         "docs_unavailable": true,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "mixpanel",
@@ -800,7 +800,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "segment",
@@ -830,7 +830,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "posthog",
@@ -859,7 +859,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "amplitude",
@@ -888,7 +888,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "heap",
@@ -916,7 +916,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "algolia",
@@ -946,7 +946,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "meilisearch",
@@ -975,7 +975,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "elasticsearch",
@@ -1005,7 +1005,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "typesense",
@@ -1034,7 +1034,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "vercel",
@@ -1064,7 +1064,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "netlify",
@@ -1093,7 +1093,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "aws",
@@ -1124,7 +1124,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "digital-ocean",
@@ -1154,7 +1154,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "render",
@@ -1183,7 +1183,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "heroku",
@@ -1212,7 +1212,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "twitter-api",
@@ -1241,7 +1241,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "linkedin-api",
@@ -1270,7 +1270,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "bluesky-api",
@@ -1298,7 +1298,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "openai",
@@ -1329,7 +1329,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "anthropic",
@@ -1360,7 +1360,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "huggingface",
@@ -1389,7 +1389,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "replicate",
@@ -1418,7 +1418,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "cohere",
@@ -1448,7 +1448,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     },
     {
       "service_slug": "together-ai",
@@ -1477,7 +1477,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-      "calculated_at": "2026-03-10T22:15:53.301Z"
+      "calculated_at": "2026-03-11T22:35:23.623Z"
     }
   ],
   "errors": []

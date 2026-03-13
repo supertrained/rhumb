@@ -24,8 +24,15 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Application lifespan: initialize async dependencies at startup."""
-    # Initialize Supabase for durable metering (GAP-3b fix)
+    # Initialize Supabase-backed stores up front so the HTTP control plane,
+    # ACL/rate-limit path, and durable metering all point at the same identity source.
+    from db.client import get_supabase_client
+    from schemas.agent_identity import get_agent_identity_store
     from services.usage_metering import get_usage_meter_engine
+
+    supabase = await get_supabase_client()
+    get_agent_identity_store(supabase)
+    logger.info("Agent identity: Supabase client initialized")
 
     meter = get_usage_meter_engine()
     if await meter.ensure_supabase():
