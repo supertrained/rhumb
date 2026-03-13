@@ -5,6 +5,7 @@ Tests the full proxy pipeline: pool acquire -> breaker check -> route -> metrics
 
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -17,6 +18,7 @@ _BYPASS_KEY = "rhumb_test_bypass_key_0000"
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import routes.proxy as proxy_module
 from routes.proxy import (
     ProxyResponse,
     get_breaker_registry,
@@ -124,6 +126,43 @@ class TestIntegrationProxyRequest:
         # Auth enforcement uses real agent_id — check count for the bypass agent
         assert tracker.record_count("stripe", _BYPASS_AGENT_ID) == 1
 
+    def test_response_reports_total_and_upstream_latency(
+        self, client, httpx_mock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Response exposes total route latency separately from upstream latency."""
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={},
+            status_code=200,
+            headers={},
+        )
+        perf_values = iter(i / 100 for i in range(30))
+
+        class FakeTime:
+            def perf_counter(self) -> float:
+                return next(perf_values)
+
+            def time(self) -> float:
+                return 123.0
+
+        monkeypatch.setattr(proxy_module, "time", FakeTime())
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "stripe",
+                "method": "GET",
+                "path": "/v1/customers",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["upstream_latency_ms"] == pytest.approx(10.0)
+        assert data["latency_ms"] == pytest.approx(200.0)
+        assert data["latency_ms"] > data["upstream_latency_ms"]
+
     def test_5xx_records_breaker_failure(self, client, httpx_mock) -> None:
         """5xx response records a failure in the circuit breaker."""
         httpx_mock.add_response(
@@ -177,6 +216,8 @@ class TestIntegrationProxyRequest:
         data = response.json()
         assert data["fail_open"] is True
         assert data["status_code"] == 503
+        assert data["upstream_latency_ms"] == 0.0
+        assert data["latency_ms"] >= 0.0
 
     def test_auth_header_forwarded(self, client, httpx_mock) -> None:
         """Vault credential is injected — caller-supplied auth is NOT forwarded."""
@@ -219,6 +260,82 @@ class TestIntegrationProxyRequest:
         # With auth enforcement, ACL fires before service registry lookup.
         # The bypass agent has no grant for "nonexistent", so 403 is correct.
         assert response.status_code == 403
+
+    def test_route_uses_service_timeout_threshold_override(
+        self, client, httpx_mock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Route passes the per-service timeout threshold into breaker creation."""
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={},
+            status_code=200,
+            headers={},
+        )
+        monkeypatch.setitem(proxy_module.SERVICE_REGISTRY["stripe"], "timeout_threshold_ms", 2345.0)
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "stripe",
+                "method": "GET",
+                "path": "/v1/customers",
+            },
+        )
+
+        assert response.status_code == 200
+        breaker = proxy_module.get_breaker_registry().get("stripe", _BYPASS_AGENT_ID)
+        assert breaker.timeout_threshold_ms == 2345.0
+
+    def test_exception_path_records_total_route_latency(
+        self, client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Exception path records total route latency, not upstream-only time."""
+
+        class RecordingTracker:
+            def __init__(self) -> None:
+                self.calls: list[dict[str, Any]] = []
+
+            def record(self, **kwargs: Any) -> None:
+                self.calls.append(kwargs)
+
+        class FailingClient:
+            async def request(self, **kwargs: Any) -> None:
+                raise RuntimeError("boom")
+
+        class FailingPool:
+            async def acquire(self, service: str, agent_id: str) -> FailingClient:
+                return FailingClient()
+
+            async def release(self, service: str, agent_id: str) -> None:
+                return None
+
+        tracker = RecordingTracker()
+        perf_values = iter(i / 100 for i in range(30))
+
+        class FakeTime:
+            def perf_counter(self) -> float:
+                return next(perf_values)
+
+            def time(self) -> float:
+                return 123.0
+
+        monkeypatch.setattr(proxy_module, "time", FakeTime())
+        monkeypatch.setattr(proxy_module, "get_latency_tracker", lambda: tracker)
+        monkeypatch.setattr(proxy_module, "get_pool_manager", lambda: FailingPool())
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "stripe",
+                "method": "GET",
+                "path": "/v1/customers",
+            },
+        )
+
+        assert response.status_code == 500
+        assert tracker.calls
+        assert tracker.calls[0]["latency_ms"] == pytest.approx(130.0)
 
 
 class TestIntegrationStats:

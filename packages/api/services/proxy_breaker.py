@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
+DEFAULT_TIMEOUT_THRESHOLD_MS = 5000.0
+
+
 class BreakerState(enum.Enum):
     """Circuit breaker states."""
 
@@ -55,7 +58,7 @@ class CircuitBreaker:
     service: str
     agent_id: str = "default"
     failure_threshold: int = 5
-    timeout_threshold_ms: float = 100.0
+    timeout_threshold_ms: float = DEFAULT_TIMEOUT_THRESHOLD_MS
     cooldown_seconds: float = 30.0
     _state: BreakerState = field(default=BreakerState.CLOSED, init=False)
     _opened_at: float = field(default=0.0, init=False)
@@ -166,6 +169,7 @@ class CircuitBreaker:
                 "retry_after_seconds": self.cooldown_seconds,
             },
             "latency_ms": 0.0,
+            "upstream_latency_ms": 0.0,
             "service": self.service,
             "path": "",
             "timestamp": time.time(),
@@ -185,7 +189,7 @@ class BreakerRegistry:
     def __init__(
         self,
         failure_threshold: int = 5,
-        timeout_threshold_ms: float = 100.0,
+        timeout_threshold_ms: float = DEFAULT_TIMEOUT_THRESHOLD_MS,
         cooldown_seconds: float = 30.0,
     ) -> None:
         self._breakers: dict[str, CircuitBreaker] = {}
@@ -197,12 +201,19 @@ class BreakerRegistry:
         """Generate registry lookup key."""
         return f"{service}:{agent_id}"
 
-    def get(self, service: str, agent_id: str = "default") -> CircuitBreaker:
+    def get(
+        self,
+        service: str,
+        agent_id: str = "default",
+        timeout_threshold_ms: Optional[float] = None,
+    ) -> CircuitBreaker:
         """Get or create a circuit breaker for a service+agent pair.
 
         Args:
             service: Provider service name.
             agent_id: Agent identifier.
+            timeout_threshold_ms: Optional timeout threshold override applied
+                when a breaker is first created for this key.
 
         Returns:
             CircuitBreaker instance for this pair.
@@ -213,7 +224,11 @@ class BreakerRegistry:
                 service=service,
                 agent_id=agent_id,
                 failure_threshold=self._failure_threshold,
-                timeout_threshold_ms=self._timeout_threshold_ms,
+                timeout_threshold_ms=(
+                    timeout_threshold_ms
+                    if timeout_threshold_ms is not None
+                    else self._timeout_threshold_ms
+                ),
                 cooldown_seconds=self._cooldown_seconds,
             )
         return self._breakers[key]

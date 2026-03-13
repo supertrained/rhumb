@@ -16,7 +16,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from services.proxy_breaker import BreakerRegistry
+from services.proxy_breaker import BreakerRegistry, DEFAULT_TIMEOUT_THRESHOLD_MS
 from services.proxy_latency import LatencyTracker
 from services.proxy_pool import PoolManager
 from services.schema_alert_pipeline import AlertDispatcher, get_alert_dispatcher
@@ -55,30 +55,35 @@ SERVICE_REGISTRY = {
         "auth_type": "bearer_token",
         "rate_limit": "100/min",
         "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
     "slack": {
         "domain": "slack.com",
         "auth_type": "bearer_token",
         "rate_limit": "60/min",
         "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
     "sendgrid": {
         "domain": "api.sendgrid.com",
         "auth_type": "bearer_token",
         "rate_limit": "300/min",
         "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
     "github": {
         "domain": "api.github.com",
         "auth_type": "bearer_token",
         "rate_limit": "5000/hour",
         "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
     "twilio": {
         "domain": "api.twilio.com",
         "auth_type": "basic_auth",
         "rate_limit": "1000/min",
         "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
 }
 
@@ -104,6 +109,7 @@ class ProxyResponse(BaseModel):
     headers: dict[str, str]
     body: Any
     latency_ms: float
+    upstream_latency_ms: float
     service: str
     path: str
     timestamp: float
@@ -422,16 +428,28 @@ async def proxy_request(
                 headers={"Retry-After": str(rate_result.retry_after_seconds or 60)},
             )
 
-        breaker = get_breaker_registry().get(request.service, agent_id)
+        service_config = _get_service_config(request.service)
+        breaker = get_breaker_registry().get(
+            request.service,
+            agent_id,
+            timeout_threshold_ms=float(
+                service_config.get(
+                    "timeout_threshold_ms",
+                    DEFAULT_TIMEOUT_THRESHOLD_MS,
+                )
+            ),
+        )
         if not breaker.allow_request():
             fail_open = True
             fail_response = breaker.fail_open_response()
             status_code = int(fail_response["status_code"])
+            timings["total_route_ms"] = (time.perf_counter() - request_start) * 1000
             return ProxyResponse(
                 status_code=status_code,
                 headers=fail_response["headers"],
                 body=fail_response["body"],
-                latency_ms=0.0,
+                latency_ms=timings["total_route_ms"],
+                upstream_latency_ms=0.0,
                 service=request.service,
                 path=request.path,
                 timestamp=time.time(),
@@ -440,7 +458,6 @@ async def proxy_request(
 
         pool = get_pool_manager()
         tracker = get_latency_tracker()
-        service_config = _get_service_config(request.service)
         url = _build_url(request.service, request.path)
 
         headers = request.headers or {}
@@ -574,12 +591,14 @@ async def proxy_request(
         timings["finalizer_enqueue_ms"] = (time.perf_counter() - finalizer_start) * 1000
         finalizer_mode = finalizer_result.mode
         finalizer_queue_depth = finalizer_result.queue_depth
+        timings["total_route_ms"] = (time.perf_counter() - request_start) * 1000
 
         return ProxyResponse(
             status_code=proxied_response.status_code,
             headers=dict(proxied_response.headers),
             body=response_body,
-            latency_ms=timings["upstream_ms"],
+            latency_ms=timings["total_route_ms"],
+            upstream_latency_ms=timings["upstream_ms"],
             service=request.service,
             path=request.path,
             timestamp=time.time(),
@@ -591,9 +610,9 @@ async def proxy_request(
         raise
     except Exception as e:
         status_code = 500
-        error_latency_ms = timings["upstream_ms"]
-        if error_latency_ms <= 0:
-            error_latency_ms = (time.perf_counter() - request_start) * 1000
+        error_end = time.perf_counter()
+        timings["total_route_ms"] = (error_end - request_start) * 1000
+        error_latency_ms = timings["total_route_ms"]
 
         if breaker is not None:
             breaker.record_failure()
@@ -603,7 +622,7 @@ async def proxy_request(
                 agent_id=agent_id,
                 latency_ms=error_latency_ms,
                 perf_start=upstream_start or request_start,
-                perf_end=time.perf_counter(),
+                perf_end=error_end,
                 status_code=500,
                 success=False,
             )

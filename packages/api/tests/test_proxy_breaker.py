@@ -5,7 +5,12 @@ from unittest.mock import patch
 
 import pytest
 
-from services.proxy_breaker import BreakerRegistry, BreakerState, CircuitBreaker
+from services.proxy_breaker import (
+    DEFAULT_TIMEOUT_THRESHOLD_MS,
+    BreakerRegistry,
+    BreakerState,
+    CircuitBreaker,
+)
 
 
 @pytest.fixture
@@ -145,18 +150,24 @@ class TestBreakerStateTransitions:
 class TestBreakerTimeoutDetection:
     """Test timeout-based failure detection."""
 
+    def test_default_timeout_threshold_is_launch_safe(
+        self, breaker: CircuitBreaker
+    ) -> None:
+        """Default timeout threshold matches the launch-safe value."""
+        assert breaker.timeout_threshold_ms == DEFAULT_TIMEOUT_THRESHOLD_MS
+
     def test_slow_response_counts_as_failure(
         self, breaker: CircuitBreaker
     ) -> None:
         """Response exceeding timeout_threshold_ms counts as failure."""
-        breaker.record_success(latency_ms=150.0)  # > 100ms threshold
+        breaker.record_success(latency_ms=6000.0)
         assert breaker.metrics.consecutive_failures == 1
 
     def test_fast_response_does_not_count_as_failure(
         self, breaker: CircuitBreaker
     ) -> None:
         """Response under timeout_threshold_ms doesn't count as failure."""
-        breaker.record_success(latency_ms=50.0)
+        breaker.record_success(latency_ms=220.0)
         assert breaker.metrics.consecutive_failures == 0
 
     def test_timeout_failures_trigger_open(
@@ -164,7 +175,7 @@ class TestBreakerTimeoutDetection:
     ) -> None:
         """Consecutive timeout failures trigger OPEN state."""
         for _ in range(5):
-            breaker.record_success(latency_ms=150.0)
+            breaker.record_success(latency_ms=6000.0)
         assert breaker.state == BreakerState.OPEN
 
 
@@ -217,6 +228,7 @@ class TestBreakerRegistry:
         breaker = registry.get("stripe")
         assert breaker is not None
         assert breaker.service == "stripe"
+        assert breaker.timeout_threshold_ms == DEFAULT_TIMEOUT_THRESHOLD_MS
 
     def test_get_returns_same_instance(
         self, registry: BreakerRegistry
@@ -233,6 +245,13 @@ class TestBreakerRegistry:
         b1 = registry.get("stripe")
         b2 = registry.get("slack")
         assert b1 is not b2
+
+    def test_get_applies_timeout_override_on_creation(
+        self, registry: BreakerRegistry
+    ) -> None:
+        """Per-service overrides are applied when a breaker is first created."""
+        breaker = registry.get("slack", timeout_threshold_ms=2500.0)
+        assert breaker.timeout_threshold_ms == 2500.0
 
     def test_get_all_states(self, registry: BreakerRegistry) -> None:
         """get_all_states returns current states."""
