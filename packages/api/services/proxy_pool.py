@@ -1,12 +1,12 @@
 """Connection pool manager for proxy service.
 
-Redis-backed pool state with adaptive sizing based on request frequency.
-Each service+agent pair gets its own pool tracked at proxy:pool:{service}:{agent_id}.
+Maintains one persistent httpx.AsyncClient per provider/service and tracks
+per-agent accounting separately at proxy:pool:{service}:{agent_id}.
 """
 
 import asyncio
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import httpx
@@ -14,13 +14,13 @@ import httpx
 
 @dataclass
 class PoolMetrics:
-    """Utilization metrics for a connection pool."""
+    """Per-agent utilization metrics over a shared provider client."""
 
     total_acquired: int = 0
     total_released: int = 0
     total_reused: int = 0
     active_connections: int = 0
-    pool_size: int = 3
+    pool_size: int = 10
     peak_active: int = 0
     last_request_time: float = 0.0
 
@@ -39,110 +39,75 @@ class PoolMetrics:
         return self.total_reused / self.total_acquired
 
 
-@dataclass
-class PoolEntry:
-    """A single pool entry for a service+agent pair."""
-
-    service: str
-    agent_id: str
-    client: httpx.AsyncClient
-    metrics: PoolMetrics = field(default_factory=PoolMetrics)
-    _request_timestamps: list[float] = field(default_factory=list)
-
-    def record_request(self) -> None:
-        """Record a request timestamp for QPS calculation."""
-        now = time.monotonic()
-        self._request_timestamps.append(now)
-        self.metrics.last_request_time = now
-        # Keep only last 60s of timestamps
-        cutoff = now - 60.0
-        self._request_timestamps = [t for t in self._request_timestamps if t > cutoff]
-
-    @property
-    def qps(self) -> float:
-        """Requests per second over the last 60s window."""
-        now = time.monotonic()
-        cutoff = now - 60.0
-        recent = [t for t in self._request_timestamps if t > cutoff]
-        if not recent:
-            return 0.0
-        elapsed = now - recent[0]
-        if elapsed < 0.01:
-            return float(len(recent))
-        return len(recent) / elapsed
-
-    @property
-    def redis_key(self) -> str:
-        """Redis key for this pool entry."""
-        return f"proxy:pool:{self.service}:{self.agent_id}"
-
-
 class PoolManager:
-    """Connection pool manager with adaptive sizing.
+    """Connection pool manager with persistent provider-scoped clients."""
 
-    Manages httpx.AsyncClient instances per service+agent pair.
-    Pool sizing: base=3, scale=+1 per 10 QPS, capped at max_pool_size.
-    """
-
-    BASE_POOL_SIZE: int = 3
-    QPS_SCALE_FACTOR: int = 10  # +1 connection per 10 qps
-    MAX_POOL_SIZE: int = 20
     DEFAULT_TIMEOUT: float = 10.0
+    KEEPALIVE_EXPIRY: float = 30.0
+    MAX_KEEPALIVE_CONNECTIONS: int = 10
+    MAX_CONNECTIONS: int = 40
 
     def __init__(self, redis_client: Optional[object] = None) -> None:
-        self._pools: dict[str, PoolEntry] = {}
+        self._provider_clients: dict[str, httpx.AsyncClient] = {}
+        self._agent_metrics: dict[str, PoolMetrics] = {}
         self._redis = redis_client
         self._lock = asyncio.Lock()
         self._shutting_down = False
 
-    def _pool_key(self, service: str, agent_id: str) -> str:
-        """Generate pool lookup key."""
+    def _agent_key(self, service: str, agent_id: str) -> str:
+        """Generate the per-agent metrics lookup key."""
         return f"{service}:{agent_id}"
 
-    def _compute_pool_size(self, qps: float) -> int:
-        """Compute target pool size based on QPS.
+    async def _get_or_create_provider_client(
+        self, service: str, base_url: str = ""
+    ) -> httpx.AsyncClient:
+        """Get the persistent client for a provider, creating it on first use."""
+        client = self._provider_clients.get(service)
+        if client is None:
+            client = httpx.AsyncClient(
+                base_url=base_url,
+                timeout=self.DEFAULT_TIMEOUT,
+                limits=httpx.Limits(
+                    max_keepalive_connections=self.MAX_KEEPALIVE_CONNECTIONS,
+                    max_connections=self.MAX_CONNECTIONS,
+                    keepalive_expiry=self.KEEPALIVE_EXPIRY,
+                ),
+            )
+            self._provider_clients[service] = client
+        return client
 
-        base=3, +1 per 10 QPS, capped at MAX_POOL_SIZE.
-        """
-        extra = int(qps / self.QPS_SCALE_FACTOR)
-        return min(self.BASE_POOL_SIZE + extra, self.MAX_POOL_SIZE)
-
-    async def _create_client(self, pool_size: int) -> httpx.AsyncClient:
-        """Create a new httpx.AsyncClient with the given pool size."""
-        return httpx.AsyncClient(
-            timeout=self.DEFAULT_TIMEOUT,
-            limits=httpx.Limits(
-                max_keepalive_connections=pool_size,
-                max_connections=pool_size * 2,
-            ),
-        )
-
-    async def _sync_to_redis(self, entry: PoolEntry) -> None:
-        """Persist pool state to Redis."""
+    async def _sync_to_redis(
+        self, service: str, agent_id: str, metrics: PoolMetrics
+    ) -> None:
+        """Persist per-agent pool state to Redis."""
         if self._redis is None:
             return
-        key = entry.redis_key
+        key = f"proxy:pool:{service}:{agent_id}"
         state = {
-            "pool_size": str(entry.metrics.pool_size),
-            "active_connections": str(entry.metrics.active_connections),
-            "total_acquired": str(entry.metrics.total_acquired),
-            "total_released": str(entry.metrics.total_released),
-            "total_reused": str(entry.metrics.total_reused),
-            "utilization": f"{entry.metrics.utilization:.3f}",
+            "pool_size": str(metrics.pool_size),
+            "active_connections": str(metrics.active_connections),
+            "total_acquired": str(metrics.total_acquired),
+            "total_released": str(metrics.total_released),
+            "total_reused": str(metrics.total_reused),
+            "utilization": f"{metrics.utilization:.3f}",
         }
         if hasattr(self._redis, "hset"):
             await self._redis.hset(key, mapping=state)
             await self._redis.expire(key, 300)  # 5m TTL
 
-    async def acquire(self, service: str, agent_id: str = "default") -> httpx.AsyncClient:
-        """Acquire an HTTP client from the pool.
-
-        Creates a new pool entry if one doesn't exist for this service+agent pair.
-        Tracks metrics and adapts pool size based on request frequency.
+    async def acquire(
+        self,
+        service: str,
+        agent_id: str = "default",
+        *,
+        base_url: str = "",
+    ) -> httpx.AsyncClient:
+        """Acquire the shared provider client and update per-agent metrics.
 
         Args:
             service: Provider service name (e.g., 'stripe').
-            agent_id: Agent identifier for per-agent pooling.
+            agent_id: Agent identifier for per-agent accounting.
+            base_url: Provider base URL used when the client is first created.
 
         Returns:
             An httpx.AsyncClient configured for the service.
@@ -153,60 +118,45 @@ class PoolManager:
         if self._shutting_down:
             raise RuntimeError("Pool manager is shutting down")
 
-        key = self._pool_key(service, agent_id)
+        key = self._agent_key(service, agent_id)
 
         async with self._lock:
-            if key not in self._pools:
-                client = await self._create_client(self.BASE_POOL_SIZE)
-                entry = PoolEntry(
-                    service=service,
-                    agent_id=agent_id,
-                    client=client,
-                )
-                entry.metrics.pool_size = self.BASE_POOL_SIZE
-                self._pools[key] = entry
+            client = await self._get_or_create_provider_client(service, base_url)
+            metrics = self._agent_metrics.get(key)
+            if metrics is None:
+                metrics = PoolMetrics(pool_size=self.MAX_KEEPALIVE_CONNECTIONS)
+                self._agent_metrics[key] = metrics
             else:
-                entry = self._pools[key]
-                entry.metrics.total_reused += 1
+                metrics.total_reused += 1
 
-            entry.record_request()
-            entry.metrics.total_acquired += 1
-            entry.metrics.active_connections += 1
-            if entry.metrics.active_connections > entry.metrics.peak_active:
-                entry.metrics.peak_active = entry.metrics.active_connections
+            metrics.total_acquired += 1
+            metrics.active_connections += 1
+            if metrics.active_connections > metrics.peak_active:
+                metrics.peak_active = metrics.active_connections
+            metrics.last_request_time = time.monotonic()
 
-            # Adaptive sizing: check if pool needs to grow
-            target_size = self._compute_pool_size(entry.qps)
-            if target_size != entry.metrics.pool_size:
-                old_client = entry.client
-                entry.client = await self._create_client(target_size)
-                entry.metrics.pool_size = target_size
-                await old_client.aclose()
+            await self._sync_to_redis(service, agent_id, metrics)
 
-            await self._sync_to_redis(entry)
-
-        return entry.client
+        return client
 
     async def release(self, service: str, agent_id: str = "default") -> None:
-        """Release a connection back to the pool.
+        """Release a connection back to the shared provider client.
 
         Args:
             service: Provider service name.
             agent_id: Agent identifier.
         """
-        key = self._pool_key(service, agent_id)
+        key = self._agent_key(service, agent_id)
 
         async with self._lock:
-            if key in self._pools:
-                entry = self._pools[key]
-                entry.metrics.active_connections = max(
-                    0, entry.metrics.active_connections - 1
-                )
-                entry.metrics.total_released += 1
-                await self._sync_to_redis(entry)
+            metrics = self._agent_metrics.get(key)
+            if metrics is not None:
+                metrics.active_connections = max(0, metrics.active_connections - 1)
+                metrics.total_released += 1
+                await self._sync_to_redis(service, agent_id, metrics)
 
     def get_metrics(self, service: str, agent_id: str = "default") -> Optional[PoolMetrics]:
-        """Get pool metrics for a service+agent pair.
+        """Get per-agent metrics for a service+agent pair.
 
         Args:
             service: Provider service name.
@@ -215,22 +165,18 @@ class PoolManager:
         Returns:
             PoolMetrics if pool exists, None otherwise.
         """
-        key = self._pool_key(service, agent_id)
-        entry = self._pools.get(key)
-        if entry is None:
-            return None
-        return entry.metrics
+        return self._agent_metrics.get(self._agent_key(service, agent_id))
 
     def get_all_metrics(self) -> dict[str, PoolMetrics]:
-        """Get metrics for all active pools.
+        """Get metrics for all active service+agent accounting entries.
 
         Returns:
-            Dict mapping pool keys to their metrics.
+            Dict mapping service:agent keys to their metrics.
         """
-        return {key: entry.metrics for key, entry in self._pools.items()}
+        return dict(self._agent_metrics)
 
     async def shutdown(self) -> None:
-        """Gracefully shut down all pools.
+        """Gracefully shut down all provider clients.
 
         Marks manager as shutting down, waits for active connections to drain
         (up to 5s), then closes all clients.
@@ -241,7 +187,7 @@ class PoolManager:
         deadline = time.monotonic() + 5.0
         while time.monotonic() < deadline:
             total_active = sum(
-                e.metrics.active_connections for e in self._pools.values()
+                metrics.active_connections for metrics in self._agent_metrics.values()
             )
             if total_active == 0:
                 break
@@ -249,14 +195,15 @@ class PoolManager:
 
         # Close all clients
         async with self._lock:
-            for entry in self._pools.values():
-                await entry.client.aclose()
-            self._pools.clear()
+            for client in self._provider_clients.values():
+                await client.aclose()
+            self._provider_clients.clear()
+            self._agent_metrics.clear()
 
     @property
     def pool_count(self) -> int:
-        """Number of active pool entries."""
-        return len(self._pools)
+        """Number of provider clients currently managed."""
+        return len(self._provider_clients)
 
     @property
     def is_shutting_down(self) -> bool:

@@ -29,7 +29,9 @@ class _FakePool:
     def __init__(self, response: httpx.Response) -> None:
         self._response = response
 
-    async def acquire(self, service: str, agent_id: str):  # type: ignore[no-untyped-def]
+    async def acquire(
+        self, service: str, agent_id: str, *, base_url: str = ""
+    ):  # type: ignore[no-untyped-def]
         response = self._response
 
         class _Client:

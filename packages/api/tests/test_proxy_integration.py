@@ -304,7 +304,9 @@ class TestIntegrationProxyRequest:
                 raise RuntimeError("boom")
 
         class FailingPool:
-            async def acquire(self, service: str, agent_id: str) -> FailingClient:
+            async def acquire(
+                self, service: str, agent_id: str, *, base_url: str = ""
+            ) -> FailingClient:
                 return FailingClient()
 
             async def release(self, service: str, agent_id: str) -> None:

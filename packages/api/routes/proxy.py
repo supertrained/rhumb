@@ -255,13 +255,11 @@ def _get_service_config(service: str) -> dict:
     return SERVICE_REGISTRY[service]
 
 
-def _build_url(service: str, path: str) -> str:
-    """Build full URL for proxied request."""
-    config = _get_service_config(service)
-    domain = config["domain"]
+def _build_request_path(path: str) -> str:
+    """Normalize a proxied request path for a provider-scoped client."""
     if not path.startswith("/"):
         path = "/" + path
-    return f"https://{domain}{path}"
+    return path
 
 
 def _schema_endpoint_key(agent_id: str, endpoint_path: str) -> str:
@@ -458,7 +456,8 @@ async def proxy_request(
 
         pool = get_pool_manager()
         tracker = get_latency_tracker()
-        url = _build_url(request.service, request.path)
+        base_url = f"https://{service_config['domain']}"
+        path = _build_request_path(request.path)
 
         headers = request.headers or {}
         auth_method = AuthInjector.default_method_for(request.service)
@@ -486,7 +485,11 @@ async def proxy_request(
             ) * 1000
 
         pool_start = time.perf_counter()
-        client = await pool.acquire(request.service, agent_id)
+        client = await pool.acquire(
+            request.service,
+            agent_id,
+            base_url=base_url,
+        )
         timings["pool_acquire_ms"] = (time.perf_counter() - pool_start) * 1000
 
         try:
@@ -494,7 +497,7 @@ async def proxy_request(
             try:
                 proxied_response = await client.request(
                     method=request.method,
-                    url=url,
+                    url=path,
                     headers=headers,
                     json=request.body,
                     params=request.params,

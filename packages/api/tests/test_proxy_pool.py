@@ -1,6 +1,7 @@
 """Tests for proxy connection pool manager."""
 
 import asyncio
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -33,7 +34,7 @@ class TestPoolManagerAcquireRelease:
     @pytest.mark.asyncio
     async def test_acquire_creates_client(self, pool: PoolManager) -> None:
         """First acquire for a service creates a new client."""
-        client = await pool.acquire("stripe")
+        client = await pool.acquire("stripe", base_url="https://api.stripe.com")
         assert client is not None
         assert pool.pool_count == 1
         await pool.shutdown()
@@ -60,10 +61,17 @@ class TestPoolManagerAcquireRelease:
 
     @pytest.mark.asyncio
     async def test_acquire_different_agents(self, pool: PoolManager) -> None:
-        """Different agents for same service get separate pools."""
-        await pool.acquire("stripe", "agent-1")
-        await pool.acquire("stripe", "agent-2")
-        assert pool.pool_count == 2
+        """Different agents for same service share one provider client."""
+        client1 = await pool.acquire("stripe", "agent-1", base_url="https://api.stripe.com")
+        client2 = await pool.acquire("stripe", "agent-2", base_url="https://api.stripe.com")
+        assert client1 is client2
+        assert pool.pool_count == 1
+        agent_1_metrics = pool.get_metrics("stripe", "agent-1")
+        agent_2_metrics = pool.get_metrics("stripe", "agent-2")
+        assert agent_1_metrics is not None
+        assert agent_2_metrics is not None
+        assert agent_1_metrics.total_acquired == 1
+        assert agent_2_metrics.total_acquired == 1
         await pool.shutdown()
 
     @pytest.mark.asyncio
@@ -132,8 +140,9 @@ class TestPoolManagerMetrics:
         await pool.acquire("stripe")
         metrics = pool.get_metrics("stripe")
         assert metrics is not None
-        # 1 active out of base pool_size=3
-        assert metrics.utilization == pytest.approx(1.0 / 3.0, abs=0.01)
+        assert metrics.utilization == pytest.approx(
+            1.0 / pool.MAX_KEEPALIVE_CONNECTIONS, abs=0.01
+        )
         await pool.shutdown()
 
     @pytest.mark.asyncio
@@ -151,12 +160,12 @@ class TestPoolManagerMetrics:
     @pytest.mark.asyncio
     async def test_get_all_metrics(self, pool: PoolManager) -> None:
         """get_all_metrics returns metrics for all pools."""
-        await pool.acquire("stripe")
-        await pool.acquire("slack")
+        await pool.acquire("stripe", "agent-1")
+        await pool.acquire("stripe", "agent-2")
         all_metrics = pool.get_all_metrics()
         assert len(all_metrics) == 2
-        assert "stripe:default" in all_metrics
-        assert "slack:default" in all_metrics
+        assert "stripe:agent-1" in all_metrics
+        assert "stripe:agent-2" in all_metrics
         await pool.shutdown()
 
     @pytest.mark.asyncio
@@ -174,31 +183,51 @@ class TestPoolManagerMetrics:
         assert m.total_acquired == 0
 
 
-class TestPoolManagerSizing:
-    """Test adaptive pool sizing based on QPS."""
+class TestPoolManagerProviderClients:
+    """Test persistent provider-scoped client configuration."""
 
     @pytest.mark.asyncio
-    async def test_base_pool_size(self, pool: PoolManager) -> None:
-        """Initial pool size is BASE_POOL_SIZE=3."""
+    async def test_agent_metrics_reflect_provider_pool_limits(
+        self, pool: PoolManager
+    ) -> None:
+        """Per-agent metrics expose the shared provider keepalive limit."""
         await pool.acquire("stripe")
         metrics = pool.get_metrics("stripe")
         assert metrics is not None
-        assert metrics.pool_size == 3
+        assert metrics.pool_size == pool.MAX_KEEPALIVE_CONNECTIONS
         await pool.shutdown()
 
     @pytest.mark.asyncio
-    async def test_pool_size_computation(self, pool: PoolManager) -> None:
-        """Pool size scales with QPS."""
-        assert pool._compute_pool_size(0) == 3
-        assert pool._compute_pool_size(9) == 3
-        assert pool._compute_pool_size(10) == 4
-        assert pool._compute_pool_size(30) == 6
-        assert pool._compute_pool_size(200) == 20  # Capped at MAX
+    async def test_provider_client_has_persistent_keepalive_settings(
+        self, pool: PoolManager
+    ) -> None:
+        """Provider client uses the contract's keepalive settings."""
+        client = await pool.acquire("stripe", base_url="https://api.stripe.com")
+        transport_pool = client._transport._pool  # type: ignore[attr-defined]
+
+        assert client.base_url == "https://api.stripe.com"
+        assert transport_pool._max_keepalive_connections == pool.MAX_KEEPALIVE_CONNECTIONS
+        assert transport_pool._max_connections == pool.MAX_CONNECTIONS
+        assert transport_pool._keepalive_expiry == pool.KEEPALIVE_EXPIRY
+        await pool.shutdown()
 
     @pytest.mark.asyncio
-    async def test_max_pool_size_cap(self, pool: PoolManager) -> None:
-        """Pool size doesn't exceed MAX_POOL_SIZE."""
-        assert pool._compute_pool_size(1000) == pool.MAX_POOL_SIZE
+    async def test_provider_client_is_only_closed_on_shutdown(
+        self, pool: PoolManager
+    ) -> None:
+        """Normal acquire/release flow does not close the shared provider client."""
+        client = await pool.acquire("stripe", base_url="https://api.stripe.com")
+        await pool.release("stripe")
+
+        close_spy = AsyncMock()
+        client.aclose = close_spy  # type: ignore[method-assign]
+
+        await pool.acquire("stripe", "agent-2", base_url="https://api.stripe.com")
+        await pool.release("stripe", "agent-2")
+        close_spy.assert_not_awaited()
+
+        await pool.shutdown()
+        close_spy.assert_awaited_once()
 
 
 class TestPoolManagerShutdown:
@@ -239,7 +268,7 @@ class TestPoolManagerRedis:
         assert exists
 
         pool_size = await fake_redis.hget(key, "pool_size")  # type: ignore[union-attr]
-        assert pool_size == b"3"
+        assert pool_size == b"10"
         await pool_with_redis.shutdown()
 
     @pytest.mark.asyncio
