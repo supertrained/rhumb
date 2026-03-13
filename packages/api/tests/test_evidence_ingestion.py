@@ -217,7 +217,7 @@ def test_admits_latency_snapshot() -> None:
     evidence = client.rows("evidence_records")[0]
     assert evidence["evidence_kind"] == "latency_snapshot"
     assert evidence["source_type"] == "runtime_verified"
-    assert evidence["fresh_until"] == observed_at + timedelta(minutes=10)
+    assert evidence["fresh_until"] == (observed_at + timedelta(minutes=10)).isoformat()
 
 
 def test_admits_circuit_state() -> None:
@@ -234,7 +234,7 @@ def test_admits_circuit_state() -> None:
     evidence = client.rows("evidence_records")[0]
     assert evidence["evidence_kind"] == "circuit_state"
     assert evidence["source_type"] == "runtime_verified"
-    assert evidence["fresh_until"] == observed_at + timedelta(minutes=30)
+    assert evidence["fresh_until"] == (observed_at + timedelta(minutes=30)).isoformat()
 
 
 def test_admits_schema_change() -> None:
@@ -250,7 +250,7 @@ def test_admits_schema_change() -> None:
     assert result.admitted == 1
     evidence = client.rows("evidence_records")[0]
     assert evidence["evidence_kind"] == "schema_change"
-    assert evidence["fresh_until"] == observed_at + timedelta(days=7)
+    assert evidence["fresh_until"] == (observed_at + timedelta(days=7)).isoformat()
 
 
 def test_admits_credential_lifecycle_valid_events() -> None:
@@ -378,7 +378,7 @@ def test_admits_usage_summary() -> None:
     assert evidence["source_ref"] == "usage_events:stripe:2026-01-11"
     assert evidence["title"] == "Usage summary for stripe (2026-01-11)"
     assert evidence["confidence"] == 0.9
-    assert evidence["fresh_until"] == created_at + timedelta(hours=26)
+    assert evidence["fresh_until"] == (created_at + timedelta(hours=26)).isoformat()
     assert evidence["raw_payload_json"]["total_events"] == 2
     assert evidence["raw_payload_json"]["result_counts"] == {"success": 1, "error": 1}
 

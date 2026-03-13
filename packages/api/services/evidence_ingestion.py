@@ -172,6 +172,7 @@ class EvidenceIngestionAdapter:
                 ):
                     summary = _append_note(summary, _SUPPORT_STATE_DOWNGRADE_NOTE)
 
+                fresh_until = observed_at + rule.fresh_offset
                 payload = {
                     "service_slug": str(fact.get("service_slug", "")),
                     "source_type": source_type,
@@ -181,8 +182,8 @@ class EvidenceIngestionAdapter:
                     "summary": summary,
                     "raw_payload_json": fact.get("payload") or {},
                     "normalized_payload_json": {},
-                    "observed_at": observed_at,
-                    "fresh_until": observed_at + rule.fresh_offset,
+                    "observed_at": observed_at.isoformat(),
+                    "fresh_until": fresh_until.isoformat(),
                     "confidence": _coerce_optional_float(fact.get("confidence")),
                     "agent_id": _coerce_optional_text(fact.get("agent_id")),
                     "run_id": _coerce_optional_text(fact.get("run_id")),
@@ -253,6 +254,7 @@ class EvidenceIngestionAdapter:
                     }
                 )
 
+                usage_fresh_until = observed_at + timedelta(hours=24)
                 payload = {
                     "service_slug": service,
                     "source_type": "runtime_verified",
@@ -270,8 +272,8 @@ class EvidenceIngestionAdapter:
                         "agent_ids": agent_ids,
                     },
                     "normalized_payload_json": {},
-                    "observed_at": observed_at,
-                    "fresh_until": observed_at + timedelta(hours=24),
+                    "observed_at": observed_at.isoformat(),
+                    "fresh_until": usage_fresh_until.isoformat(),
                     "confidence": 0.9,
                     "agent_id": agent_ids[0] if len(agent_ids) == 1 else None,
                     "run_id": None,
