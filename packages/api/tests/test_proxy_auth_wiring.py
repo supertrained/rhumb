@@ -11,10 +11,10 @@ Covers the five control-plane insertions in proxy_request():
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from pathlib import Path
 from typing import Generator
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -150,6 +150,21 @@ def _register_agent_with_grant(
     return agent_id, api_key
 
 
+class _CountingIdentityStore(AgentIdentityStore):
+    def __init__(self) -> None:
+        super().__init__(supabase_client=None)
+        self.get_agent_calls = 0
+        self.get_service_access_calls = 0
+
+    async def get_agent(self, agent_id: str):  # type: ignore[override]
+        self.get_agent_calls += 1
+        return await super().get_agent(agent_id)
+
+    async def get_service_access(self, agent_id: str, service: str):  # type: ignore[override]
+        self.get_service_access_calls += 1
+        return await super().get_service_access(agent_id, service)
+
+
 @pytest.fixture
 def registered_agent(
     identity_store: AgentIdentityStore,
@@ -241,12 +256,12 @@ class TestProxyAuthWiring:
         agent_id, api_key = _register_agent_with_grant(identity_store, service="stripe")
 
         # Monkey-patch rate checker to always deny
-        original_check = rate_checker.check_rate_limit
+        original_check = rate_checker.check_rate_limit_with_context
 
-        async def _deny(agent_id: str, service: str) -> AgentRateLimitResult:
+        async def _deny(agent, access, service: str) -> AgentRateLimitResult:
             return AgentRateLimitResult(
                 allowed=False,
-                agent_id=agent_id,
+                agent_id=agent.agent_id,
                 service=service,
                 effective_limit_qpm=10,
                 remaining=0,
@@ -254,7 +269,7 @@ class TestProxyAuthWiring:
                 retry_after_seconds=30,
             )
 
-        rate_checker.check_rate_limit = _deny  # type: ignore[assignment]
+        rate_checker.check_rate_limit_with_context = _deny  # type: ignore[assignment]
         try:
             resp = client.post(
                 PROXY_URL,
@@ -265,7 +280,7 @@ class TestProxyAuthWiring:
             assert "Rate limit exceeded" in resp.json()["detail"]
             assert resp.headers.get("Retry-After") == "30"
         finally:
-            rate_checker.check_rate_limit = original_check  # type: ignore[assignment]
+            rate_checker.check_rate_limit_with_context = original_check  # type: ignore[assignment]
 
     def test_no_vault_credential_returns_503(
         self,
@@ -384,3 +399,77 @@ class TestProxyAuthWiring:
         assert snapshot is not None
         assert snapshot.call_count == 1
         assert snapshot.failed_count == 1
+
+    def test_proxy_request_dedupes_agent_and_access_reads(
+        self,
+        client: TestClient,
+        credential_store: CredentialStore,
+        httpx_mock,
+    ) -> None:
+        identity_store = _CountingIdentityStore()
+        proxy_module._identity_store = identity_store
+        proxy_module._acl_instance = AgentAccessControl(identity_store=identity_store)
+        proxy_module._rate_checker_instance = AgentRateLimitChecker(
+            identity_store=identity_store,
+            rate_limiter=RateLimiter(redis_client=None),
+        )
+        proxy_module._meter_instance = UsageMeterEngine(identity_store=identity_store)
+
+        _agent_id, api_key = _register_agent_with_grant(identity_store, service="stripe")
+        credential_store.set_credential("stripe", "api_key", "sk_test_vault_secret")
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={"data": []},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        resp = client.post(
+            PROXY_URL,
+            json=STRIPE_REQUEST,
+            headers={"X-Rhumb-Key": api_key},
+        )
+
+        assert resp.status_code == 200
+        assert identity_store.get_agent_calls == 0
+        assert identity_store.get_service_access_calls == 1
+
+    def test_full_path_timing_log_includes_control_plane_phases(
+        self,
+        client: TestClient,
+        identity_store: AgentIdentityStore,
+        credential_store: CredentialStore,
+        httpx_mock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        _agent_id, api_key = _register_agent_with_grant(identity_store, service="stripe")
+        credential_store.set_credential("stripe", "api_key", "sk_test_vault_secret")
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={"data": []},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        caplog.set_level(logging.INFO, logger=proxy_module.logger.name)
+        resp = client.post(
+            PROXY_URL,
+            json=STRIPE_REQUEST,
+            headers={"X-Rhumb-Key": api_key},
+        )
+
+        assert resp.status_code == 200
+        full_path_logs = [
+            record.getMessage()
+            for record in caplog.records
+            if "proxy full-path timings" in record.getMessage()
+        ]
+        assert full_path_logs
+        log_line = full_path_logs[-1]
+        assert "auth_ms=" in log_line
+        assert "acl_ms=" in log_line
+        assert "rate_limit_ms=" in log_line
+        assert "total_route_ms=" in log_line
+        assert "status_code=200" in log_line

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Optional
 
@@ -26,10 +27,15 @@ from services.schema_change_detector import (
 )
 from services.schema_fingerprint import SchemaFingerprint, fingerprint_response
 
-from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from schemas.agent_identity import (
+    AgentIdentitySchema,
+    AgentIdentityStore,
+    AgentServiceAccessSchema,
+    get_agent_identity_store,
+)
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_rate_limit import AgentRateLimitChecker, get_agent_rate_limit_checker
-from services.proxy_auth import AuthInjectionRequest, AuthMethod, AuthInjector, get_auth_injector
+from services.proxy_auth import AuthInjectionRequest, AuthInjector, get_auth_injector
 from services.proxy_finalizer import (
     ProxyFinalizationJob,
     ProxyFinalizer,
@@ -102,6 +108,17 @@ class ProxyResponse(BaseModel):
     path: str
     timestamp: float
     fail_open: bool = False
+
+
+@dataclass
+class ResolvedProxyContext:
+    """Request-scoped control-plane state for one proxied call."""
+
+    agent: AgentIdentitySchema
+    agent_id: str
+    service: str
+    access: Optional[AgentServiceAccessSchema] = None
+    effective_limit_qpm: Optional[int] = None
 
 
 # Singleton instances (module-level, replaced in tests)
@@ -317,6 +334,21 @@ def _max_severity(changes: tuple[SchemaChange, ...]) -> str:
     return "advisory"
 
 
+def _new_proxy_timings() -> dict[str, float]:
+    return {
+        "auth_ms": 0.0,
+        "acl_ms": 0.0,
+        "rate_limit_ms": 0.0,
+        "credential_inject_ms": 0.0,
+        "pool_acquire_ms": 0.0,
+        "upstream_ms": 0.0,
+        "response_parse_ms": 0.0,
+        "schema_detect_ms": 0.0,
+        "finalizer_enqueue_ms": 0.0,
+        "total_route_ms": 0.0,
+    }
+
+
 @router.post("/", response_model=ProxyResponse)
 async def proxy_request(
     request: ProxyRequest,
@@ -336,67 +368,90 @@ async def proxy_request(
     - Performs schema drift detection (non-blocking alerts)
     - Returns response with circuit breaker signal
     """
-    # --- Control plane: Authenticate agent via X-Rhumb-Key header ---
-    if not x_rhumb_key:
-        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
-    agent_id = await _get_identity_store().verify_api_key(x_rhumb_key)
-    if agent_id is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
-
-    # --- Control plane: ACL check ---
-    allowed, deny_reason = await _get_acl().can_access_service(
-        agent_id=agent_id,
-        service=request.service,
-    )
-    if not allowed:
-        raise HTTPException(status_code=403, detail=deny_reason or "Access denied")
-
-    # --- Control plane: Rate limit check ---
-    rate_result = await _get_rate_checker().check_rate_limit(
-        agent_id=agent_id,
-        service=request.service,
-    )
-    if not rate_result.allowed:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded. Retry after {rate_result.retry_after_seconds}s",
-            headers={"Retry-After": str(rate_result.retry_after_seconds or 60)},
-        )
-
-    perf_start = time.perf_counter()
-
-    # Circuit breaker check
-    breaker_reg = get_breaker_registry()
-    breaker = breaker_reg.get(request.service, agent_id)
-
-    if not breaker.allow_request():
-        fail_response = breaker.fail_open_response()
-        return ProxyResponse(
-            status_code=fail_response["status_code"],
-            headers=fail_response["headers"],
-            body=fail_response["body"],
-            latency_ms=0.0,
-            service=request.service,
-            path=request.path,
-            timestamp=time.time(),
-            fail_open=True,
-        )
-
-    pool = get_pool_manager()
-    tracker = get_latency_tracker()
+    request_start = time.perf_counter()
+    timings = _new_proxy_timings()
+    status_code = 500
+    fail_open = False
+    finalizer_mode = "not_run"
+    finalizer_queue_depth = 0
+    agent_id = "unknown"
+    breaker = None
+    tracker = None
+    upstream_start: Optional[float] = None
+    response_body: Any = None
 
     try:
-        # Validate service
-        service_config = _get_service_config(request.service)
+        if not x_rhumb_key:
+            raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
-        # Build URL
+        auth_start = time.perf_counter()
+        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        timings["auth_ms"] = (time.perf_counter() - auth_start) * 1000
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+
+        resolved_context = ResolvedProxyContext(
+            agent=agent,
+            agent_id=agent.agent_id,
+            service=request.service,
+        )
+        agent_id = resolved_context.agent_id
+
+        acl_start = time.perf_counter()
+        allowed, deny_reason, access = await _get_acl().resolve_service_access(
+            resolved_context.agent,
+            request.service,
+        )
+        timings["acl_ms"] = (time.perf_counter() - acl_start) * 1000
+        if not allowed or access is None:
+            raise HTTPException(status_code=403, detail=deny_reason or "Access denied")
+        resolved_context.access = access
+
+        rate_limit_start = time.perf_counter()
+        rate_result = await _get_rate_checker().check_rate_limit_with_context(
+            resolved_context.agent,
+            resolved_context.access,
+            request.service,
+        )
+        timings["rate_limit_ms"] = (time.perf_counter() - rate_limit_start) * 1000
+        resolved_context.effective_limit_qpm = rate_result.effective_limit_qpm
+        if not rate_result.allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Retry after {rate_result.retry_after_seconds}s",
+                headers={"Retry-After": str(rate_result.retry_after_seconds or 60)},
+            )
+
+        breaker = get_breaker_registry().get(request.service, agent_id)
+        if not breaker.allow_request():
+            fail_open = True
+            fail_response = breaker.fail_open_response()
+            status_code = int(fail_response["status_code"])
+            return ProxyResponse(
+                status_code=status_code,
+                headers=fail_response["headers"],
+                body=fail_response["body"],
+                latency_ms=0.0,
+                service=request.service,
+                path=request.path,
+                timestamp=time.time(),
+                fail_open=True,
+            )
+
+        pool = get_pool_manager()
+        tracker = get_latency_tracker()
+        service_config = _get_service_config(request.service)
         url = _build_url(request.service, request.path)
 
-        # --- Control plane: Inject provider credential from vault ---
         headers = request.headers or {}
         auth_method = AuthInjector.default_method_for(request.service)
         if auth_method is None:
-            raise HTTPException(status_code=500, detail=f"No auth method configured for '{request.service}'")
+            raise HTTPException(
+                status_code=500,
+                detail=f"No auth method configured for '{request.service}'",
+            )
+
+        credential_start = time.perf_counter()
         try:
             headers = _get_auth_injector().inject(
                 AuthInjectionRequest(
@@ -408,68 +463,62 @@ async def proxy_request(
             )
         except RuntimeError as e:
             raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
+        finally:
+            timings["credential_inject_ms"] = (
+                time.perf_counter() - credential_start
+            ) * 1000
 
-        # Acquire pooled client
+        pool_start = time.perf_counter()
         client = await pool.acquire(request.service, agent_id)
+        timings["pool_acquire_ms"] = (time.perf_counter() - pool_start) * 1000
 
         try:
-            # Forward request
-            proxied_response = await client.request(
-                method=request.method,
-                url=url,
-                headers=headers,
-                json=request.body,
-                params=request.params,
-            )
+            upstream_start = time.perf_counter()
+            try:
+                proxied_response = await client.request(
+                    method=request.method,
+                    url=url,
+                    headers=headers,
+                    json=request.body,
+                    params=request.params,
+                )
+            finally:
+                timings["upstream_ms"] = (time.perf_counter() - upstream_start) * 1000
         finally:
-            # Always release back to pool
             await pool.release(request.service, agent_id)
 
-        perf_end = time.perf_counter()
-        latency_ms = (perf_end - perf_start) * 1000
-
-        # Record latency
+        status_code = proxied_response.status_code
+        upstream_end = time.perf_counter()
         is_success = proxied_response.status_code < 500
         tracker.record(
             service=request.service,
             agent_id=agent_id,
-            latency_ms=latency_ms,
-            perf_start=perf_start,
-            perf_end=perf_end,
+            latency_ms=timings["upstream_ms"],
+            perf_start=upstream_start or request_start,
+            perf_end=upstream_end,
             status_code=proxied_response.status_code,
             success=is_success,
         )
 
-        # Update circuit breaker
         if is_success:
-            breaker.record_success(latency_ms=latency_ms)
+            breaker.record_success(latency_ms=timings["upstream_ms"])
         else:
             breaker.record_failure(status_code=proxied_response.status_code)
 
-        # Log latency
-        print(
-            f"[PROXY] {request.service} {request.method} {request.path} "
-            f"-> {proxied_response.status_code} ({latency_ms:.1f}ms)"
-        )
-
-        upstream_done_perf = time.perf_counter()
-
-        # Parse response body
         parse_start = time.perf_counter()
         try:
-            response_body: Any = proxied_response.json()
+            response_body = proxied_response.json()
         except Exception:
             response_body = proxied_response.text
-        response_parse_ms = (time.perf_counter() - parse_start) * 1000
+        timings["response_parse_ms"] = (time.perf_counter() - parse_start) * 1000
 
-        # Schema detection (non-blocking alert dispatch)
         schema_start = time.perf_counter()
         schema_endpoint = _schema_endpoint_key(agent_id, request.path)
         fingerprint = fingerprint_response(
             response_body,
             status_code=proxied_response.status_code,
             headers=proxied_response.headers,
-            latency_ms=latency_ms,
+            latency_ms=timings["upstream_ms"],
         )
         detector = get_schema_detector()
         detection = detector.detect_changes(
@@ -499,87 +548,102 @@ async def proxy_request(
                 changes=detection.changes,
                 alert_mode=str(service_config.get("schema_alert_mode", "breaking_only")),
             )
-        schema_detect_ms = (time.perf_counter() - schema_start) * 1000
+        timings["schema_detect_ms"] = (time.perf_counter() - schema_start) * 1000
 
-        # --- Control plane: finalize metered usage off the success hot path ---
         meter = _get_meter()
-        build_start = time.perf_counter()
         usage_event = meter.build_metered_event(
             agent_id=agent_id,
             service=request.service,
             success=is_success,
-            latency_ms=latency_ms,
+            latency_ms=timings["upstream_ms"],
             response_size_bytes=len(proxied_response.content),
         )
-        build_event_ms = (time.perf_counter() - build_start) * 1000
 
+        finalizer_start = time.perf_counter()
         finalizer_result = await _get_proxy_finalizer().enqueue_or_finalize(
             ProxyFinalizationJob(
                 event=usage_event,
                 service=request.service,
                 path=request.path,
-                upstream_latency_ms=latency_ms,
-                response_parse_ms=response_parse_ms,
-                schema_detect_ms=schema_detect_ms,
-                build_event_ms=build_event_ms,
+                upstream_latency_ms=timings["upstream_ms"],
+                response_parse_ms=timings["response_parse_ms"],
+                schema_detect_ms=timings["schema_detect_ms"],
+                build_event_ms=0.0,
             )
         )
-        post_upstream_sync_ms = (time.perf_counter() - upstream_done_perf) * 1000
-
-        logger.info(
-            "proxy phase timings service=%s method=%s path=%s upstream_ms=%.1f response_parse_ms=%.1f schema_detect_ms=%.1f build_event_ms=%.1f post_upstream_sync_ms=%.1f finalizer_mode=%s queue_depth=%d",
-            request.service,
-            request.method,
-            request.path,
-            latency_ms,
-            response_parse_ms,
-            schema_detect_ms,
-            build_event_ms,
-            post_upstream_sync_ms,
-            finalizer_result.mode,
-            finalizer_result.queue_depth,
-        )
+        timings["finalizer_enqueue_ms"] = (time.perf_counter() - finalizer_start) * 1000
+        finalizer_mode = finalizer_result.mode
+        finalizer_queue_depth = finalizer_result.queue_depth
 
         return ProxyResponse(
             status_code=proxied_response.status_code,
             headers=dict(proxied_response.headers),
             body=response_body,
-            latency_ms=latency_ms,
+            latency_ms=timings["upstream_ms"],
             service=request.service,
             path=request.path,
             timestamp=time.time(),
             fail_open=False,
         )
 
-    except HTTPException:
+    except HTTPException as exc:
+        status_code = exc.status_code
         raise
     except Exception as e:
-        perf_end = time.perf_counter()
-        latency_ms = (perf_end - perf_start) * 1000
+        status_code = 500
+        error_latency_ms = timings["upstream_ms"]
+        if error_latency_ms <= 0:
+            error_latency_ms = (time.perf_counter() - request_start) * 1000
 
-        # Record failure in breaker and tracker
-        breaker.record_failure()
-        tracker.record(
-            service=request.service,
-            agent_id=agent_id,
-            latency_ms=latency_ms,
-            perf_start=perf_start,
-            perf_end=perf_end,
-            status_code=500,
-            success=False,
-        )
+        if breaker is not None:
+            breaker.record_failure()
+        if tracker is not None and agent_id != "unknown":
+            tracker.record(
+                service=request.service,
+                agent_id=agent_id,
+                latency_ms=error_latency_ms,
+                perf_start=upstream_start or request_start,
+                perf_end=time.perf_counter(),
+                status_code=500,
+                success=False,
+            )
 
-        await _get_meter().record_metered_call(
-            agent_id=agent_id,
-            service=request.service,
-            success=False,
-            latency_ms=latency_ms,
-            response_size_bytes=0,
-        )
+        if agent_id != "unknown":
+            await _get_meter().record_metered_call(
+                agent_id=agent_id,
+                service=request.service,
+                success=False,
+                latency_ms=error_latency_ms,
+                response_size_bytes=0,
+            )
+            finalizer_mode = "error_inline_metered"
 
         raise HTTPException(
             status_code=500,
             detail=f"Proxy error: {str(e)}",
+        )
+    finally:
+        timings["total_route_ms"] = (time.perf_counter() - request_start) * 1000
+        logger.info(
+            "proxy full-path timings service=%s method=%s path=%s agent_id=%s status_code=%d fail_open=%s auth_ms=%.1f acl_ms=%.1f rate_limit_ms=%.1f credential_inject_ms=%.1f pool_acquire_ms=%.1f upstream_ms=%.1f response_parse_ms=%.1f schema_detect_ms=%.1f finalizer_enqueue_ms=%.1f finalizer_mode=%s queue_depth=%d total_route_ms=%.1f",
+            request.service,
+            request.method,
+            request.path,
+            agent_id,
+            status_code,
+            fail_open,
+            timings["auth_ms"],
+            timings["acl_ms"],
+            timings["rate_limit_ms"],
+            timings["credential_inject_ms"],
+            timings["pool_acquire_ms"],
+            timings["upstream_ms"],
+            timings["response_parse_ms"],
+            timings["schema_detect_ms"],
+            timings["finalizer_enqueue_ms"],
+            finalizer_mode,
+            finalizer_queue_depth,
+            timings["total_route_ms"],
         )
 
 

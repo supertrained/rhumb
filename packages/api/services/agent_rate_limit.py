@@ -11,10 +11,15 @@ Round 11 (WU 2.2): Integrates agent identity store with rate limiter.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Optional
 
-from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
-from services.proxy_rate_limit import RateLimiter, RateLimitStatus, get_rate_limiter
+from schemas.agent_identity import (
+    AgentIdentitySchema,
+    AgentIdentityStore,
+    AgentServiceAccessSchema,
+    get_agent_identity_store,
+)
+from services.proxy_rate_limit import RateLimiter, get_rate_limiter
 
 
 @dataclass
@@ -101,7 +106,15 @@ class AgentRateLimitChecker:
                 error="no_service_access",
             )
 
-        # 3. Resolve effective limit
+        return await self.check_rate_limit_with_context(agent, access, service)
+
+    async def check_rate_limit_with_context(
+        self,
+        agent: AgentIdentitySchema,
+        access: AgentServiceAccessSchema,
+        service: str,
+    ) -> AgentRateLimitResult:
+        """Check rate limits using a pre-resolved agent + service grant."""
         effective_qpm = (
             access.rate_limit_qpm_override
             if access.rate_limit_qpm_override > 0
@@ -110,7 +123,7 @@ class AgentRateLimitChecker:
 
         # 4. Sliding window check
         allowed, status = await self.rate_limiter.check_rate_limit(
-            agent_id=agent_id,
+            agent_id=agent.agent_id,
             service=service,
             limit_qpm=effective_qpm,
         )
@@ -119,7 +132,7 @@ class AgentRateLimitChecker:
             retry_seconds = max(1, int(60 - (status.remaining or 0)))
             return AgentRateLimitResult(
                 allowed=False,
-                agent_id=agent_id,
+                agent_id=agent.agent_id,
                 service=service,
                 effective_limit_qpm=effective_qpm,
                 remaining=0,
@@ -129,7 +142,7 @@ class AgentRateLimitChecker:
 
         return AgentRateLimitResult(
             allowed=True,
-            agent_id=agent_id,
+            agent_id=agent.agent_id,
             service=service,
             effective_limit_qpm=effective_qpm,
             remaining=status.remaining,

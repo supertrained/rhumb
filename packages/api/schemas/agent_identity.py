@@ -144,8 +144,23 @@ class AgentIdentityStore:
         # In-memory stores for testing
         self._mem_agents: Dict[str, Dict[str, Any]] = {}
         self._mem_access: Dict[str, Dict[str, Any]] = {}
-        # Hash → agent_id index for O(1) key verification
-        self._key_index: Dict[str, str] = {}
+        # Hash → hydrated agent cache (legacy tests may still seed agent_id strings).
+        self._key_index: Dict[str, AgentIdentitySchema | str] = {}
+
+    def _cache_agent_key(self, agent: AgentIdentitySchema) -> None:
+        """Cache a hydrated agent for warm API-key verification."""
+        if agent.api_key_hash:
+            self._key_index[agent.api_key_hash] = agent
+
+    def _cache_updated_agent(
+        self,
+        agent: AgentIdentitySchema,
+        update: Dict[str, Any],
+    ) -> None:
+        """Refresh the cached API-key entry after a lifecycle update."""
+        merged = agent.model_dump(mode="json")
+        merged.update(update)
+        self._cache_agent_key(self._row_to_schema(merged))
 
     # ── Registration ─────────────────────────────────────────────────
 
@@ -194,8 +209,7 @@ class AgentIdentityStore:
         else:
             self._mem_agents[agent_id] = agent_row
 
-        # Index for fast lookup
-        self._key_index[key_hash] = agent_id
+        self._cache_agent_key(self._row_to_schema(agent_row))
 
         return agent_id, api_key
 
@@ -223,7 +237,9 @@ class AgentIdentityStore:
         if row is None:
             return None
 
-        return self._row_to_schema(row)
+        agent = self._row_to_schema(row)
+        self._cache_agent_key(agent)
+        return agent
 
     async def list_agents(
         self,
@@ -250,23 +266,31 @@ class AgentIdentityStore:
 
     # ── API Key Verification ─────────────────────────────────────────
 
-    async def verify_api_key(self, api_key: str) -> Optional[str]:
-        """Verify an API key and return the agent_id if valid.
+    async def verify_api_key_with_agent(
+        self, api_key: str
+    ) -> Optional[AgentIdentitySchema]:
+        """Verify an API key and return the hydrated agent when valid.
 
         Uses SHA-256 hash index for O(1) lookup instead of iterating
         all agents.
 
         Returns:
-            ``agent_id`` if key is valid and agent is active, else ``None``.
+            Active :class:`AgentIdentitySchema` if valid, else ``None``.
         """
         key_hash = hash_api_key(api_key)
 
         # Check in-memory index first
         if key_hash in self._key_index:
-            agent_id = self._key_index[key_hash]
-            agent = await self.get_agent(agent_id)
+            cached = self._key_index[key_hash]
+            if isinstance(cached, AgentIdentitySchema):
+                if cached.status == "active":
+                    return cached
+                return None
+
+            agent = await self.get_agent(cached)
             if agent and agent.status == "active":
-                return agent_id
+                self._cache_agent_key(agent)
+                return agent
             return None
 
         # Supabase lookup by hash (O(1) with index)
@@ -274,20 +298,25 @@ class AgentIdentityStore:
             try:
                 response = await (
                     self.supabase.table("agents")
-                    .select("agent_id, status")
+                    .select("*")
                     .eq("api_key_hash", key_hash)
                     .eq("status", "active")
                     .single()
                     .execute()
                 )
                 if response.data:
-                    agent_id = response.data["agent_id"]
-                    self._key_index[key_hash] = agent_id
-                    return agent_id
+                    agent = self._row_to_schema(response.data)
+                    self._cache_agent_key(agent)
+                    return agent
             except Exception:
                 pass
 
         return None
+
+    async def verify_api_key(self, api_key: str) -> Optional[str]:
+        """Verify an API key and return the agent_id if valid."""
+        agent = await self.verify_api_key_with_agent(api_key)
+        return agent.agent_id if agent is not None else None
 
     # ── Key Rotation ─────────────────────────────────────────────────
 
@@ -328,7 +357,7 @@ class AgentIdentityStore:
             if agent_id in self._mem_agents:
                 self._mem_agents[agent_id].update(update)
 
-        self._key_index[new_hash] = agent_id
+        self._cache_updated_agent(agent, update)
 
         return new_api_key
 
@@ -336,6 +365,7 @@ class AgentIdentityStore:
 
     async def disable_agent(self, agent_id: str) -> bool:
         """Disable an agent (soft delete)."""
+        agent = await self.get_agent(agent_id)
         now = _utcnow()
         update = {
             "status": "disabled",
@@ -352,10 +382,14 @@ class AgentIdentityStore:
                 return False
             self._mem_agents[agent_id].update(update)
 
+        if agent is not None:
+            self._cache_updated_agent(agent, update)
+
         return True
 
     async def enable_agent(self, agent_id: str) -> bool:
         """Re-enable a disabled agent."""
+        agent = await self.get_agent(agent_id)
         update = {
             "status": "active",
             "disabled_at": None,
@@ -370,6 +404,9 @@ class AgentIdentityStore:
             if agent_id not in self._mem_agents:
                 return False
             self._mem_agents[agent_id].update(update)
+
+        if agent is not None:
+            self._cache_updated_agent(agent, update)
 
         return True
 

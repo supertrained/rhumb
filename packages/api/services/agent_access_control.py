@@ -9,9 +9,14 @@ Round 11 (WU 2.2): Access control layer on top of agent identity.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
-from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from schemas.agent_identity import (
+    AgentIdentitySchema,
+    AgentIdentityStore,
+    AgentServiceAccessSchema,
+    get_agent_identity_store,
+)
 
 
 class AgentAccessControl:
@@ -53,16 +58,27 @@ class AgentAccessControl:
         if agent is None:
             return False, f"Agent '{agent_id}' not found"
 
-        # 2. Agent active?
+        allowed, reason, _access = await self.resolve_service_access(agent, service)
+        return allowed, reason
+
+    async def resolve_service_access(
+        self,
+        agent: AgentIdentitySchema,
+        service: str,
+    ) -> Tuple[bool, Optional[str], Optional[AgentServiceAccessSchema]]:
+        """Resolve service access using a pre-hydrated agent context."""
         if agent.status != "active":
-            return False, f"Agent '{agent_id}' is {agent.status}"
+            return False, f"Agent '{agent.agent_id}' is {agent.status}", None
 
-        # 3. Service access grant exists and is active?
-        access = await self.identity_store.get_service_access(agent_id, service)
+        access = await self.identity_store.get_service_access(agent.agent_id, service)
         if access is None:
-            return False, f"Agent '{agent_id}' has no access to service '{service}'"
+            return (
+                False,
+                f"Agent '{agent.agent_id}' has no access to service '{service}'",
+                None,
+            )
 
-        return True, None
+        return True, None, access
 
     # ── Bulk Queries ─────────────────────────────────────────────────
 

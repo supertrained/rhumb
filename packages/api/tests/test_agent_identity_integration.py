@@ -209,6 +209,17 @@ class TestApiKeyVerification:
         verified_id = _run(identity_store.verify_api_key(api_key))
         assert verified_id == agent_id
 
+    def test_verify_valid_api_key_with_agent(
+        self, identity_store: AgentIdentityStore
+    ) -> None:
+        """Valid API key returns a hydrated active agent."""
+        agent_id, api_key = _run(identity_store.register_agent("key-agent", "org_1"))
+
+        agent = _run(identity_store.verify_api_key_with_agent(api_key))
+        assert agent is not None
+        assert agent.agent_id == agent_id
+        assert agent.status == "active"
+
     def test_verify_invalid_api_key(self, identity_store: AgentIdentityStore) -> None:
         """Invalid API key returns None."""
         result = _run(identity_store.verify_api_key("rhumb_invalid_key"))
@@ -415,6 +426,26 @@ class TestAgentRateLimiting:
         assert result.allowed is False
         assert result.error == "no_service_access"
 
+    def test_rate_limit_with_context(
+        self,
+        identity_store: AgentIdentityStore,
+        rate_checker: AgentRateLimitChecker,
+    ) -> None:
+        """Resolved context path uses the pre-fetched agent + grant."""
+        agent_id, _ = _run(
+            identity_store.register_agent("rl-context", "org_1", rate_limit_qpm=2)
+        )
+        _run(identity_store.grant_service_access(agent_id, "stripe", rate_limit_override=7))
+
+        agent = _run(identity_store.get_agent(agent_id))
+        access = _run(identity_store.get_service_access(agent_id, "stripe"))
+        assert agent is not None
+        assert access is not None
+
+        result = _run(rate_checker.check_rate_limit_with_context(agent, access, "stripe"))
+        assert result.allowed is True
+        assert result.effective_limit_qpm == 7
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # MODULE 3: Access Control Matrix
@@ -474,6 +505,21 @@ class TestAccessControl:
 
         services = _run(acl.list_agent_services(agent_id))
         assert set(services) == {"stripe", "slack"}
+
+    def test_resolve_service_access_returns_grant(
+        self, identity_store: AgentIdentityStore, acl: AgentAccessControl
+    ) -> None:
+        """Resolved ACL path returns the active grant for reuse downstream."""
+        agent_id, _ = _run(identity_store.register_agent("acl-resolve", "org_1"))
+        _run(identity_store.grant_service_access(agent_id, "stripe"))
+        agent = _run(identity_store.get_agent(agent_id))
+        assert agent is not None
+
+        allowed, reason, access = _run(acl.resolve_service_access(agent, "stripe"))
+        assert allowed is True
+        assert reason is None
+        assert access is not None
+        assert access.service == "stripe"
 
 
 # ═══════════════════════════════════════════════════════════════════════
