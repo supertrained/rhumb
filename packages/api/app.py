@@ -1,5 +1,8 @@
 """FastAPI application factory and router registration."""
 
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from middleware.query_logging import QueryLoggingMiddleware
@@ -15,10 +18,27 @@ from routes import (
     tester_fleet,
 )
 
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Application lifespan: initialize async dependencies at startup."""
+    # Initialize Supabase for durable metering (GAP-3b fix)
+    from services.usage_metering import get_usage_meter_engine
+
+    meter = get_usage_meter_engine()
+    if await meter.ensure_supabase():
+        logger.info("Durable metering: Supabase client initialized")
+    else:
+        logger.warning("Durable metering: Supabase unavailable — using in-memory fallback")
+
+    yield
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    application = FastAPI(title="Rhumb API", version="0.0.1")
+    application = FastAPI(title="Rhumb API", version="0.0.1", lifespan=_lifespan)
 
     # ── Middleware ──
     application.add_middleware(QueryLoggingMiddleware)
