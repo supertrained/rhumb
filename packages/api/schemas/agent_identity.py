@@ -190,7 +190,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agents").insert(agent_row).execute()
+            await self.supabase.table("agents").insert(agent_row).execute()
         else:
             self._mem_agents[agent_id] = agent_row
 
@@ -207,7 +207,7 @@ class AgentIdentityStore:
 
         if self.supabase is not None:
             try:
-                response = (
+                response = await (
                     self.supabase.table("agents")
                     .select("*")
                     .eq("agent_id", agent_id)
@@ -237,7 +237,7 @@ class AgentIdentityStore:
                 query = query.eq("organization_id", organization_id)
             if status:
                 query = query.eq("status", status)
-            response = query.execute()
+            response = await query.execute()
             rows = response.data or []
         else:
             rows = list(self._mem_agents.values())
@@ -272,7 +272,7 @@ class AgentIdentityStore:
         # Supabase lookup by hash (O(1) with index)
         if self.supabase is not None:
             try:
-                response = (
+                response = await (
                     self.supabase.table("agents")
                     .select("agent_id, status")
                     .eq("api_key_hash", key_hash)
@@ -321,7 +321,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agents").update(update).eq(
+            await self.supabase.table("agents").update(update).eq(
                 "agent_id", agent_id
             ).execute()
         else:
@@ -344,7 +344,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agents").update(update).eq(
+            await self.supabase.table("agents").update(update).eq(
                 "agent_id", agent_id
             ).execute()
         else:
@@ -363,7 +363,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agents").update(update).eq(
+            await self.supabase.table("agents").update(update).eq(
                 "agent_id", agent_id
             ).execute()
         else:
@@ -404,7 +404,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agent_service_access").insert(access_row).execute()
+            await self.supabase.table("agent_service_access").insert(access_row).execute()
         else:
             self._mem_access[access_id] = access_row
 
@@ -419,7 +419,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agent_service_access").update(update).eq(
+            await self.supabase.table("agent_service_access").update(update).eq(
                 "access_id", access_id
             ).execute()
         else:
@@ -434,7 +434,7 @@ class AgentIdentityStore:
     ) -> bool:
         """Revoke access by agent_id + service name."""
         if self.supabase is not None:
-            response = (
+            response = await (
                 self.supabase.table("agent_service_access")
                 .select("access_id")
                 .eq("agent_id", agent_id)
@@ -472,7 +472,7 @@ class AgentIdentityStore:
             )
             if active_only:
                 query = query.eq("status", "active")
-            response = query.execute()
+            response = await query.execute()
             rows = response.data or []
         else:
             rows = [
@@ -490,7 +490,7 @@ class AgentIdentityStore:
         """Get a specific service access grant for an agent."""
         if self.supabase is not None:
             try:
-                response = (
+                response = await (
                     self.supabase.table("agent_service_access")
                     .select("*")
                     .eq("agent_id", agent_id)
@@ -530,7 +530,7 @@ class AgentIdentityStore:
         }
 
         if self.supabase is not None:
-            self.supabase.table("agent_service_access").update(update).eq(
+            await self.supabase.table("agent_service_access").update(update).eq(
                 "agent_id", agent_id
             ).eq("service", service).eq("status", "active").execute()
         else:

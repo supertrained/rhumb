@@ -186,12 +186,12 @@ class QueryLogger:
 
         try:
             if self._supabase is not None:
-                self._supabase.table("query_logs").insert(batch).execute()
+                await self._supabase.table("query_logs").insert(batch).execute()
             else:
                 # No Supabase client — attempt lazy initialization
                 client = await self._get_supabase_client()
                 if client is not None:
-                    client.table("query_logs").insert(batch).execute()
+                    await client.table("query_logs").insert(batch).execute()
                 else:
                     logger.debug(
                         "query_logger: no Supabase client, dropping %d entries", count
