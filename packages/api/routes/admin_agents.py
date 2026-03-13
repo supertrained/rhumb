@@ -8,6 +8,7 @@ Round 11 (WU 2.2): Admin dashboard routes.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -20,6 +21,7 @@ from schemas.agent_identity import (
 )
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_usage_analytics import AgentUsageAnalytics, get_usage_analytics
+from services.evidence_ingestion import EvidenceIngestionAdapter
 
 router = APIRouter(tags=["admin-agents"])
 
@@ -107,11 +109,22 @@ class AgentListItem(BaseModel):
     service_count: int
 
 
+class EvidenceIngestRequest(BaseModel):
+    """Request body for triggering evidence ingestion."""
+
+    since: Optional[datetime] = Field(
+        default=None,
+        description="Only ingest source rows observed on or after this timestamp",
+    )
+    limit: int = Field(default=100, ge=1, le=1000)
+
+
 # ── Helper: get stores (overridable in tests) ───────────────────────
 
 _test_identity_store: Optional[AgentIdentityStore] = None
 _test_analytics: Optional[AgentUsageAnalytics] = None
 _test_acl: Optional[AgentAccessControl] = None
+_test_evidence_adapter: Optional[EvidenceIngestionAdapter] = None
 
 
 def set_test_stores(
@@ -126,6 +139,14 @@ def set_test_stores(
     _test_acl = acl
 
 
+def set_test_evidence_ingestion_adapter(
+    adapter: Optional[EvidenceIngestionAdapter] = None,
+) -> None:
+    """Inject a test evidence adapter."""
+    global _test_evidence_adapter
+    _test_evidence_adapter = adapter
+
+
 def _get_identity_store() -> AgentIdentityStore:
     return _test_identity_store or get_agent_identity_store()
 
@@ -136,6 +157,16 @@ def _get_analytics() -> AgentUsageAnalytics:
 
 def _get_acl() -> AgentAccessControl:
     return _test_acl or get_agent_access_control()
+
+
+async def _get_evidence_adapter() -> EvidenceIngestionAdapter:
+    if _test_evidence_adapter is not None:
+        return _test_evidence_adapter
+
+    from db.client import get_supabase_client
+
+    supabase = await get_supabase_client()
+    return EvidenceIngestionAdapter(supabase)
 
 
 # ── Routes ───────────────────────────────────────────────────────────
@@ -329,3 +360,20 @@ async def get_organization_usage(
     """Get aggregated usage for an entire organization."""
     analytics = _get_analytics()
     return await analytics.get_organization_usage(organization_id, days=days)
+
+
+@router.post("/evidence/ingest")
+async def ingest_evidence(body: Optional[EvidenceIngestRequest] = None) -> Dict[str, Any]:
+    """Trigger evidence ingestion from operational facts and usage events."""
+    adapter = await _get_evidence_adapter()
+    since = body.since if body is not None else None
+    limit = body.limit if body is not None else 100
+    operational_result = await adapter.ingest_operational_facts(
+        since=since,
+        limit=limit,
+    )
+    usage_result = await adapter.ingest_usage_summaries(
+        since=since,
+        limit=limit,
+    )
+    return operational_result.merge(usage_result).to_dict()
