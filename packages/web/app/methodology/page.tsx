@@ -448,16 +448,14 @@ export default function MethodologyPage() {
                 <p>
                   <strong className="text-slate-200">Roadmap:</strong>{" "}
                   Observed agent execution scoring — real agents making
-                  real API calls — is our next major milestone. When we
-                  ship it, every score will show its evidence source:{" "}
+                  real API calls — is our next major milestone. Until a
+                  score is explicitly labeled with a stronger evidence
+                  source, assume it is{" "}
                   <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
                     Documentation-derived
-                  </code>{" "}
-                  or{" "}
-                  <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
-                    Execution-verified
                   </code>
-                  .
+                  . We will only use runtime-oriented labels when the
+                  underlying evidence exists and is linked publicly.
                 </p>
               </div>
             </div>

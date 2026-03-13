@@ -218,6 +218,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                       {/* "Aggregate X.X" text required by test */}
                       <span>Aggregate {scoreLabel(item.aggregateRecommendationScore)}</span>
                       <span>· Freshness {freshnessLabel(item)}</span>
+                      <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-amber">
+                        Docs-derived
+                      </span>
                     </div>
                   </div>
                 </article>

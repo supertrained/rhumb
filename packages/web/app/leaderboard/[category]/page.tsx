@@ -262,6 +262,9 @@ export default async function LeaderboardPage({
                   <span className="text-xs font-mono text-slate-600">
                     Freshness: {freshnessLabel(item)}
                   </span>
+                  <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-amber">
+                    Docs-derived
+                  </span>
                 </div>
               </div>
             </article>

@@ -351,7 +351,7 @@ export default function PaymentsForAgents() {
               and graceful degradation under load.
             </p>
             <p>
-              These scores are based on Rhumb&apos;s current scoring dataset and methodology. Today&apos;s published score layer is still largely documentation-derived, with provenance and freshness made explicit while execution-verified evidence is built out.{" "}
+              These scores are based on Rhumb&apos;s current scoring dataset and methodology. Today&apos;s published score layer is documentation-derived unless a page explicitly says otherwise, with provenance and freshness made visible so the limitation is legible.{" "}
               <Link href="/leaderboard/payments" className="text-amber hover:underline">
                 View the full payments leaderboard →
               </Link>

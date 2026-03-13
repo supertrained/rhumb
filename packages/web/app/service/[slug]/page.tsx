@@ -177,6 +177,9 @@ export default async function ServicePage({
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <TierBadge tier={score.tier} label={score.tierLabel ?? undefined} />
+                <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-amber">
+                  Docs-derived
+                </span>
                 {score.confidence !== null && (
                   <span className="text-xs font-mono text-slate-500">
                     Confidence{" "}
@@ -337,8 +340,7 @@ export default async function ServicePage({
             </p>
             <div className="space-y-3 text-sm leading-relaxed text-slate-400">
               <p>
-                Current scoring on Rhumb is <span className="text-slate-200">documentation-derived</span>, with
-                freshness and confidence shown on this page while execution-verified scoring is built out.
+                Current scoring on Rhumb is <span className="text-slate-200">documentation-derived</span>. Unless a surface is explicitly labeled runtime-verified, treat the score as a docs-based evaluation of API design, auth, error handling, and documentation quality.
               </p>
               <p>
                 Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
