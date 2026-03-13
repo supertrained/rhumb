@@ -106,20 +106,36 @@ async def get_leaderboard(
 
 @router.get("/leaderboard")
 async def list_categories() -> dict:
-    """List all available leaderboard categories with service counts."""
-    data = await supabase_fetch("services?select=category")
+    """List all available leaderboard categories with scored service counts.
+
+    Only counts services that have at least one score.
+    Categories with zero scored services are excluded.
+    """
+    # Count by category using scored services only
+    scores_data = await supabase_fetch("scores?select=service_slug")
+    if scores_data is None:
+        return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
+
+    scored_slugs = {str(row["service_slug"]) for row in scores_data if row.get("service_slug")}
+    if not scored_slugs:
+        return {"data": {"categories": [], "total": 0}, "error": None}
+
+    data = await supabase_fetch("services?select=slug,category")
     if data is None:
         return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
 
     counts: dict[str, int] = {}
     for row in data:
         cat = row.get("category")
-        if cat:
+        slug = row.get("slug")
+        if cat and slug in scored_slugs:
             counts[cat] = counts.get(cat, 0) + 1
 
+    # Exclude categories with zero scored services
     categories = [
         {"slug": slug, "service_count": count}
         for slug, count in sorted(counts.items())
+        if count > 0
     ]
 
     return {

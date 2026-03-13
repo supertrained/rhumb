@@ -98,6 +98,9 @@ async def search_services(
             "freshness": freshness,
         })
 
+    # Exclude scoreless ghost services (no score = no front-end page = 404)
+    results = [r for r in results if r.get("aggregate_recommendation_score") is not None]
+
     # Sort: exact name match first, then by score descending
     ql = query_lower.lower()
     results.sort(

@@ -18,7 +18,12 @@ async def list_services(
     offset: int = Query(default=0, ge=0),
     category: str | None = Query(default=None),
 ) -> dict:
-    """List indexed services with optional category filter."""
+    """List indexed services with optional category filter.
+
+    Only returns services that have at least one score.
+    Scoreless/ghost services are excluded to prevent 404 cascades
+    when users click through from search or API results.
+    """
     path = "services?select=slug,name,category,description&order=name.asc"
     if category:
         path += f"&category=eq.{quote(category)}"
@@ -27,8 +32,17 @@ async def list_services(
     if data is None:
         return {"data": {"items": [], "limit": limit, "offset": offset}, "error": "Unable to load services."}
 
+    # Fetch the set of slugs that actually have scores
+    scored_rows = await supabase_fetch("scores?select=service_slug")
+    scored_slugs: set[str] = set()
+    if scored_rows:
+        scored_slugs = {str(row["service_slug"]) for row in scored_rows if row.get("service_slug")}
+
+    # Exclude scoreless ghost services
+    scored_data = [s for s in data if s.get("slug") in scored_slugs]
+
     # Apply offset/limit
-    items = data[offset : offset + limit]
+    items = scored_data[offset : offset + limit]
 
     return {
         "data": {
@@ -41,7 +55,7 @@ async def list_services(
                 }
                 for s in items
             ],
-            "total": len(data),
+            "total": len(scored_data),
             "limit": limit,
             "offset": offset,
         },

@@ -1,6 +1,7 @@
 """Shared fixtures for API tests."""
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Generator
@@ -9,6 +10,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Set admin secret before importing app (config reads env at import time)
+ADMIN_TEST_SECRET = "rhumb_test_admin_secret_0000"
+os.environ.setdefault("RHUMB_ADMIN_SECRET", ADMIN_TEST_SECRET)
 
 from app import app
 
@@ -119,5 +124,8 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
 
 @pytest.fixture
 def client() -> TestClient:
-    """Create an in-process FastAPI test client with bypass auth header."""
-    return TestClient(app, headers={"X-Rhumb-Key": BYPASS_KEY})
+    """Create an in-process FastAPI test client with bypass auth + admin headers."""
+    return TestClient(app, headers={
+        "X-Rhumb-Key": BYPASS_KEY,
+        "X-Rhumb-Admin-Key": ADMIN_TEST_SECRET,
+    })
