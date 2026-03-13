@@ -6,6 +6,7 @@ Round 13 additions: schema fingerprinting, change detection, and alert pipeline.
 
 from __future__ import annotations
 
+import logging
 import time
 from datetime import UTC, datetime
 from typing import Any, Optional
@@ -29,7 +30,14 @@ from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_rate_limit import AgentRateLimitChecker, get_agent_rate_limit_checker
 from services.proxy_auth import AuthInjectionRequest, AuthMethod, AuthInjector, get_auth_injector
+from services.proxy_finalizer import (
+    ProxyFinalizationJob,
+    ProxyFinalizer,
+    get_proxy_finalizer,
+)
 from services.usage_metering import UsageMeterEngine, get_usage_meter_engine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["proxy"])
 admin_router = APIRouter(tags=["schema-admin"])
@@ -112,6 +120,7 @@ _acl_instance: Optional[AgentAccessControl] = None
 _rate_checker_instance: Optional[AgentRateLimitChecker] = None
 _auth_injector_instance: Optional[AuthInjector] = None
 _meter_instance: Optional[UsageMeterEngine] = None
+_proxy_finalizer: Optional[ProxyFinalizer] = None
 
 # Legacy fallback client (used only if pool manager is not initialized)
 _http_client: Optional[httpx.AsyncClient] = None
@@ -190,6 +199,13 @@ def _get_meter() -> UsageMeterEngine:
     if _meter_instance is None:
         _meter_instance = get_usage_meter_engine()
     return _meter_instance
+
+
+def _get_proxy_finalizer() -> ProxyFinalizer:
+    global _proxy_finalizer
+    if _proxy_finalizer is None:
+        _proxy_finalizer = get_proxy_finalizer(meter_engine=_get_meter())
+    return _proxy_finalizer
 
 
 async def get_http_client() -> httpx.AsyncClient:
@@ -436,13 +452,18 @@ async def proxy_request(
             f"-> {proxied_response.status_code} ({latency_ms:.1f}ms)"
         )
 
+        upstream_done_perf = time.perf_counter()
+
         # Parse response body
+        parse_start = time.perf_counter()
         try:
             response_body: Any = proxied_response.json()
         except Exception:
             response_body = proxied_response.text
+        response_parse_ms = (time.perf_counter() - parse_start) * 1000
 
         # Schema detection (non-blocking alert dispatch)
+        schema_start = time.perf_counter()
         schema_endpoint = _schema_endpoint_key(agent_id, request.path)
         fingerprint = fingerprint_response(
             response_body,
@@ -478,14 +499,45 @@ async def proxy_request(
                 changes=detection.changes,
                 alert_mode=str(service_config.get("schema_alert_mode", "breaking_only")),
             )
+        schema_detect_ms = (time.perf_counter() - schema_start) * 1000
 
-        # --- Control plane: Record metered usage ---
-        await _get_meter().record_metered_call(
+        # --- Control plane: finalize metered usage off the success hot path ---
+        meter = _get_meter()
+        build_start = time.perf_counter()
+        usage_event = meter.build_metered_event(
             agent_id=agent_id,
             service=request.service,
             success=is_success,
             latency_ms=latency_ms,
-            response_size_bytes=len(str(response_body)),
+            response_size_bytes=len(proxied_response.content),
+        )
+        build_event_ms = (time.perf_counter() - build_start) * 1000
+
+        finalizer_result = await _get_proxy_finalizer().enqueue_or_finalize(
+            ProxyFinalizationJob(
+                event=usage_event,
+                service=request.service,
+                path=request.path,
+                upstream_latency_ms=latency_ms,
+                response_parse_ms=response_parse_ms,
+                schema_detect_ms=schema_detect_ms,
+                build_event_ms=build_event_ms,
+            )
+        )
+        post_upstream_sync_ms = (time.perf_counter() - upstream_done_perf) * 1000
+
+        logger.info(
+            "proxy phase timings service=%s method=%s path=%s upstream_ms=%.1f response_parse_ms=%.1f schema_detect_ms=%.1f build_event_ms=%.1f post_upstream_sync_ms=%.1f finalizer_mode=%s queue_depth=%d",
+            request.service,
+            request.method,
+            request.path,
+            latency_ms,
+            response_parse_ms,
+            schema_detect_ms,
+            build_event_ms,
+            post_upstream_sync_ms,
+            finalizer_result.mode,
+            finalizer_result.queue_depth,
         )
 
         return ProxyResponse(

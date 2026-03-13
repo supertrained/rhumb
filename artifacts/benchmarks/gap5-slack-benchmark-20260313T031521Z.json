@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-03-13T03:15:21.508556+00:00",
+  "provider": "slack",
+  "endpoint": "POST /api/auth.test",
+  "sample_size": 50,
+  "warmup": 5,
+  "direct": {
+    "count": 50,
+    "success_count": 50,
+    "error_count": 0,
+    "p50_ms": 90.42541647795588,
+    "p95_ms": 103.62899013562127,
+    "p99_ms": 360.27290511992663,
+    "mean_ms": 102.45902749709785,
+    "min_ms": 86.50254202075303,
+    "max_ms": 595.2375419437885
+  },
+  "proxy": {
+    "count": 50,
+    "success_count": 50,
+    "error_count": 0,
+    "p50_ms": 397.5973334745504,
+    "p95_ms": 532.5227626773993,
+    "p99_ms": 664.5494752505326,
+    "mean_ms": 416.6308249835856,
+    "min_ms": 348.5527499578893,
+    "max_ms": 722.1650839783251
+  },
+  "overhead_ms": {
+    "p50_ms": 307.1719169965945,
+    "p95_ms": 428.89377254177805,
+    "p99_ms": 304.276570130606
+  },
+  "thresholds_ms": {
+    "p50_ms": 15.0,
+    "p95_ms": 30.0,
+    "p99_ms": 50.0
+  },
+  "gate_pass": false,
+  "api_base_url": "http://127.0.0.1:8000",
+  "agent_id": "151596ab-5a62-4a95-be85-1869ac0ed82a",
+  "artifact_note": "Proxy latencies are client-observed end-to-end timings against the local Rhumb API reference host."
+}

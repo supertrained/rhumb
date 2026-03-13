@@ -28,6 +28,7 @@ async def _lifespan(app: FastAPI):
     # ACL/rate-limit path, and durable metering all point at the same identity source.
     from db.client import get_supabase_client
     from schemas.agent_identity import get_agent_identity_store
+    from services.proxy_finalizer import get_proxy_finalizer
     from services.usage_metering import get_usage_meter_engine
 
     supabase = await get_supabase_client()
@@ -40,7 +41,15 @@ async def _lifespan(app: FastAPI):
     else:
         logger.warning("Durable metering: Supabase unavailable — using in-memory fallback")
 
-    yield
+    proxy_finalizer = get_proxy_finalizer(meter)
+    await proxy_finalizer.start()
+    logger.info("Proxy finalizer worker started")
+
+    try:
+        yield
+    finally:
+        await proxy_finalizer.stop(drain=True)
+        logger.info("Proxy finalizer worker drained")
 
 
 def create_app() -> FastAPI:

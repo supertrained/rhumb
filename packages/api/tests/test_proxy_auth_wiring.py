@@ -36,6 +36,7 @@ from services.agent_rate_limit import (
 )
 from services.proxy_auth import AuthInjector, AuthMethod
 from services.proxy_credentials import CredentialStore
+from services.proxy_finalizer import reset_proxy_finalizer
 from services.proxy_rate_limit import RateLimiter
 from services.usage_metering import UsageMeterEngine, reset_usage_meter_engine
 
@@ -66,10 +67,12 @@ def _reset_singletons() -> Generator[None, None, None]:
     proxy_module._rate_checker_instance = None
     proxy_module._auth_injector_instance = None
     proxy_module._meter_instance = None
+    proxy_module._proxy_finalizer = None
     reset_identity_store()
     reset_agent_access_control()
     reset_agent_rate_limit_checker()
     reset_usage_meter_engine()
+    reset_proxy_finalizer()
     yield
     proxy_module._pool_manager = None
     proxy_module._breaker_registry = None
@@ -82,6 +85,12 @@ def _reset_singletons() -> Generator[None, None, None]:
     proxy_module._rate_checker_instance = None
     proxy_module._auth_injector_instance = None
     proxy_module._meter_instance = None
+    proxy_module._proxy_finalizer = None
+    reset_identity_store()
+    reset_agent_access_control()
+    reset_agent_rate_limit_checker()
+    reset_usage_meter_engine()
+    reset_proxy_finalizer()
 
 
 @pytest.fixture
@@ -308,7 +317,7 @@ class TestProxyAuthWiring:
         assert proxied is not None
         assert proxied.headers["Authorization"] == "Bearer sk_test_vault_secret"
 
-    def test_metering_called_on_success(
+    def test_metering_effects_land_on_success(
         self,
         client: TestClient,
         identity_store: AgentIdentityStore,
@@ -316,7 +325,7 @@ class TestProxyAuthWiring:
         meter: UsageMeterEngine,
         httpx_mock,
     ) -> None:
-        """record_metered_call is called with correct args on success."""
+        """Successful proxy calls still land usage + last_used effects."""
         agent_id, api_key = _register_agent_with_grant(identity_store, service="stripe")
         credential_store.set_credential("stripe", "api_key", "sk_test_123")
 
@@ -328,31 +337,24 @@ class TestProxyAuthWiring:
             headers={"content-type": "application/json"},
         )
 
-        calls: list[dict] = []
-        original_record = meter.record_metered_call
+        resp = client.post(
+            PROXY_URL,
+            json=STRIPE_REQUEST,
+            headers={"X-Rhumb-Key": api_key},
+        )
+        assert resp.status_code == 200
 
-        async def _spy(**kwargs):
-            calls.append(kwargs)
-            return await original_record(**kwargs)
+        snapshot = _run(meter.get_usage_snapshot(agent_id, "stripe", 1))
+        assert snapshot is not None
+        assert snapshot.call_count == 1
+        assert snapshot.success_count == 1
 
-        meter.record_metered_call = _spy  # type: ignore[assignment]
-        try:
-            resp = client.post(
-                PROXY_URL,
-                json=STRIPE_REQUEST,
-                headers={"X-Rhumb-Key": api_key},
-            )
-            assert resp.status_code == 200
-            assert len(calls) == 1
-            assert calls[0]["agent_id"] == agent_id
-            assert calls[0]["service"] == "stripe"
-            assert calls[0]["success"] is True
-            assert calls[0]["latency_ms"] >= 0
-            assert calls[0]["response_size_bytes"] > 0
-        finally:
-            meter.record_metered_call = original_record  # type: ignore[assignment]
+        access = _run(identity_store.get_service_access(agent_id, "stripe"))
+        assert access is not None
+        assert access.last_used_result == "success"
+        assert access.last_used_at is not None
 
-    def test_metering_called_on_failure(
+    def test_metering_effects_land_on_failure(
         self,
         client: TestClient,
         identity_store: AgentIdentityStore,
@@ -360,7 +362,7 @@ class TestProxyAuthWiring:
         meter: UsageMeterEngine,
         httpx_mock,
     ) -> None:
-        """record_metered_call called with success=False in error path."""
+        """Failure path still records metering durably/in-memory."""
         agent_id, api_key = _register_agent_with_grant(identity_store, service="stripe")
         credential_store.set_credential("stripe", "api_key", "sk_test_123")
 
@@ -371,25 +373,14 @@ class TestProxyAuthWiring:
             url="https://api.stripe.com/v1/customers",
         )
 
-        calls: list[dict] = []
-        original_record = meter.record_metered_call
+        resp = client.post(
+            PROXY_URL,
+            json=STRIPE_REQUEST,
+            headers={"X-Rhumb-Key": api_key},
+        )
+        assert resp.status_code == 500
 
-        async def _spy(**kwargs):
-            calls.append(kwargs)
-            return await original_record(**kwargs)
-
-        meter.record_metered_call = _spy  # type: ignore[assignment]
-        try:
-            resp = client.post(
-                PROXY_URL,
-                json=STRIPE_REQUEST,
-                headers={"X-Rhumb-Key": api_key},
-            )
-            assert resp.status_code == 500
-            assert len(calls) == 1
-            assert calls[0]["agent_id"] == agent_id
-            assert calls[0]["service"] == "stripe"
-            assert calls[0]["success"] is False
-            assert calls[0]["response_size_bytes"] == 0
-        finally:
-            meter.record_metered_call = original_record  # type: ignore[assignment]
+        snapshot = _run(meter.get_usage_snapshot(agent_id, "stripe", 1))
+        assert snapshot is not None
+        assert snapshot.call_count == 1
+        assert snapshot.failed_count == 1

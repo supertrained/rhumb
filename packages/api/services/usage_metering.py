@@ -44,6 +44,15 @@ class MeteredUsageEvent:
 
 
 @dataclass
+class MeterWriteTimings:
+    """Timings for durable metering/finalization phases."""
+
+    persist_ms: float
+    identity_touch_ms: float
+    total_ms: float
+
+
+@dataclass
 class UsageMeterSnapshot:
     """Usage and latency snapshot for an agent/service over a period."""
 
@@ -154,6 +163,80 @@ class UsageMeterEngine:
 
     # ── Write ────────────────────────────────────────────────────────
 
+    def build_metered_event(
+        self,
+        agent_id: str,
+        service: str,
+        success: bool,
+        latency_ms: float,
+        response_size_bytes: int,
+        *,
+        result: Optional[str] = None,
+    ) -> MeteredUsageEvent:
+        """Build the canonical metered usage event payload."""
+        if result is None:
+            result = "success" if success else "error"
+
+        return MeteredUsageEvent(
+            event_id=str(uuid.uuid4()),
+            agent_id=agent_id,
+            service=service,
+            result=result,
+            latency_ms=latency_ms,
+            response_size_bytes=max(0, int(response_size_bytes)),
+            created_at=datetime.now(tz=UTC),
+        )
+
+    async def persist_metered_event(self, event: MeteredUsageEvent) -> None:
+        """Persist the durable/in-memory event row."""
+        if self._is_durable:
+            await self._supabase.table("agent_usage_events").insert(
+                {
+                    "event_id": event.event_id,
+                    "agent_id": event.agent_id,
+                    "service": event.service,
+                    "result": event.result,
+                    "latency_ms": event.latency_ms,
+                    "response_size_bytes": event.response_size_bytes,
+                    "created_at": event.created_at.isoformat(),
+                }
+            ).execute()
+        else:
+            self._events.append(event)
+
+    async def touch_identity_usage(self, event: MeteredUsageEvent) -> None:
+        """Update identity-store last-used fields for a metered event."""
+        try:
+            await self.identity_store.record_usage(
+                event.agent_id,
+                event.service,
+                event.result,
+            )
+        except Exception:
+            logger.debug("identity_store.record_usage failed — non-fatal", exc_info=True)
+
+    async def finalize_prepared_event(
+        self,
+        event: MeteredUsageEvent,
+    ) -> MeterWriteTimings:
+        """Persist a prepared event and apply identity side-effects."""
+        persist_start = datetime.now(tz=UTC)
+        await self.persist_metered_event(event)
+        persist_end = datetime.now(tz=UTC)
+
+        identity_start = datetime.now(tz=UTC)
+        await self.touch_identity_usage(event)
+        identity_end = datetime.now(tz=UTC)
+
+        persist_ms = (persist_end - persist_start).total_seconds() * 1000
+        identity_touch_ms = (identity_end - identity_start).total_seconds() * 1000
+        total_ms = (identity_end - persist_start).total_seconds() * 1000
+        return MeterWriteTimings(
+            persist_ms=persist_ms,
+            identity_touch_ms=identity_touch_ms,
+            total_ms=total_ms,
+        )
+
     async def record_metered_call(
         self,
         agent_id: str,
@@ -181,40 +264,15 @@ class UsageMeterEngine:
         Returns:
             Event ID (UUID string).
         """
-        if result is None:
-            result = "success" if success else "error"
-
-        event = MeteredUsageEvent(
-            event_id=str(uuid.uuid4()),
+        event = self.build_metered_event(
             agent_id=agent_id,
             service=service,
-            result=result,
+            success=success,
             latency_ms=latency_ms,
-            response_size_bytes=max(0, int(response_size_bytes)),
-            created_at=datetime.now(tz=UTC),
+            response_size_bytes=response_size_bytes,
+            result=result,
         )
-
-        if self._is_durable:
-            await self._supabase.table("agent_usage_events").insert(
-                {
-                    "event_id": event.event_id,
-                    "agent_id": event.agent_id,
-                    "service": event.service,
-                    "result": event.result,
-                    "latency_ms": event.latency_ms,
-                    "response_size_bytes": event.response_size_bytes,
-                    "created_at": event.created_at.isoformat(),
-                }
-            ).execute()
-        else:
-            self._events.append(event)
-
-        # Side-effect: update identity store (not a second event insert)
-        try:
-            await self.identity_store.record_usage(agent_id, service, result)
-        except Exception:
-            logger.debug("identity_store.record_usage failed — non-fatal", exc_info=True)
-
+        await self.finalize_prepared_event(event)
         return event.event_id
 
     # ── Reads ────────────────────────────────────────────────────────
