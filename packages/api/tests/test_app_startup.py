@@ -136,3 +136,40 @@ def test_lifespan_startup_succeeds_when_sop_missing(
     proxy_auth_module._injector = None
     proxy_credentials_module._credential_store = None
     operational_fact_emitter_module.reset_operational_fact_emitter()
+
+
+def test_credential_store_falls_back_to_env_when_sop_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_CREDENTIAL_SLACK_OAUTH_TOKEN", "xoxb-test-token")
+    monkeypatch.setattr(
+        proxy_credentials_module.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(FileNotFoundError()),
+    )
+
+    store = proxy_credentials_module.CredentialStore(auto_load=False)
+    store._load_service("slack")
+
+    assert store.get_credential("slack", "oauth_token") == "xoxb-test-token"
+
+
+def test_credential_store_prefers_sop_over_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_CREDENTIAL_SLACK_OAUTH_TOKEN", "xoxb-env-token")
+
+    class _Result:
+        returncode = 0
+        stdout = "xoxb-sop-token\n"
+
+    monkeypatch.setattr(
+        proxy_credentials_module.subprocess,
+        "run",
+        lambda *args, **kwargs: _Result(),
+    )
+
+    store = proxy_credentials_module.CredentialStore(auto_load=False)
+    store._load_service("slack")
+
+    assert store.get_credential("slack", "oauth_token") == "xoxb-sop-token"
