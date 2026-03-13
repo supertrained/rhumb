@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
@@ -67,6 +68,19 @@ def create_app() -> FastAPI:
     application = FastAPI(title="Rhumb API", version="0.0.1", lifespan=_lifespan)
 
     # ── Middleware ──
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "https://rhumb.dev",
+            "https://www.rhumb.dev",
+            "https://rhumb-orcin.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:3001",
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
+    )
     application.add_middleware(QueryLoggingMiddleware)
 
     # ── Routers ──
