@@ -1,11 +1,18 @@
-"""Billing-oriented usage metering built on top of Round 11 analytics.
+"""Billing-oriented usage metering — durable-first (GAP-3).
 
-Tracks metered proxy calls and exposes billing-friendly snapshots and
-monthly aggregates per agent and organization.
+One proxy call produces exactly one durable usage event.  When a Supabase
+client is available (production), writes go to ``agent_usage_events`` and
+reads query the same table.  Without Supabase (dev/test), an in-memory
+event list is used as a fallback.
+
+No double-write path: ``AgentUsageAnalytics.record_event()`` is *not*
+called for event persistence.  The identity-store side-effect
+(``record_usage``) is invoked directly.
 """
 
 from __future__ import annotations
 
+import logging
 import math
 import uuid
 from collections import defaultdict
@@ -14,9 +21,13 @@ from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
-from services.agent_usage_analytics import AgentUsageAnalytics, get_usage_analytics
+
+logger = logging.getLogger(__name__)
 
 COST_PER_CALL_USD = 0.001
+
+# Canonical result values — kept explicit per GAP-3 contract.
+VALID_RESULTS = frozenset({"success", "error", "rate_limited", "auth_failed"})
 
 
 @dataclass
@@ -81,29 +92,34 @@ class OrgMonthlyUsage:
 
 
 class UsageMeterEngine:
-    """Metering engine that wraps :class:`AgentUsageAnalytics`.
+    """Metering engine — single durable writer for ``agent_usage_events``.
 
-    Uses in-memory storage in v1; production persistence can be routed
-    to Supabase in later rounds.
+    When ``supabase_client`` is provided, all writes go to Supabase and
+    reads query Supabase.  Otherwise falls back to an in-memory event
+    list for dev/test.
     """
 
     def __init__(
         self,
-        usage_analytics: Optional[AgentUsageAnalytics] = None,
         identity_store: Optional[AgentIdentityStore] = None,
         supabase_client: Any = None,
+        # Legacy parameter — accepted but no longer used for event persistence.
+        usage_analytics: Any = None,
     ) -> None:
-        self._analytics = usage_analytics
         self._identity_store = identity_store
-        self.supabase = supabase_client
+        self._supabase = supabase_client
         self._events: List[MeteredUsageEvent] = []
 
+    # ── Properties ───────────────────────────────────────────────────
+
     @property
-    def analytics(self) -> AgentUsageAnalytics:
-        """Get usage analytics dependency."""
-        if self._analytics is None:
-            self._analytics = get_usage_analytics(self.identity_store, self.supabase)
-        return self._analytics
+    def supabase(self) -> Any:
+        """Public accessor kept for backward compat (tests inspect this)."""
+        return self._supabase
+
+    @supabase.setter
+    def supabase(self, value: Any) -> None:
+        self._supabase = value
 
     @property
     def identity_store(self) -> AgentIdentityStore:
@@ -112,6 +128,32 @@ class UsageMeterEngine:
             self._identity_store = get_agent_identity_store()
         return self._identity_store
 
+    @property
+    def _is_durable(self) -> bool:
+        """True when a Supabase client is available."""
+        return self._supabase is not None
+
+    # ── Lazy Supabase (follows QueryLogger pattern) ──────────────────
+
+    async def ensure_supabase(self) -> bool:
+        """Attempt to resolve a Supabase client if none was injected.
+
+        Call this once at application startup — not on every request.
+        Returns True if a client is now available.
+        """
+        if self._supabase is not None:
+            return True
+        try:
+            from db.client import get_supabase_client
+
+            self._supabase = await get_supabase_client()
+            return True
+        except Exception:
+            logger.debug("Supabase not available — using in-memory metering")
+            return False
+
+    # ── Write ────────────────────────────────────────────────────────
+
     async def record_metered_call(
         self,
         agent_id: str,
@@ -119,22 +161,28 @@ class UsageMeterEngine:
         success: bool,
         latency_ms: float,
         response_size_bytes: int,
+        *,
+        result: Optional[str] = None,
     ) -> str:
         """Record a metered proxy call.
 
-        Also records into Round 11 analytics to preserve a single source
-        of truth for general usage telemetry.
+        Writes exactly **one** event — either to Supabase or in-memory.
+        Also updates the identity store ``last_used_at`` / ``last_used_result``.
+
+        Args:
+            agent_id: Agent identifier.
+            service: Service name (e.g. ``"openai"``).
+            success: Convenience boolean; ignored when *result* is provided.
+            latency_ms: Round-trip latency in milliseconds.
+            response_size_bytes: Response payload size.
+            result: Explicit result string.  When ``None``, derived from
+                *success* (``"success"`` / ``"error"``).
 
         Returns:
-            Metered event ID.
+            Event ID (UUID string).
         """
-        result = "success" if success else "error"
-        await self.analytics.record_event(
-            agent_id=agent_id,
-            service=service,
-            result=result,
-            latency_ms=latency_ms,
-        )
+        if result is None:
+            result = "success" if success else "error"
 
         event = MeteredUsageEvent(
             event_id=str(uuid.uuid4()),
@@ -146,8 +194,8 @@ class UsageMeterEngine:
             created_at=datetime.now(tz=UTC),
         )
 
-        if self.supabase is not None:
-            self.supabase.table("agent_usage_events").insert(
+        if self._is_durable:
+            await self._supabase.table("agent_usage_events").insert(
                 {
                     "event_id": event.event_id,
                     "agent_id": event.agent_id,
@@ -161,7 +209,15 @@ class UsageMeterEngine:
         else:
             self._events.append(event)
 
+        # Side-effect: update identity store (not a second event insert)
+        try:
+            await self.identity_store.record_usage(agent_id, service, result)
+        except Exception:
+            logger.debug("identity_store.record_usage failed — non-fatal", exc_info=True)
+
         return event.event_id
+
+    # ── Reads ────────────────────────────────────────────────────────
 
     async def get_usage_snapshot(
         self,
@@ -171,31 +227,54 @@ class UsageMeterEngine:
     ) -> Optional[UsageMeterSnapshot]:
         """Get a usage snapshot for one agent/service over ``period_days``."""
         cutoff = datetime.now(tz=UTC).timestamp() - (period_days * 86400)
-        events = [
-            event
-            for event in self._events
-            if event.agent_id == agent_id
-            and event.service == service
-            and event.created_at.timestamp() >= cutoff
-        ]
+        cutoff_iso = datetime.fromtimestamp(cutoff, tz=UTC).isoformat()
 
-        if not events:
-            return None
+        if self._is_durable:
+            resp = await (
+                self._supabase.table("agent_usage_events")
+                .select("result,latency_ms,response_size_bytes")
+                .eq("agent_id", agent_id)
+                .eq("service", service)
+                .gte("created_at", cutoff_iso)
+                .execute()
+            )
+            rows = resp.data or []
 
-        latencies = [event.latency_ms for event in events]
-        response_sizes = [event.response_size_bytes for event in events]
+            if not rows:
+                return None
 
-        success_count = sum(1 for event in events if event.result == "success")
-        rate_limited_count = sum(1 for event in events if event.result == "rate_limited")
-        failed_count = sum(
-            1 for event in events if event.result in ("error", "auth_failed")
-        )
+            latencies = [float(r["latency_ms"]) for r in rows]
+            response_sizes = [int(r["response_size_bytes"]) for r in rows]
+            success_count = sum(1 for r in rows if r["result"] == "success")
+            rate_limited_count = sum(1 for r in rows if r["result"] == "rate_limited")
+            failed_count = sum(
+                1 for r in rows if r["result"] in ("error", "auth_failed")
+            )
+        else:
+            events = [
+                e
+                for e in self._events
+                if e.agent_id == agent_id
+                and e.service == service
+                and e.created_at.timestamp() >= cutoff
+            ]
+
+            if not events:
+                return None
+
+            latencies = [e.latency_ms for e in events]
+            response_sizes = [e.response_size_bytes for e in events]
+            success_count = sum(1 for e in events if e.result == "success")
+            rate_limited_count = sum(1 for e in events if e.result == "rate_limited")
+            failed_count = sum(
+                1 for e in events if e.result in ("error", "auth_failed")
+            )
 
         return UsageMeterSnapshot(
             agent_id=agent_id,
             service=service,
             period_days=period_days,
-            call_count=len(events),
+            call_count=len(latencies),
             success_count=success_count,
             failed_count=failed_count,
             rate_limited_count=rate_limited_count,
@@ -206,32 +285,44 @@ class UsageMeterEngine:
         )
 
     async def get_monthly_usage(self, agent_id: str, month: str) -> MonthlyUsageSummary:
-        """Get monthly usage summary for one agent.
-
-        Args:
-            agent_id: Agent identifier.
-            month: Month key in ``YYYY-MM`` format.
-        """
+        """Get monthly usage summary for one agent."""
         month_start, month_end = _month_bounds(month)
-        month_events = [
-            event
-            for event in self._events
-            if event.agent_id == agent_id and month_start <= event.created_at < month_end
-        ]
 
-        by_service_counts: Dict[str, int] = defaultdict(int)
-        for event in month_events:
-            by_service_counts[event.service] += 1
+        if self._is_durable:
+            resp = await (
+                self._supabase.table("agent_usage_events")
+                .select("service")
+                .eq("agent_id", agent_id)
+                .gte("created_at", month_start.isoformat())
+                .lt("created_at", month_end.isoformat())
+                .execute()
+            )
+            rows = resp.data or []
+
+            by_service_counts: Dict[str, int] = defaultdict(int)
+            for r in rows:
+                by_service_counts[r["service"]] += 1
+            total_calls = len(rows)
+        else:
+            month_events = [
+                e
+                for e in self._events
+                if e.agent_id == agent_id and month_start <= e.created_at < month_end
+            ]
+
+            by_service_counts = defaultdict(int)
+            for e in month_events:
+                by_service_counts[e.service] += 1
+            total_calls = len(month_events)
 
         by_service: Dict[str, ServiceMonthlyUsage] = {
-            service: ServiceMonthlyUsage(
+            svc: ServiceMonthlyUsage(
                 call_count=count,
                 cost_estimate=round(count * COST_PER_CALL_USD, 6),
             )
-            for service, count in by_service_counts.items()
+            for svc, count in by_service_counts.items()
         }
 
-        total_calls = len(month_events)
         return MonthlyUsageSummary(
             agent_id=agent_id,
             month=month,
@@ -253,15 +344,15 @@ class UsageMeterEngine:
             by_agent[agent.agent_id] = summary
             total_calls += summary.total_calls
 
-            for service, service_summary in summary.by_service.items():
-                by_service_counts[service] += service_summary.call_count
+            for svc, svc_summary in summary.by_service.items():
+                by_service_counts[svc] += svc_summary.call_count
 
         by_service: Dict[str, ServiceMonthlyUsage] = {
-            service: ServiceMonthlyUsage(
+            svc: ServiceMonthlyUsage(
                 call_count=count,
                 cost_estimate=round(count * COST_PER_CALL_USD, 6),
             )
-            for service, count in by_service_counts.items()
+            for svc, count in by_service_counts.items()
         }
 
         return OrgMonthlyUsage(
@@ -280,15 +371,31 @@ class UsageMeterEngine:
     ) -> Tuple[int, float]:
         """Return ``(window_calls, daily_average_calls)`` for an organization."""
         cutoff = datetime.now(tz=UTC).timestamp() - (days * 86400)
+        cutoff_iso = datetime.fromtimestamp(cutoff, tz=UTC).isoformat()
         agents = await self.identity_store.list_agents(organization_id=organization_id)
         agent_ids = {agent.agent_id for agent in agents}
 
-        window_calls = sum(
-            1
-            for event in self._events
-            if event.agent_id in agent_ids and event.created_at.timestamp() >= cutoff
-        )
+        if self._is_durable and agent_ids:
+            window_calls = 0
+            for aid in agent_ids:
+                rows = await (
+                    self._supabase.table("agent_usage_events")
+                    .select("event_id", count="exact")
+                    .eq("agent_id", aid)
+                    .gte("created_at", cutoff_iso)
+                    .execute()
+                )
+                window_calls += rows.count if rows.count is not None else len(rows.data or [])
+        else:
+            window_calls = sum(
+                1
+                for e in self._events
+                if e.agent_id in agent_ids and e.created_at.timestamp() >= cutoff
+            )
+
         return window_calls, (window_calls / days if days > 0 else 0.0)
+
+    # ── Helpers ──────────────────────────────────────────────────────
 
     @staticmethod
     def _percentile(values: List[float], percentile: int) -> float:
@@ -321,14 +428,18 @@ _meter_engine: Optional[UsageMeterEngine] = None
 
 
 def get_usage_meter_engine(
-    usage_analytics: Optional[AgentUsageAnalytics] = None,
     identity_store: Optional[AgentIdentityStore] = None,
     supabase_client: Any = None,
+    # Legacy parameter — accepted for backward compat, not used.
+    usage_analytics: Any = None,
 ) -> UsageMeterEngine:
     """Return (or create) the global :class:`UsageMeterEngine`."""
     global _meter_engine
     if _meter_engine is None:
-        _meter_engine = UsageMeterEngine(usage_analytics, identity_store, supabase_client)
+        _meter_engine = UsageMeterEngine(
+            identity_store=identity_store,
+            supabase_client=supabase_client,
+        )
     return _meter_engine
 
 
