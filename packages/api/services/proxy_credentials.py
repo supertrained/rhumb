@@ -1,12 +1,14 @@
 """Credential store for proxy service.
 
 Loads and caches provider credentials with TTL-based refresh.
-In production, credentials are loaded from 1Password via ``sop`` CLI.
+In production, credentials are loaded from 1Password via ``sop`` CLI,
+with environment variable fallback for containerized deployments.
 In tests, the ``_load_service`` method is mocked via fixtures.
 """
 
 from __future__ import annotations
 
+import os
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -52,6 +54,16 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "github_token": ("github", "api_token"),
     "twilio_credentials": ("twilio", "basic_auth"),
     "sendgrid_api_key": ("sendgrid", "api_key"),
+}
+
+# Environment variable fallback: RHUMB_CRED_<SERVICE>_<KEY>=<value>
+# Example: RHUMB_CRED_SLACK_OAUTH_TOKEN=xoxb-...
+_ENV_VAR_MAP: Dict[str, tuple[str, str]] = {
+    "RHUMB_CRED_STRIPE_API_KEY": ("stripe", "api_key"),
+    "RHUMB_CRED_SLACK_OAUTH_TOKEN": ("slack", "oauth_token"),
+    "RHUMB_CRED_GITHUB_API_TOKEN": ("github", "api_token"),
+    "RHUMB_CRED_TWILIO_BASIC_AUTH": ("twilio", "basic_auth"),
+    "RHUMB_CRED_SENDGRID_API_KEY": ("sendgrid", "api_key"),
 }
 
 
@@ -121,8 +133,33 @@ class CredentialStore:
                 last_refreshed=datetime.utcnow(),
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            # sop not available – acceptable in test environments
-            pass
+            # sop not available – try environment variable fallback
+            self._load_service_from_env(service)
+
+    def _load_service_from_env(self, service: str) -> None:
+        """Fallback: load credentials from environment variables.
+
+        Useful in containerized deployments (Railway, Docker) where sop
+        is not available.  Variables follow the pattern
+        ``RHUMB_CRED_<SERVICE>_<KEY>=<value>``.
+        """
+        for env_var, (svc, cred_key) in _ENV_VAR_MAP.items():
+            if svc != service:
+                continue
+            value = os.environ.get(env_var, "").strip()
+            if not value:
+                continue
+            entry = CredentialEntry(
+                credential_type=cred_key,
+                value=value,
+                loaded_at=datetime.utcnow(),
+            )
+            self._cache[service] = ProviderCredentials(
+                service=service,
+                credentials={cred_key: entry},
+                last_refreshed=datetime.utcnow(),
+            )
+            return
 
     @staticmethod
     def _item_name_for(service: str) -> Optional[str]:
