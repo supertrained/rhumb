@@ -327,10 +327,11 @@ def test_get_review_stats_returns_fixture_totals(
             "manual_operator": 1,
         },
         "quality_floor": {
-            "runtime_backed_pct": 60.0,
-            "docs_only_pct": 20.0,
+            "runtime_backed_reviews": 0,
+            "runtime_backed_pct": 0.0,
+            "docs_only_pct": 100.0,
             "public_claim_eligible": False,
-            "reason": "Below 100 reviews",
+            "reason": "Below 100 reviews and 0% runtime-backed (requires ≥20%)",
         },
         "gate_4_progress": "3 / 500",
     }

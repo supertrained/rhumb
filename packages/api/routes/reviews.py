@@ -100,29 +100,42 @@ def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
 
 
-def _quality_floor(total_reviews: int, evidence_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    total_evidence = len(evidence_rows)
-    runtime_backed_count = sum(
-        1 for row in evidence_rows if row.get("source_type") in _RUNTIME_BACKED_SOURCE_TYPES
+def _quality_floor(
+    total_reviews: int,
+    source_types_by_review: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Compute quality floor from review-level evidence links.
+
+    A review is "runtime-backed" if it has at least one linked evidence
+    record whose source_type is in _RUNTIME_BACKED_SOURCE_TYPES.
+    The percentage is: runtime-backed reviews / total published reviews.
+    """
+    runtime_backed_reviews = sum(
+        1
+        for sources in source_types_by_review.values()
+        if any(s in _RUNTIME_BACKED_SOURCE_TYPES for s in sources)
     )
-    docs_only_count = sum(1 for row in evidence_rows if row.get("source_type") == "docs_derived")
+    docs_only_reviews = total_reviews - runtime_backed_reviews
 
     runtime_backed_pct = (
-        round((runtime_backed_count / total_evidence) * 100, 1) if total_evidence else 0.0
+        round((runtime_backed_reviews / total_reviews) * 100, 1) if total_reviews else 0.0
     )
-    docs_only_pct = round((docs_only_count / total_evidence) * 100, 1) if total_evidence else 0.0
+    docs_only_pct = (
+        round((docs_only_reviews / total_reviews) * 100, 1) if total_reviews else 0.0
+    )
     public_claim_eligible = total_reviews >= 100 and runtime_backed_pct >= 20.0
 
     if public_claim_eligible:
         reason = "Eligible for public claims"
     elif total_reviews < 100 and runtime_backed_pct < 20.0:
-        reason = f"Below 100 reviews and {runtime_backed_pct:.0f}% runtime-backed (requires \u226520%)"
+        reason = f"Below 100 reviews and {runtime_backed_pct:.0f}% runtime-backed (requires ≥20%)"
     elif total_reviews < 100:
         reason = "Below 100 reviews"
     else:
-        reason = f"{runtime_backed_pct:.0f}% runtime-backed (requires \u226520%)"
+        reason = f"{runtime_backed_pct:.0f}% runtime-backed (requires ≥20%)"
 
     return {
+        "runtime_backed_reviews": runtime_backed_reviews,
         "runtime_backed_pct": runtime_backed_pct,
         "docs_only_pct": docs_only_pct,
         "public_claim_eligible": public_claim_eligible,
@@ -308,11 +321,15 @@ async def get_review_stats() -> dict[str, Any]:
 
     total_reviews = len(review_rows)
 
+    # Quality floor: compute from review-level evidence links, not raw evidence ratios.
+    review_ids = [str(row["id"]) for row in review_rows if row.get("id") is not None]
+    source_types_by_review, _ = await _fetch_review_evidence(review_ids)
+
     return {
         "total_published_reviews": total_reviews,
         "total_evidence_records": len(evidence_rows),
         "review_type_breakdown": review_type_breakdown,
         "source_type_breakdown": source_type_breakdown,
-        "quality_floor": _quality_floor(total_reviews, evidence_rows),
+        "quality_floor": _quality_floor(total_reviews, source_types_by_review),
         "gate_4_progress": f"{total_reviews} / 500",
     }
