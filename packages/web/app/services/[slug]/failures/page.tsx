@@ -1,16 +1,10 @@
-import { FailureModeTags } from "../../../../components/FailureModeTags";
+import { redirect } from "next/navigation";
 
-export default async function ServiceFailuresPage({
+export default async function ServiceFailuresRedirectPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}): Promise<JSX.Element> {
+}): Promise<never> {
   const { slug } = await params;
-
-  return (
-    <section>
-      <h1>{slug} failures</h1>
-      <FailureModeTags tags={["AF", "SB", "AV"]} />
-    </section>
-  );
+  redirect(`/service/${slug}`);
 }
