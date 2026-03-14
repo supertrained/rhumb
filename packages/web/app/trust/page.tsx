@@ -258,21 +258,37 @@ export default function TrustPage() {
                 </h2>
                 <div className="space-y-3 text-slate-400 text-sm leading-relaxed">
                   <p>
-                    Current scores are{" "}
+                    Most scores start as{" "}
                     <strong className="text-slate-200">
                       documentation-derived
                     </strong>
-                    , not from observed agent execution. This means they
-                    capture what should work based on published
-                    documentation, but cannot catch undocumented behaviors,
-                    silent schema changes, or production edge cases.
+                    , built from published API docs and provider claims.
+                    These capture what should work, but cannot catch
+                    undocumented behaviors, silent schema changes, or
+                    production edge cases.
                   </p>
                   <p>
-                    We are building toward observed execution scoring —
-                    real agents making real API calls. When we ship it,
-                    every score will clearly label its evidence source. We
-                    will always be transparent about what we know and how
-                    we know it.
+                    We are actively closing this gap.{" "}
+                    <strong className="text-slate-200">
+                      Over 20% of our reviews are now runtime-backed
+                    </strong>
+                    {" "}— supported by real evidence from agent execution,
+                    tester-generated probes, and live API calls. Every
+                    review labels its evidence source. You can inspect
+                    the evidence behind any score via our{" "}
+                    <a
+                      href="/docs"
+                      className="text-amber hover:underline underline-offset-2"
+                    >
+                      API
+                    </a>
+                    .
+                  </p>
+                  <p>
+                    We will always be transparent about what we know and
+                    how we know it. Our goal is 100% runtime-backed
+                    coverage — but we won&apos;t hide the gap while we
+                    close it.
                   </p>
                 </div>
               </div>
