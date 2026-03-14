@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "How We Score — AN Score Methodology v0.3",
+  title: "How We Score — AN Score Methodology",
   description:
-    "Full methodology behind Rhumb's Agent-Native Score. 17 dimensions across 3 axes — Execution, Access Readiness, and Autonomy. Open, auditable, disputable.",
+    "Full methodology behind Rhumb's Agent-Native Score. 20 dimensions across 2 axes — Execution (70%) and Access Readiness (30%). Open, auditable, disputable.",
   alternates: { canonical: "/methodology" },
   openGraph: {
-    title: "AN Score Methodology v0.3",
+    title: "AN Score Methodology",
     description:
-      "17 dimensions, 3 axes, fully transparent scoring. How Rhumb rates developer tools for AI agent compatibility.",
+      "20 dimensions, 2 axes, fully transparent scoring. How Rhumb rates developer tools for AI agent compatibility.",
     type: "website",
     url: "https://rhumb.dev/methodology",
     siteName: "Rhumb",
@@ -25,7 +25,7 @@ const FAQ_JSON_LD = {
       name: "How does Rhumb score APIs?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Rhumb uses 17 dimensions across 3 axes (Execution 45%, Access Readiness 40%, Autonomy 15%) to produce an Agent-Native Score from 0-10.",
+        text: "Rhumb uses 20 dimensions across 2 axes (Execution 70%, Access Readiness 30%) to produce an Agent-Native Score from 0-10. Execution includes 10 core dimensions plus 3 autonomy dimensions. Access Readiness covers 7 dimensions.",
       },
     },
     {
@@ -192,7 +192,7 @@ export default function MethodologyPage() {
             </span>
             <span className="text-slate-700">·</span>
             <span className="text-xs font-mono text-slate-500">
-              AN Score v0.3
+              AN Score
             </span>
           </div>
           <h1 className="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
@@ -200,7 +200,7 @@ export default function MethodologyPage() {
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
             The Agent-Native Score rates developer tools on how well they
-            work for autonomous AI agents. 17 dimensions, 3 axes, fully
+            work for autonomous AI agents. 20 dimensions, 2 axes, fully
             transparent.
           </p>
         </header>
@@ -263,30 +263,24 @@ export default function MethodologyPage() {
           </div>
         </section>
 
-        {/* Three Axes */}
+        {/* Two Axes */}
         <section className="mb-16">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
-            Three scoring axes
+            Two scoring axes
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {[
               {
                 name: "Execution",
-                weight: "45%",
-                desc: "How reliably the tool works when an agent calls it. API stability, error handling, latency, schema consistency.",
-                count: "10 dimensions",
+                weight: "70%",
+                desc: "How reliably the tool works when an agent calls it. Covers API stability, error handling, latency, schema consistency, and end-to-end autonomy (payment, compliance, web accessibility).",
+                count: "13 dimensions",
               },
               {
                 name: "Access Readiness",
-                weight: "40%",
-                desc: "How easy it is for an agent to start using the tool. Signup friction, payment rails, credential management, documentation.",
+                weight: "30%",
+                desc: "How easy it is for an agent to start using the tool. Signup friction, payment rails, credential management, documentation, and sandbox availability.",
                 count: "7 dimensions",
-              },
-              {
-                name: "Autonomy",
-                weight: "15%",
-                desc: "Can the agent operate this tool end-to-end without human intervention? Payment, compliance, web accessibility.",
-                count: "3 dimensions",
               },
             ].map((axis) => (
               <div
@@ -315,13 +309,13 @@ export default function MethodologyPage() {
         {/* Dimensions */}
         <section className="mb-16">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
-            The 17 dimensions
+            The 20 dimensions
           </h2>
 
           <h3 className="font-display font-semibold text-lg text-slate-200 mb-4 mt-8">
             Execution{" "}
             <span className="text-slate-600 font-normal text-sm">
-              (10 dimensions · 45% weight)
+              (10 core dimensions · part of 70% Execution axis)
             </span>
           </h3>
           <div className="space-y-3">
@@ -343,7 +337,7 @@ export default function MethodologyPage() {
           <h3 className="font-display font-semibold text-lg text-slate-200 mb-4 mt-10">
             Access Readiness{" "}
             <span className="text-slate-600 font-normal text-sm">
-              (7 dimensions · 40% weight)
+              (7 dimensions · 30% weight)
             </span>
           </h3>
           <div className="space-y-3">
@@ -365,7 +359,7 @@ export default function MethodologyPage() {
           <h3 className="font-display font-semibold text-lg text-slate-200 mb-4 mt-10">
             Autonomy{" "}
             <span className="text-slate-600 font-normal text-sm">
-              (3 dimensions · 15% weight)
+              (3 dimensions · included in 70% Execution axis)
             </span>
           </h3>
           <div className="space-y-3">

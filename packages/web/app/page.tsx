@@ -62,7 +62,7 @@ export default async function HomePage(): Promise<JSX.Element> {
   const stats = [
     { value: String(serviceCount), label: "services scored" },
     { value: "11", label: "categories" },
-    { value: "17", label: "scored dimensions" },
+    { value: "20", label: "scored dimensions" },
     { value: "live", label: "evidence data" },
   ];
 
