@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "generated_at": "2026-03-13T21:05:00-07:00",
+  "purpose": "Observed access-audit findings from the launch-batch credential sprint. This file is for service-page 'What we found' surfaces, launch synthesis, and access-readiness analysis.",
+  "fields": {
+    "bootstrap_autonomy": "yes | partial | no",
+    "credential_status": "validated | blocked | partial",
+    "credential_path_quality": "direct | buried | confusing | blocked",
+    "human_gates": "Observed human blockers encountered in the auth/provisioning flow",
+    "auth_surface": "Primary auth pattern observed during bootstrap",
+    "best_credential_type": "Best operator-grade credential discovered for tester/runtime use"
+  },
+  "services": [
+    {
+      "service": "resend",
+      "wave": 1,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "github-oauth (existing Supertrained identity)",
+      "human_gates": ["account ownership tied to existing GitHub identity"],
+      "credential_path_quality": "direct",
+      "best_credential_type": "full-access API key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.resend.com/domains",
+        "status_code": 200
+      },
+      "what_we_found": "Once logged into the right GitHub-linked account, Resend's API key flow is clean. The real friction is account lineage, not token creation.",
+      "notes": [
+        "Existing item updated: Tester - Resend",
+        "Login provenance matters: Supertrained GitHub owns the relevant account"
+      ]
+    },
+    {
+      "service": "cloudflare",
+      "wave": 1,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "existing logged-in account",
+      "human_gates": ["account ownership / prior login context"],
+      "credential_path_quality": "direct",
+      "best_credential_type": "API token (Read all resources template)",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.cloudflare.com/client/v4/user/tokens/verify",
+        "status_code": 200
+      },
+      "what_we_found": "Cloudflare's token management is strong once inside the right account. The path is settings-driven and machine-friendly; the gating friction is identity context, not token issuance."
+    },
+    {
+      "service": "neon",
+      "wave": 1,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "existing logged-in account",
+      "human_gates": ["account ownership / prior login context"],
+      "credential_path_quality": "direct",
+      "best_credential_type": "account API key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://console.neon.tech/api/v2/projects?org_id=org-old-lab-60922554",
+        "status_code": 200
+      },
+      "what_we_found": "Neon's fastest path is direct to settings, not onboarding. The important nuance is org-scoped validation — bare project endpoints can mislead agents into false negatives.",
+      "notes": [
+        "org_id required for validation in this account"
+      ]
+    },
+    {
+      "service": "posthog",
+      "wave": 1,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "github-oauth / existing account context",
+      "human_gates": ["onboarding noise", "multiple token surfaces"],
+      "credential_path_quality": "buried",
+      "best_credential_type": "personal API key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://us.posthog.com/api/projects/342334/",
+        "status_code": 200
+      },
+      "what_we_found": "PostHog exposes both weak and strong credential surfaces. Agents should prefer the personal API key, not the project token, if they need authenticated management access."
+    },
+    {
+      "service": "upstash",
+      "wave": 1,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth via Clerk",
+      "human_gates": [],
+      "credential_path_quality": "direct",
+      "best_credential_type": "management API key (Basic Auth)",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.upstash.com/v2/redis/databases",
+        "status_code": 200
+      },
+      "what_we_found": "Upstash is genuinely bootstrap-agent-native. GitHub OAuth is clean, token creation is straightforward, and the only real gotcha is auth mode: the management API uses Basic Auth, not Bearer."
+    },
+    {
+      "service": "sentry",
+      "wave": 1,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "no",
+      "auth_surface": "github-oauth -> Okta SSO",
+      "human_gates": ["Okta SSO wall"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "unknown (blocked before token creation)",
+      "validation": null,
+      "what_we_found": "Sentry fails the bootstrap test under current conditions. GitHub sign-in does not clear access; it bottoms out in an enterprise Okta wall."
+    },
+    {
+      "service": "netlify",
+      "wave": 2,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth",
+      "human_gates": [],
+      "credential_path_quality": "direct",
+      "best_credential_type": "personal access token",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.netlify.com/api/v1/user",
+        "status_code": 200
+      },
+      "what_we_found": "Netlify is a strong example of GitHub as an agent identity amplifier. Once the agent already has GitHub auth, bootstrap is clean and token issuance is a short path."
+    },
+    {
+      "service": "together-ai",
+      "wave": 3,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth",
+      "human_gates": [],
+      "credential_path_quality": "direct",
+      "best_credential_type": "API key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.together.ai/v1/models",
+        "status_code": 200
+      },
+      "what_we_found": "Together AI is bootstrap-friendly via GitHub OAuth. The main caveat is product-mode, not access: the account is read-only until an initial deposit, but model listing and API authentication already work."
+    },
+    {
+      "service": "cohere",
+      "wave": 2,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth",
+      "human_gates": [],
+      "credential_path_quality": "buried",
+      "best_credential_type": "trial key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.cohere.com/v2/models",
+        "status_code": 200
+      },
+      "what_we_found": "Cohere is still bootstrap-agent-native, but the flow is slower than the cleanest GitHub OAuth cases because the agent must complete a multi-step onboarding wizard before key issuance."
+    },
+    {
+      "service": "turso",
+      "wave": 2,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth + headless CLI handoff",
+      "human_gates": [],
+      "credential_path_quality": "confusing",
+      "best_credential_type": "JWT access token",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.turso.tech/v1/organizations/supertrained/databases",
+        "status_code": 200
+      },
+      "what_we_found": "Turso is accessible to agents, but the best token path is not obvious from the web UI. The successful route was GitHub OAuth followed by the CLI/headless login token handoff."
+    },
+    {
+      "service": "groq",
+      "wave": 2,
+      "credential_status": "partial",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "github-oauth via Stytch B2B",
+      "human_gates": ["session persistence failure after OAuth callback"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "unknown (session did not persist)",
+      "validation": null,
+      "what_we_found": "Groq's OAuth authorization completed, but the post-auth session did not stick in the automated browser. This looks more like session-handoff fragility than a true human gate."
+    },
+    {
+      "service": "clerk",
+      "wave": 2,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth",
+      "human_gates": [],
+      "credential_path_quality": "confusing",
+      "best_credential_type": "secret key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://api.clerk.com/v1/users?limit=1",
+        "status_code": 200
+      },
+      "what_we_found": "Clerk is self-provisionable, but the key retrieval path is counterintuitive. The app creates keys immediately; the agent had to extract them from the generated app payload rather than a clear 'API keys' settings path."
+    }
+  ],
+  "launch_batch_summary": {
+    "covered_services": 16,
+    "fully_bootstrap_autonomous": 7,
+    "partial_bootstrap": 5,
+    "blocked": 1,
+    "partial_blocked": 1,
+    "main_pattern": "GitHub session reuse materially reduces bootstrap friction across modern developer SaaS.",
+    "main_counterpattern": "Enterprise SSO walls and fragile post-OAuth session handoffs are the fastest way to break agent autonomy."
+  }
+}
