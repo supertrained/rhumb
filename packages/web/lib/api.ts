@@ -155,22 +155,27 @@ async function getLeaderboardFromSupabase(
   const slugFilter = slugs.map((s) => `"${s}"`).join(",");
   const nameMap = Object.fromEntries(services.map((s) => [s.slug, s.name]));
 
-  // Get latest score for each service (use order + distinct on via limit)
+  // Get scores ordered by recency so dedup keeps the LATEST score per service
+  // (matches service page which uses calculated_at.desc)
   const scores = await supabaseFetch<SupabaseScore[]>(
-    `scores?service_slug=in.(${slugFilter})&order=aggregate_recommendation_score.desc.nullslast&limit=${limit}`
+    `scores?service_slug=in.(${slugFilter})&order=calculated_at.desc.nullslast&limit=${limit * 3}`
   );
 
   if (!scores) {
     return { category, items: [], error: "Unable to load scores." };
   }
 
-  // Deduplicate: keep only the highest-scored entry per service_slug
+  // Deduplicate: keep only the LATEST (most recent) entry per service_slug
+  // Then sort by aggregate score descending for leaderboard ranking
   const seen = new Set<string>();
   const deduped = scores.filter((sc) => {
     if (seen.has(sc.service_slug)) return false;
     seen.add(sc.service_slug);
     return true;
   });
+  deduped.sort((a, b) =>
+    (b.aggregate_recommendation_score ?? 0) - (a.aggregate_recommendation_score ?? 0)
+  );
 
   // Batch-fetch evidence counts for all services
   const evidenceCounts = await getEvidenceCountsBatch(deduped.map((sc) => sc.service_slug));
