@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "agent-cards-invisible",
+    title: "Why 'Agent Cards' Are Invisible to Agents",
+    description:
+      "We fetched Ramp's Agent Cards page the way an agent would. It extracted 3 words. Here's the full audit and the fix pattern.",
+    date: "March 14, 2026",
+    tag: "Agent Readability",
+    readTime: "7 min read",
+  },
+  {
     slug: "agent-passport-ranking",
     title: "Which SSO Gives Agents the Most Power?",
     description:
