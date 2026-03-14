@@ -23,6 +23,72 @@ function freshnessLabel(score: ServiceScoreViewModel): string {
   return "Freshness pending";
 }
 
+function formatDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+const EVIDENCE_TIER_STYLES = {
+  pending: {
+    borderClass: "border-slate-600",
+    bgClass: "bg-slate-800/50",
+    textClass: "text-slate-400",
+    dotClass: "bg-slate-500",
+  },
+  assessed: {
+    borderClass: "border-slate-500/40",
+    bgClass: "bg-slate-700/20",
+    textClass: "text-slate-300",
+    dotClass: "bg-slate-400",
+  },
+  tested: {
+    borderClass: "border-amber/30",
+    bgClass: "bg-amber/10",
+    textClass: "text-amber",
+    dotClass: "bg-amber",
+  },
+  verified: {
+    borderClass: "border-score-native/30",
+    bgClass: "bg-score-native/10",
+    textClass: "text-score-native",
+    dotClass: "bg-score-native",
+  },
+} as const;
+
+function EvidenceTierBadge({ score }: { score: ServiceScoreViewModel }) {
+  const style = EVIDENCE_TIER_STYLES[score.evidenceTier];
+  const date = formatDate(score.lastEvaluated);
+
+  let detail: string;
+  switch (score.evidenceTier) {
+    case "pending":
+      detail = "Pending Evaluation";
+      break;
+    case "assessed":
+      detail = `Docs reviewed${date ? ` · ${date}` : ""}`;
+      break;
+    case "tested":
+      detail = `${score.evidenceCount} test${score.evidenceCount === 1 ? "" : "s"}${date ? ` · ${date}` : ""}`;
+      break;
+    case "verified":
+      detail = `${score.evidenceCount} tests${date ? ` · ${date}` : ""}`;
+      break;
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide ${style.borderClass} ${style.bgClass} ${style.textClass}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${style.dotClass}`} />
+      {score.evidenceTierLabel} · {detail}
+    </span>
+  );
+}
+
 function buildServiceJsonLd(score: ServiceScoreViewModel): Record<string, unknown> {
   const additionalProperty = [
     score.executionScore !== null
@@ -228,9 +294,7 @@ export default async function ServicePage({
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <TierBadge tier={score.tier} label={score.tierLabel ?? undefined} />
-                <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-amber">
-                  Docs-derived
-                </span>
+                <EvidenceTierBadge score={score} />
                 {score.confidence !== null && (
                   <span className="text-xs font-mono text-slate-500">
                     Confidence{" "}
@@ -410,9 +474,19 @@ export default async function ServicePage({
               Trust & provenance
             </p>
             <div className="space-y-3 text-sm leading-relaxed text-slate-400">
-              <p>
-                Current scoring on Rhumb is <span className="text-slate-200">documentation-derived</span>. Unless a surface is explicitly labeled runtime-verified, treat the score as a docs-based evaluation of API design, auth, error handling, and documentation quality.
-              </p>
+              {score.evidenceTier === "verified" ? (
+                <p>
+                  This score is <span className="text-score-native">runtime-verified</span> with {score.evidenceCount} evidence records from authenticated API testing.
+                </p>
+              ) : score.evidenceTier === "tested" ? (
+                <p>
+                  This score includes <span className="text-amber">{score.evidenceCount} runtime test{score.evidenceCount === 1 ? "" : "s"}</span>. Additional testing will unlock Verified status.
+                </p>
+              ) : (
+                <p>
+                  This score is <span className="text-slate-200">documentation-derived</span>. Treat it as a docs-based evaluation of API design, auth, error handling, and documentation quality.
+                </p>
+              )}
               <p>
                 Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
               </p>

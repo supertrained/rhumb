@@ -13,7 +13,7 @@ vi.mock("../lib/api", () => ({
 }));
 
 const ALL_CATEGORIES = [
-  "payments", "ai", "analytics", "auth", "calendar",
+  "payments", "agent-payments", "ai", "analytics", "auth", "calendar",
   "crm", "devops", "email", "search", "social",
 ];
 
@@ -43,7 +43,7 @@ describe("leaderboard hub page", () => {
 
   it("ORDERED_SLUGS contains exactly 10 categories", async () => {
     const { ORDERED_SLUGS } = await import("../lib/categories");
-    expect(ORDERED_SLUGS).toHaveLength(10);
+    expect(ORDERED_SLUGS).toHaveLength(11);
   });
 
   it("ORDERED_SLUGS has remaining categories in alphabetical order", async () => {
@@ -53,7 +53,7 @@ describe("leaderboard hub page", () => {
     expect(rest).toEqual(sorted);
   });
 
-  it("CATEGORY_INFO has all 10 slugs", async () => {
+  it("CATEGORY_INFO has all 11 slugs", async () => {
     const { CATEGORY_INFO } = await import("../lib/categories");
     for (const slug of ALL_CATEGORIES) {
       expect(CATEGORY_INFO[slug]).toBeDefined();
@@ -75,7 +75,7 @@ describe("leaderboard hub page", () => {
     const mod = await import("../app/leaderboard/page");
     const meta = mod.metadata;
     expect(meta.title).toBe("Leaderboard | Rhumb");
-    expect(meta.description).toContain("10 categories");
+    expect(meta.description).toContain("11 categories");
   });
 
   it("metadata has canonical URL /leaderboard", async () => {

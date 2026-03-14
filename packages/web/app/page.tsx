@@ -2,10 +2,17 @@ import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getLeaderboard } from "../lib/api";
-import type { LeaderboardItem } from "../lib/types";
+import { getLeaderboard, getServiceCount } from "../lib/api";
+import type { EvidenceTier, LeaderboardItem } from "../lib/types";
 import { ScoreDisplay, TierBadge } from "../components/ScoreDisplay";
 import { CopyInstall } from "../components/copy-install";
+
+const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
+  pending: { className: "border-slate-700 text-slate-500 bg-slate-800/40", label: "Pending" },
+  assessed: { className: "border-slate-600/40 text-slate-400 bg-slate-700/20", label: "Assessed" },
+  tested: { className: "border-amber/30 text-amber bg-amber/10", label: "Tested" },
+  verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
+};
 
 export const metadata: Metadata = {
   title: "Rhumb | Agent-native tool discovery",
@@ -46,16 +53,18 @@ function freshnessLabel(item: LeaderboardItem): string {
   return "Freshness pending";
 }
 
-const STATS = [
-  { value: "50+", label: "services scored" },
-  { value: "10", label: "categories" },
-  { value: "17", label: "scored dimensions" },
-  { value: "live", label: "probe data" },
-];
-
 export default async function HomePage(): Promise<JSX.Element> {
-  const leaderboard = await getLeaderboard("payments", { limit: 3 });
+  const [leaderboard, serviceCount] = await Promise.all([
+    getLeaderboard("payments", { limit: 3 }),
+    getServiceCount(),
+  ]);
   const previewItems = leaderboard.items.slice(0, 3);
+  const stats = [
+    { value: String(serviceCount), label: "services scored" },
+    { value: "11", label: "categories" },
+    { value: "17", label: "scored dimensions" },
+    { value: "live", label: "evidence data" },
+  ];
 
   return (
     <div className="bg-navy min-h-screen">
@@ -79,7 +88,7 @@ export default async function HomePage(): Promise<JSX.Element> {
           <div className="animate-fade-up flex items-center gap-2 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-amber" />
             <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">
-              Agent-Native Score v0.3
+              Agent-Native Score
             </span>
           </div>
 
@@ -141,7 +150,7 @@ export default async function HomePage(): Promise<JSX.Element> {
       <section className="border-y border-slate-800 bg-surface/50">
         <div className="max-w-6xl mx-auto px-6 py-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {STATS.map(({ value, label }, i) => (
+            {stats.map(({ value, label }, i) => (
               <div
                 key={label}
                 className="animate-fade-up text-center"
@@ -218,8 +227,8 @@ export default async function HomePage(): Promise<JSX.Element> {
                       {/* "Aggregate X.X" text required by test */}
                       <span>Aggregate {scoreLabel(item.aggregateRecommendationScore)}</span>
                       <span>· Freshness {freshnessLabel(item)}</span>
-                      <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-amber">
-                        Docs-derived
+                      <span className={`rounded-full border px-2 py-0.5 ${EVIDENCE_BADGE_STYLES[item.evidenceTier].className}`}>
+                        {EVIDENCE_BADGE_STYLES[item.evidenceTier].label}
                       </span>
                     </div>
                   </div>

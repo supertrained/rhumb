@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../lib/api", () => ({
   getLeaderboard: vi.fn(async () => ({ category: "payments", items: [], error: null })),
+  getServiceCount: vi.fn(async () => 54),
   getServiceScore: vi.fn(async () => ({
     serviceSlug: "stripe",
     aggregateRecommendationScore: 8.9,
@@ -14,7 +15,11 @@ vi.mock("../lib/api", () => ({
     calculatedAt: "2026-03-05T23:00:00Z",
     evidenceFreshness: "12 minutes ago",
     activeFailures: [],
-    alternatives: []
+    alternatives: [],
+    evidenceTier: "assessed",
+    evidenceTierLabel: "Assessed",
+    evidenceCount: 0,
+    lastEvaluated: "2026-03-05T23:00:00Z"
   }))
 }));
 

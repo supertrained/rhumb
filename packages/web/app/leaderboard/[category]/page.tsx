@@ -3,10 +3,17 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { getLeaderboard } from "../../../lib/api";
-import type { LeaderboardItem } from "../../../lib/types";
+import type { EvidenceTier, LeaderboardItem } from "../../../lib/types";
 import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
 import { AutonomyBadges } from "../../../components/autonomy-badges";
 import { getTierInfo } from "../../../lib/utils";
+
+const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
+  pending: { className: "border-slate-700 text-slate-500 bg-slate-800/40", label: "Pending" },
+  assessed: { className: "border-slate-600/40 text-slate-400 bg-slate-700/20", label: "Assessed" },
+  tested: { className: "border-amber/30 text-amber bg-amber/10", label: "Tested" },
+  verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
+};
 
 type SearchParams = {
   category?: string;
@@ -257,13 +264,13 @@ export default async function LeaderboardPage({
                   </div>
                 </div>
 
-                {/* Freshness — "Freshness: X" format required by test */}
+                {/* Freshness + evidence tier */}
                 <div className="hidden sm:flex flex-col items-end gap-2 shrink-0">
                   <span className="text-xs font-mono text-slate-600">
                     Freshness: {freshnessLabel(item)}
                   </span>
-                  <span className="rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-amber">
-                    Docs-derived
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide ${EVIDENCE_BADGE_STYLES[item.evidenceTier].className}`}>
+                    {EVIDENCE_BADGE_STYLES[item.evidenceTier].label}
                   </span>
                 </div>
               </div>

@@ -51,7 +51,9 @@ describe("leaderboard page", () => {
           freshness: "12 minutes ago",
           calculatedAt: null,
           tier: "L4",
-          confidence: 0.95
+          confidence: 0.95,
+          evidenceTier: "assessed",
+          evidenceCount: 0
         },
         {
           serviceSlug: "resend",
@@ -62,7 +64,9 @@ describe("leaderboard page", () => {
           freshness: "2 hours ago",
           calculatedAt: null,
           tier: "L3",
-          confidence: 0.9
+          confidence: 0.9,
+          evidenceTier: "assessed",
+          evidenceCount: 0
         }
       ]
     });

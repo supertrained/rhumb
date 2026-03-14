@@ -1,5 +1,6 @@
 import type {
   CategorySummary,
+  EvidenceTier,
   LaunchDashboardViewModel,
   LeaderboardViewModel,
   Service,
@@ -64,6 +65,53 @@ type SupabaseServiceLinks = {
   mcp_server_url: string | null;
 };
 
+// ---------- Evidence tier helpers ----------
+
+const EVIDENCE_TIER_LABELS: Record<EvidenceTier, string> = {
+  pending: "Pending Evaluation",
+  assessed: "Assessed",
+  tested: "Tested",
+  verified: "Verified",
+};
+
+function computeEvidenceTier(hasScore: boolean, runtimeEvidenceCount: number): EvidenceTier {
+  if (!hasScore) return "pending";
+  if (runtimeEvidenceCount >= 50) return "verified";
+  if (runtimeEvidenceCount >= 1) return "tested";
+  return "assessed";
+}
+
+type EvidenceStats = {
+  count: number;
+  latestAt: string | null;
+};
+
+async function getEvidenceStats(slug: string): Promise<EvidenceStats> {
+  // Use Supabase HEAD request with Prefer: count=exact to get count + latest date
+  // First get the count of runtime evidence records
+  const records = await supabaseFetch<Array<{ created_at: string }>>(
+    `evidence_records?service_slug=eq.${encodeURIComponent(slug)}&evidence_type=in.(runtime_verified,tester_generated)&select=created_at&order=created_at.desc`
+  );
+  if (!records || records.length === 0) {
+    return { count: 0, latestAt: null };
+  }
+  return { count: records.length, latestAt: records[0].created_at };
+}
+
+async function getEvidenceCountsBatch(slugs: string[]): Promise<Record<string, number>> {
+  if (slugs.length === 0) return {};
+  const slugFilter = slugs.map((s) => `"${s}"`).join(",");
+  const records = await supabaseFetch<Array<{ service_slug: string }>>(
+    `evidence_records?service_slug=in.(${slugFilter})&evidence_type=in.(runtime_verified,tester_generated)&select=service_slug`
+  );
+  if (!records) return {};
+  const counts: Record<string, number> = {};
+  for (const r of records) {
+    counts[r.service_slug] = (counts[r.service_slug] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ---------- Supabase implementations ----------
 
 async function getServicesFromSupabase(): Promise<Service[]> {
@@ -118,13 +166,19 @@ async function getLeaderboardFromSupabase(
 
   // Deduplicate: keep only the highest-scored entry per service_slug
   const seen = new Set<string>();
-  const items = scores
-    .filter((sc) => {
-      if (seen.has(sc.service_slug)) return false;
-      seen.add(sc.service_slug);
-      return true;
-    })
-    .map((sc) => ({
+  const deduped = scores.filter((sc) => {
+    if (seen.has(sc.service_slug)) return false;
+    seen.add(sc.service_slug);
+    return true;
+  });
+
+  // Batch-fetch evidence counts for all services
+  const evidenceCounts = await getEvidenceCountsBatch(deduped.map((sc) => sc.service_slug));
+
+  const items = deduped.map((sc) => {
+    const count = evidenceCounts[sc.service_slug] ?? 0;
+    const tier = computeEvidenceTier(sc.aggregate_recommendation_score !== null, count);
+    return {
       serviceSlug: sc.service_slug,
       name: nameMap[sc.service_slug] ?? sc.service_slug,
       aggregateRecommendationScore: sc.aggregate_recommendation_score,
@@ -138,7 +192,10 @@ async function getLeaderboardFromSupabase(
       p1Score: sc.payment_autonomy ?? null,
       g1Score: sc.governance_readiness ?? null,
       w1Score: sc.web_accessibility ?? null,
-    }));
+      evidenceTier: tier,
+      evidenceCount: count,
+    };
+  });
 
   return { category, items, error: null };
 }
@@ -188,6 +245,10 @@ async function getServiceScoreFromSupabase(
     category: f.category,
   }));
 
+  // Fetch evidence stats for tier computation
+  const evidence = await getEvidenceStats(slug);
+  const evidenceTier = computeEvidenceTier(sc.aggregate_recommendation_score !== null, evidence.count);
+
   return {
     serviceSlug: sc.service_slug,
     aggregateRecommendationScore: sc.aggregate_recommendation_score,
@@ -213,6 +274,10 @@ async function getServiceScoreFromSupabase(
     docsUrl: links.docs_url,
     openapiUrl: links.openapi_url,
     mcpServerUrl: links.mcp_server_url,
+    evidenceTier,
+    evidenceTierLabel: EVIDENCE_TIER_LABELS[evidenceTier],
+    evidenceCount: evidence.count,
+    lastEvaluated: evidence.latestAt ?? sc.calculated_at,
   };
 }
 
@@ -339,6 +404,19 @@ export async function getCategories(): Promise<CategorySummary[]> {
     counts[s.category] = (counts[s.category] ?? 0) + 1;
   }
   return Object.entries(counts).map(([slug, serviceCount]) => ({ slug, serviceCount }));
+}
+
+/** Fetch total number of scored services (services with a score row). */
+export async function getServiceCount(): Promise<number> {
+  if (useSupabase) {
+    const data = await supabaseFetch<Array<{ service_slug: string }>>(
+      "scores?select=service_slug"
+    );
+    if (!data) return 0;
+    return new Set(data.map((r) => r.service_slug)).size;
+  }
+  const services = await getServicesFromAPI();
+  return services.length;
 }
 
 /** Fetch launch dashboard data from the admin API. */

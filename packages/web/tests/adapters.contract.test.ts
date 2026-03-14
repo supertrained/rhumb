@@ -45,7 +45,9 @@ describe("web adapters", () => {
         confidence: 0.95,
         p1Score: null,
         g1Score: null,
-        w1Score: null
+        w1Score: null,
+        evidenceTier: "assessed",
+        evidenceCount: 0
       }
     ]);
     expect(parsed.error).toBeNull();
@@ -124,7 +126,11 @@ describe("web adapters", () => {
       baseUrl: null,
       docsUrl: null,
       openapiUrl: null,
-      mcpServerUrl: null
+      mcpServerUrl: null,
+      evidenceTier: "assessed",
+      evidenceTierLabel: "Assessed",
+      evidenceCount: 0,
+      lastEvaluated: "2026-03-05T23:00:00Z"
     });
   });
 

@@ -64,7 +64,11 @@ describe("service page", () => {
       baseUrl: "https://stripe.com",
       docsUrl: "https://docs.stripe.com",
       openapiUrl: null,
-      mcpServerUrl: null
+      mcpServerUrl: null,
+      evidenceTier: "assessed",
+      evidenceTierLabel: "Assessed",
+      evidenceCount: 0,
+      lastEvaluated: "2026-03-05T23:00:00Z"
     });
 
     const html = await renderServicePage();

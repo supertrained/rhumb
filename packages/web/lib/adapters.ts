@@ -1,4 +1,5 @@
 import type {
+  EvidenceTier,
   LeaderboardItem,
   LeaderboardViewModel,
   Service,
@@ -83,7 +84,9 @@ function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | 
     confidence: asNumber(item.confidence),
     p1Score: asNumber(item.p1_score),
     g1Score: asNumber(item.g1_score),
-    w1Score: asNumber(item.w1_score)
+    w1Score: asNumber(item.w1_score),
+    evidenceTier: (asString(item.evidence_tier) as EvidenceTier) ?? "assessed",
+    evidenceCount: asNumber(item.evidence_count) ?? 0,
   };
 }
 
@@ -173,7 +176,11 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     baseUrl: asString(payload.base_url),
     docsUrl: asString(payload.docs_url),
     openapiUrl: asString(payload.openapi_url),
-    mcpServerUrl: asString(payload.mcp_server_url)
+    mcpServerUrl: asString(payload.mcp_server_url),
+    evidenceTier: (asString(payload.evidence_tier) as EvidenceTier) ?? "assessed",
+    evidenceTierLabel: asString(payload.evidence_tier_label) ?? "Assessed",
+    evidenceCount: asNumber(payload.evidence_count) ?? 0,
+    lastEvaluated: asString(payload.last_evaluated) ?? asString(payload.calculated_at),
   };
 }
 

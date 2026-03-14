@@ -12,6 +12,8 @@ export type ANScore = {
   explanation: string;
 };
 
+export type EvidenceTier = "pending" | "assessed" | "tested" | "verified";
+
 export type LeaderboardItem = {
   serviceSlug: string;
   name: string;
@@ -25,6 +27,8 @@ export type LeaderboardItem = {
   p1Score: number | null;
   g1Score: number | null;
   w1Score: number | null;
+  evidenceTier: EvidenceTier;
+  evidenceCount: number;
 };
 
 export type LeaderboardViewModel = {
@@ -78,6 +82,10 @@ export type ServiceScoreViewModel = {
   docsUrl: string | null;
   openapiUrl: string | null;
   mcpServerUrl: string | null;
+  evidenceTier: EvidenceTier;
+  evidenceTierLabel: string;
+  evidenceCount: number;
+  lastEvaluated: string | null;
 };
 
 export type LaunchDashboardCount = {

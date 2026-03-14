@@ -1,12 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getLeaderboardMock } = vi.hoisted(() => ({
-  getLeaderboardMock: vi.fn()
+const { getLeaderboardMock, getServiceCountMock } = vi.hoisted(() => ({
+  getLeaderboardMock: vi.fn(),
+  getServiceCountMock: vi.fn()
 }));
 
 vi.mock("../lib/api", () => ({
-  getLeaderboard: getLeaderboardMock
+  getLeaderboard: getLeaderboardMock,
+  getServiceCount: getServiceCountMock
 }));
 
 async function renderHomePage(): Promise<string> {
@@ -18,6 +20,8 @@ async function renderHomePage(): Promise<string> {
 describe("home page", () => {
   beforeEach(() => {
     getLeaderboardMock.mockReset();
+    getServiceCountMock.mockReset();
+    getServiceCountMock.mockResolvedValue(54);
   });
 
   it("renders hero, search entry, and leaderboard preview", async () => {
@@ -34,7 +38,9 @@ describe("home page", () => {
           freshness: "12 minutes ago",
           calculatedAt: null,
           tier: "L4",
-          confidence: 0.95
+          confidence: 0.95,
+          evidenceTier: "assessed",
+          evidenceCount: 0
         }
       ]
     });
