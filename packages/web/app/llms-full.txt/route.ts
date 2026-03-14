@@ -1,4 +1,4 @@
-import { getServices, getCategories, getLeaderboardByCategory } from "../../lib/api";
+import { getServices, getCategories, getLeaderboard } from "../../lib/api";
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -11,8 +11,8 @@ export async function GET() {
   // Fetch leaderboard data for each category to get scores
   const categoryData = await Promise.all(
     categories.map(async (c) => {
-      const items = await getLeaderboardByCategory(c.slug, 50);
-      return { category: c, items };
+      const lb = await getLeaderboard(c.slug, { limit: 50 });
+      return { category: c, items: lb.error ? [] : lb.items };
     }),
   );
 
@@ -22,11 +22,12 @@ export async function GET() {
 
   const serviceDetails = categoryData
     .map(({ category, items }) => {
-      const header = `### ${category.name} (${items.length} scored)`;
+      const label = category.slug.charAt(0).toUpperCase() + category.slug.slice(1);
+      const header = `### ${label} (${items.length} scored)`;
       const rows = items
         .map(
           (item) =>
-            `- **${item.serviceName}** (${item.serviceSlug}): AN Score ${item.aggregateRecommendationScore?.toFixed(1) ?? "N/A"} | Execution ${item.executionScore?.toFixed(1) ?? "N/A"} | Access ${item.accessReadinessScore?.toFixed(1) ?? "N/A"} | Tier ${item.tier ?? "N/A"} → /service/${item.serviceSlug}`,
+            `- **${item.name}** (${item.serviceSlug}): AN Score ${item.aggregateRecommendationScore?.toFixed(1) ?? "N/A"} | Execution ${item.executionScore?.toFixed(1) ?? "N/A"} | Access ${item.accessReadinessScore?.toFixed(1) ?? "N/A"} | Tier ${item.tier ?? "N/A"} → /service/${item.serviceSlug}`,
         )
         .join("\n");
       return `${header}\n${rows}`;

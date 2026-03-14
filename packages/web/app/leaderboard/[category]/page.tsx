@@ -166,6 +166,11 @@ export default async function LeaderboardPage({
   // ── Normal/happy-path state ────────────────────────────────────
   const categoryLabel = resolvedCategory.charAt(0).toUpperCase() + resolvedCategory.slice(1);
 
+  // Build ranking summary for agent/SEO readability
+  const rankingSummary = visibleItems
+    .map((item, i) => `#${i + 1} ${item.name} (${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier})`)
+    .join(", ");
+
   return (
     <div className="bg-navy min-h-screen">
       {renderJsonLd(structuredData)}
@@ -186,6 +191,9 @@ export default async function LeaderboardPage({
               <h1 className="font-display font-bold text-4xl text-slate-100 tracking-tight">{categoryLabel}</h1>
               <p className="mt-2 text-slate-400 text-sm font-mono">
                 {visibleItems.length} service{visibleItems.length === 1 ? "" : "s"} · ranked by AN Score
+              </p>
+              <p className="mt-2 text-sm text-slate-500 leading-relaxed max-w-2xl">
+                Rankings: {rankingSummary}. Scores use the AN Score methodology: 70% Execution + 30% Access Readiness across 20 dimensions.
               </p>
             </div>
             {/* Legend */}
@@ -211,6 +219,7 @@ export default async function LeaderboardPage({
           {visibleItems.map((item, index) => (
             <article
               key={item.serviceSlug}
+              aria-label={`#${index + 1} ${item.name}: AN Score ${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier}`}
               className="bg-surface border border-slate-800 rounded-xl p-5 transition-all duration-200 hover:border-slate-600 hover:bg-elevated hover:-translate-y-0.5"
             >
               <div className="flex items-center gap-4">

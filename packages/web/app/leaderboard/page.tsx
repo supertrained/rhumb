@@ -97,6 +97,18 @@ export default async function LeaderboardHubPage(): Promise<JSX.Element> {
     categoryData.map((c) => [c.slug, c.serviceCount])
   );
 
+  // Build a text summary for agent/SEO readability
+  const categorySummaries = ORDERED_SLUGS
+    .map((slug) => {
+      const info = CATEGORY_INFO[slug];
+      if (!info) return null;
+      const count = countMap[slug] ?? 0;
+      return `${info.name} (${count} service${count === 1 ? "" : "s"}): ${info.description}`;
+    })
+    .filter(Boolean);
+
+  const totalServices = Object.values(countMap).reduce((a, b) => a + b, 0);
+
   return (
     <div className="bg-navy min-h-screen">
       {/* Header */}
@@ -108,8 +120,22 @@ export default async function LeaderboardHubPage(): Promise<JSX.Element> {
             Agent-native rankings
           </h1>
           <p className="mt-3 text-slate-400 max-w-xl leading-relaxed">
-            11 categories. Every API scored on execution reliability and access readiness
-            for autonomous agents.
+            Rhumb scores {totalServices} developer APIs across {ORDERED_SLUGS.length} categories
+            on execution reliability and access readiness for autonomous AI agents.
+            Each service is rated on 20 dimensions using Rhumb&apos;s Agent-Native Score (AN&nbsp;Score).
+          </p>
+        </div>
+      </section>
+
+      {/* Machine-readable / agent-extractable summary */}
+      <section className="max-w-6xl mx-auto px-6 pt-8">
+        <div className="text-sm text-slate-500 leading-relaxed space-y-1">
+          <p>
+            Categories: {categorySummaries.join(". ")}.
+          </p>
+          <p>
+            Scores range from 0.0 to 10.0. Tiers: L4 Native (8.0–10.0), L3 Ready (6.0–7.9),
+            L2 Developing (4.0–5.9), L1 Limited (0.0–3.9). Formula: 70% Execution + 30% Access Readiness.
           </p>
         </div>
       </section>
