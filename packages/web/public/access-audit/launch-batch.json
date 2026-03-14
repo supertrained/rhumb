@@ -201,15 +201,91 @@
         "status_code": 200
       },
       "what_we_found": "Clerk is self-provisionable, but the key retrieval path is counterintuitive. The app creates keys immediately; the agent had to extract them from the generated app payload rather than a clear 'API keys' settings path."
+    },
+    {
+      "service": "algolia",
+      "wave": 2,
+      "credential_status": "validated",
+      "bootstrap_autonomy": "yes",
+      "auth_surface": "github-oauth",
+      "human_gates": ["multi-step onboarding wizard (code question, dataset, expert question)"],
+      "credential_path_quality": "direct",
+      "best_credential_type": "admin API key",
+      "validation": {
+        "method": "GET",
+        "endpoint": "https://80LYFTF37Y-dsn.algolia.net/1/indexes",
+        "status_code": 200
+      },
+      "what_we_found": "Algolia is fully bootstrap-agent-native via GitHub OAuth. The onboarding wizard has multiple steps but all are clickable without human gates. API keys are immediately visible on the settings page."
+    },
+    {
+      "service": "mistral",
+      "wave": 2,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "no",
+      "auth_surface": "email-only login",
+      "human_gates": ["no social auth — email/password only"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "unknown (blocked before token creation)",
+      "validation": null,
+      "what_we_found": "Mistral's auth surface is email-only with no social login option. An agent without an existing account cannot bootstrap access. This is a clean Tom-gated blocker."
+    },
+    {
+      "service": "postmark",
+      "wave": 2,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "no",
+      "auth_surface": "email signup with reCAPTCHA",
+      "human_gates": ["reCAPTCHA on signup form"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "unknown (blocked before account creation)",
+      "validation": null,
+      "what_we_found": "Postmark's signup form includes reCAPTCHA, which blocks autonomous agent bootstrap. The rest of the form is straightforward, but the CAPTCHA is an irreducible human gate."
+    },
+    {
+      "service": "deepseek",
+      "wave": 3,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "no",
+      "auth_surface": "email-only login",
+      "human_gates": ["no social auth — email/password only"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "unknown (blocked before token creation)",
+      "validation": null,
+      "what_we_found": "DeepSeek's platform login is email/password only with no GitHub or Google OAuth. The platform timed out on initial load too, suggesting infrastructure immaturity."
+    },
+    {
+      "service": "firebase-auth",
+      "wave": 3,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "partial",
+      "auth_surface": "google-account (existing session)",
+      "human_gates": ["identity boundary — Firebase Console is under Tom's personal Google account, not agent-accessible GitHub identity"],
+      "credential_path_quality": "direct",
+      "best_credential_type": "Google API key (expected for probes)",
+      "validation": null,
+      "what_we_found": "Firebase Console is already authenticated under an existing Google session. The technical path is clear, but the identity boundary is different from the GitHub OAuth pattern — creating projects under Tom's Google account requires explicit approval."
+    },
+    {
+      "service": "meilisearch",
+      "wave": 3,
+      "credential_status": "blocked",
+      "bootstrap_autonomy": "no",
+      "auth_surface": "self-hosted — needs running instance",
+      "human_gates": ["no hosted service discovered — needs instance URL"],
+      "credential_path_quality": "blocked",
+      "best_credential_type": "master key (self-hosted)",
+      "validation": null,
+      "what_we_found": "Meilisearch is primarily a self-hosted search engine. Without a running instance URL, there is no bootstrap path for credential acquisition. Meilisearch Cloud exists but was not evaluated."
     }
   ],
   "launch_batch_summary": {
-    "covered_services": 16,
-    "fully_bootstrap_autonomous": 7,
+    "covered_services": 17,
+    "fully_bootstrap_autonomous": 8,
     "partial_bootstrap": 5,
-    "blocked": 1,
-    "partial_blocked": 1,
+    "blocked": 4,
     "main_pattern": "GitHub session reuse materially reduces bootstrap friction across modern developer SaaS.",
-    "main_counterpattern": "Enterprise SSO walls and fragile post-OAuth session handoffs are the fastest way to break agent autonomy."
+    "main_counterpattern": "Email-only auth, reCAPTCHA, and enterprise SSO walls are the fastest ways to break agent autonomy.",
+    "identity_insight": "GitHub OAuth and Google account session reuse are distinct agent identity channels. GitHub is agent-controllable; Google account projects involve a human identity boundary."
   }
 }
