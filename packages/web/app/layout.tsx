@@ -34,11 +34,20 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Rhumb",
     locale: "en_US",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "Rhumb — Agent-native tool discovery",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     site: "@pedrorhumb",
     creator: "@pedrorhumb",
+    images: ["/api/og"],
   },
 };
 

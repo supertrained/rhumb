@@ -71,7 +71,7 @@ const FAQ = [
   },
   {
     q: "Who decides the scores?",
-    a: "Scores are calculated algorithmically based on 17 dimensions. The methodology is published at /methodology. Currently scores are documentation-derived; we are building toward observed execution scoring.",
+    a: "Scores are calculated algorithmically based on 20 dimensions. The methodology is published at /methodology. Currently scores are documentation-derived; we are building toward observed execution scoring.",
   },
   {
     q: "Can I contribute data to improve my score?",
@@ -145,10 +145,10 @@ export default function ProvidersPage() {
             >
               AN Score
             </Link>{" "}
-            evaluates your API across 17 dimensions on three axes:
-            Execution (reliability, error handling, schema stability),
-            Access Readiness (signup friction, payment rails, docs quality),
-            and Autonomy (end-to-end agent operability).
+            evaluates your API across 20 dimensions on two axes:
+            Execution at 70% (reliability, error handling, schema stability,
+            and end-to-end autonomy) and Access Readiness at 30% (signup
+            friction, payment rails, credential management, docs quality).
           </p>
           <p className="text-slate-400 leading-relaxed">
             We&apos;re not rating your product for humans. We&apos;re

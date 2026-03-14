@@ -105,7 +105,7 @@ export default function AboutPage() {
                 href="/methodology"
                 className="text-amber hover:underline underline-offset-2"
               >
-                17 dimensions
+                20 dimensions
               </Link>
               . Every score is published, disputable, and transparent.
             </p>

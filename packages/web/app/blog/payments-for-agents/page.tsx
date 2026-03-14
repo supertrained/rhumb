@@ -341,7 +341,7 @@ export default function PaymentsForAgents() {
           <h2 className="font-display font-bold text-lg text-slate-100 mb-4">Methodology</h2>
           <div className="prose-rhumb">
             <p>
-              The <strong>Agent-Native Score</strong> evaluates tools across 17 dimensions grouped
+              The <strong>Agent-Native Score</strong> evaluates tools across 20 dimensions grouped
               into Execution (how well the API works when called) and Access (how easy it is for an
               agent to start using it autonomously). Scores are weighted 70/30 Execution/Access.
             </p>

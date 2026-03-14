@@ -179,7 +179,7 @@ export default function TrustPage() {
                   >
                     scoring methodology
                   </Link>{" "}
-                  is fully documented — 17 dimensions, 3 axes, tier
+                  is fully documented — 20 dimensions, 2 axes, tier
                   definitions, data sources, limitations. You can read
                   exactly how every score is calculated. The code is{" "}
                   <a
