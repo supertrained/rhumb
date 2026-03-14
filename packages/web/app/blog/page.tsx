@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "agent-passport-ranking",
+    title: "Which SSO Gives Agents the Most Power?",
+    description:
+      "We tried to bootstrap 23 developer tools autonomously. GitHub unlocked 8. Email unlocked 0. The full agent passport ranking.",
+    date: "March 14, 2026",
+    tag: "Access",
+    readTime: "9 min read",
+  },
+  {
     slug: "self-score",
     title: "We Scored Ourselves First — Here's What We Found",
     description:
