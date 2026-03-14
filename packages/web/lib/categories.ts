@@ -10,6 +10,10 @@ export const CATEGORY_INFO: Record<string, CategoryMeta> = {
     name: "Payments",
     description: "Payment processing, billing, and financial automation services for agents.",
   },
+  "agent-payments": {
+    name: "Agent Payments",
+    description: "Programmable payment infrastructure built specifically for AI agents — virtual cards, spend controls, and audit trails.",
+  },
   ai: {
     name: "AI",
     description: "AI model providers, embeddings, and machine learning inference APIs.",

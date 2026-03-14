@@ -98,7 +98,7 @@ export default function AboutPage() {
                 href="/leaderboard"
                 className="text-amber hover:underline underline-offset-2"
               >
-                53 services across 10 categories
+                54 services across 11 categories
               </Link>{" "}
               on{" "}
               <Link

@@ -10,11 +10,11 @@ import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
 export const metadata: Metadata = {
   title: "Leaderboard | Rhumb",
   description:
-    "Browse agent-native tool rankings across 10 categories: AI, payments, auth, and more.",
+    "Browse agent-native tool rankings across 11 categories: AI, payments, auth, and more.",
   alternates: { canonical: "/leaderboard" },
   openGraph: {
     title: "Leaderboard | Rhumb",
-    description: "Agent-native tool rankings across 10 categories.",
+    description: "Agent-native tool rankings across 11 categories.",
     images: [{ url: "/api/og", width: 1200, height: 630 }],
   },
 };
@@ -108,7 +108,7 @@ export default async function LeaderboardHubPage(): Promise<JSX.Element> {
             Agent-native rankings
           </h1>
           <p className="mt-3 text-slate-400 max-w-xl leading-relaxed">
-            10 categories. Every API scored on execution reliability and access readiness
+            11 categories. Every API scored on execution reliability and access readiness
             for autonomous agents.
           </p>
         </div>

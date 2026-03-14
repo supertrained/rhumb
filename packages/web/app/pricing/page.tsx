@@ -22,7 +22,7 @@ const TIERS = [
     current: true,
     features: [
       "AN Scores for 53+ services",
-      "Leaderboards across 10 categories",
+      "Leaderboards across 11 categories",
       "Service integration guides for scored services",
       "MCP server (npx rhumb-mcp)",
       "Full REST API access",
