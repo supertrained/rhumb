@@ -128,7 +128,7 @@ export default function PricingPage() {
 
               {tier.current ? (
                 <a
-                  href="https://rhumb-api-production-f173.up.railway.app/v1/services"
+                  href="https://api.rhumb.dev/v1/services"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-6 text-center px-4 py-2.5 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors"

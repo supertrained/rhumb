@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-const BASE_URL = "https://rhumb-api-production-f173.up.railway.app/v1";
+const BASE_URL = "https://api.rhumb.dev/v1";
 
 const ENDPOINTS = [
   {
