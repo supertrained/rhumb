@@ -59,17 +59,38 @@ const POSTS = [
     readTime: "8 min read",
   },
 ];
+
+const BLOG_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: "Rhumb Blog",
+  url: "https://rhumb.dev/blog",
+  description: "Tool autopsies, scoring methodology deep-dives, and agent infrastructure insights.",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  blogPost: POSTS.map((post) => ({
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    url: `https://rhumb.dev/blog/${post.slug}`,
+    datePublished: post.date,
+  })),
+};
 ---
 
 
 <Layout
   title="Blog | Rhumb"
   description="Tool autopsies and agent-native infrastructure insights."
-  canonical="/blog"
+  canonical="https://rhumb.dev/blog"
   ogTitle="Blog | Rhumb"
   ogDescription="Tool autopsies and agent-native infrastructure insights."
   ogUrl="https://rhumb.dev/blog"
-  ogImage="/api/og"
+  ogImage="https://rhumb.dev/api/og"
+  jsonLd={BLOG_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <!-- Header -->
