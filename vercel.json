@@ -1,5 +1,4 @@
 {
   "installCommand": "cd packages/astro-web && npm install",
-  "buildCommand": "cd packages/astro-web && npm run build",
-  "outputDirectory": "packages/astro-web/dist"
+  "buildCommand": "cd packages/astro-web && npm run build && mkdir -p ../../.vercel && cp -r .vercel/output ../../.vercel/output"
 }
