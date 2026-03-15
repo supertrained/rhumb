@@ -1,0 +1,108 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Search from "../components/Search.tsx";
+import ScoreDisplay from "../components/ScoreDisplay.astro";
+import { getServices } from "../lib/api";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+
+// Fetch and filter services
+const allServices = query ? await getServices() : [];
+const results = allServices.filter((s) => {
+  const search = query.toLowerCase();
+  return (
+    s.name.toLowerCase().includes(search) ||
+    s.slug.toLowerCase().includes(search) ||
+    s.category.toLowerCase().includes(search) ||
+    (s.description?.toLowerCase().includes(search) ?? false)
+  );
+});
+---
+
+<Layout
+  title="Search | Rhumb"
+  description="Search agent-native developer tools and APIs scored by Rhumb."
+>
+  <div class="bg-navy min-h-screen">
+    <!-- Header -->
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-3xl mx-auto px-6 py-12">
+        <p class="text-xs font-mono text-amber uppercase tracking-widest mb-4">Search</p>
+        <h1 class="font-display font-bold text-3xl text-slate-100 tracking-tight mb-6">
+          Find agent-native tools
+        </h1>
+        <Search client:load />
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="max-w-3xl mx-auto px-6 py-10">
+      {query ? (
+        <>
+          <p class="text-xs font-mono text-slate-500 mb-6">
+            {results.length > 0
+              ? `${results.length} result${results.length === 1 ? "" : "s"} for "${query}"`
+              : `No results for "${query}"`}
+          </p>
+
+          {results.length > 0 ? (
+            <div class="space-y-3">
+              {results.map((service) => (
+                <a href={`/service/${service.slug}`} class="block group">
+                  <article class="bg-surface border border-slate-800 rounded-xl p-5 flex items-center gap-4 transition-all duration-200 hover:border-slate-600 hover:bg-elevated">
+                    <ScoreDisplay score={null} size="small" showLabel={false} />
+
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-display font-semibold text-slate-100 group-hover:text-amber transition-colors">
+                          {service.name}
+                        </span>
+                        <span class="text-xs text-slate-600 px-2 py-0.5 rounded-full border border-slate-800 bg-navy/40 font-mono">
+                          {service.category}
+                        </span>
+                      </div>
+                      {service.description && (
+                        <p class="mt-1 text-sm text-slate-500 leading-relaxed line-clamp-1">
+                          {service.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <span class="text-slate-600 group-hover:text-amber transition-colors text-sm shrink-0">&rarr;</span>
+                  </article>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div class="bg-surface border border-slate-800 rounded-xl p-12 text-center">
+              <p class="text-slate-500 text-sm mb-4">No services match your search.</p>
+              <a
+                href="/leaderboard"
+                class="text-sm text-amber hover:underline font-mono"
+              >
+                Browse the full leaderboard &rarr;
+              </a>
+            </div>
+          )}
+        </>
+      ) : (
+        <div class="text-center py-16">
+          <p class="text-slate-500 text-sm font-mono mb-6">
+            Search across 50+ scored APIs and developer tools.
+          </p>
+          <div class="flex flex-wrap justify-center gap-2">
+            {["payments", "ai", "auth", "email", "devops", "search"].map((cat) => (
+              <a
+                href={`/leaderboard/${cat}`}
+                class="px-3 py-1.5 rounded-full border border-slate-800 text-xs font-mono text-slate-500 hover:border-amber/40 hover:text-amber transition-colors bg-surface"
+              >
+                {cat}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  </div>
+</Layout>

@@ -1,0 +1,218 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline:
+    "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base",
+  datePublished: "2026-03-10T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "Agent Accessibility Guidelines (AAG): A three-level framework for making web apps work for autonomous AI agents.",
+  url: "https://rhumb.dev/blog/aag-framework",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+// Simple markdown-to-HTML converter for server-side rendering
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  // Code blocks (fenced) — must come before inline code
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  // Headings
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-xl text-slate-100 mt-12 mb-5">$1</h2>');
+
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/50 pl-4 my-6 text-slate-400 italic"><p>$1</p></blockquote>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-300 italic">$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">$1</code>');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    if (href.startsWith('/')) {
+      return `<a href="${href}" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+  });
+
+  // Unordered lists
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^- /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  // Ordered lists
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^\d+\. /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  // Paragraphs — wrap remaining plain text lines
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<h') || trimmed.startsWith('<hr')) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (trimmed.startsWith('</pre>') || trimmed.startsWith('</ul>') || trimmed.startsWith('</ol>') || trimmed.startsWith('</blockquote>') || trimmed.endsWith('</h2>') || trimmed.endsWith('</h3>') || trimmed.endsWith('</h4>') || trimmed.startsWith('<hr')) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === '') {
+      result.push('');
+      continue;
+    }
+
+    if (!trimmed.startsWith('<')) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-aag-framework.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  // Strip YAML front matter if present
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  // Strip H1 title (we render it separately)
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+<Layout
+  title="The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base | Rhumb"
+  description="WCAG made the web accessible to humans. Agent Accessibility Guidelines (AAG) make it accessible to AI agents — the users who interact via DOM trees, screenshots, and structured data. Here's the framework."
+  canonical="/blog/aag-framework"
+  ogTitle="The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base"
+  ogDescription="Agent Accessibility Guidelines (AAG): A three-level framework for making web apps work for autonomous AI agents. 6 interaction channels, 3 compliance tiers, mapped to real AN Scores."
+  ogImage="/blog/aag-framework/og"
+  ogUrl="https://rhumb.dev/blog/aag-framework"
+  ogType="article"
+  twitterTitle="The WCAG for AI Agents: Agent Accessibility Guidelines"
+  twitterDescription="6 interaction channels x 3 compliance levels. The framework for making web apps work for autonomous AI agents."
+  twitterImage="/blog/aag-framework/og"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <!-- Article header -->
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Framework
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">
+            March 10, 2026
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">
+            Pedro Nunes
+          </span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          The WCAG for AI Agents: Why Your Web App Isn&apos;t Built for Its
+          Fastest-Growing User Base
+        </h1>
+
+        <p class="text-lg text-slate-400 leading-relaxed border-l-2 border-amber/50 pl-4">
+          WCAG made the web accessible to humans with diverse abilities. Agent
+          Accessibility Guidelines (AAG) make it accessible to AI agents &mdash; the
+          users who interact via DOM trees, screenshots, and structured data
+          instead of eyes and hands.
+        </p>
+      </header>
+
+      <!-- Article body -->
+      <div class="prose-rhumb" set:html={htmlContent} />
+
+      <!-- CTA -->
+      <section class="mt-16 bg-surface border border-slate-800 rounded-xl p-8 text-center">
+        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+          See how your tools score
+        </h2>
+        <p class="text-slate-400 text-sm mb-6">
+          We&apos;ve scored 55 developer tools across 10 categories using the
+          AN Score &mdash; the quantitative backbone of AAG.
+        </p>
+        <a
+          href="/leaderboard"
+          class="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
+        >
+          Browse the leaderboard &rarr;
+        </a>
+      </section>
+
+      <!-- Related -->
+      <section class="mt-12">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">
+          Related
+        </h2>
+        <a
+          href="/blog/payments-for-agents"
+          class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+        >
+          <span class="text-xs font-mono text-amber uppercase tracking-widest">
+            Tool Autopsy
+          </span>
+          <h3 class="font-display font-semibold text-slate-100 mt-2">
+            Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents
+          </h3>
+          <p class="text-sm text-slate-500 mt-1">
+            We scored 6 payment APIs on how well they work for AI agents.
+            The most popular one scored worst.
+          </p>
+        </a>
+      </section>
+    </article>
+  </div>
+</Layout>

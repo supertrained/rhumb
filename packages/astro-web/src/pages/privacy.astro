@@ -1,0 +1,272 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="Privacy Policy"
+  description="Rhumb's privacy policy. What we collect, what we don't, and how we handle your data."
+  canonical="/privacy"
+>
+  <div class="bg-navy min-h-screen">
+    <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+          Legal
+        </span>
+        <h1 class="font-display font-bold text-3xl text-slate-100 leading-tight tracking-tight mt-4 mb-4">
+          Privacy Policy
+        </h1>
+        <p class="text-sm text-slate-500 font-mono">
+          Last updated: March 11, 2026
+        </p>
+      </header>
+
+      <div class="space-y-10 text-slate-400 text-sm leading-relaxed">
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Overview
+          </h2>
+          <p>
+            Rhumb (operated by Supertrained LLC) is a developer tool that
+            scores APIs for AI agent compatibility. We are committed to
+            transparency about what we collect and why.
+          </p>
+          <p class="mt-3">
+            <strong class="text-slate-200">
+              The short version: we collect minimal data, we don&#39;t
+              sell any of it, and we don&#39;t track you across sites.
+            </strong>
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            What we collect
+          </h2>
+          <ul class="space-y-3 mt-3">
+            <li>
+              <strong class="text-slate-200">
+                API query logs:
+              </strong>{" "}
+              When you use our API or MCP server, we log search terms and
+              timestamps to improve relevance. These logs do not contain
+              personally identifiable information (PII).
+            </li>
+            <li>
+              <strong class="text-slate-200">
+                Web analytics:
+              </strong>{" "}
+              We use Google Analytics 4 and Microsoft Clarity for
+              anonymized usage analytics. These tools collect standard
+              web metrics (page views, session duration, device type).
+              Both are configured with IP anonymization enabled.
+            </li>
+            <li>
+              <strong class="text-slate-200">
+                Error logs:
+              </strong>{" "}
+              Server error logs may contain request metadata (URL, HTTP
+              method, status code) for debugging. These are retained for
+              30 days and contain no PII.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            What we do NOT collect
+          </h2>
+          <ul class="space-y-2 mt-3">
+            <li>
+              &bull; We do not collect personal information (names, emails,
+              addresses)
+            </li>
+            <li>
+              &bull; We do not collect payment information or authentication
+              tokens
+            </li>
+            <li>&bull; We do not use cookies for tracking or advertising</li>
+            <li>&bull; We do not track you across other websites</li>
+            <li>
+              &bull; We do not build user profiles or sell data to third
+              parties
+            </li>
+            <li>
+              &bull; We do not use your API queries to train machine learning
+              models
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            How we use your data
+          </h2>
+          <p>Data collected is used solely to:</p>
+          <ul class="space-y-2 mt-3">
+            <li>&bull; Improve search relevance and service coverage</li>
+            <li>&bull; Monitor API performance and uptime</li>
+            <li>
+              &bull; Understand aggregate usage patterns (which categories are
+              most searched, which services are most viewed)
+            </li>
+            <li>&bull; Debug errors and improve reliability</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Third-party services
+          </h2>
+          <ul class="space-y-3 mt-3">
+            <li>
+              <strong class="text-slate-200">
+                Google Analytics 4
+              </strong>{" "}
+              — anonymized web analytics.{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                class="text-amber hover:underline underline-offset-2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Google Privacy Policy
+              </a>
+            </li>
+            <li>
+              <strong class="text-slate-200">
+                Microsoft Clarity
+              </strong>{" "}
+              — session recordings and heatmaps (anonymized).{" "}
+              <a
+                href="https://privacy.microsoft.com/en-us/privacystatement"
+                class="text-amber hover:underline underline-offset-2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Microsoft Privacy Statement
+              </a>
+            </li>
+            <li>
+              <strong class="text-slate-200">Vercel</strong> —
+              hosting.{" "}
+              <a
+                href="https://vercel.com/legal/privacy-policy"
+                class="text-amber hover:underline underline-offset-2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Vercel Privacy Policy
+              </a>
+            </li>
+            <li>
+              <strong class="text-slate-200">Supabase</strong> —
+              database hosting.{" "}
+              <a
+                href="https://supabase.com/privacy"
+                class="text-amber hover:underline underline-offset-2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Supabase Privacy Policy
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Your rights (GDPR / CCPA)
+          </h2>
+          <p>
+            Since we collect minimal, anonymized data, most rights
+            (access, deletion, portability) apply to very limited data.
+            However, you have the right to:
+          </p>
+          <ul class="space-y-2 mt-3">
+            <li>
+              &bull; <strong class="text-slate-200">Access</strong> —
+              request a copy of any data associated with your usage
+            </li>
+            <li>
+              &bull; <strong class="text-slate-200">Deletion</strong> —
+              request deletion of any stored data
+            </li>
+            <li>
+              &bull; <strong class="text-slate-200">Opt-out</strong> —
+              disable analytics by using a browser ad blocker or
+              do-not-track setting
+            </li>
+            <li>
+              &bull;{" "}
+              <strong class="text-slate-200">Data portability</strong>{" "}
+              — request your data in a machine-readable format
+            </li>
+          </ul>
+          <p class="mt-3">
+            For any privacy-related requests, contact{" "}
+            <a
+              href="mailto:privacy@supertrained.ai"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              privacy@supertrained.ai
+            </a>
+            .
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Data retention
+          </h2>
+          <ul class="space-y-2 mt-3">
+            <li>&bull; API query logs: retained for 90 days</li>
+            <li>&bull; Error logs: retained for 30 days</li>
+            <li>
+              &bull; Web analytics: per Google Analytics and Microsoft Clarity
+              default retention policies
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Changes to this policy
+          </h2>
+          <p>
+            We will update this page when our data practices change. For
+            significant changes, we&#39;ll note the update in our{" "}
+            <a
+              href="/changelog"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              changelog
+            </a>
+            .
+          </p>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+            Contact
+          </h2>
+          <p>
+            For privacy-related questions or requests:
+            <br />
+            <a
+              href="mailto:privacy@supertrained.ai"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              privacy@supertrained.ai
+            </a>
+          </p>
+          <p class="mt-3">
+            Supertrained LLC
+            <br />
+            Los Angeles, CA
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layout>

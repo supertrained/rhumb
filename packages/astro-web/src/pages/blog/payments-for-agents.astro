@@ -1,0 +1,368 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getTierInfo } from "../../lib/utils";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
+  datePublished: "2026-03-09T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
+  url: "https://rhumb.dev/blog/payments-for-agents",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+const TOOLS = [
+  {
+    name: "Stripe",
+    slug: "stripe",
+    agg: 8.1,
+    exec: 9.0,
+    access: 6.6,
+    tier: "L4",
+    tierLabel: "Native",
+    p50: 120,
+    whyHigh:
+      "Idempotency keys on every endpoint. Structured JSON errors with machine-readable codes. Webhook signatures with replay protection. API versioning via header — no URL breakage.",
+    whyLow:
+      "OAuth onboarding for Connect still requires human-in-the-loop. Dashboard-only features (dispute management, radar rules) have no API equivalent.",
+  },
+  {
+    name: "Lemon Squeezy",
+    slug: "lemon-squeezy",
+    agg: 7.0,
+    exec: 7.5,
+    access: 5.7,
+    tier: "L3",
+    tierLabel: "Ready",
+    p50: 105,
+    whyHigh:
+      "Clean REST API with consistent JSON responses. Good webhook support. Simple API key auth — no OAuth dance required.",
+    whyLow:
+      "Limited programmatic control over store setup. No idempotency keys. Error messages are human-readable strings, not machine-parseable codes. Fewer integration patterns than Stripe.",
+  },
+  {
+    name: "Square",
+    slug: "square",
+    agg: 6.7,
+    exec: 7.3,
+    access: 5.2,
+    tier: "L3",
+    tierLabel: "Ready",
+    p50: 140,
+    whyHigh:
+      "Solid SDK coverage. Idempotency keys available on create endpoints. GraphQL option for flexible queries.",
+    whyLow:
+      "OAuth flow mandatory for marketplace integrations. SDK error types inconsistent across languages. Higher latency on batch operations.",
+  },
+  {
+    name: "Adyen",
+    slug: "adyen",
+    agg: 6.5,
+    exec: 7.3,
+    access: 4.7,
+    tier: "L3",
+    tierLabel: "Ready",
+    p50: 155,
+    whyHigh:
+      "Enterprise-grade reliability. Comprehensive webhook events. Strong idempotency support.",
+    whyLow:
+      "Onboarding requires human sales contact. Test environment setup is manual. Documentation assumes human readers with prior payment domain knowledge.",
+  },
+  {
+    name: "Braintree",
+    slug: "braintree",
+    agg: 5.8,
+    exec: 6.5,
+    access: 4.3,
+    tier: "L2",
+    tierLabel: "Developing",
+    p50: 185,
+    whyHigh: "PayPal ecosystem integration. Mature SDK with good type coverage.",
+    whyLow:
+      "XML error responses in some endpoints. Complex sandbox provisioning. Rate limits are opaque (no Retry-After header). Legacy API patterns mixed with modern ones.",
+  },
+  {
+    name: "PayPal",
+    slug: "paypal",
+    agg: 4.9,
+    exec: 5.9,
+    access: 3.7,
+    tier: "L2",
+    tierLabel: "Developing",
+    p50: 210,
+    whyHigh:
+      "Ubiquitous — virtually every user already has an account. REST API exists and covers core flows.",
+    whyLow:
+      "Error responses mix human strings with codes inconsistently. OAuth token rotation has undocumented edge cases. Webhook verification requires fetching a signing cert chain. Rate limits enforced silently (requests just fail). P50 latency 2x higher than Stripe. Sandbox environment frequently diverges from production behavior.",
+  },
+];
+---
+
+<Layout
+  title="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents | Rhumb"
+  description="We scored 6 payment APIs on how well they work for AI agents — not humans. The results still surprised us."
+  canonical="/blog/payments-for-agents"
+  ogTitle="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents"
+  ogDescription="We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst."
+  ogImage="/blog/payments-for-agents/og"
+  ogUrl="https://rhumb.dev/blog/payments-for-agents"
+  ogType="article"
+  twitterTitle="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents"
+  twitterDescription="We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst."
+  twitterImage="/blog/payments-for-agents/og"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+
+      <!-- Article header -->
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Tool Autopsy
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">March 9, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents
+        </h1>
+
+        <p class="text-lg text-slate-400 leading-relaxed border-l-2 border-amber/50 pl-4">
+          We scored 6 payment APIs on how well they work for AI agents &mdash; not humans.
+          The most popular one scored the worst.
+        </p>
+      </header>
+
+      <!-- Intro -->
+      <section class="prose-rhumb mb-12">
+        <p>
+          When a human picks a payment processor, they compare pricing pages, read case studies,
+          and ask their network. When an AI agent picks one, it needs to know:
+          <em>Can I call this API without getting stuck?</em>
+        </p>
+        <p>
+          &quot;Great documentation&quot; means nothing when your user is a language model. What
+          matters is: Are errors machine-readable? Are operations idempotent? Can I retry safely
+          without human intervention?
+        </p>
+        <p>
+          We built the
+          <a href="/leaderboard/payments" class="text-amber hover:underline underline-offset-2">
+            Agent-Native Score
+          </a>
+          to answer this. Here&apos;s what we found when we scored the 6 most common payment
+          APIs that agents actually use.
+        </p>
+      </section>
+
+      <!-- Leaderboard summary -->
+      <section class="mb-12">
+        <h2 class="font-display font-semibold text-xl text-slate-100 mb-5">The Leaderboard</h2>
+
+        <div class="bg-surface border border-slate-800 rounded-xl overflow-hidden">
+          {TOOLS.map((tool, i) => {
+            const tier = getTierInfo(tool.agg);
+            return (
+              <div
+                class={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-elevated ${
+                  i < TOOLS.length - 1 ? "border-b border-slate-800" : ""
+                }`}
+              >
+                <!-- Rank -->
+                <span class="font-mono text-sm text-slate-600 w-5 shrink-0">#{i + 1}</span>
+
+                <!-- Score badge -->
+                <div
+                  class={`w-11 h-11 rounded-full flex flex-col items-center justify-center border shrink-0 ${tier.bgClass} ${tier.borderClass} ${tier.glowClass}`}
+                >
+                  <span class={`font-mono font-bold text-sm leading-none ${tier.textClass}`}>
+                    {tool.agg.toFixed(1)}
+                  </span>
+                </div>
+
+                <!-- Name + tier -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <a
+                      href={`/service/${tool.slug}`}
+                      class="font-display font-semibold text-slate-100 hover:text-amber transition-colors"
+                    >
+                      {tool.name}
+                    </a>
+                    <span
+                      class={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}
+                    >
+                      {tool.tier} {tool.tierLabel}
+                    </span>
+                  </div>
+                  <div class="mt-1 flex gap-4 text-xs font-mono text-slate-600">
+                    <span>Exec: {tool.exec.toFixed(1)}</span>
+                    <span>Access: {tool.access.toFixed(1)}</span>
+                    <span>P50: {tool.p50}ms</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p class="mt-3 text-xs font-mono text-slate-600">
+          Agent-Native Score v0.2 &middot; Execution (70%) + Access (30%) &middot; Higher is better &middot;
+          <a href="/leaderboard/payments" class="text-amber hover:underline">
+            Full leaderboard &rarr;
+          </a>
+        </p>
+      </section>
+
+      <!-- Individual breakdowns -->
+      {TOOLS.map((tool) => {
+        const tier = getTierInfo(tool.agg);
+        const execTier = getTierInfo(tool.exec);
+        const accessTier = getTierInfo(tool.access);
+        const execPct = Math.min((tool.exec / 10) * 100, 100);
+        const accessPct = Math.min((tool.access / 10) * 100, 100);
+        return (
+          <section class="mb-10">
+            <div class="flex items-baseline gap-3 mb-4">
+              <h2 class="font-display font-bold text-xl text-slate-100">
+                <a
+                  href={`/service/${tool.slug}`}
+                  class="hover:text-amber transition-colors"
+                >
+                  {tool.name}
+                </a>
+              </h2>
+              <span class={`font-mono font-bold text-lg ${tier.textClass}`}>
+                {tool.agg.toFixed(1)}
+              </span>
+              <span class={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}>
+                {tool.tier}
+              </span>
+            </div>
+
+            <!-- Score bars -->
+            <div class="mb-4 bg-surface border border-slate-800 rounded-lg p-4 space-y-2.5">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-slate-500 w-14 shrink-0">Execution</span>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full" style={`width: ${execPct}%; background-color: ${execTier.hex}`} />
+                    </div>
+                    <span class={`font-mono font-bold text-sm w-7 text-right ${execTier.textClass}`}>
+                      {tool.exec.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-slate-500 w-14 shrink-0">Access</span>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full" style={`width: ${accessPct}%; background-color: ${accessTier.hex}`} />
+                    </div>
+                    <span class={`font-mono font-bold text-sm w-7 text-right ${accessTier.textClass}`}>
+                      {tool.access.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-1 border-t border-slate-800 text-xs font-mono text-slate-600">
+                P50 latency: <span class="text-slate-400">{tool.p50}ms</span>
+              </div>
+            </div>
+
+            <div class="prose-rhumb space-y-3">
+              <p>
+                <span class="text-score-native font-semibold">What works for agents:</span>{" "}
+                {tool.whyHigh}
+              </p>
+              <p>
+                <span class="text-score-limited font-semibold">Where agents get stuck:</span>{" "}
+                {tool.whyLow}
+              </p>
+            </div>
+          </section>
+        );
+      })}
+
+      <!-- Key insight -->
+      <section class="my-12 bg-surface border border-l-4 border-amber rounded-xl p-7">
+        <h2 class="font-display font-bold text-lg text-amber mb-4">The Pattern</h2>
+        <div class="prose-rhumb">
+          <p>
+            The gap between Stripe (8.1) and PayPal (4.9) isn&apos;t about features &mdash; both
+            process payments. It&apos;s about
+            <strong>execution ergonomics</strong>: idempotency, structured errors, retry safety,
+            and predictable latency.
+          </p>
+          <p>
+            Stripe was built API-first. PayPal was built for checkout buttons and added an API
+            later. That architectural decision from 2011 still shows up in every agent interaction
+            in 2026.
+          </p>
+          <p>
+            For AI automation teams: if your agent is spending tokens parsing error messages or
+            implementing custom retry logic, the tool isn&apos;t saving you time. It&apos;s
+            costing you compute.
+          </p>
+        </div>
+      </section>
+
+      <!-- Methodology -->
+      <section class="mb-12">
+        <h2 class="font-display font-bold text-lg text-slate-100 mb-4">Methodology</h2>
+        <div class="prose-rhumb">
+          <p>
+            The <strong>Agent-Native Score</strong> evaluates tools across 20 dimensions grouped
+            into Execution (how well the API works when called) and Access (how easy it is for an
+            agent to start using it autonomously). Scores are weighted 70/30 Execution/Access.
+          </p>
+          <p>
+            Key dimensions include: schema stability, error ergonomics, idempotency guarantees,
+            latency distribution (P50/P95/P99), cold-start behavior, token cost of integration,
+            and graceful degradation under load.
+          </p>
+          <p>
+            These scores are based on Rhumb&apos;s current scoring dataset and methodology. Today&apos;s published score layer is documentation-derived unless a page explicitly says otherwise, with provenance and freshness made visible so the limitation is legible.
+            <a href="/leaderboard/payments" class="text-amber hover:underline">
+              View the full payments leaderboard &rarr;
+            </a>
+          </p>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
+        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+          Want to see how your tools stack up?
+        </h2>
+        <p class="text-slate-400 text-sm mb-6">
+          We&apos;ve scored 50+ developer tools across 10 categories.
+        </p>
+        <a
+          href="/leaderboard"
+          class="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
+        >
+          Browse all categories &rarr;
+        </a>
+      </section>
+
+    </article>
+  </div>
+</Layout>

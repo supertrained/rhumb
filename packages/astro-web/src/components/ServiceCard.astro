@@ -1,0 +1,72 @@
+---
+import type { Service } from "../lib/types";
+import ScoreDisplay from "./ScoreDisplay.astro";
+
+interface Props {
+  service: Service;
+  score?: number | null;
+  tier?: string | null;
+  executionScore?: number | null;
+  accessScore?: number | null;
+  freshness?: string | null;
+  rank?: number;
+}
+
+const { service, score, tier, executionScore, accessScore, freshness, rank } = Astro.props;
+---
+
+<a href={`/service/${service.slug}`} class="block group">
+  <article class="relative bg-surface border border-slate-800 rounded-xl p-5 card-lift">
+    <div class="flex items-start gap-4">
+      {score !== undefined && (
+        <ScoreDisplay score={score ?? null} size="medium" showLabel />
+      )}
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          {rank !== undefined && (
+            <span class="font-mono text-xs text-slate-600 w-5 shrink-0">
+              #{rank}
+            </span>
+          )}
+          <h3 class="font-display font-semibold text-slate-100 group-hover:text-amber transition-colors truncate">
+            {service.name}
+          </h3>
+          {service.category && (
+            <span class="text-xs text-slate-500 px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/50 shrink-0">
+              {service.category}
+            </span>
+          )}
+        </div>
+
+        {service.description && (
+          <p class="mt-1 text-sm text-slate-400 leading-relaxed line-clamp-2">
+            {service.description}
+          </p>
+        )}
+
+        {(executionScore !== undefined || accessScore !== undefined) && (
+          <div class="mt-3 flex items-center gap-3 flex-wrap">
+            {executionScore !== undefined && executionScore !== null && (
+              <span class="text-xs text-slate-500 font-mono">
+                Exec <span class="text-slate-300">{executionScore.toFixed(1)}</span>
+              </span>
+            )}
+            {accessScore !== undefined && accessScore !== null && (
+              <span class="text-xs text-slate-500 font-mono">
+                Access <span class="text-slate-300">{accessScore.toFixed(1)}</span>
+              </span>
+            )}
+            {tier && (
+              <span class="text-xs text-slate-600 font-mono">{tier}</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {freshness && (
+      <p class="mt-3 text-xs text-slate-600 font-mono">{freshness}</p>
+    )}
+  </article>
+</a>

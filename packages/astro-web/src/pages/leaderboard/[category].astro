@@ -1,0 +1,272 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import AutonomyBadges from "../../components/AutonomyBadges.astro";
+import { getLeaderboard } from "../../lib/api";
+import { getTierInfo } from "../../lib/utils";
+import type { EvidenceTier, LeaderboardItem } from "../../lib/types";
+
+const { category: routeCategory } = Astro.params;
+const query = Astro.url.searchParams;
+
+const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
+  pending: { className: "border-slate-700 text-slate-500 bg-slate-800/40", label: "Pending" },
+  assessed: { className: "border-slate-600/40 text-slate-400 bg-slate-700/20", label: "Assessed" },
+  tested: { className: "border-amber/30 text-amber bg-amber/10", label: "Tested" },
+  verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
+};
+
+function normalizeCategory(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function parseLimit(value: string | undefined | null): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return 10;
+  return Math.max(1, Math.min(parsed, 50));
+}
+
+function scoreLabel(value: number | null): string {
+  return value === null ? "—" : value.toFixed(1);
+}
+
+function freshnessLabel(item: LeaderboardItem): string {
+  if (item.freshness) return item.freshness;
+  if (item.calculatedAt) return `Updated ${item.calculatedAt}`;
+  return "—";
+}
+
+function buildLeaderboardJsonLd(category: string, items: LeaderboardItem[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${category} leaderboard`,
+    itemListOrder: "https://schema.org/ItemListOrderAscending",
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => {
+      const additionalProperty = [
+        item.aggregateRecommendationScore !== null
+          ? { "@type": "PropertyValue", name: "aggregate_recommendation_score", value: item.aggregateRecommendationScore.toFixed(1) }
+          : null,
+        item.executionScore !== null
+          ? { "@type": "PropertyValue", name: "execution_score", value: item.executionScore.toFixed(1) }
+          : null,
+        item.accessReadinessScore !== null
+          ? { "@type": "PropertyValue", name: "access_readiness_score", value: item.accessReadinessScore.toFixed(1) }
+          : null,
+      ].filter((p): p is { "@type": "PropertyValue"; name: string; value: string } => p !== null);
+
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "SoftwareApplication",
+          name: item.name,
+          url: `/service/${item.serviceSlug}`,
+          identifier: item.serviceSlug,
+          ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
+        },
+      };
+    }),
+  };
+}
+
+// ScoreBar helper
+function getScoreBarParts(value: number | null) {
+  const tier = getTierInfo(value);
+  const pct = value !== null ? Math.min((value / 10) * 100, 100) : 0;
+  return { tier, pct };
+}
+
+const category = normalizeCategory(query.get("category")) ?? routeCategory!;
+const limit = parseLimit(query.get("limit"));
+const leaderboard = await getLeaderboard(category, { limit });
+
+const resolvedCategory = leaderboard.error ? category : leaderboard.category;
+const visibleItems = leaderboard.error ? [] : leaderboard.items.slice(0, limit);
+const structuredData = buildLeaderboardJsonLd(resolvedCategory, visibleItems);
+
+const categoryLabel = resolvedCategory.charAt(0).toUpperCase() + resolvedCategory.slice(1);
+
+// Build ranking summary for agent/SEO readability
+const rankingSummary = visibleItems
+  .map((item, i) => `#${i + 1} ${item.name} (${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier})`)
+  .join(", ");
+
+const isError = !!leaderboard.error;
+const isEmpty = !isError && visibleItems.length === 0;
+
+const tierLegend = [
+  { label: "L4 Native", color: "text-score-native" },
+  { label: "L3 Ready", color: "text-score-ready" },
+  { label: "L2 Developing", color: "text-amber" },
+  { label: "L1 Limited", color: "text-score-limited" },
+];
+---
+
+<Layout
+  title={`${category} leaderboard | Rhumb`}
+  description={`Top agent-native services in ${category} ranked by aggregate, execution, and access-readiness scores.`}
+  canonical={`/leaderboard/${category}`}
+  ogTitle={`${category} leaderboard | Rhumb`}
+  ogDescription={`Top agent-native services in ${category}.`}
+  ogImage={`/leaderboard/${category}/og`}
+  jsonLd={structuredData}
+>
+  {isError ? (
+    <!-- Error state -->
+    <section>
+      <h1>{resolvedCategory} leaderboard</h1>
+      <p>We could not load leaderboard data right now.</p>
+      <p>{leaderboard.error}</p>
+    </section>
+  ) : isEmpty ? (
+    <!-- Empty state -->
+    <section>
+      <h1>{leaderboard.category} leaderboard</h1>
+      <p>No ranked services yet for this category.</p>
+      <p>Try another category with ?category=&lt;name&gt;.</p>
+    </section>
+  ) : (
+    <!-- Normal/happy-path state -->
+    <div class="bg-navy min-h-screen">
+      <!-- Header -->
+      <section class="relative border-b border-slate-800 overflow-hidden">
+        <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+        <div class="relative max-w-4xl mx-auto px-6 py-12">
+          <a
+            href="/leaderboard"
+            class="text-xs font-mono text-slate-500 hover:text-amber transition-colors inline-flex items-center gap-1 mb-6"
+          >
+            &larr; All categories
+          </a>
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Leaderboard</p>
+              <h1 class="font-display font-bold text-4xl text-slate-100 tracking-tight">{categoryLabel}</h1>
+              <p class="mt-2 text-slate-400 text-sm font-mono">
+                {visibleItems.length} service{visibleItems.length === 1 ? "" : "s"} &middot; ranked by AN Score
+              </p>
+              <p class="mt-2 text-sm text-slate-500 leading-relaxed max-w-2xl">
+                Rankings: {rankingSummary}. Scores use the AN Score methodology: 70% Execution + 30% Access Readiness across 20 dimensions.
+              </p>
+            </div>
+            <!-- Legend -->
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              {tierLegend.map(({ label, color }) => (
+                <span class={`${color} px-2 py-1 rounded border border-current/20 bg-current/5`}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard list -->
+      <section class="max-w-4xl mx-auto px-6 py-10">
+        <div class="space-y-3">
+          {visibleItems.map((item, index) => {
+            const execBar = getScoreBarParts(item.executionScore);
+            const accessBar = getScoreBarParts(item.accessReadinessScore);
+            return (
+              <article
+                aria-label={`#${index + 1} ${item.name}: AN Score ${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier}`}
+                class="bg-surface border border-slate-800 rounded-xl p-5 transition-all duration-200 hover:border-slate-600 hover:bg-elevated hover:-translate-y-0.5"
+              >
+                <div class="flex items-center gap-4">
+                  <!-- Rank -->
+                  <span class="font-mono text-xl font-bold text-slate-700 w-8 shrink-0 text-right">
+                    #{index + 1}
+                  </span>
+
+                  <!-- Score badge -->
+                  <ScoreDisplay
+                    score={item.aggregateRecommendationScore}
+                    size="medium"
+                    showLabel
+                  />
+
+                  <!-- Service info -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 flex-wrap">
+                      <a
+                        href={`/service/${item.serviceSlug}`}
+                        class="font-display font-semibold text-base text-slate-100 hover:text-amber transition-colors"
+                      >
+                        {item.name}
+                      </a>
+                      <TierBadge tier={item.tier} />
+                    </div>
+
+                    <!-- Score labels -->
+                    <div class="mt-2 space-y-1">
+                      <span class="inline-flex items-center mr-4 text-xs font-mono text-slate-500">
+                        Execution {scoreLabel(item.executionScore)}
+                      </span>
+                      <span class="inline-flex items-center text-xs font-mono text-slate-500">
+                        Access {scoreLabel(item.accessReadinessScore)}
+                      </span>
+                    </div>
+
+                    <!-- Visual score bars -->
+                    <div class="mt-2 space-y-1 max-w-xs">
+                      <!-- Execution ScoreBar -->
+                      <div class="flex items-center gap-3 text-xs">
+                        <span class="text-slate-500 font-mono w-20 shrink-0">Execution</span>
+                        <div class="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            class="h-full rounded-full transition-all duration-500"
+                            style={`width: ${execBar.pct}%; background-color: ${execBar.tier.hex}`}
+                          />
+                        </div>
+                        <span class={`font-mono font-semibold w-8 text-right ${execBar.tier.textClass}`}>
+                          {scoreLabel(item.executionScore)}
+                        </span>
+                      </div>
+                      <!-- Access ScoreBar -->
+                      <div class="flex items-center gap-3 text-xs">
+                        <span class="text-slate-500 font-mono w-20 shrink-0">Access</span>
+                        <div class="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            class="h-full rounded-full transition-all duration-500"
+                            style={`width: ${accessBar.pct}%; background-color: ${accessBar.tier.hex}`}
+                          />
+                        </div>
+                        <span class={`font-mono font-semibold w-8 text-right ${accessBar.tier.textClass}`}>
+                          {scoreLabel(item.accessReadinessScore)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Autonomy micro-badges -->
+                    <div class="mt-2">
+                      <AutonomyBadges
+                        p1Score={item.p1Score ?? null}
+                        g1Score={item.g1Score ?? null}
+                        w1Score={item.w1Score ?? null}
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Freshness + evidence tier -->
+                  <div class="hidden sm:flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-mono text-slate-600">
+                      Freshness: {freshnessLabel(item)}
+                    </span>
+                    <span class={`rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide ${EVIDENCE_BADGE_STYLES[item.evidenceTier].className}`}>
+                      {EVIDENCE_BADGE_STYLES[item.evidenceTier].label}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  )}
+</Layout>

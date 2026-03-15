@@ -1,0 +1,22 @@
+---
+import { getTierInfoFromString } from "../lib/utils";
+
+interface Props {
+  tier: string | null;
+  label?: string | null;
+}
+
+const { tier, label } = Astro.props;
+const info = getTierInfoFromString(tier);
+---
+
+<span
+  class:list={[
+    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono font-medium border",
+    info.bgClass,
+    info.borderClass,
+    info.textClass,
+  ]}
+>
+  {label ?? info.label}
+</span>

@@ -1,0 +1,105 @@
+---
+import { getTierInfo } from "../lib/utils";
+
+interface Props {
+  p1Score: number | null;
+  g1Score: number | null;
+  w1Score: number | null;
+  p1Rationale: string | null;
+  g1Rationale: string | null;
+  w1Rationale: string | null;
+  autonomyTier: string | null;
+}
+
+const { p1Score, g1Score, w1Score, p1Rationale, g1Rationale, w1Rationale } = Astro.props;
+
+function scoreLabel(value: number | null): string {
+  return value === null ? "—" : value.toFixed(1);
+}
+
+function autonomyReadinessLabel(p1: number | null, g1: number | null, w1: number | null): string {
+  const valid = [p1, g1, w1].filter((s): s is number => s !== null);
+  if (valid.length === 0) return "Pending";
+  const avg = valid.reduce((a, b) => a + b, 0) / valid.length;
+  return avg >= 6.0 ? "Ready for agent use" : "Limited";
+}
+
+function avgAutonomyScore(p1: number | null, g1: number | null, w1: number | null): number | null {
+  const valid = [p1, g1, w1].filter((s): s is number => s !== null);
+  if (valid.length === 0) return null;
+  return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
+const overall = avgAutonomyScore(p1Score, g1Score, w1Score);
+const overallTier = getTierInfo(overall);
+const readinessLabel = autonomyReadinessLabel(p1Score, g1Score, w1Score);
+
+const dimensions = [
+  { code: "P1", label: "Payment Autonomy", score: p1Score, rationale: p1Rationale },
+  { code: "G1", label: "Governance Readiness", score: g1Score, rationale: g1Rationale },
+  { code: "W1", label: "Web Agent Accessibility", score: w1Score, rationale: w1Rationale },
+];
+---
+
+<section
+  class="bg-surface border border-slate-800 rounded-xl p-6"
+  aria-labelledby="autonomy-breakdown-heading"
+  data-testid="autonomy-section"
+>
+  <h2
+    id="autonomy-breakdown-heading"
+    class="font-display font-semibold text-slate-100 text-lg mb-4"
+  >
+    Autonomy breakdown
+  </h2>
+
+  {dimensions.map(({ code, label, score, rationale }) => {
+    const tier = getTierInfo(score);
+    const pct = score !== null ? Math.min((score / 10) * 100, 100) : 0;
+    return (
+      <div class="py-3 border-b border-slate-800 last:border-0">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
+              {code}
+            </span>
+            <span class="text-sm text-slate-300 font-medium">{label}</span>
+          </div>
+          <span class={`font-mono font-bold text-base ${tier.textClass}`}>
+            {scoreLabel(score)}
+          </span>
+        </div>
+        <div class="h-1 bg-slate-800 rounded-full overflow-hidden mb-2">
+          <div
+            class="h-full rounded-full transition-all duration-700"
+            style={`width: ${pct}%; background-color: ${tier.hex}`}
+          />
+        </div>
+        {rationale && (
+          <p class="text-xs text-slate-500 leading-relaxed">{rationale}</p>
+        )}
+      </div>
+    );
+  })}
+
+  <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+    <div>
+      <span class="text-xs font-mono text-slate-500">Overall Autonomy</span>
+      {overall !== null && (
+        <span class={`ml-2 text-xs font-mono font-semibold ${overallTier.textClass}`}>
+          {overall.toFixed(1)}/10
+        </span>
+      )}
+    </div>
+    <span
+      class:list={[
+        "text-xs font-mono px-2 py-0.5 rounded-full border",
+        overallTier.bgClass,
+        overallTier.borderClass,
+        overallTier.textClass,
+      ]}
+    >
+      {readinessLabel}
+    </span>
+  </div>
+</section>

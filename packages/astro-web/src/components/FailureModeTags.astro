@@ -1,0 +1,21 @@
+---
+interface Props {
+  tags: string[];
+}
+
+const { tags } = Astro.props;
+---
+
+{tags.length === 0 ? (
+  <p class="text-sm text-slate-500 font-mono">No failure modes reported.</p>
+) : (
+  <div class="flex flex-wrap gap-2">
+    {tags.map((tag) => (
+      <span
+        class="px-2.5 py-1 text-xs font-mono rounded-md border border-score-limited/30 bg-score-limited/10 text-score-limited"
+      >
+        {tag}
+      </span>
+    ))}
+  </div>
+)}

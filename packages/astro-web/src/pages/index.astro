@@ -1,0 +1,263 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ScoreDisplay from "../components/ScoreDisplay.astro";
+import TierBadge from "../components/TierBadge.astro";
+import CopyInstall from "../components/CopyInstall.tsx";
+import { getLeaderboard, getServiceCount } from "../lib/api";
+import type { EvidenceTier } from "../lib/types";
+
+const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
+  pending: { className: "border-slate-700 text-slate-500 bg-slate-800/40", label: "Pending" },
+  assessed: { className: "border-slate-600/40 text-slate-400 bg-slate-700/20", label: "Assessed" },
+  tested: { className: "border-amber/30 text-amber bg-amber/10", label: "Tested" },
+  verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
+};
+
+const HOME_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Rhumb",
+  url: "https://rhumb.dev",
+  description:
+    "Agent-native tool discovery and scoring platform. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+  logo: "https://rhumb.dev/favicon.ico",
+};
+
+function scoreLabel(value: number | null): string {
+  return value === null ? "Pending" : value.toFixed(1);
+}
+
+function freshnessLabel(item: any): string {
+  if (item.freshness) return item.freshness;
+  if (item.calculatedAt) return `Updated ${item.calculatedAt}`;
+  return "Freshness pending";
+}
+
+const [leaderboard, serviceCount] = await Promise.all([
+  getLeaderboard("payments", { limit: 3 }),
+  getServiceCount(),
+]);
+const previewItems = leaderboard.items.slice(0, 3);
+const stats = [
+  { value: String(serviceCount), label: "services scored" },
+  { value: "11", label: "categories" },
+  { value: "20", label: "scored dimensions" },
+  { value: "live", label: "evidence data" },
+];
+---
+
+<Layout
+  title="Rhumb | Agent-native tool discovery"
+  description="Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents."
+  ogTitle="Rhumb | Agent-native tool discovery"
+  ogDescription="Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents."
+  ogUrl="https://rhumb.dev/"
+  jsonLd={HOME_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-50 pointer-events-none"></div>
+      <div
+        class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
+        style="background: radial-gradient(ellipse at top, rgba(245,158,11,0.08) 0%, transparent 70%)"
+      ></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
+        <div class="animate-fade-up flex items-center gap-2 mb-6">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Agent-Native Score</span>
+        </div>
+
+        <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.05] tracking-tight max-w-3xl">
+          Find agent-native services in seconds
+        </h1>
+
+        <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">
+          Rhumb maps execution reliability and access readiness so your agents
+          pick the right primitive before they fail in production.
+        </p>
+
+        <form
+          action="/search"
+          method="get"
+          class="animate-fade-up animate-delay-300 mt-8 flex flex-col sm:flex-row gap-3 max-w-xl"
+        >
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M11 6.5C11 9.0 9.0 11 6.5 11C4.0 11 2 9.0 2 6.5C2 4.0 4.0 2 6.5 2C9.0 2 11 4.0 11 6.5ZM10.2 10.9L14 14.7"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <input
+              aria-label="Search services"
+              name="q"
+              type="search"
+              placeholder="Search services (e.g. payments API)"
+              class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-surface border border-slate-700 text-slate-100 placeholder-slate-500 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20 transition-all duration-200"
+            />
+          </div>
+          <button
+            type="submit"
+            class="px-6 py-3.5 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200 shrink-0"
+          >
+            Search
+          </button>
+        </form>
+
+        <div class="animate-fade-up animate-delay-400 mt-5 flex flex-wrap gap-3">
+          <a
+            href="/leaderboard"
+            class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors duration-200 font-medium"
+          >
+            Explore Leaderboard &rarr;
+          </a>
+          <CopyInstall client:load command="npx rhumb-mcp" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats bar -->
+    <section class="border-y border-slate-800 bg-surface/50">
+      <div class="max-w-6xl mx-auto px-6 py-5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {stats.map(({ value, label }, i) => (
+            <div
+              class="animate-fade-up text-center"
+              style={`animation-delay: ${(i + 5) * 100}ms`}
+            >
+              <div class="font-mono font-bold text-2xl text-amber">{value}</div>
+              <div class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wide">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured leaderboard (Payments) -->
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Featured &middot; Payments</p>
+          <h2 class="font-display font-bold text-2xl text-slate-100">Top services in payments</h2>
+        </div>
+        <a
+          href="/leaderboard/payments"
+          class="hidden sm:inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber transition-colors font-mono"
+        >
+          Open full payments leaderboard
+        </a>
+      </div>
+
+      {leaderboard.error ? (
+        <div class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
+          <p class="text-slate-400 text-sm">
+            Live leaderboard preview is temporarily unavailable. You can still browse the
+            {" "}
+            <a href="/leaderboard/payments" class="text-amber hover:underline">full leaderboard</a>.
+          </p>
+        </div>
+      ) : previewItems.length === 0 ? (
+        <div class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
+          <p class="text-slate-500 text-sm">No ranked services published yet.</p>
+        </div>
+      ) : (
+        <ol class="space-y-3" style="list-style: none; padding: 0">
+          {previewItems.map((item, index) => (
+            <li>
+              <article class="bg-surface border border-slate-800 rounded-xl p-5 flex items-center gap-5 card-lift group">
+                <span class="font-mono text-2xl font-bold text-slate-700 w-8 shrink-0 text-right">
+                  {index + 1}
+                </span>
+                <ScoreDisplay score={item.aggregateRecommendationScore} size="medium" showLabel />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-3 flex-wrap">
+                    <a
+                      href={`/service/${item.serviceSlug}`}
+                      class="font-display font-semibold text-slate-100 hover:text-amber transition-colors"
+                    >
+                      {item.name}
+                    </a>
+                    <TierBadge tier={item.tier} />
+                  </div>
+                  <div class="mt-1.5 flex items-center gap-4 flex-wrap text-xs font-mono text-slate-500">
+                    <span>Aggregate {scoreLabel(item.aggregateRecommendationScore)}</span>
+                    <span>&middot; Freshness {freshnessLabel(item)}</span>
+                    <span class={`rounded-full border px-2 py-0.5 ${EVIDENCE_BADGE_STYLES[item.evidenceTier].className}`}>
+                      {EVIDENCE_BADGE_STYLES[item.evidenceTier].label}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <p class="mt-6">
+        <a
+          href="/leaderboard/payments"
+          class="text-sm text-slate-400 hover:text-amber transition-colors font-mono sm:hidden"
+        >
+          Open full payments leaderboard
+        </a>
+      </p>
+    </section>
+
+    <!-- MCP Server -->
+    <section id="install" class="border-t border-slate-800 bg-surface/30">
+      <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-3">MCP</p>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4">
+            Query Rhumb from your agents
+          </h2>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Add Rhumb to any MCP-compatible agent. AN Scores at decision time. Perfect for
+            agent routing logic, tool-selection prompts, and automated dependency
+            evaluation.
+          </p>
+          <a
+            href="/leaderboard"
+            class="mt-6 inline-flex px-5 py-2.5 rounded-lg bg-amber text-navy font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
+          >
+            Explore all categories &rarr;
+          </a>
+        </div>
+
+        <div class="bg-navy border border-slate-800 rounded-xl overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-800">
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+            <span class="ml-2 text-xs font-mono text-slate-600">terminal</span>
+          </div>
+          <div class="p-5 font-mono text-sm space-y-2">
+            <div>
+              <span class="text-slate-600">$ </span>
+              <span class="text-amber">npx rhumb-mcp</span>
+              <span class="text-slate-600"> # starts MCP server</span>
+            </div>
+            <div class="text-slate-400 pl-4 space-y-0.5">
+              <div class="text-score-native">&#10003; Rhumb MCP server running</div>
+              <div class="text-slate-600">&nbsp;&nbsp;tools: find_tools, get_score, get_alternatives, get_failure_modes</div>
+            </div>
+            <div class="pt-2">
+              <span class="text-slate-600">&rarr; </span>
+              <span class="text-amber">find_tools</span>
+              <span class="text-slate-500"> (&quot;payment processing&quot;)</span>
+            </div>
+            <div class="text-slate-400 pl-4">
+              <div><span class="text-slate-600">1.</span> stripe <span class="text-score-native">8.1</span> <span class="text-score-native">L4 Native</span></div>
+              <div><span class="text-slate-600">2.</span> lemon-squeezy <span class="text-score-ready">6.6</span> <span class="text-score-ready">L3 Ready</span></div>
+              <div><span class="text-slate-600">3.</span> square <span class="text-score-ready">6.3</span> <span class="text-score-ready">L3 Ready</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

@@ -1,0 +1,228 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getLaunchDashboard } from "../../lib/api";
+
+function formatPct(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatTimestamp(value: string | null): string {
+  if (!value) {
+    return "No activity yet";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+const key = Astro.url.searchParams.get("key") ?? "";
+const windowParam = (Astro.url.searchParams.get("window") ?? "7d") as "24h" | "7d" | "launch";
+
+const adminKey = import.meta.env.RHUMB_ADMIN_SECRET ?? "";
+const dashboardKey = import.meta.env.RHUMB_LAUNCH_DASHBOARD_KEY ?? adminKey;
+
+if (!adminKey || !dashboardKey || key !== dashboardKey) {
+  return new Response(null, { status: 404 });
+}
+
+const dashboard = await getLaunchDashboard(windowParam, adminKey);
+
+if (dashboard === null) {
+  return new Response(null, { status: 404 });
+}
+
+const windowLinks: Array<{ value: "24h" | "7d" | "launch"; label: string }> = [
+  { value: "24h", label: "24h" },
+  { value: "7d", label: "7d" },
+  { value: "launch", label: "Launch" },
+];
+---
+
+<Layout
+  title="Launch Dashboard | Rhumb"
+  description="Internal launch dashboard"
+  noindex={true}
+>
+  <div class="bg-navy min-h-screen">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-amber">Internal</p>
+          <h1 class="mt-3 font-display text-3xl text-slate-100 font-bold tracking-tight">
+            Launch dashboard
+          </h1>
+          <p class="mt-2 text-sm text-slate-500">
+            Internal telemetry for machine usage and outbound launch conversions.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          {windowLinks.map((item) => (
+            <a
+              href={`/internal/launch?key=${encodeURIComponent(key)}&window=${item.value}`}
+              class={`rounded-full border px-3 py-1.5 text-xs font-mono transition-colors ${
+                dashboard.window === item.value
+                  ? "border-amber/40 bg-amber/10 text-amber"
+                  : "border-slate-800 text-slate-400 hover:border-slate-700"
+              }`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-4">
+        <section class="rounded-xl border border-slate-800 bg-surface p-5">
+          <p class="text-xs font-mono text-slate-500">Queries</p>
+          <p class="mt-2 text-3xl font-display font-bold text-slate-100">{dashboard.queries.total}</p>
+          <p class="mt-2 text-xs text-slate-500">
+            Machine-facing: {dashboard.queries.machineTotal}
+          </p>
+        </section>
+        <section class="rounded-xl border border-slate-800 bg-surface p-5">
+          <p class="text-xs font-mono text-slate-500">Known clients</p>
+          <p class="mt-2 text-3xl font-display font-bold text-slate-100">{dashboard.queries.uniqueClients}</p>
+          <p class="mt-2 text-xs text-slate-500">
+            Repeat rate: {formatPct(dashboard.queries.repeatClientRate)}
+          </p>
+        </section>
+        <section class="rounded-xl border border-slate-800 bg-surface p-5">
+          <p class="text-xs font-mono text-slate-500">Outbound clicks</p>
+          <p class="mt-2 text-3xl font-display font-bold text-slate-100">{dashboard.clicks.providerClicks}</p>
+          <p class="mt-2 text-xs text-slate-500">
+            Total tracked clicks: {dashboard.clicks.total}
+          </p>
+        </section>
+        <section class="rounded-xl border border-slate-800 bg-surface p-5">
+          <p class="text-xs font-mono text-slate-500">Coverage</p>
+          <p class="mt-2 text-3xl font-display font-bold text-slate-100">{dashboard.coverage.publicServiceCount}</p>
+          <p class="mt-2 text-xs text-slate-500">
+            Window starts {formatTimestamp(dashboard.startAt)}
+          </p>
+        </section>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <section class="rounded-xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display text-lg text-slate-100 font-semibold">Query mix</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            Latest activity {formatTimestamp(dashboard.queries.latestActivityAt)}
+          </p>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <p class="text-xs font-mono text-slate-500">By source</p>
+              <ul class="mt-3 space-y-2 text-sm">
+                {dashboard.queries.bySource.map((row) => (
+                  <li class="flex items-center justify-between text-slate-300">
+                    <span>{row.key}</span>
+                    <span class="font-mono text-slate-500">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p class="text-xs font-mono text-slate-500">Top query types</p>
+              <ul class="mt-3 space-y-2 text-sm">
+                {dashboard.queries.topQueryTypes.map((row) => (
+                  <li class="flex items-center justify-between text-slate-300">
+                    <span>{row.key}</span>
+                    <span class="font-mono text-slate-500">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display text-lg text-slate-100 font-semibold">Outbound conversions</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            Latest activity {formatTimestamp(dashboard.clicks.latestActivityAt)}
+          </p>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <p class="text-xs font-mono text-slate-500">Top provider domains</p>
+              <ul class="mt-3 space-y-2 text-sm">
+                {dashboard.clicks.topProviderDomains.map((row) => (
+                  <li class="flex items-center justify-between text-slate-300">
+                    <span>{row.key}</span>
+                    <span class="font-mono text-slate-500">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p class="text-xs font-mono text-slate-500">Dispute / contact clicks</p>
+              <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                <li class="flex items-center justify-between">
+                  <span>Email disputes</span>
+                  <span class="font-mono text-slate-500">{dashboard.clicks.disputeClicks.email}</span>
+                </li>
+                <li class="flex items-center justify-between">
+                  <span>GitHub disputes</span>
+                  <span class="font-mono text-slate-500">{dashboard.clicks.disputeClicks.github}</span>
+                </li>
+                <li class="flex items-center justify-between">
+                  <span>Provider contact</span>
+                  <span class="font-mono text-slate-500">{dashboard.clicks.disputeClicks.contact}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <section class="rounded-xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display text-lg text-slate-100 font-semibold">Top services</h2>
+          <ul class="mt-4 space-y-2 text-sm">
+            {dashboard.queries.topServices.map((row) => (
+              <li class="flex items-center justify-between text-slate-300">
+                <span>{row.key}</span>
+                <span class="font-mono text-slate-500">{row.count}</span>
+              </li>
+            ))}
+          </ul>
+          <h3 class="mt-6 text-xs font-mono text-slate-500">Top searches</h3>
+          <ul class="mt-3 space-y-2 text-sm">
+            {dashboard.queries.topSearches.map((row) => (
+              <li class="flex items-center justify-between text-slate-300">
+                <span>{row.key}</span>
+                <span class="font-mono text-slate-500">{row.count}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display text-lg text-slate-100 font-semibold">Provider CTR</h2>
+          <div class="mt-4 space-y-3">
+            {dashboard.clicks.providerCtr.map((row) => (
+              <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-200">{row.service_slug}</span>
+                  <span class="font-mono text-slate-500">{formatPct(row.ctr)}</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500">
+                  {row.clicks} provider clicks / {row.views} service views
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layout>

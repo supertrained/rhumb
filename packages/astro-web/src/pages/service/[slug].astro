@@ -1,0 +1,554 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import AutonomySection from "../../components/AutonomySection.astro";
+import GuideSection from "../../components/GuideSection.tsx";
+import { getServiceScore } from "../../lib/api";
+import { getTierInfo, getTierInfoFromString } from "../../lib/utils";
+import { buildTrackedOutboundHref } from "../../lib/tracking";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const { slug } = Astro.params;
+const score = await getServiceScore(slug!);
+
+if (score === null) {
+  return Astro.redirect("/leaderboard");
+}
+
+function scoreLabel(value: number | null): string {
+  return value === null ? "—" : value.toFixed(1);
+}
+
+function freshnessLabel(s: ServiceScoreViewModel): string {
+  if (s.evidenceFreshness) return s.evidenceFreshness;
+  if (s.calculatedAt) return `Updated ${s.calculatedAt}`;
+  return "Freshness pending";
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+const EVIDENCE_TIER_STYLES = {
+  pending: {
+    borderClass: "border-slate-600",
+    bgClass: "bg-slate-800/50",
+    textClass: "text-slate-400",
+    dotClass: "bg-slate-500",
+  },
+  assessed: {
+    borderClass: "border-slate-500/40",
+    bgClass: "bg-slate-700/20",
+    textClass: "text-slate-300",
+    dotClass: "bg-slate-400",
+  },
+  tested: {
+    borderClass: "border-amber/30",
+    bgClass: "bg-amber/10",
+    textClass: "text-amber",
+    dotClass: "bg-amber",
+  },
+  verified: {
+    borderClass: "border-score-native/30",
+    bgClass: "bg-score-native/10",
+    textClass: "text-score-native",
+    dotClass: "bg-score-native",
+  },
+} as const;
+
+const evidenceStyle = EVIDENCE_TIER_STYLES[score.evidenceTier];
+const evidenceDate = formatDate(score.lastEvaluated);
+
+let evidenceDetail: string;
+switch (score.evidenceTier) {
+  case "pending":
+    evidenceDetail = "Pending Evaluation";
+    break;
+  case "assessed":
+    evidenceDetail = `Docs reviewed${evidenceDate ? ` · ${evidenceDate}` : ""}`;
+    break;
+  case "tested":
+    evidenceDetail = `${score.evidenceCount} test${score.evidenceCount === 1 ? "" : "s"}${evidenceDate ? ` · ${evidenceDate}` : ""}`;
+    break;
+  case "verified":
+    evidenceDetail = `${score.evidenceCount} tests${evidenceDate ? ` · ${evidenceDate}` : ""}`;
+    break;
+}
+
+function buildServiceJsonLd(s: ServiceScoreViewModel): Record<string, unknown> {
+  const additionalProperty = [
+    s.executionScore !== null
+      ? { "@type": "PropertyValue", name: "execution_score", value: s.executionScore.toFixed(1) }
+      : null,
+    s.accessReadinessScore !== null
+      ? { "@type": "PropertyValue", name: "access_readiness_score", value: s.accessReadinessScore.toFixed(1) }
+      : null,
+    s.tierLabel ?? s.tier
+      ? { "@type": "PropertyValue", name: "tier", value: s.tierLabel ?? s.tier ?? "Pending" }
+      : null,
+    s.confidence !== null
+      ? { "@type": "PropertyValue", name: "confidence", value: s.confidence.toFixed(2) }
+      : null,
+  ].filter((p): p is { "@type": "PropertyValue"; name: string; value: string } => p !== null);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: s.serviceSlug,
+    url: `/service/${s.serviceSlug}`,
+    description: s.explanation ?? "AN Score profile from Rhumb",
+    ...(s.aggregateRecommendationScore !== null
+      ? {
+          aggregateRating: {
+            "@type": "Rating",
+            ratingValue: s.aggregateRecommendationScore.toFixed(1),
+            bestRating: "10",
+          },
+        }
+      : {}),
+    ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
+  };
+}
+
+const structuredData = buildServiceJsonLd(score);
+const tierInfo = getTierInfoFromString(score.tier ?? score.tierLabel);
+const displayName = score.serviceSlug
+  .split("-")
+  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+  .join(" ");
+const pagePath = `/service/${score.serviceSlug}`;
+const disputeHref = buildTrackedOutboundHref({
+  destinationUrl: `mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`,
+  eventType: "dispute_click",
+  serviceSlug: score.serviceSlug,
+  pagePath,
+  sourceSurface: "service_page",
+});
+const outboundLinks = [
+  score.baseUrl ? {
+    label: "Official site",
+    href: buildTrackedOutboundHref({
+      destinationUrl: score.baseUrl,
+      eventType: "provider_click",
+      serviceSlug: score.serviceSlug,
+      pagePath,
+      sourceSurface: "service_page",
+    }),
+  } : null,
+  score.docsUrl ? {
+    label: "Docs",
+    href: buildTrackedOutboundHref({
+      destinationUrl: score.docsUrl,
+      eventType: "docs_click",
+      serviceSlug: score.serviceSlug,
+      pagePath,
+      sourceSurface: "service_page",
+    }),
+  } : null,
+  score.openapiUrl ? {
+    label: "OpenAPI",
+    href: buildTrackedOutboundHref({
+      destinationUrl: score.openapiUrl,
+      eventType: "docs_click",
+      serviceSlug: score.serviceSlug,
+      pagePath,
+      sourceSurface: "service_page",
+    }),
+  } : null,
+  score.mcpServerUrl ? {
+    label: "MCP server",
+    href: buildTrackedOutboundHref({
+      destinationUrl: score.mcpServerUrl,
+      eventType: "provider_click",
+      serviceSlug: score.serviceSlug,
+      pagePath,
+      sourceSurface: "service_page",
+    }),
+  } : null,
+].filter((item): item is { label: string; href: string } => item !== null);
+
+// Guide content
+let guideContent: string | null = null;
+try {
+  const guidePath = new URL(`../../public/guides/${slug}.md`, import.meta.url);
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const filePath = path.default.join(process.cwd(), 'public', 'guides', `${slug}.md`);
+  if (fs.default.existsSync(filePath)) {
+    guideContent = fs.default.readFileSync(filePath, 'utf8');
+  }
+} catch {
+  guideContent = null;
+}
+
+// DimensionBar helper
+type DimensionBarData = {
+  label: string;
+  value: number | null;
+  description?: string;
+};
+
+function getDimensionBarParts(d: DimensionBarData) {
+  const tier = getTierInfo(d.value);
+  const pct = d.value !== null ? Math.min((d.value / 10) * 100, 100) : 0;
+  return { tier, pct };
+}
+
+const dimensions: DimensionBarData[] = [
+  {
+    label: "Execution Score",
+    value: score.executionScore,
+    description: "Measures reliability, idempotency, error ergonomics, latency distribution, and schema stability.",
+  },
+  {
+    label: "Access Readiness Score",
+    value: score.accessReadinessScore,
+    description: "Measures how easily an agent can onboard, authenticate, and start using this service autonomously.",
+  },
+  {
+    label: "Aggregate AN Score",
+    value: score.aggregateRecommendationScore,
+    description: "Composite score: 70% execution + 30% access readiness.",
+  },
+];
+---
+
+<Layout
+  title={`${slug} | Rhumb`}
+  description={`Execution and access-readiness profile for ${slug} with live AN Score evidence.`}
+  canonical={`/service/${slug}`}
+  ogTitle={`${slug} | Rhumb`}
+  ogDescription={`AN Score profile for ${slug}: execution, access, and tier breakdown.`}
+  ogUrl={`https://rhumb.dev/service/${slug}`}
+  ogImage={`/service/${slug}/og`}
+  jsonLd={structuredData}
+>
+  <div class="bg-navy min-h-screen">
+    <!-- Service header -->
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none" style={`background: radial-gradient(ellipse at top left, ${tierInfo.hex}08 0%, transparent 60%)`}></div>
+
+      <div class="relative max-w-4xl mx-auto px-6 py-12">
+        <a
+          href="/leaderboard"
+          class="text-xs font-mono text-slate-500 hover:text-amber transition-colors inline-flex items-center gap-1 mb-6"
+        >
+          &larr; Leaderboard
+        </a>
+
+        <div class="flex items-start gap-6 flex-wrap">
+          <!-- Score badge -->
+          <ScoreDisplay
+            score={score.aggregateRecommendationScore}
+            size="large"
+            showLabel
+          />
+
+          <!-- Service info -->
+          <div class="flex-1 min-w-0">
+            <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 tracking-tight">
+              {displayName}
+            </h1>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <TierBadge tier={score.tier} label={score.tierLabel ?? undefined} />
+              <!-- EvidenceTierBadge inline -->
+              <span
+                class:list={[
+                  "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
+                  evidenceStyle.borderClass,
+                  evidenceStyle.bgClass,
+                  evidenceStyle.textClass,
+                ]}
+              >
+                <span class:list={["w-1.5 h-1.5 rounded-full", evidenceStyle.dotClass]}></span>
+                {score.evidenceTierLabel} &middot; {evidenceDetail}
+              </span>
+              {score.confidence !== null && (
+                <span class="text-xs font-mono text-slate-500">
+                  Confidence{" "}
+                  <span class="text-slate-400">{score.confidence.toFixed(2)}</span>
+                </span>
+              )}
+              <span class="text-xs font-mono text-slate-600">{freshnessLabel(score)}</span>
+            </div>
+
+            {score.explanation && (
+              <p class="mt-4 text-sm text-slate-400 leading-relaxed max-w-xl">
+                {score.explanation}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-4xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-6">
+      <!-- Left column: score breakdown -->
+      <div class="md:col-span-2 space-y-6">
+        <!-- Score breakdown -->
+        <section class="bg-surface border border-slate-800 rounded-xl p-6">
+          <h2 class="font-display font-semibold text-slate-100 text-lg mb-4">Score breakdown</h2>
+          {dimensions.map((dim) => {
+            const { tier, pct } = getDimensionBarParts(dim);
+            return (
+              <div class="py-3 border-b border-slate-800 last:border-0">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-slate-300 font-medium">{dim.label}</span>
+                  <span class={`font-mono font-bold text-lg ${tier.textClass}`}>
+                    {scoreLabel(dim.value)}
+                  </span>
+                </div>
+                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-700"
+                    style={`width: ${pct}%; background-color: ${tier.hex}`}
+                  />
+                </div>
+                {dim.description && (
+                  <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">{dim.description}</p>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        <!-- Autonomy breakdown -->
+        <AutonomySection
+          p1Score={score.p1Score ?? null}
+          g1Score={score.g1Score ?? null}
+          w1Score={score.w1Score ?? null}
+          p1Rationale={score.p1Rationale ?? null}
+          g1Rationale={score.g1Rationale ?? null}
+          w1Rationale={score.w1Rationale ?? null}
+          autonomyTier={score.autonomyTier ?? null}
+        />
+
+        <!-- Active failure modes -->
+        <section class="bg-surface border border-slate-800 rounded-xl p-6">
+          <h2 class="font-display font-semibold text-slate-100 text-lg mb-4">
+            Active failure modes
+          </h2>
+          {score.activeFailures.length > 0 ? (
+            <ul class="space-y-4">
+              {score.activeFailures.map((failure) => (
+                <li class="bg-elevated border border-slate-800 rounded-lg p-4">
+                  <div class="flex items-start gap-3">
+                    <span class:list={[
+                      "mt-0.5 shrink-0 text-xs font-mono font-semibold px-1.5 py-0.5 rounded",
+                      failure.severity === 'critical' ? 'bg-red-900/40 text-red-400' :
+                      failure.severity === 'high' ? 'bg-amber-900/40 text-amber' :
+                      failure.severity === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                      'bg-slate-800 text-slate-400',
+                    ]}>
+                      {(failure.severity ?? 'unknown').toUpperCase()}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-sm font-semibold text-slate-200">{failure.summary}</h3>
+                      {failure.description && (
+                        <p class="text-sm text-slate-400 mt-1">{failure.description}</p>
+                      )}
+                      {failure.agentImpact && (
+                        <p class="text-sm text-slate-500 mt-2">
+                          <span class="text-slate-400 font-medium">Agent impact:</span> {failure.agentImpact}
+                        </p>
+                      )}
+                      {failure.workaround && (
+                        <p class="text-sm text-emerald-400/70 mt-2">
+                          <span class="font-medium">Workaround:</span> {failure.workaround}
+                        </p>
+                      )}
+                      <div class="flex items-center gap-3 mt-2">
+                        {failure.frequency && (
+                          <span class="text-xs font-mono text-slate-500">
+                            {failure.frequency}
+                          </span>
+                        )}
+                        {failure.category && (
+                          <span class="text-xs font-mono text-slate-600">
+                            {failure.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="text-sm text-slate-500">No active failure modes reported.</p>
+          )}
+        </section>
+
+        {guideContent && <GuideSection guideContent={guideContent} client:visible />}
+
+        <!-- Agent consumption -->
+        <section class="bg-surface border border-slate-800 rounded-xl p-6">
+          <h2 class="font-display font-semibold text-slate-100 text-lg mb-4">Use in your agent</h2>
+          <div class="bg-navy border border-slate-800 rounded-lg overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800">
+              <div class="w-2 h-2 rounded-full bg-slate-700"></div>
+              <div class="w-2 h-2 rounded-full bg-slate-700"></div>
+              <div class="w-2 h-2 rounded-full bg-slate-700"></div>
+              <span class="ml-2 text-xs font-mono text-slate-600">mcp</span>
+            </div>
+            <div class="p-4 font-mono text-sm text-slate-400">
+              <div>
+                <span class="text-slate-600">&rarr; </span>
+                <span class="text-amber">get_score</span>
+                <span class="text-slate-500">(&quot;{score.serviceSlug}&quot;)</span>
+              </div>
+              {score.aggregateRecommendationScore !== null && (
+                <div class="mt-2 pl-4 space-y-0.5">
+                  <div class={tierInfo.textClass}>
+                    &#9679; {displayName}{" "}
+                    <span class="text-slate-100 font-bold">
+                      {score.aggregateRecommendationScore.toFixed(1)}
+                    </span>{" "}
+                    {tierInfo.label}
+                  </div>
+                  {score.executionScore !== null && (
+                    <div class="text-slate-600">
+                      {"  "}exec: {score.executionScore.toFixed(1)} &middot; access:{" "}
+                      {score.accessReadinessScore?.toFixed(1) ?? "—"}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right column: alternatives + meta -->
+      <div class="space-y-6">
+        {outboundLinks.length > 0 && (
+          <section class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 mb-3">Official links</p>
+            <div class="space-y-2 text-sm">
+              {outboundLinks.map((link) => (
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center justify-between text-slate-300 hover:text-amber transition-colors"
+                >
+                  <span>{link.label}</span>
+                  <span class="text-xs font-mono text-slate-600">open</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- Trust / provenance -->
+        <section class="bg-surface border border-amber/20 rounded-xl p-5">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.24em] mb-3">
+            Trust &amp; provenance
+          </p>
+          <div class="space-y-3 text-sm leading-relaxed text-slate-400">
+            {score.evidenceTier === "verified" ? (
+              <p>
+                This score is <span class="text-score-native">runtime-verified</span> with {score.evidenceCount} evidence records from authenticated API testing.
+              </p>
+            ) : score.evidenceTier === "tested" ? (
+              <p>
+                This score includes <span class="text-amber">{score.evidenceCount} runtime test{score.evidenceCount === 1 ? "" : "s"}</span>. Additional testing will unlock Verified status.
+              </p>
+            ) : (
+              <p>
+                This score is <span class="text-slate-200">documentation-derived</span>. Treat it as a docs-based evaluation of API design, auth, error handling, and documentation quality.
+              </p>
+            )}
+            <p>
+              Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
+            </p>
+          </div>
+          <div class="mt-4 flex flex-col gap-2 text-sm">
+            <a href="/methodology" class="text-slate-300 hover:text-amber transition-colors">
+              Methodology &rarr;
+            </a>
+            <a href="/trust" class="text-slate-300 hover:text-amber transition-colors">
+              Trust process &rarr;
+            </a>
+            <a href="/blog/self-score" class="text-slate-300 hover:text-amber transition-colors">
+              Why we scored ourselves first &rarr;
+            </a>
+            <a
+              href={disputeHref}
+              class="text-slate-300 hover:text-amber transition-colors"
+            >
+              Dispute this score &rarr;
+            </a>
+          </div>
+        </section>
+
+        <!-- Tier card -->
+        <div
+          class:list={["bg-surface border rounded-xl p-5", tierInfo.borderClass]}
+        >
+          <p class="text-xs font-mono text-slate-500 mb-2">Overall tier</p>
+          <div class={`font-display font-bold text-2xl ${tierInfo.textClass}`}>
+            {tierInfo.label}
+          </div>
+          <div class:list={["mt-3 h-1 rounded-full", tierInfo.bgClass]}>
+            <div
+              class="h-full rounded-full"
+              style={`width: ${Math.min(((score.aggregateRecommendationScore ?? 0) / 10) * 100, 100)}%; background-color: ${tierInfo.hex}`}
+            />
+          </div>
+          <p class="mt-2 text-xs font-mono text-slate-600">
+            {scoreLabel(score.aggregateRecommendationScore)} / 10.0
+          </p>
+        </div>
+
+        <!-- Alternatives -->
+        <section class="bg-surface border border-slate-800 rounded-xl p-5">
+          <h2 class="font-display font-semibold text-slate-100 text-base mb-4">Alternatives</h2>
+          {score.alternatives.length > 0 ? (
+            <ul class="space-y-2">
+              {score.alternatives.map((alt) => {
+                const altTier = getTierInfo(alt.score);
+                return (
+                  <li>
+                    <a
+                      href={`/service/${alt.serviceSlug}`}
+                      class="flex items-center justify-between group py-1"
+                    >
+                      <span class="text-sm text-slate-400 group-hover:text-amber transition-colors font-medium">
+                        {alt.serviceSlug}
+                      </span>
+                      {alt.score !== null && (
+                        <span class={`text-sm font-mono font-bold ${altTier.textClass}`}>
+                          {alt.score.toFixed(1)}
+                        </span>
+                      )}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p class="text-sm text-slate-500">No alternatives captured yet.</p>
+          )}
+        </section>
+
+        <!-- Dispute score -->
+        <div class="text-center pt-2">
+          <a
+            href={disputeHref}
+            class="text-xs text-slate-600 hover:text-amber transition-colors"
+          >
+            Dispute this score &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>

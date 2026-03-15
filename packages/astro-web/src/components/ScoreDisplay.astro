@@ -1,0 +1,55 @@
+---
+import { getTierInfo } from "../lib/utils";
+
+interface Props {
+  score: number | null;
+  size?: "large" | "medium" | "small";
+  showLabel?: boolean;
+}
+
+const { score, size = "medium", showLabel = true } = Astro.props;
+
+const sizeConfig = {
+  large: {
+    wrapper: "w-20 h-20",
+    score: "text-3xl",
+    label: "text-xs mt-1",
+    border: "border-2",
+  },
+  medium: {
+    wrapper: "w-14 h-14",
+    score: "text-xl",
+    label: "text-[10px] mt-0.5",
+    border: "border-2",
+  },
+  small: {
+    wrapper: "w-10 h-10",
+    score: "text-sm",
+    label: "hidden",
+    border: "border",
+  },
+};
+
+const tier = getTierInfo(score);
+const config = sizeConfig[size];
+---
+
+<div
+  class:list={[
+    "relative flex flex-col items-center justify-center rounded-full shrink-0",
+    config.wrapper,
+    config.border,
+    tier.bgClass,
+    tier.borderClass,
+    tier.glowClass,
+  ]}
+>
+  <span class:list={[`font-mono font-bold leading-none`, config.score, tier.textClass]}>
+    {score !== null ? score.toFixed(1) : "—"}
+  </span>
+  {showLabel && (
+    <span class:list={[`font-mono font-medium leading-none opacity-80`, config.label, tier.textClass]}>
+      {tier.letter}
+    </span>
+  )}
+</div>

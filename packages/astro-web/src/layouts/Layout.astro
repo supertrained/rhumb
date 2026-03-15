@@ -1,0 +1,195 @@
+---
+import Navigation from "../components/Navigation.astro";
+import "../styles/globals.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogUrl?: string;
+  ogType?: string;
+  twitterCard?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown>;
+}
+
+const {
+  title = "Rhumb | Agent-native tool discovery",
+  description = "Discover and score agent-native developer tools. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+  canonical,
+  ogTitle,
+  ogDescription,
+  ogImage = "/api/og",
+  ogUrl,
+  ogType = "website",
+  twitterCard = "summary_large_image",
+  twitterTitle,
+  twitterDescription,
+  twitterImage,
+  noindex = false,
+  jsonLd,
+} = Astro.props;
+
+const gaId = import.meta.env.PUBLIC_GA_ID;
+const clarityId = import.meta.env.PUBLIC_CLARITY_ID;
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Rhumb" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={ogTitle ?? title} />
+    <meta property="og:description" content={ogDescription ?? description} />
+    {ogUrl && <meta property="og:url" content={ogUrl} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content={twitterCard} />
+    <meta name="twitter:site" content="@pedrorhumb" />
+    <meta name="twitter:creator" content="@pedrorhumb" />
+    <meta name="twitter:title" content={twitterTitle ?? ogTitle ?? title} />
+    <meta name="twitter:description" content={twitterDescription ?? ogDescription ?? description} />
+    <meta name="twitter:image" content={twitterImage ?? ogImage} />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" />
+
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    )}
+
+    {/* Microsoft Clarity */}
+    {clarityId && (
+      <script is:inline define:vars={{ clarityId }}>
+        (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", clarityId);
+      </script>
+    )}
+
+    {/* Google Analytics 4 */}
+    {gaId && (
+      <script is:inline src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} async />
+    )}
+    {gaId && (
+      <script is:inline define:vars={{ gaId }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', gaId);
+      </script>
+    )}
+  </head>
+  <body class="bg-navy text-slate-100 antialiased min-h-screen flex flex-col font-display noise-overlay">
+    <Navigation currentPath={currentPath} />
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="border-t border-slate-800 mt-auto bg-[linear-gradient(180deg,rgba(11,17,32,0)_0%,rgba(245,158,11,0.03)_100%)]">
+      <div class="max-w-6xl mx-auto px-6 py-10">
+        <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div class="max-w-md">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-100 font-display font-bold text-sm tracking-tight">
+                rhumb<span class="text-amber">.</span>
+              </span>
+              <span class="text-slate-600 text-sm">&middot;</span>
+              <span class="text-slate-500 text-sm font-mono">Built by agents, for agents.</span>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              Operational intelligence for humans choosing tools today, and for agents routing
+              between them tomorrow.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-4">
+            <div>
+              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Product</p>
+              <div class="flex flex-col gap-2 text-slate-400">
+                <a href="/leaderboard" class="hover:text-amber transition-colors duration-200">Leaderboard</a>
+                <a href="/search" class="hover:text-amber transition-colors duration-200">Search</a>
+                <a href="/docs" class="hover:text-amber transition-colors duration-200">Docs</a>
+                <a href="/pricing" class="hover:text-amber transition-colors duration-200">Pricing</a>
+              </div>
+            </div>
+
+            <div>
+              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Trust</p>
+              <div class="flex flex-col gap-2 text-slate-400">
+                <a href="/about" class="hover:text-amber transition-colors duration-200">About</a>
+                <a href="/methodology" class="hover:text-amber transition-colors duration-200">Methodology</a>
+                <a href="/trust" class="hover:text-amber transition-colors duration-200">Trust</a>
+                <a href="/providers" class="hover:text-amber transition-colors duration-200">Providers</a>
+              </div>
+            </div>
+
+            <div>
+              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Updates</p>
+              <div class="flex flex-col gap-2 text-slate-400">
+                <a href="/blog" class="hover:text-amber transition-colors duration-200">Blog</a>
+                <a href="/changelog" class="hover:text-amber transition-colors duration-200">Changelog</a>
+              </div>
+            </div>
+
+            <div>
+              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Legal</p>
+              <div class="flex flex-col gap-2 text-slate-400">
+                <a href="/privacy" class="hover:text-amber transition-colors duration-200">Privacy</a>
+                <a href="/terms" class="hover:text-amber transition-colors duration-200">Terms</a>
+                <a
+                  href="https://github.com/supertrained/rhumb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-amber transition-colors duration-200"
+                >
+                  GitHub
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+    <!-- Scroll reveal (progressive enhancement — works without JS via .reveal CSS) -->
+    <script is:inline>
+      if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+      } else {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+      }
+    </script>
+  </body>
+</html>

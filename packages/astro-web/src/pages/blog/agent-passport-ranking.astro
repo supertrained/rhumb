@@ -1,0 +1,214 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Which SSO Gives Agents the Most Power?",
+  datePublished: "2026-03-14T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro",
+  },
+  description:
+    "We tried to bootstrap 23 developer tools autonomously. GitHub unlocked 8. Email unlocked 0. Here's the full agent passport ranking.",
+  url: "https://rhumb.dev/blog/agent-passport-ranking",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+// Simple markdown-to-HTML converter for server-side rendering
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  // Code blocks (fenced) — must come before inline code
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  // Headings
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">$1</h2>');
+
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/40 pl-4 italic text-slate-500"><p>$1</p></blockquote>');
+
+  // Tables (GFM)
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split('\n').filter(r => !r.match(/^\|[\s-:|]+\|$/));
+    if (rows.length === 0) return block;
+
+    const parseRow = (row: string) => row.split('|').slice(1, -1).map(cell => cell.trim());
+
+    let tableHtml = '<div class="overflow-x-auto my-6"><table class="w-full text-sm text-slate-400 border-collapse">';
+
+    // First row is header
+    const headerCells = parseRow(rows[0]);
+    tableHtml += '<thead class="border-b border-slate-700"><tr>';
+    for (const cell of headerCells) {
+      tableHtml += `<th class="text-left py-2 px-3 text-slate-300 font-semibold text-xs uppercase tracking-wider">${cell}</th>`;
+    }
+    tableHtml += '</tr></thead>';
+
+    // Body rows
+    tableHtml += '<tbody>';
+    for (let i = 1; i < rows.length; i++) {
+      const cells = parseRow(rows[i]);
+      tableHtml += '<tr>';
+      for (const cell of cells) {
+        tableHtml += `<td class="py-2 px-3 border-b border-slate-800">${cell}</td>`;
+      }
+      tableHtml += '</tr>';
+    }
+    tableHtml += '</tbody></table></div>';
+    return tableHtml;
+  });
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-500 italic">$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-800 text-amber px-1.5 py-0.5 rounded text-sm font-mono">$1</code>');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    return `<a href="${href}" class="text-amber hover:text-amber/80 underline underline-offset-4">${text}</a>`;
+  });
+
+  // Unordered lists
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^- /, '');
+      return `<li class="text-slate-400 leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  // Ordered lists
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^\d+\. /, '');
+      return `<li class="text-slate-400 leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  // Paragraphs — wrap remaining plain text lines
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<h') || trimmed.startsWith('<hr') || trimmed.startsWith('<div class="overflow')) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (trimmed.startsWith('</pre>') || trimmed.startsWith('</ul>') || trimmed.startsWith('</ol>') || trimmed.startsWith('</blockquote>') || trimmed.endsWith('</h2>') || trimmed.endsWith('</h3>') || trimmed.endsWith('</h4>') || trimmed.startsWith('<hr') || trimmed.endsWith('</div>')) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === '') {
+      result.push('');
+      continue;
+    }
+
+    if (!trimmed.startsWith('<')) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-agent-passport-ranking.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+<Layout
+  title="Which SSO Gives Agents the Most Power? | Rhumb"
+  description="We tried to bootstrap 23 developer tools autonomously. GitHub unlocked 8. Email unlocked 0. Here's the full passport ranking."
+  canonical="/blog/agent-passport-ranking"
+  ogTitle="Which SSO Gives Agents the Most Power?"
+  ogDescription="An AI agent tried to sign up for 23 developer tools with nothing but a GitHub session. Here's what it unlocked — and what blocked it."
+  ogUrl="https://rhumb.dev/blog/agent-passport-ranking"
+  ogType="article"
+  twitterTitle="Which SSO Gives Agents the Most Power?"
+  twitterDescription="GitHub unlocked 8 tools. Email unlocked 0. The full agent passport ranking."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Access
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">
+            March 14, 2026
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Which SSO Gives Agents the Most Power?
+        </h1>
+        <p class="text-lg text-slate-400 leading-relaxed">
+          We tried to bootstrap 23 developer tools autonomously. GitHub
+          unlocked 8. Email unlocked 0. Here&apos;s the full passport
+          ranking.
+        </p>
+      </header>
+
+      <div class="prose prose-invert max-w-none" set:html={htmlContent} />
+
+      <footer class="mt-16 pt-8 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <a
+            href="/blog"
+            class="text-sm text-slate-500 hover:text-slate-300"
+          >
+            &larr; All posts
+          </a>
+          <div class="flex gap-4">
+            <a
+              href="/blog/self-score"
+              class="text-sm text-slate-500 hover:text-slate-300"
+            >
+              We Scored Ourselves First &rarr;
+            </a>
+          </div>
+        </div>
+      </footer>
+    </article>
+  </div>
+</Layout>
