@@ -1,13 +1,4 @@
 {
   "installCommand": "cd packages/astro-web && npm install",
-  "buildCommand": "cd packages/astro-web && npm run build && mkdir -p ../../.vercel && cp -r .vercel/output ../../.vercel/output",
-  "headers": [
-    {
-      "source": "/search",
-      "headers": [
-        { "key": "CDN-Cache-Control", "value": "no-store" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    }
-  ]
+  "buildCommand": "cd packages/astro-web && npm run build && mkdir -p ../../.vercel && cp -r .vercel/output ../../.vercel/output && node -e \"const fs=require('fs');const p='../../.vercel/output/config.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.routes=c.routes.map(r=>{if(r.src&&r.src.includes('/search')&&r.dest&&r.dest.includes('_isr')){return {...r,dest:r.dest.replace('_isr','_render')};}return r;});fs.writeFileSync(p,JSON.stringify(c,null,2));\""
 }

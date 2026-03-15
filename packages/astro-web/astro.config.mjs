@@ -10,6 +10,8 @@ export default defineConfig({
     isr: {
       // Revalidate dynamic pages every hour
       expiration: 3600,
+      // Search must not be ISR-cached — it varies by ?q= query param
+      exclude: ['/search'],
     },
   }),
   integrations: [
