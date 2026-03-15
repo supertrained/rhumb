@@ -119,12 +119,15 @@ const SEARCH_JSON_LD = {
           )}
         </>
       ) : (
-        <div class="text-center py-16">
-          <p class="text-slate-500 text-sm font-mono mb-6">
-            Search across 50+ scored APIs and developer tools.
+        <div class="py-12">
+          <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-xl mx-auto text-center">
+            Search across 100+ scored APIs and developer tools. Every service is rated on 20 dimensions using
+            the AN Score methodology — 70% Execution reliability + 30% Access Readiness. Results are
+            server-rendered for both human and agent access.
           </p>
-          <div class="flex flex-wrap justify-center gap-2">
-            {["payments", "ai", "auth", "email", "devops", "search"].map((cat) => (
+          <p class="text-xs font-mono text-slate-500 mb-4 text-center">Popular categories</p>
+          <div class="flex flex-wrap justify-center gap-2 mb-8">
+            {["payments", "ai", "auth", "email", "database", "devops", "search", "cms", "crm", "calendar"].map((cat) => (
               <a
                 href={`/leaderboard/${cat}`}
                 class="px-3 py-1.5 rounded-full border border-slate-800 text-xs font-mono text-slate-500 hover:border-amber/40 hover:text-amber transition-colors bg-surface"
@@ -133,6 +136,9 @@ const SEARCH_JSON_LD = {
               </a>
             ))}
           </div>
+          <p class="text-xs text-slate-600 text-center">
+            Or use <a href="/docs" class="text-amber hover:underline">the API</a> or <code class="text-amber/80">npx rhumb-mcp</code> for programmatic access.
+          </p>
         </div>
       )}
     </section>

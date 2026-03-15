@@ -208,6 +208,41 @@ const stats = [
       </p>
     </section>
 
+    <!-- What is Rhumb -->
+    <section class="border-t border-slate-800 bg-navy reveal">
+      <div class="max-w-4xl mx-auto px-6 py-16">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">What is the AN Score?</h2>
+        <div class="grid sm:grid-cols-2 gap-8 text-sm text-slate-400 leading-relaxed">
+          <div>
+            <p class="mb-4">
+              The Agent-Native (AN) Score measures how well a developer API works for
+              autonomous AI agents — not humans reading documentation, but machines making
+              API calls without supervision.
+            </p>
+            <p>
+              Each service is evaluated across <strong class="text-slate-300">20 dimensions</strong> on two axes:
+              <strong class="text-slate-300">Execution</strong> (70% weight — reliability, error handling,
+              schema stability, idempotency, latency) and <strong class="text-slate-300">Access Readiness</strong>
+              (30% weight — signup friction, credential management, rate limits, documentation, sandbox availability).
+            </p>
+          </div>
+          <div>
+            <p class="mb-4">
+              Services are ranked into four tiers: <strong class="text-score-native">L4 Native</strong> (8.0–10.0),
+              <strong class="text-score-ready">L3 Ready</strong> (6.0–7.9),
+              <strong class="text-amber">L2 Developing</strong> (4.0–5.9), and
+              <strong class="text-score-limited">L1 Emerging</strong> (0.0–3.9).
+            </p>
+            <p>
+              Every score is <a href="/methodology" class="text-amber hover:underline">published, transparent, and disputable</a>.
+              Rhumb surfaces active failure modes, evidence tiers, and freshness timestamps so agents
+              can make informed routing decisions at runtime.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- MCP Server -->
     <section id="install" class="border-t border-slate-800 bg-surface/30 reveal">
       <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
