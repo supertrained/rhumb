@@ -4,9 +4,10 @@ import Search from "../components/Search.tsx";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
 import { getServices } from "../lib/api";
 
-// Bypass Vercel ISR caching — search results depend on query params
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+// Bypass Vercel edge caching — search results depend on query params
+Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 Astro.response.headers.set('CDN-Cache-Control', 'no-store');
+Astro.response.headers.set('Vercel-CDN-Cache-Control', 'no-store');
 
 const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 
