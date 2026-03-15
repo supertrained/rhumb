@@ -7,6 +7,22 @@ import { getLeaderboard } from "../../lib/api";
 import { getTierInfo } from "../../lib/utils";
 import type { EvidenceTier, LeaderboardItem } from "../../lib/types";
 
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  payments: 'Payment processing APIs handle charges, subscriptions, refunds, and payouts. For AI agents, key challenges include idempotent charge creation, webhook signature verification, and test-mode sandbox reliability.',
+  email: 'Email delivery APIs manage sending, tracking, and receiving messages programmatically. Agent-critical dimensions include deliverability guarantees, template rendering reliability, and bounce handling.',
+  auth: 'Authentication and identity APIs handle user signup, login, session management, and access control. Agents need reliable token issuance, consistent error codes, and predictable rate limiting.',
+  crm: 'CRM APIs manage contacts, deals, companies, and activities. Agent readiness depends on consistent data schemas, reliable search, and batch operation support.',
+  calendar: 'Calendar APIs create, read, update, and delete events across providers. Agents need timezone-aware operations, conflict detection, and reliable recurring event handling.',
+  ai: 'AI and machine learning APIs provide inference, embeddings, fine-tuning, and model management. Agent-critical dimensions include streaming reliability, token counting accuracy, and consistent error formats.',
+  database: 'Database-as-a-service APIs provide data storage, queries, real-time subscriptions, and schema management. Agents need reliable connection pooling, consistent query languages, and predictable latency.',
+  devops: 'DevOps and infrastructure APIs manage deployments, CI/CD, monitoring, and configuration. Agents need idempotent operations, clear deployment states, and reliable rollback mechanisms.',
+  search: 'Search and indexing APIs handle full-text search, faceted filtering, and relevance ranking. Agents need consistent query syntax, reliable index operations, and predictable result ordering.',
+  cms: 'Content management APIs handle creating, updating, and querying structured content. Agents need consistent content models, reliable media handling, and predictable publishing workflows.',
+  'agent-payments': 'Agent payment infrastructure provides programmable card issuance, spend controls, and audit trails specifically designed for AI agent transactions. This category evaluates how well these purpose-built payment rails serve autonomous agent workflows.',
+  analytics: 'Analytics APIs provide event tracking, metrics collection, and real-time data aggregation. Agents need reliable event ingestion, consistent query interfaces, and predictable data freshness.',
+  social: 'Social media APIs handle content publishing, engagement tracking, and audience management. Agents need reliable posting workflows, consistent rate limits, and predictable content moderation responses.',
+};
+
 const { category: routeCategory } = Astro.params;
 const query = Astro.url.searchParams;
 
@@ -65,7 +81,7 @@ function buildLeaderboardJsonLd(category: string, items: LeaderboardItem[]): Rec
         item: {
           "@type": "SoftwareApplication",
           name: item.name,
-          url: `/service/${item.serviceSlug}`,
+          url: `https://rhumb.dev/service/${item.serviceSlug}`,
           identifier: item.serviceSlug,
           ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
         },
@@ -153,6 +169,11 @@ const tierLegend = [
               <p class="mt-2 text-sm text-slate-500 leading-relaxed max-w-2xl">
                 Rankings: {rankingSummary}. Scores use the AN Score methodology: 70% Execution + 30% Access Readiness across 20 dimensions.
               </p>
+              {CATEGORY_DESCRIPTIONS[category] && (
+                <p class="mt-3 text-sm text-slate-400 leading-relaxed max-w-2xl">
+                  {CATEGORY_DESCRIPTIONS[category]}
+                </p>
+              )}
             </div>
             <!-- Legend -->
             <div class="flex flex-wrap gap-2 text-xs font-mono">

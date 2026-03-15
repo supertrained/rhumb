@@ -103,6 +103,24 @@ const ENDPOINTS = [
   },
 ];
 
+const DOCS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  name: "API Documentation — Rhumb",
+  url: "https://rhumb.dev/docs",
+  description: "Rhumb REST API and MCP server documentation. Endpoints for service scores, failure modes, leaderboards, and search. No auth required.",
+  author: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
 const MCP_TOOLS = [
   {
     name: "find_tools",
@@ -134,6 +152,7 @@ const MCP_TOOLS = [
   ogTitle="API Documentation — Rhumb"
   ogDescription="REST API + MCP server docs. Get AN Scores, failure modes, and leaderboards programmatically."
   ogUrl="https://rhumb.dev/docs"
+  jsonLd={DOCS_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">

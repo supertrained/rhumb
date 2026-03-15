@@ -101,7 +101,7 @@ function buildServiceJsonLd(s: ServiceScoreViewModel): Record<string, unknown> {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: s.serviceSlug,
-    url: `/service/${s.serviceSlug}`,
+    url: `https://rhumb.dev/service/${s.serviceSlug}`,
     description: s.explanation ?? "AN Score profile from Rhumb",
     ...(s.aggregateRecommendationScore !== null
       ? {
@@ -276,7 +276,12 @@ const dimensions: DimensionBarData[] = [
                   <span class="text-slate-400">{score.confidence.toFixed(2)}</span>
                 </span>
               )}
-              <span class="text-xs font-mono text-slate-600">{freshnessLabel(score)}</span>
+              {(score.lastEvaluated || score.calculatedAt) && (
+                <span class="text-xs font-mono text-slate-500">
+                  Last evaluated{" "}
+                  <span class="text-slate-400">{formatDate(score.lastEvaluated ?? score.calculatedAt)}</span>
+                </span>
+              )}
             </div>
 
             {score.explanation && (
@@ -295,28 +300,43 @@ const dimensions: DimensionBarData[] = [
         <!-- Score breakdown -->
         <section class="bg-surface border border-slate-800 rounded-xl p-6">
           <h2 class="font-display font-semibold text-slate-100 text-lg mb-4">Score breakdown</h2>
-          {dimensions.map((dim) => {
-            const { tier, pct } = getDimensionBarParts(dim);
-            return (
-              <div class="py-3 border-b border-slate-800 last:border-0">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm text-slate-300 font-medium">{dim.label}</span>
-                  <span class={`font-mono font-bold text-lg ${tier.textClass}`}>
-                    {scoreLabel(dim.value)}
-                  </span>
-                </div>
-                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-700"
-                    style={`width: ${pct}%; background-color: ${tier.hex}`}
-                  />
-                </div>
-                {dim.description && (
-                  <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">{dim.description}</p>
-                )}
-              </div>
-            );
-          })}
+          <table class="w-full">
+            <thead>
+              <tr class="text-left">
+                <th class="text-xs font-mono text-slate-500 uppercase tracking-wider pb-3 font-normal">Dimension</th>
+                <th class="text-xs font-mono text-slate-500 uppercase tracking-wider pb-3 font-normal text-right w-16">Score</th>
+                <th class="text-xs font-mono text-slate-500 uppercase tracking-wider pb-3 font-normal pl-4 w-1/3">Bar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dimensions.map((dim) => {
+                const { tier, pct } = getDimensionBarParts(dim);
+                return (
+                  <tr class="border-t border-slate-800">
+                    <td class="py-3 pr-4 align-top">
+                      <span class="text-sm text-slate-300 font-medium">{dim.label}</span>
+                      {dim.description && (
+                        <p class="mt-1 text-xs text-slate-500 leading-relaxed">{dim.description}</p>
+                      )}
+                    </td>
+                    <td class="py-3 text-right align-top">
+                      <span class={`font-mono font-bold text-lg ${tier.textClass}`}>
+                        {scoreLabel(dim.value)}
+                      </span>
+                    </td>
+                    <td class="py-3 pl-4 align-middle">
+                      <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          class="h-full rounded-full transition-all duration-700"
+                          style={`width: ${pct}%; background-color: ${tier.hex}`}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </section>
 
         <!-- Autonomy breakdown -->

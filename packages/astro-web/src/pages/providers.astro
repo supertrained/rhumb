@@ -67,6 +67,19 @@ const FAQ = [
   },
 ];
 
+const PROVIDERS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "For API Providers — Rhumb",
+  url: "https://rhumb.dev/providers",
+  description: "Your service was scored by Rhumb. Learn what the AN Score measures, how to improve your score, and how to dispute it.",
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
 const githubDisputeHref = buildTrackedOutboundHref({
   destinationUrl: "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
   eventType: "github_dispute_click",
@@ -94,6 +107,7 @@ const contactHref = buildTrackedOutboundHref({
   ogTitle="For API Providers — Rhumb"
   ogDescription="You got scored. Here's what that means — and how to engage with the process."
   ogUrl="https://rhumb.dev/providers"
+  jsonLd={PROVIDERS_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">

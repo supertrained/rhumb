@@ -49,6 +49,19 @@ const TIERS = [
     ],
   },
 ];
+
+const PRICING_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Pricing — Rhumb",
+  url: "https://rhumb.dev/pricing",
+  description: "Rhumb scores are free. Forever. No auth required for AN Scores, leaderboards, service guides, MCP server, or API access.",
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
 ---
 
 <Layout
@@ -58,6 +71,7 @@ const TIERS = [
   ogTitle="Pricing — Rhumb"
   ogDescription="Scores are free. Forever. See what's included and what's coming."
   ogUrl="https://rhumb.dev/pricing"
+  jsonLd={PRICING_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-5xl mx-auto px-6 pt-14 pb-24">

@@ -4,6 +4,10 @@ import Search from "../components/Search.tsx";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
 import { getServices } from "../lib/api";
 
+// Bypass Vercel ISR caching — search results depend on query params
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+Astro.response.headers.set('CDN-Cache-Control', 'no-store');
+
 const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 
 // Fetch and filter services
@@ -17,11 +21,38 @@ const results = allServices.filter((s) => {
     (s.description?.toLowerCase().includes(search) ?? false)
   );
 });
+
+const SEARCH_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SearchResultsPage",
+  name: "Search | Rhumb",
+  url: "https://rhumb.dev/search",
+  description: "Search agent-native developer tools and APIs scored by Rhumb.",
+  ...(query
+    ? {
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: results.length,
+          itemListElement: results.slice(0, 10).map((s, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            item: {
+              "@type": "SoftwareApplication",
+              name: s.name,
+              url: `https://rhumb.dev/service/${s.slug}`,
+            },
+          })),
+        },
+      }
+    : {}),
+};
 ---
 
 <Layout
   title="Search | Rhumb"
   description="Search agent-native developer tools and APIs scored by Rhumb."
+  canonical="https://rhumb.dev/search"
+  jsonLd={SEARCH_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <!-- Header -->

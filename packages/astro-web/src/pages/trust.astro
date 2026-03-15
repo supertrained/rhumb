@@ -1,5 +1,22 @@
 ---
 import Layout from "../layouts/Layout.astro";
+
+const TRUST_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Why Trust Rhumb?",
+  url: "https://rhumb.dev/trust",
+  description: "Rhumb's trust model: open methodology, self-scoring, dispute process, CC BY 4.0 data license, and transparent limitations.",
+  speakable: {
+    "@type": "SpeakableSpecification",
+    cssSelector: ["h1", "h2", ".bg-surface p"],
+  },
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
 ---
 
 <Layout
@@ -9,6 +26,7 @@ import Layout from "../layouts/Layout.astro";
   ogTitle="Why Trust Rhumb?"
   ogDescription="Open methodology. Self-scoring. Disputable. Here's why you can trust the AN Score."
   ogUrl="https://rhumb.dev/trust"
+  jsonLd={TRUST_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">
