@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
+const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
 const ALLOWED_EVENTS = new Set([
   "provider_click",
   "docs_click",

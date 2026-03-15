@@ -8,9 +8,10 @@ import type {
 } from "./types";
 
 // Supabase direct mode (production) vs Python API mode (local dev)
-const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
+// Support both Astro (PUBLIC_*) and legacy Next.js (NEXT_PUBLIC_*) env vars
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
 
 const useSupabase = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 

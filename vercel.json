@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd packages/web && npm install",
-  "buildCommand": "cd packages/web && npm run build",
-  "outputDirectory": "packages/web/.next"
+  "installCommand": "cd packages/astro-web && npm install",
+  "buildCommand": "cd packages/astro-web && npm run build",
+  "outputDirectory": "packages/astro-web/.vercel/output"
 }

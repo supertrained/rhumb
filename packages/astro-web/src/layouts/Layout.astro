@@ -36,8 +36,8 @@ const {
   jsonLd,
 } = Astro.props;
 
-const gaId = import.meta.env.PUBLIC_GA_ID;
-const clarityId = import.meta.env.PUBLIC_CLARITY_ID;
+const gaId = import.meta.env.PUBLIC_GA_ID ?? import.meta.env.NEXT_PUBLIC_GA_ID;
+const clarityId = import.meta.env.PUBLIC_CLARITY_ID ?? import.meta.env.NEXT_PUBLIC_CLARITY_ID;
 const currentPath = Astro.url.pathname;
 ---
 
