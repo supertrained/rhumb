@@ -36,13 +36,14 @@ const config = sizeConfig[size];
 
 <div
   class:list={[
-    "relative flex flex-col items-center justify-center rounded-full shrink-0",
+    "relative flex flex-col items-center justify-center rounded-full shrink-0 score-ring-pulse",
     config.wrapper,
     config.border,
     tier.bgClass,
     tier.borderClass,
     tier.glowClass,
   ]}
+  style={`--pulse-color: ${tier.hex}40`}
 >
   <span class:list={[`font-mono font-bold leading-none`, config.score, tier.textClass]}>
     {score !== null ? score.toFixed(1) : "—"}
