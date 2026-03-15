@@ -1,4 +1,5 @@
 ---
+export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 import fs from "node:fs";
 import path from "node:path";
@@ -127,7 +128,6 @@ try {
 const htmlContent = markdownToHtml(content);
 ---
 
-export const prerender = true;
 
 <Layout
   title="The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base | Rhumb"
