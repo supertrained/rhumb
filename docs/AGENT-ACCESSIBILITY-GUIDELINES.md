@@ -1,4 +1,4 @@
-# Agent Accessibility Guidelines (AAG) v0.2
+# Agent Accessibility Guidelines (AAG) v0.3
 
 > **"ADA made the web usable for every human. AAG makes it usable for every agent."**
 
@@ -145,6 +145,8 @@ Modeled after WCAG's A/AA/AAA structure. Each level builds on the previous.
 | A.9 | **No `noindex` on agent-facing pages** — Remove `<meta name="robots" content="noindex">` from any page agents need to discover | A page for agents that tells machines to ignore it is self-defeating. `noindex` blocks crawlers, LLM training, and agent discovery. If it's public and for agents, it must be indexable. |
 | A.10 | **Content extraction yields ≥ 100 words** — Server HTML must contain meaningful text content extractable without JavaScript | If `curl yourpage.com \| wc -w` returns < 100 words, the page is functionally invisible to agents. 3 words from a full product page (the Ramp Agent Cards case) means 99.7% of the content is locked behind JS. |
 | A.11 | **Meta descriptions describe actual functionality** — `<meta name="description">` should be a complete sentence explaining what the page offers | "Cards built for agents" (4 words) tells an agent almost nothing. A good meta description acts as a fallback summary when content extraction fails. Aim for 50–160 characters of actual description. |
+| A.12 | **Icons always paired with text** — Never use icon-only buttons or links. SVG icons are invisible to agents; an icon-only action is a blank action. | Agents can't see SVGs. A hamburger menu icon without `aria-label` or visible text is a `<button>` with no name. At minimum, `aria-label`; prefer visible text alongside the icon. |
+| A.13 | **Headings are descriptive, not clever** — Use headings that describe content ("Stripe Agent-Native Score: 8.1/10") not headings that require visual context ("The Verdict") | Agents use heading text to navigate documents and understand section content. A clever heading requires surrounding context to interpret — agents parse headings in isolation. |
 
 ### Level AA: Agent Navigable
 *An agent can reliably interact with the page and extract structured data.*
@@ -163,6 +165,11 @@ Modeled after WCAG's A/AA/AAA structure. Each level builds on the previous.
 | AA.10 | **Tables use `<th>` headers and `scope` attributes** | Agents extract tabular data frequently. Proper table markup makes extraction trivial. |
 | AA.11 | **Discovery files return 200** — `robots.txt`, `sitemap.xml`, and `llms.txt` must exist and return valid responses, not 404 | Agents check these files to understand site structure and permissions. A 404 on `robots.txt` means the agent has no signal about what's allowed. A 404 on `sitemap.xml` means no page discovery. These are the agent's front door — keep it open. |
 | AA.12 | **No script loaders that defer all content** — Avoid Cloudflare Rocket Loader, lazy-load-everything patterns, or deferred rendering that empties the initial HTML | Script loaders that move all content to deferred JS execution make pages invisible to any non-browser consumer. If you use a CDN-level script loader, ensure critical content is excluded or pre-rendered. |
+| AA.13 | **Navigation links rendered in static HTML** — All nav links must be in the initial document, not behind a JS toggle. Mobile hamburger menus are a progressive enhancement over a fully-rendered `<nav>` | Agents parse `<nav>` tags from raw HTML. A nav that requires JS to expand doesn't exist to non-browser agents. Render all links statically; use JS only to show/hide on small screens. |
+| AA.14 | **Search available at a server-rendered URL** — Provide `/search?q=term` that returns results in HTML, not just a JS-dependent search widget | Agents need a URL they can GET. A search box that requires JS event handling is unusable via raw HTML or API channels. The pretty UI is for humans; the URL endpoint is for agents. |
+| AA.15 | **Use native HTML disclosure over JS tabs** — Use `<details>`/`<summary>` for show/hide content, not JS-toggled tab panels that hide content from the DOM | Content inside an inactive JS tab is invisible when agents parse HTML. Native `<details>` elements are parseable even when collapsed. If tabs are essential, ensure all tab content is in the DOM (not lazy-loaded on click). |
+| AA.16 | **Tabular data uses `<table>`, not card layouts** — When data is structurally tabular (rankings, scores, comparisons), render it in `<table>` elements with proper `<th>` and `scope` | Cards are visually appealing for humans but lose structure when extracted. Agents extract tables trivially. Use cards for browsing/discovery, tables for structured data. Both can coexist. |
+| AA.17 | **Every content piece reachable at a direct URL** — No information should only be accessible via modal, popup, or overlay | If a key feature or detail lives only in a modal triggered by a click, it has no URL and cannot be linked, crawled, or fetched. Every meaningful content piece needs a permalink. |
 
 ### Level AAA: Agent Native
 *The site is designed with agents as a first-class audience.*
@@ -179,6 +186,7 @@ Modeled after WCAG's A/AA/AAA structure. Each level builds on the previous.
 | AAA.8 | **Documented interaction patterns** — A machine-readable file describing how to complete key flows (login, purchase, submit) | Agents shouldn't have to figure out multi-step flows by trial and error. `agent-flows.json` at site root. |
 | AAA.9 | **Graceful degradation without JavaScript** | Content accessible even with JS disabled = maximum compatibility across all agent channels. |
 | AAA.10 | **No anti-automation measures on legitimate use paths** | If an agent is using your product legitimately (paying customer, API access), don't block automation. Rate limit, don't ban. |
+| AAA.11 | **Three-level degradation** — Every UI element works at three levels: (1) Full JS — rich human experience, (2) HTML only — what agents/curl/screen readers see, (3) Structured data — JSON-LD, meta tags, semantic markup | If your element only works at level 1, you've failed agent-native design. Server-side rendering makes level 2 the default. Structured data (level 3) lets agents skip HTML parsing entirely. |
 
 ---
 
@@ -204,6 +212,12 @@ These patterns make websites actively difficult for agents. Avoid them.
 | **CDN script loaders (Rocket Loader, etc.)** | Moves all content to deferred JS, emptying initial HTML | Exclude critical content from script deferral, or pre-render |
 | **"Agent" branding with no agent access** | Markets to agents but serves empty HTML to them | Verify your page works without JS before branding it "for agents" |
 | **4-word meta descriptions** | Useless as fallback context for agents | Write real descriptions: what the page does, who it's for, what data it contains |
+| **Icon-only buttons** | Agents see a nameless `<button>` | Always pair icons with visible text or at minimum `aria-label` |
+| **Clever headings** ("The Verdict", "What We Think") | Agents can't infer meaning from context | Use descriptive headings that work in isolation |
+| **JS-toggled tab panels** | Inactive tab content isn't in the DOM for many implementations | Use `<details>`/`<summary>` or ensure all tab content is always in DOM |
+| **Infinite scroll without `?page=N`** | Agents can't simulate scrolling reliably | Provide URL-based pagination parameters |
+| **Modal-only content** | No URL, no crawl, no fetch | Every meaningful content piece needs a permalink |
+| **Hamburger-only navigation** | Nav links hidden behind JS toggle don't exist to agents | Render full `<nav>` in HTML; hamburger is progressive enhancement |
 
 ---
 
@@ -227,6 +241,175 @@ Ramp launched "Agent Cards" at `agents.ramp.com/cards` — a product explicitly 
 **AAG violations:** A.9 (noindex on agent page), A.10 (< 100 extractable words), A.11 (insufficient meta description), AA.4 (no SSR), AA.11 (discovery files 404), AA.12 (Rocket Loader defers all content).
 
 **The lesson:** If your audience is agents, your architecture must serve agents. Client-side-only rendering + `noindex` + no discovery files = invisible to every agent channel except browser automation (the most expensive and least reliable channel). Six of the new guidelines added in v0.2 were directly inspired by this case.
+
+---
+
+## Agent-Native UI Element Reference
+
+*Added in v0.3. How every major UI element changes when you design for agents as a first-class audience.*
+
+Every UI element should work at **three levels**:
+
+1. **Full JS** — the rich human experience (animations, hover states, transitions)
+2. **HTML only** — what an agent, `curl`, or screen reader sees
+3. **Structured data** — JSON-LD, meta tags, semantic markup for machine understanding
+
+If your element only works at level 1, you've failed agent-native design.
+
+### Navigation
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Hamburger menus, dropdowns, hover states | Parses `<nav>` and `<a>` tags from raw HTML |
+| **Failure mode** | — | Nav behind JS toggle doesn't exist |
+
+**The fix:** Render all nav links in static HTML. The mobile hamburger is a **progressive enhancement** (React island for humans), but the `<nav>` element with every link is always in the document. Astro does this by default — the nav is an `.astro` component, zero JS.
+
+```html
+<!-- ✅ Correct: Full nav always in DOM -->
+<nav>
+  <a href="/">Home</a>
+  <a href="/leaderboard">Leaderboard</a>
+  <a href="/search">Search</a>
+  <a href="/docs">Docs</a>
+</nav>
+<!-- Mobile toggle is JS enhancement, not gatekeeper -->
+<button class="mobile-toggle" aria-label="Toggle menu">☰</button>
+```
+
+### Search
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Type in a box, see filtered results | Needs a URL: `GET /search?q=stripe` |
+| **Failure mode** | — | JS-dependent search widget is unusable via raw HTML or API channels |
+
+**The fix:** Keep the pretty search UI for humans, but also expose a **server-rendered `/search?q=`** that returns results in the HTML. Plus the API endpoint.
+
+```
+# Agent can GET this URL and parse results from HTML
+https://site.com/search?q=stripe
+
+# Even better: API endpoint with structured response
+https://site.com/api/search?q=stripe → JSON
+```
+
+### Tables vs Cards
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Cards are prettier for browsing | Cards lose structure when parsed |
+| **Failure mode** | — | Card grid becomes a blob of text with lost relationships |
+
+**The fix:** Use semantic `<table>` for data that **is** tabular (leaderboards, score breakdowns, comparisons). Cards are fine for discovery browsing, but use proper heading hierarchy + microdata inside them so structure survives extraction.
+
+```html
+<!-- ✅ Leaderboard: tabular data gets a table -->
+<table>
+  <thead>
+    <tr><th scope="col">Rank</th><th scope="col">Service</th><th scope="col">Score</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Stripe</td><td>8.3</td></tr>
+  </tbody>
+</table>
+
+<!-- ✅ Discovery cards: structured with headings + microdata -->
+<article itemscope itemtype="https://schema.org/SoftwareApplication">
+  <h3 itemprop="name">Stripe</h3>
+  <span itemprop="aggregateRating">8.3/10</span>
+</article>
+```
+
+### Tabs / Accordions
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Click tab to reveal content | Content behind inactive JS tab is invisible |
+| **Failure mode** | — | This is exactly what killed Ramp's Agent Cards page |
+
+**The fix:** Use `<details>`/`<summary>` (native HTML, parseable even when collapsed) instead of JS-toggled tabs. Or just... show everything. Sections with headings. The page can be longer — agents don't care about scroll length, they care about content being **in the document**.
+
+```html
+<!-- ✅ Native HTML: content parseable even when collapsed -->
+<details>
+  <summary>Authentication Methods</summary>
+  <p>Supports OAuth 2.0, API keys, and JWT bearer tokens...</p>
+</details>
+
+<!-- ❌ JS tabs: inactive content often not in DOM -->
+<div role="tabpanel" hidden>Content agent never sees</div>
+```
+
+### Pagination
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Scroll for more, or click page numbers | Can't scroll. Needs `rel="next"` links or `?page=N` params |
+| **Failure mode** | — | Infinite scroll = agent sees only the first viewport |
+
+**The fix:** Real pagination with `<link rel="next">` / `<link rel="prev">` in `<head>`. Agents can crawl the full set.
+
+```html
+<head>
+  <link rel="next" href="/leaderboard?page=2">
+  <link rel="prev" href="/leaderboard?page=1">
+</head>
+
+<!-- Pagination controls with real links -->
+<nav aria-label="Pagination">
+  <a href="/leaderboard?page=1">1</a>
+  <a href="/leaderboard?page=2" aria-current="page">2</a>
+  <a href="/leaderboard?page=3">3</a>
+</nav>
+```
+
+### Modals / Overlays
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Click to open, click/Esc to close | Completely invisible — no URL, no DOM presence until triggered |
+| **Failure mode** | — | If key content is modal-only, it doesn't exist to agents |
+
+**The fix:** Every piece of information should be reachable at a **direct URL**, not trapped in a popup. Modals are a UI convenience for humans, not a content container.
+
+### Loading States / Skeletons
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | See skeleton, wait for content to fill in | Fetches HTML and sees whatever arrived — if skeleton, that's what they get |
+| **Failure mode** | — | Agent sees a page full of empty placeholder boxes |
+
+**The fix:** Server-render the content. This is the entire point of SSR frameworks — the HTML arrives **complete**. No loading states needed for the initial render. Use `aria-busy="true"` on dynamic sections that update after load so agents know to wait.
+
+### Headings
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Scan visually, headings are style emphasis | Use heading hierarchy as primary document navigation |
+| **Failure mode** | — | Clever headings ("The Verdict") require visual context to interpret |
+
+**The fix:** Strict hierarchy. One `<h1>` per page. Headings should be descriptive ("Stripe Agent-Native Score: 8.1/10") not clever ("The Verdict"). Agents parse headings in isolation — they should make sense without the surrounding content.
+
+### Icons
+
+| | Human | Agent |
+|---|-------|-------|
+| **Interaction** | Recognize visual glyph (hamburger, search, settings) | See nothing — SVGs are invisible to the accessibility tree |
+| **Failure mode** | — | Icon-only button is a blank `<button>` with no name |
+
+**The fix:** Always pair icons with text. `aria-label` minimum, visible text preferred.
+
+```html
+<!-- ❌ Agent sees: button (no name) -->
+<button><svg>...</svg></button>
+
+<!-- ⚠️ Minimum: agent sees "Search" -->
+<button aria-label="Search"><svg>...</svg></button>
+
+<!-- ✅ Best: agent AND human see "Search" -->
+<button><svg>...</svg> Search</button>
+```
 
 ---
 
@@ -319,10 +502,12 @@ Rhumb itself should be Level AAA compliant — we're literally building for agen
 | A.9 No noindex | ✅ | No `noindex` on any page |
 | A.10 Content ≥ 100 words | ✅ | Homepage ~1,100 words, service pages ~2,700 words server-rendered |
 | A.11 Substantive meta descriptions | ✅ | All pages have descriptive meta tags (30-160 chars) |
+| A.12 Icons paired with text | ✅ | All buttons have visible text or `aria-label` |
+| A.13 Descriptive headings | ✅ | Headings describe content, not just styling |
 | AA.1 Stable selectors | ⚠️ | Need `data-testid` on key elements |
 | AA.2 Predictable URLs | ✅ | `/service/[slug]`, `/leaderboard/[category]` |
 | AA.3 Machine-readable dates | ⚠️ | "12 minutes ago" lacks `datetime` attr |
-| AA.4 SSR | ✅ | Next.js SSR on all routes |
+| AA.4 SSR | ✅ | Astro SSR on all dynamic routes, SSG on static pages |
 | AA.5 No CAPTCHA | ✅ | Public read, no bot detection |
 | AA.6 Structured data | ⚠️ | Need JSON-LD on service pages |
 | AA.7 Consistent layout | ✅ | Same nav/content/footer on all pages |
@@ -331,6 +516,11 @@ Rhumb itself should be Level AAA compliant — we're literally building for agen
 | AA.10 Table headers | ⚠️ | Leaderboard is cards, not tables — need scope if we add tables |
 | AA.11 Discovery files 200 | ✅ | `robots.txt`, `sitemap.xml`, `llms.txt` all return 200 |
 | AA.12 No script loaders | ✅ | No Rocket Loader or deferred-all-content patterns |
+| AA.13 Static nav links | ✅ | Full `<nav>` rendered in Astro; hamburger is React island enhancement |
+| AA.14 Server-rendered search URL | ✅ | `/search?q=` returns SSR results |
+| AA.15 Native HTML disclosure | ⚠️ | Service pages use sections, not tabs — but no `<details>` yet |
+| AA.16 Tabular data uses `<table>` | ⚠️ | Leaderboard is cards — could add `<table>` alongside |
+| AA.17 Direct URL for all content | ✅ | No modal-only content anywhere |
 | AAA.1 API parity | ✅ | MCP + CLI cover everything web shows |
 | AAA.2 llms.txt | ✅ | Already at `/llms.txt` |
 | AAA.3 data-testid everywhere | ❌ | Not yet implemented |
@@ -339,8 +529,9 @@ Rhumb itself should be Level AAA compliant — we're literally building for agen
 | AAA.6 Multi-modal content | ⚠️ | Score badges use color — need text fallback |
 | AAA.7 Token-efficient | ✅ | Clean structure, minimal nesting |
 | AAA.8 agent-flows.json | ❌ | Not yet implemented |
-| AAA.9 No-JS graceful degradation | ⚠️ | React hydration required for search |
+| AAA.9 No-JS graceful degradation | ✅ | Astro serves complete HTML; JS islands enhance, not gate |
 | AAA.10 No anti-automation | ✅ | No bot detection |
+| AAA.11 Three-level degradation | ✅ | Astro default = level 2 (HTML only); JSON-LD + meta = level 3 |
 
 ### Priority Fixes for Rhumb
 1. Add `data-testid` attributes to all interactive elements
@@ -364,6 +555,7 @@ This is especially relevant for the **Access layer** — when Rhumb needs to pro
 
 ---
 
-*Version 0.2 — Pedro Nunes, Rhumb — 2026-03-14*
+*Version 0.3 — Pedro Nunes, Rhumb — 2026-03-14*
 *Inspired by WCAG 2.1, ADA Section 508, and real-world agent failures.*
-*v0.2 adds 6 new guidelines (A.9–A.11, AA.11–AA.12) and 4 new anti-patterns, all derived from the Ramp Agent Cards audit.*
+*v0.2: 6 new guidelines (A.9–A.11, AA.11–AA.12) and 4 anti-patterns from the Ramp Agent Cards audit.*
+*v0.3: Agent-Native UI Element Reference — 8 new guidelines (A.12–A.13, AA.13–AA.17, AAA.11), 7 new anti-patterns, and a complete reference for how every major UI element changes for agent-native design.*
