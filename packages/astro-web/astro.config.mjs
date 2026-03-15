@@ -7,7 +7,12 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://rhumb.dev',
   output: 'server',
-  adapter: vercel(),
+  adapter: vercel({
+    isr: {
+      // Revalidate dynamic pages every hour
+      expiration: 3600,
+    },
+  }),
   integrations: [
     react(),
     sitemap(),
