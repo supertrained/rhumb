@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "agent-native-frontend-stack",
+    title: "The Agent-Native Frontend Stack",
+    description:
+      "We ranked every major frontend framework by how hard it is to accidentally build something agents can't read. Astro wins. Here's why.",
+    date: "March 14, 2026",
+    tag: "Agent Infrastructure",
+    readTime: "12 min read",
+  },
+  {
     slug: "agent-cards-invisible",
     title: "Why 'Agent Cards' Are Invisible to Agents",
     description:
