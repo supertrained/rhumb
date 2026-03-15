@@ -1,4 +1,4 @@
-# Agent Accessibility Guidelines (AAG) v0.1
+# Agent Accessibility Guidelines (AAG) v0.2
 
 > **"ADA made the web usable for every human. AAG makes it usable for every agent."**
 
@@ -142,6 +142,9 @@ Modeled after WCAG's A/AA/AAA structure. Each level builds on the previous.
 | A.6 | **No content locked behind hover-only interactions** | Agents can hover, but it's unreliable. Critical content must be accessible without hover state. |
 | A.7 | **Error messages appear in the DOM** (not just toast notifications) | Toast notifications disappear. Agents need errors to persist until acknowledged. |
 | A.8 | **Loading states are detectable** — Skeleton screens, `aria-busy`, or `data-loading` attributes | Agents need to know when to wait. An empty div is ambiguous — is it loading or empty? |
+| A.9 | **No `noindex` on agent-facing pages** — Remove `<meta name="robots" content="noindex">` from any page agents need to discover | A page for agents that tells machines to ignore it is self-defeating. `noindex` blocks crawlers, LLM training, and agent discovery. If it's public and for agents, it must be indexable. |
+| A.10 | **Content extraction yields ≥ 100 words** — Server HTML must contain meaningful text content extractable without JavaScript | If `curl yourpage.com \| wc -w` returns < 100 words, the page is functionally invisible to agents. 3 words from a full product page (the Ramp Agent Cards case) means 99.7% of the content is locked behind JS. |
+| A.11 | **Meta descriptions describe actual functionality** — `<meta name="description">` should be a complete sentence explaining what the page offers | "Cards built for agents" (4 words) tells an agent almost nothing. A good meta description acts as a fallback summary when content extraction fails. Aim for 50–160 characters of actual description. |
 
 ### Level AA: Agent Navigable
 *An agent can reliably interact with the page and extract structured data.*
@@ -158,6 +161,8 @@ Modeled after WCAG's A/AA/AAA structure. Each level builds on the previous.
 | AA.8 | **Modals and overlays are dismissible and don't trap focus** | Cookie consent banners, newsletter popups, and onboarding modals block agent interaction. They must be dismissible or not block the main content. |
 | AA.9 | **Pagination over infinite scroll** — Or provide `?page=N` parameter | Agents can't "scroll." Infinite scroll requires simulating scroll events and waiting for load. Pagination is reliable. |
 | AA.10 | **Tables use `<th>` headers and `scope` attributes** | Agents extract tabular data frequently. Proper table markup makes extraction trivial. |
+| AA.11 | **Discovery files return 200** — `robots.txt`, `sitemap.xml`, and `llms.txt` must exist and return valid responses, not 404 | Agents check these files to understand site structure and permissions. A 404 on `robots.txt` means the agent has no signal about what's allowed. A 404 on `sitemap.xml` means no page discovery. These are the agent's front door — keep it open. |
+| AA.12 | **No script loaders that defer all content** — Avoid Cloudflare Rocket Loader, lazy-load-everything patterns, or deferred rendering that empties the initial HTML | Script loaders that move all content to deferred JS execution make pages invisible to any non-browser consumer. If you use a CDN-level script loader, ensure critical content is excluded or pre-rendered. |
 
 ### Level AAA: Agent Native
 *The site is designed with agents as a first-class audience.*
@@ -195,6 +200,33 @@ These patterns make websites actively difficult for agents. Avoid them.
 | **iframes for core content** | Cross-origin iframes block DOM access | Use same-origin or provide API access to iframe content |
 | **Client-side only rendering** | Raw HTML parsing returns nothing | SSR or SSG for content pages |
 | **Unstructured dates** ("last Tuesday") | Requires NLU to parse | ISO 8601 in `datetime` attribute |
+| **`noindex` on agent-facing pages** | Tells machines to ignore a page built for machines | Remove `noindex` from any public, agent-facing page |
+| **CDN script loaders (Rocket Loader, etc.)** | Moves all content to deferred JS, emptying initial HTML | Exclude critical content from script deferral, or pre-render |
+| **"Agent" branding with no agent access** | Markets to agents but serves empty HTML to them | Verify your page works without JS before branding it "for agents" |
+| **4-word meta descriptions** | Useless as fallback context for agents | Write real descriptions: what the page does, who it's for, what data it contains |
+
+---
+
+## Real-World Case Study: Ramp Agent Cards
+
+*Added in v0.2 based on the March 2026 audit published at rhumb.dev/blog/agent-cards-invisible*
+
+Ramp launched "Agent Cards" at `agents.ramp.com/cards` — a product explicitly designed for AI agents. We tested it the way every agent framework accesses web content: HTTP GET + readability extraction.
+
+**Results:**
+- Content extraction: **3 words** ("Agent Cards", "Interest", "Help")
+- `robots.txt`: 404
+- `llms.txt`: 404
+- `sitemap.xml`: 404
+- JSON-LD: None
+- Meta description: "Cards built for agents" (4 words)
+- `<meta name="robots" content="noindex">` set in HTML
+
+**What went wrong:** The page is a Next.js SPA with Cloudflare Rocket Loader. All content is client-rendered. The server HTML is an empty shell. Combined with `noindex`, the page actively tells agents to ignore it.
+
+**AAG violations:** A.9 (noindex on agent page), A.10 (< 100 extractable words), A.11 (insufficient meta description), AA.4 (no SSR), AA.11 (discovery files 404), AA.12 (Rocket Loader defers all content).
+
+**The lesson:** If your audience is agents, your architecture must serve agents. Client-side-only rendering + `noindex` + no discovery files = invisible to every agent channel except browser automation (the most expensive and least reliable channel). Six of the new guidelines added in v0.2 were directly inspired by this case.
 
 ---
 
@@ -206,14 +238,28 @@ These patterns make websites actively difficult for agents. Avoid them.
 # Level A: Accessibility tree has all interactive elements
 npx playwright test --project=accessibility
 
+# Level A: Content extraction yields ≥ 100 words (A.10)
+curl -s https://site.com | sed 's/<[^>]*>//g' | wc -w  # Should be > 100
+
+# Level A: No noindex on agent-facing pages (A.9)
+curl -s https://site.com | grep -i 'noindex'  # Should return nothing
+
+# Level A: Meta description is substantive (A.11)
+curl -s https://site.com | grep -oP '(?<=<meta name="description" content=")[^"]+' | wc -w  # Aim for > 8 words
+
 # Level AA: Structured data present
 curl -s https://site.com | grep 'application/ld+json'
 
 # Level AA: SSR content present
 curl -s https://site.com | grep '<h1>'  # Content in source, not just JS
 
-# Level AAA: llms.txt exists
-curl -s https://site.com/llms.txt
+# Level AA: Discovery files return 200 (AA.11)
+curl -s -o /dev/null -w "%{http_code}" https://site.com/robots.txt    # Should be 200
+curl -s -o /dev/null -w "%{http_code}" https://site.com/sitemap.xml   # Should be 200
+curl -s -o /dev/null -w "%{http_code}" https://site.com/llms.txt      # Should be 200
+
+# Level AAA: llms.txt exists and is substantial
+curl -s https://site.com/llms.txt | wc -w  # More than a stub
 
 # Visual regression: screenshot comparison
 npx playwright screenshot https://site.com --full-page
@@ -270,6 +316,9 @@ Rhumb itself should be Level AAA compliant — we're literally building for agen
 | A.6 No hover-only content | ✅ | All content visible without hover |
 | A.7 Error messages in DOM | ⚠️ | Need to verify error states |
 | A.8 Loading states | ⚠️ | Need `aria-busy` on dynamic content |
+| A.9 No noindex | ✅ | No `noindex` on any page |
+| A.10 Content ≥ 100 words | ✅ | Homepage ~1,100 words, service pages ~2,700 words server-rendered |
+| A.11 Substantive meta descriptions | ✅ | All pages have descriptive meta tags (30-160 chars) |
 | AA.1 Stable selectors | ⚠️ | Need `data-testid` on key elements |
 | AA.2 Predictable URLs | ✅ | `/service/[slug]`, `/leaderboard/[category]` |
 | AA.3 Machine-readable dates | ⚠️ | "12 minutes ago" lacks `datetime` attr |
@@ -280,6 +329,8 @@ Rhumb itself should be Level AAA compliant — we're literally building for agen
 | AA.8 Dismissible modals | ✅ | No modals currently |
 | AA.9 Pagination | ✅ | Leaderboard uses categories, not infinite scroll |
 | AA.10 Table headers | ⚠️ | Leaderboard is cards, not tables — need scope if we add tables |
+| AA.11 Discovery files 200 | ✅ | `robots.txt`, `sitemap.xml`, `llms.txt` all return 200 |
+| AA.12 No script loaders | ✅ | No Rocket Loader or deferred-all-content patterns |
 | AAA.1 API parity | ✅ | MCP + CLI cover everything web shows |
 | AAA.2 llms.txt | ✅ | Already at `/llms.txt` |
 | AAA.3 data-testid everywhere | ❌ | Not yet implemented |
@@ -313,5 +364,6 @@ This is especially relevant for the **Access layer** — when Rhumb needs to pro
 
 ---
 
-*Version 0.1 — Pedro Nunes, Rhumb — 2026-03-09*
-*Inspired by WCAG 2.1, ADA Section 508, and 8 days of building agents that interact with websites.*
+*Version 0.2 — Pedro Nunes, Rhumb — 2026-03-14*
+*Inspired by WCAG 2.1, ADA Section 508, and real-world agent failures.*
+*v0.2 adds 6 new guidelines (A.9–A.11, AA.11–AA.12) and 4 new anti-patterns, all derived from the Ramp Agent Cards audit.*
