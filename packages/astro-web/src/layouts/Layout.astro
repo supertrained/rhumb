@@ -40,10 +40,14 @@ const gaId = import.meta.env.PUBLIC_GA_ID ?? import.meta.env.NEXT_PUBLIC_GA_ID;
 const clarityId = import.meta.env.PUBLIC_CLARITY_ID ?? import.meta.env.NEXT_PUBLIC_CLARITY_ID;
 const currentPath = Astro.url.pathname;
 
-// Auto-generate canonical URL if not explicitly provided
-const resolvedCanonical = canonical ?? `https://rhumb.dev${currentPath === "/" ? "" : currentPath}`;
-// Auto-generate og:url if not explicitly provided
-const resolvedOgUrl = ogUrl ?? `https://rhumb.dev${currentPath}`;
+// Ensure canonical + og:url are always absolute
+function toAbsolute(path: string | undefined): string {
+  if (!path) return `https://rhumb.dev${currentPath}`;
+  if (path.startsWith("https://")) return path;
+  return `https://rhumb.dev${path}`;
+}
+const resolvedCanonical = toAbsolute(canonical);
+const resolvedOgUrl = toAbsolute(ogUrl);
 ---
 
 <!doctype html>

@@ -1,4 +1,13 @@
 {
   "installCommand": "cd packages/astro-web && npm install",
-  "buildCommand": "cd packages/astro-web && npm run build && mkdir -p ../../.vercel && cp -r .vercel/output ../../.vercel/output"
+  "buildCommand": "cd packages/astro-web && npm run build && mkdir -p ../../.vercel && cp -r .vercel/output ../../.vercel/output",
+  "headers": [
+    {
+      "source": "/search",
+      "headers": [
+        { "key": "CDN-Cache-Control", "value": "no-store" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
 }
