@@ -192,6 +192,24 @@ class CredentialStore:
 
         return entry.value
 
+    def callable_services(self) -> list[str]:
+        """Return service names that have at least one valid, non-expired credential.
+
+        A service is ``callable`` when the proxy can actually inject auth on
+        its behalf — i.e., a real credential exists in the cache (loaded from
+        1Password or an environment variable fallback).  Services that are
+        registered in ``SERVICE_REGISTRY`` but have no credential are *not*
+        included here.
+        """
+        result = []
+        for service in self.SUPPORTED_SERVICES:
+            provider = self._cache.get(service)
+            if provider and any(
+                not entry.is_expired() for entry in provider.credentials.values()
+            ):
+                result.append(service)
+        return result
+
     # ------------------------------------------------------------------
     # Refresh
     # ------------------------------------------------------------------

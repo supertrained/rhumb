@@ -367,7 +367,7 @@ class TestIntegrationStats:
         response = client.get("/proxy/stats")
         assert response.status_code == 200
         data = response.json()["data"]
-        assert data["services_online"] == 5
+        assert data["services_registered"] == 5
         assert data["latency"]["total_calls"] >= 1
 
     def test_metrics_endpoint_for_service(self, client, httpx_mock) -> None:

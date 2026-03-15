@@ -353,8 +353,11 @@ class TestProxyRouter:
         assert response.status_code == 200
         data = response.json()
         assert data["error"] is None
-        assert "services_online" in data["data"]
-        assert data["data"]["services_online"] > 0
+        assert "services_registered" in data["data"]
+        assert "services_callable" in data["data"]
+        assert data["data"]["services_registered"] > 0
+        # In tests, credentials are seeded so at least one service should be callable.
+        assert data["data"]["services_callable"] >= 0
 
 
 class TestProxyRequest:

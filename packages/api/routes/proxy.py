@@ -42,6 +42,7 @@ from schemas.agent_identity import (
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_rate_limit import AgentRateLimitChecker, get_agent_rate_limit_checker
 from services.proxy_auth import AuthInjectionRequest, AuthInjector, get_auth_injector
+from services.proxy_credentials import get_credential_store
 from services.proxy_finalizer import (
     ProxyFinalizationJob,
     ProxyFinalizer,
@@ -742,13 +743,19 @@ async def proxy_stats() -> dict:
     breaker_reg = get_breaker_registry()
     pool = get_pool_manager()
     emitter = get_operational_fact_emitter()
+    credential_store = get_credential_store()
 
     global_snapshot = tracker.get_global_snapshot()
     per_service = tracker.get_all_snapshots()
 
+    callable_svcs = credential_store.callable_services()
+
     return {
         "data": {
-            "services_online": len(SERVICE_REGISTRY),
+            # services_registered: total entries in SERVICE_REGISTRY (may lack credentials)
+            # services_callable: subset that have a live credential — actually reachable
+            "services_registered": len(SERVICE_REGISTRY),
+            "services_callable": len(callable_svcs),
             "circuits": breaker_reg.get_all_states(),
             "latency": {
                 "p50_ms": round(global_snapshot.p50_ms, 3),
