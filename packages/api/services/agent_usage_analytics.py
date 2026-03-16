@@ -74,6 +74,8 @@ class AgentUsageAnalytics:
     ) -> None:
         self._identity_store = identity_store
         self.supabase = supabase_client
+        # True once ensure_supabase() has been attempted (prevents repeated DB probes)
+        self._supabase_attempted: bool = supabase_client is not None
         # In-memory event store (dev/test fallback)
         self._events: List[UsageEvent] = []
 
@@ -82,6 +84,33 @@ class AgentUsageAnalytics:
         if self._identity_store is None:
             self._identity_store = get_agent_identity_store()
         return self._identity_store
+
+    # ── Lazy Supabase (mirrors UsageMeterEngine pattern) ─────────────
+
+    async def ensure_supabase(self) -> bool:
+        """Attempt to resolve a Supabase client if none was injected.
+
+        Called lazily on first read so that the production singleton — created
+        without a client — will still query durable storage once the DB is
+        reachable.  Only probes once (guarded by ``_supabase_attempted``) to
+        avoid repeated connection attempts.  Returns ``True`` if a client is
+        now available.
+
+        Tests that deliberately use in-memory mode should pass
+        ``supabase_client=<mock>`` at construction time; the guard ensures
+        those instances are never overridden by a stray real connection.
+        """
+        if self._supabase_attempted:
+            return self.supabase is not None
+        self._supabase_attempted = True
+        try:
+            from db.client import get_supabase_client
+
+            self.supabase = await get_supabase_client()
+            return True
+        except Exception:
+            logger.debug("Supabase not available — agent usage analytics using in-memory fallback")
+            return False
 
     # ── Recording ────────────────────────────────────────────────────
 
