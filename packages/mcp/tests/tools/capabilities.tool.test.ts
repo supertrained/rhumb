@@ -73,6 +73,11 @@ function createMockClient(overrides: Partial<RhumbApiClient> = {}): RhumbApiClie
     listCeremonies: vi.fn().mockResolvedValue([]),
     getCeremony: vi.fn().mockResolvedValue(null),
     listManagedCapabilities: vi.fn().mockResolvedValue([]),
+    getBudget: vi.fn().mockResolvedValue({ unlimited: true }),
+    setBudget: vi.fn().mockResolvedValue({}),
+    getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
+    getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
+    setRoutingStrategy: vi.fn().mockResolvedValue({}),
     ...overrides
   };
 }

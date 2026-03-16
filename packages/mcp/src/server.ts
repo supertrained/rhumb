@@ -15,7 +15,10 @@ import {
   ExecuteCapabilityInputSchema,
   EstimateCapabilityInputSchema,
   CredentialCeremonyInputSchema,
-  CheckCredentialsInputSchema
+  CheckCredentialsInputSchema,
+  BudgetInputSchema,
+  SpendInputSchema,
+  RoutingInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindTools } from "./tools/find.js";
@@ -28,6 +31,9 @@ import { handleExecuteCapability } from "./tools/execute.js";
 import { handleEstimateCapability } from "./tools/estimate.js";
 import { handleCredentialCeremony } from "./tools/ceremony.js";
 import { handleCheckCredentials } from "./tools/credentials.js";
+import { handleBudget } from "./tools/budget.js";
+import { handleSpend } from "./tools/spend.js";
+import { handleRouting } from "./tools/routing.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -206,6 +212,57 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ capability }) => {
       const result = await handleCheckCredentials({ capability }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- budget -----------------------------------------------------------
+  server.tool(
+    "budget",
+    "Check or set your execution budget. Without action param, returns current status. Use action='set' with budget_usd to create/update. Budget is enforced pre-execution — you get 402 (not a surprise bill) when over limit.",
+    {
+      action: z.string().optional().describe(BudgetInputSchema.properties.action.description),
+      budget_usd: z.number().optional().describe(BudgetInputSchema.properties.budget_usd.description),
+      period: z.string().optional().describe(BudgetInputSchema.properties.period.description),
+      hard_limit: z.boolean().optional().describe(BudgetInputSchema.properties.hard_limit.description)
+    },
+    async ({ action, budget_usd, period, hard_limit }) => {
+      const result = await handleBudget({ action, budget_usd, period, hard_limit }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- spend ------------------------------------------------------------
+  server.tool(
+    "spend",
+    "Get your spend breakdown by capability and provider. Shows total spend, execution count, and cost averages. Defaults to current month.",
+    {
+      period: z.string().optional().describe(SpendInputSchema.properties.period.description)
+    },
+    async ({ period }) => {
+      const result = await handleSpend({ period }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- routing ----------------------------------------------------------
+  server.tool(
+    "routing",
+    "Get or set your provider routing strategy. Strategies: cheapest (lowest cost above quality floor), fastest (healthiest circuits), highest_quality (highest AN score), balanced (weighted mix). Quality floor filters out low-quality providers.",
+    {
+      action: z.string().optional().describe(RoutingInputSchema.properties.action.description),
+      strategy: z.string().optional().describe(RoutingInputSchema.properties.strategy.description),
+      quality_floor: z.number().optional().describe(RoutingInputSchema.properties.quality_floor.description),
+      max_cost_per_call_usd: z.number().optional().describe(RoutingInputSchema.properties.max_cost_per_call_usd.description)
+    },
+    async ({ action, strategy, quality_floor, max_cost_per_call_usd }) => {
+      const result = await handleRouting({ action, strategy, quality_floor, max_cost_per_call_usd }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

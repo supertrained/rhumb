@@ -21,6 +21,9 @@ describe("server.init", () => {
     expect(names).toContain("estimate_capability");
     expect(names).toContain("credential_ceremony");
     expect(names).toContain("check_credentials");
-    expect(names).toHaveLength(10);
+    expect(names).toContain("budget");
+    expect(names).toContain("spend");
+    expect(names).toContain("routing");
+    expect(names).toHaveLength(13);
   });
 });

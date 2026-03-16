@@ -336,6 +336,104 @@ export type CheckCredentialsOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// budget
+// ---------------------------------------------------------------------------
+
+export const BudgetInputSchema = {
+  type: "object" as const,
+  properties: {
+    action: { type: "string" as const, description: "Action: 'get' to check budget, 'set' to create/update" },
+    budget_usd: { type: "number" as const, description: "Budget amount in USD (required for set)" },
+    period: { type: "string" as const, description: "Budget period: daily, weekly, monthly, total (default: monthly)" },
+    hard_limit: { type: "boolean" as const, description: "If true, reject executions over budget (default: true)" }
+  },
+  required: [] as const
+};
+
+export type BudgetInput = {
+  action?: string;
+  budget_usd?: number;
+  period?: string;
+  hard_limit?: boolean;
+};
+
+export type BudgetOutput = {
+  agent_id: string;
+  budget_usd: number | null;
+  spent_usd: number | null;
+  remaining_usd: number | null;
+  period: string | null;
+  hard_limit: boolean | null;
+  unlimited: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// spend
+// ---------------------------------------------------------------------------
+
+export const SpendInputSchema = {
+  type: "object" as const,
+  properties: {
+    period: { type: "string" as const, description: "Period (YYYY-MM). Defaults to current month." }
+  },
+  required: [] as const
+};
+
+export type SpendInput = {
+  period?: string;
+};
+
+export type SpendOutput = {
+  agent_id: string;
+  period: string;
+  total_spend_usd: number;
+  total_executions: number;
+  by_capability: Array<{
+    capability_id: string;
+    spend_usd: number;
+    executions: number;
+    avg_cost: number;
+  }>;
+  by_provider: Array<{
+    provider: string;
+    spend_usd: number;
+    executions: number;
+  }>;
+};
+
+// ---------------------------------------------------------------------------
+// routing
+// ---------------------------------------------------------------------------
+
+export const RoutingInputSchema = {
+  type: "object" as const,
+  properties: {
+    action: { type: "string" as const, description: "Action: 'get' to check strategy, 'set' to update" },
+    strategy: { type: "string" as const, description: "Strategy: cheapest, fastest, highest_quality, balanced" },
+    quality_floor: { type: "number" as const, description: "Minimum AN score (0-10, default 6.0)" },
+    max_cost_per_call_usd: { type: "number" as const, description: "Maximum cost per call in USD" }
+  },
+  required: [] as const
+};
+
+export type RoutingInput = {
+  action?: string;
+  strategy?: string;
+  quality_floor?: number;
+  max_cost_per_call_usd?: number;
+};
+
+export type RoutingOutput = {
+  agent_id: string;
+  strategy: string;
+  quality_floor: number;
+  max_cost_per_call_usd: number | null;
+  weight_score: number;
+  weight_cost: number;
+  weight_health: number;
+};
+
+// ---------------------------------------------------------------------------
 // Schema registry — all tool schemas in one place
 // ---------------------------------------------------------------------------
 
@@ -349,7 +447,10 @@ export const TOOL_SCHEMAS = {
   execute_capability: ExecuteCapabilityInputSchema,
   estimate_capability: EstimateCapabilityInputSchema,
   credential_ceremony: CredentialCeremonyInputSchema,
-  check_credentials: CheckCredentialsInputSchema
+  check_credentials: CheckCredentialsInputSchema,
+  budget: BudgetInputSchema,
+  spend: SpendInputSchema,
+  routing: RoutingInputSchema
 } as const;
 
 export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as Array<keyof typeof TOOL_SCHEMAS>;

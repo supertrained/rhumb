@@ -135,6 +135,11 @@ function createMockApiClient(): RhumbApiClient {
     listCeremonies: vi.fn().mockResolvedValue([]),
     getCeremony: vi.fn().mockResolvedValue(null),
     listManagedCapabilities: vi.fn().mockResolvedValue([]),
+    getBudget: vi.fn().mockResolvedValue({ unlimited: true }),
+    setBudget: vi.fn().mockResolvedValue({}),
+    getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
+    getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
+    setRoutingStrategy: vi.fn().mockResolvedValue({}),
   };
 }
 
@@ -161,6 +166,11 @@ function createErrorApiClient(): RhumbApiClient {
     listCeremonies: vi.fn().mockResolvedValue([]),
     getCeremony: vi.fn().mockResolvedValue(null),
     listManagedCapabilities: vi.fn().mockResolvedValue([]),
+    getBudget: vi.fn().mockResolvedValue({ unlimited: true }),
+    setBudget: vi.fn().mockResolvedValue({}),
+    getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
+    getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
+    setRoutingStrategy: vi.fn().mockResolvedValue({}),
   };
 }
 
@@ -203,7 +213,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 10 registered tools", async () => {
+    it("lists all 13 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -211,6 +221,7 @@ describe("e2e: MCP server integration", () => {
       const toolNames = tools.map((t) => t.name).sort();
 
       expect(toolNames).toEqual([
+        "budget",
         "check_credentials",
         "credential_ceremony",
         "discover_capabilities",
@@ -221,8 +232,10 @@ describe("e2e: MCP server integration", () => {
         "get_failure_modes",
         "get_score",
         "resolve_capability",
+        "routing",
+        "spend",
       ]);
-      expect(tools).toHaveLength(10);
+      expect(tools).toHaveLength(13);
 
       // Each tool has a description and input schema
       for (const tool of tools) {

@@ -147,6 +147,12 @@ export interface RhumbApiClient {
   listCeremonies(): Promise<CeremonySummaryItem[]>;
   getCeremony(serviceSlug: string): Promise<CeremonyDetailItem | null>;
   listManagedCapabilities(): Promise<ManagedCapabilityItem[]>;
+  // Phase 4: Budget + Routing + Spend
+  getBudget(): Promise<Record<string, unknown>>;
+  setBudget(budgetUsd: number, period?: string, hardLimit?: boolean): Promise<Record<string, unknown>>;
+  getSpend(period?: string): Promise<Record<string, unknown>>;
+  getRoutingStrategy(): Promise<Record<string, unknown>>;
+  setRoutingStrategy(strategy: string, qualityFloor?: number, maxCost?: number): Promise<Record<string, unknown>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -506,6 +512,60 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return Array.isArray(payload.data.managed_capabilities)
         ? payload.data.managed_capabilities
         : [];
+    },
+
+    // -- Phase 4: Budget + Routing + Spend --------------------------------
+
+    async getBudget(): Promise<Record<string, unknown>> {
+      const url = `${base}/agent/budget`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return { unlimited: true };
+      return (await res.json()) as Record<string, unknown>;
+    },
+
+    async setBudget(budgetUsd: number, period?: string, hardLimit?: boolean): Promise<Record<string, unknown>> {
+      const url = `${base}/agent/budget`;
+      const body: Record<string, unknown> = { budget_usd: budgetUsd };
+      if (period) body.period = period;
+      if (hardLimit !== undefined) body.hard_limit = hardLimit;
+
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return { error: `Failed to set budget: ${res.status}` };
+      return (await res.json()) as Record<string, unknown>;
+    },
+
+    async getSpend(period?: string): Promise<Record<string, unknown>> {
+      const params = period ? `?period=${encodeURIComponent(period)}` : "";
+      const url = `${base}/agent/spend${params}`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return { total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] };
+      return (await res.json()) as Record<string, unknown>;
+    },
+
+    async getRoutingStrategy(): Promise<Record<string, unknown>> {
+      const url = `${base}/agent/routing-strategy`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return { strategy: "balanced", quality_floor: 6.0 };
+      return (await res.json()) as Record<string, unknown>;
+    },
+
+    async setRoutingStrategy(strategy: string, qualityFloor?: number, maxCost?: number): Promise<Record<string, unknown>> {
+      const url = `${base}/agent/routing-strategy`;
+      const body: Record<string, unknown> = { strategy };
+      if (qualityFloor !== undefined) body.quality_floor = qualityFloor;
+      if (maxCost !== undefined) body.max_cost_per_call_usd = maxCost;
+
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return { error: `Failed to set strategy: ${res.status}` };
+      return (await res.json()) as Record<string, unknown>;
     }
   };
 }
