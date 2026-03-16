@@ -9,7 +9,7 @@ describe("server.init", () => {
     expect(typeof server.connect).toBe("function");
   });
 
-  it("server registers all 6 tools", () => {
+  it("server registers all 8 tools", () => {
     const names = getRegisteredToolNames();
     expect(names).toContain("find_tools");
     expect(names).toContain("get_score");
@@ -17,6 +17,8 @@ describe("server.init", () => {
     expect(names).toContain("get_failure_modes");
     expect(names).toContain("discover_capabilities");
     expect(names).toContain("resolve_capability");
-    expect(names).toHaveLength(6);
+    expect(names).toContain("execute_capability");
+    expect(names).toContain("estimate_capability");
+    expect(names).toHaveLength(8);
   });
 });

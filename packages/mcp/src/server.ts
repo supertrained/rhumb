@@ -11,7 +11,9 @@ import {
   GetAlternativesInputSchema,
   GetFailureModesInputSchema,
   DiscoverCapabilitiesInputSchema,
-  ResolveCapabilityInputSchema
+  ResolveCapabilityInputSchema,
+  ExecuteCapabilityInputSchema,
+  EstimateCapabilityInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindTools } from "./tools/find.js";
@@ -20,6 +22,8 @@ import { handleGetAlternatives } from "./tools/alternatives.js";
 import { handleGetFailureModes } from "./tools/failures.js";
 import { handleDiscoverCapabilities } from "./tools/capabilities.js";
 import { handleResolveCapability } from "./tools/resolve.js";
+import { handleExecuteCapability } from "./tools/execute.js";
+import { handleEstimateCapability } from "./tools/estimate.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -122,6 +126,51 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ capability }) => {
       const result = await handleResolveCapability({ capability }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- execute_capability ------------------------------------------------
+  server.tool(
+    "execute_capability",
+    "Execute a capability through Rhumb. Resolves the best provider automatically if none specified. Returns upstream response with provider used and cost. Use resolve_capability first to see available providers and endpoint patterns.",
+    {
+      capability_id: z.string().describe(ExecuteCapabilityInputSchema.properties.capability_id.description),
+      provider: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.provider.description),
+      method: z.string().describe(ExecuteCapabilityInputSchema.properties.method.description),
+      path: z.string().describe(ExecuteCapabilityInputSchema.properties.path.description),
+      body: z.record(z.string(), z.unknown()).optional().describe(ExecuteCapabilityInputSchema.properties.body.description),
+      params: z.record(z.string(), z.string()).optional().describe(ExecuteCapabilityInputSchema.properties.params.description),
+      credential_mode: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.credential_mode.description),
+      idempotency_key: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.idempotency_key.description)
+    },
+    async ({ capability_id, provider, method, path, body, params, credential_mode, idempotency_key }) => {
+      const result = await handleExecuteCapability(
+        { capability_id, provider, method, path, body, params, credential_mode, idempotency_key },
+        client
+      );
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- estimate_capability -----------------------------------------------
+  server.tool(
+    "estimate_capability",
+    "Get cost estimate for executing a capability without actually executing it. Use before expensive operations or when building cost-aware workflows.",
+    {
+      capability_id: z.string().describe(EstimateCapabilityInputSchema.properties.capability_id.description),
+      provider: z.string().optional().describe(EstimateCapabilityInputSchema.properties.provider.description),
+      credential_mode: z.string().optional().describe(EstimateCapabilityInputSchema.properties.credential_mode.description)
+    },
+    async ({ capability_id, provider, credential_mode }) => {
+      const result = await handleEstimateCapability(
+        { capability_id, provider, credential_mode },
+        client
+      );
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

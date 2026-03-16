@@ -26,16 +26,18 @@ describe("types.contract", () => {
     }
   });
 
-  it("TOOL_NAMES lists all 6 registered tools", () => {
+  it("TOOL_NAMES lists all 8 registered tools", () => {
     expect(TOOL_NAMES).toEqual([
       "find_tools",
       "get_score",
       "get_alternatives",
       "get_failure_modes",
       "discover_capabilities",
-      "resolve_capability"
+      "resolve_capability",
+      "execute_capability",
+      "estimate_capability"
     ]);
-    expect(TOOL_NAMES.length).toBe(6);
+    expect(TOOL_NAMES.length).toBe(8);
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {

@@ -112,6 +112,26 @@ function createMockApiClient(): RhumbApiClient {
       fallbackChain: ["resend", "sendgrid"],
       relatedBundles: []
     }),
+    executeCapability: vi.fn().mockResolvedValue({
+      capabilityId: "email.send",
+      providerUsed: "resend",
+      credentialMode: "byo",
+      upstreamStatus: 200,
+      upstreamResponse: { id: "msg_123" },
+      costEstimateUsd: null,
+      latencyMs: 142,
+      fallbackAttempted: false,
+      fallbackProvider: null,
+      executionId: "exec_test123"
+    }),
+    estimateCapability: vi.fn().mockResolvedValue({
+      capabilityId: "email.send",
+      provider: "resend",
+      credentialMode: "byo",
+      costEstimateUsd: null,
+      circuitState: "closed",
+      endpointPattern: "POST /emails"
+    }),
   };
 }
 
@@ -127,6 +147,12 @@ function createErrorApiClient(): RhumbApiClient {
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
     resolveCapability: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    executeCapability: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    estimateCapability: vi
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
   };
@@ -171,7 +197,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 6 registered tools", async () => {
+    it("lists all 8 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -180,13 +206,15 @@ describe("e2e: MCP server integration", () => {
 
       expect(toolNames).toEqual([
         "discover_capabilities",
+        "estimate_capability",
+        "execute_capability",
         "find_tools",
         "get_alternatives",
         "get_failure_modes",
         "get_score",
         "resolve_capability",
       ]);
-      expect(tools).toHaveLength(6);
+      expect(tools).toHaveLength(8);
 
       // Each tool has a description and input schema
       for (const tool of tools) {

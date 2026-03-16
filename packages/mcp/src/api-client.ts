@@ -71,11 +71,47 @@ export interface CapabilityResolveResult {
   relatedBundles: string[];
 }
 
+export interface CapabilityExecuteResult {
+  capabilityId: string;
+  providerUsed: string;
+  credentialMode: string;
+  upstreamStatus: number | null;
+  upstreamResponse: unknown;
+  costEstimateUsd: number | null;
+  latencyMs: number | null;
+  fallbackAttempted: boolean;
+  fallbackProvider: string | null;
+  executionId: string;
+  deduplicated?: boolean;
+}
+
+export interface CapabilityEstimateResult {
+  capabilityId: string;
+  provider: string;
+  credentialMode: string;
+  costEstimateUsd: number | null;
+  circuitState: string;
+  endpointPattern: string | null;
+}
+
 export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
   discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }>;
   resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null>;
+  executeCapability(capabilityId: string, opts: {
+    provider?: string;
+    method: string;
+    path: string;
+    body?: Record<string, unknown>;
+    params?: Record<string, string>;
+    credentialMode?: string;
+    idempotencyKey?: string;
+  }): Promise<CapabilityExecuteResult>;
+  estimateCapability(capabilityId: string, opts?: {
+    provider?: string;
+    credentialMode?: string;
+  }): Promise<CapabilityEstimateResult>;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +326,107 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         providers,
         fallbackChain,
         relatedBundles
+      };
+    },
+
+    async executeCapability(capabilityId: string, opts: {
+      provider?: string;
+      method: string;
+      path: string;
+      body?: Record<string, unknown>;
+      params?: Record<string, string>;
+      credentialMode?: string;
+      idempotencyKey?: string;
+    }): Promise<CapabilityExecuteResult> {
+      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute`;
+      const apiKey = process.env.RHUMB_API_KEY;
+
+      const reqHeaders: Record<string, string> = {
+        ...defaultHeaders,
+        "Content-Type": "application/json"
+      };
+      if (apiKey) {
+        reqHeaders["X-Rhumb-Key"] = apiKey;
+      }
+
+      const reqBody: Record<string, unknown> = {
+        method: opts.method,
+        path: opts.path
+      };
+      if (opts.provider) reqBody.provider = opts.provider;
+      if (opts.body) reqBody.body = opts.body;
+      if (opts.params) reqBody.params = opts.params;
+      if (opts.credentialMode) reqBody.credential_mode = opts.credentialMode;
+      if (opts.idempotencyKey) reqBody.idempotency_key = opts.idempotencyKey;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: reqHeaders,
+        body: JSON.stringify(reqBody)
+      });
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Execute failed (${res.status}): ${errBody}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        throw new Error("Invalid execute response");
+      }
+
+      const d = payload.data;
+      return {
+        capabilityId: asString(d.capability_id) ?? capabilityId,
+        providerUsed: asString(d.provider_used) ?? "unknown",
+        credentialMode: asString(d.credential_mode) ?? "byo",
+        upstreamStatus: typeof d.upstream_status === "number" ? d.upstream_status : null,
+        upstreamResponse: d.upstream_response ?? null,
+        costEstimateUsd: asNumber(d.cost_estimate_usd),
+        latencyMs: asNumber(d.latency_ms),
+        fallbackAttempted: d.fallback_attempted === true,
+        fallbackProvider: asString(d.fallback_provider),
+        executionId: asString(d.execution_id) ?? "unknown",
+        deduplicated: d.deduplicated === true
+      };
+    },
+
+    async estimateCapability(capabilityId: string, opts?: {
+      provider?: string;
+      credentialMode?: string;
+    }): Promise<CapabilityEstimateResult> {
+      const params = new URLSearchParams();
+      if (opts?.provider) params.set("provider", opts.provider);
+      if (opts?.credentialMode) params.set("credential_mode", opts.credentialMode);
+      const qs = params.toString();
+      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute/estimate${qs ? `?${qs}` : ""}`;
+
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) {
+        reqHeaders["X-Rhumb-Key"] = apiKey;
+      }
+
+      const res = await fetch(url, { headers: reqHeaders });
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Estimate failed (${res.status}): ${errBody}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        throw new Error("Invalid estimate response");
+      }
+
+      const d = payload.data;
+      return {
+        capabilityId: asString(d.capability_id) ?? capabilityId,
+        provider: asString(d.provider) ?? "unknown",
+        credentialMode: asString(d.credential_mode) ?? "byo",
+        costEstimateUsd: asNumber(d.cost_estimate_usd),
+        circuitState: asString(d.circuit_state) ?? "unknown",
+        endpointPattern: asString(d.endpoint_pattern)
       };
     }
   };

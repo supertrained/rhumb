@@ -56,7 +56,9 @@ function createMockClient(
     searchServices: vi.fn().mockResolvedValue(services),
     getServiceScore: vi.fn().mockResolvedValue(null),
     discoverCapabilities: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-    resolveCapability: vi.fn().mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
+    resolveCapability: vi.fn(),
+    executeCapability: vi.fn().mockResolvedValue({ capabilityId: "", providerUsed: "", credentialMode: "byo", upstreamStatus: 200, upstreamResponse: {}, costEstimateUsd: null, latencyMs: null, fallbackAttempted: false, fallbackProvider: null, executionId: "exec_test" }),
+    estimateCapability: vi.fn().mockResolvedValue({ capabilityId: "", provider: "", credentialMode: "byo", costEstimateUsd: null, circuitState: "closed", endpointPattern: null }).mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
   };
 }
 
@@ -65,7 +67,9 @@ function createErrorClient(): RhumbApiClient {
     searchServices: vi.fn().mockRejectedValue(new Error("Network failure")),
     getServiceScore: vi.fn().mockRejectedValue(new Error("Network failure")),
     discoverCapabilities: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-    resolveCapability: vi.fn().mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
+    resolveCapability: vi.fn(),
+    executeCapability: vi.fn().mockResolvedValue({ capabilityId: "", providerUsed: "", credentialMode: "byo", upstreamStatus: 200, upstreamResponse: {}, costEstimateUsd: null, latencyMs: null, fallbackAttempted: false, fallbackProvider: null, executionId: "exec_test" }),
+    estimateCapability: vi.fn().mockResolvedValue({ capabilityId: "", provider: "", credentialMode: "byo", costEstimateUsd: null, circuitState: "closed", endpointPattern: null }).mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
   };
 }
 

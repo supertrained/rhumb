@@ -183,6 +183,79 @@ export type ResolveCapabilityOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// execute_capability
+// ---------------------------------------------------------------------------
+
+export const ExecuteCapabilityInputSchema = {
+  type: "object" as const,
+  properties: {
+    capability_id: { type: "string" as const, description: "Capability to execute (e.g. 'email.send', 'payment.charge')" },
+    provider: { type: "string" as const, description: "Optional: specific provider slug. If omitted, Rhumb auto-selects the best healthy provider." },
+    method: { type: "string" as const, description: "HTTP method for the upstream API call (GET, POST, PUT, PATCH, DELETE)" },
+    path: { type: "string" as const, description: "Provider-native API path (e.g. '/v3/mail/send'). Use resolve_capability first to get the endpoint pattern." },
+    body: { type: "object" as const, description: "Provider-native request body" },
+    params: { type: "object" as const, description: "Optional query parameters" },
+    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed, or agent_vault" },
+    idempotency_key: { type: "string" as const, description: "Optional UUID for safe retry. Required to enable automatic fallback to backup providers." }
+  },
+  required: ["capability_id", "method", "path"] as const
+};
+
+export type ExecuteCapabilityInput = {
+  capability_id: string;
+  provider?: string;
+  method: string;
+  path: string;
+  body?: Record<string, unknown>;
+  params?: Record<string, string>;
+  credential_mode?: string;
+  idempotency_key?: string;
+};
+
+export type ExecuteCapabilityOutput = {
+  capabilityId: string;
+  providerUsed: string;
+  credentialMode: string;
+  upstreamStatus: number | null;
+  upstreamResponse: unknown;
+  costEstimateUsd: number | null;
+  latencyMs: number | null;
+  fallbackAttempted: boolean;
+  fallbackProvider: string | null;
+  executionId: string;
+  deduplicated?: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// estimate_capability
+// ---------------------------------------------------------------------------
+
+export const EstimateCapabilityInputSchema = {
+  type: "object" as const,
+  properties: {
+    capability_id: { type: "string" as const, description: "Capability to estimate cost for (e.g. 'email.send')" },
+    provider: { type: "string" as const, description: "Optional: specific provider. If omitted, estimates for the auto-selected provider." },
+    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed, or agent_vault" }
+  },
+  required: ["capability_id"] as const
+};
+
+export type EstimateCapabilityInput = {
+  capability_id: string;
+  provider?: string;
+  credential_mode?: string;
+};
+
+export type EstimateCapabilityOutput = {
+  capabilityId: string;
+  provider: string;
+  credentialMode: string;
+  costEstimateUsd: number | null;
+  circuitState: string;
+  endpointPattern: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // Schema registry — all tool schemas in one place
 // ---------------------------------------------------------------------------
 
@@ -192,7 +265,9 @@ export const TOOL_SCHEMAS = {
   get_alternatives: GetAlternativesInputSchema,
   get_failure_modes: GetFailureModesInputSchema,
   discover_capabilities: DiscoverCapabilitiesInputSchema,
-  resolve_capability: ResolveCapabilityInputSchema
+  resolve_capability: ResolveCapabilityInputSchema,
+  execute_capability: ExecuteCapabilityInputSchema,
+  estimate_capability: EstimateCapabilityInputSchema
 } as const;
 
 export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as Array<keyof typeof TOOL_SCHEMAS>;
