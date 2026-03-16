@@ -18,6 +18,7 @@ from routes import (
     probes,
     proxy,
     reviews,
+    routing,
     scores,
     search,
     services,
@@ -106,6 +107,7 @@ def create_app() -> FastAPI:
         dependencies=[Depends(require_admin_key)],
     )
     application.include_router(budget.router, tags=["budget"])
+    application.include_router(routing.router, tags=["routing"])
     application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
     application.include_router(
         proxy.admin_router, prefix="/v1", tags=["schema-admin"],

@@ -27,8 +27,10 @@ from routes.proxy import (
 from services.budget_enforcer import BudgetEnforcer
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
+from services.routing_engine import RoutingEngine
 
 _budget_enforcer = BudgetEnforcer()
+_routing_engine = RoutingEngine()
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +93,10 @@ async def _auto_select_provider(
     mappings: list[dict],
     agent_id: str,
 ) -> Optional[dict]:
-    """Pick the best provider from mappings using AN score + circuit health.
+    """Pick the best provider from mappings using RoutingEngine.
 
+    Uses the agent's routing strategy (cheapest/fastest/highest_quality/balanced)
+    with quality floor and cost ceiling filters.
     Returns the chosen mapping dict, or None if none available.
     """
     if not mappings:
@@ -116,22 +120,26 @@ async def _auto_select_provider(
                 scores_by_slug[slug] = float(agg)
 
     breaker_reg = get_breaker_registry()
-
-    # Score each mapping: AN score, penalise open circuits
-    ranked: list[tuple[float, dict]] = []
+    circuit_states: dict[str, str] = {}
     for m in mappings:
         slug = m["service_slug"]
-        an_score = scores_by_slug.get(slug, 0.0)
         breaker = breaker_reg.get(slug, agent_id)
-        if not breaker.allow_request():
-            continue  # circuit open — skip
-        ranked.append((an_score, m))
+        circuit_states[slug] = breaker.state.value if hasattr(breaker.state, 'value') else str(breaker.state)
 
-    if not ranked:
+    # Use agent's routing strategy
+    strategy = await _routing_engine.get_strategy(agent_id)
+    routed = _routing_engine.select_provider(
+        mappings=mappings,
+        scores_by_slug=scores_by_slug,
+        circuit_states=circuit_states,
+        strategy=strategy,
+    )
+
+    if routed is None:
         return None
 
-    ranked.sort(key=lambda t: -t[0])
-    return ranked[0][1]
+    # Return the mapping dict for the selected provider
+    return next((m for m in mappings if m["service_slug"] == routed.service_slug), None)
 
 
 def _resolve_base_url(service_slug: str, api_domain: Optional[str]) -> str:
