@@ -10,6 +10,7 @@ from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
     admin_agents,
     admin_billing,
+    budget,
     capabilities,
     capability_execute,
     leaderboard,
@@ -104,6 +105,7 @@ def create_app() -> FastAPI:
         tester_fleet.router, prefix="/v1", tags=["tester-fleet"],
         dependencies=[Depends(require_admin_key)],
     )
+    application.include_router(budget.router, tags=["budget"])
     application.include_router(proxy.router, prefix="/v1/proxy", tags=["proxy"])
     application.include_router(
         proxy.admin_router, prefix="/v1", tags=["schema-admin"],

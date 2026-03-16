@@ -24,8 +24,11 @@ from routes.proxy import (
     get_breaker_registry,
     get_pool_manager,
 )
+from services.budget_enforcer import BudgetEnforcer
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
+
+_budget_enforcer = BudgetEnforcer()
 
 logger = logging.getLogger(__name__)
 
@@ -222,23 +225,49 @@ async def execute_capability(
 
     agent_id = x_rhumb_key  # simplified — real auth resolves agent identity
 
+    # 0. Pre-execution budget check
+    # Estimate cost from capability_services for budget enforcement
+    cost_estimate = 0.0
+    cap_services = await _get_capability_services(capability_id)
+    if cap_services:
+        # Use the cheapest mapped cost as the budget reservation
+        costs = [float(m["cost_per_call"]) for m in cap_services if m.get("cost_per_call") is not None]
+        cost_estimate = min(costs) if costs else 0.0
+
+    budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
+    if not budget_result.allowed:
+        raise HTTPException(status_code=402, detail=budget_result.reason)
+
+    budget_remaining = budget_result.remaining_usd
+
     # 1. Verify capability exists
     cap = await _resolve_capability(capability_id)
     if cap is None:
+        # Release budget reservation since we're not executing
+        if cost_estimate > 0:
+            await _budget_enforcer.release(agent_id, cost_estimate)
         raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
 
     # ── Mode 2: Rhumb-managed execution ──────────────────────────────
     if request.credential_mode == "rhumb_managed":
         from services.rhumb_managed import get_managed_executor
         executor = get_managed_executor()
-        result = await executor.execute(
-            capability_id=capability_id,
-            agent_id=agent_id,
-            body=request.body,
-            params=request.params,
-            service_slug=request.provider,
-            interface=request.interface,
-        )
+        try:
+            result = await executor.execute(
+                capability_id=capability_id,
+                agent_id=agent_id,
+                body=request.body,
+                params=request.params,
+                service_slug=request.provider,
+                interface=request.interface,
+            )
+        except Exception:
+            # Release budget on failure
+            if cost_estimate > 0:
+                await _budget_enforcer.release(agent_id, cost_estimate)
+            raise
+        if budget_remaining is not None:
+            result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
         return {"data": result, "error": None}
 
     # ── Mode 3: Agent Vault (per-request token) ────────────────────
@@ -342,20 +371,24 @@ async def execute_capability(
                 "interface": request.interface,
             })
 
-            return {
-                "data": {
-                    "capability_id": capability_id,
-                    "provider_used": request.provider,
-                    "credential_mode": "agent_vault",
-                    "upstream_status": upstream_status,
-                    "upstream_response": upstream_response,
-                    "latency_ms": round(total_latency_ms, 1),
-                    "execution_id": execution_id,
-                },
-                "error": None,
+            vault_response = {
+                "capability_id": capability_id,
+                "provider_used": request.provider,
+                "credential_mode": "agent_vault",
+                "upstream_status": upstream_status,
+                "upstream_response": upstream_response,
+                "latency_ms": round(total_latency_ms, 1),
+                "execution_id": execution_id,
             }
+            if budget_remaining is not None:
+                vault_response["budget_remaining_usd"] = round(budget_remaining, 4)
+
+            return {"data": vault_response, "error": None}
 
         except httpx.HTTPError as e:
+            # Release budget on upstream failure
+            if cost_estimate > 0:
+                await _budget_enforcer.release(agent_id, cost_estimate)
             raise HTTPException(
                 status_code=502,
                 detail=f"Upstream request failed: {e}",
@@ -494,6 +527,10 @@ async def execute_capability(
         breaker = get_breaker_registry().get(provider_slug, agent_id)
         breaker.record_failure()
 
+        # Release budget reservation on failure
+        if cost_estimate > 0:
+            await _budget_enforcer.release(agent_id, cost_estimate)
+
         # Attempt fallback if auto-selected
         if not request.provider and len(mappings) > 1:
             remaining = [m for m in mappings if m["service_slug"] != provider_slug]
@@ -532,21 +569,22 @@ async def execute_capability(
         "interface": request.interface,
     })
 
-    return {
-        "data": {
-            "capability_id": capability_id,
-            "provider_used": provider_slug,
-            "credential_mode": request.credential_mode,
-            "upstream_status": upstream_status,
-            "upstream_response": upstream_response,
-            "cost_estimate_usd": cost_per_call,
-            "latency_ms": round(total_latency_ms, 1),
-            "fallback_attempted": fallback_attempted,
-            "fallback_provider": fallback_provider,
-            "execution_id": execution_id,
-        },
-        "error": None,
+    response_data = {
+        "capability_id": capability_id,
+        "provider_used": provider_slug,
+        "credential_mode": request.credential_mode,
+        "upstream_status": upstream_status,
+        "upstream_response": upstream_response,
+        "cost_estimate_usd": cost_per_call,
+        "latency_ms": round(total_latency_ms, 1),
+        "fallback_attempted": fallback_attempted,
+        "fallback_provider": fallback_provider,
+        "execution_id": execution_id,
     }
+    if budget_remaining is not None:
+        response_data["budget_remaining_usd"] = round(budget_remaining, 4)
+
+    return {"data": response_data, "error": None}
 
 
 @router.get("/capabilities/{capability_id}/execute/estimate")
@@ -595,14 +633,25 @@ async def estimate_capability(
     breaker = get_breaker_registry().get(provider_slug, agent_id)
     circuit_state = breaker.state.value
 
-    return {
-        "data": {
-            "capability_id": capability_id,
-            "provider": provider_slug,
-            "credential_mode": credential_mode,
-            "cost_estimate_usd": cost_per_call,
-            "circuit_state": circuit_state,
-            "endpoint_pattern": chosen.get("endpoint_pattern"),
-        },
-        "error": None,
+    # Include budget status in estimate
+    budget_status = await _budget_enforcer.get_budget(agent_id)
+    estimate_data: dict[str, Any] = {
+        "capability_id": capability_id,
+        "provider": provider_slug,
+        "credential_mode": credential_mode,
+        "cost_estimate_usd": cost_per_call,
+        "circuit_state": circuit_state,
+        "endpoint_pattern": chosen.get("endpoint_pattern"),
     }
+    if budget_status.budget_usd is not None:
+        estimate_data["budget_remaining_usd"] = budget_status.remaining_usd
+        estimate_data["budget_period"] = budget_status.period
+        can_afford = (
+            cost_per_call is None
+            or budget_status.remaining_usd is None
+            or budget_status.remaining_usd >= cost_per_call
+            or not budget_status.hard_limit
+        )
+        estimate_data["can_afford"] = can_afford
+
+    return {"data": estimate_data, "error": None}
