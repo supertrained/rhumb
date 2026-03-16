@@ -22,18 +22,20 @@ describe("types.contract", () => {
       expect(schema.type).toBe("object");
       expect(schema.properties).toBeDefined();
       expect(Array.isArray(schema.required)).toBe(true);
-      expect(schema.required.length).toBeGreaterThan(0);
+      // Some schemas (like discover_capabilities) have no required fields — that's valid
     }
   });
 
-  it("TOOL_NAMES lists all 4 registered tools", () => {
+  it("TOOL_NAMES lists all 6 registered tools", () => {
     expect(TOOL_NAMES).toEqual([
       "find_tools",
       "get_score",
       "get_alternatives",
-      "get_failure_modes"
+      "get_failure_modes",
+      "discover_capabilities",
+      "resolve_capability"
     ]);
-    expect(TOOL_NAMES.length).toBe(4);
+    expect(TOOL_NAMES.length).toBe(6);
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {

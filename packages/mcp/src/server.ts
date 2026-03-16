@@ -9,13 +9,17 @@ import {
   FindToolInputSchema,
   GetScoreInputSchema,
   GetAlternativesInputSchema,
-  GetFailureModesInputSchema
+  GetFailureModesInputSchema,
+  DiscoverCapabilitiesInputSchema,
+  ResolveCapabilityInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindTools } from "./tools/find.js";
 import { handleGetScore } from "./tools/score.js";
 import { handleGetAlternatives } from "./tools/alternatives.js";
 import { handleGetFailureModes } from "./tools/failures.js";
+import { handleDiscoverCapabilities } from "./tools/capabilities.js";
+import { handleResolveCapability } from "./tools/resolve.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -86,6 +90,38 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ slug }) => {
       const result = await handleGetFailureModes({ slug }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- discover_capabilities ----------------------------------------------
+  server.tool(
+    "discover_capabilities",
+    "Discover what capabilities are available — search by domain or text. Returns capabilities with provider counts and top provider info.",
+    {
+      domain: z.string().optional().describe(DiscoverCapabilitiesInputSchema.properties.domain.description),
+      search: z.string().optional().describe(DiscoverCapabilitiesInputSchema.properties.search.description),
+      limit: z.number().min(1).max(50).optional().describe(DiscoverCapabilitiesInputSchema.properties.limit.description)
+    },
+    async ({ domain, search, limit }) => {
+      const result = await handleDiscoverCapabilities({ domain, search, limit }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- resolve_capability ------------------------------------------------
+  server.tool(
+    "resolve_capability",
+    "Resolve a capability to ranked providers with health-aware recommendations, costs, and fallback chains. The core agent decision: 'I need email.send — what should I use?'",
+    {
+      capability: z.string().describe(ResolveCapabilityInputSchema.properties.capability.description)
+    },
+    async ({ capability }) => {
+      const result = await handleResolveCapability({ capability }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

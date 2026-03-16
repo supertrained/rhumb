@@ -79,6 +79,39 @@ function createMockApiClient(): RhumbApiClient {
       if (slug === "nonexistent") return null;
       return { ...mockScore, slug };
     }),
+    discoverCapabilities: vi.fn().mockResolvedValue({
+      items: [
+        {
+          id: "email.send",
+          domain: "email",
+          action: "send",
+          description: "Send transactional or marketing email",
+          inputHint: "recipient, subject, body",
+          outcome: "Email delivered",
+          providerCount: 3,
+          topProvider: { slug: "resend", anScore: 91, tierLabel: "Excellent" }
+        }
+      ],
+      total: 1
+    }),
+    resolveCapability: vi.fn().mockResolvedValue({
+      capability: "email.send",
+      providers: [
+        {
+          serviceSlug: "resend",
+          serviceName: "Resend",
+          anScore: 91,
+          costPerCall: null,
+          freeTierCalls: 100,
+          authMethod: "api_key",
+          endpointPattern: "POST /emails",
+          recommendation: "preferred",
+          recommendationReason: "High AN score (91), 100 free calls/month"
+        }
+      ],
+      fallbackChain: ["resend", "sendgrid"],
+      relatedBundles: []
+    }),
   };
 }
 
@@ -88,6 +121,12 @@ function createErrorApiClient(): RhumbApiClient {
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
     getServiceScore: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    discoverCapabilities: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    resolveCapability: vi
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
   };
@@ -132,7 +171,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 4 registered tools", async () => {
+    it("lists all 6 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -140,12 +179,14 @@ describe("e2e: MCP server integration", () => {
       const toolNames = tools.map((t) => t.name).sort();
 
       expect(toolNames).toEqual([
+        "discover_capabilities",
         "find_tools",
         "get_alternatives",
         "get_failure_modes",
         "get_score",
+        "resolve_capability",
       ]);
-      expect(tools).toHaveLength(4);
+      expect(tools).toHaveLength(6);
 
       // Each tool has a description and input schema
       for (const tool of tools) {

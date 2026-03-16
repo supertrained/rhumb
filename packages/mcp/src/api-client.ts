@@ -43,9 +43,39 @@ export interface ServiceScoreItem {
 // Client interface (for dependency injection / testing)
 // ---------------------------------------------------------------------------
 
+export interface CapabilitySearchItem {
+  id: string;
+  domain: string;
+  action: string;
+  description: string;
+  inputHint: string;
+  outcome: string;
+  providerCount: number;
+  topProvider: { slug: string; anScore: number | null; tierLabel: string } | null;
+}
+
+export interface CapabilityResolveResult {
+  capability: string;
+  providers: Array<{
+    serviceSlug: string;
+    serviceName: string;
+    anScore: number | null;
+    costPerCall: number | null;
+    freeTierCalls: number | null;
+    authMethod: string;
+    endpointPattern: string;
+    recommendation: string;
+    recommendationReason: string;
+  }>;
+  fallbackChain: string[];
+  relatedBundles: string[];
+}
+
 export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
+  discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }>;
+  resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,6 +198,98 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
           "unknown",
         failureModes,
         tags: [...tagSet]
+      };
+    },
+
+    async discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }> {
+      const params = new URLSearchParams();
+      if (opts.domain) params.set("domain", opts.domain);
+      if (opts.search) params.set("search", opts.search);
+      if (opts.limit) params.set("limit", String(opts.limit));
+      const qs = params.toString();
+      const url = `${base}/capabilities${qs ? `?${qs}` : ""}`;
+
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) {
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        return { items: [], total: 0 };
+      }
+
+      const rawItems = Array.isArray(payload.data.items) ? payload.data.items : [];
+      const total = typeof payload.data.total === "number" ? payload.data.total : 0;
+
+      const items: CapabilitySearchItem[] = rawItems
+        .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
+        .map((item) => {
+          const tp = isRecord(item.top_provider) ? item.top_provider : null;
+          return {
+            id: asString(item.id) ?? "unknown",
+            domain: asString(item.domain) ?? "unknown",
+            action: asString(item.action) ?? "unknown",
+            description: asString(item.description) ?? "",
+            inputHint: asString(item.input_hint) ?? "",
+            outcome: asString(item.outcome) ?? "",
+            providerCount: typeof item.provider_count === "number" ? item.provider_count : 0,
+            topProvider: tp
+              ? {
+                  slug: asString(tp.slug) ?? "unknown",
+                  anScore: asNumber(tp.an_score),
+                  tierLabel: asString(tp.tier_label) ?? "Unknown"
+                }
+              : null
+          };
+        });
+
+      return { items, total };
+    },
+
+    async resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null> {
+      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/resolve`;
+      const res = await fetch(url, { headers: defaultHeaders });
+
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return null;
+      const data = payload.data;
+
+      if (data.error) return null;
+
+      const rawProviders = Array.isArray(data.providers) ? data.providers : [];
+      const providers = rawProviders
+        .filter((p: unknown): p is Record<string, unknown> => isRecord(p))
+        .map((p) => ({
+          serviceSlug: asString(p.service_slug) ?? "unknown",
+          serviceName: asString(p.service_name) ?? asString(p.service_slug) ?? "unknown",
+          anScore: asNumber(p.an_score),
+          costPerCall: asNumber(p.cost_per_call),
+          freeTierCalls: typeof p.free_tier_calls === "number" ? p.free_tier_calls : null,
+          authMethod: asString(p.auth_method) ?? "unknown",
+          endpointPattern: asString(p.endpoint_pattern) ?? "",
+          recommendation: asString(p.recommendation) ?? "available",
+          recommendationReason: asString(p.recommendation_reason) ?? ""
+        }));
+
+      const fallbackChain = Array.isArray(data.fallback_chain)
+        ? (data.fallback_chain as unknown[]).filter((s): s is string => typeof s === "string")
+        : [];
+
+      const relatedBundles = Array.isArray(data.related_bundles)
+        ? (data.related_bundles as unknown[]).filter((s): s is string => typeof s === "string")
+        : [];
+
+      return {
+        capability: asString(data.capability) ?? capabilityId,
+        providers,
+        fallbackChain,
+        relatedBundles
       };
     }
   };
