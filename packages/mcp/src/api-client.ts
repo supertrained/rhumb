@@ -135,7 +135,7 @@ function asNumber(v: unknown): number | null {
 // ---------------------------------------------------------------------------
 
 export function createApiClient(baseUrl?: string): RhumbApiClient {
-  const base = baseUrl ?? process.env.RHUMB_API_BASE_URL ?? "http://localhost:8000/v1";
+  const base = baseUrl ?? process.env.RHUMB_API_BASE_URL ?? "https://rhumb-api-production-f173.up.railway.app/v1";
   const defaultHeaders = {
     "User-Agent": "rhumb-mcp/0.0.1",
     "X-Rhumb-Client": "mcp",
