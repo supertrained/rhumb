@@ -94,6 +94,37 @@ export interface CapabilityEstimateResult {
   endpointPattern: string | null;
 }
 
+export interface CeremonySummaryItem {
+  service_slug: string;
+  display_name: string;
+  description: string;
+  auth_type: string;
+  difficulty: string;
+  estimated_minutes: number;
+  requires_human: boolean;
+  documentation_url: string | null;
+}
+
+export interface CeremonyDetailItem extends CeremonySummaryItem {
+  id: number;
+  steps: Array<{ step: number; action: string; type: string }>;
+  token_pattern: string | null;
+  token_prefix: string | null;
+  verify_endpoint: string | null;
+  verify_method: string | null;
+  verify_expected_status: number | null;
+}
+
+export interface ManagedCapabilityItem {
+  capability_id: string;
+  service_slug: string;
+  description: string;
+  daily_limit_per_agent: number | null;
+  domain?: string;
+  action?: string;
+  capability_description?: string;
+}
+
 export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
@@ -101,17 +132,21 @@ export interface RhumbApiClient {
   resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null>;
   executeCapability(capabilityId: string, opts: {
     provider?: string;
-    method: string;
-    path: string;
+    method?: string;
+    path?: string;
     body?: Record<string, unknown>;
     params?: Record<string, string>;
     credentialMode?: string;
     idempotencyKey?: string;
+    agentToken?: string;
   }): Promise<CapabilityExecuteResult>;
   estimateCapability(capabilityId: string, opts?: {
     provider?: string;
     credentialMode?: string;
   }): Promise<CapabilityEstimateResult>;
+  listCeremonies(): Promise<CeremonySummaryItem[]>;
+  getCeremony(serviceSlug: string): Promise<CeremonyDetailItem | null>;
+  listManagedCapabilities(): Promise<ManagedCapabilityItem[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -331,12 +366,13 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
     async executeCapability(capabilityId: string, opts: {
       provider?: string;
-      method: string;
-      path: string;
+      method?: string;
+      path?: string;
       body?: Record<string, unknown>;
       params?: Record<string, string>;
       credentialMode?: string;
       idempotencyKey?: string;
+      agentToken?: string;
     }): Promise<CapabilityExecuteResult> {
       const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute`;
       const apiKey = process.env.RHUMB_API_KEY;
@@ -348,12 +384,17 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       if (apiKey) {
         reqHeaders["X-Rhumb-Key"] = apiKey;
       }
+      // Mode 3: pass agent token via header (NEVER in body or logs)
+      if (opts.agentToken) {
+        reqHeaders["X-Agent-Token"] = opts.agentToken;
+      }
 
       const reqBody: Record<string, unknown> = {
-        method: opts.method,
-        path: opts.path,
         interface: "mcp"
       };
+      // method and path are optional for rhumb_managed mode
+      if (opts.method) reqBody.method = opts.method;
+      if (opts.path) reqBody.path = opts.path;
       if (opts.provider) reqBody.provider = opts.provider;
       if (opts.body) reqBody.body = opts.body;
       if (opts.params) reqBody.params = opts.params;
@@ -429,6 +470,42 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         circuitState: asString(d.circuit_state) ?? "unknown",
         endpointPattern: asString(d.endpoint_pattern)
       };
+    },
+
+    async listCeremonies(): Promise<CeremonySummaryItem[]> {
+      const url = `${base}/services/ceremonies`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return [];
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return [];
+
+      return Array.isArray(payload.data.ceremonies) ? payload.data.ceremonies : [];
+    },
+
+    async getCeremony(serviceSlug: string): Promise<CeremonyDetailItem | null> {
+      const url = `${base}/services/${encodeURIComponent(serviceSlug)}/ceremony`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return null;
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return null;
+      if (payload.error) return null;
+
+      return payload.data as unknown as CeremonyDetailItem;
+    },
+
+    async listManagedCapabilities(): Promise<ManagedCapabilityItem[]> {
+      const url = `${base}/capabilities/rhumb-managed`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) return [];
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return [];
+
+      return Array.isArray(payload.data.managed_capabilities)
+        ? payload.data.managed_capabilities
+        : [];
     }
   };
 }

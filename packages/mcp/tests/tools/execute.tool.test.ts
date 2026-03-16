@@ -37,6 +37,9 @@ function createMockClient(overrides: Partial<RhumbApiClient> = {}): RhumbApiClie
     resolveCapability: vi.fn().mockResolvedValue(null),
     executeCapability: vi.fn().mockResolvedValue(mockExecuteResult),
     estimateCapability: vi.fn().mockResolvedValue(mockEstimateResult),
+    listCeremonies: vi.fn().mockResolvedValue([]),
+    getCeremony: vi.fn().mockResolvedValue(null),
+    listManagedCapabilities: vi.fn().mockResolvedValue([]),
     ...overrides
   };
 }
@@ -206,6 +209,9 @@ describe("estimate_capability", () => {
   it("returns cost when available", async () => {
     const client = createMockClient({
       estimateCapability: vi.fn().mockResolvedValue({
+    listCeremonies: vi.fn().mockResolvedValue([]),
+    getCeremony: vi.fn().mockResolvedValue(null),
+    listManagedCapabilities: vi.fn().mockResolvedValue([]),
         ...mockEstimateResult,
         costEstimateUsd: 0.001
       })

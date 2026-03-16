@@ -195,21 +195,23 @@ export const ExecuteCapabilityInputSchema = {
     path: { type: "string" as const, description: "Provider-native API path (e.g. '/v3/mail/send'). Use resolve_capability first to get the endpoint pattern." },
     body: { type: "object" as const, description: "Provider-native request body" },
     params: { type: "object" as const, description: "Optional query parameters" },
-    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed, or agent_vault" },
-    idempotency_key: { type: "string" as const, description: "Optional UUID for safe retry. Required to enable automatic fallback to backup providers." }
+    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed (zero-config, omit method/path), or agent_vault (pass agent_token)" },
+    idempotency_key: { type: "string" as const, description: "Optional UUID for safe retry. Required to enable automatic fallback to backup providers." },
+    agent_token: { type: "string" as const, description: "For agent_vault mode only: the API token you obtained via the credential ceremony. NEVER stored by Rhumb — used for this single request only." }
   },
-  required: ["capability_id", "method", "path"] as const
+  required: ["capability_id"] as const
 };
 
 export type ExecuteCapabilityInput = {
   capability_id: string;
   provider?: string;
-  method: string;
-  path: string;
+  method?: string;
+  path?: string;
   body?: Record<string, unknown>;
   params?: Record<string, string>;
   credential_mode?: string;
   idempotency_key?: string;
+  agent_token?: string;
 };
 
 export type ExecuteCapabilityOutput = {
@@ -256,6 +258,84 @@ export type EstimateCapabilityOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// credential_ceremony
+// ---------------------------------------------------------------------------
+
+export const CredentialCeremonyInputSchema = {
+  type: "object" as const,
+  properties: {
+    service: { type: "string" as const, description: "Service slug to get the credential ceremony for (e.g. 'openai', 'stripe', 'resend'). Omit to list all available ceremonies." }
+  },
+  required: [] as const
+};
+
+export type CredentialCeremonyInput = {
+  service?: string;
+};
+
+export type CeremonyStep = {
+  step: number;
+  action: string;
+  type: string;
+};
+
+export type CeremonySummary = {
+  service: string;
+  displayName: string;
+  description: string;
+  authType: string;
+  difficulty: string;
+  estimatedMinutes: number;
+  requiresHuman: boolean;
+  documentationUrl: string | null;
+};
+
+export type CeremonyDetail = CeremonySummary & {
+  steps: CeremonyStep[];
+  tokenPrefix: string | null;
+  tokenPattern: string | null;
+  verifyEndpoint: string | null;
+};
+
+export type CredentialCeremonyOutput = {
+  ceremony?: CeremonyDetail;
+  ceremonies?: CeremonySummary[];
+  count: number;
+};
+
+// ---------------------------------------------------------------------------
+// check_credentials
+// ---------------------------------------------------------------------------
+
+export const CheckCredentialsInputSchema = {
+  type: "object" as const,
+  properties: {
+    capability: { type: "string" as const, description: "Optional: check credential status for a specific capability (e.g. 'email.send')" }
+  },
+  required: [] as const
+};
+
+export type CheckCredentialsInput = {
+  capability?: string;
+};
+
+export type CredentialModeStatus = {
+  mode: string;
+  available: boolean;
+  detail: string;
+};
+
+export type CheckCredentialsOutput = {
+  modes: CredentialModeStatus[];
+  managedCapabilities: Array<{
+    capabilityId: string;
+    service: string;
+    description: string;
+  }>;
+  availableCeremonies: number;
+};
+
+// ---------------------------------------------------------------------------
 // Schema registry — all tool schemas in one place
 // ---------------------------------------------------------------------------
 
@@ -267,7 +347,9 @@ export const TOOL_SCHEMAS = {
   discover_capabilities: DiscoverCapabilitiesInputSchema,
   resolve_capability: ResolveCapabilityInputSchema,
   execute_capability: ExecuteCapabilityInputSchema,
-  estimate_capability: EstimateCapabilityInputSchema
+  estimate_capability: EstimateCapabilityInputSchema,
+  credential_ceremony: CredentialCeremonyInputSchema,
+  check_credentials: CheckCredentialsInputSchema
 } as const;
 
 export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as Array<keyof typeof TOOL_SCHEMAS>;

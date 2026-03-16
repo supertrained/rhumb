@@ -13,7 +13,9 @@ import {
   DiscoverCapabilitiesInputSchema,
   ResolveCapabilityInputSchema,
   ExecuteCapabilityInputSchema,
-  EstimateCapabilityInputSchema
+  EstimateCapabilityInputSchema,
+  CredentialCeremonyInputSchema,
+  CheckCredentialsInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindTools } from "./tools/find.js";
@@ -24,6 +26,8 @@ import { handleDiscoverCapabilities } from "./tools/capabilities.js";
 import { handleResolveCapability } from "./tools/resolve.js";
 import { handleExecuteCapability } from "./tools/execute.js";
 import { handleEstimateCapability } from "./tools/estimate.js";
+import { handleCredentialCeremony } from "./tools/ceremony.js";
+import { handleCheckCredentials } from "./tools/credentials.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -135,20 +139,21 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- execute_capability ------------------------------------------------
   server.tool(
     "execute_capability",
-    "Execute a capability through Rhumb. Resolves the best provider automatically if none specified. Returns upstream response with provider used and cost. Use resolve_capability first to see available providers and endpoint patterns.",
+    "Execute a capability through Rhumb. Three credential modes: (1) byo — bring your own token, requires method+path; (2) rhumb_managed — zero-config, Rhumb provides credentials, method/path optional; (3) agent_vault — pass your own token via agent_token param (get it from credential_ceremony first). Use resolve_capability to see providers and check_credentials to see what modes are available.",
     {
       capability_id: z.string().describe(ExecuteCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.provider.description),
-      method: z.string().describe(ExecuteCapabilityInputSchema.properties.method.description),
-      path: z.string().describe(ExecuteCapabilityInputSchema.properties.path.description),
+      method: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.method.description),
+      path: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.path.description),
       body: z.record(z.string(), z.unknown()).optional().describe(ExecuteCapabilityInputSchema.properties.body.description),
       params: z.record(z.string(), z.string()).optional().describe(ExecuteCapabilityInputSchema.properties.params.description),
       credential_mode: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.credential_mode.description),
-      idempotency_key: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.idempotency_key.description)
+      idempotency_key: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.idempotency_key.description),
+      agent_token: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.agent_token.description)
     },
-    async ({ capability_id, provider, method, path, body, params, credential_mode, idempotency_key }) => {
+    async ({ capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token }) => {
       const result = await handleExecuteCapability(
-        { capability_id, provider, method, path, body, params, credential_mode, idempotency_key },
+        { capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token },
         client
       );
       return {
@@ -171,6 +176,36 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
         { capability_id, provider, credential_mode },
         client
       );
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- credential_ceremony ------------------------------------------------
+  server.tool(
+    "credential_ceremony",
+    "Get step-by-step instructions for obtaining API credentials for a service. Without a service param, lists all available ceremonies. With a service param, returns detailed steps, token format info, and documentation links. Use this before agent_vault execute mode.",
+    {
+      service: z.string().optional().describe(CredentialCeremonyInputSchema.properties.service.description)
+    },
+    async ({ service }) => {
+      const result = await handleCredentialCeremony({ service }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- check_credentials ------------------------------------------------
+  server.tool(
+    "check_credentials",
+    "Check your credential status across all three modes. Shows which capabilities are available via Rhumb-managed (zero-config), which services have ceremony guides for self-provisioning, and BYO status. Start here to understand what you can execute.",
+    {
+      capability: z.string().optional().describe(CheckCredentialsInputSchema.properties.capability.description)
+    },
+    async ({ capability }) => {
+      const result = await handleCheckCredentials({ capability }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

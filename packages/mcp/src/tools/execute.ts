@@ -20,7 +20,8 @@ export async function handleExecuteCapability(
     body: input.body,
     params: input.params,
     credentialMode: input.credential_mode,
-    idempotencyKey: input.idempotency_key
+    idempotencyKey: input.idempotency_key,
+    agentToken: input.agent_token
   });
 
   return result;

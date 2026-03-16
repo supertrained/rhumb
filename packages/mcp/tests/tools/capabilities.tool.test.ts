@@ -70,6 +70,9 @@ function createMockClient(overrides: Partial<RhumbApiClient> = {}): RhumbApiClie
     resolveCapability: vi.fn().mockResolvedValue(mockResolveResult),
     executeCapability: vi.fn().mockResolvedValue({ capabilityId: "", providerUsed: "", credentialMode: "byo", upstreamStatus: 200, upstreamResponse: {}, costEstimateUsd: null, latencyMs: null, fallbackAttempted: false, fallbackProvider: null, executionId: "exec_test" }),
     estimateCapability: vi.fn().mockResolvedValue({ capabilityId: "", provider: "", credentialMode: "byo", costEstimateUsd: null, circuitState: "closed", endpointPattern: null }),
+    listCeremonies: vi.fn().mockResolvedValue([]),
+    getCeremony: vi.fn().mockResolvedValue(null),
+    listManagedCapabilities: vi.fn().mockResolvedValue([]),
     ...overrides
   };
 }

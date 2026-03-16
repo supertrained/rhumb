@@ -132,6 +132,9 @@ function createMockApiClient(): RhumbApiClient {
       circuitState: "closed",
       endpointPattern: "POST /emails"
     }),
+    listCeremonies: vi.fn().mockResolvedValue([]),
+    getCeremony: vi.fn().mockResolvedValue(null),
+    listManagedCapabilities: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -155,6 +158,9 @@ function createErrorApiClient(): RhumbApiClient {
     estimateCapability: vi
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
+    listCeremonies: vi.fn().mockResolvedValue([]),
+    getCeremony: vi.fn().mockResolvedValue(null),
+    listManagedCapabilities: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -197,7 +203,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 8 registered tools", async () => {
+    it("lists all 10 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -205,6 +211,8 @@ describe("e2e: MCP server integration", () => {
       const toolNames = tools.map((t) => t.name).sort();
 
       expect(toolNames).toEqual([
+        "check_credentials",
+        "credential_ceremony",
         "discover_capabilities",
         "estimate_capability",
         "execute_capability",
@@ -214,7 +222,7 @@ describe("e2e: MCP server integration", () => {
         "get_score",
         "resolve_capability",
       ]);
-      expect(tools).toHaveLength(8);
+      expect(tools).toHaveLength(10);
 
       // Each tool has a description and input schema
       for (const tool of tools) {
