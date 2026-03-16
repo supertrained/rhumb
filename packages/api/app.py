@@ -10,6 +10,7 @@ from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
     admin_agents,
     admin_billing,
+    capabilities,
     leaderboard,
     launch,
     probes,
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     application.add_middleware(QueryLoggingMiddleware)
 
     # ── Routers ──
+    application.include_router(capabilities.router, prefix="/v1", tags=["capabilities"])
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])

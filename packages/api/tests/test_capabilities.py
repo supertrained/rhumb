@@ -1,0 +1,245 @@
+"""Tests for capability registry routes."""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from app import create_app
+
+
+@pytest.fixture
+def app():
+    """Create test app with lifespan disabled."""
+    application = create_app()
+    return application
+
+
+# ── Sample data ──────────────────────────────────────────────
+
+SAMPLE_CAPABILITIES = [
+    {"id": "email.send", "domain": "email", "action": "send",
+     "description": "Send transactional or marketing email",
+     "input_hint": "recipient, subject, body", "outcome": "Email delivered"},
+    {"id": "email.verify", "domain": "email", "action": "verify",
+     "description": "Verify an email address is valid",
+     "input_hint": "email_address", "outcome": "Verification result"},
+    {"id": "payment.charge", "domain": "payment", "action": "charge",
+     "description": "Process a one-time payment",
+     "input_hint": "amount, currency, payment_method", "outcome": "Payment captured"},
+]
+
+SAMPLE_MAPPINGS = [
+    {"capability_id": "email.send", "service_slug": "sendgrid",
+     "credential_modes": ["byo"], "auth_method": "api_key",
+     "endpoint_pattern": "POST /v3/mail/send", "cost_per_call": "0.001",
+     "cost_currency": "USD", "free_tier_calls": 100, "notes": None, "is_primary": True},
+    {"capability_id": "email.send", "service_slug": "resend",
+     "credential_modes": ["byo"], "auth_method": "api_key",
+     "endpoint_pattern": "POST /emails", "cost_per_call": None,
+     "cost_currency": "USD", "free_tier_calls": 100, "notes": None, "is_primary": True},
+]
+
+SAMPLE_SCORES = [
+    {"service_slug": "resend", "aggregate_recommendation_score": 7.79,
+     "execution_score": 8.5, "access_readiness_score": 7.0,
+     "tier": "L3", "tier_label": "Ready", "confidence": 0.8},
+    {"service_slug": "sendgrid", "aggregate_recommendation_score": 6.35,
+     "execution_score": 7.0, "access_readiness_score": 5.5,
+     "tier": "L3", "tier_label": "Ready", "confidence": 0.7},
+]
+
+SAMPLE_SERVICES = [
+    {"slug": "sendgrid", "name": "SendGrid", "category": "email"},
+    {"slug": "resend", "name": "Resend", "category": "email"},
+]
+
+SAMPLE_BUNDLES = [
+    {"id": "prospect.enrich_and_verify", "name": "Prospect Enrichment + Verification",
+     "description": "Find prospect data and verify contact information",
+     "example": "Given a LinkedIn URL, get verified email + phone",
+     "value_proposition": "One call instead of three"},
+]
+
+SAMPLE_BUNDLE_CAPS = [
+    {"bundle_id": "prospect.enrich_and_verify", "capability_id": "data.enrich_person", "sequence_order": 1},
+    {"bundle_id": "prospect.enrich_and_verify", "capability_id": "email.verify", "sequence_order": 2},
+]
+
+
+def _mock_supabase(path: str):
+    """Route supabase_fetch calls to sample data based on table name."""
+    if path.startswith("capabilities?"):
+        if "domain=eq.email" in path:
+            return [c for c in SAMPLE_CAPABILITIES if c["domain"] == "email"]
+        if "id=eq.email.send" in path:
+            return [SAMPLE_CAPABILITIES[0]]
+        if "id=eq.nonexistent" in path:
+            return []
+        return SAMPLE_CAPABILITIES
+    if path.startswith("capability_services?"):
+        if "capability_id=eq.email.send" in path:
+            return SAMPLE_MAPPINGS
+        if "capability_id=in." in path:
+            return SAMPLE_MAPPINGS
+        return []
+    if path.startswith("scores?"):
+        return SAMPLE_SCORES
+    if path.startswith("services?"):
+        return SAMPLE_SERVICES
+    if path.startswith("capability_bundles?"):
+        return SAMPLE_BUNDLES
+    if path.startswith("bundle_capabilities?"):
+        return SAMPLE_BUNDLE_CAPS
+    return []
+
+
+# ── Tests ──────────────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_list_capabilities(app):
+    """GET /v1/capabilities returns paginated capability list with provider info."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 3
+    assert len(data["items"]) == 3
+    # Check structure
+    item = data["items"][0]
+    assert "id" in item
+    assert "domain" in item
+    assert "provider_count" in item
+    assert "top_provider" in item
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_domain_filter(app):
+    """GET /v1/capabilities?domain=email filters by domain."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?domain=email")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 2
+    for item in data["items"]:
+        assert item["domain"] == "email"
+
+
+@pytest.mark.anyio
+async def test_get_capability(app):
+    """GET /v1/capabilities/email.send returns capability with providers."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["id"] == "email.send"
+    assert data["provider_count"] == 2
+    assert len(data["providers"]) == 2
+    # Providers should be sorted by AN score descending
+    scores = [p["an_score"] for p in data["providers"] if p["an_score"] is not None]
+    assert scores == sorted(scores, reverse=True)
+
+
+@pytest.mark.anyio
+async def test_get_capability_not_found(app):
+    """GET /v1/capabilities/nonexistent returns error."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/nonexistent")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"] is None
+    assert "not found" in body["error"]
+
+
+@pytest.mark.anyio
+async def test_resolve_capability(app):
+    """GET /v1/capabilities/email.send/resolve returns ranked providers with recommendations."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["capability"] == "email.send"
+    assert len(data["providers"]) == 2
+    assert len(data["fallback_chain"]) >= 1
+    # First provider should be preferred (highest score)
+    first = data["providers"][0]
+    assert first["service_slug"] == "resend"
+    assert first["recommendation"] == "preferred"
+    assert "recommendation_reason" in first
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_not_found(app):
+    """GET /v1/capabilities/nonexistent/resolve returns error."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/nonexistent/resolve")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"] is None
+    assert "not found" in body["error"]
+
+
+@pytest.mark.anyio
+async def test_list_bundles(app):
+    """GET /v1/capabilities/bundles returns bundles with capability lists."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data["bundles"]) == 1
+    bundle = data["bundles"][0]
+    assert bundle["id"] == "prospect.enrich_and_verify"
+    assert len(bundle["capabilities"]) == 2
+    assert "data.enrich_person" in bundle["capabilities"]
+
+
+@pytest.mark.anyio
+async def test_list_domains(app):
+    """GET /v1/capabilities/domains returns domain list with counts."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/domains")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    domains = data["domains"]
+    assert len(domains) >= 1
+    # Should have domain and count
+    for d in domains:
+        assert "domain" in d
+        assert "capability_count" in d
+
+
+@pytest.mark.anyio
+async def test_resolve_returns_cost_info(app):
+    """Resolve includes cost and free tier in recommendation reason."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+    data = resp.json()["data"]
+    # Resend should mention free tier
+    resend = next(p for p in data["providers"] if p["service_slug"] == "resend")
+    assert "free" in resend["recommendation_reason"].lower() or resend["free_tier_calls"] is not None
+    # SendGrid should mention cost
+    sg = next(p for p in data["providers"] if p["service_slug"] == "sendgrid")
+    assert sg["cost_per_call"] is not None
+
+
+@pytest.mark.anyio
+async def test_resolve_fallback_chain_order(app):
+    """Fallback chain is ordered by recommendation quality then score."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+    chain = resp.json()["data"]["fallback_chain"]
+    assert len(chain) >= 1
+    # First in chain should be the highest-scored preferred provider
+    assert chain[0] == "resend"
