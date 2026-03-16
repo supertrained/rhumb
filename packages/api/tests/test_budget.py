@@ -8,7 +8,17 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi.testclient import TestClient
 
 from app import create_app
+from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetEnforcer, BudgetCheckResult, BudgetStatus
+
+
+def _mock_agent(agent_id: str = "agent_test123") -> AgentIdentitySchema:
+    """Create a minimal mock agent for identity verification."""
+    return AgentIdentitySchema(
+        agent_id=agent_id,
+        name="test-agent",
+        organization_id="org_test",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -291,13 +301,34 @@ class TestBudgetInExecuteRoute:
         self.app = create_app()
         self.client = TestClient(self.app)
 
+    @patch("routes.capability_execute._get_identity_store")
+    def test_execute_rejects_invalid_api_key(self, mock_id_store):
+        """Execute returns 401 for invalid/unprovisioned API keys."""
+        mock_store = MagicMock()
+        mock_store.verify_api_key_with_agent = AsyncMock(return_value=None)
+        mock_id_store.return_value = mock_store
+
+        resp = self.client.post(
+            "/v1/capabilities/email.send/execute",
+            headers={"X-Rhumb-Key": "arbitrary_garbage_string"},
+            json={"method": "POST", "path": "/emails", "body": {}},
+        )
+        assert resp.status_code == 401
+        assert "invalid" in resp.json()["detail"].lower()
+
+    @patch("routes.capability_execute._get_identity_store")
     @patch("routes.capability_execute._budget_enforcer")
     @patch("routes.capability_execute.supabase_fetch")
     @patch("routes.capability_execute.supabase_insert")
     def test_execute_rejected_when_over_budget(
-        self, mock_insert, mock_fetch, mock_budget
+        self, mock_insert, mock_fetch, mock_budget, mock_id_store
     ):
         """Execute returns 402 when budget is exceeded."""
+        # Identity store returns valid agent
+        mock_store = MagicMock()
+        mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+        mock_id_store.return_value = mock_store
+
         # Budget check returns not allowed
         mock_budget.check_and_decrement = AsyncMock(return_value=BudgetCheckResult(
             allowed=False,
@@ -323,13 +354,19 @@ class TestBudgetInExecuteRoute:
         assert resp.status_code == 402
         assert "budget" in resp.json()["detail"].lower()
 
+    @patch("routes.capability_execute._get_identity_store")
     @patch("routes.capability_execute._budget_enforcer")
     @patch("routes.capability_execute.supabase_fetch")
     @patch("routes.capability_execute.supabase_insert")
     def test_execute_allowed_when_within_budget(
-        self, mock_insert, mock_fetch, mock_budget
+        self, mock_insert, mock_fetch, mock_budget, mock_id_store
     ):
         """Execute proceeds when budget is sufficient (budget_remaining in response)."""
+        # Identity store returns valid agent
+        mock_store = MagicMock()
+        mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+        mock_id_store.return_value = mock_store
+
         # Budget check allowed
         mock_budget.check_and_decrement = AsyncMock(return_value=BudgetCheckResult(
             allowed=True, remaining_usd=49.99

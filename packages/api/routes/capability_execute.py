@@ -24,6 +24,7 @@ from routes.proxy import (
     get_breaker_registry,
     get_pool_manager,
 )
+from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.budget_enforcer import BudgetEnforcer
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
@@ -31,6 +32,15 @@ from services.routing_engine import RoutingEngine
 
 _budget_enforcer = BudgetEnforcer()
 _routing_engine = RoutingEngine()
+_identity_store: Optional[AgentIdentityStore] = None
+
+
+def _get_identity_store() -> AgentIdentityStore:
+    """Lazy-init identity store (matches proxy.py pattern)."""
+    global _identity_store
+    if _identity_store is None:
+        _identity_store = get_agent_identity_store()
+    return _identity_store
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +241,11 @@ async def execute_capability(
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
-    agent_id = x_rhumb_key  # simplified — real auth resolves agent identity
+    # Verify API key against identity store (same as proxy route)
+    agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+    agent_id = agent.agent_id
 
     # 0. Pre-execution budget check
     # Estimate cost from capability_services for budget enforcement
@@ -606,7 +620,10 @@ async def estimate_capability(
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
-    agent_id = x_rhumb_key
+    agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+    agent_id = agent.agent_id
 
     cap = await _resolve_capability(capability_id)
     if cap is None:
