@@ -126,11 +126,16 @@ class TestProxyRouter:
         """Test that service registry has correct structure."""
         response = client.get("/proxy/services")
         data = response.json()
+        assert "callable_count" in data["data"]
         for service in data["data"]["services"]:
             assert "name" in service
             assert "domain" in service
             assert "auth_type" in service
             assert "rate_limit" in service
+            # callable must be present and boolean so agents can discover
+            # which services are actually reachable before attempting a call.
+            assert "callable" in service
+            assert isinstance(service["callable"], bool)
 
     def test_proxy_successful_request(self, client, httpx_mock):
         """Test successful proxy request."""

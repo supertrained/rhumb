@@ -716,7 +716,15 @@ async def proxy_request(
 
 @router.get("/services")
 async def list_services() -> dict:
-    """List all available services in the proxy registry."""
+    """List all available services in the proxy registry.
+
+    Each entry includes a ``callable`` flag indicating whether a live
+    credential is loaded.  Services where ``callable`` is ``false`` will
+    return 503 if a proxy call is attempted.
+    """
+    credential_store = get_credential_store()
+    callable_set = set(credential_store.callable_services())
+
     services = []
     for service_name, config in SERVICE_REGISTRY.items():
         services.append(
@@ -725,12 +733,14 @@ async def list_services() -> dict:
                 "domain": config["domain"],
                 "auth_type": config["auth_type"],
                 "rate_limit": config["rate_limit"],
+                "callable": service_name in callable_set,
             }
         )
     return {
         "data": {
             "services": services,
             "total": len(services),
+            "callable_count": len(callable_set),
         },
         "error": None,
     }
