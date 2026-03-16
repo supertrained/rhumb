@@ -40,8 +40,8 @@ class CapabilityExecuteRequest(BaseModel):
     """Payload for POST /v1/capabilities/{capability_id}/execute."""
 
     provider: Optional[str] = Field(None, description="Provider slug (omit for auto-select)")
-    method: str = Field(..., description="HTTP method (GET, POST, etc.)")
-    path: str = Field(..., description="Provider API path (e.g. /v3/mail/send)")
+    method: Optional[str] = Field(None, description="HTTP method (GET, POST, etc.) — required for byo/agent_vault, optional for rhumb_managed")
+    path: Optional[str] = Field(None, description="Provider API path (e.g. /v3/mail/send) — required for byo/agent_vault, optional for rhumb_managed")
     body: Optional[dict] = Field(None, description="Request body (provider-native)")
     params: Optional[dict] = Field(None, description="Query parameters")
     credential_mode: str = Field("byo", description="Credential mode (byo, rhumb_managed, agent_vault)")
@@ -225,6 +225,28 @@ async def execute_capability(
     cap = await _resolve_capability(capability_id)
     if cap is None:
         raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
+
+    # ── Mode 2: Rhumb-managed execution ──────────────────────────────
+    if request.credential_mode == "rhumb_managed":
+        from services.rhumb_managed import get_managed_executor
+        executor = get_managed_executor()
+        result = await executor.execute(
+            capability_id=capability_id,
+            agent_id=agent_id,
+            body=request.body,
+            params=request.params,
+            service_slug=request.provider,
+            interface=request.interface,
+        )
+        return {"data": result, "error": None}
+
+    # ── Mode 1 (BYO) and Mode 3 (Agent Vault) continue below ────────
+    # Validate required fields for BYO/Agent Vault modes
+    if not request.method or not request.path:
+        raise HTTPException(
+            status_code=400,
+            detail="method and path are required for byo/agent_vault credential modes",
+        )
 
     # 2. Idempotency check
     if request.idempotency_key:

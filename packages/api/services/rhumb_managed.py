@@ -1,0 +1,270 @@
+"""Rhumb-managed executor — Mode 2 credential execution.
+
+When a capability has Rhumb's own credentials configured, agents can
+execute it with zero setup. The agent sends the *what* (capability + params),
+and Rhumb handles the *how* (credential injection, request construction,
+upstream call).
+
+Security invariants:
+- Rhumb's credentials are NEVER returned in responses
+- Credential env var names are stored in the DB but values come from os.environ
+- Underlying service identity is visible (not hidden) — transparency over obscurity
+"""
+
+from __future__ import annotations
+
+import base64
+import logging
+import os
+import time
+import uuid
+from typing import Any, Optional
+from urllib.parse import quote
+
+import httpx
+from fastapi import HTTPException
+
+from routes._supabase import supabase_fetch, supabase_insert
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Singleton
+# ---------------------------------------------------------------------------
+
+_managed_executor: Optional["RhumbManagedExecutor"] = None
+
+
+def get_managed_executor() -> "RhumbManagedExecutor":
+    """Get or create the singleton RhumbManagedExecutor."""
+    global _managed_executor
+    if _managed_executor is None:
+        _managed_executor = RhumbManagedExecutor()
+    return _managed_executor
+
+
+# ---------------------------------------------------------------------------
+# Main executor
+# ---------------------------------------------------------------------------
+
+class RhumbManagedExecutor:
+    """Executes capabilities using Rhumb's own credentials.
+
+    The executor:
+    1. Looks up the managed capability config from the DB
+    2. Resolves the service's API domain
+    3. Loads Rhumb's credentials from environment variables
+    4. Constructs and sends the request
+    5. Returns the response with execution metadata
+
+    Agent-provided body fields are merged with any default template.
+    """
+
+    async def is_managed(self, capability_id: str, service_slug: str | None = None) -> bool:
+        """Check if a capability has a managed execution path."""
+        path = (
+            f"rhumb_managed_capabilities?capability_id=eq.{quote(capability_id)}"
+            f"&enabled=eq.true&select=id&limit=1"
+        )
+        if service_slug:
+            path += f"&service_slug=eq.{quote(service_slug)}"
+        rows = await supabase_fetch(path)
+        return bool(rows)
+
+    async def get_managed_config(
+        self, capability_id: str, service_slug: str | None = None
+    ) -> dict | None:
+        """Fetch the managed capability config."""
+        path = (
+            f"rhumb_managed_capabilities?capability_id=eq.{quote(capability_id)}"
+            f"&enabled=eq.true"
+            f"&select=id,capability_id,service_slug,description,"
+            f"credential_env_keys,default_method,default_path,default_headers,"
+            f"daily_limit_per_agent"
+        )
+        if service_slug:
+            path += f"&service_slug=eq.{quote(service_slug)}"
+        path += "&limit=1"
+        rows = await supabase_fetch(path)
+        return rows[0] if rows else None
+
+    async def list_managed(self) -> list[dict]:
+        """List all enabled managed capabilities (public catalog)."""
+        rows = await supabase_fetch(
+            "rhumb_managed_capabilities?enabled=eq.true"
+            "&select=capability_id,service_slug,description,daily_limit_per_agent"
+            "&order=capability_id.asc"
+        )
+        return rows or []
+
+    async def execute(
+        self,
+        capability_id: str,
+        agent_id: str,
+        body: dict | None = None,
+        params: dict | None = None,
+        service_slug: str | None = None,
+        interface: str = "rest",
+    ) -> dict:
+        """Execute a managed capability using Rhumb's credentials.
+
+        Args:
+            capability_id: e.g. "email.send"
+            agent_id: calling agent's identity
+            body: request body (merged with defaults)
+            params: query parameters
+            service_slug: explicit provider (or auto-select)
+            interface: client interface type
+
+        Returns:
+            Execution result dict with upstream response + metadata.
+
+        Raises:
+            HTTPException on failures.
+        """
+        config = await self.get_managed_config(capability_id, service_slug)
+        if config is None:
+            raise HTTPException(
+                status_code=503,
+                detail=f"No managed execution path for '{capability_id}'"
+                + (f" via '{service_slug}'" if service_slug else ""),
+            )
+
+        slug = config["service_slug"]
+        method = config["default_method"]
+        path = config["default_path"]
+        default_headers = config.get("default_headers") or {}
+
+        # Resolve API domain
+        api_domain = await self._get_api_domain(slug)
+        if not api_domain:
+            raise HTTPException(
+                status_code=500,
+                detail=f"No API domain configured for managed service '{slug}'",
+            )
+
+        base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"
+
+        # Load Rhumb's credentials from env
+        credential_keys = config.get("credential_env_keys", [])
+        headers = dict(default_headers)
+        headers = self._inject_credentials(slug, credential_keys, headers)
+
+        # Merge body
+        final_body = body  # agent provides full body for managed capabilities
+
+        # Execute
+        execution_id = f"exec_{uuid.uuid4().hex}"
+        request_start = time.perf_counter()
+        upstream_status: int | None = None
+        upstream_response: Any = None
+        upstream_latency_ms = 0.0
+        success = False
+        error_message: str | None = None
+
+        try:
+            async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
+                upstream_start = time.perf_counter()
+                resp = await client.request(
+                    method=method,
+                    url=path if path.startswith("/") else f"/{path}",
+                    headers=headers,
+                    json=final_body,
+                    params=params,
+                )
+                upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
+
+            upstream_status = resp.status_code
+            try:
+                upstream_response = resp.json()
+            except Exception:
+                upstream_response = resp.text
+
+            success = upstream_status < 500
+
+        except httpx.HTTPError as e:
+            error_message = str(e)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Managed execution failed: {error_message}",
+            )
+
+        total_latency_ms = (time.perf_counter() - request_start) * 1000
+
+        # Log execution
+        await supabase_insert("capability_executions", {
+            "id": execution_id,
+            "agent_id": agent_id,
+            "capability_id": capability_id,
+            "provider_used": slug,
+            "credential_mode": "rhumb_managed",
+            "method": method,
+            "path": path,
+            "upstream_status": upstream_status,
+            "success": success,
+            "cost_estimate_usd": None,  # managed — Rhumb absorbs cost
+            "total_latency_ms": round(total_latency_ms, 1),
+            "upstream_latency_ms": round(upstream_latency_ms, 1),
+            "fallback_attempted": False,
+            "fallback_provider": None,
+            "idempotency_key": None,
+            "error_message": error_message,
+            "interface": interface,
+        })
+
+        return {
+            "capability_id": capability_id,
+            "provider_used": slug,
+            "credential_mode": "rhumb_managed",
+            "upstream_status": upstream_status,
+            "upstream_response": upstream_response,
+            "latency_ms": round(total_latency_ms, 1),
+            "execution_id": execution_id,
+        }
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    async def _get_api_domain(self, service_slug: str) -> str | None:
+        """Resolve service API domain."""
+        rows = await supabase_fetch(
+            f"services?slug=eq.{quote(service_slug)}&select=api_domain&limit=1"
+        )
+        if rows and rows[0].get("api_domain"):
+            return rows[0]["api_domain"]
+        return None
+
+    def _inject_credentials(
+        self,
+        service_slug: str,
+        credential_env_keys: list[str],
+        headers: dict[str, str],
+    ) -> dict[str, str]:
+        """Inject Rhumb's credentials from environment variables.
+
+        Security: credential VALUES never leave this method —
+        they go into headers that are sent upstream, but never returned
+        in any response payload.
+        """
+        headers = headers.copy()
+
+        for env_key in credential_env_keys:
+            value = os.environ.get(env_key)
+            if value is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Managed credential not configured (missing env var)",
+                )
+
+            # Determine header injection strategy from the env key naming
+            key_lower = env_key.lower()
+            if "basic" in key_lower:
+                encoded = base64.b64encode(value.encode()).decode()
+                headers["Authorization"] = f"Basic {encoded}"
+            else:
+                # Default: Bearer token
+                headers["Authorization"] = f"Bearer {value}"
+
+        return headers

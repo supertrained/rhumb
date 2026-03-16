@@ -216,6 +216,42 @@ async def list_bundles(
     return {"data": {"bundles": items}, "error": None}
 
 
+@router.get("/capabilities/rhumb-managed")
+async def list_rhumb_managed() -> dict:
+    """Public catalog of capabilities with zero-config managed execution.
+
+    These capabilities use Rhumb's own credentials — agents don't need to
+    configure anything. Just call execute with credential_mode=rhumb_managed.
+    """
+    from services.rhumb_managed import get_managed_executor
+    executor = get_managed_executor()
+    managed = await executor.list_managed()
+
+    # Enrich with capability details
+    if managed:
+        cap_ids = list({m["capability_id"] for m in managed})
+        cap_filter = ",".join(f'"{c}"' for c in cap_ids)
+        caps = await supabase_fetch(
+            f"capabilities?id=in.({cap_filter})"
+            f"&select=id,domain,action,description"
+        )
+        caps_by_id = {c["id"]: c for c in (caps or [])}
+
+        for m in managed:
+            cap = caps_by_id.get(m["capability_id"], {})
+            m["domain"] = cap.get("domain")
+            m["action"] = cap.get("action")
+            m["capability_description"] = cap.get("description")
+
+    return {
+        "data": {
+            "managed_capabilities": managed,
+            "count": len(managed),
+        },
+        "error": None,
+    }
+
+
 @router.get("/capabilities/{capability_id}")
 async def get_capability(capability_id: str) -> dict:
     """Get a single capability with full provider details."""
