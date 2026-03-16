@@ -172,25 +172,33 @@ class CredentialStore:
     def get_credential(self, service: str, key: str = "default") -> Optional[str]:
         """Retrieve a credential value.
 
+        Checks the in-memory cache first, then falls back to the generic
+        environment variable pattern ``RHUMB_CREDENTIAL_{SERVICE}_{KEY}``
+        for dynamic (non-hardcoded) services.
+
         Args:
-            service: Provider name (``"stripe"``, ``"slack"`` …).
+            service: Provider name (``"stripe"``, ``"resend"`` …).
             key: Credential key within service (e.g. ``"api_key"``).
 
         Returns:
             Credential value if found and not expired, else ``None``.
         """
         provider = self._cache.get(service)
-        if provider is None:
-            return None
+        if provider is not None:
+            entry = provider.credentials.get(key)
+            if entry is not None and not entry.is_expired():
+                return entry.value
 
-        entry = provider.credentials.get(key)
-        if entry is None:
-            return None
+        # Dynamic env-var fallback for any service:
+        # RHUMB_CREDENTIAL_RESEND_API_KEY, RHUMB_CREDENTIAL_OPENAI_API_KEY, etc.
+        env_var = f"RHUMB_CREDENTIAL_{service.upper().replace('-', '_')}_{key.upper()}"
+        value = os.environ.get(env_var, "").strip()
+        if value:
+            # Cache it so we don't re-read env every call
+            self.set_credential(service, key, value)
+            return value
 
-        if entry.is_expired():
-            return None
-
-        return entry.value
+        return None
 
     def callable_services(self) -> list[str]:
         """Return service names that have at least one valid, non-expired credential.
