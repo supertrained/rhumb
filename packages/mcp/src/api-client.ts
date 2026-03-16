@@ -351,7 +351,8 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
       const reqBody: Record<string, unknown> = {
         method: opts.method,
-        path: opts.path
+        path: opts.path,
+        interface: "mcp"
       };
       if (opts.provider) reqBody.provider = opts.provider;
       if (opts.body) reqBody.body = opts.body;

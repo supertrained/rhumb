@@ -46,6 +46,7 @@ class CapabilityExecuteRequest(BaseModel):
     params: Optional[dict] = Field(None, description="Query parameters")
     credential_mode: str = Field("byo", description="Credential mode (byo, rhumb_managed, agent_vault)")
     idempotency_key: Optional[str] = Field(None, description="Idempotency key to prevent duplicate execution")
+    interface: str = Field("rest", description="Client interface (rest, mcp, cli, sdk)")
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +386,7 @@ async def execute_capability(
         "fallback_provider": fallback_provider,
         "idempotency_key": request.idempotency_key,
         "error_message": error_message,
+        "interface": request.interface,
     })
 
     return {

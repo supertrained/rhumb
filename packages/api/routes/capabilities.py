@@ -411,6 +411,17 @@ async def resolve_capability(
         except Exception:
             pass  # proxy not initialized or breaker not available
 
+        # Check if agent has credentials configured for this provider (BYO mode)
+        byo_configured = False
+        try:
+            from services.proxy_credentials import get_credential_store
+            store = get_credential_store()
+            auth_key = m.get("auth_method", "api_key")
+            cred_value = store.get_credential(slug, auth_key)
+            byo_configured = cred_value is not None
+        except Exception:
+            pass
+
         providers.append({
             "service_slug": slug,
             "service_name": names_by_slug.get(slug, slug),
@@ -430,6 +441,7 @@ async def resolve_capability(
             "recommendation_reason": reason,
             "circuit_state": circuit_state,
             "available_for_execute": available_for_execute,
+            "configured": byo_configured,
         })
 
     # Sort: preferred first, then by AN score descending
@@ -472,6 +484,168 @@ async def resolve_capability(
             "fallback_chain": fallback_chain,
             "related_bundles": bundle_ids,
             "execute_hint": execute_hint,
+        },
+        "error": None,
+    }
+
+
+@router.get("/capabilities/{capability_id}/credential-modes")
+async def get_credential_modes(
+    capability_id: str,
+    x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
+) -> dict:
+    """Return credential mode availability for a capability, per provider.
+
+    Shows which modes each provider supports AND which the agent currently
+    has configured. Agents use this to decide which mode to use at execution time.
+    """
+    agent_id = x_rhumb_key or "anonymous"
+
+    # Verify capability
+    caps = await supabase_fetch(
+        f"capabilities?id=eq.{quote(capability_id)}"
+        f"&select=id,domain,action,description&limit=1"
+    )
+    if not caps:
+        return {"data": None, "error": f"Capability '{capability_id}' not found."}
+
+    # Get provider mappings
+    mappings = await supabase_fetch(
+        f"capability_services?capability_id=eq.{quote(capability_id)}"
+        f"&select=service_slug,credential_modes,auth_method"
+    )
+    if not mappings:
+        return {
+            "data": {"capability_id": capability_id, "providers": []},
+            "error": None,
+        }
+
+    # Check BYO credential status per provider
+    providers = []
+    for m in mappings:
+        slug = m["service_slug"]
+        modes = m.get("credential_modes", ["byo"])
+        auth_method = m.get("auth_method", "api_key")
+
+        byo_configured = False
+        try:
+            from services.proxy_credentials import get_credential_store
+            store = get_credential_store()
+            byo_configured = store.get_credential(slug, auth_method) is not None
+        except Exception:
+            pass
+
+        mode_details = []
+        for mode in modes:
+            detail = {"mode": mode, "available": True, "configured": False}
+            if mode == "byo":
+                detail["configured"] = byo_configured
+                detail["setup_hint"] = (
+                    f"Set RHUMB_CREDENTIAL_{slug.upper().replace('-', '_')}_{auth_method.upper()} "
+                    f"environment variable or configure via proxy credentials"
+                )
+            elif mode == "rhumb_managed":
+                detail["configured"] = True  # always available if listed
+                detail["setup_hint"] = "No setup needed — Rhumb manages the credential"
+            elif mode == "agent_vault":
+                detail["configured"] = False  # needs per-request token
+                detail["setup_hint"] = (
+                    f"Complete the ceremony at GET /v1/services/{slug}/ceremony, "
+                    f"then pass token via X-Agent-Token header"
+                )
+
+            mode_details.append(detail)
+
+        providers.append({
+            "service_slug": slug,
+            "auth_method": auth_method,
+            "modes": mode_details,
+            "any_configured": any(d["configured"] for d in mode_details),
+        })
+
+    return {
+        "data": {
+            "capability_id": capability_id,
+            "providers": providers,
+        },
+        "error": None,
+    }
+
+
+@router.get("/agent/credentials")
+async def get_agent_credentials(
+    x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
+) -> dict:
+    """Return the agent's full credential status.
+
+    Shows which services have BYO credentials configured, which capabilities
+    those credentials unlock, and which capabilities need credentials.
+    """
+    if not x_rhumb_key:
+        return {"data": None, "error": "X-Rhumb-Key header required"}
+
+    agent_id = x_rhumb_key
+
+    # Get all capability-service mappings
+    all_mappings = await supabase_fetch(
+        "capability_services?select=capability_id,service_slug,credential_modes,auth_method"
+        "&order=capability_id.asc"
+    )
+    if not all_mappings:
+        return {
+            "data": {
+                "agent_id": agent_id,
+                "configured_services": [],
+                "unlocked_capabilities": [],
+                "locked_capabilities": [],
+            },
+            "error": None,
+        }
+
+    # Check which services have credentials
+    configured_services = set()
+    try:
+        from services.proxy_credentials import get_credential_store
+        store = get_credential_store()
+
+        seen_slugs = {m["service_slug"] for m in all_mappings}
+        for slug in seen_slugs:
+            # Try common auth method keys
+            for key in ("api_key", "oauth_token", "api_token", "basic_auth"):
+                if store.get_credential(slug, key) is not None:
+                    configured_services.add(slug)
+                    break
+    except Exception:
+        pass
+
+    # Categorize capabilities
+    unlocked = set()
+    locked = set()
+
+    for m in all_mappings:
+        cap_id = m["capability_id"]
+        slug = m["service_slug"]
+
+        if slug in configured_services:
+            unlocked.add(cap_id)
+        else:
+            # Only locked if no provider for this capability is configured
+            if cap_id not in unlocked:
+                locked.add(cap_id)
+
+    # Remove from locked if also in unlocked (has at least one configured provider)
+    locked -= unlocked
+
+    return {
+        "data": {
+            "agent_id": agent_id,
+            "configured_services": sorted(configured_services),
+            "configured_count": len(configured_services),
+            "unlocked_capabilities": sorted(unlocked),
+            "unlocked_count": len(unlocked),
+            "locked_capabilities": sorted(locked),
+            "locked_count": len(locked),
+            "total_capabilities": len(unlocked | locked),
         },
         "error": None,
     }
