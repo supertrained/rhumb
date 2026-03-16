@@ -210,6 +210,7 @@ async def execute_capability(
     capability_id: str,
     request: CapabilityExecuteRequest,
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
+    x_agent_token: Optional[str] = Header(None, alias="X-Agent-Token"),
 ) -> dict:
     """Execute a capability through the proxy layer.
 
@@ -240,12 +241,132 @@ async def execute_capability(
         )
         return {"data": result, "error": None}
 
-    # ── Mode 1 (BYO) and Mode 3 (Agent Vault) continue below ────────
-    # Validate required fields for BYO/Agent Vault modes
+    # ── Mode 3: Agent Vault (per-request token) ────────────────────
+    if request.credential_mode == "agent_vault":
+        if not x_agent_token:
+            raise HTTPException(
+                status_code=400,
+                detail="X-Agent-Token header required for agent_vault credential mode. "
+                       "Get a token via GET /v1/services/{slug}/ceremony",
+            )
+        if not request.method or not request.path:
+            raise HTTPException(
+                status_code=400,
+                detail="method and path are required for agent_vault credential mode",
+            )
+        if not request.provider:
+            raise HTTPException(
+                status_code=400,
+                detail="provider is required for agent_vault credential mode",
+            )
+
+        # Validate token format
+        from services.agent_vault import get_vault_validator
+        validator = get_vault_validator()
+        ceremony = await validator.get_ceremony(request.provider)
+
+        if ceremony:
+            is_valid, error_msg = validator.validate_format(
+                x_agent_token,
+                token_prefix=ceremony.get("token_prefix"),
+                token_pattern=ceremony.get("token_pattern"),
+            )
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid token: {error_msg}")
+
+        # Resolve API domain
+        api_domain = await _get_service_domain(request.provider)
+        if not api_domain:
+            raise HTTPException(
+                status_code=500,
+                detail=f"No API domain for provider '{request.provider}'",
+            )
+        base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"
+
+        # Build headers with agent's token (NEVER logged or persisted)
+        vault_headers: dict[str, str] = {}
+        auth_type = ceremony.get("auth_type", "api_key") if ceremony else "api_key"
+
+        if auth_type == "basic_auth":
+            encoded = base64.b64encode(x_agent_token.encode()).decode()
+            vault_headers["Authorization"] = f"Basic {encoded}"
+        elif request.provider == "anthropic":
+            vault_headers["x-api-key"] = x_agent_token
+            vault_headers["anthropic-version"] = "2023-06-01"
+        else:
+            vault_headers["Authorization"] = f"Bearer {x_agent_token}"
+
+        # Execute
+        execution_id = f"exec_{uuid.uuid4().hex}"
+        request_start = time.perf_counter()
+        path = request.path if request.path.startswith("/") else f"/{request.path}"
+
+        try:
+            async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
+                upstream_start = time.perf_counter()
+                resp = await client.request(
+                    method=request.method,
+                    url=path,
+                    headers=vault_headers,
+                    json=request.body,
+                    params=request.params,
+                )
+                upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
+
+            upstream_status = resp.status_code
+            try:
+                upstream_response = resp.json()
+            except Exception:
+                upstream_response = resp.text
+
+            total_latency_ms = (time.perf_counter() - request_start) * 1000
+
+            # Log execution (token is NEVER included)
+            await supabase_insert("capability_executions", {
+                "id": execution_id,
+                "agent_id": agent_id,
+                "capability_id": capability_id,
+                "provider_used": request.provider,
+                "credential_mode": "agent_vault",
+                "method": request.method,
+                "path": request.path,
+                "upstream_status": upstream_status,
+                "success": upstream_status < 500,
+                "cost_estimate_usd": None,
+                "total_latency_ms": round(total_latency_ms, 1),
+                "upstream_latency_ms": round(upstream_latency_ms, 1),
+                "fallback_attempted": False,
+                "fallback_provider": None,
+                "idempotency_key": request.idempotency_key,
+                "error_message": None,
+                "interface": request.interface,
+            })
+
+            return {
+                "data": {
+                    "capability_id": capability_id,
+                    "provider_used": request.provider,
+                    "credential_mode": "agent_vault",
+                    "upstream_status": upstream_status,
+                    "upstream_response": upstream_response,
+                    "latency_ms": round(total_latency_ms, 1),
+                    "execution_id": execution_id,
+                },
+                "error": None,
+            }
+
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Upstream request failed: {e}",
+            )
+
+    # ── Mode 1 (BYO) continues below ────────────────────────────────
+    # Validate required fields for BYO mode
     if not request.method or not request.path:
         raise HTTPException(
             status_code=400,
-            detail="method and path are required for byo/agent_vault credential modes",
+            detail="method and path are required for byo credential mode",
         )
 
     # 2. Idempotency check

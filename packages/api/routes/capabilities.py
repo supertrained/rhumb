@@ -608,6 +608,45 @@ async def get_credential_modes(
     }
 
 
+# ── Ceremony routes (Mode 3 — Agent Vault) ──────────────────────
+
+@router.get("/services/ceremonies")
+async def list_ceremonies() -> dict:
+    """List all available ceremony skills.
+
+    Ceremonies are structured auth guides that teach agents how to
+    obtain their own API credentials for a service.
+    """
+    from services.agent_vault import get_vault_validator
+    validator = get_vault_validator()
+    ceremonies = await validator.list_ceremonies()
+    return {
+        "data": {
+            "ceremonies": ceremonies,
+            "count": len(ceremonies),
+        },
+        "error": None,
+    }
+
+
+@router.get("/services/{service_slug}/ceremony")
+async def get_ceremony(service_slug: str) -> dict:
+    """Get the ceremony skill for a specific service.
+
+    Returns step-by-step instructions for an agent to obtain
+    its own API credentials, plus token format info for validation.
+    """
+    from services.agent_vault import get_vault_validator
+    validator = get_vault_validator()
+    ceremony = await validator.get_ceremony(service_slug)
+    if ceremony is None:
+        return {
+            "data": None,
+            "error": f"No ceremony available for service '{service_slug}'",
+        }
+    return {"data": ceremony, "error": None}
+
+
 @router.get("/agent/credentials")
 async def get_agent_credentials(
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
