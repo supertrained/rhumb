@@ -54,14 +54,18 @@ function createMockClient(
 ): RhumbApiClient {
   return {
     searchServices: vi.fn().mockResolvedValue(services),
-    getServiceScore: vi.fn().mockResolvedValue(null)
+    getServiceScore: vi.fn().mockResolvedValue(null),
+    discoverCapabilities: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    resolveCapability: vi.fn().mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
   };
 }
 
 function createErrorClient(): RhumbApiClient {
   return {
     searchServices: vi.fn().mockRejectedValue(new Error("Network failure")),
-    getServiceScore: vi.fn().mockRejectedValue(new Error("Network failure"))
+    getServiceScore: vi.fn().mockRejectedValue(new Error("Network failure")),
+    discoverCapabilities: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    resolveCapability: vi.fn().mockResolvedValue({ capability: "", providers: [], fallback_chain: [] }),
   };
 }
 
