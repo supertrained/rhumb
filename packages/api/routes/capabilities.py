@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
 from routes._supabase import supabase_fetch
 
@@ -301,12 +301,15 @@ async def get_capability(capability_id: str) -> dict:
 async def resolve_capability(
     capability_id: str,
     credential_mode: str | None = Query(default=None, description="Filter by credential mode (byo, rhumb_managed, agent_vault)"),
+    x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Resolve a capability to ranked providers with health-aware recommendations.
 
     This is the core agent-facing endpoint: "I need email.send — what should I use?"
     Returns providers ranked by AN score with cost, health, and recommendation data.
+    Includes circuit breaker state and execute_hint for direct execution.
     """
+    agent_id = x_rhumb_key or "anonymous"
     # Verify capability exists
     caps = await supabase_fetch(
         f"capabilities?id=eq.{quote(capability_id)}"
@@ -397,6 +400,17 @@ async def resolve_capability(
             if free_tier:
                 reason += f" ({free_tier:,} free)"
 
+        # Circuit breaker state (if proxy is initialized)
+        circuit_state = "unknown"
+        available_for_execute = True
+        try:
+            from routes.proxy import get_breaker_registry
+            breaker = get_breaker_registry().get(slug, agent_id)
+            circuit_state = breaker.state.value
+            available_for_execute = breaker.allow_request()
+        except Exception:
+            pass  # proxy not initialized or breaker not available
+
         providers.append({
             "service_slug": slug,
             "service_name": names_by_slug.get(slug, slug),
@@ -414,6 +428,8 @@ async def resolve_capability(
             "endpoint_pattern": m.get("endpoint_pattern"),
             "recommendation": recommendation,
             "recommendation_reason": reason,
+            "circuit_state": circuit_state,
+            "available_for_execute": available_for_execute,
         })
 
     # Sort: preferred first, then by AN score descending
@@ -437,12 +453,25 @@ async def resolve_capability(
     )
     bundle_ids = list({r["bundle_id"] for r in bundle_rows}) if bundle_rows else []
 
+    # Build execute_hint from the top-ranked available provider
+    execute_hint = None
+    for p in providers:
+        if p.get("available_for_execute") and p.get("endpoint_pattern"):
+            execute_hint = {
+                "preferred_provider": p["service_slug"],
+                "endpoint_pattern": p["endpoint_pattern"],
+                "estimated_cost_usd": p.get("cost_per_call"),
+                "credential_modes": p.get("credential_modes", ["byo"]),
+            }
+            break
+
     return {
         "data": {
             "capability": capability_id,
             "providers": providers,
             "fallback_chain": fallback_chain,
             "related_bundles": bundle_ids,
+            "execute_hint": execute_hint,
         },
         "error": None,
     }
