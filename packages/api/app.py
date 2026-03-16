@@ -11,6 +11,7 @@ from routes import (
     admin_agents,
     admin_billing,
     capabilities,
+    capability_execute,
     leaderboard,
     launch,
     probes,
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
 
     # ── Routers ──
     application.include_router(capabilities.router, prefix="/v1", tags=["capabilities"])
+    application.include_router(capability_execute.router, prefix="/v1", tags=["capability-execute"])
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])
