@@ -486,7 +486,7 @@ INSERT INTO bundle_capabilities (bundle_id, capability_id, sequence_order) VALUE
 ('email.compose_and_deliver', 'email.track', 3),
 
 ('content.create_and_publish', 'ai.generate_text', 1),
-('content.create', 'content.create', 2),
+('content.create_and_publish', 'content.create', 2),
 ('content.create_and_publish', 'social.post', 3),
 
 ('deploy.build_test_ship', 'devops.build', 1),

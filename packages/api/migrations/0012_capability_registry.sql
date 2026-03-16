@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS capability_services (
     endpoint_pattern TEXT,                  -- primary endpoint for this capability
     cost_per_call NUMERIC,                 -- estimated cost in USD (NULL = free tier)
     cost_currency TEXT DEFAULT 'USD',
-    free_tier_calls INTEGER,               -- monthly free tier if any
+    free_tier_calls BIGINT,                -- monthly free tier if any
     notes TEXT,
     is_primary BOOLEAN DEFAULT true,       -- primary capability for this service?
     created_at TIMESTAMPTZ DEFAULT now(),
