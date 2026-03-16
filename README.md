@@ -9,7 +9,7 @@
 Rhumb is the infrastructure layer agents use to **discover, access, and trust** external tools.
 
 - **212 scored services** across 38 categories, evaluated on 20 dimensions
-- **89 capabilities** across 27 domains (email.send, payment.create_charge, ai.generate_text, ...)
+- **103 capabilities** across 30 domains (email.send, project.create_issue, ai.generate_text, spreadsheet.read, ...)
 - **3 credential modes** — bring your own token, zero-config managed, or self-provisioned via ceremony guides
 - **Cost-optimal routing** — cheapest provider that meets your quality floor
 - **Budget enforcement** — pre-execution checks, not surprise bills
