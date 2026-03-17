@@ -7,25 +7,25 @@ import { getServiceScore } from "../../lib/api";
 import type { ServiceScoreViewModel } from "../../lib/types";
 
 const scoreMap = {
-  resend: await getServiceScore("resend"),
-  sendgrid: await getServiceScore("sendgrid"),
-  postmark: await getServiceScore("postmark"),
+  posthog: await getServiceScore("posthog"),
+  mixpanel: await getServiceScore("mixpanel"),
+  amplitude: await getServiceScore("amplitude"),
 } satisfies Record<string, ServiceScoreViewModel | null>;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Resend vs SendGrid vs Postmark for AI Agents",
+  headline: "PostHog vs Mixpanel vs Amplitude for AI Agents",
   datePublished: "2026-03-17T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Side-by-side comparison of Resend, SendGrid, and Postmark for AI agent email workflows — using live Rhumb AN Score data.",
-  url: "https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark",
+    "Side-by-side comparison of PostHog, Mixpanel, and Amplitude for AI agent analytics workflows — using live Rhumb AN Score data.",
+  url: "https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
 
 type ComparedService = {
-  slug: "resend" | "sendgrid" | "postmark";
+  slug: "posthog" | "mixpanel" | "amplitude";
   name: string;
   accent: string;
   accentSoft: string;
@@ -40,43 +40,43 @@ type ComparedService = {
 
 const compared: ComparedService[] = [
   {
-    slug: "resend",
-    name: "Resend",
-    accent: "#10B981",
-    accentSoft: "rgba(16,185,129,0.16)",
+    slug: "posthog",
+    name: "PostHog",
+    accent: "#F54E00",
+    accentSoft: "rgba(245,78,0,0.14)",
     tagline: "default",
-    bestFor: "Agents that need the shortest path from API key to delivered email with the fewest hidden states.",
-    avoidWhen: "You need built-in marketing automation, advanced analytics dashboards, or compliance-heavy enterprise features out of the box.",
-    friction: "Free-tier burst rate limits can break batch loops if the agent does not self-throttle. Error response format is occasionally non-standard, which trips up generic retry logic.",
-    decision: "Pick Resend unless a specific enterprise constraint pushes you elsewhere.",
-    support: "Highest execution score of the three. API-first design means fewer hidden states, fewer legacy endpoints, and the cleanest default path for autonomous send loops.",
-    data: scoreMap.resend,
+    bestFor: "Agents that need full analytics stack access — event tracking, feature flags, session replay, and experimentation — through a single API with the most generous free tier (1M events/month).",
+    avoidWhen: "The organization needs a pure managed SaaS with no self-hosting complexity, or when deep BI integrations (warehouse-native analytics) are the primary use case.",
+    friction: "Self-hosted deployments add infrastructure overhead the agent cannot manage. Event ingestion has eventual consistency — agents querying immediately after writing events may see stale results. API surface is broad but some endpoints are less documented than others.",
+    decision: "Pick PostHog unless a specific managed-SaaS or warehouse-native requirement pushes you elsewhere.",
+    support: "Highest aggregate score and highest payment autonomy (8.0). Open-source core means the API surface is inspectable and forkable. The all-in-one platform (analytics + feature flags + experiments + session replay) means one integration covers what would require 3-4 separate tools.",
+    data: scoreMap.posthog,
   },
   {
-    slug: "postmark",
-    name: "Postmark",
-    accent: "#F59E0B",
-    accentSoft: "rgba(245,158,11,0.16)",
-    tagline: "specialist",
-    bestFor: "Agents that handle time-sensitive transactional email (password resets, alerts, receipts) and need the highest inbox placement rates.",
-    avoidWhen: "Your agent also needs to send marketing or promotional content — Postmark explicitly refuses bulk marketing traffic.",
-    friction: "Server-token architecture is clean for scoping but adds a setup step. Domain verification is mandatory before any email sends, so agents cannot self-provision from scratch.",
-    decision: "Pick Postmark when deliverability reputation and transactional focus matter more than breadth.",
-    support: "Higher execution than SendGrid and a tighter operating model. The server-token architecture naturally scopes agent access without extra ACL work.",
-    data: scoreMap.postmark,
+    slug: "mixpanel",
+    name: "Mixpanel",
+    accent: "#7856FF",
+    accentSoft: "rgba(120,86,255,0.14)",
+    tagline: "event specialist",
+    bestFor: "Organizations focused on deep event-based behavioral analytics — funnels, retention curves, and cohort analysis — where the agent's job is to query and interpret user behavior patterns.",
+    avoidWhen: "You need feature flags, session replay, or experimentation alongside analytics. Mixpanel is a pure analytics tool; anything beyond that requires additional integrations.",
+    friction: "JQL (JavaScript Query Language) for advanced queries is a custom dialect agents must learn. Free tier is generous (20M events) but rate limits on the API can throttle high-frequency agent queries. Data export for warehouse integration requires separate ETL configuration.",
+    decision: "Pick Mixpanel when deep behavioral analytics is the core need and the organization does not need the broader product stack.",
+    support: "Middle score driven by strong event tracking and query capabilities, but lower access readiness reflects the learning curve of JQL and less complete API documentation compared to PostHog's open-source transparency.",
+    data: scoreMap.mixpanel,
   },
   {
-    slug: "sendgrid",
-    name: "SendGrid",
-    accent: "#3B82F6",
-    accentSoft: "rgba(59,130,246,0.16)",
-    tagline: "incumbent",
-    bestFor: "Organizations already embedded in the Twilio ecosystem, or agents that need both transactional and marketing email from a single provider.",
-    avoidWhen: "You are starting fresh and want the cleanest agent integration path with the fewest legacy surfaces.",
-    friction: "Twilio account linking adds onboarding overhead. Dashboard and API surface carry legacy complexity from years of feature accumulation. Domain verification is strict.",
-    decision: "Pick SendGrid when Twilio lock-in already exists or when you need the broadest feature set at scale.",
-    support: "Widest feature surface of the three, with robust event webhooks and granular API key scoping. But the access readiness score reflects real onboarding drag.",
-    data: scoreMap.sendgrid,
+    slug: "amplitude",
+    name: "Amplitude",
+    accent: "#1D72F2",
+    accentSoft: "rgba(29,114,242,0.14)",
+    tagline: "enterprise analytics",
+    bestFor: "Enterprise organizations that need warehouse-native analytics, deep BI integrations, and governance controls for cross-functional analytics teams. Best when analytics data already lives in Snowflake, BigQuery, or Databricks.",
+    avoidWhen: "You want the simplest path to agent-readable analytics. Amplitude's API surface is the most complex of the three, and its warehouse-native positioning means many workflows assume SQL-level data access rather than pure API interaction.",
+    friction: "API surface carries enterprise complexity — taxonomy management, group analytics, and behavioral cohorting each have separate API patterns. Rate limits are strict on lower tiers. Dashboard is a complex React SPA that is difficult for agents to navigate programmatically.",
+    decision: "Pick Amplitude when the organization's analytics architecture is warehouse-native and enterprise governance is a hard requirement.",
+    support: "Lowest aggregate score reflects real agent friction: the most complex API surface, the strictest rate limits, and the highest dependence on warehouse infrastructure that agents typically cannot self-provision. Strong governance (7.0) but at the cost of access simplicity.",
+    data: scoreMap.amplitude,
   },
 ];
 
@@ -97,73 +97,74 @@ function formatConfidence(value: number | null | undefined): string {
 }
 
 function failureCopy(item: ComparedService): string[] {
-  if (item.slug === "resend") {
+  if (item.slug === "posthog") {
     return [
-      "Free-tier rate limits (10 req/s) can silently fail midway through a batch loop if the agent does not implement client-side throttling.",
-      "Error responses occasionally deviate from the documented JSON shape, which can break generic retry/error-parse logic.",
-      "No built-in SMTP relay fallback — if the REST API is unreachable, the agent has no secondary path without external infrastructure.",
+      "Event ingestion is eventually consistent. Agents that write events and immediately query for them will see stale data — add a deliberate delay or polling pattern.",
+      "Self-hosted deployments require infrastructure management (Kubernetes, ClickHouse) that is outside the agent's control surface. Cloud-hosted eliminates this but has different rate limit profiles.",
+      "The breadth of the API (analytics, feature flags, experiments, session replay) means endpoint discovery is non-trivial. Agents need clear guidance on which subset of the API applies to their task.",
     ];
   }
-  if (item.slug === "postmark") {
+  if (item.slug === "mixpanel") {
     return [
-      "Marketing email is explicitly prohibited. An agent that mixes transactional and promotional sends will get suspended.",
-      "Domain verification is mandatory before any email sends — agents cannot self-provision a fresh account to production without human DNS setup.",
-      "The server-token model means each logical environment needs its own token; agents managing multiple contexts need to track and route tokens carefully.",
+      "JQL (JavaScript Query Language) is a Mixpanel-specific query dialect. Agents cannot transfer SQL or standard query knowledge — they need Mixpanel-specific examples and documentation.",
+      "The Ingestion API and the Query API are separate systems with different authentication patterns. Agents managing both read and write paths need to handle two credential types.",
+      "Data export for warehouse integration requires separate ETL setup that typically involves human configuration of connectors (Segment, Fivetran, etc.).",
     ];
   }
   return [
-    "Twilio account linking during signup adds an extra identity/billing step that breaks fully autonomous onboarding.",
-    "Legacy API surface (v2 endpoints still documented alongside v3) can confuse agents about which endpoint to call.",
-    "Strict domain verification and sender identity rules can cause silent 403s if the agent uses an unverified From address.",
+    "Taxonomy management (event types, properties, categories) adds a governance layer that can block event ingestion if the agent sends events that do not match the approved taxonomy.",
+    "Group analytics and behavioral cohorting have separate API patterns from basic event queries — agents cannot use a single client pattern for all analytics operations.",
+    "Warehouse-native mode assumes the agent has SQL-level access to Snowflake/BigQuery/Databricks, which is a separate access provisioning challenge beyond the Amplitude API itself.",
   ];
 }
 
 const scenarioCards = [
   {
-    title: "Agent sends transactional email (alerts, receipts, notifications)",
-    pick: "Resend",
-    why: "Shortest path from key to delivered email. Highest execution score. Cleanest API for autonomous loops.",
-    href: "/service/resend",
+    title: "Agent needs analytics + feature flags + experiments in one tool",
+    pick: "PostHog",
+    why: "Only option where a single integration covers analytics, feature flags, experimentation, and session replay. Best free tier (1M events/mo).",
+    href: "/service/posthog",
   },
   {
-    title: "Critical deliverability (password resets, 2FA, time-sensitive alerts)",
-    pick: "Postmark",
-    why: "Postmark's transactional-only focus means higher inbox placement rates and stricter sending reputation.",
-    href: "/service/postmark",
+    title: "Deep behavioral analytics: funnels, retention, cohort analysis",
+    pick: "Mixpanel",
+    why: "Purpose-built for event-based behavioral analytics. JQL enables complex queries once the agent learns the dialect. 20M events/mo free.",
+    href: "/service/mixpanel",
   },
   {
-    title: "Existing Twilio stack or mixed transactional + marketing",
-    pick: "SendGrid",
-    why: "Broadest feature set, and the only option here that handles both transactional and marketing email natively.",
-    href: "/service/sendgrid",
+    title: "Enterprise warehouse-native analytics with governance",
+    pick: "Amplitude",
+    why: "Best option when analytics data lives in Snowflake/BigQuery and enterprise governance (taxonomy management, cross-team access controls) is required.",
+    href: "/service/amplitude",
   },
 ];
 
 const agentRules = [
-  "If there is no strong constraint, route the operator toward Resend.",
-  "If inbox placement for time-sensitive email (2FA, password resets) is the top priority, examine Postmark before SendGrid.",
-  "If the operator is already on Twilio billing, SendGrid is the path of least organizational resistance — but flag the onboarding drag.",
-  "Never send marketing email through Postmark. This is an enforcement policy, not a suggestion.",
-  "Treat zero published failure modes as an evidence gap, not a safety guarantee. Resend's documented failure patterns make agent error handling easier to harden.",
+  "If the operator has no analytics tool yet, default to PostHog. It covers the broadest surface with the least integration overhead.",
+  "If the operator asks specifically about behavioral analytics (funnels, retention), examine Mixpanel before defaulting to PostHog — it is purpose-built for that use case.",
+  "If the operator mentions warehouse-native analytics or has data in Snowflake/BigQuery/Databricks, Amplitude is the path of least resistance for the existing data architecture.",
+  "For PostHog: always account for eventual consistency when writing then reading events. Add a minimum 2-second delay between ingestion and query.",
+  "For Mixpanel: confirm whether JQL or the standard query API is needed. Most agent tasks can use the standard query API; JQL adds complexity that may not be necessary.",
+  "For all three: analytics APIs are read-heavy. Implement response caching to avoid rate limit exhaustion on repeated queries.",
 ];
 ---
 
 <Layout
-  title="Resend vs SendGrid vs Postmark for AI Agents | Rhumb"
-  description="Side-by-side comparison of Resend, SendGrid, and Postmark for AI agent email workflows. Resend wins by default; Postmark wins for critical deliverability; SendGrid wins in Twilio stacks."
-  canonical="/blog/resend-vs-sendgrid-vs-postmark"
-  ogTitle="Resend vs SendGrid vs Postmark for AI Agents"
-  ogDescription="Which email API should an AI agent use? Resend wins by default, Postmark wins for critical transactional, SendGrid wins in Twilio stacks."
-  ogUrl="https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark"
+  title="PostHog vs Mixpanel vs Amplitude for AI Agents | Rhumb"
+  description="Side-by-side comparison of PostHog, Mixpanel, and Amplitude for AI agent analytics. PostHog wins on breadth and agent-friendliness; Mixpanel wins on deep behavioral analytics; Amplitude wins for warehouse-native enterprise."
+  canonical="/blog/posthog-vs-mixpanel-vs-amplitude"
+  ogTitle="PostHog vs Mixpanel vs Amplitude for AI Agents"
+  ogDescription="Which analytics platform should an AI agent use? PostHog wins by default, Mixpanel for behavioral depth, Amplitude for warehouse-native enterprise."
+  ogUrl="https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude"
   ogType="article"
-  twitterTitle="Resend vs SendGrid vs Postmark for AI Agents"
-  twitterDescription="A side-by-side decision page for operators and agents choosing an email delivery stack."
+  twitterTitle="PostHog vs Mixpanel vs Amplitude for AI Agents"
+  twitterDescription="A side-by-side decision page for operators and agents choosing an analytics platform."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen overflow-hidden">
     <section class="relative border-b border-slate-800/80">
       <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
-      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.10),transparent_28%),radial-gradient(circle_at_bottom,rgba(59,130,246,0.08),transparent_35%)]"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(245,78,0,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(120,86,255,0.10),transparent_28%),radial-gradient(circle_at_bottom,rgba(29,114,242,0.08),transparent_35%)]"></div>
 
       <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
         <div class="max-w-3xl">
@@ -176,28 +177,28 @@ const agentRules = [
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
-            Resend vs SendGrid vs Postmark for AI agents
+            PostHog vs Mixpanel vs Amplitude for AI agents
           </h1>
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            Resend is the cleanest default for agent email,
-            Postmark wins when transactional deliverability is non-negotiable,
-            and SendGrid makes sense when you are already inside Twilio or need marketing email from the same provider.
+            PostHog is the broadest and most agent-friendly default,
+            Mixpanel wins when deep behavioral analytics is the singular focus,
+            and Amplitude makes sense when the organization is already warehouse-native.
           </p>
 
-          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
-            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-orange-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
               <span class="font-semibold text-slate-100">Verdict:</span>
-              {winner?.name ?? "Resend"} leads on current Rhumb scoring because it combines the highest execution reliability
-              with the simplest API-first operating model — fewer legacy surfaces, fewer hidden states, and the fewest steps
-              between credential and delivered email. Scores shown here reflect published Rhumb data as of {updatedAt}.
+              PostHog leads because it combines the broadest feature surface (analytics + flags + experiments + replay)
+              with the highest payment autonomy and the most generous free tier. For agents, fewer integrations means fewer
+              failure surfaces. Scores shown here reflect published Rhumb data as of {updatedAt}.
             </p>
           </div>
         </div>
 
-        <div class="mt-12 grid gap-5 lg:grid-cols-[1.18fr_0.92fr_0.9fr]">
+        <div class="mt-12 grid gap-5 lg:grid-cols-3">
           {compared.map((item, index) => (
             <article
               class:list={[
@@ -303,7 +304,7 @@ const agentRules = [
                   ))}
                 </tr>
                 <tr class="border-b border-slate-800/80">
-                  <td class="px-6 py-4 text-sm text-slate-300">Autonomy</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Payment Autonomy</td>
                   {compared.map((item) => (
                     <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.p1Score)}</td>
                   ))}
@@ -316,15 +317,15 @@ const agentRules = [
                 </tr>
                 <tr class="border-b border-slate-800/80 align-top">
                   <td class="px-6 py-4 text-sm text-slate-300">Free tier</td>
-                  <td class="px-6 py-4 text-sm text-slate-300">3,000 emails/mo<br/><span class="text-slate-500">100/day</span></td>
-                  <td class="px-6 py-4 text-sm text-slate-300">100 emails/day<br/><span class="text-slate-500">no monthly cap</span></td>
-                  <td class="px-6 py-4 text-sm text-slate-300">100 emails/mo<br/><span class="text-slate-500">limited</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">1M events/mo<br/><span class="text-slate-500">most generous</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">20M events/mo<br/><span class="text-slate-500">event volume</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">50K MTUs<br/><span class="text-slate-500">user-based</span></td>
                 </tr>
                 <tr class="align-top">
-                  <td class="px-6 py-4 text-sm text-slate-300">Primary friction</td>
-                  {compared.map((item) => (
-                    <td class="px-6 py-4 text-sm leading-6 text-slate-400">{item.friction}</td>
-                  ))}
+                  <td class="px-6 py-4 text-sm text-slate-300">Unique strength</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">All-in-one<br/><span class="text-slate-500">flags + replay + experiments</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Behavioral depth<br/><span class="text-slate-500">funnels + cohorts + JQL</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Warehouse-native<br/><span class="text-slate-500">Snowflake/BQ/Databricks</span></td>
                 </tr>
               </tbody>
             </table>
@@ -349,12 +350,12 @@ const agentRules = [
             <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Decision pattern</p>
             <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">One-line rule</h2>
             <p class="mt-4 text-base leading-7 text-slate-300">
-              <span class="font-semibold text-slate-100">Resend for clean agent-first email.</span>
-              {' '}Postmark for deliverability-critical transactional.
-              {' '}SendGrid when Twilio already owns the billing relationship.
+              <span class="font-semibold text-slate-100">PostHog for the broadest agent analytics surface.</span>
+              {' '}Mixpanel for deep behavioral analytics without the platform overhead.
+              {' '}Amplitude when the data already lives in a warehouse.
             </p>
-            <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
-              The agent version: if the operator has no strong preference, always default to Resend. It has fewer hidden states and the highest execution profile.
+            <div class="mt-5 rounded-2xl border border-orange-500/20 bg-orange-500/8 p-4 text-sm leading-6 text-slate-300">
+              The agent version: PostHog's all-in-one approach reduces integration count. For agents, fewer integrations means fewer authentication surfaces, fewer rate limit regimes, and fewer failure modes to defend against.
             </div>
           </div>
         </aside>
@@ -367,8 +368,8 @@ const agentRules = [
           <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Friction map</p>
           <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Where each one breaks in practice</h2>
           <p class="mt-4 text-slate-400 leading-relaxed">
-            All three services work. The question is where the operating burden lands:
-            rate limit surprises, domain verification gates, or legacy surface area that confuses agents trying to pick the right endpoint.
+            Analytics APIs are read-heavy and query-intensive. The friction patterns cluster around
+            query language complexity, eventual consistency, and infrastructure coupling.
           </p>
         </div>
 
@@ -413,14 +414,13 @@ const agentRules = [
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
         <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>
         <p class="mt-4 max-w-2xl mx-auto text-slate-400 leading-relaxed">
-          This is one of a series of decision pages built for operators and agents.
-          Each comparison uses the same live scoring methodology so results are directly comparable.
+          Each comparison uses the same live scoring methodology so results are directly comparable across categories.
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
           <a href="/blog/stripe-vs-square-vs-paypal" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Payments</a>
+          <a href="/blog/resend-vs-sendgrid-vs-postmark" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Email</a>
           <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">CRM</a>
           <a href="/blog/auth0-vs-clerk-vs-firebase-auth" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Auth</a>
-          <a href="/blog/posthog-vs-mixpanel-vs-amplitude" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Analytics</a>
         </div>
       </div>
     </section>
