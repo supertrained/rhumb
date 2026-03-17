@@ -9,7 +9,7 @@ describe("server.init", () => {
     expect(typeof server.connect).toBe("function");
   });
 
-  it("server registers all 8 tools", () => {
+  it("server registers all 16 tools", () => {
     const names = getRegisteredToolNames();
     expect(names).toContain("find_tools");
     expect(names).toContain("get_score");
@@ -24,6 +24,9 @@ describe("server.init", () => {
     expect(names).toContain("budget");
     expect(names).toContain("spend");
     expect(names).toContain("routing");
-    expect(names).toHaveLength(13);
+    expect(names).toContain("check_balance");
+    expect(names).toContain("get_payment_url");
+    expect(names).toContain("get_ledger");
+    expect(names).toHaveLength(16);
   });
 });

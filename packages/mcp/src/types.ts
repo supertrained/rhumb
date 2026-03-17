@@ -434,6 +434,77 @@ export type RoutingOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// check_balance
+// ---------------------------------------------------------------------------
+
+export const CheckBalanceInputSchema = {
+  type: "object" as const,
+  properties: {},
+  required: [] as string[],
+};
+
+export type CheckBalanceInput = Record<string, never>;
+
+export type CheckBalanceOutput = {
+  balance_usd: number;
+  balance_usd_cents: number;
+  auto_reload_enabled: boolean;
+  message: string;
+};
+
+// ---------------------------------------------------------------------------
+// get_payment_url
+// ---------------------------------------------------------------------------
+
+export const GetPaymentUrlInputSchema = {
+  type: "object" as const,
+  properties: {
+    amount_usd: { type: "number" as const, description: "Amount to add in USD (min $5, max $5000)" },
+  },
+  required: ["amount_usd"] as string[],
+};
+
+export type GetPaymentUrlInput = {
+  amount_usd: number;
+};
+
+export type GetPaymentUrlOutput = {
+  checkout_url: string;
+  amount_usd: number;
+  message: string;
+};
+
+// ---------------------------------------------------------------------------
+// get_ledger
+// ---------------------------------------------------------------------------
+
+export const GetLedgerInputSchema = {
+  type: "object" as const,
+  properties: {
+    limit: { type: "number" as const, description: "Number of entries to return (default 20, max 100)" },
+    event_type: { type: "string" as const, description: "Filter by event type: debit, credit_added, auto_reload_triggered" },
+  },
+  required: [] as string[],
+};
+
+export type GetLedgerInput = {
+  limit?: number;
+  event_type?: string;
+};
+
+export type GetLedgerOutput = {
+  entries: Array<{
+    id: string;
+    event_type: string;
+    amount_usd_cents: number;
+    balance_after_usd_cents: number;
+    description: string;
+    created_at: string;
+  }>;
+  total_count: number;
+};
+
+// ---------------------------------------------------------------------------
 // Schema registry — all tool schemas in one place
 // ---------------------------------------------------------------------------
 
@@ -450,7 +521,10 @@ export const TOOL_SCHEMAS = {
   check_credentials: CheckCredentialsInputSchema,
   budget: BudgetInputSchema,
   spend: SpendInputSchema,
-  routing: RoutingInputSchema
+  routing: RoutingInputSchema,
+  check_balance: CheckBalanceInputSchema,
+  get_payment_url: GetPaymentUrlInputSchema,
+  get_ledger: GetLedgerInputSchema
 } as const;
 
 export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as Array<keyof typeof TOOL_SCHEMAS>;

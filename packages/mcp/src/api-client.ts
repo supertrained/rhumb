@@ -40,6 +40,35 @@ export interface ServiceScoreItem {
 }
 
 // ---------------------------------------------------------------------------
+// Billing result types
+// ---------------------------------------------------------------------------
+
+export interface BalanceResult {
+  balance_usd: number;
+  balance_usd_cents: number;
+  auto_reload_enabled: boolean;
+}
+
+export interface CheckoutResult {
+  checkout_url: string;
+  session_id: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  event_type: string;
+  amount_usd_cents: number;
+  balance_after_usd_cents: number;
+  description: string;
+  created_at: string;
+}
+
+export interface LedgerResult {
+  entries: LedgerEntry[];
+  total_count: number;
+}
+
+// ---------------------------------------------------------------------------
 // Client interface (for dependency injection / testing)
 // ---------------------------------------------------------------------------
 
@@ -153,6 +182,10 @@ export interface RhumbApiClient {
   getSpend(period?: string): Promise<Record<string, unknown>>;
   getRoutingStrategy(): Promise<Record<string, unknown>>;
   setRoutingStrategy(strategy: string, qualityFloor?: number, maxCost?: number): Promise<Record<string, unknown>>;
+  // Billing
+  getBalance(): Promise<BalanceResult>;
+  createCheckout(amount_usd: number): Promise<CheckoutResult>;
+  getLedger(limit?: number, event_type?: string): Promise<LedgerResult>;
 }
 
 // ---------------------------------------------------------------------------
@@ -566,6 +599,37 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       });
       if (!res.ok) return { error: `Failed to set strategy: ${res.status}` };
       return (await res.json()) as Record<string, unknown>;
+    },
+
+    // -- Billing ----------------------------------------------------------
+
+    async getBalance(): Promise<BalanceResult> {
+      const url = `${base}/billing/balance`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) throw new Error(`Balance check failed: ${res.status}`);
+      return (await res.json()) as BalanceResult;
+    },
+
+    async createCheckout(amount_usd: number): Promise<CheckoutResult> {
+      const url = `${base}/billing/checkout`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ amount_usd }),
+      });
+      if (!res.ok) throw new Error(`Checkout failed: ${res.status}`);
+      return (await res.json()) as CheckoutResult;
+    },
+
+    async getLedger(limit?: number, event_type?: string): Promise<LedgerResult> {
+      const params = new URLSearchParams();
+      if (limit) params.set("limit", String(limit));
+      if (event_type) params.set("event_type", event_type);
+      const qs = params.toString();
+      const url = `${base}/billing/ledger${qs ? `?${qs}` : ""}`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) throw new Error(`Ledger fetch failed: ${res.status}`);
+      return (await res.json()) as LedgerResult;
     }
   };
 }

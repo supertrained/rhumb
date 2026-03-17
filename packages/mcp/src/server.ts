@@ -34,6 +34,9 @@ import { handleCheckCredentials } from "./tools/credentials.js";
 import { handleBudget } from "./tools/budget.js";
 import { handleSpend } from "./tools/spend.js";
 import { handleRouting } from "./tools/routing.js";
+import { handleCheckBalance } from "./tools/check-balance.js";
+import { handleGetPaymentUrl } from "./tools/get-payment-url.js";
+import { handleGetLedger } from "./tools/get-ledger.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -263,6 +266,50 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ action, strategy, quality_floor, max_cost_per_call_usd }) => {
       const result = await handleRouting({ action, strategy, quality_floor, max_cost_per_call_usd }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- check_balance -----------------------------------------------------
+  server.tool(
+    "check_balance",
+    "Check the current credit balance for your organization on Rhumb",
+    {},
+    async () => {
+      const result = await handleCheckBalance({}, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- get_payment_url ---------------------------------------------------
+  server.tool(
+    "get_payment_url",
+    "Get a Stripe checkout URL to top up Rhumb credits",
+    {
+      amount_usd: z.number().min(5).max(5000).describe("Amount to add in USD (min $5, max $5000)")
+    },
+    async ({ amount_usd }) => {
+      const result = await handleGetPaymentUrl({ amount_usd }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- get_ledger --------------------------------------------------------
+  server.tool(
+    "get_ledger",
+    "Get recent billing ledger entries for your organization",
+    {
+      limit: z.number().min(1).max(100).optional().describe("Number of entries (default 20, max 100)"),
+      event_type: z.string().optional().describe("Filter: debit, credit_added, auto_reload_triggered")
+    },
+    async ({ limit, event_type }) => {
+      const result = await handleGetLedger({ limit, event_type }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

@@ -140,6 +140,9 @@ function createMockApiClient(): RhumbApiClient {
     getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
     getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
     setRoutingStrategy: vi.fn().mockResolvedValue({}),
+    getBalance: vi.fn().mockResolvedValue({ balance_usd: 25, balance_usd_cents: 2500, auto_reload_enabled: false }),
+    createCheckout: vi.fn().mockResolvedValue({ checkout_url: 'https://checkout.stripe.com/test', session_id: 'cs_test' }),
+    getLedger: vi.fn().mockResolvedValue({ entries: [], total_count: 0 }),
   };
 }
 
@@ -171,6 +174,9 @@ function createErrorApiClient(): RhumbApiClient {
     getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
     getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
     setRoutingStrategy: vi.fn().mockResolvedValue({}),
+    getBalance: vi.fn().mockResolvedValue({ balance_usd: 25, balance_usd_cents: 2500, auto_reload_enabled: false }),
+    createCheckout: vi.fn().mockResolvedValue({ checkout_url: 'https://checkout.stripe.com/test', session_id: 'cs_test' }),
+    getLedger: vi.fn().mockResolvedValue({ entries: [], total_count: 0 }),
   };
 }
 
@@ -213,7 +219,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 13 registered tools", async () => {
+    it("lists all 16 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -222,6 +228,7 @@ describe("e2e: MCP server integration", () => {
 
       expect(toolNames).toEqual([
         "budget",
+        "check_balance",
         "check_credentials",
         "credential_ceremony",
         "discover_capabilities",
@@ -230,12 +237,14 @@ describe("e2e: MCP server integration", () => {
         "find_tools",
         "get_alternatives",
         "get_failure_modes",
+        "get_ledger",
+        "get_payment_url",
         "get_score",
         "resolve_capability",
         "routing",
         "spend",
       ]);
-      expect(tools).toHaveLength(13);
+      expect(tools).toHaveLength(16);
 
       // Each tool has a description and input schema
       for (const tool of tools) {
