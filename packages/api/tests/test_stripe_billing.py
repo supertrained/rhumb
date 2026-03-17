@@ -131,9 +131,10 @@ def test_balance_returns_zero_for_unknown_org(
 # ── Ledger endpoint tests ───────────────────────────────────────────
 
 
+@patch("routes.billing.supabase_count", new_callable=AsyncMock)
 @patch("routes.billing.supabase_fetch", new_callable=AsyncMock)
 def test_ledger_returns_entries(
-    mock_fetch: AsyncMock, billing_client: TestClient
+    mock_fetch: AsyncMock, mock_count: AsyncMock, billing_client: TestClient
 ) -> None:
     entries = [
         {
@@ -146,8 +147,8 @@ def test_ledger_returns_entries(
             "created_at": "2026-03-17T00:00:00Z",
         },
     ]
-    # First call: entries query, second call: total count query
-    mock_fetch.side_effect = [entries, [{"id": "uuid-1"}]]
+    mock_fetch.return_value = entries
+    mock_count.return_value = 1
 
     resp = billing_client.get("/v1/billing/ledger")
     assert resp.status_code == 200

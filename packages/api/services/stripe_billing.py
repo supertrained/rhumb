@@ -117,6 +117,40 @@ async def create_checkout_session(
     return {"checkout_url": session.url, "session_id": session.id}
 
 
+# ── Off-session PaymentIntent (auto-reload) ──────────────────────────
+
+
+async def create_payment_intent(
+    org_id: str,
+    amount_cents: int,
+    payment_method_id: str,
+) -> dict[str, Any]:
+    """Create a confirmed, off-session Stripe PaymentIntent for auto-reload.
+
+    Returns a dict with at least ``{"id": "pi_..."}`` on success.
+    Raises on Stripe API errors so the caller can handle gracefully.
+    """
+    # Look up Stripe customer for the org
+    rows = await _sb_get(f"stripe_customers?org_id=eq.{org_id}&select=stripe_customer_id&limit=1")
+    if not rows:
+        raise ValueError(f"No Stripe customer found for org {org_id}")
+
+    customer_id = rows[0]["stripe_customer_id"]
+
+    stripe.api_key = settings.stripe_secret_key
+    intent = stripe.PaymentIntent.create(
+        amount=amount_cents,
+        currency="usd",
+        customer=customer_id,
+        payment_method=payment_method_id,
+        off_session=True,
+        confirm=True,
+        metadata={"org_id": org_id, "amount_cents": str(amount_cents), "trigger": "auto_reload"},
+    )
+
+    return {"id": intent.id, "status": intent.status}
+
+
 # ── Webhook handler ──────────────────────────────────────────────────
 
 

@@ -25,6 +25,7 @@ from routes.proxy import (
     get_pool_manager,
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
@@ -332,6 +333,17 @@ async def execute_capability(
             )
         credit_reserved = billed_cost_cents > 0
         credit_remaining_cents = credit_result.remaining_cents
+
+        # Fire-and-forget auto-reload check when balance is known
+        if credit_remaining_cents is not None:
+            try:
+                reload_result = await check_and_trigger_auto_reload(
+                    org_id, credit_remaining_cents
+                )
+                if reload_result:
+                    logger.info("Auto-reload result for %s: %s", org_id, reload_result)
+            except Exception as e:
+                logger.warning("Auto-reload check error (non-blocking): %s", e)
 
     async def _release_reservations() -> None:
         if cost_estimate > 0:
