@@ -8,6 +8,7 @@ the execution to capability_executions.
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import os
 import time
@@ -16,10 +17,11 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from routes._supabase import supabase_fetch, supabase_insert
+from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
 from routes.proxy import (
     SERVICE_REGISTRY,
     get_breaker_registry,
@@ -30,6 +32,8 @@ from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
 from services.x402 import PaymentRequiredException
+from services.x402_middleware import decode_x_payment_header
+from services.usdc_verifier import verify_usdc_payment
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.routing_engine import RoutingEngine
@@ -235,13 +239,17 @@ def _inject_auth_headers(
 async def execute_capability(
     capability_id: str,
     request: CapabilityExecuteRequest,
+    raw_request: Request,
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
     x_agent_token: Optional[str] = Header(None, alias="X-Agent-Token"),
+    x_payment: Optional[str] = Header(None, alias="X-Payment"),
 ) -> dict:
     """Execute a capability through the proxy layer.
 
     Resolves provider, injects auth, proxies the request upstream,
     logs the execution, and returns the upstream response.
+
+    Supports x402 inline payment via the ``X-Payment`` header.
     """
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
@@ -306,6 +314,88 @@ async def execute_capability(
     margin_cents = billed_cost_cents - upstream_cost_cents
 
     execution_id = f"exec_{uuid.uuid4().hex}"
+
+    # ── x402 inline payment handling ─────────────────────────────────
+    # If the client sends an X-Payment header with a USDC tx_hash, we:
+    #   1. Verify the tx hasn't been used before (replay protection)
+    #   2. Verify the on-chain USDC transfer matches expected amount/recipient
+    #   3. Record the receipt in usdc_receipts
+    #   4. Credit the org's balance so the normal credit-deduction flow succeeds
+    # This is an ADDITIONAL payment path — never replaces the existing flow.
+    x402_receipt: dict | None = None
+    if x_payment and x_payment != "required":
+        payment_data = decode_x_payment_header(x_payment)
+        if payment_data and payment_data.get("tx_hash"):
+            tx_hash = payment_data["tx_hash"]
+            network = payment_data.get("network", "base-sepolia")
+
+            # Replay protection: check if tx_hash is already recorded
+            existing_receipt = await supabase_fetch(
+                f"usdc_receipts?tx_hash=eq.{quote(tx_hash)}&select=id&limit=1"
+            )
+            if existing_receipt:
+                raise HTTPException(
+                    status_code=402,
+                    detail="Transaction already used",
+                )
+
+            # Verify on-chain
+            wallet = os.environ.get("RHUMB_USDC_WALLET_ADDRESS", "")
+            if not wallet:
+                raise HTTPException(
+                    status_code=402,
+                    detail="Payment verification failed: wallet not configured",
+                )
+
+            expected_atomic = str(billed_cost_cents * 10000) if billed_cost_cents > 0 else "0"
+            verification = await verify_usdc_payment(
+                tx_hash=tx_hash,
+                expected_to=wallet,
+                expected_amount_atomic=expected_atomic,
+                network=network,
+            )
+
+            if not verification.get("valid"):
+                raise HTTPException(
+                    status_code=402,
+                    detail=f"Payment verification failed: {verification.get('error', 'unknown')}",
+                )
+
+            # Record receipt in usdc_receipts (replay protection via UNIQUE constraint)
+            await supabase_insert("usdc_receipts", {
+                "tx_hash": tx_hash,
+                "from_address": verification.get("from_address", ""),
+                "to_address": verification.get("to_address", wallet),
+                "amount_usdc_atomic": verification.get("amount_atomic", expected_atomic),
+                "amount_usd_cents": billed_cost_cents,
+                "network": network,
+                "block_number": verification.get("block_number"),
+                "org_id": org_id,
+                "execution_id": execution_id,
+                "status": "confirmed",
+            })
+
+            # Credit the org's balance via credit_ledger + org_credits update
+            await supabase_insert("credit_ledger", {
+                "org_id": org_id,
+                "amount_cents": billed_cost_cents,
+                "event_type": "x402_payment",
+                "execution_id": execution_id,
+                "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
+            })
+
+            # Increment org_credits balance
+            current_credits = await supabase_fetch(
+                f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
+            )
+            if current_credits:
+                new_balance = int(current_credits[0].get("balance_usd_cents", 0)) + billed_cost_cents
+                await supabase_patch(
+                    f"org_credits?org_id=eq.{quote(org_id)}",
+                    {"balance_usd_cents": new_balance},
+                )
+
+            x402_receipt = verification
 
     # Step 1: existing agent budget check (unchanged)
     api_base = os.environ.get(
@@ -686,6 +776,22 @@ async def execute_capability(
         response_data["budget_remaining_usd"] = round(budget_remaining, 4)
     if credit_remaining_cents is not None:
         response_data["org_credits_remaining_cents"] = credit_remaining_cents
+
+    # x402: attach receipt info and X-Payment-Response header
+    if x402_receipt:
+        response_data["x402_receipt"] = {
+            "tx_hash": x402_receipt["tx_hash"],
+            "verified": True,
+        }
+        return JSONResponse(
+            content={"data": response_data, "error": None},
+            headers={
+                "X-Payment-Response": json.dumps({
+                    "verified": True,
+                    "tx_hash": x402_receipt["tx_hash"],
+                }),
+            },
+        )
 
     return {"data": response_data, "error": None}
 
