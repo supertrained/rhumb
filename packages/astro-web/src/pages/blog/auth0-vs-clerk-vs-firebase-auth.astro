@@ -7,35 +7,29 @@ import { getServiceScore } from "../../lib/api";
 import type { ServiceScoreViewModel } from "../../lib/types";
 
 const scoreMap = {
-  stripe: await getServiceScore("stripe"),
-  square: await getServiceScore("square"),
-  paypal: await getServiceScore("paypal"),
+  clerk: await getServiceScore("clerk"),
+  auth0: await getServiceScore("auth0"),
+  "firebase-auth": await getServiceScore("firebase-auth"),
 } satisfies Record<string, ServiceScoreViewModel | null>;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Stripe vs Square vs PayPal for AI Agents",
+  headline: "Auth0 vs Clerk vs Firebase Auth for AI Agents",
   datePublished: "2026-03-17T00:00:00Z",
-  author: {
-    "@type": "Person",
-    name: "Pedro Nunes",
-  },
+  author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "A side-by-side comparison of Stripe, Square, and PayPal for AI agent workflows using Rhumb's live AN Score data.",
-  url: "https://rhumb.dev/blog/stripe-vs-square-vs-paypal",
-  publisher: {
-    "@type": "Organization",
-    name: "Rhumb",
-    url: "https://rhumb.dev",
-  },
+    "Side-by-side comparison of Auth0, Clerk, and Firebase Auth for AI agent authentication workflows — using live Rhumb AN Score data.",
+  url: "https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
 
 type ComparedService = {
-  slug: "stripe" | "square" | "paypal";
+  slug: "clerk" | "auth0" | "firebase-auth";
   name: string;
   accent: string;
   accentSoft: string;
+  tagline: string;
   bestFor: string;
   avoidWhen: string;
   friction: string;
@@ -46,40 +40,43 @@ type ComparedService = {
 
 const compared: ComparedService[] = [
   {
-    slug: "stripe",
-    name: "Stripe",
-    accent: "#10B981",
-    accentSoft: "rgba(16,185,129,0.16)",
-    bestFor: "Default choice for software-native agents handling subscriptions, metered billing, or API-first checkout flows.",
-    avoidWhen: "You primarily need in-person commerce primitives or a checkout strategy built around PayPal brand preference.",
-    friction: "Restricted key scope confusion and webhook payload version drift can mislead agents unless permissions and versions are pinned.",
-    decision: "Pick Stripe unless a physical-commerce or PayPal-distribution constraint dominates.",
-    support: "Highest execution score, strongest payment autonomy, and the cleanest default model for autonomous retry-safe billing.",
-    data: scoreMap.stripe,
+    slug: "clerk",
+    name: "Clerk",
+    accent: "#8B5CF6",
+    accentSoft: "rgba(139,92,246,0.16)",
+    tagline: "default",
+    bestFor: "Agents that need the cleanest path from API key to user management. Highest execution score, modern API design, and the most agent-friendly SDK surface of the three.",
+    avoidWhen: "You need deep enterprise compliance (HIPAA, FedRAMP) or the organization is locked into Okta/Auth0 contracts. Clerk is newer and its compliance surface is still growing.",
+    friction: "JWT clock skew can cause intermittent auth rejections in distributed systems. Webhook delivery has no retry — events lost to processing latency are gone permanently. Both require defensive coding from day one.",
+    decision: "Pick Clerk unless an enterprise compliance requirement or existing contract pushes you elsewhere.",
+    support: "Highest aggregate score. The SDK surface is designed for modern frameworks (Next.js, React, etc.) and the Backend API is clean REST. Self-serve billing removes sales friction. Documented failure modes make agent hardening easier.",
+    data: scoreMap.clerk,
   },
   {
-    slug: "square",
-    name: "Square",
-    accent: "#3B82F6",
-    accentSoft: "rgba(59,130,246,0.16)",
-    bestFor: "Agents that need to bridge software logic with catalogs, locations, inventory, and real-world merchant operations.",
-    avoidWhen: "You are building pure SaaS billing and do not care about omnichannel or point-of-sale adjacency.",
-    friction: "Merchant-first onboarding, conservative rate limits, and less agent-specific permissioning make it less fluid than Stripe.",
-    decision: "Pick Square when physical commerce is part of the job, not just payment collection.",
-    support: "Solid execution with stronger commerce context than PayPal, but weaker access readiness than Stripe.",
-    data: scoreMap.square,
+    slug: "auth0",
+    name: "Auth0",
+    accent: "#F97316",
+    accentSoft: "rgba(249,115,22,0.16)",
+    tagline: "enterprise bridge",
+    bestFor: "Organizations that need HIPAA, SOC 2 Type II, SCIM, and deep RBAC with custom roles. Auth0 has the governance ceiling when compliance is the gating constraint.",
+    avoidWhen: "You are building a greenfield project and do not need enterprise compliance features. Auth0's Management API and Rules/Actions pipeline carry complexity that is unnecessary for simple auth flows.",
+    friction: "Management API rate limits are strict (varies by plan). The Rules → Actions migration creates confusion about which extensibility model to use. Okta acquisition introduced billing and dashboard changes that fragment the documentation surface.",
+    decision: "Pick Auth0 when the organization needs the deepest compliance surface or is already in the Okta ecosystem.",
+    support: "Highest governance score (9.0) but lower access readiness (5.0). The enterprise compliance surface is genuinely strong: HIPAA BAA, custom roles, audit log export, data residency. But the API surface reflects years of feature accumulation and two extensibility models.",
+    data: scoreMap.auth0,
   },
   {
-    slug: "paypal",
-    name: "PayPal",
+    slug: "firebase-auth",
+    name: "Firebase Auth",
     accent: "#F59E0B",
     accentSoft: "rgba(245,158,11,0.16)",
-    bestFor: "Operators who need PayPal-native buyer trust or specific payout/payment flows in PayPal-heavy markets.",
-    avoidWhen: "You want the cleanest agent execution path with minimal human setup and the simplest state model.",
-    friction: "Business-account verification, older dashboard ergonomics, and a multi-step payment state machine drag down autonomy.",
-    decision: "Pick PayPal only when PayPal itself is strategically required.",
-    support: "It works, but it asks agents to absorb more human-era complexity than Stripe or Square.",
-    data: scoreMap.paypal,
+    tagline: "google ecosystem",
+    bestFor: "Projects already on Firebase/GCP where auth is just one layer in a broader Google Cloud stack. The free tier (50K MAU) is the most generous of the three.",
+    avoidWhen: "You want a standalone auth solution or need to avoid Google Cloud lock-in. Firebase Auth is tightly coupled to the Firebase SDK ecosystem — using it outside that context adds friction.",
+    friction: "Admin SDK is the only agent-friendly interface; client SDKs assume browser context. Google Cloud Console setup is multi-step with IAM, service accounts, and project configuration. Token verification requires Google's public key rotation awareness.",
+    decision: "Pick Firebase Auth when the project is already on Firebase/GCP and auth is a feature, not the product.",
+    support: "Highest execution of the two runners-up (7.5), but the lowest access readiness (4.8) reflects the reality that Firebase Auth is not designed as a standalone service. It works best as part of a Firebase project — trying to use it in isolation fights the design grain.",
+    data: scoreMap["firebase-auth"],
   },
 ];
 
@@ -95,79 +92,79 @@ const updatedAt = winner?.data?.calculatedAt
 function formatScore(value: number | null | undefined): string {
   return value == null ? "—" : value.toFixed(1);
 }
-
 function formatConfidence(value: number | null | undefined): string {
   return value == null ? "—" : `${Math.round(value * 100)}%`;
 }
 
 function failureCopy(item: ComparedService): string[] {
-  if (item.slug === "stripe") {
+  if (item.slug === "clerk") {
     return [
-      "Restricted keys can return empty-looking results instead of obvious permission failures if the agent is scoped too tightly.",
-      "Webhook payload shape can drift if the endpoint version is not pinned and validated.",
-      "Test-mode rate limiting can make agent test suites look flaky if retries are naive.",
+      "JWT verification clock skew in distributed systems causes intermittent auth rejections. Agents see users randomly appear logged out — hard to reproduce, easy to misdiagnose.",
+      "Webhook events have no retry mechanism. If the agent's processing queue has latency at receipt time, the event is permanently lost. No recovery path.",
+      "Organization-level RBAC requires careful scoping. An agent managing multi-tenant auth needs to track organization context on every request or risk cross-tenant data leaks.",
     ];
   }
-  if (item.slug === "square") {
+  if (item.slug === "auth0") {
     return [
-      "Production readiness still depends on merchant/KYC setup, so agents cannot fully self-onboard the last mile.",
-      "Default rate limits are conservative enough that batching and backoff matter early.",
-      "Permissioning is adequate, but not as agent-shaped or operationally clean as Stripe's restricted-key model.",
+      "Management API rate limits vary by plan and are strict enough to break bulk user operations. Agents need pagination and backoff logic from the first integration.",
+      "Two extensibility models (legacy Rules vs current Actions) create confusion. Documentation references both; agents following stale docs will build on the deprecated model.",
+      "Okta acquisition changed the billing, dashboard, and some API surfaces. Search results and documentation may reference pre-acquisition patterns that no longer work.",
     ];
   }
   return [
-    "The order lifecycle is more stateful and approval-heavy, so agents manage more transitions before money actually settles.",
-    "Business verification and account complexity create more unavoidable human setup than the cleaner Stripe path.",
-    "Dashboard and workflow ergonomics still feel older and more operator-heavy than agent-first.",
+    "Admin SDK is the only real agent interface — client SDKs assume browser context with DOM access. Agents must use the Admin SDK or raw REST with service account credentials.",
+    "Google Cloud project setup requires IAM configuration, service account key generation, and Firebase project linking — a multi-step process that cannot be automated without GCP admin access.",
+    "Token verification requires awareness of Google's public key rotation schedule. Caching JWKs without rotation handling causes periodic auth failures that look like application bugs.",
   ];
 }
 
 const scenarioCards = [
   {
-    title: "SaaS subscriptions, usage billing, developer products",
-    pick: "Stripe",
-    why: "Best default for retry-safe software payments. Highest AN Score, strongest autonomy, and best execution profile.",
-    href: "/service/stripe",
+    title: "New project needs user auth with modern framework",
+    pick: "Clerk",
+    why: "Cleanest SDK surface, highest execution score, self-serve billing, and the most framework integrations. Productive in under an hour.",
+    href: "/service/clerk",
   },
   {
-    title: "Retail, omnichannel, or location-aware commerce",
-    pick: "Square",
-    why: "The only one of the three whose commerce model is naturally shaped around locations, catalogs, and in-person operations.",
-    href: "/service/square",
+    title: "Enterprise requires HIPAA/SOC 2 compliance for auth layer",
+    pick: "Auth0",
+    why: "Deepest compliance surface: HIPAA BAA, custom RBAC, audit log export, SCIM provisioning, data residency options.",
+    href: "/service/auth0",
   },
   {
-    title: "PayPal-native buyer demand or specific payout constraints",
-    pick: "PayPal",
-    why: "Useful when market distribution forces the decision — but choose it for business context, not for agent ergonomics.",
-    href: "/service/paypal",
+    title: "App already runs on Firebase/GCP stack",
+    pick: "Firebase Auth",
+    why: "Auth is free up to 50K MAU and integrates natively with Firestore, Cloud Functions, and other Firebase services.",
+    href: "/service/firebase-auth",
   },
 ];
 
 const agentRules = [
-  "If there is no strong external constraint, route the operator toward Stripe.",
-  "If the workflow touches physical locations, inventory, or point-of-sale systems, examine Square before PayPal.",
-  "If the requirement is simply 'accept payments on the internet,' PayPal is usually not the right default for an autonomous stack.",
-  "Treat the presence of published failure modes as trust signal, not weakness: Stripe's visible failure patterns make agent behavior easier to harden.",
-  "Never confuse zero published failure modes with zero risk. Sometimes it means the failure surface is under-documented, not absent.",
+  "If the operator has no auth provider yet, default to Clerk. It has the shortest path to working authentication.",
+  "If the operator mentions HIPAA, FedRAMP, or enterprise compliance as requirements, route to Auth0 before evaluating alternatives.",
+  "If the operator is already on Firebase or GCP, recommend Firebase Auth — the migration cost away from it exceeds the ergonomic gain.",
+  "For Clerk: implement clock skew tolerance (±10s) in JWT verification from day one. This is not optional.",
+  "For Auth0: confirm whether the operator is on Rules or Actions before writing any extensibility code. Never mix the two.",
+  "For all three: auth is a trust-critical surface. Never store tokens in logs, error messages, or diagnostic output.",
 ];
 ---
 
 <Layout
-  title="Stripe vs Square vs PayPal for AI Agents | Rhumb"
-  description="Side-by-side comparison of Stripe, Square, and PayPal for AI agents. Stripe wins by default; Square wins for physical commerce; PayPal only when distribution forces it."
-  canonical="/blog/stripe-vs-square-vs-paypal"
-  ogTitle="Stripe vs Square vs PayPal for AI Agents"
-  ogDescription="Which payment API should an AI agent use? Stripe wins by default, Square wins in physical commerce, and PayPal is mostly a constraint-driven choice."
-  ogUrl="https://rhumb.dev/blog/stripe-vs-square-vs-paypal"
+  title="Auth0 vs Clerk vs Firebase Auth for AI Agents | Rhumb"
+  description="Side-by-side comparison of Auth0, Clerk, and Firebase Auth for AI agent authentication. Clerk wins on developer ergonomics; Auth0 wins on enterprise compliance; Firebase Auth wins inside Google Cloud."
+  canonical="/blog/auth0-vs-clerk-vs-firebase-auth"
+  ogTitle="Auth0 vs Clerk vs Firebase Auth for AI Agents"
+  ogDescription="Which authentication provider should an AI agent use? Clerk wins by default, Auth0 wins for enterprise compliance, Firebase Auth wins inside GCP."
+  ogUrl="https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth"
   ogType="article"
-  twitterTitle="Stripe vs Square vs PayPal for AI Agents"
-  twitterDescription="A side-by-side decision page for operators and agents choosing a payment stack."
+  twitterTitle="Auth0 vs Clerk vs Firebase Auth for AI Agents"
+  twitterDescription="A side-by-side decision page for operators and agents choosing an authentication provider."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen overflow-hidden">
     <section class="relative border-b border-slate-800/80">
       <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
-      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom,rgba(245,158,11,0.08),transparent_35%)]"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.10),transparent_28%),radial-gradient(circle_at_bottom,rgba(245,158,11,0.08),transparent_35%)]"></div>
 
       <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
         <div class="max-w-3xl">
@@ -180,28 +177,28 @@ const agentRules = [
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
-            Stripe vs Square vs PayPal for AI agents
+            Auth0 vs Clerk vs Firebase Auth for AI agents
           </h1>
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            Stripe is the default winner for software-native agent workflows,
-            Square earns the niche if physical commerce matters,
-            and PayPal is usually a constraint-driven choice rather than the cleanest agent choice.
+            Clerk is the cleanest default for new projects,
+            Auth0 is the enterprise compliance bridge,
+            and Firebase Auth makes sense when the project already lives on Google Cloud.
           </p>
 
-          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
-            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-violet-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
               <span class="font-semibold text-slate-100">Verdict:</span>
-              {winner?.name ?? "Stripe"} wins on current Rhumb scoring because it combines the highest execution reliability,
-              the strongest payment autonomy, and the most straightforward software-native operating model.
-              Scores shown here reflect the latest published Rhumb data as of {updatedAt}.
+              Clerk leads because it combines the highest execution reliability with modern API design and the fewest legacy surfaces.
+              Auth0 has the governance edge for enterprises that need HIPAA or deep RBAC. Firebase Auth is the right default
+              inside Google Cloud but fights you everywhere else. Scores shown here reflect published Rhumb data as of {updatedAt}.
             </p>
           </div>
         </div>
 
-        <div class="mt-12 grid gap-5 lg:grid-cols-[1.18fr_0.92fr_0.9fr]">
+        <div class="mt-12 grid gap-5 lg:grid-cols-3">
           {compared.map((item, index) => (
             <article
               class:list={[
@@ -214,7 +211,7 @@ const agentRules = [
               <div class="relative">
                 <div class="flex items-start justify-between gap-4">
                   <div>
-                    <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">{index === 0 ? "default" : index === 1 ? "specialist" : "fallback"}</p>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">{item.tagline}</p>
                     <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">{item.name}</h2>
                   </div>
                   <ScoreDisplay score={item.data?.aggregateRecommendationScore ?? null} size="large" showLabel />
@@ -307,9 +304,9 @@ const agentRules = [
                   ))}
                 </tr>
                 <tr class="border-b border-slate-800/80">
-                  <td class="px-6 py-4 text-sm text-slate-300">Payment Autonomy</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Governance</td>
                   {compared.map((item) => (
-                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.p1Score)}</td>
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.g1Score)}</td>
                   ))}
                 </tr>
                 <tr class="border-b border-slate-800/80">
@@ -319,16 +316,22 @@ const agentRules = [
                   ))}
                 </tr>
                 <tr class="border-b border-slate-800/80 align-top">
-                  <td class="px-6 py-4 text-sm text-slate-300">Best fit</td>
-                  {compared.map((item) => (
-                    <td class="px-6 py-4 text-sm leading-6 text-slate-300">{item.bestFor}</td>
-                  ))}
+                  <td class="px-6 py-4 text-sm text-slate-300">Free tier</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">10K MAU<br/><span class="text-slate-500">generous for prototyping</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">7.5K MAU<br/><span class="text-slate-500">legacy; varies</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">50K MAU<br/><span class="text-slate-500">most generous</span></td>
+                </tr>
+                <tr class="border-b border-slate-800/80 align-top">
+                  <td class="px-6 py-4 text-sm text-slate-300">Auth model</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">API key + JWT<br/><span class="text-slate-500">per-key permissions</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">OAuth 2.0<br/><span class="text-slate-500">M2M client credentials</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Service account<br/><span class="text-slate-500">GCP IAM</span></td>
                 </tr>
                 <tr class="align-top">
-                  <td class="px-6 py-4 text-sm text-slate-300">Primary friction</td>
-                  {compared.map((item) => (
-                    <td class="px-6 py-4 text-sm leading-6 text-slate-400">{item.friction}</td>
-                  ))}
+                  <td class="px-6 py-4 text-sm text-slate-300">Compliance</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">SOC 2 Type II<br/><span class="text-slate-500">SCIM, SSO</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">SOC 2, HIPAA<br/><span class="text-slate-500">ISO, FedRAMP</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">SOC 2, ISO<br/><span class="text-slate-500">via GCP</span></td>
                 </tr>
               </tbody>
             </table>
@@ -353,12 +356,12 @@ const agentRules = [
             <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Decision pattern</p>
             <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">One-line rule</h2>
             <p class="mt-4 text-base leading-7 text-slate-300">
-              <span class="font-semibold text-slate-100">Stripe for default internet payments.</span>
-              {' '}Square for commerce that touches the real world.
-              {' '}PayPal only when the market demands PayPal.
+              <span class="font-semibold text-slate-100">Clerk for clean agent-first auth.</span>
+              {' '}Auth0 when enterprise compliance is the gating constraint.
+              {' '}Firebase Auth when Google Cloud already owns the infrastructure.
             </p>
-            <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
-              That is the operator answer and the agent answer. The only thing that changes is how much the agent needs to explain the exception.
+            <div class="mt-5 rounded-2xl border border-violet/20 bg-violet-500/8 p-4 text-sm leading-6 text-slate-300">
+              Auth is a trust-critical surface. Unlike payments or email, a mistake here is a security incident, not a failed transaction. Agents should prefer the option with the most documented failure modes — that is where hardening is most possible.
             </div>
           </div>
         </aside>
@@ -371,8 +374,8 @@ const agentRules = [
           <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Friction map</p>
           <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Where each one breaks in practice</h2>
           <p class="mt-4 text-slate-400 leading-relaxed">
-            Not all friction shows up as a score delta. Some of it appears as the shape of the operating burden: extra state transitions,
-            invisible permission errors, or human-only setup steps that break the promise of autonomous execution.
+            Authentication is a trust-critical surface — failures here are security incidents, not just UX friction.
+            Each provider has distinct failure patterns that agents need to defend against from day one.
           </p>
         </div>
 
@@ -414,16 +417,15 @@ const agentRules = [
       </div>
 
       <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 text-center reveal">
-        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Next step</p>
-        <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Need the broader payments field?</h2>
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
+        <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>
         <p class="mt-4 max-w-2xl mx-auto text-slate-400 leading-relaxed">
-          This comparison covers the three most commonly conflated choices. If you need the wider field,
-          Rhumb also scores Adyen, Braintree, Lemon Squeezy, and other payment surfaces in the payments leaderboard.
+          Each comparison uses the same live scoring methodology so results are directly comparable across categories.
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
-          <a href="/blog/resend-vs-sendgrid-vs-postmark" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Email</a>
+          <a href="/blog/stripe-vs-square-vs-paypal" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Payments</a>
+          <a href="/blog/resend-vs-sendgrid-vs-postmark" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Email</a>
           <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">CRM</a>
-          <a href="/blog/auth0-vs-clerk-vs-firebase-auth" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Auth</a>
         </div>
       </div>
     </section>
