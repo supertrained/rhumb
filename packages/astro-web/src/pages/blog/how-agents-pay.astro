@@ -1,0 +1,246 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How AI Agents Get Wallets and Pay for Things",
+  datePublished: "2026-03-17T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "Three paths to agent-autonomous payments: prepaid credits, x402 USDC on Base, and enterprise agent cards. Working code for each.",
+  url: "https://rhumb.dev/blog/how-agents-pay",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+// Simple markdown-to-HTML converter for server-side rendering
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  // Code blocks (fenced) — must come before inline code
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  // Tables
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split('\n').filter(r => !r.match(/^\|[\s-:|]+\|$/));
+    if (rows.length === 0) return block;
+    const headerCells = rows[0].split('|').filter(c => c.trim()).map(c =>
+      `<th class="px-4 py-3 text-left text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider">${c.trim()}</th>`
+    ).join('\n');
+    const bodyRows = rows.slice(1).map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c =>
+        `<td class="px-4 py-3 text-sm text-slate-400">${c.trim()}</td>`
+      ).join('\n');
+      return `<tr class="border-t border-slate-800">${cells}</tr>`;
+    }).join('\n');
+    return `<div class="overflow-x-auto my-6"><table class="w-full border border-slate-800 rounded-lg"><thead class="bg-elevated"><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+  });
+
+  // Headings
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">$1</h2>');
+
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/50 pl-4 my-6 text-slate-400 italic"><p>$1</p></blockquote>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-300 italic">$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">$1</code>');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    if (href.startsWith('/')) {
+      return `<a href="${href}" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+  });
+
+  // Unordered lists
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^- /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  // Ordered lists
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^\d+\. /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  // Paragraphs — wrap remaining plain text lines
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<h') || trimmed.startsWith('<hr') || trimmed.startsWith('<div')) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (trimmed.startsWith('</pre>') || trimmed.startsWith('</ul>') || trimmed.startsWith('</ol>') || trimmed.startsWith('</blockquote>') || trimmed.endsWith('</h2>') || trimmed.endsWith('</h3>') || trimmed.endsWith('</h4>') || trimmed.startsWith('<hr') || trimmed.endsWith('</div>')) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === '') {
+      result.push('');
+      continue;
+    }
+
+    if (!trimmed.startsWith('<')) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-how-agents-pay.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  // Strip YAML front matter
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  // Strip H1 title
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+
+<Layout
+  title="How AI Agents Get Wallets and Pay for Things | Rhumb"
+  description="Three paths to agent-autonomous payments: prepaid credits, x402 USDC on Base, and enterprise agent cards. Working code for each path."
+  canonical="/blog/how-agents-pay"
+  ogTitle="How AI Agents Get Wallets and Pay for Things"
+  ogDescription="Three paths to agent-autonomous payments. Prepaid credits for speed, x402 USDC for full autonomy, enterprise cards for compliance. Working code for each."
+  ogUrl="https://rhumb.dev/blog/how-agents-pay"
+  ogType="article"
+  twitterTitle="How AI Agents Get Wallets and Pay for Things"
+  twitterDescription="Three paths to agent-autonomous payments. Working code for prepaid credits, x402 USDC on Base, and enterprise agent cards."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Agent Infrastructure
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">
+            March 17, 2026
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          How AI Agents Get Wallets and Pay for Things
+        </h1>
+        <p class="text-lg text-slate-400 leading-relaxed">
+          Agents can&apos;t click &ldquo;Buy Now.&rdquo; Three payment paths have emerged for autonomous software:
+          <strong class="text-slate-200">prepaid credits</strong> (5-minute setup),
+          <strong class="text-slate-200">x402 USDC on Base</strong> (zero human involvement), and
+          <strong class="text-slate-200">enterprise agent cards</strong> (maximum compliance).
+          Working code for each.
+        </p>
+      </header>
+
+      <div class="prose-rhumb" set:html={htmlContent} />
+
+      <!-- CTA -->
+      <section class="mt-16 bg-surface border border-slate-800 rounded-xl p-8 text-center">
+        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+          See how Rhumb handles agent payments
+        </h2>
+        <p class="text-slate-400 text-sm mb-6">
+          Rhumb supports all three payment paths. Prepaid credits via Stripe,
+          x402 USDC on Base, and budget-controlled API keys &mdash; all built
+          for agents, not humans.
+        </p>
+        <a
+          href="/pricing"
+          class="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
+        >
+          View pricing &rarr;
+        </a>
+      </section>
+
+      <!-- Related -->
+      <section class="mt-12">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">
+          Related
+        </h2>
+        <div class="space-y-4">
+          <a
+            href="/blog/payments-for-agents"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Tool Autopsy
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              Why Stripe Scores 8.3 and PayPal Scores 5.2 for AI Agents
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              We scored 6 payment APIs on how well they work for AI agents &mdash;
+              not humans. The most popular one scored worst.
+            </p>
+          </a>
+          <a
+            href="/blog/agent-cards-invisible"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Agent Readability
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              Why &ldquo;Agent Cards&rdquo; Are Invisible to Agents
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              We fetched Ramp&apos;s Agent Cards page the way an agent would.
+              It extracted 3 words. Here&apos;s the full audit and the fix pattern.
+            </p>
+          </a>
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
