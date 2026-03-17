@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS payment_requests (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id               TEXT REFERENCES orgs(id),
   capability_id        TEXT NOT NULL,
-  execution_id         TEXT,
+  execution_id         TEXT,  -- matches capability_executions.id which is TEXT type
   amount_usdc_atomic   TEXT NOT NULL,   -- USDC in atomic units (string to avoid overflow)
   amount_usd_cents     INTEGER NOT NULL,
   network              TEXT NOT NULL,   -- 'base-mainnet' | 'base-sepolia'
@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS payment_requests (
 );
 
 CREATE INDEX idx_payment_requests_status ON payment_requests(status, created_at);
-CREATE INDEX idx_payment_requests_org ON payment_requests(org_id);
 CREATE INDEX idx_payment_requests_tx_hash ON payment_requests(payment_tx_hash) WHERE payment_tx_hash IS NOT NULL;
+CREATE INDEX idx_payment_requests_org ON payment_requests(org_id, created_at DESC);
 
 -- Track confirmed USDC receipts
 CREATE TABLE IF NOT EXISTS usdc_receipts (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS usdc_receipts (
 );
 
 CREATE INDEX idx_usdc_receipts_tx ON usdc_receipts(tx_hash);
-CREATE INDEX idx_usdc_receipts_unsettled ON usdc_receipts(settled, confirmed_at) WHERE settled = false;
+CREATE INDEX idx_usdc_receipts_unsettled ON usdc_receipts(settled) WHERE settled = false;
 
 -- Settlement batches (daily USDC → USD conversion)
 CREATE TABLE IF NOT EXISTS settlement_batches (
@@ -53,23 +53,19 @@ CREATE TABLE IF NOT EXISTS settlement_batches (
   created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Add settlement FK now that table exists
-ALTER TABLE usdc_receipts ADD CONSTRAINT fk_usdc_receipts_settlement
+-- Add settlement_batch_id FK after settlement_batches exists
+ALTER TABLE usdc_receipts
+  ADD CONSTRAINT fk_usdc_receipts_batch
   FOREIGN KEY (settlement_batch_id) REFERENCES settlement_batches(id);
 
--- RLS policies (service role access)
+-- RLS: service role only (same pattern as credit_ledger)
 ALTER TABLE payment_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usdc_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settlement_batches ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role full access on payment_requests"
-  ON payment_requests FOR ALL
-  USING (auth.role() = 'service_role');
-
-CREATE POLICY "Service role full access on usdc_receipts"
-  ON usdc_receipts FOR ALL
-  USING (auth.role() = 'service_role');
-
-CREATE POLICY "Service role full access on settlement_batches"
-  ON settlement_batches FOR ALL
-  USING (auth.role() = 'service_role');
+CREATE POLICY "service_role_payment_requests" ON payment_requests
+  FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "service_role_usdc_receipts" ON usdc_receipts
+  FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "service_role_settlement_batches" ON settlement_batches
+  FOR ALL USING (auth.role() = 'service_role');
