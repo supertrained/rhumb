@@ -1,0 +1,444 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  pipedrive: await getServiceScore("pipedrive"),
+  salesforce: await getServiceScore("salesforce"),
+  hubspot: await getServiceScore("hubspot"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "HubSpot vs Salesforce vs Pipedrive for AI Agents",
+  datePublished: "2026-03-17T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "No CRM is agent-native yet. Here's which one hurts the least — using live Rhumb AN Score data.",
+  url: "https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type ComparedService = {
+  slug: "pipedrive" | "salesforce" | "hubspot";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  tagline: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "pipedrive",
+    name: "Pipedrive",
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.16)",
+    tagline: "least friction",
+    bestFor: "Agents that need the simplest CRUD path to pipeline data — create deals, move stages, log activities — without fighting OAuth complexity or SPA-heavy dashboards.",
+    avoidWhen: "You need marketing automation, complex custom objects, or enterprise governance features. Pipedrive is a sales pipeline tool, not a platform.",
+    friction: "API tokens are scoped per-user, not per-app. No granular permission model means an agent with API access can modify anything the token owner can. Limited webhook reliability under load.",
+    decision: "Pick Pipedrive when the agent's job is pipeline mechanics and the organization is SMB-scale.",
+    support: "Highest execution score of the three. REST API is straightforward with predictable CRUD patterns. Self-serve billing removes the sales-team bottleneck. But no real permission scoping means governance is weak.",
+    data: scoreMap.pipedrive,
+  },
+  {
+    slug: "salesforce",
+    name: "Salesforce",
+    accent: "#3B82F6",
+    accentSoft: "rgba(59,130,246,0.16)",
+    tagline: "governance ceiling",
+    bestFor: "Enterprise organizations that need field-level security, audit trails, multi-region compliance, and granular RBAC for agent access. If compliance is the constraint, Salesforce is the only real option.",
+    avoidWhen: "The agent needs to self-provision access or the organization does not already have Salesforce. The onboarding surface is enterprise-sales-gated and effectively impossible for an agent to navigate alone.",
+    friction: "OAuth 2.0 connected app setup is a multi-step human process. Lightning SPA dashboard is not agent-readable. SOQL query language has a steep learning curve for agents. Sandbox vs production environment management adds state.",
+    decision: "Pick Salesforce when governance and compliance requirements outweigh integration simplicity.",
+    support: "The highest governance score in the comparison (10.0) but the lowest payment autonomy (2.0). This is the enterprise pattern: maximum control, minimum self-serve. Agents get powerful tools once credentialed, but getting credentialed is a human-gated multi-step process.",
+    data: scoreMap.salesforce,
+  },
+  {
+    slug: "hubspot",
+    name: "HubSpot",
+    accent: "#F97316",
+    accentSoft: "rgba(249,115,22,0.16)",
+    tagline: "broadest surface",
+    bestFor: "Organizations that want CRM, marketing automation, and sales tools in one platform, and where the agent needs to work across those boundaries (e.g., create a contact, enroll in a sequence, log a deal).",
+    avoidWhen: "You need just pipeline management. HubSpot's API surface is broad but inconsistent across hubs — the CRM API is cleaner than the marketing API, and agents need to handle different patterns for different object types.",
+    friction: "OAuth 2.0 app setup required for production use. Free tier API has strict rate limits (100 calls per 10 seconds). API surface is inconsistent across hubs — associations, custom objects, and workflows each have different patterns. Dashboard is a complex React SPA.",
+    decision: "Pick HubSpot when the agent needs to span CRM + marketing + sales in one integration.",
+    support: "Scores lowest on aggregate but has the broadest feature surface. The problem is not capability — it is consistency. An agent working across hubs needs to handle multiple API patterns, different rate limit tiers, and inconsistent error formats.",
+    data: scoreMap.hubspot,
+  },
+];
+
+const available = compared.filter((item) => item.data !== null);
+const ranked = [...available].sort(
+  (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
+);
+const winner = ranked[0];
+const updatedAt = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "recently";
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+function failureCopy(item: ComparedService): string[] {
+  if (item.slug === "pipedrive") {
+    return [
+      "API tokens are user-scoped with no granular permissions — an agent can read, write, and delete anything the token owner can access. No blast-radius control.",
+      "Webhook delivery is unreliable under burst conditions. Agents building on webhook-driven state machines need polling fallbacks.",
+      "Custom field names can collide across pipelines. Agents managing multiple pipelines need to namespace carefully or risk cross-contamination.",
+    ];
+  }
+  if (item.slug === "salesforce") {
+    return [
+      "Connected app OAuth setup is a multi-step human process through Setup UI. There is no API-only path to provision agent access.",
+      "SOQL is powerful but has a steep learning curve. An agent sending malformed SOQL gets cryptic errors that are hard to self-correct without documentation context.",
+      "Sandbox and production environments have separate credentials, URLs, and data. Agents must track which environment they are operating in — mistakes are destructive and not easily reversible.",
+    ];
+  }
+  return [
+    "Rate limits on the free tier (100 calls/10s) are aggressive enough to break standard agent polling patterns. Agents need backoff logic from the first call.",
+    "API patterns differ across hubs: CRM objects use one style, marketing uses another, and custom objects introduce a third. Agents cannot generalize a single client pattern.",
+    "Association API complexity means even simple operations like 'link this contact to this deal' require understanding association type IDs and relationship labels.",
+  ];
+}
+
+const scenarioCards = [
+  {
+    title: "SMB sales team wants agents to manage deals and pipeline",
+    pick: "Pipedrive",
+    why: "Simplest API, self-serve billing, lowest onboarding friction. Agents can be productive in minutes, not days.",
+    href: "/service/pipedrive",
+  },
+  {
+    title: "Enterprise needs agents with auditable, compliant CRM access",
+    pick: "Salesforce",
+    why: "Only option with field-level security, Shield audit trails, and the governance depth enterprise compliance teams require.",
+    href: "/service/salesforce",
+  },
+  {
+    title: "Agent spans CRM, marketing automation, and sales in one stack",
+    pick: "HubSpot",
+    why: "Broadest unified surface. Despite API inconsistencies across hubs, it is the only option where one integration covers all three.",
+    href: "/service/hubspot",
+  },
+];
+
+const agentRules = [
+  "No CRM is agent-native. Calibrate expectations: CRM integrations are harder than payments or email, and all three options carry real friction.",
+  "If the operator has no existing CRM, default to Pipedrive for the lowest integration cost.",
+  "If the operator already has Salesforce, do not suggest switching — the migration cost exceeds any agent-friendliness gain.",
+  "If the operator needs marketing automation alongside CRM, HubSpot is the path of least resistance despite the lower score.",
+  "Never assume agent-provisioned access to Salesforce. Always confirm that a human has completed the connected app setup.",
+  "For all three: implement rate-limit backoff from day one. CRM APIs are the most aggressive rate-limiters in the scored services.",
+];
+---
+
+<Layout
+  title="HubSpot vs Salesforce vs Pipedrive for AI Agents | Rhumb"
+  description="No CRM is agent-native yet. Side-by-side comparison of HubSpot, Salesforce, and Pipedrive for AI agent workflows. Pipedrive has the least friction; Salesforce has the best governance; HubSpot has the broadest surface."
+  canonical="/blog/hubspot-vs-salesforce-vs-pipedrive"
+  ogTitle="HubSpot vs Salesforce vs Pipedrive for AI Agents"
+  ogDescription="No CRM is agent-native yet. Here's which one hurts the least — using live Rhumb AN Score data."
+  ogUrl="https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive"
+  ogType="article"
+  twitterTitle="HubSpot vs Salesforce vs Pipedrive for AI Agents"
+  twitterDescription="No CRM is agent-native yet. A side-by-side decision page for operators and agents choosing a CRM stack."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_28%),radial-gradient(circle_at_bottom,rgba(249,115,22,0.08),transparent_35%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Comparison</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 17, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            HubSpot vs Salesforce vs Pipedrive for AI agents
+          </h1>
+
+          <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
+            <span class="text-slate-100 font-semibold">Short answer:</span>
+            None of these are agent-native.
+            Pipedrive has the least friction for simple pipeline operations,
+            Salesforce has the governance ceiling enterprises need,
+            and HubSpot is the broadest surface when an agent spans CRM, marketing, and sales.
+          </p>
+
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"></div>
+            <p class="text-sm leading-6 text-slate-300">
+              <span class="font-semibold text-slate-100">Reality check:</span>
+              CRM is one of the hardest categories for autonomous agents. Every option here scores below 6.0 — meaning real
+              friction in onboarding, access provisioning, or API consistency. The choice is driven by organizational constraints,
+              not agent ergonomics. Scores reflect published Rhumb data as of {updatedAt}.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-12 grid gap-5 lg:grid-cols-3">
+          {compared.map((item, index) => (
+            <article
+              class:list={[
+                "group relative overflow-hidden rounded-[28px] border bg-surface/90 backdrop-blur-sm p-6 sm:p-7 reveal",
+                index === 0 ? "lg:-translate-y-4" : "",
+              ]}
+              style={`border-color:${item.accent}40; background-image:linear-gradient(180deg, ${item.accentSoft} 0%, rgba(15,23,42,0.85) 26%, rgba(15,23,42,0.92) 100%); animation-delay:${index * 80}ms;`}
+            >
+              <div class="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={`background:radial-gradient(circle_at_top_right, ${item.accentSoft} 0%, transparent 38%);`}></div>
+              <div class="relative">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">{item.tagline}</p>
+                    <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">{item.name}</h2>
+                  </div>
+                  <ScoreDisplay score={item.data?.aggregateRecommendationScore ?? null} size="large" showLabel />
+                </div>
+
+                <div class="mt-4 flex items-center gap-3 flex-wrap">
+                  <TierBadge tier={item.data?.tier ?? null} label={item.data?.tierLabel ?? undefined} />
+                  <span class="text-xs font-mono text-slate-500">confidence {formatConfidence(item.data?.confidence)}</span>
+                </div>
+
+                <p class="mt-5 text-sm leading-6 text-slate-300">{item.bestFor}</p>
+
+                <dl class="mt-6 grid grid-cols-3 gap-3">
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Exec</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.executionScore)}</dd>
+                  </div>
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Access</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.accessReadinessScore)}</dd>
+                  </div>
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Autonomy</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.p1Score)}</dd>
+                  </div>
+                </dl>
+
+                <div class="mt-6 rounded-2xl border border-white/6 bg-navy/70 p-4">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Why it lands here</p>
+                  <p class="mt-2 text-sm leading-6 text-slate-300">{item.support}</p>
+                </div>
+
+                <div class="mt-4 space-y-3">
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Biggest friction</p>
+                    <p class="mt-1 text-sm leading-6 text-slate-400">{item.friction}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Avoid when</p>
+                    <p class="mt-1 text-sm leading-6 text-slate-400">{item.avoidWhen}</p>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between gap-4 border-t border-white/8 pt-4">
+                  <p class="text-sm font-semibold text-slate-200 max-w-[20rem]">{item.decision}</p>
+                  <a href={`/service/${item.slug}`} class="text-xs font-mono uppercase tracking-[0.2em] text-amber hover:text-amber-dark transition-colors">Service page →</a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 py-14">
+      <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/80 overflow-hidden reveal">
+          <div class="border-b border-slate-800 px-6 py-5 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Operator scoreboard</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">What the numbers actually say</h2>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px]">
+              <thead>
+                <tr class="border-b border-slate-800 text-left">
+                  <th class="px-6 py-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Metric</th>
+                  {compared.map((item) => (
+                    <th class="px-6 py-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">{item.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Aggregate AN Score</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 font-semibold text-slate-100">{formatScore(item.data?.aggregateRecommendationScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Execution</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.executionScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Access Readiness</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.accessReadinessScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Payment Autonomy</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.p1Score)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Governance</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.g1Score)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Confidence</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatConfidence(item.data?.confidence)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80 align-top">
+                  <td class="px-6 py-4 text-sm text-slate-300">Self-serve onboarding</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Yes<br/><span class="text-slate-500">credit card</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">No<br/><span class="text-slate-500">sales-gated</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">Free tier<br/><span class="text-slate-500">rate-limited</span></td>
+                </tr>
+                <tr class="align-top">
+                  <td class="px-6 py-4 text-sm text-slate-300">Auth model</td>
+                  <td class="px-6 py-4 text-sm text-slate-300">API token<br/><span class="text-slate-500">user-scoped</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">OAuth 2.0<br/><span class="text-slate-500">connected app</span></td>
+                  <td class="px-6 py-4 text-sm text-slate-300">OAuth 2.0<br/><span class="text-slate-500">private app alt</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="border-t border-slate-800 px-6 py-5">
+            <div class="flex items-start gap-3 rounded-2xl border border-amber-500/16 bg-amber-500/6 px-5 py-4">
+              <div class="mt-0.5 h-2 w-2 rounded-full bg-amber-400 shrink-0"></div>
+              <p class="text-sm leading-6 text-slate-400">
+                <span class="font-semibold text-slate-300">Note the governance inversion:</span>
+                Salesforce scores highest on governance (10.0) but lowest on payment autonomy (2.0).
+                This is the enterprise pattern — maximum control, minimum self-serve. Agents get powerful tools once
+                credentialed, but getting credentialed is human-gated.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <aside class="space-y-5 reveal">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Agent brief</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Routing rules</h2>
+            <ol class="mt-5 space-y-3">
+              {agentRules.map((rule, idx) => (
+                <li class="flex items-start gap-3">
+                  <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-navy text-[11px] font-mono text-slate-300 shrink-0">{idx + 1}</span>
+                  <span class="text-sm leading-6 text-slate-300">{rule}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Decision pattern</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">The honest take</h2>
+            <p class="mt-4 text-base leading-7 text-slate-300">
+              <span class="font-semibold text-slate-100">CRM is constraint-driven, not quality-driven.</span>
+              {' '}Unlike payments or email, the CRM choice is almost always already made before the agent enters the picture.
+              {' '}The agent's job is to work within the existing tool, not to recommend switching.
+            </p>
+            <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
+              The agent version: ask which CRM the organization already uses. If they say "none," recommend Pipedrive. If they name one, do not suggest switching — the migration cost dwarfs the integration friction delta.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-14">
+      <div class="rounded-[32px] border border-slate-800 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(2,6,23,0.4))] p-6 sm:p-8 reveal">
+        <div class="max-w-2xl">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Friction map</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Where each one breaks in practice</h2>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            CRM APIs are among the hardest for agents. The friction is structural: enterprise access gates, inconsistent API patterns across product surfaces, and authentication models that assume a human in the loop.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-5 lg:grid-cols-3">
+          {compared.map((item, index) => (
+            <article class="rounded-[26px] border bg-navy/55 p-6" style={`border-color:${item.accent}30; animation-delay:${index * 90}ms;`}>
+              <div class="flex items-center justify-between gap-4">
+                <h3 class="font-display font-bold text-xl text-slate-100">{item.name}</h3>
+                <span class="h-2.5 w-2.5 rounded-full" style={`background:${item.accent}`}></span>
+              </div>
+              <ul class="mt-5 space-y-3">
+                {failureCopy(item).map((line) => (
+                  <li class="flex items-start gap-3 text-sm leading-6 text-slate-300">
+                    <span class="mt-2 h-1.5 w-1.5 rounded-full bg-slate-500 shrink-0"></span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-16">
+      <div class="grid gap-5 lg:grid-cols-3 reveal">
+        {scenarioCards.map((card, index) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface/85 p-6" style={`animation-delay:${index * 80}ms;`}>
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Scenario</p>
+            <h3 class="mt-2 font-display font-bold text-xl text-slate-100 leading-snug">{card.title}</h3>
+            <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-3 py-1">
+              <span class="text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-300">Pick</span>
+              <span class="text-sm font-semibold text-slate-100">{card.pick}</span>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-slate-400">{card.why}</p>
+            <a href={card.href} class="mt-6 inline-flex text-xs font-mono uppercase tracking-[0.2em] text-amber hover:text-amber-dark transition-colors">Open scorecard →</a>
+          </article>
+        ))}
+      </div>
+
+      <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 text-center reveal">
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
+        <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>
+        <p class="mt-4 max-w-2xl mx-auto text-slate-400 leading-relaxed">
+          Each comparison uses the same live scoring methodology so results are directly comparable.
+        </p>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+          <a href="/blog/stripe-vs-square-vs-paypal" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Payments comparison</a>
+          <a href="/blog/resend-vs-sendgrid-vs-postmark" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Email comparison</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
