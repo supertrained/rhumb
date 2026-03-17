@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
             "http://localhost:3001",
         ],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
         allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
