@@ -47,19 +47,7 @@ const PRICING_JSON_LD = {
         </p>
       </header>
 
-      <!-- Status Banner -->
-      <div class="mb-12 bg-elevated border border-amber/30 rounded-xl p-5">
-        <div class="flex items-start gap-3">
-          <span class="text-amber text-lg">🚧</span>
-          <div class="text-slate-400 text-sm leading-relaxed">
-            <strong class="text-slate-200">Payment system activating.</strong>
-            The pricing model below is final. Payment rails (Stripe checkout and
-            x402 USDC) are built and tested but <strong class="text-slate-200">not yet live in production</strong>.
-            We're completing activation now. Scores, the MCP server, and the REST API
-            remain free and fully operational.
-          </div>
-        </div>
-      </div>
+      <!-- Payment rails are live as of 2026-03-17 -->
 
       <!-- Section 1: Pricing Model -->
       <section class="mb-16">
@@ -194,15 +182,10 @@ const PRICING_JSON_LD = {
               <span class="font-display font-semibold text-slate-200">
                 Prepaid Credits
               </span>
-              <span
-                class="font-mono text-[10px] font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded uppercase tracking-wider"
-              >
-                Activating
-              </span>
             </div>
             <p class="text-slate-400 text-sm">
               Top up your org's credit wallet via Stripe checkout. Credits are
-              deducted per-execution. <span class="text-yellow-400/80">Checkout is being activated — not yet available.</span>
+              deducted per-execution.
             </p>
           </div>
 
@@ -372,14 +355,9 @@ Headers: X-Rhumb-Key: &lt;your-key&gt;
               <span class="font-display font-semibold text-slate-200">
                 x402 Protocol — USDC on Base
               </span>
-              <span
-                class="font-mono text-[10px] font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded uppercase tracking-wider"
-              >
-                Activating
-              </span>
             </div>
             <p class="text-slate-400 text-sm">
-              Pay on-chain per-request. No pre-funding needed. <span class="text-yellow-400/80">USDC rail is being activated — not yet available.</span>
+              Pay on-chain per-request. No pre-funding needed.
             </p>
           </div>
 
@@ -517,11 +495,10 @@ rhumb execute_capability --capability_id email.send --body &#123;...&#125;</code
           >
             <span class="text-amber mt-0.5 text-xs">→</span>
             <div>
-              <strong class="text-slate-200 text-sm">Two payment rails <span class="text-yellow-400/80 font-normal">(activating)</span></strong>
+              <strong class="text-slate-200 text-sm">Two payment rails</strong>
               <p class="text-slate-400 text-sm mt-0.5">
                 Stripe prepaid credits (check balance → spend) or x402 USDC on
                 Base (HTTP 402 → on-chain payment → retry with tx hash).
-                Both rails are built and tested; production activation in progress.
               </p>
             </div>
           </div>
