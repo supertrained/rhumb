@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from routes._supabase import supabase_fetch
+from services.payment_metrics import log_payment_event
 from services.stripe_billing import create_payment_intent
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ async def check_and_trigger_auto_reload(
         )
         if recent:
             logger.info("Auto-reload skipped for %s: recent reload within 60s", org_id)
+            log_payment_event("auto_reload_dedup_blocked", org_id=org_id)
             return {"status": "skipped", "reason": "recent_reload"}
 
         # 3. Validate payment method
@@ -76,6 +78,12 @@ async def check_and_trigger_auto_reload(
                 org_id,
                 amount_cents,
                 intent.get("id"),
+            )
+            log_payment_event(
+                "auto_reload_triggered",
+                org_id=org_id,
+                amount_usd_cents=amount_cents,
+                provider="stripe",
             )
             return {
                 "status": "triggered",

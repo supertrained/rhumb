@@ -10,6 +10,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from routes._supabase import supabase_count, supabase_fetch, supabase_patch
+from services.payment_health import get_payment_health
 from services.stripe_billing import create_checkout_session
 
 router = APIRouter(tags=["billing"])
@@ -251,3 +252,19 @@ async def update_auto_reload(
             amount_cents / 100 if amount_cents is not None else None
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
+
+
+@router.get("/billing/health")
+async def billing_health() -> dict:
+    """Payment system health check. No auth required."""
+    from config import settings
+
+    health = await get_payment_health(
+        settings.supabase_url, settings.supabase_service_role_key
+    )
+    return health

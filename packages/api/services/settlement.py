@@ -15,6 +15,7 @@ from routes._supabase import (
     supabase_insert_returning,
     supabase_patch,
 )
+from services.payment_metrics import log_payment_event
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,10 @@ async def create_daily_settlement_batch(batch_date: str | None = None) -> dict |
         len(receipt_ids),
         total_usdc,
     )
+    log_payment_event(
+        "settlement_batch_started",
+        batch_count=len(receipt_ids),
+    )
 
     return {
         "batch_id": batch_id,
@@ -143,5 +148,9 @@ async def mark_batch_converted(
         "Settlement batch %s marked converted: %d USD cents",
         batch_id,
         total_usd_cents,
+    )
+    log_payment_event(
+        "settlement_converted",
+        amount_usd_cents=total_usd_cents,
     )
     return True

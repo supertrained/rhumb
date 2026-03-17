@@ -15,6 +15,7 @@ import httpx
 
 from config import settings
 from services.budget_enforcer import BudgetEnforcer
+from services.payment_metrics import log_payment_event
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,12 @@ class CreditDeductionService:
             allowed = bool(data.get("allowed", False))
             if allowed:
                 remaining = data.get("remaining_cents")
+                log_payment_event(
+                    "credit_deducted",
+                    org_id=org_id,
+                    amount_usd_cents=amount_cents,
+                    execution_id=execution_id,
+                )
                 return CreditDeductionResult(
                     allowed=True,
                     remaining_cents=int(remaining) if remaining is not None else None,
@@ -132,6 +139,14 @@ class CreditDeductionService:
                     used_budget_fallback=True,
                 )
 
+            log_payment_event(
+                "credit_insufficient",
+                org_id=org_id,
+                amount_usd_cents=amount_cents,
+                execution_id=execution_id,
+                success=False,
+                error=reason or "insufficient_credits",
+            )
             return CreditDeductionResult(
                 allowed=False,
                 remaining_cents=(

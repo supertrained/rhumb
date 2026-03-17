@@ -13,6 +13,7 @@ import httpx
 import stripe
 
 from config import settings
+from services.payment_metrics import log_payment_event
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,13 @@ async def create_checkout_session(
         cancel_url=cancel_url,
     )
 
+    log_payment_event(
+        "checkout_created",
+        org_id=org_id,
+        amount_usd_cents=amount_cents,
+        provider="stripe",
+    )
+
     return {"checkout_url": session.url, "session_id": session.id}
 
 
@@ -206,4 +214,10 @@ async def handle_checkout_completed(session: dict[str, Any]) -> bool:
     })
 
     logger.info("Credited %d cents to org %s (new balance: %d)", amount_cents, org_id, new_balance)
+    log_payment_event(
+        "credits_added",
+        org_id=org_id,
+        amount_usd_cents=amount_cents,
+        provider="stripe",
+    )
     return True

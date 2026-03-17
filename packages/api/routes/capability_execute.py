@@ -31,6 +31,7 @@ from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
+from services.payment_metrics import log_payment_event
 from services.x402 import PaymentRequiredException
 from services.x402_middleware import decode_x_payment_header
 from services.usdc_verifier import verify_usdc_payment
@@ -356,6 +357,16 @@ async def execute_capability(
             )
 
             if not verification.get("valid"):
+                log_payment_event(
+                    "x402_payment_failed",
+                    org_id=org_id,
+                    capability_id=capability_id,
+                    execution_id=execution_id,
+                    tx_hash=tx_hash,
+                    network=network,
+                    success=False,
+                    error=verification.get("error", "unknown"),
+                )
                 raise HTTPException(
                     status_code=402,
                     detail=f"Payment verification failed: {verification.get('error', 'unknown')}",
@@ -399,6 +410,15 @@ async def execute_capability(
                     {"balance_usd_cents": new_balance},
                 )
 
+            log_payment_event(
+                "x402_payment_verified",
+                org_id=org_id,
+                capability_id=capability_id,
+                execution_id=execution_id,
+                tx_hash=tx_hash,
+                network=network,
+                amount_usd_cents=billed_cost_cents,
+            )
             x402_receipt = verification
 
     # Step 1: existing agent budget check (unchanged)
@@ -407,6 +427,13 @@ async def execute_capability(
     )
     budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
     if not budget_result.allowed:
+        log_payment_event(
+            "x402_payment_required",
+            org_id=org_id,
+            capability_id=capability_id,
+            execution_id=execution_id,
+            amount_usd_cents=billed_cost_cents,
+        )
         raise PaymentRequiredException(
             capability_id=capability_id,
             cost_usd_cents=billed_cost_cents,
