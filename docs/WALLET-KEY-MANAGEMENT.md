@@ -1,35 +1,50 @@
 # Wallet Key Management — Rhumb
 
-## Phase 1: USDC Receive Wallet (Base)
+> Last updated: 2026-03-17
 
-| Field | Value |
-|-------|-------|
-| **Address** | `0xA913150269E9FB5Fe3f79e3d8f1E790EC6BA5786` |
-| **Network** | Base (mainnet + sepolia — same address works on both) |
-| **Type** | EOA (Externally Owned Account) |
-| **Purpose** | Receive-only wallet for x402 USDC payments |
-| **Private Key** | 1Password: "Rhumb USDC Receive Wallet (Base)" in vault "OpenClaw Agents" |
-| **Created** | 2026-03-17 |
+## Phase 1: EOA Receive Wallet
 
-## Security Rules
+**Address:** `0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623`  
+**Network:** Base (Mainnet + Sepolia — same address on both)  
+**Type:** EOA (Externally Owned Account) — not a smart contract wallet  
+**Purpose:** Receive USDC payments from x402-capable agents  
 
-1. **Private key lives ONLY in 1Password.** Never in env vars, code, config files, or logs.
-2. **Address** is public and safe to share — it's in the x402 402 responses.
-3. **Railway env var:** Only the address goes in Railway: `RHUMB_USDC_WALLET_ADDRESS=0xA913150269E9FB5Fe3f79e3d8f1E790EC6BA5786`
-4. **No outbound transactions in Phase 1.** This wallet only receives USDC. Settlement (USDC → USD) is a Phase 2 concern handled by Coinbase Commerce or manual conversion.
-5. **If the key is ever compromised:** Rotate immediately (generate new wallet, update Railway env, update 1Password, sweep remaining USDC from old address).
+### Key Storage
+- **Primary:** 1Password vault `OpenClaw Agents`, item `Rhumb USDC Receive Wallet`
+- **Fields:** `credential` (private key), `address`, `network`, `notes`
+- **Access:** Pedro (via `sop`) — never expose in code, logs, or env vars
 
-## USDC Contract Addresses
+### Environment Variables (Railway)
+| Variable | Value | Environment |
+|---|---|---|
+| `RHUMB_USDC_WALLET_ADDRESS` | `0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623` | production |
 
-| Network | Contract |
-|---------|----------|
-| Base Mainnet | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| Base Sepolia | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+The private key is **NOT** in Railway. Only the public address is set as an env var.
 
-## Phase 2+ Upgrade Path
+### Key Operations
+This wallet is **receive-only** in Phase 1:
+- ✅ Receive USDC from agents paying for capability execution
+- ❌ Does NOT initiate transactions
+- ❌ Does NOT need ETH for gas (receive-only)
+- ❌ Does NOT hold or manage tokens beyond received USDC
 
-When volume justifies it, migrate from EOA to:
-- **Coinbase Agentic Wallet** (MPC-based, programmatic access, no raw key exposure)
-- Or **Safe (Gnosis) multisig** for higher-value operations
+### Settlement
+In Phase 1, USDC settlement (conversion to USD) is a manual process:
+1. Transfer USDC from this wallet to Coinbase exchange
+2. Convert USDC → USD
+3. Track in `settlement_batches` table
 
-The address will change — update Railway env vars and the x402 response builder at that time.
+Phase 2 will automate settlement via Coinbase Commerce API.
+
+### Recovery
+If the 1Password item is lost:
+1. The wallet is permanently inaccessible
+2. Any USDC in the wallet is permanently lost
+3. Generate a new wallet and update `RHUMB_USDC_WALLET_ADDRESS` in Railway
+
+### Phase 2 Upgrade Path
+Phase 2 will move to Coinbase Agentic Wallets (MPC-based):
+- No single private key — key shares distributed across Coinbase infrastructure
+- Programmable spending policies
+- Automated settlement
+- The Phase 1 EOA wallet will be deprecated and any remaining balance swept to the new wallet
