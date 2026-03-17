@@ -15,6 +15,8 @@ export const GET: APIRoute = async () => {
     .map((s) => `- /service/${s.slug} — ${s.description ?? s.name} [${s.category}]`)
     .join("\n");
 
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://rhumb-api-production-f173.up.railway.app/v1";
+
   const content = `# Rhumb — Agent-Native Tool Intelligence
 > https://rhumb.dev
 
@@ -32,12 +34,24 @@ MCP tools available:
   get_score("stripe") — detailed AN Score breakdown
   get_alternatives("stripe") — comparable services ranked
   get_failure_modes("stripe") — known failure patterns
+  discover_capabilities({ domain: "communication" }) — browse executable capabilities
+  resolve_capability({ capability: "email.send" }) — rank providers for a capability
+  estimate_capability({ capability_id: "email.send" }) — estimate cost before execution
+  execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — execute through Rhumb
+  budget() — check budget status
+  spend() — view spend by capability/provider
+  check_balance() — current credit balance
+  get_payment_url({ amount_usd: 25 }) — top up credits
+
+## API Base URL
+${apiBase}
 
 ## API Endpoints
-- GET /v1/services — list all scored services
-- GET /v1/services/{slug}/score — detailed score breakdown
-- GET /v1/leaderboard/{category} — ranked services by category
-- GET /v1/search?q={query} — semantic search
+- GET ${apiBase}/services — list scored services
+- GET ${apiBase}/services/{slug}/score — detailed score breakdown
+- GET ${apiBase}/services/{slug}/failures — active failure modes
+- GET ${apiBase}/leaderboard/{category} — ranked services by category
+- GET ${apiBase}/search?q={query} — semantic search
 
 ## Categories
 ${categoryList}

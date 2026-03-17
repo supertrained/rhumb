@@ -1,7 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 
-const BASE_URL = "https://api.rhumb.dev/v1";
+const BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? "https://rhumb-api-production-f173.up.railway.app/v1";
 
 const ENDPOINTS = [
   {
@@ -9,17 +9,22 @@ const ENDPOINTS = [
     path: "/v1/services",
     desc: "List all scored services",
     curl: `curl ${BASE_URL}/services`,
-    response: `[
-  {
-    "slug": "stripe",
-    "name": "Stripe",
-    "category": "payments",
-    "aggregate_recommendation_score": 8.09,
-    "tier": "L4",
-    "tier_label": "Native"
+    response: `{
+  "data": {
+    "items": [
+      {
+        "slug": "adyen",
+        "name": "Adyen",
+        "category": "payments",
+        "description": "Enterprise payment platform with global reach"
+      }
+    ],
+    "total": 212,
+    "limit": 1,
+    "offset": 0
   },
-  ...
-]`,
+  "error": null
+}`,
   },
   {
     method: "GET",
@@ -51,55 +56,74 @@ const ENDPOINTS = [
     path: "/v1/services/{slug}/failures",
     desc: "Active failure modes for a service",
     curl: `curl ${BASE_URL}/services/stripe/failures`,
-    response: `[
-  {
-    "title": "Restricted key scope confusion",
-    "description": "...",
-    "severity": "high",
-    "frequency": "common",
-    "agent_impact": "Agent creates key with insufficient scope...",
-    "workaround": "Always request full scope list first...",
-    "category": "authentication"
-  }
-]`,
+    response: `{
+  "data": {
+    "slug": "stripe",
+    "failure_modes": [
+      {
+        "pattern": "Restricted key scope confusion",
+        "description": "Restricted API keys can return empty results outside scope.",
+        "severity": "high",
+        "frequency": "occasional",
+        "impact": "Agent may mistake missing permission for missing data.",
+        "workaround": "Test restricted keys explicitly and check scope indicators.",
+        "category": "auth"
+      }
+    ]
+  },
+  "error": null
+}`,
   },
   {
     method: "GET",
     path: "/v1/leaderboard/{category}",
     desc: "Ranked services by category",
     curl: `curl ${BASE_URL}/leaderboard/payments`,
-    response: `[
-  {
-    "slug": "stripe",
-    "name": "Stripe",
-    "aggregate_recommendation_score": 8.09,
-    "tier": "L4",
-    "rank": 1
+    response: `{
+  "data": {
+    "category": "payments",
+    "items": [
+      {
+        "service_slug": "stripe",
+        "name": "Stripe",
+        "score": 8.09,
+        "execution_score": 9.0,
+        "access_score": 6.6,
+        "tier": "L4",
+        "tier_label": "Native"
+      },
+      {
+        "service_slug": "stripe-connect",
+        "name": "Stripe Connect",
+        "score": 8.0,
+        "tier": "L4"
+      }
+    ]
   },
-  {
-    "slug": "lemon-squeezy",
-    "name": "Lemon Squeezy",
-    "aggregate_recommendation_score": 6.56,
-    "tier": "L3",
-    "rank": 2
-  },
-  ...
-]`,
+  "error": null
+}`,
   },
   {
     method: "GET",
     path: "/v1/search?q={query}",
     desc: "Search services by name, category, or description",
     curl: `curl "${BASE_URL}/search?q=payment"`,
-    response: `[
-  {
-    "slug": "stripe",
-    "name": "Stripe",
-    "category": "payments",
-    "aggregate_recommendation_score": 8.09
+    response: `{
+  "data": {
+    "query": "payment",
+    "limit": 10,
+    "results": [
+      {
+        "service_slug": "stripe",
+        "name": "Stripe",
+        "category": "payments",
+        "aggregate_recommendation_score": 8.09,
+        "tier": "L4"
+      }
+    ]
   },
-  ...
-]`,
+  "error": null
+}`,
   },
 ];
 
