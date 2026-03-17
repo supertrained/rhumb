@@ -4,94 +4,92 @@
 
 ## Who I Am
 
-Pedro — product lead for Rhumb. I orchestrate coding agents to build. Product thinking stays with me. Code goes to agents.
+Pedro — operator running Rhumb end-to-end. Product judgment stays with me. Specialists and coding lanes accelerate crisp slices; they do not replace ownership.
 
 ## What I Know About This Project
 
-- **Project**: Rhumb — agent-native tool discovery, access, and build platform
-- **Tech stack**: FastAPI (Python), Next.js 15, Supabase, Redis, Vercel + Railway
-- **Current focus**: Strategy crystallization → autonomous build setup
-- **Started using Compound Beads**: 2026-03-03
+- **Project:** Rhumb — infrastructure layer agents use to discover, access, and trust external tools
+- **Tech stack:** FastAPI, Astro 6, Supabase, Railway, Vercel, npm MCP package
+- **Current focus:** live-product audit, public truth-surface integrity, and shipping handoff-ready content from real user/agent friction
+- **Operating mode:** audit-first, ship what the audit proves is missing, keep claims tied to live verification
 
-## What Exists
+## What Exists Now
 
 | Resource | Purpose |
 |----------|---------|
-| `SOUL.md` | Identity and voice |
-| `MEMORY.md` | Long-term curated memory |
-| `SWARM.md` | Agent orchestration playbook |
-| `PRINCIPLES.md` | 8 decision principles |
-| `BACKLOG.md` | Phased work queue |
-| `BUILD-PLAN.md` | Master execution plan (creating now) |
-| `memory/working/panel-synthesis.md` | Complete expert panel synthesis |
-| `reference/panels/` | Raw panel outputs (7 files) |
-| `.compound-beads/rounds.jsonl` | Machine-readable round history |
-| `.compound-beads/learnings.md` | Compounded insights |
+| `docs/AUDIT-CONTENT-CJ-AFFILIATES-2026-03-17.md` | repo-level content, customer journey, and affiliate audit |
+| `BACKLOG.md` | prioritized product/growth backlog from live testing |
+| `memory/working/continuation-brief.md` | current operating stack and blockers |
+| `memory/working/tom-todo.md` | only things Pedro needs from Tom |
+| `memory/working/decision-log.md` | active locks / launch gates / policy changes |
+| `docs/PUBLIC-CLAIM-LEDGER.md` | launch-critical truth surface for public claims |
 
-### Key Project Files
-- `STRATEGY.md` — vision/positioning/moat/revenue (Round 1 output)
-- `AN-SCORE-SPEC.md` — scoring methodology spec (Round 2)
-- `BUILD-PLAN.md` — master execution plan with work units + agent assignments
+### Current Product Truth
+- `rhumb.dev` live
+- Railway API live
+- `rhumb-mcp@0.6.0` live with 16 tools
+- 212 services scored
+- 103 capabilities across 30 domains
+- 249 service mappings, 6 bundles
+- 1054 reviews, 168 runtime-backed (15.9%) — public review stats remain frozen until ratio recovers above 20%
+- Stripe prepaid credits + x402 USDC path operational in production
 
 ## Current Round
 
-- **Display ID**: Round 3
-- **Machine ID**: cb-r003
-- **Type**: infrastructure
-- **Goal**: Repo scaffold (WU 0.4) + Begin hand-scoring first 5 services
-- **Status**: in_progress
-- **Started**: 2026-03-03T13:48:00-08:00
-- **Sub-agent**: Codex (WU-0.4-SCOPE.md) — spawned 13:48 PST
+- **Display ID:** Round 23
+- **Machine ID:** cb-r023
+- **Type:** growth
+- **Goal:** Convert live audit findings into tighter journey truth surfaces and public content humans can hand to agents
+- **Status:** in_progress
+- **Started:** 2026-03-17T13:40:00-07:00
+- **DRI:** Pedro
 
-## Modified Files This Round
+## Modified / Shipped This Round
 
-- `.compound-beads/QUICKSTART.md` — created
-- `.compound-beads/context.md` — created (this file)
-- `.compound-beads/rounds.jsonl` — created
-- `.compound-beads/learnings.md` — created
+- Patched CLI default API base + env override to avoid dead `api.rhumb.dev` DNS path
+- Updated docs examples to match actual `{ data, error }` wrapper behavior
+- Updated `llms.txt`/docs references toward real API host usage
+- Confirmed live search and billing endpoint behavior
+- Added `docs/AUDIT-CONTENT-CJ-AFFILIATES-2026-03-17.md`
+- Shipped first comparison page: `/blog/stripe-vs-square-vs-paypal` (product commit `57fbcee`)
 
 ## Ready Tasks
 
-- [READY] Write BUILD-PLAN.md — master execution plan with phases, work units, agent routing
-- [READY] Write STRATEGY.md — vision, positioning, moat, revenue model, competitive, beachhead
-- [READY] Handle namespace: npm claim, PyPI registration (self-serve until payment needed)
+- [READY] Close onboarding dead end: define truthful public path for account creation / API key issuance or remove misleading implied flow
+- [READY] Ship second high-signal comparison page (`Resend vs SendGrid vs Postmark`) or tool-autopsy surface
+- [READY] Fix remaining support-truth inconsistencies (`api.rhumb.dev` references still lingering in API/provisioning codepaths; score endpoint wrapper inconsistency)
+- [READY] Verify the comparison page is properly linked/indexed and folded into content distribution surfaces
 
 ## Blocked Tasks
 
-- [BLOCKED] npm "rhumb" claim — needs support request + Tom for identity verification
-  └─ Needs: Tom's npm account or support ticket submission
-- [BLOCKED] PyPI "rhumb" registration — needs Tom's PyPI account or credentials
-  └─ Needs: Tom to register or provide credentials
-- [BLOCKED] Trademark filing (IC 009 + IC 042)
-  └─ Needs: Legal action from Tom ($350+ filing fee)
+- [BLOCKED] Final pricing model expansion (`GET /v1/pricing`, free tier count, volume discounts, x402 margin)
+  └─ Needs: Tom confirmation on model boundaries
+- [BLOCKED] Launch timing / provider outreach
+  └─ Needs: Tom go/no-go
+- [BLOCKED] Keel runtime-backed ratio recovery via additional provider keys
+  └─ Needs: ~11 API keys from Tom
 
 ## Discovered Work
 
-- [DISCOVERED] StrongDM "Dark Factory" pattern — autonomous agent build loops (from brain-dump-grok.md)
-- [DISCOVERED] Boris Cherny insight: "build for the model 6 months from now" — don't over-scaffold
-- [DISCOVERED] Compound beads needs adaptation for OpenClaw (not Claude Code native)
+- [DISCOVERED] The conversion bottleneck is no longer raw scoring breadth; it is the gap between public interest and self-serve activation.
+- [DISCOVERED] Comparison pages are the highest-leverage human→agent handoff artifact because they compress decision, score context, and routing guidance into a single link.
+- [DISCOVERED] `web_search` instability is a real dogfood signal during pricing-model panel work; search fallbacks need a more reliable operating pattern.
 
 ## Open Questions
 
-- [OPEN] How to adapt compound beads round tracking for OpenClaw sessions (no Claude Code session IDs)? - Raised: 2026-03-03 - Urgency: important
-- [OPEN] Should we initialize a separate GitHub repo for the build, or use existing rhumb-workspace? - Raised: 2026-03-03 - Urgency: important
+- [OPEN] What is the truthful public self-serve path before full dashboard/account infrastructure exists?
+- [OPEN] Which next content surface compounds fastest: email-provider comparison or tool-autopsy series?
+- [OPEN] Should `api.rhumb.dev` be restored via DNS/rewrite, or should Railway be the explicit public API host until proxying exists?
 
 ## Session Decisions
 
-- **Panels complete, build mode**: Move from research to autonomous execution. Tom directive. Rationale: signal saturated, 13 panelists + 2 agent personas, marginal insight diminishing.
-- **Compound beads for project org**: Adopt methodology from Tom's skill library for iterative rounds. Rationale: proven across 127 rounds, compounds knowledge, fits agent swarm pattern.
+- **Audit-first over speculative building:** when engineering is unblocked but not urgent, use dead cycles to thoroughly test the live product from multiple personas and ship fixes from evidence.
+- **Truth surfaces outrank polish:** docs/llms/CLI/API parity is launch-critical trust infrastructure, not content garnish.
+- **Comparison pages are product, not marketing:** these are operational artifacts a human can hand directly to an agent.
 
 ## Recent Activity
 
 | Date | Round | Activity |
 |------|-------|----------|
-| 2026-03-03 | 1 | Initialized compound beads, absorbing execution patterns |
-
-## Partial Completion Tracking
-
-- **Status**: 2/3 in progress (67%)
-- [x] WU 0.4 scope written (14,869 bytes)
-- [x] Codex sub-agent spawned (mode=run, 1h timeout, run ID aa340feb-...)
-- [x] Hand-scoring: 5/20 services complete (Stripe 8.9, HubSpot 5.7, SendGrid 7.9, Resend 8.7, GitHub 7.9)
-- [ ] In progress: WU 0.4 repo scaffold (Codex agent running)
-- [ ] In progress: Hand-score services 6-20 (Pedro)
+| 2026-03-17 | 23 | Live audit identified trust-surface breakage and onboarding dead ends |
+| 2026-03-17 | 23 | First comparison page shipped live from audit evidence |
