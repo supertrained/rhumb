@@ -26,11 +26,13 @@ from routes.proxy import (
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.budget_enforcer import BudgetEnforcer
+from services.credit_deduction import CreditDeductionService
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.routing_engine import RoutingEngine
 
 _budget_enforcer = BudgetEnforcer()
+_credit_deduction = CreditDeductionService()
 _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
 
@@ -246,53 +248,9 @@ async def execute_capability(
     if agent is None:
         raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
     agent_id = agent.agent_id
+    org_id = agent.organization_id
 
-    # 0. Pre-execution budget check
-    # Estimate cost from capability_services for budget enforcement
-    cost_estimate = 0.0
-    cap_services = await _get_capability_services(capability_id)
-    if cap_services:
-        # Use the cheapest mapped cost as the budget reservation
-        costs = [float(m["cost_per_call"]) for m in cap_services if m.get("cost_per_call") is not None]
-        cost_estimate = min(costs) if costs else 0.0
-
-    budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
-    if not budget_result.allowed:
-        raise HTTPException(status_code=402, detail=budget_result.reason)
-
-    budget_remaining = budget_result.remaining_usd
-
-    # 1. Verify capability exists
-    cap = await _resolve_capability(capability_id)
-    if cap is None:
-        # Release budget reservation since we're not executing
-        if cost_estimate > 0:
-            await _budget_enforcer.release(agent_id, cost_estimate)
-        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
-
-    # ── Mode 2: Rhumb-managed execution ──────────────────────────────
-    if request.credential_mode == "rhumb_managed":
-        from services.rhumb_managed import get_managed_executor
-        executor = get_managed_executor()
-        try:
-            result = await executor.execute(
-                capability_id=capability_id,
-                agent_id=agent_id,
-                body=request.body,
-                params=request.params,
-                service_slug=request.provider,
-                interface=request.interface,
-            )
-        except Exception:
-            # Release budget on failure
-            if cost_estimate > 0:
-                await _budget_enforcer.release(agent_id, cost_estimate)
-            raise
-        if budget_remaining is not None:
-            result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
-        return {"data": result, "error": None}
-
-    # ── Mode 3: Agent Vault (per-request token) ────────────────────
+    # Validate required fields before reserving any budget/credits.
     if request.credential_mode == "agent_vault":
         if not x_agent_token:
             raise HTTPException(
@@ -310,8 +268,114 @@ async def execute_capability(
                 status_code=400,
                 detail="provider is required for agent_vault credential mode",
             )
+    elif request.credential_mode != "rhumb_managed":
+        if not request.method or not request.path:
+            raise HTTPException(
+                status_code=400,
+                detail="method and path are required for byo credential mode",
+            )
 
-        # Validate token format
+    # Idempotency before reservations.
+    if request.idempotency_key:
+        existing = await supabase_fetch(
+            f"capability_executions?idempotency_key=eq.{quote(request.idempotency_key)}"
+            f"&select=id,upstream_status,cost_estimate_usd&limit=1"
+        )
+        if existing:
+            return {
+                "data": {
+                    "capability_id": capability_id,
+                    "execution_id": existing[0]["id"],
+                    "deduplicated": True,
+                },
+                "error": None,
+            }
+
+    # 0. Pre-execution budget/credit reservation estimate
+    cost_estimate = 0.0
+    cap_services = await _get_capability_services(capability_id)
+    if cap_services:
+        costs = [float(m["cost_per_call"]) for m in cap_services if m.get("cost_per_call") is not None]
+        cost_estimate = min(costs) if costs else 0.0
+
+    upstream_cost_cents = int(round(cost_estimate * 100)) if cost_estimate > 0 else 0
+    billed_cost_cents = int(round(upstream_cost_cents * 1.2)) if upstream_cost_cents > 0 else 0
+    margin_cents = billed_cost_cents - upstream_cost_cents
+
+    execution_id = f"exec_{uuid.uuid4().hex}"
+
+    # Step 1: existing agent budget check (unchanged)
+    budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
+    if not budget_result.allowed:
+        raise HTTPException(status_code=402, detail=budget_result.reason)
+
+    budget_remaining = budget_result.remaining_usd
+
+    # Step 2: org credit deduction (only when estimated cost > 0)
+    credit_reserved = False
+    credit_remaining_cents: int | None = None
+    if billed_cost_cents > 0:
+        credit_result = await _credit_deduction.deduct(
+            org_id,
+            billed_cost_cents,
+            execution_id=execution_id,
+            agent_id=agent_id,
+            fallback_cost_usd=cost_estimate,
+            skip_budget_fallback=True,
+        )
+        if not credit_result.allowed:
+            if cost_estimate > 0:
+                await _budget_enforcer.release(agent_id, cost_estimate)
+            raise HTTPException(
+                status_code=402,
+                detail=credit_result.reason or "Insufficient org credits",
+            )
+        credit_reserved = billed_cost_cents > 0
+        credit_remaining_cents = credit_result.remaining_cents
+
+    async def _release_reservations() -> None:
+        if cost_estimate > 0:
+            await _budget_enforcer.release(agent_id, cost_estimate)
+        if credit_reserved and billed_cost_cents > 0:
+            await _credit_deduction.release(
+                org_id,
+                billed_cost_cents,
+                execution_id=execution_id,
+                agent_id=agent_id,
+                fallback_cost_usd=cost_estimate,
+                skip_budget_fallback=True,
+            )
+
+    # 1. Verify capability exists
+    cap = await _resolve_capability(capability_id)
+    if cap is None:
+        await _release_reservations()
+        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
+
+    # ── Mode 2: Rhumb-managed execution ──────────────────────────────
+    if request.credential_mode == "rhumb_managed":
+        from services.rhumb_managed import get_managed_executor
+        executor = get_managed_executor()
+        try:
+            result = await executor.execute(
+                capability_id=capability_id,
+                agent_id=agent_id,
+                body=request.body,
+                params=request.params,
+                service_slug=request.provider,
+                interface=request.interface,
+            )
+        except Exception:
+            await _release_reservations()
+            raise
+        if budget_remaining is not None:
+            result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
+        if credit_remaining_cents is not None:
+            result["org_credits_remaining_cents"] = credit_remaining_cents
+        return {"data": result, "error": None}
+
+    # ── Mode 3: Agent Vault (per-request token) ────────────────────
+    if request.credential_mode == "agent_vault":
         from services.agent_vault import get_vault_validator
         validator = get_vault_validator()
         ceremony = await validator.get_ceremony(request.provider)
@@ -323,18 +387,18 @@ async def execute_capability(
                 token_pattern=ceremony.get("token_pattern"),
             )
             if not is_valid:
+                await _release_reservations()
                 raise HTTPException(status_code=400, detail=f"Invalid token: {error_msg}")
 
-        # Resolve API domain
         api_domain = await _get_service_domain(request.provider)
         if not api_domain:
+            await _release_reservations()
             raise HTTPException(
                 status_code=500,
                 detail=f"No API domain for provider '{request.provider}'",
             )
         base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"
 
-        # Build headers with agent's token (NEVER logged or persisted)
         vault_headers: dict[str, str] = {}
         auth_type = ceremony.get("auth_type", "api_key") if ceremony else "api_key"
 
@@ -347,8 +411,6 @@ async def execute_capability(
         else:
             vault_headers["Authorization"] = f"Bearer {x_agent_token}"
 
-        # Execute
-        execution_id = f"exec_{uuid.uuid4().hex}"
         request_start = time.perf_counter()
         path = request.path if request.path.startswith("/") else f"/{request.path}"
 
@@ -371,8 +433,12 @@ async def execute_capability(
                 upstream_response = resp.text
 
             total_latency_ms = (time.perf_counter() - request_start) * 1000
+            success = upstream_status < 500
+            billing_status = "billed"
+            if not success:
+                await _release_reservations()
+                billing_status = "refunded"
 
-            # Log execution (token is NEVER included)
             await supabase_insert("capability_executions", {
                 "id": execution_id,
                 "agent_id": agent_id,
@@ -382,8 +448,12 @@ async def execute_capability(
                 "method": request.method,
                 "path": request.path,
                 "upstream_status": upstream_status,
-                "success": upstream_status < 500,
+                "success": success,
                 "cost_estimate_usd": None,
+                "cost_usd_cents": billed_cost_cents if billed_cost_cents > 0 else None,
+                "upstream_cost_cents": upstream_cost_cents if upstream_cost_cents > 0 else None,
+                "margin_cents": margin_cents if billed_cost_cents > 0 else None,
+                "billing_status": billing_status,
                 "total_latency_ms": round(total_latency_ms, 1),
                 "upstream_latency_ms": round(upstream_latency_ms, 1),
                 "fallback_attempted": False,
@@ -404,74 +474,50 @@ async def execute_capability(
             }
             if budget_remaining is not None:
                 vault_response["budget_remaining_usd"] = round(budget_remaining, 4)
+            if credit_remaining_cents is not None:
+                vault_response["org_credits_remaining_cents"] = credit_remaining_cents
 
             return {"data": vault_response, "error": None}
 
         except httpx.HTTPError as e:
-            # Release budget on upstream failure
-            if cost_estimate > 0:
-                await _budget_enforcer.release(agent_id, cost_estimate)
+            await _release_reservations()
             raise HTTPException(
                 status_code=502,
                 detail=f"Upstream request failed: {e}",
             )
 
     # ── Mode 1 (BYO) continues below ────────────────────────────────
-    # Validate required fields for BYO mode
-    if not request.method or not request.path:
-        raise HTTPException(
-            status_code=400,
-            detail="method and path are required for byo credential mode",
-        )
-
-    # 2. Idempotency check
-    if request.idempotency_key:
-        existing = await supabase_fetch(
-            f"capability_executions?idempotency_key=eq.{quote(request.idempotency_key)}"
-            f"&select=id,upstream_status,cost_estimate_usd&limit=1"
-        )
-        if existing:
-            return {
-                "data": {
-                    "capability_id": capability_id,
-                    "execution_id": existing[0]["id"],
-                    "deduplicated": True,
-                },
-                "error": None,
-            }
-
-    # 3. Get capability service mappings
     mappings = await _get_capability_services(capability_id)
     if not mappings:
+        await _release_reservations()
         raise HTTPException(
             status_code=503,
             detail=f"No providers configured for capability '{capability_id}'",
         )
 
-    # 4. Resolve provider
     chosen: Optional[dict] = None
     fallback_attempted = False
     fallback_provider: Optional[str] = None
 
     if request.provider:
-        # Explicit provider
         chosen = next((m for m in mappings if m["service_slug"] == request.provider), None)
         if chosen is None:
+            await _release_reservations()
             raise HTTPException(
                 status_code=503,
                 detail=f"Provider '{request.provider}' not available for capability '{capability_id}'",
             )
-        # Check circuit health
         breaker = get_breaker_registry().get(request.provider, agent_id)
         if not breaker.allow_request():
+            await _release_reservations()
             raise HTTPException(
                 status_code=503,
                 detail=f"Provider '{request.provider}' circuit is open — try later",
             )
     else:
-        # Auto-select best provider
         chosen = await _auto_select_provider(mappings, agent_id)
         if chosen is None:
+            await _release_reservations()
             raise HTTPException(
                 status_code=503,
                 detail=f"No healthy providers available for capability '{capability_id}'",
@@ -481,17 +527,13 @@ async def execute_capability(
     auth_method = chosen.get("auth_method")
     cost_per_call = float(chosen["cost_per_call"]) if chosen.get("cost_per_call") is not None else None
 
-    # 5. Resolve base URL
     api_domain = await _get_service_domain(provider_slug)
     base_url = _resolve_base_url(provider_slug, api_domain)
 
-    # 6. Build request
     path = request.path if request.path.startswith("/") else f"/{request.path}"
     headers: dict[str, str] = {}
     headers = _inject_auth_headers(provider_slug, auth_method, headers)
 
-    # 7. Execute upstream request
-    execution_id = f"exec_{uuid.uuid4().hex}"
     request_start = time.perf_counter()
     upstream_status: Optional[int] = None
     upstream_response: Any = None
@@ -537,7 +579,6 @@ async def execute_capability(
 
         success = upstream_status < 500
 
-        # Record circuit breaker outcome
         breaker = get_breaker_registry().get(provider_slug, agent_id)
         if success:
             breaker.record_success(latency_ms=upstream_latency_ms)
@@ -549,19 +590,14 @@ async def execute_capability(
         breaker = get_breaker_registry().get(provider_slug, agent_id)
         breaker.record_failure()
 
-        # Release budget reservation on failure
-        if cost_estimate > 0:
-            await _budget_enforcer.release(agent_id, cost_estimate)
+        await _release_reservations()
 
-        # Attempt fallback if auto-selected
         if not request.provider and len(mappings) > 1:
             remaining = [m for m in mappings if m["service_slug"] != provider_slug]
             fallback = await _auto_select_provider(remaining, agent_id)
             if fallback:
                 fallback_attempted = True
                 fallback_provider = fallback["service_slug"]
-                # NOTE: fallback execution is logged but not attempted in this slice
-                # to keep complexity bounded. Future: recursive execute.
 
         raise HTTPException(
             status_code=502,
@@ -570,7 +606,22 @@ async def execute_capability(
 
     total_latency_ms = (time.perf_counter() - request_start) * 1000
 
-    # 8. Log execution
+    # If upstream returned a server failure, refund reservations.
+    billing_status = "billed"
+    if not success:
+        await _release_reservations()
+        billing_status = "refunded"
+
+    actual_upstream_cents = int(round(cost_per_call * 100)) if cost_per_call is not None else None
+    actual_billed_cents = (
+        int(round(actual_upstream_cents * 1.2)) if actual_upstream_cents is not None else None
+    )
+    actual_margin_cents = (
+        (actual_billed_cents - actual_upstream_cents)
+        if actual_billed_cents is not None and actual_upstream_cents is not None
+        else None
+    )
+
     await supabase_insert("capability_executions", {
         "id": execution_id,
         "agent_id": agent_id,
@@ -582,6 +633,10 @@ async def execute_capability(
         "upstream_status": upstream_status,
         "success": success,
         "cost_estimate_usd": cost_per_call,
+        "cost_usd_cents": actual_billed_cents,
+        "upstream_cost_cents": actual_upstream_cents,
+        "margin_cents": actual_margin_cents,
+        "billing_status": billing_status,
         "total_latency_ms": round(total_latency_ms, 1),
         "upstream_latency_ms": round(upstream_latency_ms, 1),
         "fallback_attempted": fallback_attempted,
@@ -605,6 +660,8 @@ async def execute_capability(
     }
     if budget_remaining is not None:
         response_data["budget_remaining_usd"] = round(budget_remaining, 4)
+    if credit_remaining_cents is not None:
+        response_data["org_credits_remaining_cents"] = credit_remaining_cents
 
     return {"data": response_data, "error": None}
 

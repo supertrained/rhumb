@@ -9,14 +9,32 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
+from schemas.agent_identity import AgentIdentitySchema
 
 FAKE_RHUMB_KEY = "rhumb_test_key_cap_exec"
+
+
+def _mock_agent() -> AgentIdentitySchema:
+    return AgentIdentitySchema(
+        agent_id="agent_cap_exec_test",
+        name="cap-exec-test",
+        organization_id="org_cap_exec_test",
+    )
 
 
 @pytest.fixture
 def app():
     """Create test app with lifespan disabled."""
     return create_app()
+
+
+@pytest.fixture(autouse=True)
+def _mock_identity_store():
+    """Bypass API key verification for execute/estimate route tests."""
+    mock_store = MagicMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with patch("routes.capability_execute._get_identity_store", return_value=mock_store):
+        yield mock_store
 
 
 # ── Sample data ─────────────────────────────────────────────
@@ -199,7 +217,7 @@ async def test_execute_unavailable_provider(app):
     from services.proxy_breaker import BreakerRegistry, BreakerState
 
     broken_registry = BreakerRegistry()
-    breaker = broken_registry.get("sendgrid", FAKE_RHUMB_KEY)
+    breaker = broken_registry.get("sendgrid", "agent_cap_exec_test")
     # Force circuit open
     for _ in range(10):
         breaker.record_failure(status_code=500)
