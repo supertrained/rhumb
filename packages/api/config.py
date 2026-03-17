@@ -16,6 +16,9 @@ class Settings(BaseSettings):
 
     rhumb_admin_secret: str | None = None
 
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+
     anthropic_api_key: str | None = None
     anthropic_base_url: str = "https://api.anthropic.com"
     anthropic_model: str = "claude-3-5-sonnet-latest"

@@ -10,6 +10,7 @@ from middleware.query_logging import QueryLoggingMiddleware
 from routes import (
     admin_agents,
     admin_billing,
+    billing,
     budget,
     capabilities,
     capability_execute,
@@ -23,6 +24,7 @@ from routes import (
     search,
     services,
     tester_fleet,
+    webhooks,
 )
 from routes.admin_auth import require_admin_key
 
@@ -121,6 +123,8 @@ def create_app() -> FastAPI:
         admin_billing.router, prefix="/v1", tags=["admin-billing"],
         dependencies=[Depends(require_admin_key)],
     )
+    application.include_router(billing.router, prefix="/v1", tags=["billing"])
+    application.include_router(webhooks.router, tags=["webhooks"])
 
     @application.get("/healthz")
     async def healthz() -> dict[str, str]:
