@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import os
 import time
 import uuid
 from typing import Any, Optional
@@ -28,6 +29,7 @@ from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
+from services.x402 import PaymentRequiredException
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.routing_engine import RoutingEngine
@@ -306,9 +308,17 @@ async def execute_capability(
     execution_id = f"exec_{uuid.uuid4().hex}"
 
     # Step 1: existing agent budget check (unchanged)
+    api_base = os.environ.get(
+        "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+    )
     budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
     if not budget_result.allowed:
-        raise HTTPException(status_code=402, detail=budget_result.reason)
+        raise PaymentRequiredException(
+            capability_id=capability_id,
+            cost_usd_cents=billed_cost_cents,
+            resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+            detail=budget_result.reason or "Agent budget exceeded",
+        )
 
     budget_remaining = budget_result.remaining_usd
 
@@ -327,8 +337,10 @@ async def execute_capability(
         if not credit_result.allowed:
             if cost_estimate > 0:
                 await _budget_enforcer.release(agent_id, cost_estimate)
-            raise HTTPException(
-                status_code=402,
+            raise PaymentRequiredException(
+                capability_id=capability_id,
+                cost_usd_cents=billed_cost_cents,
+                resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
                 detail=credit_result.reason or "Insufficient org credits",
             )
         credit_reserved = billed_cost_cents > 0

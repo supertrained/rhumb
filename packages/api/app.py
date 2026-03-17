@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from middleware.query_logging import QueryLoggingMiddleware
+from services.x402 import PaymentRequiredException, payment_required_handler
 from routes import (
     admin_agents,
     admin_billing,
@@ -93,6 +94,9 @@ def create_app() -> FastAPI:
         allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
+
+    # ── Exception handlers ──
+    application.add_exception_handler(PaymentRequiredException, payment_required_handler)
 
     # ── Routers ──
     application.include_router(capabilities.router, prefix="/v1", tags=["capabilities"])

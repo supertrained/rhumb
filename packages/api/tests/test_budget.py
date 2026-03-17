@@ -352,7 +352,10 @@ class TestBudgetInExecuteRoute:
             },
         )
         assert resp.status_code == 402
-        assert "budget" in resp.json()["detail"].lower()
+        body = resp.json()
+        # x402 response format: error field (not detail)
+        assert body.get("x402Version") == 1
+        assert "budget" in body["error"].lower()
 
     @patch("routes.capability_execute._get_identity_store")
     @patch("routes.capability_execute._budget_enforcer")

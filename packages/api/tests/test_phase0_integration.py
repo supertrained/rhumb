@@ -247,7 +247,11 @@ class TestInsufficientCredits:
                 )
 
         assert resp.status_code == 402
-        assert "insufficient" in resp.json()["detail"].lower() or "credit" in resp.json()["detail"].lower()
+        body = resp.json()
+        # x402 response format: error field contains the detail message
+        assert body.get("x402Version") == 1
+        error_msg = body["error"].lower()
+        assert "insufficient" in error_msg or "credit" in error_msg
 
 
 # ---------------------------------------------------------------------------
