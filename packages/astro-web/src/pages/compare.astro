@@ -1,0 +1,123 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const comparisons = [
+  {
+    slug: "stripe-vs-square-vs-paypal",
+    category: "Payments",
+    title: "Stripe vs Square vs PayPal",
+    verdict: "Stripe wins by default. Square wins for physical commerce. PayPal when the market demands it.",
+    scores: { leader: "Stripe", leaderScore: "8.1", runnerUp: "Square 6.3", third: "PayPal 4.9" },
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.12)",
+  },
+  {
+    slug: "resend-vs-sendgrid-vs-postmark",
+    category: "Email",
+    title: "Resend vs SendGrid vs Postmark",
+    verdict: "Resend for clean agent-first email. Postmark for critical deliverability. SendGrid in Twilio stacks.",
+    scores: { leader: "Resend", leaderScore: "7.8", runnerUp: "Postmark 6.8", third: "SendGrid 6.4" },
+    accent: "#8B5CF6",
+    accentSoft: "rgba(139,92,246,0.12)",
+  },
+  {
+    slug: "hubspot-vs-salesforce-vs-pipedrive",
+    category: "CRM",
+    title: "HubSpot vs Salesforce vs Pipedrive",
+    verdict: "No CRM is agent-native. Pipedrive hurts least. Salesforce has the governance ceiling. HubSpot has the broadest surface.",
+    scores: { leader: "Pipedrive", leaderScore: "5.7", runnerUp: "Salesforce 4.8", third: "HubSpot 4.6" },
+    accent: "#F97316",
+    accentSoft: "rgba(249,115,22,0.12)",
+  },
+  {
+    slug: "auth0-vs-clerk-vs-firebase-auth",
+    category: "Auth",
+    title: "Auth0 vs Clerk vs Firebase Auth",
+    verdict: "Clerk for clean agent-first auth. Auth0 for enterprise compliance. Firebase Auth inside Google Cloud.",
+    scores: { leader: "Clerk", leaderScore: "7.4", runnerUp: "Firebase Auth 6.4", third: "Auth0 6.3" },
+    accent: "#3B82F6",
+    accentSoft: "rgba(59,130,246,0.12)",
+  },
+];
+---
+
+<Layout
+  title="Service Comparisons for AI Agents | Rhumb"
+  description="Side-by-side comparisons of developer tools scored for AI agent workflows. Payments, email, CRM, and authentication — with live AN Score data."
+  canonical="/compare"
+  ogTitle="Service Comparisons for AI Agents"
+  ogDescription="Side-by-side comparisons of developer tools scored for AI agent workflows. Payments, email, CRM, auth — with live data."
+  ogUrl="https://rhumb.dev/compare"
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.10),transparent_40%)]"></div>
+
+      <div class="relative max-w-5xl mx-auto px-6 pt-14 pb-12">
+        <div class="max-w-2xl">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Comparisons</span>
+          <h1 class="mt-4 font-display font-bold text-4xl sm:text-5xl leading-[0.95] tracking-tight text-slate-100">
+            Which tool should your agent use?
+          </h1>
+          <p class="mt-5 text-lg text-slate-300 leading-relaxed">
+            Each comparison uses the same live scoring methodology — the Rhumb AN Score — so results are directly comparable
+            across categories. Every page includes score breakdowns, friction maps, routing rules for agents, and scenario-based recommendations.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 py-12">
+      <div class="grid gap-5 sm:grid-cols-2">
+        {comparisons.map((c, i) => (
+          <a
+            href={`/blog/${c.slug}`}
+            class="group relative overflow-hidden rounded-[28px] border border-slate-800 bg-surface/85 p-6 sm:p-7 transition-all hover:border-slate-600 reveal"
+            style={`animation-delay:${i * 80}ms;`}
+          >
+            <div class="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={`background:radial-gradient(circle_at_top_right, ${c.accentSoft} 0%, transparent 50%);`}></div>
+            <div class="relative">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-mono uppercase tracking-[0.24em]" style={`color:${c.accent}; border-color:${c.accent}40; background:${c.accentSoft};`}>{c.category}</span>
+              </div>
+              <h2 class="mt-4 font-display font-bold text-2xl text-slate-100 group-hover:text-white transition-colors">{c.title}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{c.verdict}</p>
+
+              <div class="mt-5 flex items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span class="h-2.5 w-2.5 rounded-full" style={`background:${c.accent}`}></span>
+                  <span class="text-sm font-semibold text-slate-100">{c.scores.leader}</span>
+                  <span class="text-sm font-mono text-slate-300">{c.scores.leaderScore}</span>
+                </div>
+                <span class="text-xs font-mono text-slate-600">vs</span>
+                <span class="text-xs font-mono text-slate-500">{c.scores.runnerUp}</span>
+                <span class="text-xs font-mono text-slate-600">vs</span>
+                <span class="text-xs font-mono text-slate-500">{c.scores.third}</span>
+              </div>
+
+              <div class="mt-5 text-xs font-mono uppercase tracking-[0.2em] text-amber group-hover:text-amber-dark transition-colors">
+                Read comparison →
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6 sm:p-8 text-center reveal">
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Methodology</p>
+        <h2 class="mt-2 font-display font-bold text-xl text-slate-100">How these comparisons work</h2>
+        <p class="mt-4 max-w-2xl mx-auto text-sm leading-6 text-slate-400">
+          Every comparison pulls live AN Score data from the Rhumb API at build time.
+          Scores are computed from 20 dimensions across execution reliability and access readiness.
+          The same formula applies to every service in every category — there is no manual weighting or editorial override.
+        </p>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
+          <a href="/methodology" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Read methodology</a>
+          <a href="/docs" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">API docs</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

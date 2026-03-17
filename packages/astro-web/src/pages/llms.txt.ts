@@ -79,6 +79,15 @@ sandbox/test mode.
 - L2 Developing (4.0–5.9): usable with workarounds
 - L1 Emerging (0.0–3.9): significant barriers to agent use
 
+## Comparison Pages (decision surfaces for agents and operators)
+- https://rhumb.dev/blog/stripe-vs-square-vs-paypal — Payments: Stripe vs Square vs PayPal
+- https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark — Email: Resend vs SendGrid vs Postmark
+- https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive — CRM: HubSpot vs Salesforce vs Pipedrive
+- https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth — Auth: Auth0 vs Clerk vs Firebase Auth
+
+Each comparison includes live AN Score data, friction maps, routing rules for agents,
+scenario-based recommendations, and failure mode analysis.
+
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust
