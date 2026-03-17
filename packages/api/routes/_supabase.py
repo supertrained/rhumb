@@ -116,3 +116,35 @@ async def supabase_insert(table: str, payload: dict[str, Any]) -> bool:
             return resp.status_code in (200, 201, 204)
     except Exception:
         return False
+
+
+async def supabase_insert_returning(
+    table: str, payload: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Insert a row and return the created record (with server-generated fields).
+
+    Uses ``Prefer: return=representation`` so PostgREST sends back the full row
+    including any default/generated columns (e.g. ``id``, ``created_at``).
+
+    Returns the first created row dict, or None on error.
+    """
+    url = f"{settings.supabase_url}/rest/v1/{table}"
+    headers = {
+        **_get_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=payload, timeout=10.0)
+            if resp.status_code not in (200, 201):
+                return None
+            data = resp.json()
+            if isinstance(data, list) and data:
+                return data[0]
+            if isinstance(data, dict):
+                return data
+            return None
+    except Exception:
+        return None

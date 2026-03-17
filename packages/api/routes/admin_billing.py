@@ -1,4 +1,4 @@
-"""Admin billing routes for metering, invoices, and forecasting."""
+"""Admin billing routes for metering, invoices, forecasting, and USDC settlement."""
 
 from __future__ import annotations
 
@@ -9,6 +9,11 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.billing_aggregation import BillingAggregator, get_billing_aggregator
+from services.settlement import (
+    create_daily_settlement_batch,
+    get_pending_batches,
+    mark_batch_converted,
+)
 from services.stripe_integration import (
     StripeIntegrationManager,
     get_stripe_integration_manager,
@@ -178,3 +183,51 @@ async def forecast_spend(organization_id: str = Query(...)) -> Dict[str, Any]:
         "projected_monthly_spend": round(projected_monthly_spend, 6),
         "generated_at": datetime.now(tz=UTC).isoformat(),
     }
+
+
+# ---------------------------------------------------------------------------
+# USDC Settlement (Phase 1 — semi-manual)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/admin/settlement/run")
+async def run_settlement(
+    batch_date: str | None = Query(default=None, description="Date in YYYY-MM-DD (default: yesterday)"),
+) -> Dict[str, Any]:
+    """Trigger daily settlement batch creation. Admin only."""
+    result = await create_daily_settlement_batch(batch_date)
+    if result is None:
+        return {"status": "skipped", "reason": "no_receipts_or_already_exists"}
+    return {"status": "created", **result}
+
+
+@router.get("/admin/settlement/pending")
+async def pending_settlements() -> Dict[str, Any]:
+    """List pending settlement batches (not yet converted to USD)."""
+    batches = await get_pending_batches()
+    return {"batches": batches, "count": len(batches)}
+
+
+class MarkConvertedRequest(BaseModel):
+    """Request payload for marking a batch as converted."""
+
+    total_usd_cents: int = Field(..., gt=0, description="Total USD received in cents")
+    coinbase_conversion_id: str | None = Field(
+        default=None, description="Coinbase conversion ID (optional in Phase 1)"
+    )
+
+
+@router.post("/admin/settlement/{batch_id}/converted")
+async def mark_converted(
+    batch_id: str,
+    body: MarkConvertedRequest,
+) -> Dict[str, Any]:
+    """Mark a settlement batch as converted to USD (manual Phase 1 step)."""
+    success = await mark_batch_converted(
+        batch_id,
+        body.total_usd_cents,
+        body.coinbase_conversion_id,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return {"status": "converted", "batch_id": batch_id}

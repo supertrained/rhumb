@@ -376,20 +376,24 @@ async def execute_capability(
             })
 
             # Credit the org's balance via credit_ledger + org_credits update
+            # First get current balance for the ledger snapshot
+            current_credits = await supabase_fetch(
+                f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
+            )
+            current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
+            new_balance = current_balance + billed_cost_cents
+
             await supabase_insert("credit_ledger", {
                 "org_id": org_id,
-                "amount_cents": billed_cost_cents,
+                "amount_usd_cents": billed_cost_cents,
+                "balance_after_usd_cents": new_balance,
                 "event_type": "x402_payment",
-                "execution_id": execution_id,
+                "capability_execution_id": execution_id,
                 "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
             })
 
             # Increment org_credits balance
-            current_credits = await supabase_fetch(
-                f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
-            )
             if current_credits:
-                new_balance = int(current_credits[0].get("balance_usd_cents", 0)) + billed_cost_cents
                 await supabase_patch(
                     f"org_credits?org_id=eq.{quote(org_id)}",
                     {"balance_usd_cents": new_balance},
