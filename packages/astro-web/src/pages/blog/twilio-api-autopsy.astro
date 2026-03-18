@@ -1,0 +1,463 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const twilio = await getServiceScore("twilio");
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Twilio API Autopsy: What Agent-Native Almost Looks Like",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A technical autopsy of Twilio from an agent's perspective. Score: 8.0/10. One of the highest-scoring APIs — here's what it gets right and where agents still hit friction.",
+  url: "https://rhumb.dev/blog/twilio-api-autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+type AnalysisPoint = {
+  id: string;
+  title: string;
+  kind: "strength" | "friction" | "nuance";
+  icon: string;
+  summary: string;
+  detail: string;
+  agentImpact: string;
+  evidence: string;
+};
+
+const analysisPoints: AnalysisPoint[] = [
+  {
+    id: "auth-simplicity",
+    title: "Authentication That Agents Actually Understand",
+    kind: "strength",
+    icon: "🔑",
+    summary: "Account SID + Auth Token. Basic HTTP auth. No OAuth dance, no token refresh, no redirect URIs.",
+    detail: "Twilio uses the simplest possible authentication model: an Account SID (username) and Auth Token (password) sent as HTTP Basic Auth on every request. There is no OAuth flow, no token expiration, no refresh cycle, no redirect URI configuration. An agent receives two strings and can immediately make API calls. Subaccounts allow scoped access without separate OAuth apps. API keys can be created programmatically via the API itself — meaning an agent can provision its own scoped credentials without human intervention. This is the gold standard for agent authentication: simple, stateless, and self-provisionable.",
+    agentImpact: "Zero setup time for authentication. No persistent token management infrastructure. Self-provisioning of scoped API keys via the API itself.",
+    evidence: "Twilio Authentication documentation. API Keys resource allows programmatic key creation.",
+  },
+  {
+    id: "idempotency",
+    title: "Idempotency Keys on Messages",
+    kind: "strength",
+    icon: "♻️",
+    summary: "Twilio supports idempotency on message creation — agents can safely retry without sending duplicate SMS.",
+    detail: "When creating messages, Twilio accepts an idempotency key header. If a request times out and the agent retries with the same key, Twilio returns the original response without sending a duplicate message. This is critical for communication APIs where a duplicate message is not just a data issue — it is a user-facing failure that damages trust. Combined with Twilio's status callback webhooks, an agent can implement a reliable message delivery pipeline with exactly-once semantics. Not all Twilio endpoints support idempotency keys, but the highest-risk operation (sending messages) does.",
+    agentImpact: "Safe retries on the most critical operation. Agents can implement fire-and-confirm patterns without duplicate message risk.",
+    evidence: "Twilio API Reference: Idempotent Requests documentation.",
+  },
+  {
+    id: "webhook-maturity",
+    title: "Webhook Architecture Is Agent-Ready",
+    kind: "strength",
+    icon: "📡",
+    summary: "Status callbacks on every message and call. Signature validation built in. Retry on failure with exponential backoff.",
+    detail: "Twilio's webhook system is one of the most mature in any API. Every message and call can have a StatusCallback URL that receives real-time updates as the communication progresses. Webhooks are signed with your Auth Token, so agents can validate authenticity. Failed webhook deliveries are retried with exponential backoff for up to 48 hours. The webhook body includes structured data — not just an event ID that requires a follow-up API call. For agents, this means event-driven architectures work reliably: send a message, set a callback, and receive a structured notification when it is delivered, failed, or undelivered.",
+    agentImpact: "Reliable event-driven workflows. No polling required for message status. Webhook signature validation prevents spoofing.",
+    evidence: "Twilio Webhooks and Status Callbacks documentation.",
+  },
+  {
+    id: "phone-verification",
+    title: "Phone Number Verification Wall",
+    kind: "friction",
+    icon: "📱",
+    summary: "Before sending messages, agents must verify ownership of a phone number — a process that requires human interaction with a phone.",
+    detail: "Twilio requires phone number ownership before an agent can send messages. Acquiring a phone number is programmable (you can buy one via the API), but the regulatory landscape adds friction: in many countries, phone number registration requires business verification documents, A2P 10DLC registration (in the US), and compliance with carrier-specific requirements. US long-code messaging now requires 10DLC campaign registration, which involves submitting a use case description and waiting for carrier approval (typically 1-7 business days). An agent can initiate this process via the API but cannot complete it autonomously — carrier approval is a human-reviewed process.",
+    agentImpact: "First-message latency of 1-7 business days for US numbers due to 10DLC registration. International numbers may require additional business documentation that agents cannot self-submit.",
+    evidence: "Twilio A2P 10DLC Registration documentation. International phone number regulatory requirements.",
+  },
+  {
+    id: "pricing-complexity",
+    title: "Per-Message Pricing Complexity",
+    kind: "friction",
+    icon: "💰",
+    summary: "Pricing varies by country, carrier, message type, and phone number type. Agents cannot easily predict the cost of a message before sending it.",
+    detail: "Twilio's pricing is per-message with rates that vary by: destination country (200+ countries), originating number type (local, toll-free, short code), message type (SMS vs MMS), carrier surcharges (US carriers add fees that change quarterly), and message segment count (messages over 160 characters are split into multiple segments, each billed separately). An agent sending 'Happy Birthday!' to a US number pays ~$0.0079. The same message to a UK number costs ~$0.0420. An MMS to a US number with a large image might cost $0.0200+. There is no single price — the agent must either call the Twilio pricing API for each destination or maintain a lookup table that needs quarterly updates due to carrier surcharge changes.",
+    agentImpact: "Cost prediction requires per-destination pricing lookups. Budget enforcement is difficult without pre-calculating per-message costs. Carrier surcharge changes can silently increase costs.",
+    evidence: "Twilio Messaging Pricing page. US carrier surcharges documentation updated quarterly.",
+  },
+  {
+    id: "error-messages",
+    title: "Error Codes That Teach",
+    kind: "strength",
+    icon: "📋",
+    summary: "Twilio error responses include a numeric error code, a human-readable message, AND a documentation URL for the specific error.",
+    detail: "When an API call fails, Twilio returns a JSON body with: status (HTTP code), code (Twilio-specific numeric error code), message (human-readable explanation), and more_info (a URL to a documentation page explaining the error in detail). Error code 21211 ('The To phone number is not a valid phone number') includes a link to a page explaining valid phone number formats, common mistakes, and how to fix them. This pattern means an agent encountering an error can follow the more_info URL to understand the root cause — or more practically, the error code + message is specific enough that most agents can self-correct without the documentation link.",
+    agentImpact: "High self-correction rate on errors. Agents can parse error codes programmatically and implement fix logic per error type. The documentation URL is a bonus for agents with web access.",
+    evidence: "Twilio Error and Warning Dictionary. All 700+ error codes documented with causes and solutions.",
+  },
+  {
+    id: "rate-limits",
+    title: "Rate Limits Are Carrier-Imposed, Not API-Imposed",
+    kind: "nuance",
+    icon: "⏱",
+    summary: "Twilio's API has generous rate limits, but carrier-level sending limits (1 SMS/second for long codes) create a bottleneck agents must manage.",
+    detail: "The Twilio API itself handles high request volumes — you can queue thousands of messages in seconds. But carrier networks impose their own sending rates: US long code numbers are limited to 1 SMS per second per number, toll-free numbers to 3 per second, and short codes to 100+ per second. This means an agent queuing 500 messages through the API will succeed — but delivery will be throttled by the carrier, and messages may be filtered or rejected if the sending rate exceeds carrier thresholds. The API does not surface carrier limits in headers; agents must know the limits based on their phone number type and implement sending rate control themselves.",
+    agentImpact: "API acceptance does not equal delivery. Agents must implement sending rate controls based on phone number type. Carrier filtering is opaque — rejected messages may silently fail to deliver.",
+    evidence: "Twilio Message Queuing and Rate Limiting documentation. Carrier filtering best practices guide.",
+  },
+  {
+    id: "console-spaghetti",
+    title: "Console Dashboard Complexity",
+    kind: "friction",
+    icon: "🖥",
+    summary: "The Twilio Console has grown into a sprawling dashboard with 50+ product sections. Finding the right configuration page is non-trivial even for humans.",
+    detail: "Twilio's dashboard (console.twilio.com) reflects the company's product expansion from SMS into voice, video, email (SendGrid), IoT, Flex contact center, Segment CDP, and more. Navigation involves nested menus across these product lines, and configuration for a single use case (e.g., 'send SMS from my agent') might require visiting Phone Numbers, Messaging Services, A2P 10DLC Registration, and Verify sections. For agents, the console is a complex React SPA — but this matters less than for other tools because Twilio's API coverage is excellent. Almost everything configurable in the console is also available via the API. The console friction is a human UX issue, not an agent API issue.",
+    agentImpact: "Low impact because API parity is high. Agents can configure most settings programmatically. Console complexity primarily affects human operators doing initial setup.",
+    evidence: "Twilio Console navigation structure. API vs Console feature parity in Twilio REST API Reference.",
+  },
+];
+
+const kindStyle = {
+  strength: { bg: "bg-emerald-500/10", border: "border-emerald-500/25", text: "text-emerald-400", label: "Strength" },
+  friction: { bg: "bg-amber-500/10", border: "border-amber-500/25", text: "text-amber-400", label: "Friction" },
+  nuance: { bg: "bg-blue-500/10", border: "border-blue-500/25", text: "text-blue-400", label: "Nuance" },
+};
+
+const whatKeepsItFromPerfect = [
+  {
+    title: "Carrier-level rate limit headers on API responses",
+    impact: "Surfacing the effective sending rate per number type in response headers would let agents self-throttle without hardcoded knowledge of carrier rules.",
+  },
+  {
+    title: "Cost estimation endpoint",
+    impact: "A batch pricing endpoint (given these destinations, what will it cost?) would enable budget enforcement before sending. Currently requires per-country lookups.",
+  },
+  {
+    title: "Automated A2P 10DLC pre-registration",
+    impact: "Allowing agents to submit 10DLC campaigns and receive approval status via webhook would reduce the 1-7 day onboarding wall for US messaging.",
+  },
+  {
+    title: "Idempotency on all endpoints, not just messages",
+    impact: "Extending idempotency support to phone number purchases, subaccount creation, and configuration updates would make the entire API retry-safe.",
+  },
+];
+---
+
+<Layout
+  title="Twilio API Autopsy: What Agent-Native Almost Looks Like | Rhumb"
+  description="Technical autopsy of Twilio from an agent's perspective. Score: 8.0/10. One of the highest-scoring APIs. What it gets right — and where even good APIs have friction."
+  canonical="/blog/twilio-api-autopsy"
+  ogTitle="Twilio API Autopsy: What Agent-Native Almost Looks Like"
+  ogDescription="Score: 8.0/10. What good API design looks like for agents — and the friction that remains."
+  ogUrl="https://rhumb.dev/blog/twilio-api-autopsy"
+  ogType="article"
+  twitterTitle="Twilio API Autopsy"
+  twitterDescription="Score: 8.0/10. What agent-native almost looks like."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.10),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Autopsy</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Twilio API autopsy
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            What agent-native almost looks like
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            Twilio is the communications API that set the standard for developer experience.
+            At <strong class="text-emerald-400">{formatScore(twilio?.aggregateRecommendationScore)}/10</strong>,
+            it is one of the highest-scoring services in Rhumb's dataset. This autopsy examines what Twilio
+            gets right for agents — and the friction points that keep it from a perfect score.
+          </p>
+
+          {twilio && (
+            <div class="mt-8 flex flex-wrap items-center gap-6">
+              <div class="flex items-center gap-3">
+                <ScoreDisplay score={twilio.aggregateRecommendationScore} size="large" />
+                <div>
+                  <div class="text-xs font-mono text-slate-500 uppercase tracking-wider">AN Score</div>
+                  <TierBadge tier={twilio?.tier ?? null} label={twilio?.tierLabel ?? undefined} />
+                </div>
+              </div>
+              <div class="h-10 w-px bg-slate-800"></div>
+              <div class="flex gap-6 text-sm">
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Execution</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(twilio.executionScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Access</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(twilio.accessReadinessScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Confidence</div>
+                  <div class="text-slate-200 font-semibold">{formatConfidence(twilio.confidence)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- TL;DR for agents -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-6 sm:p-8">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Agent decision</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              <strong>Use Twilio</strong> as the default choice for agent-driven SMS, voice, and WhatsApp messaging.
+              Authentication is trivial (SID + token), most operations are idempotent-safe, and error messages
+              are specific enough for self-correction.
+              <strong>Budget for</strong> carrier-level rate limiting (throttle sends per phone number type),
+              A2P 10DLC registration latency (1-7 days for US numbers), and per-destination pricing variability.
+              This is one of the easiest high-value APIs for an agent to integrate.
+            </p>
+            <div class="mt-4">
+              <a href="/service/twilio" class="text-xs font-mono text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">View full service page →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score anatomy -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Score anatomy</h2>
+          <p class="text-slate-400 mb-8 leading-relaxed">
+            Twilio's {formatScore(twilio?.aggregateRecommendationScore)} reflects consistent quality across dimensions —
+            no single score drags the average down dramatically, which is why it reaches L4 tier.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-6 max-w-4xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="text-3xl font-display font-bold text-emerald-400 mb-1">{formatScore(twilio?.executionScore)}</div>
+            <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-3">Execution</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              RESTful with consistent patterns across all products. JSON responses with standard HTTP codes.
+              Idempotency on message creation. Excellent error codes with documentation URLs. Status callbacks
+              for async operations. The execution surface is what most APIs should aspire to for agent consumers.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(twilio?.accessReadinessScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Access Readiness</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Strong but not perfect. Basic auth with SID/token is frictionless. Self-serve billing
+              with pay-as-you-go pricing. API key self-provisioning. The 7.3 reflects regulatory
+              friction (phone number verification, 10DLC registration) that is carrier-imposed, not
+              Twilio-imposed — but still blocks agents from instant operation.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analysis points -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The full picture</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Eight analysis points — strengths, friction, and nuance. A high score does not mean zero issues.
+            It means the issues are manageable and the strengths are structurally sound.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-4xl">
+          {analysisPoints.map((ap) => {
+            const style = kindStyle[ap.kind];
+            return (
+              <div class={`rounded-2xl border ${style.border} ${style.bg} p-6 sm:p-8`} id={ap.id}>
+                <div class="flex items-start gap-4 mb-4">
+                  <span class="text-2xl mt-0.5">{ap.icon}</span>
+                  <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-3 mb-1">
+                      <h3 class="font-display font-bold text-xl text-slate-100">{ap.title}</h3>
+                      <span class={`text-[10px] font-mono font-semibold ${style.text} uppercase tracking-widest px-2 py-0.5 rounded-full border ${style.border}`}>
+                        {style.label}
+                      </span>
+                    </div>
+                    <p class="text-slate-300 font-medium leading-relaxed">{ap.summary}</p>
+                  </div>
+                </div>
+                <div class="ml-10 sm:ml-12 space-y-4">
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Detail</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{ap.detail}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Agent impact</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{ap.agentImpact}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Evidence</div>
+                    <p class="text-xs text-slate-500 leading-relaxed">{ap.evidence}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- What would make it perfect -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What would close the gap</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Twilio is already agent-friendly. These four changes would push it from 8.0 toward 9.0+ —
+            the difference between 'works well' and 'designed for agents.'
+          </p>
+        </div>
+
+        <div class="space-y-4 max-w-3xl">
+          {whatKeepsItFromPerfect.map((fix, i) => (
+            <div class="flex gap-4 rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xl font-display font-bold text-emerald-400/60 mt-0.5 shrink-0 w-8 text-center">{i + 1}</div>
+              <div>
+                <div class="font-semibold text-slate-200 mb-1">{fix.title}</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{fix.impact}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Integration cost -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The real cost for agents</h2>
+          <p class="text-slate-400 leading-relaxed mb-8">
+            Compare to HubSpot (2-4 hours human setup, 3 adapters, ~40% defensive code) or
+            Salesforce (1-4 weeks, schema-aware client, ~50% defensive code).
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Setup time</div>
+              <div class="text-xl font-display font-bold text-emerald-400">5 minutes (agent)</div>
+              <p class="text-sm text-slate-400 mt-1">Copy SID + token. No OAuth, no dashboard configuration required. Phone number purchase is API-accessible.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Regulatory latency</div>
+              <div class="text-xl font-display font-bold text-amber-400">1-7 days (US)</div>
+              <p class="text-sm text-slate-400 mt-1">A2P 10DLC registration for US messaging. International may require business verification documents.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Adapter complexity</div>
+              <div class="text-xl font-display font-bold text-emerald-400">1 client, consistent patterns</div>
+              <p class="text-sm text-slate-400 mt-1">Same REST patterns across SMS, voice, WhatsApp. One HTTP client handles all products.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Defensive code</div>
+              <div class="text-xl font-display font-bold text-emerald-400">~15% of integration</div>
+              <p class="text-sm text-slate-400 mt-1">Rate limiting per phone type, pricing lookups for cost control, webhook signature validation. Standard, well-documented patterns.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lessons for other APIs -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Lessons for API designers</h2>
+          <p class="text-slate-400 leading-relaxed mb-6">
+            What other APIs can learn from Twilio's agent-friendliness.
+          </p>
+
+          <div class="space-y-4">
+            <div class="flex gap-3 items-start">
+              <span class="text-emerald-400 mt-1">→</span>
+              <p class="text-slate-300 text-sm leading-relaxed"><strong class="text-slate-200">Simple auth wins.</strong> Basic HTTP auth with SID/token is the fastest path to agent integration. OAuth adds weeks of human setup. If your API must use OAuth, also offer API keys for programmatic access.</p>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-emerald-400 mt-1">→</span>
+              <p class="text-slate-300 text-sm leading-relaxed"><strong class="text-slate-200">Error messages are documentation.</strong> Twilio's error codes with explanation + documentation URL mean agents can self-correct. A generic "400 Bad Request" teaches nothing.</p>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-emerald-400 mt-1">→</span>
+              <p class="text-slate-300 text-sm leading-relaxed"><strong class="text-slate-200">Make credentials self-provisionable.</strong> Twilio lets agents create their own API keys via the API. This eliminates the human bottleneck that plagues enterprise APIs.</p>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-emerald-400 mt-1">→</span>
+              <p class="text-slate-300 text-sm leading-relaxed"><strong class="text-slate-200">Idempotency on write operations.</strong> If an agent can safely retry any write operation, integration complexity drops dramatically. Twilio has it on messages — extending it everywhere would be the model.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This autopsy uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            Twilio's data was last calculated on
+            {twilio?.calculatedAt ? new Date(twilio.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "recently"}.
+            Confidence: {formatConfidence(twilio?.confidence)}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- More autopsies / cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">More autopsies</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <a href="/blog/hubspot-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Autopsy · 4.6</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">HubSpot API Autopsy</div>
+              <p class="text-sm text-slate-400 mt-1">What breaks: rate limits, cross-hub inconsistency, OAuth maze.</p>
+            </a>
+            <a href="/blog/salesforce-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Autopsy · 4.8</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Salesforce API Autopsy</div>
+              <p class="text-sm text-slate-400 mt-1">The enterprise maze: SOQL, governor limits, metadata complexity.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
