@@ -113,6 +113,7 @@ function buildServiceJsonLd(s: ServiceScoreViewModel): Record<string, unknown> {
         }
       : {}),
     ...(additionalProperty.length > 0 ? { additionalProperty } : {}),
+    ...(s.calculatedAt ? { dateModified: new Date(s.calculatedAt).toISOString() } : {}),
   };
 }
 
