@@ -28,8 +28,16 @@ export const metadata: Metadata = {
     template: "%s | Rhumb",
   },
   description:
-    "Discover and score agent-native developer tools. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+    "Rhumb scores 212 external APIs for AI agent compatibility. Discover, evaluate, and use tools via MCP, REST API, or x402 per-call payment. Free tier: 1,000 executions/month.",
   metadataBase: new URL("https://rhumb.dev"),
+  other: {
+    "ai:capabilities": "tool-discovery,an-scoring,mcp,rest-api,x402-payment",
+    "ai:activation": "npx rhumb-mcp@0.6.0",
+    "ai:payment-protocol": "x402",
+    "ai:payment-currency": "USDC",
+    "ai:signup-required": "false",
+    "ai:free-tier": "1000 executions/month",
+  },
   openGraph: {
     type: "website",
     siteName: "Rhumb",
@@ -51,12 +59,60 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Rhumb",
+  description:
+    "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores 212 APIs for AI agent compatibility (AN Score). Supports MCP, REST API, and x402 per-call payment.",
+  url: "https://rhumb.dev",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any",
+  offers: [
+    {
+      "@type": "Offer",
+      name: "Free Tier",
+      price: "0",
+      priceCurrency: "USD",
+      description: "1,000 executions/month. No credit card required.",
+    },
+    {
+      "@type": "Offer",
+      name: "Pay Per Call (x402)",
+      priceCurrency: "USD",
+      description:
+        "Per-execution pricing via x402 protocol (USDC on Base). No account required for agents.",
+    },
+  ],
+  featureList: [
+    "AN (Agent-Nativeness) Scores for 212+ services",
+    "MCP server: npx rhumb-mcp@0.6.0",
+    "REST API at api.rhumb.dev",
+    "x402 per-call payment (USDC) — no signup required",
+    "BYOK (bring your own key)",
+    "Managed credential mode",
+    "Zero-signup agent activation",
+    "Tool comparisons and failure mode analysis",
+  ],
+  creator: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
 export default function RootLayout({ children }: { children: ReactNode }): JSX.Element {
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
 
   return (
     <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="bg-navy text-slate-100 antialiased min-h-screen flex flex-col font-display">
         <Navigation />
         <main className="flex-1">{children}</main>
