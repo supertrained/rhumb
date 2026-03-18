@@ -329,7 +329,11 @@ async def execute_capability(
         if cap_services_for_402:
             costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
             cost_for_402 = min(costs) if costs else 0.0
-        billed_cents_for_402 = int(round(cost_for_402 * 100 * 1.2)) if cost_for_402 > 0 else 0
+        # Floor: never advertise $0.00 — use $0.01 minimum if no cost data exists.
+        # An agent seeing maxAmountRequired=0 would try to send 0 USDC.
+        if cost_for_402 <= 0:
+            cost_for_402 = 0.01  # $0.01 minimum per call
+        billed_cents_for_402 = max(int(round(cost_for_402 * 100 * 1.15)), 1)  # 15% x402 margin, min 1 cent
         api_base = os.environ.get(
             "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
         )

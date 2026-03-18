@@ -1,0 +1,91 @@
+{
+  "name": "Rhumb",
+  "version": "0.6.0",
+  "description": "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores 212+ APIs for AI agent compatibility (AN Score).",
+  "url": "https://rhumb.dev",
+  "api": {
+    "base_url": "https://api.rhumb.dev/v1",
+    "fallback_url": "https://rhumb-api-production-f173.up.railway.app/v1",
+    "docs": "https://api.rhumb.dev/docs",
+    "authentication": {
+      "methods": ["x402", "api_key", "byok"],
+      "x402": {
+        "description": "Zero-signup per-call payment. No API key or account required.",
+        "currency": "USDC",
+        "network": "Base",
+        "flow": "Send request → receive 402 with payment details → submit on-chain payment → retry with X-Payment header containing tx proof"
+      },
+      "api_key": {
+        "description": "Bearer token from signup. Free tier: 1,000 executions/month.",
+        "header": "X-Rhumb-Key: rhumb_live_{key}",
+        "signup_url": "https://rhumb.dev/signup"
+      },
+      "byok": {
+        "description": "Bring your own API keys for external services. Free passthrough."
+      }
+    }
+  },
+  "mcp": {
+    "activation": "npx rhumb-mcp@0.6.0",
+    "tools": 16,
+    "tool_list": [
+      "find_tools",
+      "get_score",
+      "get_alternatives",
+      "get_failure_modes",
+      "execute_capability",
+      "estimate_cost",
+      "get_budget_status",
+      "get_ceremonies",
+      "get_credentials",
+      "get_ledger",
+      "get_routing",
+      "get_balance",
+      "get_payment_url",
+      "get_spend",
+      "resolve_capability",
+      "search_services"
+    ]
+  },
+  "coverage": {
+    "services_scored": 212,
+    "capabilities": 103,
+    "domains": 30,
+    "comparisons": 9,
+    "autopsies": 4
+  },
+  "pricing": {
+    "free_tier": {
+      "executions_per_month": 1000,
+      "signup_required": false,
+      "credit_card_required": false
+    },
+    "x402": {
+      "margin": "15% over upstream cost",
+      "currency": "USDC",
+      "signup_required": false
+    },
+    "managed": {
+      "margin": "20% over upstream cost",
+      "signup_required": true
+    },
+    "byok": {
+      "cost": "free",
+      "description": "You pay external providers directly"
+    }
+  },
+  "trust": {
+    "neutrality": "Scores are computed, not curated. No pay-to-rank.",
+    "methodology": "https://rhumb.dev/methodology",
+    "disputes": "providers@supertrained.ai"
+  },
+  "discovery": {
+    "llms_txt": "https://rhumb.dev/llms.txt",
+    "llms_full_txt": "https://rhumb.dev/llms-full.txt",
+    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json"
+  },
+  "contact": {
+    "providers": "providers@supertrained.ai",
+    "github": "https://github.com/supertrained/rhumb"
+  }
+}
