@@ -1,0 +1,487 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const salesforce = await getServiceScore("salesforce");
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Salesforce API Autopsy: The Enterprise Maze Agents Get Lost In",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A technical autopsy of Salesforce from an agent's perspective. Score: 4.8/10. Best governance in CRM — worst onboarding for agents.",
+  url: "https://rhumb.dev/blog/salesforce-api-autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+type FailureMode = {
+  id: string;
+  title: string;
+  severity: "critical" | "high" | "medium";
+  icon: string;
+  summary: string;
+  detail: string;
+  agentImpact: string;
+  evidence: string;
+};
+
+const failureModes: FailureMode[] = [
+  {
+    id: "onboarding-wall",
+    title: "Sales-Gated Onboarding Wall",
+    severity: "critical",
+    icon: "🚪",
+    summary: "Most Salesforce products require talking to a sales representative. There is no self-serve path for an agent to provision access.",
+    detail: "Salesforce's go-to-market is enterprise sales. Getting access to a Salesforce org typically requires: (1) a sales conversation, (2) a procurement cycle, (3) an annual contract, and (4) human-mediated user provisioning. Developer editions exist but have severe limitations (500MB storage, 5 licenses, no production features). For an agent that needs to integrate with a customer's existing Salesforce org, the onboarding path is: wait for the customer's Salesforce admin to create a connected app, configure OAuth scopes, whitelist the redirect URI, and issue credentials. This is a multi-day process minimum, and often takes weeks in enterprise environments with change management processes.",
+    agentImpact: "Payment autonomy score of 2.0/10 — the lowest possible for a service with any self-serve option. Agents cannot self-provision, cannot self-bill, and cannot get started without a human chain of at least 2-3 people.",
+    evidence: "Salesforce pricing page requires 'Contact Sales' for most products. Developer Edition limitations documented at developer.salesforce.com.",
+  },
+  {
+    id: "soql-barrier",
+    title: "SOQL Query Language Barrier",
+    severity: "critical",
+    icon: "🗃",
+    summary: "Salesforce uses SOQL (Salesforce Object Query Language) instead of standard REST filters. Agents must learn a proprietary query language with its own syntax rules.",
+    detail: "While most modern APIs let agents filter data through query parameters (?status=active&created_after=2026-01-01), Salesforce requires SOQL queries sent as strings. SOQL looks like SQL but has critical differences: no JOIN keyword (use relationship queries instead), different date literal syntax (LAST_N_DAYS:7 instead of standard ISO), a 20,000 character query limit, and governor limits on the number of records returned (2,000 per query by default). A malformed SOQL query returns error messages that reference Salesforce-specific concepts (e.g., 'MALFORMED_QUERY: unexpected token: JOIN') that an agent without Salesforce domain knowledge cannot self-correct. The error does not suggest the correct syntax — it only names the violated rule.",
+    agentImpact: "Agents need Salesforce-specific SOQL generation logic. Generic SQL knowledge does not transfer. Error recovery requires domain-specific knowledge that general-purpose agents lack.",
+    evidence: "Salesforce SOQL and SOSL Reference documentation. Governor limits documented in Salesforce Developer Limits guide.",
+  },
+  {
+    id: "environment-split",
+    title: "Sandbox vs Production Split",
+    severity: "high",
+    icon: "🔀",
+    summary: "Sandboxes and production have different URLs, different credentials, and different data. Agents must track which environment they are operating in — mistakes are not easily reversible.",
+    detail: "Salesforce enforces strict environment separation. A production org at login.salesforce.com uses different credentials than a sandbox at test.salesforce.com. Connected app configurations must be separately created or refreshed in each environment. Data does not sync between environments (sandboxes get a snapshot at creation time that diverges immediately). An agent configured for sandbox accidentally targeting production will fail authentication. An agent configured for production accidentally doing test operations will modify real customer data. The environment URL is embedded in the OAuth token endpoint, so agents must maintain separate credential sets and explicitly select the correct one per operation.",
+    agentImpact: "Agents need environment-aware credential management — not just a single token, but a credential pair with environment routing logic. One misconfiguration creates real production data issues.",
+    evidence: "Salesforce Sandbox documentation. Connected app refresh behavior documented in Salesforce OAuth guide.",
+  },
+  {
+    id: "lightning-opacity",
+    title: "Lightning SPA Opacity",
+    severity: "high",
+    icon: "⚡",
+    summary: "The Lightning Experience dashboard is a complex single-page application that agents cannot read, navigate, or verify against.",
+    detail: "Salesforce's Lightning Experience is a React-like SPA with Aura and LWC (Lightning Web Components). Pages are dynamically assembled from component bundles loaded at runtime. Standard HTML parsing will not reveal the page content — it requires JavaScript execution, authentication cookies, and session context. For agents, this means: (1) they cannot verify that an API operation produced the expected UI state, (2) they cannot help users navigate the dashboard to configure settings, (3) they cannot extract information that is only visible in the UI (such as Flows, Process Builder configurations, or Report Builder state). The API surface covers most CRUD operations, but configuration and workflow management are UI-only for many features.",
+    agentImpact: "Web accessibility score of 4.0/10. Agents are blind to the visual state. Configuration operations that require the UI are agent-inaccessible. No server-rendered fallback.",
+    evidence: "Lightning Experience architecture documentation. Web accessibility assessment in Rhumb scoring.",
+  },
+  {
+    id: "governor-limits",
+    title: "Governor Limits Everywhere",
+    severity: "high",
+    icon: "📏",
+    summary: "Salesforce enforces governor limits on nearly every operation — API calls, SOQL queries, DML operations, CPU time — with different limits per context.",
+    detail: "Governor limits are Salesforce's resource management system. They apply per-transaction, per-org, and per-user in different configurations: 100 SOQL queries per transaction, 150 DML statements per transaction, 100,000 API calls per 24 hours (Enterprise Edition), 50,000 records per bulk API job, and 10-second CPU time limit per transaction. These limits are context-dependent — Apex triggers have different limits than REST API calls, which have different limits than Bulk API jobs. An agent that writes a loop creating 200 contacts one-by-one will hit the DML limit at 150. The correct pattern is Bulk API — but Bulk API has its own separate set of limits and a different request/response pattern (asynchronous with polling for results).",
+    agentImpact: "Agents must pre-calculate whether an operation will fit within governor limits BEFORE executing it. There is no 'try and see' approach — exceeding a governor limit rolls back the entire transaction with a generic 'GOVERNOR_LIMIT_EXCEEDED' error.",
+    evidence: "Salesforce Governor Limits Quick Reference. Apex Developer Guide execution governors section.",
+  },
+  {
+    id: "metadata-complexity",
+    title: "Metadata-Driven Everything",
+    severity: "medium",
+    icon: "🏗",
+    summary: "Salesforce is metadata-driven — every org has different custom objects, fields, page layouts, and validation rules. An agent cannot assume any two Salesforce orgs look the same.",
+    detail: "Unlike APIs with fixed schemas (Stripe always has the same fields on a Customer object), Salesforce orgs are heavily customized. A 'Contact' object in one org might have 15 custom fields, picklist values, validation rules, and workflow triggers that don't exist in another org. An agent integrating with Salesforce must first discover the org's schema by calling the Describe endpoint, then dynamically adapt its operations to match. A create operation that works in Org A will 400 in Org B because Org B requires a custom picklist field that Org A doesn't have. This means agents cannot use hardcoded field lists — they must be schema-aware and dynamically adapt to each org's configuration.",
+    agentImpact: "No static SDK can fully work. Agents need runtime schema discovery and dynamic field mapping per customer org. Integration testing in a sandbox does not guarantee production behavior if schemas differ.",
+    evidence: "Salesforce Metadata API documentation. Object Describe endpoint returns org-specific schema including custom fields and validation rules.",
+  },
+];
+
+const whatWouldFix = [
+  {
+    title: "Self-serve developer tier with production features",
+    impact: "Even a 90-day trial with real features would let agents prototype integrations without the sales cycle. Payment autonomy would jump from 2.0 to 5.0+.",
+  },
+  {
+    title: "REST-native query parameters alongside SOQL",
+    impact: "Standard ?field=value filtering on common queries would eliminate the SOQL barrier for 80% of agent use cases. Keep SOQL for complex queries.",
+  },
+  {
+    title: "Environment-aware OAuth tokens",
+    impact: "Tokens that carry their environment context (sandbox vs production) and refuse to authenticate against the wrong environment would eliminate the most dangerous misconfiguration.",
+  },
+  {
+    title: "Predictive governor limit headers",
+    impact: "X-Limit-Remaining headers per limit type on every response would let agents pre-calculate whether the next operation will succeed, like rate limit headers but for governor limits.",
+  },
+  {
+    title: "Schema diff API for sandbox → production",
+    impact: "An endpoint that shows field-level differences between environments would let agents validate their operations before production deployment.",
+  },
+];
+
+const severityColor = {
+  critical: { bg: "bg-red-500/12", border: "border-red-500/30", text: "text-red-400", label: "Critical" },
+  high: { bg: "bg-amber-500/12", border: "border-amber-500/30", text: "text-amber-400", label: "High" },
+  medium: { bg: "bg-blue-500/12", border: "border-blue-500/30", text: "text-blue-400", label: "Medium" },
+};
+---
+
+<Layout
+  title="Salesforce API Autopsy: The Enterprise Maze | Rhumb"
+  description="Technical autopsy of Salesforce from an agent's perspective. Score: 4.8/10. Best-in-class governance, worst onboarding. SOQL barriers, governor limits, and metadata complexity."
+  canonical="/blog/salesforce-api-autopsy"
+  ogTitle="Salesforce API Autopsy: The Enterprise Maze Agents Get Lost In"
+  ogDescription="Score: 4.8/10. Best governance in CRM — worst onboarding for agents."
+  ogUrl="https://rhumb.dev/blog/salesforce-api-autopsy"
+  ogType="article"
+  twitterTitle="Salesforce API Autopsy"
+  twitterDescription="Score: 4.8/10. The enterprise maze — governance ceiling, onboarding abyss."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.10),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-red-400 uppercase tracking-[0.28em]">Autopsy</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Salesforce API autopsy
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            The enterprise maze agents get lost in
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            Salesforce is the $300B gorilla of CRM. It has the most powerful governance in the industry — field-level security,
+            Shield audit trails, FedRAMP authorization. It also scores
+            <strong class="text-red-400">{formatScore(salesforce?.aggregateRecommendationScore)}/10</strong> for
+            agent-native readiness. The paradox: the best-governed CRM is also the hardest for agents to use.
+          </p>
+
+          {salesforce && (
+            <div class="mt-8 flex flex-wrap items-center gap-6">
+              <div class="flex items-center gap-3">
+                <ScoreDisplay score={salesforce.aggregateRecommendationScore} size="large" />
+                <div>
+                  <div class="text-xs font-mono text-slate-500 uppercase tracking-wider">AN Score</div>
+                  <TierBadge tier={salesforce?.tier ?? null} label={salesforce?.tierLabel ?? undefined} />
+                </div>
+              </div>
+              <div class="h-10 w-px bg-slate-800"></div>
+              <div class="flex gap-6 text-sm">
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Execution</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(salesforce.executionScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Access</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(salesforce.accessReadinessScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Autonomy</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(salesforce.autonomyScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Confidence</div>
+                  <div class="text-slate-200 font-semibold">{formatConfidence(salesforce.confidence)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- TL;DR for agents -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Agent decision</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              <strong>Use Salesforce when</strong> the operator already has it and enterprise compliance (audit trails, field-level security, FedRAMP) is a hard requirement.
+              <strong>Avoid it when</strong> the operator has no existing Salesforce investment — the onboarding cost is prohibitive for new integrations.
+              Budget for SOQL-specific query logic, environment-aware credential management, runtime schema discovery, and a human admin to complete connected app setup.
+              Expect the highest governance ceiling and the steepest onboarding curve of any CRM.
+            </p>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <a href="/service/salesforce" class="text-xs font-mono text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">View full service page →</a>
+              <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="text-xs font-mono text-slate-400 hover:text-slate-300 underline underline-offset-2 transition-colors">CRM comparison →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score anatomy -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Score anatomy</h2>
+          <p class="text-slate-400 mb-8 leading-relaxed">
+            Salesforce's score tells a split story: world-class governance with painful access barriers.
+            The {formatScore(salesforce?.aggregateRecommendationScore)} aggregate masks a 10.0 governance score alongside a 2.0 payment autonomy score.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-6 max-w-4xl">
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(salesforce?.executionScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Execution</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              The API is powerful — REST and SOAP, Bulk API for high-volume, Streaming API for real-time.
+              The 5.4 reflects friction that power users don't feel but agents do: SOQL query language barrier,
+              governor limits that require pre-calculation, and metadata-driven schemas that change per org.
+              The API can do almost anything. Knowing how is the problem.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+            <div class="text-3xl font-display font-bold text-red-400 mb-1">{formatScore(salesforce?.accessReadinessScore)}</div>
+            <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-3">Access Readiness</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              The primary anchor. Connected app OAuth setup is a multi-step human process. No self-serve
+              billing for most products. Annual contracts. Environment separation between sandbox and production
+              adds credential management overhead. Getting in requires a human chain — admin, procurement, IT.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(salesforce?.autonomyScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Autonomy</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              The most polarized autonomy profile in our dataset. Governance readiness: <strong class="text-emerald-400">10.0</strong> —
+              field-level security, Shield encryption, audit trails, FedRAMP, SOC 2, HIPAA.
+              Payment autonomy: <strong class="text-red-400">2.0</strong> — sales-led, annual contracts, no self-serve.
+              The best locks in CRM, behind the highest wall.
+            </p>
+          </div>
+        </div>
+
+        <!-- Governance callout -->
+        <div class="mt-8 max-w-4xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-6 py-5">
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+              <div>
+                <p class="text-sm font-semibold text-slate-200 mb-1">Why the governance score matters</p>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                  Salesforce's 10.0 governance is not marketing — it is a real differentiator. For agents operating in
+                  regulated industries (healthcare, finance, government), no other CRM can provide field-level encryption,
+                  FedRAMP-authorized infrastructure, and audit trails that satisfy compliance officers. The score reflects
+                  that once an agent is inside Salesforce, the security and control infrastructure is best-in-class.
+                  The problem is getting inside.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Failure Modes -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Failure modes</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Six failure modes, ranked by severity. These represent documented integration barriers
+            that agents encounter when working with Salesforce APIs in production environments.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-4xl">
+          {failureModes.map((fm) => {
+            const colors = severityColor[fm.severity];
+            return (
+              <div class={`rounded-2xl border ${colors.border} ${colors.bg} p-6 sm:p-8`} id={fm.id}>
+                <div class="flex items-start gap-4 mb-4">
+                  <span class="text-2xl mt-0.5">{fm.icon}</span>
+                  <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-3 mb-1">
+                      <h3 class="font-display font-bold text-xl text-slate-100">{fm.title}</h3>
+                      <span class={`text-[10px] font-mono font-semibold ${colors.text} uppercase tracking-widest px-2 py-0.5 rounded-full border ${colors.border}`}>
+                        {colors.label}
+                      </span>
+                    </div>
+                    <p class="text-slate-300 font-medium leading-relaxed">{fm.summary}</p>
+                  </div>
+                </div>
+                <div class="ml-10 sm:ml-12 space-y-4">
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Detail</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{fm.detail}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Agent impact</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{fm.agentImpact}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Evidence</div>
+                    <p class="text-xs text-slate-500 leading-relaxed">{fm.evidence}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- What would fix it -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What would fix it</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Salesforce has the engineering capability to become the most agent-native CRM. The governance
+            foundation is already best-in-class. These five changes would unlock the score without compromising
+            the enterprise controls that make Salesforce valuable.
+          </p>
+        </div>
+
+        <div class="space-y-4 max-w-3xl">
+          {whatWouldFix.map((fix, i) => (
+            <div class="flex gap-4 rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xl font-display font-bold text-emerald-400/60 mt-0.5 shrink-0 w-8 text-center">{i + 1}</div>
+              <div>
+                <div class="font-semibold text-slate-200 mb-1">{fix.title}</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{fix.impact}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Integration cost -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The real cost for agents</h2>
+          <p class="text-slate-400 leading-relaxed mb-8">
+            What an agent operator should actually budget for when integrating Salesforce.
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Setup time</div>
+              <div class="text-xl font-display font-bold text-slate-200">1-4 weeks</div>
+              <p class="text-sm text-slate-400 mt-1">Connected app setup, procurement, admin configuration, sandbox testing. Minimum 2 humans involved.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Adapter complexity</div>
+              <div class="text-xl font-display font-bold text-slate-200">Schema-aware client</div>
+              <p class="text-sm text-slate-400 mt-1">Must call Describe endpoints, cache org-specific schemas, and handle dynamic field validation per customer.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Ongoing overhead</div>
+              <div class="text-xl font-display font-bold text-slate-200">Governor limit tracking</div>
+              <p class="text-sm text-slate-400 mt-1">Pre-calculation before every batch operation. Bulk API job polling. Two credential sets (sandbox + production).</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Defensive code</div>
+              <div class="text-xl font-display font-bold text-slate-200">~50% of integration</div>
+              <p class="text-sm text-slate-400 mt-1">SOQL query building, governor limit checks, environment routing, schema discovery, Bulk API orchestration.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent rules -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Agent decision rules</h2>
+          <p class="text-slate-400 leading-relaxed mb-6">
+            Structured guidance for agents encountering a Salesforce integration decision.
+          </p>
+
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8 space-y-4">
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">The operator already uses Salesforce → <strong class="text-slate-100">use Salesforce</strong>. The data migration cost of switching CRMs exceeds any agent-friendliness benefit. Work with the admin to get a connected app configured.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">FedRAMP, HIPAA, or SOC 2 compliance is a hard requirement → <strong class="text-slate-100">Salesforce is likely the only CRM option</strong>. No other CRM in our dataset matches its governance infrastructure.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">The operator does not have Salesforce and compliance is not the driver → <strong class="text-slate-100">use Pipedrive or HubSpot instead</strong>. The onboarding wall makes Salesforce prohibitive for new integrations without enterprise backing.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-amber-400 font-mono text-sm shrink-0 mt-0.5">ALWAYS</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Call the Describe endpoint before any CRUD operation to discover the org's custom fields and validation rules. Hardcoded field lists will break across different customer orgs.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-amber-400 font-mono text-sm shrink-0 mt-0.5">ALWAYS</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Use Bulk API for any operation touching more than 50 records. Governor limits on single-record DML will block at 150 operations.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-red-400 font-mono text-sm shrink-0 mt-0.5">NEVER</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Assume sandbox behavior matches production. Verify connected app configuration, field availability, and governor limits separately in each environment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This autopsy uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            Salesforce's data was last calculated on
+            {salesforce?.calculatedAt ? new Date(salesforce.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "recently"}.
+            Confidence: {formatConfidence(salesforce?.confidence)}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- More autopsies / cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">More from Rhumb</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <a href="/blog/hubspot-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Autopsy</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">HubSpot API Autopsy</div>
+              <p class="text-sm text-slate-400 mt-1">Score: 4.6/10. Rate limit traps, cross-hub inconsistency, and more.</p>
+            </a>
+            <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Comparison</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">HubSpot vs Salesforce vs Pipedrive</div>
+              <p class="text-sm text-slate-400 mt-1">Side-by-side CRM comparison for AI agents.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
