@@ -87,6 +87,7 @@ Index: https://rhumb.dev/compare — all comparisons in one place
 - https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive — CRM: HubSpot vs Salesforce vs Pipedrive
 - https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth — Auth: Auth0 vs Clerk vs Firebase Auth
 - https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude — Analytics: PostHog vs Mixpanel vs Amplitude
+- https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon — Databases: Supabase vs PlanetScale vs Neon
 
 Each comparison includes live AN Score data, friction maps, routing rules for agents,
 scenario-based recommendations, and failure mode analysis.
