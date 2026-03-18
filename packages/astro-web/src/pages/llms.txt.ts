@@ -89,6 +89,7 @@ Index: https://rhumb.dev/compare — all comparisons in one place
 - https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude — Analytics: PostHog vs Mixpanel vs Amplitude
 - https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon — Databases: Supabase vs PlanetScale vs Neon
 - https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo — Messaging: Twilio vs Vonage vs Plivo
+- https://rhumb.dev/blog/linear-vs-jira-vs-asana — Project Management: Linear vs Jira vs Asana
 
 Each comparison includes live AN Score data, friction maps, routing rules for agents,
 scenario-based recommendations, and failure mode analysis.
@@ -107,13 +108,10 @@ and constructive recommendations. Use autopsies when an agent needs to understan
 the specific friction of a tool before integrating.
 
 ## Getting Started
-- https://rhumb.dev/blog/getting-started-rhumb-mcp — Install guide: 5-min setup for Claude Desktop, Cursor, OpenAI Agents SDK
+- https://rhumb.dev/blog/getting-started-mcp — Install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
 - MCP tools reference with examples for all 16 tools
 - Three credential modes: BYO, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
-
-## Getting Started
-- https://rhumb.dev/blog/getting-started-mcp — Install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
 
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology

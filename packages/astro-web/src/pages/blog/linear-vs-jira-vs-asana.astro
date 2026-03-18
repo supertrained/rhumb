@@ -1,0 +1,389 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  linear: await getServiceScore("linear"),
+  jira: await getServiceScore("jira"),
+  asana: await getServiceScore("asana"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Linear vs Jira vs Asana for AI Agents",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A side-by-side comparison of Linear, Jira, and Asana for AI agent task management workflows using Rhumb's live AN Score data.",
+  url: "https://rhumb.dev/blog/linear-vs-jira-vs-asana",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type ComparedService = {
+  slug: "linear" | "jira" | "asana";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  tagline: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "linear",
+    name: "Linear",
+    accent: "#5E6AD2",
+    accentSoft: "rgba(94,106,210,0.16)",
+    tagline: "the API-first choice",
+    bestFor: "Agents that need to create, update, and query issues programmatically with minimal setup friction. Linear's GraphQL API was designed for machine consumption from day one — no legacy REST endpoints, no XML payloads, no SOAP.",
+    avoidWhen: "Your organization requires deep enterprise compliance workflows (approvals, audit trails, field-level permissions) or extensive marketplace integrations. Linear is opinionated — it trades configurability for speed.",
+    friction: "GraphQL-only API means agents need to construct queries rather than call simple REST endpoints. No REST fallback exists. Personal API keys work immediately but OAuth app registration requires team admin approval. Webhook payloads are well-structured but the webhook creation API is limited to the UI.",
+    decision: "Pick Linear when speed of integration and API ergonomics matter more than enterprise governance.",
+    support: "Highest execution score of the three. Clean GraphQL schema, predictable pagination, typed responses. The API is the product — not an afterthought bolted onto a UI-first tool.",
+    data: scoreMap.linear,
+  },
+  {
+    slug: "jira",
+    name: "Jira",
+    accent: "#2684FF",
+    accentSoft: "rgba(38,132,255,0.16)",
+    tagline: "the enterprise incumbent",
+    bestFor: "Organizations already embedded in the Atlassian ecosystem (Confluence, Bitbucket, Opsgenie) where Jira is the source of truth for work items. Also the only option when enterprise compliance requires SAML/SCIM provisioning and field-level audit trails.",
+    avoidWhen: "You're starting fresh and want the simplest possible integration. Jira's API carries 20 years of evolution — REST v2, REST v3, Agile API, and legacy SOAP endpoints coexist. The permutation space is enormous.",
+    friction: "Three coexisting API versions with different authentication, pagination, and error formats. Cloud vs Server/Data Center have different APIs entirely. OAuth 2.0 (3LO) for Jira Cloud requires Atlassian Connect app registration, which involves a multi-step review process. Personal access tokens work for Server/DC but not Cloud. JQL (Jira Query Language) is powerful but has its own syntax that agents must learn.",
+    decision: "Pick Jira only when the organization is already on Atlassian and migration cost exceeds integration friction.",
+    support: "Solid execution score despite API complexity because the underlying platform is battle-tested. The score reflects the API surface an agent actually has to navigate — which is larger and more fragmented than Linear or Asana.",
+    data: scoreMap.jira,
+  },
+  {
+    slug: "asana",
+    name: "Asana",
+    accent: "#F06A6A",
+    accentSoft: "rgba(240,106,106,0.16)",
+    tagline: "the middle ground",
+    bestFor: "Cross-functional teams that need project management with a clean REST API and don't require Jira's enterprise governance or Linear's engineering-specific workflow. Asana's API is well-documented with consistent patterns across resources.",
+    avoidWhen: "You need GraphQL flexibility (Asana is REST-only) or engineering-specific primitives like cycles, sprints with velocity tracking, or Git integration at the API level.",
+    friction: "Personal access tokens work immediately but expire after 60 days — agents need token refresh logic. OAuth requires app registration through the Asana Developer Console. The API enforces rate limits of 150 requests per minute per token, which is relatively low for batch operations. Custom field values require separate API calls to resolve enum options.",
+    decision: "Pick Asana when the team is cross-functional (not engineering-only) and needs a well-documented REST API without Jira's complexity.",
+    support: "Clean REST patterns with consistent error handling. The score gap versus Linear reflects the 60-day token expiry, lower rate limits, and the absence of real-time sync primitives that GraphQL subscriptions provide.",
+    data: scoreMap.asana,
+  },
+];
+
+const available = compared.filter((item) => item.data !== null);
+const ranked = [...available].sort(
+  (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
+);
+const winner = ranked[0];
+const updatedAt = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "recently";
+const updatedAtISO = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toISOString()
+  : new Date().toISOString();
+(ARTICLE_JSON_LD as any).dateModified = updatedAtISO;
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+function failureCopy(item: ComparedService): string[] {
+  if (item.slug === "linear") {
+    return [
+      "GraphQL-only API with no REST fallback. Agents that expect REST endpoints must implement GraphQL query construction, which requires more context window tokens per request.",
+      "Webhook configuration is UI-only — there is no API endpoint to create or manage webhooks programmatically. Agents cannot self-configure event subscriptions without human intervention.",
+      "Personal API keys have no granular scope control. A key either has full access to the workspace or no access. Agents requiring least-privilege access patterns cannot restrict their own permissions.",
+    ];
+  }
+  if (item.slug === "jira") {
+    return [
+      "Three coexisting API versions (REST v2, REST v3, Agile API) with different auth mechanisms, pagination styles, and error response formats. Agents must detect which version to use for each operation.",
+      "Jira Cloud requires OAuth 2.0 (3LO) with Atlassian Connect app registration. The app review process can take days and requires a human-facing consent screen — agents cannot self-provision API access.",
+      "JQL (Jira Query Language) is a custom query language with its own syntax, operators, and reserved words. Agents need JQL-specific knowledge that doesn't transfer from other APIs.",
+    ];
+  }
+  return [
+    "Personal access tokens expire after 60 days with no option to create non-expiring tokens. Agents must implement token refresh logic or break silently after two months.",
+    "Rate limit of 150 requests per minute per token is restrictive for batch operations. Bulk issue creation or project-wide updates can hit limits within seconds.",
+    "Custom field enum values are returned as opaque GIDs that require separate API calls to resolve to human-readable names. Agents processing custom fields need extra round trips per field.",
+  ];
+}
+
+const scenarioCards = [
+  {
+    title: "Engineering team tracking issues, PRs, and cycles",
+    pick: "Linear",
+    why: "Purpose-built for engineering workflows. GraphQL API is the fastest integration path. Cycles, labels, and project views map directly to sprint-based development.",
+    href: "/service/linear",
+  },
+  {
+    title: "Enterprise org with Atlassian stack and compliance requirements",
+    pick: "Jira",
+    why: "Field-level audit trails, SAML/SCIM, and deep Confluence/Bitbucket integration. The API complexity is the cost of enterprise governance.",
+    href: "/service/jira",
+  },
+  {
+    title: "Cross-functional team needing clean REST API",
+    pick: "Asana",
+    why: "Marketing, ops, and product teams get a well-documented REST API with consistent resource patterns. No JQL to learn, no GraphQL to construct.",
+    href: "/service/asana",
+  },
+];
+
+const agentRules = [
+  "Default to Linear for engineering teams building new integrations. The GraphQL API is the most agent-friendly surface in project management today.",
+  "If the organization already uses Jira and has more than 50 users, do not recommend migration. The switching cost exceeds the integration friction difference.",
+  "For Asana: implement token refresh before deployment. The 60-day expiry will cause silent failures that are difficult to diagnose after the fact.",
+  "For Jira: always target the REST v3 API for Cloud instances. The v2 API works but returns different response shapes and will eventually be deprecated.",
+  "If the agent needs to create webhooks programmatically, eliminate Linear from consideration — webhook management requires UI access.",
+  "For batch operations (importing issues, bulk status changes): check rate limits first. Asana's 150/min limit requires explicit throttling. Linear and Jira are more permissive but will still rate-limit aggressive agents.",
+];
+---
+
+<Layout
+  title="Linear vs Jira vs Asana for AI Agents | Rhumb"
+  description="Side-by-side comparison of Linear, Jira, and Asana for AI agent task management. Linear leads on API ergonomics; Jira on enterprise depth; Asana on REST simplicity."
+  canonical="/blog/linear-vs-jira-vs-asana"
+  ogTitle="Linear vs Jira vs Asana for AI Agents"
+  ogDescription="Linear is the API-first choice. Jira is the enterprise incumbent. Asana is the middle ground. Live AN Score data."
+  ogUrl="https://rhumb.dev/blog/linear-vs-jira-vs-asana"
+  ogType="article"
+  twitterTitle="Linear vs Jira vs Asana for AI Agents"
+  twitterDescription="Linear leads on ergonomics. Jira wins on enterprise depth. Asana offers the cleanest REST API. Which should your agent use?"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(94,106,210,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(38,132,255,0.12),transparent_28%),radial-gradient(circle_at_bottom,rgba(240,106,106,0.08),transparent_35%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Comparison</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Linear vs Jira vs Asana for AI agents
+          </h1>
+
+          <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
+            <span class="text-slate-100 font-semibold">Short answer:</span>
+            Linear wins on API ergonomics — GraphQL-native, typed responses, minimal auth friction.
+            Jira wins on enterprise depth — audit trails, SAML, and the Atlassian ecosystem.
+            Asana splits the difference with a clean REST API and cross-functional flexibility.
+          </p>
+
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"></div>
+            <p class="text-sm leading-6 text-slate-300">
+              <span class="font-semibold text-slate-100">Tight race.</span>
+              All three score within 0.5 points — Linear at {formatScore(scoreMap.linear?.aggregateRecommendationScore)},
+              Jira at {formatScore(scoreMap.jira?.aggregateRecommendationScore)},
+              Asana at {formatScore(scoreMap.asana?.aggregateRecommendationScore)}.
+              The right choice depends on your organization's existing stack and governance requirements, not raw API quality.
+              Scores reflect published Rhumb data as of {updatedAt}.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score cards -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="grid md:grid-cols-3 gap-6">
+          {ranked.map((item, index) => (
+            <div
+              class={`rounded-2xl border p-6 sm:p-8 ${index === 0 ? "border-emerald-500/30 bg-emerald-500/5" : "border-slate-700/50 bg-slate-900/40"}`}
+              style={index === 0 ? "" : `background: linear-gradient(135deg, ${item.accentSoft} 0%, transparent 50%)`}
+            >
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <span class="text-xs font-mono text-slate-500 uppercase tracking-wider">#{index + 1}</span>
+                  <h3 class="font-display font-bold text-2xl text-slate-100">{item.name}</h3>
+                  <span class="text-xs font-mono text-slate-400">{item.tagline}</span>
+                </div>
+                {item.data && <ScoreDisplay score={item.data.aggregateRecommendationScore} size="large" />}
+              </div>
+
+              {item.data && (
+                <div class="space-y-3 mb-6">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Execution</span>
+                    <span class="text-slate-200 font-mono">{formatScore(item.data.executionScore)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Access Readiness</span>
+                    <span class="text-slate-200 font-mono">{formatScore(item.data.accessReadinessScore)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Confidence</span>
+                    <span class="text-slate-200 font-mono">{formatConfidence(item.data.confidence)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Tier</span>
+                    <TierBadge tier={item.data?.tier ?? null} label={item.data?.tierLabel ?? undefined} />
+                  </div>
+                </div>
+              )}
+
+              <p class="text-sm text-slate-400 leading-relaxed">{item.support}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Detailed breakdown -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What agents need to know</h2>
+          <p class="text-slate-400 leading-relaxed">
+            For each service: when to use it, when to avoid it, and what will break.
+          </p>
+        </div>
+
+        <div class="space-y-10 max-w-4xl">
+          {compared.map((item) => (
+            <div class="rounded-2xl border border-slate-700/50 bg-slate-900/30 p-6 sm:p-8">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-3 h-3 rounded-full" style={`background: ${item.accent}`}></div>
+                <h3 class="font-display font-bold text-2xl text-slate-100">{item.name}</h3>
+                {item.data && <span class="text-lg font-mono text-slate-400">{formatScore(item.data.aggregateRecommendationScore)}</span>}
+              </div>
+
+              <div class="grid sm:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-2">Best for</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{item.bestFor}</p>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Avoid when</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{item.avoidWhen}</p>
+                </div>
+              </div>
+
+              <div class="mb-6">
+                <div class="text-xs font-mono text-amber uppercase tracking-wider mb-2">Agent friction</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{item.friction}</p>
+              </div>
+
+              <div>
+                <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Failure modes</div>
+                <ul class="space-y-2">
+                  {failureCopy(item).map((f) => (
+                    <li class="flex gap-2 text-sm text-slate-400 leading-relaxed">
+                      <span class="text-red-400/60 mt-1 shrink-0">→</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Scenario cards -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Quick picks by scenario</h2>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4 max-w-4xl">
+          {scenarioCards.map((sc) => (
+            <a href={sc.href} class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <p class="text-sm text-slate-400 mb-3">{sc.title}</p>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors mb-1">→ {sc.pick}</div>
+              <p class="text-xs text-slate-500 leading-relaxed">{sc.why}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent rules -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-6">Routing rules for agents</h2>
+
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8 space-y-4">
+            {agentRules.map((rule) => (
+              <div class="flex gap-3 items-start">
+                <span class="text-amber mt-0.5 shrink-0">→</span>
+                <p class="text-slate-300 text-sm leading-relaxed">{rule}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This comparison uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            Scores were last calculated on {updatedAt}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">Related</h2>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-blue-400 uppercase tracking-wider mb-2">Comparison</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">CRM Comparison</div>
+              <p class="text-sm text-slate-400 mt-1">HubSpot vs Salesforce vs Pipedrive for agents.</p>
+            </a>
+            <a href="/compare" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Index</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">All Comparisons</div>
+              <p class="text-sm text-slate-400 mt-1">8 categories, 24 tools scored.</p>
+            </a>
+            <a href="/blog/getting-started-mcp" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-2">Guide</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Getting Started</div>
+              <p class="text-sm text-slate-400 mt-1">Give your agent tool intelligence in 5 minutes.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
