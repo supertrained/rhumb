@@ -1,0 +1,478 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  "anthropic-api": await getServiceScore("anthropic-api"),
+  openai: await getServiceScore("openai"),
+  "google-ai": await getServiceScore("google-ai"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Anthropic vs OpenAI vs Google AI for AI Agents",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A side-by-side comparison of Anthropic, OpenAI, and Google AI APIs for AI agent workflows using Rhumb's live AN Score data. Anthropic leads; OpenAI scores lowest on access readiness.",
+  url: "https://rhumb.dev/blog/anthropic-vs-openai-vs-google-ai",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+type ComparedService = {
+  slug: "anthropic-api" | "openai" | "google-ai";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "anthropic-api",
+    name: "Anthropic",
+    accent: "#D97706",
+    accentSoft: "rgba(217,119,6,0.16)",
+    bestFor: "Agents that need the cleanest API surface, the most predictable tool-use format, and the fewest integration surprises.",
+    avoidWhen: "You need the broadest model ecosystem, fine-tuning, or image generation in a single provider — Anthropic's scope is intentionally narrower.",
+    friction: "Rate limits can tighten quickly under load. Model version deprecation cycles mean agent code must handle version pinning or risk silent behavior changes.",
+    decision: "Pick Anthropic when execution reliability and agent-friendly API design matter more than ecosystem breadth.",
+    support: "Highest overall score. Best execution reliability, cleanest structured output, and a tool-use interface that was built for agents from the start.",
+    data: scoreMap["anthropic-api"],
+  },
+  {
+    slug: "openai",
+    name: "OpenAI",
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.16)",
+    bestFor: "Agents that need the broadest model selection, fine-tuning, image generation, and the largest third-party ecosystem of wrappers and tools.",
+    avoidWhen: "You want the simplest path from API key to working agent with no organizational complexity and no authentication surprises.",
+    friction: "Organization and project key hierarchy adds setup complexity that other providers skip. Rate limit tiers are spend-gated, so new agents start throttled. Multiple authentication paths (user keys, project keys, service accounts) create confusion.",
+    decision: "Pick OpenAI when ecosystem breadth and model variety outweigh onboarding friction.",
+    support: "Broadest model catalog and strongest ecosystem, but the lowest access readiness score of the three — the gap is real and well-measured (0.98 confidence).",
+    data: scoreMap.openai,
+  },
+  {
+    slug: "google-ai",
+    name: "Google AI",
+    accent: "#3B82F6",
+    accentSoft: "rgba(59,130,246,0.16)",
+    bestFor: "Agents that need strong multimodal capabilities, generous free tiers, and a provider whose infrastructure scales without rate limit anxiety.",
+    avoidWhen: "You need a single, obvious API surface — Google's split between AI Studio, Vertex AI, and the Gemini API can confuse agents that expect one path.",
+    friction: "Three overlapping product surfaces (AI Studio, Vertex AI, Gemini API) make it unclear which endpoint an agent should hit. Auth complexity rises sharply once you move from API keys to service accounts for production.",
+    decision: "Pick Google AI when multimodal breadth and infrastructure scale matter more than API surface simplicity.",
+    support: "Strong execution, competitive access readiness, and the deepest multimodal capabilities — but an agent needs to navigate Google's product naming to find the right door.",
+    data: scoreMap["google-ai"],
+  },
+];
+
+const available = compared.filter((item) => item.data !== null);
+const ranked = [...available].sort(
+  (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
+);
+const winner = ranked[0];
+const updatedAt = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "recently";
+const updatedAtISO = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toISOString()
+  : new Date().toISOString();
+(ARTICLE_JSON_LD as any).dateModified = updatedAtISO;
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+function failureCopy(item: ComparedService): string[] {
+  if (item.slug === "anthropic-api") {
+    return [
+      "Rate limits are responsive to load but can tighten faster than agents expect — retry logic needs adaptive backoff, not fixed delays.",
+      "Model versioning is clear but deprecation happens; agents pinned to a specific version must have a fallback or upgrade path.",
+      "The API scope is intentionally focused (no image generation, no fine-tuning) — agents expecting a full-stack provider will need a second integration.",
+    ];
+  }
+  if (item.slug === "openai") {
+    return [
+      "Organization/project key hierarchy adds a multi-step setup before an agent can make its first call — other providers issue a single key and go.",
+      "Rate limits are tiered by historical spend, so a new agent starts with the lowest limits regardless of technical capability.",
+      "Multiple overlapping products (Chat Completions, Assistants API, Responses API) create version confusion about which surface to target.",
+    ];
+  }
+  return [
+    "Three overlapping products (AI Studio, Vertex AI, Gemini API) mean the agent must first figure out which door to enter — the wrong choice means re-doing auth.",
+    "Moving from free-tier API keys to production service accounts is a significant auth complexity jump that can break agents mid-migration.",
+    "Model naming and capability sets differ across the three surfaces, so an agent built against AI Studio may not port cleanly to Vertex.",
+  ];
+}
+
+const scenarioCards = [
+  {
+    title: "Tool-using agents, structured output, reliable function calling",
+    pick: "Anthropic",
+    why: "Built for tool use from the ground up. Cleanest structured output, most predictable function-calling behavior, highest execution reliability.",
+    href: "/service/anthropic-api",
+  },
+  {
+    title: "Multi-model agents, fine-tuning, image + text + audio in one provider",
+    pick: "OpenAI",
+    why: "Broadest model catalog covering text, image, audio, and embeddings. Strong fine-tuning support. Largest ecosystem of third-party wrappers.",
+    href: "/service/openai",
+  },
+  {
+    title: "Multimodal analysis, long-context processing, cost-sensitive workloads",
+    pick: "Google AI",
+    why: "Most generous free tier, strongest multimodal breadth, and infrastructure that scales without rate-limit anxiety. Best for long-context workloads.",
+    href: "/service/google-ai",
+  },
+];
+
+const agentRules = [
+  "If the agent primarily does tool use and structured output, Anthropic is the default choice — it was designed for this pattern.",
+  "If the agent needs fine-tuning, image generation, or the broadest third-party ecosystem, OpenAI's breadth wins despite access friction.",
+  "If the agent processes long documents, multimodal inputs, or needs generous free-tier usage, Google AI's infrastructure advantage matters.",
+  "OpenAI's confidence score (98%) means its lower ranking is well-measured, not under-tested — don't dismiss it as insufficient data.",
+  "For new agents with no provider lock-in, start with Anthropic or Google AI to avoid OpenAI's spend-gated rate limit ramp-up.",
+];
+---
+
+<Layout
+  title="Anthropic vs OpenAI vs Google AI for AI Agents | Rhumb"
+  description="Side-by-side comparison of Anthropic, OpenAI, and Google AI APIs for AI agents. Anthropic leads on execution and access; OpenAI's access friction drags its score."
+  canonical="/blog/anthropic-vs-openai-vs-google-ai"
+  ogTitle="Anthropic vs OpenAI vs Google AI for AI Agents"
+  ogDescription="Which LLM API should an AI agent use? Anthropic wins on reliability and agent ergonomics. OpenAI has the broadest ecosystem. Google AI brings multimodal depth."
+  ogUrl="https://rhumb.dev/blog/anthropic-vs-openai-vs-google-ai"
+  ogType="article"
+  twitterTitle="Anthropic vs OpenAI vs Google AI for AI Agents"
+  twitterDescription="A data-driven comparison of the three major LLM APIs for agent workflows."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(217,119,6,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_bottom,rgba(16,185,129,0.08),transparent_35%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Comparison</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Anthropic vs OpenAI vs Google AI for AI agents
+          </h1>
+
+          <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
+            <span class="text-slate-100 font-semibold">Short answer:</span>
+            Anthropic leads on execution reliability and agent ergonomics.
+            Google AI is a strong second with multimodal depth.
+            OpenAI has the broadest ecosystem but the most access friction — and its low score is the most statistically confident of the three.
+          </p>
+
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+            <p class="text-sm leading-6 text-slate-300">
+              <span class="font-semibold text-slate-100">Verdict:</span>
+              {winner?.name ?? "Anthropic"} leads on current Rhumb scoring with the highest execution reliability and
+              access readiness. The gap between first and third is 2.1 points — large enough to represent materially different
+              agent experiences. Scores reflect published Rhumb data as of {updatedAt}.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-12 grid gap-5 lg:grid-cols-[1.18fr_0.92fr_0.9fr]">
+          {compared.map((item, index) => (
+            <article
+              class:list={[
+                "group relative overflow-hidden rounded-[28px] border bg-surface/90 backdrop-blur-sm p-6 sm:p-7 reveal",
+                index === 0 ? "lg:-translate-y-4" : "",
+              ]}
+              style={`border-color:${item.accent}40; background-image:linear-gradient(180deg, ${item.accentSoft} 0%, rgba(15,23,42,0.85) 26%, rgba(15,23,42,0.92) 100%); animation-delay:${index * 80}ms;`}
+            >
+              <div class="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={`background:radial-gradient(circle_at_top_right, ${item.accentSoft} 0%, transparent 38%);`}></div>
+              <div class="relative">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">{index === 0 ? "agent-first" : index === 1 ? "broadest" : "multimodal"}</p>
+                    <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">{item.name}</h2>
+                  </div>
+                  <ScoreDisplay score={item.data?.aggregateRecommendationScore ?? null} size="large" showLabel />
+                </div>
+
+                <div class="mt-4 flex items-center gap-3 flex-wrap">
+                  <TierBadge tier={item.data?.tier ?? null} label={item.data?.tierLabel ?? undefined} />
+                  <span class="text-xs font-mono text-slate-500">confidence {formatConfidence(item.data?.confidence)}</span>
+                </div>
+
+                <p class="mt-5 text-sm leading-6 text-slate-300">{item.bestFor}</p>
+
+                <dl class="mt-6 grid grid-cols-3 gap-3">
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Exec</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.executionScore)}</dd>
+                  </div>
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Access</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.accessReadinessScore)}</dd>
+                  </div>
+                  <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                    <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Autonomy</dt>
+                    <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(item.data?.p1Score)}</dd>
+                  </div>
+                </dl>
+
+                <div class="mt-6 rounded-2xl border border-white/6 bg-navy/70 p-4">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Why it lands here</p>
+                  <p class="mt-2 text-sm leading-6 text-slate-300">{item.support}</p>
+                </div>
+
+                <div class="mt-4 space-y-3">
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Biggest friction</p>
+                    <p class="mt-1 text-sm leading-6 text-slate-400">{item.friction}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Avoid when</p>
+                    <p class="mt-1 text-sm leading-6 text-slate-400">{item.avoidWhen}</p>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between gap-4 border-t border-white/8 pt-4">
+                  <p class="text-sm font-semibold text-slate-200 max-w-[20rem]">{item.decision}</p>
+                  <a href={`/service/${item.slug}`} class="text-xs font-mono uppercase tracking-[0.2em] text-amber hover:text-amber-dark transition-colors">Service page →</a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 py-14">
+      <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/80 overflow-hidden reveal">
+          <div class="border-b border-slate-800 px-6 py-5 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Operator scoreboard</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">What the numbers actually say</h2>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px]">
+              <thead>
+                <tr class="border-b border-slate-800 text-left">
+                  <th class="px-6 py-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Metric</th>
+                  {compared.map((item) => (
+                    <th class="px-6 py-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">{item.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Aggregate AN Score</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 font-semibold text-slate-100">{formatScore(item.data?.aggregateRecommendationScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Execution</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.executionScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Access Readiness</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.accessReadinessScore)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Autonomy</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatScore(item.data?.p1Score)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="px-6 py-4 text-sm text-slate-300">Confidence</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-slate-200">{formatConfidence(item.data?.confidence)}</td>
+                  ))}
+                </tr>
+                <tr class="border-b border-slate-800/80 align-top">
+                  <td class="px-6 py-4 text-sm text-slate-300">Best fit</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-sm leading-6 text-slate-300">{item.bestFor}</td>
+                  ))}
+                </tr>
+                <tr class="align-top">
+                  <td class="px-6 py-4 text-sm text-slate-300">Primary friction</td>
+                  {compared.map((item) => (
+                    <td class="px-6 py-4 text-sm leading-6 text-slate-400">{item.friction}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="space-y-5 reveal">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Agent brief</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Routing rules</h2>
+            <ol class="mt-5 space-y-3">
+              {agentRules.map((rule, idx) => (
+                <li class="flex items-start gap-3">
+                  <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-navy text-[11px] font-mono text-slate-300 shrink-0">{idx + 1}</span>
+                  <span class="text-sm leading-6 text-slate-300">{rule}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">The confidence story</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Why OpenAI's low score matters more</h2>
+            <p class="mt-4 text-base leading-7 text-slate-300">
+              OpenAI's 98% confidence is the highest in this comparison.
+              That means its 6.3 is not a sampling artifact — it is a well-measured score reflecting genuine access friction.
+              Anthropic and Google AI sit at 62–64% confidence, which means their scores could shift with more data,
+              but they are unlikely to drop below OpenAI's current position.
+            </p>
+            <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
+              High confidence on a low score is more informative than low confidence on a high score.
+              OpenAI's access readiness gap is real and measured.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-14">
+      <div class="rounded-[32px] border border-slate-800 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(2,6,23,0.4))] p-6 sm:p-8 reveal">
+        <div class="max-w-2xl">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Friction map</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Where each one breaks in practice</h2>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            Every LLM API works in the demo. The differences emerge at scale: under real rate limits,
+            with real auth complexity, and when an agent needs to recover from failures without human help.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-5 lg:grid-cols-3">
+          {compared.map((item, index) => (
+            <article class="rounded-[26px] border bg-navy/55 p-6" style={`border-color:${item.accent}30; animation-delay:${index * 90}ms;`}>
+              <div class="flex items-center justify-between gap-4">
+                <h3 class="font-display font-bold text-xl text-slate-100">{item.name}</h3>
+                <span class="h-2.5 w-2.5 rounded-full" style={`background:${item.accent}`}></span>
+              </div>
+              <ul class="mt-5 space-y-3">
+                {failureCopy(item).map((line) => (
+                  <li class="flex items-start gap-3 text-sm leading-6 text-slate-300">
+                    <span class="mt-2 h-1.5 w-1.5 rounded-full bg-slate-500 shrink-0"></span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-14">
+      <div class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 sm:p-8 reveal">
+        <div class="max-w-2xl">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">The wider field</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Beyond the big three</h2>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            Rhumb scores 10 AI/LLM providers. The full leaderboard includes infrastructure plays and specialists
+            that may outperform the big three for specific workloads.
+          </p>
+        </div>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { name: "Groq", score: "7.5", note: "Fastest inference" },
+            { name: "xAI Grok", score: "7.4", note: "Real-time web access" },
+            { name: "Mistral", score: "7.3", note: "EU sovereignty" },
+            { name: "DeepSeek", score: "7.1", note: "Cost efficiency" },
+          ].map((item) => (
+            <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-200">{item.name}</span>
+                <span class="text-sm font-mono text-amber">{item.score}</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">{item.note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-16">
+      <div class="grid gap-5 lg:grid-cols-3 reveal">
+        {scenarioCards.map((card, index) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface/85 p-6" style={`animation-delay:${index * 80}ms;`}>
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Scenario</p>
+            <h3 class="mt-2 font-display font-bold text-xl text-slate-100 leading-snug">{card.title}</h3>
+            <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-3 py-1">
+              <span class="text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-300">Pick</span>
+              <span class="text-sm font-semibold text-slate-100">{card.pick}</span>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-slate-400">{card.why}</p>
+            <a href={card.href} class="mt-6 inline-flex text-xs font-mono uppercase tracking-[0.2em] text-amber hover:text-amber-dark transition-colors">Open scorecard →</a>
+          </article>
+        ))}
+      </div>
+
+      <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal">
+        <div class="max-w-3xl mx-auto">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Methodology note</p>
+          <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">How these scores work</h2>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            Rhumb's AN Score evaluates each API from an agent's perspective — not a human developer's.
+            Execution measures reliability, error ergonomics, and structured output quality.
+            Access measures how much setup friction stands between an agent and its first successful call.
+            The scores are live and will change as providers ship improvements. Notably, OpenAI's access score
+            would improve significantly if organization setup were simplified or rate limit tiers were decoupled from spend history.
+          </p>
+          <p class="mt-3 text-slate-400 leading-relaxed">
+            Scores were last calculated on {updatedAt}.
+            <a href="/blog/self-score" class="text-amber hover:text-amber-dark transition-colors ml-1">Read the full methodology →</a>
+          </p>
+        </div>
+
+        <div class="mt-8 text-center">
+          <div class="flex flex-wrap items-center justify-center gap-4">
+            <a href="/blog/getting-started-mcp" class="inline-flex rounded-xl bg-amber px-5 py-3 text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors">Get started with Rhumb MCP →</a>
+            <a href="/compare" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">All comparisons</a>
+            <a href="/autopsy" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-slate-300 font-display font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-colors">Tool autopsies</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

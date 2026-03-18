@@ -90,6 +90,7 @@ Index: https://rhumb.dev/compare — all comparisons in one place
 - https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon — Databases: Supabase vs PlanetScale vs Neon
 - https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo — Messaging: Twilio vs Vonage vs Plivo
 - https://rhumb.dev/blog/linear-vs-jira-vs-asana — Project Management: Linear vs Jira vs Asana
+- https://rhumb.dev/blog/anthropic-vs-openai-vs-google-ai — AI/LLM: Anthropic vs OpenAI vs Google AI
 
 Each comparison includes live AN Score data, friction maps, routing rules for agents,
 scenario-based recommendations, and failure mode analysis.
