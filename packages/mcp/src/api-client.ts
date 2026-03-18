@@ -112,6 +112,14 @@ export interface CapabilityExecuteResult {
   fallbackProvider: string | null;
   executionId: string;
   deduplicated?: boolean;
+  /** Present when HTTP 402 is returned — contains x402 payment instructions */
+  paymentRequired?: {
+    x402Version: number;
+    accepts: Array<Record<string, unknown>>;
+    error: string;
+    balanceRequired: number;
+    balanceRequiredUsd: number;
+  };
 }
 
 export interface CapabilityEstimateResult {
@@ -168,6 +176,7 @@ export interface RhumbApiClient {
     credentialMode?: string;
     idempotencyKey?: string;
     agentToken?: string;
+    xPayment?: string;
   }): Promise<CapabilityExecuteResult>;
   estimateCapability(capabilityId: string, opts?: {
     provider?: string;
@@ -412,6 +421,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       credentialMode?: string;
       idempotencyKey?: string;
       agentToken?: string;
+      xPayment?: string;
     }): Promise<CapabilityExecuteResult> {
       const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute`;
       const apiKey = process.env.RHUMB_API_KEY;
@@ -426,6 +436,10 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       // Mode 3: pass agent token via header (NEVER in body or logs)
       if (opts.agentToken) {
         reqHeaders["X-Agent-Token"] = opts.agentToken;
+      }
+      // x402: pass payment proof for zero-signup execution
+      if (opts.xPayment) {
+        reqHeaders["X-Payment"] = opts.xPayment;
       }
 
       const reqBody: Record<string, unknown> = {
@@ -445,6 +459,33 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         headers: reqHeaders,
         body: JSON.stringify(reqBody)
       });
+
+      // x402: 402 Payment Required — return payment instructions instead of throwing
+      if (res.status === 402) {
+        const paymentBody: unknown = await res.json();
+        if (isRecord(paymentBody)) {
+          return {
+            capabilityId,
+            providerUsed: "none",
+            credentialMode: "x402",
+            upstreamStatus: 402,
+            upstreamResponse: null,
+            costEstimateUsd: typeof paymentBody.balanceRequiredUsd === "number"
+              ? paymentBody.balanceRequiredUsd : null,
+            latencyMs: null,
+            fallbackAttempted: false,
+            fallbackProvider: null,
+            executionId: "payment_required",
+            paymentRequired: {
+              x402Version: typeof paymentBody.x402Version === "number" ? paymentBody.x402Version : 1,
+              accepts: Array.isArray(paymentBody.accepts) ? paymentBody.accepts as Array<Record<string, unknown>> : [],
+              error: asString(paymentBody.error) ?? "Payment required",
+              balanceRequired: typeof paymentBody.balanceRequired === "number" ? paymentBody.balanceRequired : 0,
+              balanceRequiredUsd: typeof paymentBody.balanceRequiredUsd === "number" ? paymentBody.balanceRequiredUsd : 0,
+            }
+          };
+        }
+      }
 
       if (!res.ok) {
         const errBody = await res.text();

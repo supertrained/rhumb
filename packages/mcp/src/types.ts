@@ -197,7 +197,8 @@ export const ExecuteCapabilityInputSchema = {
     params: { type: "object" as const, description: "Optional query parameters" },
     credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed (zero-config, omit method/path), or agent_vault (pass agent_token)" },
     idempotency_key: { type: "string" as const, description: "Optional UUID for safe retry. Required to enable automatic fallback to backup providers." },
-    agent_token: { type: "string" as const, description: "For agent_vault mode only: the API token you obtained via the credential ceremony. NEVER stored by Rhumb — used for this single request only." }
+    agent_token: { type: "string" as const, description: "For agent_vault mode only: the API token you obtained via the credential ceremony. NEVER stored by Rhumb — used for this single request only." },
+    x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Pass this after receiving a payment_required response to authorize execution without an API key. Contains tx hash and on-chain proof." }
   },
   required: ["capability_id"] as const
 };
@@ -212,6 +213,7 @@ export type ExecuteCapabilityInput = {
   credential_mode?: string;
   idempotency_key?: string;
   agent_token?: string;
+  x_payment?: string;
 };
 
 export type ExecuteCapabilityOutput = {
@@ -226,6 +228,17 @@ export type ExecuteCapabilityOutput = {
   fallbackProvider: string | null;
   executionId: string;
   deduplicated?: boolean;
+  /** Present when HTTP 402 is returned. Contains x402 payment instructions. */
+  paymentRequired?: X402PaymentInfo;
+};
+
+/** x402 payment instructions returned on HTTP 402 */
+export type X402PaymentInfo = {
+  x402Version: number;
+  accepts: Array<Record<string, unknown>>;
+  error: string;
+  balanceRequired: number;
+  balanceRequiredUsd: number;
 };
 
 // ---------------------------------------------------------------------------
