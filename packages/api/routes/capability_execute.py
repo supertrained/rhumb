@@ -3,6 +3,15 @@
 Agents call POST /v1/capabilities/{id}/execute with a provider-native payload.
 The route resolves the provider, injects auth, proxies the request, and logs
 the execution to capability_executions.
+
+Supports two authentication paths:
+  1. **Registered agent** — ``X-Rhumb-Key`` header (existing API-key flow).
+  2. **x402 anonymous** — ``X-Payment`` header with on-chain USDC payment.
+     No API key or signup required; identity is derived from wallet address.
+     Rate-limited per wallet to prevent abuse.
+
+If neither header is present, the endpoint returns HTTP 402 with x402 payment
+instructions so agents can discover how to pay.
 """
 
 from __future__ import annotations
@@ -13,6 +22,7 @@ import logging
 import os
 import time
 import uuid
+from collections import defaultdict
 from typing import Any, Optional
 from urllib.parse import quote
 
@@ -32,7 +42,7 @@ from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
 from services.payment_metrics import log_payment_event
-from services.x402 import PaymentRequiredException
+from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header
 from services.usdc_verifier import verify_usdc_payment
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
@@ -53,6 +63,27 @@ def _get_identity_store() -> AgentIdentityStore:
     return _identity_store
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# x402 anonymous wallet rate limiter (in-memory, per-process)
+# ---------------------------------------------------------------------------
+
+_wallet_requests: dict[str, list[float]] = defaultdict(list)
+_WALLET_RATE_LIMIT = 60   # requests per minute per wallet
+_WALLET_RATE_WINDOW = 60  # seconds
+
+
+def check_wallet_rate_limit(wallet_address: str) -> tuple[bool, int]:
+    """Check per-wallet rate limit. Returns (allowed, remaining_requests)."""
+    now = time.time()
+    key = wallet_address.lower()
+    _wallet_requests[key] = [t for t in _wallet_requests[key] if now - t < _WALLET_RATE_WINDOW]
+    remaining = _WALLET_RATE_LIMIT - len(_wallet_requests[key])
+    if remaining <= 0:
+        return False, 0
+    _wallet_requests[key].append(now)
+    return True, remaining - 1
 
 router = APIRouter()
 
@@ -252,15 +283,66 @@ async def execute_capability(
 
     Supports x402 inline payment via the ``X-Payment`` header.
     """
-    if not x_rhumb_key:
-        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
+    # ── Authentication: API key OR x402 payment ────────────────────
+    is_x402_anonymous = False
+    x402_wallet_address: Optional[str] = None
+    x402_rate_remaining: Optional[int] = None
 
-    # Verify API key against identity store (same as proxy route)
-    agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
-    if agent is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
-    agent_id = agent.agent_id
-    org_id = agent.organization_id
+    if x_rhumb_key:
+        # Path 1: Registered agent with API key (existing flow)
+        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        agent_id = agent.agent_id
+        org_id = agent.organization_id
+    elif x_payment and x_payment != "required":
+        # Path 2: x402 anonymous — payment header present, no API key
+        is_x402_anonymous = True
+        payment_data = decode_x_payment_header(x_payment)
+        if payment_data:
+            x402_wallet_address = (
+                payment_data.get("wallet_address")
+                or payment_data.get("from")
+            )
+        # Derive deterministic identity from wallet (or use generic fallback)
+        if x402_wallet_address:
+            agent_id = f"x402_wallet_{x402_wallet_address.lower()}"
+        else:
+            agent_id = "x402_anonymous"
+        org_id = "x402_anonymous"
+
+        # Rate-limit per wallet to prevent abuse
+        if x402_wallet_address:
+            allowed, remaining = check_wallet_rate_limit(x402_wallet_address)
+            x402_rate_remaining = remaining
+            if not allowed:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Rate limit exceeded for this wallet",
+                    headers={"Retry-After": str(_WALLET_RATE_WINDOW)},
+                )
+    else:
+        # Path 3: No auth at all — return x402 payment instructions
+        # We need a cost estimate to build the 402 response, so fetch it first
+        cap_services_for_402 = await _get_capability_services(capability_id)
+        cost_for_402 = 0.0
+        if cap_services_for_402:
+            costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
+            cost_for_402 = min(costs) if costs else 0.0
+        billed_cents_for_402 = int(round(cost_for_402 * 100 * 1.2)) if cost_for_402 > 0 else 0
+        api_base = os.environ.get(
+            "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+        )
+        body_402 = build_x402_response(
+            capability_id=capability_id,
+            cost_usd_cents=billed_cents_for_402,
+            resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+        )
+        return JSONResponse(
+            status_code=402,
+            content=body_402,
+            headers={"X-Payment": "required"},
+        )
 
     # Validate required fields before reserving any budget/credits.
     if request.credential_mode == "agent_vault":
@@ -321,8 +403,9 @@ async def execute_capability(
     #   1. Verify the tx hasn't been used before (replay protection)
     #   2. Verify the on-chain USDC transfer matches expected amount/recipient
     #   3. Record the receipt in usdc_receipts
-    #   4. Credit the org's balance so the normal credit-deduction flow succeeds
-    # This is an ADDITIONAL payment path — never replaces the existing flow.
+    #   4. For registered agents: credit the org's balance so the normal
+    #      credit-deduction flow succeeds
+    #   5. For x402 anonymous: payment is the only gate — skip budget/credits
     x402_receipt: dict | None = None
     if x_payment and x_payment != "required":
         payment_data = decode_x_payment_header(x_payment)
@@ -386,29 +469,30 @@ async def execute_capability(
                 "status": "confirmed",
             })
 
-            # Credit the org's balance via credit_ledger + org_credits update
-            # First get current balance for the ledger snapshot
-            current_credits = await supabase_fetch(
-                f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
-            )
-            current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
-            new_balance = current_balance + billed_cost_cents
-
-            await supabase_insert("credit_ledger", {
-                "org_id": org_id,
-                "amount_usd_cents": billed_cost_cents,
-                "balance_after_usd_cents": new_balance,
-                "event_type": "x402_payment",
-                "capability_execution_id": execution_id,
-                "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
-            })
-
-            # Increment org_credits balance
-            if current_credits:
-                await supabase_patch(
-                    f"org_credits?org_id=eq.{quote(org_id)}",
-                    {"balance_usd_cents": new_balance},
+            # For registered agents, credit the org's balance so the normal
+            # credit-deduction flow succeeds. For x402 anonymous, skip this —
+            # the on-chain payment IS the authorization.
+            if not is_x402_anonymous:
+                current_credits = await supabase_fetch(
+                    f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
                 )
+                current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
+                new_balance = current_balance + billed_cost_cents
+
+                await supabase_insert("credit_ledger", {
+                    "org_id": org_id,
+                    "amount_usd_cents": billed_cost_cents,
+                    "balance_after_usd_cents": new_balance,
+                    "event_type": "x402_payment",
+                    "capability_execution_id": execution_id,
+                    "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
+                })
+
+                if current_credits:
+                    await supabase_patch(
+                        f"org_credits?org_id=eq.{quote(org_id)}",
+                        {"balance_usd_cents": new_balance},
+                    )
 
             log_payment_event(
                 "x402_payment_verified",
@@ -421,64 +505,70 @@ async def execute_capability(
             )
             x402_receipt = verification
 
-    # Step 1: existing agent budget check (unchanged)
+    # ── Budget & credit reservation (registered agents only) ──────
+    # x402 anonymous agents pay per-call on-chain; no budget/credit system.
+    budget_remaining: float | None = None
+    credit_reserved = False
+    credit_remaining_cents: int | None = None
     api_base = os.environ.get(
         "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
     )
-    budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
-    if not budget_result.allowed:
-        log_payment_event(
-            "x402_payment_required",
-            org_id=org_id,
-            capability_id=capability_id,
-            execution_id=execution_id,
-            amount_usd_cents=billed_cost_cents,
-        )
-        raise PaymentRequiredException(
-            capability_id=capability_id,
-            cost_usd_cents=billed_cost_cents,
-            resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
-            detail=budget_result.reason or "Agent budget exceeded",
-        )
 
-    budget_remaining = budget_result.remaining_usd
-
-    # Step 2: org credit deduction (only when estimated cost > 0)
-    credit_reserved = False
-    credit_remaining_cents: int | None = None
-    if billed_cost_cents > 0:
-        credit_result = await _credit_deduction.deduct(
-            org_id,
-            billed_cost_cents,
-            execution_id=execution_id,
-            agent_id=agent_id,
-            fallback_cost_usd=cost_estimate,
-            skip_budget_fallback=True,
-        )
-        if not credit_result.allowed:
-            if cost_estimate > 0:
-                await _budget_enforcer.release(agent_id, cost_estimate)
+    if not is_x402_anonymous:
+        budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
+        if not budget_result.allowed:
+            log_payment_event(
+                "x402_payment_required",
+                org_id=org_id,
+                capability_id=capability_id,
+                execution_id=execution_id,
+                amount_usd_cents=billed_cost_cents,
+            )
             raise PaymentRequiredException(
                 capability_id=capability_id,
                 cost_usd_cents=billed_cost_cents,
                 resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
-                detail=credit_result.reason or "Insufficient org credits",
+                detail=budget_result.reason or "Agent budget exceeded",
             )
-        credit_reserved = billed_cost_cents > 0
-        credit_remaining_cents = credit_result.remaining_cents
 
-        # Fire-and-forget auto-reload check when balance is known
-        if credit_remaining_cents is not None:
-            try:
-                reload_result = await check_and_trigger_auto_reload(
-                    org_id, credit_remaining_cents
+        budget_remaining = budget_result.remaining_usd
+
+        # Step 2: org credit deduction (only when estimated cost > 0)
+        if billed_cost_cents > 0:
+            credit_result = await _credit_deduction.deduct(
+                org_id,
+                billed_cost_cents,
+                execution_id=execution_id,
+                agent_id=agent_id,
+                fallback_cost_usd=cost_estimate,
+                skip_budget_fallback=True,
+            )
+            if not credit_result.allowed:
+                if cost_estimate > 0:
+                    await _budget_enforcer.release(agent_id, cost_estimate)
+                raise PaymentRequiredException(
+                    capability_id=capability_id,
+                    cost_usd_cents=billed_cost_cents,
+                    resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+                    detail=credit_result.reason or "Insufficient org credits",
                 )
-                if reload_result:
-                    logger.info("Auto-reload result for %s: %s", org_id, reload_result)
-            except Exception as e:
-                logger.warning("Auto-reload check error (non-blocking): %s", e)
+            credit_reserved = billed_cost_cents > 0
+            credit_remaining_cents = credit_result.remaining_cents
+
+            # Fire-and-forget auto-reload check when balance is known
+            if credit_remaining_cents is not None:
+                try:
+                    reload_result = await check_and_trigger_auto_reload(
+                        org_id, credit_remaining_cents
+                    )
+                    if reload_result:
+                        logger.info("Auto-reload result for %s: %s", org_id, reload_result)
+                except Exception as e:
+                    logger.warning("Auto-reload check error (non-blocking): %s", e)
 
     async def _release_reservations() -> None:
+        if is_x402_anonymous:
+            return  # No reservations to release for anonymous agents
         if cost_estimate > 0:
             await _budget_enforcer.release(agent_id, cost_estimate)
         if credit_reserved and billed_cost_cents > 0:
@@ -808,20 +898,32 @@ async def execute_capability(
     if credit_remaining_cents is not None:
         response_data["org_credits_remaining_cents"] = credit_remaining_cents
 
+    # ── Build response headers ──────────────────────────────────────
+    response_headers: dict[str, str] = {}
+
+    # x402 anonymous identity headers
+    if is_x402_anonymous:
+        response_headers["X-Rhumb-Auth"] = "x402-anonymous"
+        if x402_wallet_address:
+            response_headers["X-Rhumb-Wallet"] = x402_wallet_address
+        if x402_rate_remaining is not None:
+            response_headers["X-Rhumb-Rate-Remaining"] = str(x402_rate_remaining)
+
     # x402: attach receipt info and X-Payment-Response header
     if x402_receipt:
         response_data["x402_receipt"] = {
             "tx_hash": x402_receipt["tx_hash"],
             "verified": True,
         }
+        response_headers["X-Payment-Response"] = json.dumps({
+            "verified": True,
+            "tx_hash": x402_receipt["tx_hash"],
+        })
+
+    if response_headers:
         return JSONResponse(
             content={"data": response_data, "error": None},
-            headers={
-                "X-Payment-Response": json.dumps({
-                    "verified": True,
-                    "tx_hash": x402_receipt["tx_hash"],
-                }),
-            },
+            headers=response_headers,
         )
 
     return {"data": response_data, "error": None}
@@ -834,14 +936,24 @@ async def estimate_capability(
     credential_mode: str = Query("byo", description="Credential mode"),
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
-    """Dry-run cost estimate — returns provider selection, cost, and circuit state without executing."""
-    if not x_rhumb_key:
-        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
+    """Dry-run cost estimate — returns provider selection, cost, and circuit state without executing.
 
-    agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
-    if agent is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
-    agent_id = agent.agent_id
+    API key is optional. Without an API key the response still includes
+    provider, cost, and circuit state but omits budget-specific fields.
+    This lets x402 agents discover pricing before paying.
+    """
+    # Authenticate if API key provided; otherwise allow anonymous estimate
+    agent_id: Optional[str] = None
+    is_anonymous_estimate = False
+
+    if x_rhumb_key:
+        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        agent_id = agent.agent_id
+    else:
+        is_anonymous_estimate = True
+        agent_id = "x402_anonymous"
 
     cap = await _resolve_capability(capability_id)
     if cap is None:
@@ -876,8 +988,6 @@ async def estimate_capability(
     breaker = get_breaker_registry().get(provider_slug, agent_id)
     circuit_state = breaker.state.value
 
-    # Include budget status in estimate
-    budget_status = await _budget_enforcer.get_budget(agent_id)
     estimate_data: dict[str, Any] = {
         "capability_id": capability_id,
         "provider": provider_slug,
@@ -886,15 +996,19 @@ async def estimate_capability(
         "circuit_state": circuit_state,
         "endpoint_pattern": chosen.get("endpoint_pattern"),
     }
-    if budget_status.budget_usd is not None:
-        estimate_data["budget_remaining_usd"] = budget_status.remaining_usd
-        estimate_data["budget_period"] = budget_status.period
-        can_afford = (
-            cost_per_call is None
-            or budget_status.remaining_usd is None
-            or budget_status.remaining_usd >= cost_per_call
-            or not budget_status.hard_limit
-        )
-        estimate_data["can_afford"] = can_afford
+
+    # Include budget status only for authenticated agents
+    if not is_anonymous_estimate:
+        budget_status = await _budget_enforcer.get_budget(agent_id)
+        if budget_status.budget_usd is not None:
+            estimate_data["budget_remaining_usd"] = budget_status.remaining_usd
+            estimate_data["budget_period"] = budget_status.period
+            can_afford = (
+                cost_per_call is None
+                or budget_status.remaining_usd is None
+                or budget_status.remaining_usd >= cost_per_call
+                or not budget_status.hard_limit
+            )
+            estimate_data["can_afford"] = can_afford
 
     return {"data": estimate_data, "error": None}
