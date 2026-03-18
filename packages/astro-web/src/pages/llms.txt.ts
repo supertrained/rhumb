@@ -88,6 +88,7 @@ Index: https://rhumb.dev/compare — all comparisons in one place
 - https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth — Auth: Auth0 vs Clerk vs Firebase Auth
 - https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude — Analytics: PostHog vs Mixpanel vs Amplitude
 - https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon — Databases: Supabase vs PlanetScale vs Neon
+- https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo — Messaging: Twilio vs Vonage vs Plivo
 
 Each comparison includes live AN Score data, friction maps, routing rules for agents,
 scenario-based recommendations, and failure mode analysis.

@@ -1,0 +1,385 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  twilio: await getServiceScore("twilio"),
+  vonage: await getServiceScore("vonage"),
+  plivo: await getServiceScore("plivo"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Twilio vs Vonage vs Plivo for AI Agents",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A side-by-side comparison of Twilio, Vonage, and Plivo for AI agent messaging workflows using Rhumb's live AN Score data.",
+  url: "https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type ComparedService = {
+  slug: "twilio" | "vonage" | "plivo";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  tagline: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "twilio",
+    name: "Twilio",
+    accent: "#EF4444",
+    accentSoft: "rgba(239,68,68,0.16)",
+    tagline: "the default",
+    bestFor: "The default choice for agent-driven messaging. Best API ergonomics, most mature webhook system, and the simplest authentication model (SID + token, no OAuth).",
+    avoidWhen: "Budget is the primary constraint and message volume is high. Twilio's per-message pricing with carrier surcharges can be significantly more expensive than Plivo for bulk operations.",
+    friction: "A2P 10DLC registration for US messaging takes 1-7 business days. Carrier-level rate limits (1 SMS/s per long code) require agent-side throttling. Per-destination pricing requires lookups for cost prediction.",
+    decision: "Pick Twilio unless a cost constraint or specific carrier relationship pushes you elsewhere.",
+    support: "Highest execution score. Idempotency on message creation, self-describing error codes with documentation URLs, and status callbacks on every message. The benchmark other messaging APIs are measured against.",
+    data: scoreMap.twilio,
+  },
+  {
+    slug: "vonage",
+    name: "Vonage",
+    accent: "#8B5CF6",
+    accentSoft: "rgba(139,92,246,0.16)",
+    tagline: "the platform play",
+    bestFor: "Agents that need messaging as part of a broader communication platform — voice, video, and messaging in one SDK. Also strong for WhatsApp Business API integration.",
+    avoidWhen: "You only need SMS and want the simplest possible integration. Vonage's API surface is broader than Twilio's but less polished at the edges — documentation has more gaps, and error messages are less self-describing.",
+    friction: "API key + secret auth is straightforward but less ergonomic than Twilio's Basic Auth. The Messages API (v2) coexists with the older SMS API (v1), creating confusion about which to use. Webhook configuration requires specifying separate URLs for inbound and status, where Twilio uses a single StatusCallback.",
+    decision: "Pick Vonage when you need a multi-channel platform (voice + video + messaging) or when WhatsApp Business is a primary channel.",
+    support: "Good execution score with a broader platform surface than Twilio. The API v1/v2 split is the main friction point — agents must choose the right API version and handle different response formats depending on which they use.",
+    data: scoreMap.vonage,
+  },
+  {
+    slug: "plivo",
+    name: "Plivo",
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.16)",
+    tagline: "the cost optimizer",
+    bestFor: "High-volume messaging operations where per-message cost is the dominant constraint. Plivo's pricing is typically 20-40% lower than Twilio for comparable routes.",
+    avoidWhen: "You need the most polished developer experience or extensive third-party integration support. Plivo's ecosystem is smaller — fewer SDKs, fewer community examples, and less third-party tooling.",
+    friction: "Auth ID + Auth Token authentication is similar to Twilio's SID + token but with a smaller community and less documentation. Error messages are functional but less detailed than Twilio's self-describing codes. Webhook reliability is good but lacks the retry depth of Twilio's 48-hour retry window.",
+    decision: "Pick Plivo when message volume makes cost the deciding factor and the engineering team can absorb slightly more integration effort.",
+    support: "Lowest cost per message of the three. Clean REST API with predictable patterns. The score gap reflects smaller ecosystem, less detailed error handling, and less mature webhook infrastructure — not fundamental API quality issues.",
+    data: scoreMap.plivo,
+  },
+];
+
+const available = compared.filter((item) => item.data !== null);
+const ranked = [...available].sort(
+  (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
+);
+const winner = ranked[0];
+const updatedAt = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "recently";
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+function failureCopy(item: ComparedService): string[] {
+  if (item.slug === "twilio") {
+    return [
+      "A2P 10DLC registration requires 1-7 business days for US numbers. Agents cannot send messages until carrier approval completes — there is no workaround.",
+      "Carrier-imposed rate limits (1 SMS/second per long code number) are invisible at the API level. The API accepts messages faster than carriers deliver them, creating a false sense of throughput.",
+      "Per-message pricing varies by destination country, number type, and carrier surcharges that change quarterly. Agents cannot predict costs without per-destination pricing lookups.",
+    ];
+  }
+  if (item.slug === "vonage") {
+    return [
+      "Two coexisting APIs (SMS API v1 and Messages API v2) with different authentication, different request formats, and different response structures. Agents must choose one and stick with it.",
+      "Webhook setup requires separate inbound and status URLs configured in the Vonage Dashboard or via API. Misconfiguring one leaves agents blind to either incoming messages or delivery status.",
+      "Error responses use numeric error codes without built-in documentation links. Agents need a lookup table or Vonage-specific error handling logic to interpret failures.",
+    ];
+  }
+  return [
+    "Smaller SDK ecosystem means fewer pre-built integrations. Agents using frameworks like LangChain or AutoGen may not find Plivo-specific adapters and need to use raw HTTP clients.",
+    "Webhook retry window is shorter than Twilio's 48-hour window. Agents with temporary downtime may miss delivery status updates that Twilio would have retried.",
+    "Community resources and Stack Overflow coverage are thinner. Agents (and the engineers building them) will find fewer examples and troubleshooting guides.",
+  ];
+}
+
+const scenarioCards = [
+  {
+    title: "Agent needs reliable SMS with the best developer experience",
+    pick: "Twilio",
+    why: "Highest execution score, idempotent message creation, self-describing error codes. The integration that requires the least defensive code.",
+    href: "/service/twilio",
+  },
+  {
+    title: "Agent operates across SMS, WhatsApp, voice, and video",
+    pick: "Vonage",
+    why: "Broadest platform surface. One SDK covers messaging, voice, video, and verification. WhatsApp Business API support is production-grade.",
+    href: "/service/vonage",
+  },
+  {
+    title: "High-volume messaging where cost per message dominates",
+    pick: "Plivo",
+    why: "20-40% lower per-message cost than Twilio. Clean REST API. Worth the smaller ecosystem if volume justifies the engineering investment.",
+    href: "/service/plivo",
+  },
+];
+
+const agentRules = [
+  "Default to Twilio unless a specific constraint (cost, multi-channel platform, carrier relationship) overrides.",
+  "If the agent will send more than 10,000 messages/month, calculate the cost difference between Twilio and Plivo before committing. The savings compound.",
+  "If the operator needs WhatsApp Business alongside SMS, evaluate Vonage first — its WhatsApp integration is more mature than Twilio's for multi-channel workflows.",
+  "For all three: implement rate limiting from day one. Carrier limits are real and silent — exceeding them does not produce API errors, just failed deliveries.",
+  "Always confirm A2P 10DLC registration status before promising US SMS delivery timelines. This is a carrier gate, not a provider gate.",
+  "For cost-sensitive operations: Plivo for bulk SMS, Twilio for transactional/critical messages. Mixing providers for different message types is a valid architecture.",
+];
+---
+
+<Layout
+  title="Twilio vs Vonage vs Plivo for AI Agents | Rhumb"
+  description="Side-by-side comparison of Twilio, Vonage, and Plivo for AI agent messaging. Twilio leads on execution; Vonage on platform breadth; Plivo on cost."
+  canonical="/blog/twilio-vs-vonage-vs-plivo"
+  ogTitle="Twilio vs Vonage vs Plivo for AI Agents"
+  ogDescription="Twilio is the default. Vonage is the platform play. Plivo is the cost optimizer. Live AN Score data."
+  ogUrl="https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo"
+  ogType="article"
+  twitterTitle="Twilio vs Vonage vs Plivo for AI Agents"
+  twitterDescription="Twilio leads. Vonage broadens. Plivo saves. Which messaging API should your agent use?"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.10),transparent_28%),radial-gradient(circle_at_bottom,rgba(16,185,129,0.08),transparent_35%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Comparison</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Twilio vs Vonage vs Plivo for AI agents
+          </h1>
+
+          <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
+            <span class="text-slate-100 font-semibold">Short answer:</span>
+            Twilio is the default — highest execution score, simplest auth, most reliable webhooks.
+            Vonage is the platform play when you need voice + video + messaging in one SDK.
+            Plivo is the cost optimizer for high-volume operations where per-message pricing dominates.
+          </p>
+
+          <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+            <p class="text-sm leading-6 text-slate-300">
+              <span class="font-semibold text-slate-100">Clear winner.</span>
+              Unlike CRM where no tool scores above 6.0, messaging has a genuine leader. Twilio scores
+              {formatScore(scoreMap.twilio?.aggregateRecommendationScore)} — over a full point ahead of Vonage ({formatScore(scoreMap.vonage?.aggregateRecommendationScore)})
+              and 1.6 points ahead of Plivo ({formatScore(scoreMap.plivo?.aggregateRecommendationScore)}).
+              The choice is constraint-driven, not pain-minimizing.
+              Scores reflect published Rhumb data as of {updatedAt}.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score cards -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="grid md:grid-cols-3 gap-6">
+          {ranked.map((item, index) => (
+            <div
+              class={`rounded-2xl border p-6 sm:p-8 ${index === 0 ? "border-emerald-500/30 bg-emerald-500/5" : "border-slate-700/50 bg-slate-900/40"}`}
+              style={index === 0 ? "" : `background: linear-gradient(135deg, ${item.accentSoft} 0%, transparent 50%)`}
+            >
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <span class="text-xs font-mono text-slate-500 uppercase tracking-wider">#{index + 1}</span>
+                  <h3 class="font-display font-bold text-2xl text-slate-100">{item.name}</h3>
+                  <span class="text-xs font-mono text-slate-400">{item.tagline}</span>
+                </div>
+                {item.data && <ScoreDisplay score={item.data.aggregateRecommendationScore} size="large" />}
+              </div>
+
+              {item.data && (
+                <div class="space-y-3 mb-6">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Execution</span>
+                    <span class="text-slate-200 font-mono">{formatScore(item.data.executionScore)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Access Readiness</span>
+                    <span class="text-slate-200 font-mono">{formatScore(item.data.accessReadinessScore)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Confidence</span>
+                    <span class="text-slate-200 font-mono">{formatConfidence(item.data.confidence)}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-slate-500">Tier</span>
+                    <TierBadge tier={item.data?.tier ?? null} label={item.data?.tierLabel ?? undefined} />
+                  </div>
+                </div>
+              )}
+
+              <p class="text-sm text-slate-400 leading-relaxed">{item.support}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Detailed breakdown -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What agents need to know</h2>
+          <p class="text-slate-400 leading-relaxed">
+            For each service: when to use it, when to avoid it, and what will break.
+          </p>
+        </div>
+
+        <div class="space-y-10 max-w-4xl">
+          {compared.map((item) => (
+            <div class="rounded-2xl border border-slate-700/50 bg-slate-900/30 p-6 sm:p-8">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-3 h-3 rounded-full" style={`background: ${item.accent}`}></div>
+                <h3 class="font-display font-bold text-2xl text-slate-100">{item.name}</h3>
+                {item.data && <span class="text-lg font-mono text-slate-400">{formatScore(item.data.aggregateRecommendationScore)}</span>}
+              </div>
+
+              <div class="grid sm:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-2">Best for</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{item.bestFor}</p>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Avoid when</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{item.avoidWhen}</p>
+                </div>
+              </div>
+
+              <div class="mb-6">
+                <div class="text-xs font-mono text-amber uppercase tracking-wider mb-2">Agent friction</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{item.friction}</p>
+              </div>
+
+              <div>
+                <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Failure modes</div>
+                <ul class="space-y-2">
+                  {failureCopy(item).map((f) => (
+                    <li class="flex gap-2 text-sm text-slate-400 leading-relaxed">
+                      <span class="text-red-400/60 mt-1 shrink-0">→</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Scenario cards -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Quick picks by scenario</h2>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4 max-w-4xl">
+          {scenarioCards.map((sc) => (
+            <a href={sc.href} class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <p class="text-sm text-slate-400 mb-3">{sc.title}</p>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors mb-1">→ {sc.pick}</div>
+              <p class="text-xs text-slate-500 leading-relaxed">{sc.why}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent rules -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-6">Routing rules for agents</h2>
+
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8 space-y-4">
+            {agentRules.map((rule) => (
+              <div class="flex gap-3 items-start">
+                <span class="text-amber mt-0.5 shrink-0">→</span>
+                <p class="text-slate-300 text-sm leading-relaxed">{rule}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This comparison uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            Scores were last calculated on {updatedAt}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">Related</h2>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <a href="/blog/twilio-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Autopsy</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Twilio API Autopsy</div>
+              <p class="text-sm text-slate-400 mt-1">Deep dive into what makes Twilio agent-native.</p>
+            </a>
+            <a href="/compare" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Index</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">All Comparisons</div>
+              <p class="text-sm text-slate-400 mt-1">7 categories, 21 tools scored.</p>
+            </a>
+            <a href="/blog/getting-started-mcp" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-2">Guide</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Getting Started</div>
+              <p class="text-sm text-slate-400 mt-1">Give your agent tool intelligence in 5 minutes.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
