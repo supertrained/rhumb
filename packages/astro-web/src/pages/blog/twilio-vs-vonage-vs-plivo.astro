@@ -88,6 +88,10 @@ const winner = ranked[0];
 const updatedAt = winner?.data?.calculatedAt
   ? new Date(winner.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
   : "recently";
+const updatedAtISO = winner?.data?.calculatedAt
+  ? new Date(winner.data.calculatedAt).toISOString()
+  : new Date().toISOString();
+(ARTICLE_JSON_LD as any).dateModified = updatedAtISO;
 
 function formatScore(value: number | null | undefined): string {
   return value == null ? "—" : value.toFixed(1);
@@ -175,7 +179,7 @@ const agentRules = [
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-slate-500">live score data</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">

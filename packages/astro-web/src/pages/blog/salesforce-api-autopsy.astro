@@ -20,6 +20,14 @@ const ARTICLE_JSON_LD = {
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
 
+const scoreUpdatedAt = salesforce?.calculatedAt
+  ? new Date(salesforce.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "March 18, 2026";
+const scoreUpdatedAtISO = salesforce?.calculatedAt
+  ? new Date(salesforce.calculatedAt).toISOString()
+  : "2026-03-18T00:00:00Z";
+(ARTICLE_JSON_LD as any).dateModified = scoreUpdatedAtISO;
+
 function formatScore(value: number | null | undefined): string {
   return value == null ? "—" : value.toFixed(1);
 }
@@ -156,6 +164,8 @@ const severityColor = {
             <span class="text-xs font-mono font-semibold text-red-400 uppercase tracking-[0.28em]">Autopsy</span>
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {scoreUpdatedAt}</span>
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">live score data</span>
           </div>
