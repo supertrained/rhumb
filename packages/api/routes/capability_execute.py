@@ -329,11 +329,28 @@ async def execute_capability(
         if cap_services_for_402:
             costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
             cost_for_402 = min(costs) if costs else 0.0
-        # Floor: never advertise $0.00 — use $0.01 minimum if no cost data exists.
-        # An agent seeing maxAmountRequired=0 would try to send 0 USDC.
         if cost_for_402 <= 0:
-            cost_for_402 = 0.01  # $0.01 minimum per call
-        billed_cents_for_402 = max(int(round(cost_for_402 * 100 * 1.15)), 1)  # 15% x402 margin, min 1 cent
+            # No cost data: return 402 with error explaining cost is unknown.
+            # Agent should call the estimate endpoint first.
+            api_base = os.environ.get(
+                "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+            )
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "x402Version": 1,
+                    "accepts": [],
+                    "error": "Cost data unavailable for this capability. Use the estimate endpoint first: "
+                             f"GET {api_base}/v1/capabilities/{capability_id}/execute/estimate",
+                    "balanceRequired": None,
+                    "balanceRequiredUsd": None,
+                },
+                headers={"X-Payment": "required"},
+            )
+        # Apply 15% x402 margin on upstream cost
+        billed_cost_usd = cost_for_402 * 1.15
+        # Convert to USDC atomic units (6 decimals) for the x402 spec
+        billed_cents_for_402 = max(int(round(billed_cost_usd * 100)), 1)
         api_base = os.environ.get(
             "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
         )
