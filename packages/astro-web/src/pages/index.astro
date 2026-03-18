@@ -19,7 +19,7 @@ const HOME_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    "Agent-native tool discovery and scoring platform. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+    "Most APIs weren't built for agents. Rhumb scores 212+ APIs for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability. Neutral scores, real failure mode data, zero-signup access via MCP or REST API.",
   logo: "https://rhumb.dev/favicon.ico",
 };
 
@@ -47,11 +47,11 @@ const stats = [
 ---
 
 <Layout
-  title="Rhumb | Agent-native tool discovery"
-  description="Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents."
+  title="Rhumb — Most APIs weren't built for agents. Now you know which ones were."
+  description="Rhumb scores 212+ APIs for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability, and more. Neutral scores, real failure mode data, zero-signup access via MCP or REST API."
   canonical="https://rhumb.dev/"
-  ogTitle="Rhumb | Agent-native tool discovery"
-  ogDescription="Discover top agent-native services with execution and access-readiness evidence. Every API scored for AI agents."
+  ogTitle="Rhumb — Most APIs weren't built for agents"
+  ogDescription="212+ APIs scored for AI agent compatibility. Neutral scores, real failure modes, zero-signup access. Browse, query via REST API, or connect via MCP."
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
 >
@@ -67,16 +67,17 @@ const stats = [
       <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
         <div class="animate-fade-up flex items-center gap-2 mb-6">
           <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Agent-Native Score</span>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">{serviceCount} APIs scored for agent compatibility</span>
         </div>
 
         <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.05] tracking-tight max-w-3xl">
-          Find agent-native services in seconds
+          Most APIs weren't built for agents. Now you know which ones were.
         </h1>
 
         <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">
-          Rhumb maps execution reliability and access readiness so your agents
-          pick the right primitive before they fail in production.
+          Rhumb measures execution reliability and access readiness for every
+          API your agent might call. Neutral scores. Real failure mode data.
+          Zero-signup access via MCP or REST API.
         </p>
 
         <form
@@ -114,7 +115,7 @@ const stats = [
             href="/leaderboard"
             class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors duration-200 font-medium"
           >
-            Explore Leaderboard &rarr;
+            Search {serviceCount} services &rarr;
           </a>
           <CopyInstall client:load command="npx rhumb-mcp" />
         </div>
