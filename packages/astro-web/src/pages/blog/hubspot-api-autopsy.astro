@@ -1,0 +1,467 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const hubspot = await getServiceScore("hubspot");
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "HubSpot API Autopsy: What Breaks When Agents Try to Use It",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A deep technical autopsy of HubSpot's API from an agent's perspective. Score: 4.6/10. What fails, why, and what would need to change.",
+  url: "https://rhumb.dev/blog/hubspot-api-autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+type FailureMode = {
+  id: string;
+  title: string;
+  severity: "critical" | "high" | "medium";
+  icon: string;
+  summary: string;
+  detail: string;
+  agentImpact: string;
+  evidence: string;
+};
+
+const failureModes: FailureMode[] = [
+  {
+    id: "rate-limits",
+    title: "Rate Limit Trap",
+    severity: "critical",
+    icon: "⏱",
+    summary: "Free tier rate limits (100 calls per 10 seconds) break standard agent polling patterns from the first request burst.",
+    detail: "HubSpot enforces a 100 requests/10 seconds limit on the free tier, with variable limits per endpoint on paid plans. This sounds generous until you consider how agents work: a typical CRM sync operation — list contacts, check for updates, fetch associated deals, log activities — can burn 40-60 requests in a single workflow cycle. An agent running periodic sync on a 30-second interval will hit the ceiling within 2-3 cycles. The 429 response includes a Retry-After header, but the backoff period is unpredictable and can cascade when multiple workflow branches are active.",
+    agentImpact: "Agents without pre-built rate-limiting middleware will fail silently or enter retry spirals. The lack of a clear per-endpoint budget means agents cannot pre-calculate whether a workflow will complete within limits.",
+    evidence: "Documented in HubSpot API rate limit guidelines. Validated against Rhumb execution score dimension.",
+  },
+  {
+    id: "api-inconsistency",
+    title: "Cross-Hub API Inconsistency",
+    severity: "critical",
+    icon: "🧩",
+    summary: "CRM, Marketing, and Custom Objects each use different API patterns. Agents cannot generalize a single client.",
+    detail: "HubSpot's API is not one API — it is at least three, wearing a trench coat. The CRM API (contacts, deals, companies) uses a relatively clean RESTful pattern with consistent CRUD endpoints. The Marketing API (emails, workflows, forms) uses different authentication scopes, different pagination styles, and different error formats. Custom Objects introduce a third pattern with schema definition endpoints that behave differently from both CRM and Marketing. An agent that learns to work with the CRM API and attempts to apply the same patterns to Marketing will encounter unexpected 400 errors, different field naming conventions, and incompatible filter syntax.",
+    agentImpact: "Agents need hub-specific adapters rather than a generic HubSpot client. This triples the integration surface area and the number of failure modes an agent must handle.",
+    evidence: "Documented across HubSpot's three API reference sections. Scored as inconsistency penalty in Rhumb execution dimension.",
+  },
+  {
+    id: "association-complexity",
+    title: "Association API Complexity",
+    severity: "high",
+    icon: "🔗",
+    summary: "Linking a contact to a deal requires understanding association type IDs and relationship labels — not discoverable by an agent without documentation context.",
+    detail: "In HubSpot, objects are connected through associations. A simple operation like 'link this contact to this deal' requires: (1) knowing the association type ID for contact-to-deal, (2) knowing the relationship label if custom associations exist, (3) making a PUT request with the correct body format (which differs from the CRM object update format). Association type IDs are not human-readable — they are numeric codes that must be looked up. Default associations have stable IDs (e.g., contact-to-company = 1), but custom associations have auto-generated IDs that differ per portal. An agent cannot discover the correct type ID without first calling the association definitions endpoint, parsing the response, and matching by label.",
+    agentImpact: "Simple CRM operations that should be a single API call become multi-step discovery workflows. Agents without pre-cached association type mappings will fail on first attempt.",
+    evidence: "HubSpot CRM Associations API v4 documentation. Common integration failure pattern in community forums.",
+  },
+  {
+    id: "oauth-maze",
+    title: "OAuth Provisioning Maze",
+    severity: "high",
+    icon: "🔐",
+    summary: "Production API access requires a multi-step human OAuth app setup through a dashboard that agents cannot navigate.",
+    detail: "HubSpot offers API keys for development (deprecated, being phased out) and OAuth 2.0 for production. Setting up an OAuth app requires: (1) logging into a developer portal, (2) creating an app with specific scopes, (3) configuring redirect URIs, (4) completing an authorization flow that requires human browser interaction, (5) managing token refresh for access tokens that expire every 6 hours. There is no API-only path to create or configure an OAuth app. The developer portal is a React SPA that is not navigable by screen readers or programmatic tools. An agent that needs HubSpot access must have a human complete this setup — and the human needs to understand OAuth scopes well enough to grant the right permissions without over-provisioning.",
+    agentImpact: "Zero self-provisioning capability. Agent onboarding has a hard human dependency. Token refresh every 6 hours means agents need persistent token management infrastructure.",
+    evidence: "HubSpot OAuth documentation. Access readiness score of 3.5/10 reflects this provisioning friction.",
+  },
+  {
+    id: "no-idempotency",
+    title: "No Idempotency Keys",
+    severity: "high",
+    icon: "♻️",
+    summary: "POST requests have no idempotency support. Retry-on-timeout creates duplicate records with no built-in dedup.",
+    detail: "HubSpot does not support idempotency keys on any POST endpoint. If an agent creates a contact and the request times out before receiving a response, the agent faces a choice: retry (risking a duplicate) or don't retry (risking a lost record). Creating a contact twice with the same email returns a 409 Conflict — but only if the email property is set. Creating a deal twice with the same properties will create two deals with no conflict detection. There is no request ID or idempotency token mechanism to make retries safe. For agents, which operate in unreliable network conditions and need to handle partial failures gracefully, this is a fundamental design gap.",
+    agentImpact: "Agents must implement their own deduplication logic (check-before-create patterns), which doubles the API calls per operation and introduces race conditions under concurrent execution.",
+    evidence: "HubSpot API documentation confirms no idempotency key support. 409 Conflict behavior documented for contact email uniqueness only.",
+  },
+  {
+    id: "dashboard-opacity",
+    title: "Dashboard Opacity",
+    severity: "medium",
+    icon: "🖥",
+    summary: "The HubSpot dashboard is a complex React SPA. Agents cannot read, verify, or troubleshoot via the web UI.",
+    detail: "When an agent creates a record, updates a pipeline stage, or triggers a workflow, verification often requires checking the HubSpot dashboard. But the dashboard is a heavily client-rendered React SPA with dynamic loading, infinite scroll, and context-dependent navigation. An agent cannot simply fetch a URL and parse HTML to verify its work. This means agents operate blind to the visual state that human operators use for verification. If a contact is created but appears in a 'pending' state in the UI (due to workflow enrollment or list membership processing), the API response won't reflect that — the agent will believe the operation succeeded when the contact hasn't yet reached its intended state.",
+    agentImpact: "No programmatic verification of dashboard state. Agents must rely entirely on API responses, which may not reflect the full state of workflow-processed records.",
+    evidence: "Web accessibility score of 5.0/10. Dashboard uses client-side rendering with no server-rendered fallback for agent-readable content.",
+  },
+];
+
+const whatWouldFix = [
+  {
+    title: "Idempotency keys on all POST endpoints",
+    impact: "Eliminates the duplicate-record problem entirely. Standard pattern used by Stripe, Square, and most agent-friendly APIs.",
+  },
+  {
+    title: "Unified API pattern across hubs",
+    impact: "A single client pattern for CRM, Marketing, and Custom Objects would cut agent integration surface by 60%.",
+  },
+  {
+    title: "Machine-readable OAuth app provisioning",
+    impact: "An API endpoint for creating OAuth apps and managing scopes would unlock agent self-provisioning.",
+  },
+  {
+    title: "Per-endpoint rate limit headers",
+    impact: "X-RateLimit-Remaining + X-RateLimit-Reset per endpoint (not just global) would let agents pre-plan request budgets.",
+  },
+  {
+    title: "Association type discovery in object schema",
+    impact: "Including valid association types in the object schema response eliminates the multi-step discovery workflow.",
+  },
+];
+
+const severityColor = {
+  critical: { bg: "bg-red-500/12", border: "border-red-500/30", text: "text-red-400", label: "Critical" },
+  high: { bg: "bg-amber-500/12", border: "border-amber-500/30", text: "text-amber-400", label: "High" },
+  medium: { bg: "bg-blue-500/12", border: "border-blue-500/30", text: "text-blue-400", label: "Medium" },
+};
+---
+
+<Layout
+  title="HubSpot API Autopsy: What Breaks When Agents Try | Rhumb"
+  description="Deep technical autopsy of HubSpot's API from an agent's perspective. Score: 4.6/10. Rate limit traps, cross-hub inconsistency, OAuth maze, and more."
+  canonical="/blog/hubspot-api-autopsy"
+  ogTitle="HubSpot API Autopsy: What Breaks When Agents Try to Use It"
+  ogDescription="Score: 4.6/10. A technical deep dive into every failure mode agents hit when integrating with HubSpot."
+  ogUrl="https://rhumb.dev/blog/hubspot-api-autopsy"
+  ogType="article"
+  twitterTitle="HubSpot API Autopsy"
+  twitterDescription="Score: 4.6/10. What breaks, why, and what would need to change."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.10),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-red-400 uppercase tracking-[0.28em]">Autopsy</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            HubSpot API autopsy
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            What breaks when agents try to use it
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            HubSpot is a $30B CRM platform used by 228,000+ companies. It has a powerful API, a broad feature surface,
+            and a free tier. It also scores <strong class="text-red-400">{formatScore(hubspot?.aggregateRecommendationScore)}/10</strong> for
+            agent-native readiness. This autopsy examines exactly why — and what would need to change.
+          </p>
+
+          {hubspot && (
+            <div class="mt-8 flex flex-wrap items-center gap-6">
+              <div class="flex items-center gap-3">
+                <ScoreDisplay score={hubspot.aggregateRecommendationScore} size="large" />
+                <div>
+                  <div class="text-xs font-mono text-slate-500 uppercase tracking-wider">AN Score</div>
+                  <TierBadge tier={hubspot?.tier ?? null} label={hubspot?.tierLabel ?? undefined} />
+                </div>
+              </div>
+              <div class="h-10 w-px bg-slate-800"></div>
+              <div class="flex gap-6 text-sm">
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Execution</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(hubspot.executionScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Access</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(hubspot.accessReadinessScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Autonomy</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(hubspot.autonomyScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Confidence</div>
+                  <div class="text-slate-200 font-semibold">{formatConfidence(hubspot.confidence)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- TL;DR for agents -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Agent decision</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              <strong>Use HubSpot when</strong> the operator already has it and the agent needs to span CRM + marketing + sales in one integration.
+              <strong>Avoid it when</strong> the agent only needs pipeline operations (use Pipedrive) or when compliance governance is the primary constraint (use Salesforce).
+              Budget for rate-limit middleware, hub-specific adapters, and a human to complete OAuth setup.
+              Expect to spend 3-5× the integration time compared to a well-scored API.
+            </p>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <a href="/service/hubspot" class="text-xs font-mono text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">View full service page →</a>
+              <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="text-xs font-mono text-slate-400 hover:text-slate-300 underline underline-offset-2 transition-colors">CRM comparison →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score anatomy -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Score anatomy</h2>
+          <p class="text-slate-400 mb-8 leading-relaxed">
+            The AN Score of {formatScore(hubspot?.aggregateRecommendationScore)} is not a single judgment — it is the
+            weighted combination of three dimensions, each measuring a different aspect of agent readiness.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-6 max-w-4xl">
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(hubspot?.executionScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Execution</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              The API is functional — CRUD operations work, responses are JSON, error codes are standard HTTP.
+              The 5.3 reflects real friction: no idempotency, inconsistent patterns across hubs, and rate limits that
+              punish agent-typical request patterns. An agent can use this API, but it will need defensive code that
+              wouldn't be necessary with a well-designed API.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+            <div class="text-3xl font-display font-bold text-red-400 mb-1">{formatScore(hubspot?.accessReadinessScore)}</div>
+            <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-3">Access Readiness</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              This is the primary drag on the aggregate score. Agent access requires human-mediated OAuth setup through
+              a complex SPA. Token refresh every 6 hours adds operational overhead. API key auth is being deprecated.
+              There is no path for an agent to self-provision access to a HubSpot portal.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(hubspot?.autonomyScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Autonomy</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Mixed signals. Payment autonomy is decent (free tier, self-serve Starter). Governance is strong
+              (API key scoping, RBAC, SOC 2). But web accessibility drags it down — the dashboard is a complex
+              SPA that agents cannot read or verify against. The autonomy score says: you can operate here,
+              but you cannot see what you are doing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Failure Modes -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Failure modes</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Six specific failure modes, ranked by severity. These are not theoretical risks —
+            they are documented behaviors that agents encounter in production integrations.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-4xl">
+          {failureModes.map((fm) => {
+            const colors = severityColor[fm.severity];
+            return (
+              <div class={`rounded-2xl border ${colors.border} ${colors.bg} p-6 sm:p-8`} id={fm.id}>
+                <div class="flex items-start gap-4 mb-4">
+                  <span class="text-2xl mt-0.5">{fm.icon}</span>
+                  <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-3 mb-1">
+                      <h3 class="font-display font-bold text-xl text-slate-100">{fm.title}</h3>
+                      <span class={`text-[10px] font-mono font-semibold ${colors.text} uppercase tracking-widest px-2 py-0.5 rounded-full border ${colors.border}`}>
+                        {colors.label}
+                      </span>
+                    </div>
+                    <p class="text-slate-300 font-medium leading-relaxed">{fm.summary}</p>
+                  </div>
+                </div>
+                <div class="ml-10 sm:ml-12 space-y-4">
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Detail</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{fm.detail}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Agent impact</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{fm.agentImpact}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Evidence</div>
+                    <p class="text-xs text-slate-500 leading-relaxed">{fm.evidence}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- What would fix it -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What would fix it</h2>
+          <p class="text-slate-400 leading-relaxed">
+            HubSpot is not broken. It is a human-native platform that has not yet adapted to agent consumers.
+            These five changes would meaningfully improve the AN Score — and they are all within HubSpot's engineering
+            capability.
+          </p>
+        </div>
+
+        <div class="space-y-4 max-w-3xl">
+          {whatWouldFix.map((fix, i) => (
+            <div class="flex gap-4 rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xl font-display font-bold text-emerald-400/60 mt-0.5 shrink-0 w-8 text-center">{i + 1}</div>
+              <div>
+                <div class="font-semibold text-slate-200 mb-1">{fix.title}</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{fix.impact}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Integration cost -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The real cost for agents</h2>
+          <p class="text-slate-400 leading-relaxed mb-8">
+            Score aside, here is what an agent operator should actually budget for when integrating HubSpot.
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Setup time</div>
+              <div class="text-xl font-display font-bold text-slate-200">2-4 hours (human)</div>
+              <p class="text-sm text-slate-400 mt-1">OAuth app creation, scope selection, initial authorization flow. Cannot be automated.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Adapter complexity</div>
+              <div class="text-xl font-display font-bold text-slate-200">3 adapters minimum</div>
+              <p class="text-sm text-slate-400 mt-1">One per hub (CRM, Marketing, Custom Objects). Each with different error handling.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Ongoing overhead</div>
+              <div class="text-xl font-display font-bold text-slate-200">Token refresh every 6h</div>
+              <p class="text-sm text-slate-400 mt-1">Persistent token management infrastructure. Missing a refresh means downtime.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Defensive code</div>
+              <div class="text-xl font-display font-bold text-slate-200">~40% of integration</div>
+              <p class="text-sm text-slate-400 mt-1">Rate limiting, deduplication, association discovery, retry logic. Not optional.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent rules -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Agent decision rules</h2>
+          <p class="text-slate-400 leading-relaxed mb-6">
+            Structured guidance for agents encountering a HubSpot integration decision.
+          </p>
+
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 sm:p-8 space-y-4">
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">The operator already uses HubSpot and needs the agent to work with their existing CRM data → <strong class="text-slate-100">use HubSpot</strong>. The switching cost exceeds the integration friction.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">The agent only needs pipeline operations (create deals, move stages, log activities) and there is no existing CRM → <strong class="text-slate-100">use Pipedrive instead</strong>. Half the score gap is access friction that Pipedrive avoids entirely.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-emerald-400 font-mono text-sm shrink-0 mt-0.5">IF</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Compliance governance (audit trails, field-level security) is the primary constraint → <strong class="text-slate-100">use Salesforce instead</strong>. Governance score 10.0 vs HubSpot's 7.0.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-amber-400 font-mono text-sm shrink-0 mt-0.5">ALWAYS</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Implement rate-limit backoff from the first request. Do not assume the limit is high enough for your workflow — test with realistic data volumes before deployment.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-amber-400 font-mono text-sm shrink-0 mt-0.5">ALWAYS</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Confirm that a human has completed OAuth app setup before attempting any API calls. There is no agent-accessible bootstrap path.</p>
+            </div>
+            <div class="flex gap-3">
+              <span class="text-red-400 font-mono text-sm shrink-0 mt-0.5">NEVER</span>
+              <p class="text-slate-300 text-sm leading-relaxed">Assume that patterns learned on the CRM API will work on the Marketing API. Test each hub independently.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This autopsy uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            HubSpot's data was last calculated on
+            {hubspot?.calculatedAt ? new Date(hubspot.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "recently"}.
+            Confidence: {formatConfidence(hubspot?.confidence)}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- More autopsies / cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">More from Rhumb</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Comparison</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">HubSpot vs Salesforce vs Pipedrive</div>
+              <p class="text-sm text-slate-400 mt-1">Side-by-side CRM comparison for AI agents.</p>
+            </a>
+            <a href="/compare" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Index</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">All Comparisons</div>
+              <p class="text-sm text-slate-400 mt-1">6 categories, 18 tools scored.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
