@@ -1,0 +1,468 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Getting Started with Rhumb MCP: Tool Intelligence for AI Agents",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "Install Rhumb MCP in 30 seconds and give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services.",
+  url: "https://rhumb.dev/blog/getting-started-mcp",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+const apiBase = "https://rhumb-api-production-f173.up.railway.app/v1";
+
+type Workflow = {
+  id: string;
+  title: string;
+  scenario: string;
+  tools: string[];
+  steps: { tool: string; input: string; whatHappens: string }[];
+};
+
+const workflows: Workflow[] = [
+  {
+    id: "find-best-tool",
+    title: "Find the best tool for a job",
+    scenario: "Your agent needs to send an email but doesn't know which provider to use.",
+    tools: ["find_tools", "get_score", "get_alternatives"],
+    steps: [
+      {
+        tool: "find_tools",
+        input: '"send transactional email"',
+        whatHappens: "Returns ranked services: Resend (7.8), SendGrid (5.5), Postmark (7.5), Amazon SES (7.5) — sorted by AN Score.",
+      },
+      {
+        tool: "get_score",
+        input: '"resend"',
+        whatHappens: "Full breakdown: execution 8.7, access readiness 6.8, confidence 93%. Explanation of why it scores high.",
+      },
+      {
+        tool: "get_failure_modes",
+        input: '"resend"',
+        whatHappens: "Known failure patterns — webhook delivery delays under burst, 429 rate limit behavior, etc.",
+      },
+    ],
+  },
+  {
+    id: "execute-capability",
+    title: "Execute a capability through Rhumb",
+    scenario: "Your agent decides Resend is the right choice and wants to send an email through Rhumb's proxy.",
+    tools: ["resolve_capability", "estimate_capability", "execute_capability"],
+    steps: [
+      {
+        tool: "resolve_capability",
+        input: '{ capability: "email.send" }',
+        whatHappens: "Returns ranked providers with live availability, cost per call, credential status, and circuit state.",
+      },
+      {
+        tool: "estimate_capability",
+        input: '{ capability_id: "email.send", provider: "resend" }',
+        whatHappens: "Cost estimate before execution: $0.001/call, budget remaining, can_afford: true.",
+      },
+      {
+        tool: "execute_capability",
+        input: '{ capability_id: "email.send", body: { to: "user@example.com", subject: "Hello", html: "<p>Hi</p>" } }',
+        whatHappens: "Email sent through Resend via Rhumb proxy. Response includes execution time, cost, and upstream status.",
+      },
+    ],
+  },
+  {
+    id: "budget-management",
+    title: "Manage agent budget and spend",
+    scenario: "Your agent has a daily budget and needs to track spend across providers.",
+    tools: ["budget", "spend", "check_balance"],
+    steps: [
+      {
+        tool: "budget",
+        input: "(no args)",
+        whatHappens: "Current budget status: daily limit, remaining, period reset time.",
+      },
+      {
+        tool: "spend",
+        input: "(no args)",
+        whatHappens: "Spend breakdown by capability and provider. Which tools cost the most, where budget is going.",
+      },
+      {
+        tool: "check_balance",
+        input: "(no args)",
+        whatHappens: "Credit balance in USD. If low, use get_payment_url to top up via Stripe or x402 USDC.",
+      },
+    ],
+  },
+];
+
+type McpTool = {
+  name: string;
+  description: string;
+  category: "discover" | "score" | "execute" | "budget";
+};
+
+const mcpTools: McpTool[] = [
+  { name: "find_tools", description: "Search for services by what you need", category: "discover" },
+  { name: "discover_capabilities", description: "Browse capabilities by domain", category: "discover" },
+  { name: "resolve_capability", description: "Rank providers for a capability", category: "discover" },
+  { name: "get_score", description: "Full AN Score breakdown for a service", category: "score" },
+  { name: "get_alternatives", description: "Similar services, ranked", category: "score" },
+  { name: "get_failure_modes", description: "Known failure patterns", category: "score" },
+  { name: "estimate_capability", description: "Cost estimate before execution", category: "execute" },
+  { name: "execute_capability", description: "Execute through Rhumb proxy", category: "execute" },
+  { name: "ceremonies", description: "Setup guides for credential modes", category: "execute" },
+  { name: "credentials", description: "Check credential status", category: "execute" },
+  { name: "budget", description: "Budget status and limits", category: "budget" },
+  { name: "spend", description: "Spend breakdown by capability", category: "budget" },
+  { name: "check_balance", description: "Current credit balance", category: "budget" },
+  { name: "get_payment_url", description: "Top up via Stripe checkout", category: "budget" },
+  { name: "get_ledger", description: "Transaction history", category: "budget" },
+  { name: "routing", description: "Routing strategy configuration", category: "execute" },
+];
+
+const categoryLabel: Record<string, { label: string; color: string }> = {
+  discover: { label: "Discover", color: "text-blue-400" },
+  score: { label: "Score", color: "text-amber-400" },
+  execute: { label: "Execute", color: "text-emerald-400" },
+  budget: { label: "Budget", color: "text-purple-400" },
+};
+
+type Framework = {
+  name: string;
+  config: string;
+  note: string;
+};
+
+const frameworks: Framework[] = [
+  {
+    name: "Claude Desktop",
+    config: `{
+  "mcpServers": {
+    "rhumb": {
+      "command": "npx",
+      "args": ["rhumb-mcp@0.6.0"]
+    }
+  }
+}`,
+    note: "Add to ~/Library/Application Support/Claude/claude_desktop_config.json (macOS) or %APPDATA%/Claude/claude_desktop_config.json (Windows). Restart Claude Desktop.",
+  },
+  {
+    name: "Cursor / Windsurf / any MCP host",
+    config: `{
+  "mcpServers": {
+    "rhumb": {
+      "command": "npx",
+      "args": ["rhumb-mcp@0.6.0"]
+    }
+  }
+}`,
+    note: "Same configuration format. Add to your editor's MCP settings file.",
+  },
+  {
+    name: "Direct stdio (any framework)",
+    config: `npx rhumb-mcp@0.6.0`,
+    note: "The server speaks MCP over stdio. Pipe it into any MCP-compatible client: LangChain MCP Adapters, CrewAI, AutoGen, or custom implementations.",
+  },
+];
+---
+
+<Layout
+  title="Getting Started with Rhumb MCP | Rhumb"
+  description="Install Rhumb MCP in 30 seconds. Give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services."
+  canonical="/blog/getting-started-mcp"
+  ogTitle="Getting Started with Rhumb MCP"
+  ogDescription="Tool intelligence for AI agents in one command. 16 tools, 200+ services, live scores."
+  ogUrl="https://rhumb.dev/blog/getting-started-mcp"
+  ogType="article"
+  twitterTitle="Getting Started with Rhumb MCP"
+  twitterDescription="Give your agent tool intelligence in 30 seconds. 16 MCP tools, 200+ scored services."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.08),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Getting Started</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Give your agent tool intelligence
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            One command. 16 tools. 200+ scored services.
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            Rhumb MCP gives your AI agent live access to tool scores, failure modes, cost estimates,
+            and capability execution. Install it in 30 seconds and your agent knows which API
+            to pick, what will break, and how much it will cost — before making a single call.
+          </p>
+
+          <!-- Install command -->
+          <div class="mt-8 max-w-xl">
+            <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/8 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Install</div>
+              <code class="block text-xl sm:text-2xl font-mono text-emerald-400 font-semibold">
+                npx rhumb-mcp@0.6.0
+              </code>
+              <p class="mt-3 text-sm text-slate-400">
+                No API key required for discovery and scoring. Add to any MCP-compatible client.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What your agent gets -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What your agent gets</h2>
+          <p class="text-slate-400 leading-relaxed">
+            16 MCP tools organized into four categories. Your agent can discover tools, check their quality,
+            execute capabilities through Rhumb's proxy, and manage its budget — all through natural tool calls.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl">
+          {(["discover", "score", "execute", "budget"] as const).map((cat) => {
+            const info = categoryLabel[cat];
+            const tools = mcpTools.filter((t) => t.category === cat);
+            return (
+              <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+                <div class={`text-xs font-mono font-semibold ${info.color} uppercase tracking-[0.2em] mb-4`}>{info.label}</div>
+                <div class="space-y-3">
+                  {tools.map((t) => (
+                    <div>
+                      <div class="text-sm font-mono text-slate-200">{t.name}</div>
+                      <div class="text-xs text-slate-500 mt-0.5">{t.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- Framework setup -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Setup</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Add Rhumb MCP to your agent framework. Same config works everywhere.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-3xl">
+          {frameworks.map((fw) => (
+            <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+              <h3 class="font-display font-bold text-lg text-slate-100 mb-3">{fw.name}</h3>
+              <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 mb-3 overflow-x-auto">
+                <pre class="text-sm font-mono text-slate-300 whitespace-pre">{fw.config}</pre>
+              </div>
+              <p class="text-sm text-slate-500">{fw.note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Workflows -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Workflows</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Three real workflows showing how an agent uses Rhumb MCP tools together.
+            Each starts with a scenario and walks through the tool calls step by step.
+          </p>
+        </div>
+
+        <div class="space-y-10 max-w-4xl">
+          {workflows.map((wf, wfIndex) => (
+            <div class="rounded-2xl border border-slate-700/50 bg-slate-900/30 p-6 sm:p-8" id={wf.id}>
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-lg font-display font-bold text-emerald-400/60">{wfIndex + 1}</span>
+                <h3 class="font-display font-bold text-xl text-slate-100">{wf.title}</h3>
+              </div>
+              <p class="text-slate-400 mb-6">{wf.scenario}</p>
+
+              <div class="space-y-4">
+                {wf.steps.map((step, i) => (
+                  <div class="flex gap-4">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-mono text-slate-400">
+                      {i + 1}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <code class="text-sm font-mono text-emerald-400">{step.tool}</code>
+                        <code class="text-xs font-mono text-slate-500">({step.input})</code>
+                      </div>
+                      <p class="text-sm text-slate-400 leading-relaxed">{step.whatHappens}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Data coverage -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-6">What's in the dataset</h2>
+
+          <div class="grid sm:grid-cols-3 gap-4 mb-8">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
+              <div class="text-3xl font-display font-bold text-slate-100">212</div>
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Services scored</div>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
+              <div class="text-3xl font-display font-bold text-slate-100">103</div>
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Capabilities</div>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
+              <div class="text-3xl font-display font-bold text-slate-100">30</div>
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Domains</div>
+            </div>
+          </div>
+
+          <p class="text-slate-400 leading-relaxed mb-4">
+            Domains include: payments, email, CRM, auth, databases, analytics, communication, storage,
+            search, monitoring, e-commerce, AI/ML, and 18 more. Every service is scored on the same
+            20-dimension methodology.
+          </p>
+
+          <p class="text-slate-400 leading-relaxed">
+            Scores update as we gather new evidence. When you call <code class="text-slate-300 font-mono text-sm">get_score</code>,
+            you get the latest data — not a static snapshot.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- API access -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Direct API access</h2>
+          <p class="text-slate-400 leading-relaxed mb-6">
+            Prefer REST? The same data is available via HTTP. No API key needed for read endpoints.
+          </p>
+
+          <div class="space-y-3">
+            <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
+              <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/services</pre>
+              <p class="text-xs text-slate-500 mt-1">List all 212 scored services</p>
+            </div>
+            <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
+              <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/services/stripe/score</pre>
+              <p class="text-xs text-slate-500 mt-1">Full score breakdown with failure modes</p>
+            </div>
+            <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
+              <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/capabilities/email.send/resolve</pre>
+              <p class="text-xs text-slate-500 mt-1">Ranked providers for a capability</p>
+            </div>
+            <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
+              <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/leaderboard/payments</pre>
+              <p class="text-xs text-slate-500 mt-1">Category leaderboard, sorted by AN Score</p>
+            </div>
+          </div>
+
+          <p class="mt-6 text-sm text-slate-500">
+            Full API reference at <a href="/docs" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/docs</a>.
+            Machine-readable description at <a href="/llms.txt" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/llms.txt</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Credential modes -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Three ways to bring credentials</h2>
+          <p class="text-slate-400 leading-relaxed mb-6">
+            When executing capabilities, Rhumb supports three credential modes — pick the one that fits your security model.
+          </p>
+
+          <div class="space-y-4">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider">Mode 1</span>
+                <span class="font-semibold text-slate-200">BYO (Bring Your Own Keys)</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                Pass your own API keys at execution time. Rhumb routes the request, you own the credential.
+                Full control, no credential storage.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider">Mode 2</span>
+                <span class="font-semibold text-slate-200">Rhumb-Managed</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                Rhumb holds the upstream credential. Agent provides capability + body, Rhumb handles auth.
+                Zero-config for the agent. 20% markup on upstream cost.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-xs font-mono font-semibold text-purple-400 uppercase tracking-wider">Mode 3</span>
+                <span class="font-semibold text-slate-200">Agent Vault</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                Agent brings a JWE-encrypted credential token. Rhumb decrypts at execution time,
+                never stores. Highest security — the credential is never at rest in Rhumb.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Next steps / cross-links -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">Explore further</h2>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <a href="/compare" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-blue-400 uppercase tracking-wider mb-2">Compare</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Tool Comparisons</div>
+              <p class="text-sm text-slate-400 mt-1">6 categories, 18 tools scored side by side.</p>
+            </a>
+            <a href="/autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">Autopsy</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">API Autopsies</div>
+              <p class="text-sm text-slate-400 mt-1">Deep dives into what breaks for agents.</p>
+            </a>
+            <a href="/docs" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Reference</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">API Docs</div>
+              <p class="text-sm text-slate-400 mt-1">Full REST API reference with examples.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>

@@ -111,6 +111,9 @@ the specific friction of a tool before integrating.
 - Three credential modes: BYO, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
 
+## Getting Started
+- https://rhumb.dev/blog/getting-started-mcp — Install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
+
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust
