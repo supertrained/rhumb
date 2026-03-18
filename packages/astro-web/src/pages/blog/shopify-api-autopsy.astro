@@ -1,0 +1,427 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const shopify = await getServiceScore("shopify");
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Shopify API Autopsy: The GraphQL Bet That Agents Must Navigate",
+  datePublished: "2026-03-18T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A technical autopsy of Shopify's API from an agent's perspective. Score: 7.8/10. Strong execution, genuine agent friction at the GraphQL boundary.",
+  url: "https://rhumb.dev/blog/shopify-api-autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+type AnalysisPoint = {
+  id: string;
+  title: string;
+  kind: "strength" | "friction" | "nuance";
+  icon: string;
+  summary: string;
+  detail: string;
+  agentImpact: string;
+  evidence: string;
+};
+
+const analysisPoints: AnalysisPoint[] = [
+  {
+    id: "graphql-barrier",
+    title: "The GraphQL Learning Curve",
+    kind: "friction",
+    icon: "🔮",
+    summary: "Shopify has bet everything on GraphQL. The Admin API is GraphQL-first, and the REST API is being deprecated endpoint by endpoint.",
+    detail: "Most AI agents are trained on REST API patterns — construct a URL, set HTTP method, parse JSON response. GraphQL is fundamentally different: agents must construct a query document, understand field selection, handle pagination through cursor-based connections, and manage query cost calculations. Shopify's GraphQL Admin API requires agents to know the schema before making requests — there is no 'GET /products' equivalent. Instead, an agent must write: `query { products(first: 10) { edges { node { id title variants(first: 5) { edges { node { price } } } } } } }`. For agents without GraphQL-specific training, this is a substantial barrier. The query construction, nested edge/node pagination pattern, and field selection are all agent-unfriendly patterns compared to REST.",
+    agentImpact: "Agents need GraphQL-specific query generation capabilities. Generic HTTP client patterns do not transfer. Query construction errors are common and GraphQL error messages can be verbose.",
+    evidence: "Shopify Admin API documentation. REST API deprecation timeline published at shopify.dev.",
+  },
+  {
+    id: "query-cost",
+    title: "Query Cost Budget System",
+    kind: "nuance",
+    icon: "🧮",
+    summary: "Every GraphQL query has a calculated cost, and each app gets a point budget that regenerates per second. Complex queries can exhaust the budget in a single request.",
+    detail: "Shopify assigns a cost to each GraphQL query based on the fields selected and the depth of nested connections. Simple queries cost 1-2 points; queries requesting products with variants, images, and metafields can cost 100+ points. Each app gets a bucket of 1,000 points (or 2,000 on Shopify Plus), regenerating at 50 points per second. A naive agent that requests all product data with all variants, all images, and all metafields in a single query can exhaust its entire point budget in one request and then wait 20 seconds for recovery. The cost is returned in the response extensions, so agents can track it — but they must learn to estimate cost BEFORE sending queries to avoid the throttle.",
+    agentImpact: "Agents must pre-estimate query cost or implement a cost-tracking retry loop. Over-requesting fields (a common agent pattern of 'get everything just in case') is actively penalized.",
+    evidence: "Shopify GraphQL Admin API Rate Limits documentation. Query cost calculator in API explorer.",
+  },
+  {
+    id: "app-auth",
+    title: "App Installation OAuth Is Well-Structured",
+    kind: "strength",
+    icon: "🔐",
+    summary: "Unlike most OAuth implementations, Shopify's app installation flow is a clean, well-documented process with scoped permissions that make sense.",
+    detail: "Shopify's OAuth implementation is among the best in e-commerce. The scope system is granular and predictable: write_products, read_orders, write_fulfillments — each scope maps to a specific API resource and access level. The installation flow is a standard OAuth 2.0 authorization code grant with HMAC validation on the callback. Once installed, the app receives a permanent access token (no refresh cycle). Custom apps can bypass OAuth entirely with token-based authentication in the Shopify admin. For agents, the permanent token is a major advantage — no token refresh infrastructure needed, no expiration to manage. The scoped permissions also mean an agent can request exactly the access it needs, reducing blast radius.",
+    agentImpact: "Permanent access tokens eliminate token refresh overhead. Granular scopes enable least-privilege access. Custom app tokens bypass OAuth entirely for single-merchant use cases.",
+    evidence: "Shopify OAuth documentation. Custom App Authentication guide.",
+  },
+  {
+    id: "webhook-reliability",
+    title: "Webhook Delivery and Mandatory Compliance",
+    kind: "strength",
+    icon: "📡",
+    summary: "Shopify webhooks are reliable, HMAC-signed, and mandatory for certain app store requirements — which means the infrastructure is well-maintained.",
+    detail: "Shopify sends webhooks for virtually every resource change (orders, products, customers, fulfillments). Each webhook is HMAC-SHA256 signed with the app's secret, providing authentication. Failed deliveries are retried with exponential backoff for up to 48 hours. For apps in the Shopify App Store, webhook handling is a certification requirement — which means the webhook infrastructure receives first-class engineering attention. Shopify also supports EventBridge and Pub/Sub delivery for high-volume apps, and mandatory webhooks (GDPR compliance: customer data request, customer data erasure, shop data erasure) ensure apps handle data lifecycle events.",
+    agentImpact: "Reliable event-driven workflows. HMAC validation prevents spoofing. Mandatory compliance webhooks force good data hygiene practices.",
+    evidence: "Shopify Webhook documentation. App Store requirements for webhook handling.",
+  },
+  {
+    id: "versioning",
+    title: "API Versioning With Forced Migration",
+    kind: "friction",
+    icon: "📅",
+    summary: "Shopify releases a new API version quarterly and deprecates old versions after 12 months. Agents must handle version migration or break.",
+    detail: "Shopify uses calendar-based API versioning (e.g., 2026-01, 2026-04). Each version is supported for approximately 12 months after release. When a version is deprecated, API calls using that version start returning errors. This means an agent built and deployed today will break within 12-15 months unless it is updated to a newer API version. Version changes can include field renames, removed endpoints, changed default behaviors, and new required fields. The Shopify changelog documents every breaking change, but an agent must either (1) be regularly updated to track versions, or (2) use the 'unstable' version (which has no stability guarantees). For long-running agent deployments, this creates a maintenance burden that simpler, versioned APIs (like Stripe, which maintains backward compatibility for years) do not impose.",
+    agentImpact: "Agents have a maximum 12-month shelf life per version. Version migration requires reading changelogs and updating queries. Long-running agent deployments need version tracking automation.",
+    evidence: "Shopify API Versioning documentation. Quarterly release notes at shopify.dev/changelog.",
+  },
+  {
+    id: "pagination-cursors",
+    title: "Cursor-Based Pagination Everywhere",
+    kind: "nuance",
+    icon: "📄",
+    summary: "All GraphQL connections use cursor-based pagination with the Relay edge/node pattern. No page numbers, no offset/limit.",
+    detail: "Shopify's GraphQL API uses the Relay connection specification for all list endpoints. This means every list query returns edges (containing cursors and nodes), a pageInfo object (with hasNextPage and endCursor), and requires passing the last cursor as the 'after' argument to get the next page. There are no page numbers and no offset/limit parameters. For agents, this has tradeoffs: cursor pagination is more reliable than offset pagination (no skipped or duplicated records when data changes between pages), but it does not allow random access (you cannot jump to page 5) and requires sequential iteration through all pages to reach deep results. An agent needing the 500th product must iterate through 50 pages of 10 — there is no shortcut.",
+    agentImpact: "Sequential iteration required for all lists. No random access. Deep pagination is slow but reliable. Agents must implement cursor tracking state.",
+    evidence: "Shopify GraphQL Pagination documentation. Relay Connection Specification.",
+  },
+  {
+    id: "metafields",
+    title: "Metafields Are the Escape Hatch (and the Trap)",
+    kind: "nuance",
+    icon: "🏷",
+    summary: "Custom data lives in metafields — a flexible key-value system that is powerful but adds query complexity and has its own namespace/key conventions.",
+    detail: "Shopify's data model is relatively fixed: products have titles, variants, images. Everything else — custom attributes, configuration, app-specific data — lives in metafields. Metafields are namespaced key-value pairs with type validation (string, integer, JSON, file reference, etc.). They are accessible via GraphQL, but querying them adds cost: each metafield request adds to the query cost budget, and agents must know the namespace and key to request specific metafields. There is no 'get all metafields' that is cost-efficient — requesting all metafields on all products in a bulk query can be extremely expensive. For agents building on existing Shopify stores, understanding which metafields exist and what they contain requires schema discovery that the API supports but does not make easy.",
+    agentImpact: "Custom data requires namespace/key knowledge. Bulk metafield queries are expensive. Schema discovery for existing stores adds an initialization step.",
+    evidence: "Shopify Metafields API documentation. Query cost implications for metafield access.",
+  },
+];
+
+const kindStyle = {
+  strength: { bg: "bg-emerald-500/10", border: "border-emerald-500/25", text: "text-emerald-400", label: "Strength" },
+  friction: { bg: "bg-amber-500/10", border: "border-amber-500/25", text: "text-amber-400", label: "Friction" },
+  nuance: { bg: "bg-blue-500/10", border: "border-blue-500/25", text: "text-blue-400", label: "Nuance" },
+};
+
+const whatWouldImprove = [
+  {
+    title: "REST API parity (stop deprecating it)",
+    impact: "Maintaining a stable REST API alongside GraphQL would let agents use the interface that matches their training. GraphQL is better for humans; REST is better for most current AI agents.",
+  },
+  {
+    title: "Query cost estimation endpoint",
+    impact: "An endpoint that accepts a query document and returns its cost before execution would let agents plan within their budget instead of learning through throttle failures.",
+  },
+  {
+    title: "Longer version support windows",
+    impact: "24-month version support (instead of 12) would reduce the maintenance burden for long-running agent deployments. Stripe's approach of near-indefinite backward compatibility is the gold standard.",
+  },
+  {
+    title: "Metafield schema discovery endpoint",
+    impact: "An endpoint that returns all defined metafield namespaces, keys, and types for a store would let agents understand custom data structures without expensive exploratory queries.",
+  },
+];
+---
+
+<Layout
+  title="Shopify API Autopsy: The GraphQL Bet Agents Must Navigate | Rhumb"
+  description="Technical autopsy of Shopify's API from an agent's perspective. Score: 7.8/10. Strong execution meets GraphQL complexity."
+  canonical="/blog/shopify-api-autopsy"
+  ogTitle="Shopify API Autopsy: The GraphQL Bet That Agents Must Navigate"
+  ogDescription="Score: 7.8/10. Strong auth, reliable webhooks — but the GraphQL-only future creates real friction for agents."
+  ogUrl="https://rhumb.dev/blog/shopify-api-autopsy"
+  ogType="article"
+  twitterTitle="Shopify API Autopsy"
+  twitterDescription="Score: 7.8/10. The GraphQL bet agents must navigate."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.10),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Autopsy</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 18, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Shopify API autopsy
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            The GraphQL bet that agents must navigate
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            Shopify powers 4.6 million stores and processes $235B+ in annual GMV. Its bet on GraphQL
+            makes it one of the most technically sophisticated commerce APIs. At
+            <strong class="text-emerald-400">{formatScore(shopify?.aggregateRecommendationScore)}/10</strong>,
+            Shopify scores well — but the GraphQL-first strategy creates friction that agents trained on
+            REST patterns must overcome.
+          </p>
+
+          {shopify && (
+            <div class="mt-8 flex flex-wrap items-center gap-6">
+              <div class="flex items-center gap-3">
+                <ScoreDisplay score={shopify.aggregateRecommendationScore} size="large" />
+                <div>
+                  <div class="text-xs font-mono text-slate-500 uppercase tracking-wider">AN Score</div>
+                  <TierBadge tier={shopify?.tier ?? null} label={shopify?.tierLabel ?? undefined} />
+                </div>
+              </div>
+              <div class="h-10 w-px bg-slate-800"></div>
+              <div class="flex gap-6 text-sm">
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Execution</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(shopify.executionScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Access</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(shopify.accessReadinessScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Confidence</div>
+                  <div class="text-slate-200 font-semibold">{formatConfidence(shopify.confidence)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- TL;DR for agents -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-6 sm:p-8">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Agent decision</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              <strong>Use Shopify</strong> when the merchant already has a Shopify store and the agent needs
+              to manage products, orders, fulfillments, or inventory.
+              <strong>Budget for</strong> GraphQL query generation (not REST patterns), query cost tracking
+              to avoid throttling, and version migration every 12 months.
+              Permanent access tokens and reliable webhooks make ongoing operation smooth once the
+              initial GraphQL integration is built.
+            </p>
+            <div class="mt-4">
+              <a href="/service/shopify" class="text-xs font-mono text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">View full service page →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Score anatomy -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Score anatomy</h2>
+          <p class="text-slate-400 mb-8 leading-relaxed">
+            Shopify's {formatScore(shopify?.aggregateRecommendationScore)} reflects strong fundamentals with a
+            GraphQL-specific friction tax. The execution score is high because the API is well-designed —
+            the access score is slightly lower because GraphQL adds cognitive overhead.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-6 max-w-4xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="text-3xl font-display font-bold text-emerald-400 mb-1">{formatScore(shopify?.executionScore)}</div>
+            <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-3">Execution</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Well-designed API with consistent patterns. GraphQL schema is comprehensive and
+              well-typed. Mutations return created/updated objects immediately. Bulk operations
+              use an async job pattern that agents can poll. Error responses include actionable
+              field-level messages. The execution surface is solid — if you can construct the queries.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6">
+            <div class="text-3xl font-display font-bold text-slate-100 mb-1">{formatScore(shopify?.accessReadinessScore)}</div>
+            <div class="text-xs font-mono text-amber uppercase tracking-wider mb-3">Access Readiness</div>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Good authentication (permanent tokens, granular scopes). The access friction
+              comes from GraphQL as the required interface — agents must construct syntactically
+              valid queries, manage cursor pagination, and track query cost budgets. These are
+              access barriers in the sense that they gate productive API use.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analysis points -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-10">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The full picture</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Seven analysis points across the integration surface. Shopify's story is about strong
+            fundamentals gated behind a technology choice (GraphQL) that most current agents are
+            not optimized for.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-4xl">
+          {analysisPoints.map((ap) => {
+            const style = kindStyle[ap.kind];
+            return (
+              <div class={`rounded-2xl border ${style.border} ${style.bg} p-6 sm:p-8`} id={ap.id}>
+                <div class="flex items-start gap-4 mb-4">
+                  <span class="text-2xl mt-0.5">{ap.icon}</span>
+                  <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-3 mb-1">
+                      <h3 class="font-display font-bold text-xl text-slate-100">{ap.title}</h3>
+                      <span class={`text-[10px] font-mono font-semibold ${style.text} uppercase tracking-widest px-2 py-0.5 rounded-full border ${style.border}`}>
+                        {style.label}
+                      </span>
+                    </div>
+                    <p class="text-slate-300 font-medium leading-relaxed">{ap.summary}</p>
+                  </div>
+                </div>
+                <div class="ml-10 sm:ml-12 space-y-4">
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Detail</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{ap.detail}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Agent impact</div>
+                    <p class="text-sm text-slate-400 leading-relaxed">{ap.agentImpact}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1.5">Evidence</div>
+                    <p class="text-xs text-slate-500 leading-relaxed">{ap.evidence}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- What would improve it -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What would close the gap</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Shopify's fundamentals are strong. These four changes would materially improve the agent experience
+            without requiring Shopify to abandon its GraphQL investment.
+          </p>
+        </div>
+
+        <div class="space-y-4 max-w-3xl">
+          {whatWouldImprove.map((fix, i) => (
+            <div class="flex gap-4 rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xl font-display font-bold text-emerald-400/60 mt-0.5 shrink-0 w-8 text-center">{i + 1}</div>
+              <div>
+                <div class="font-semibold text-slate-200 mb-1">{fix.title}</div>
+                <p class="text-sm text-slate-400 leading-relaxed">{fix.impact}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Integration cost -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The real cost for agents</h2>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Setup time</div>
+              <div class="text-xl font-display font-bold text-slate-200">30-60 minutes</div>
+              <p class="text-sm text-slate-400 mt-1">Custom app creation in Shopify admin, scope selection, permanent token generation. Straightforward but requires admin access.</p>
+            </div>
+            <div class="rounded-xl border border-amber-500/15 bg-amber-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Learning curve</div>
+              <div class="text-xl font-display font-bold text-amber-400">GraphQL fluency required</div>
+              <p class="text-sm text-slate-400 mt-1">Agents need to construct valid GraphQL queries, manage cursor pagination, and track query cost budgets.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Ongoing overhead</div>
+              <div class="text-xl font-display font-bold text-emerald-400">Low (no token refresh)</div>
+              <p class="text-sm text-slate-400 mt-1">Permanent access tokens. Reliable webhooks. Primary overhead: version migration every 12 months.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Defensive code</div>
+              <div class="text-xl font-display font-bold text-slate-200">~25% of integration</div>
+              <p class="text-sm text-slate-400 mt-1">Query cost tracking, cursor state management, webhook HMAC validation, version compatibility checks.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This autopsy uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">rhumb.dev/blog/self-score</a>.
+            Shopify's data was last calculated on
+            {shopify?.calculatedAt ? new Date(shopify.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "recently"}.
+            Confidence: {formatConfidence(shopify?.confidence)}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- More autopsies -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">More autopsies</h2>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <a href="/blog/hubspot-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">4.6</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">HubSpot</div>
+              <p class="text-sm text-slate-400 mt-1">Rate limits, cross-hub inconsistency.</p>
+            </a>
+            <a href="/blog/salesforce-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-red-400 uppercase tracking-wider mb-2">4.8</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Salesforce</div>
+              <p class="text-sm text-slate-400 mt-1">SOQL barrier, governor limits.</p>
+            </a>
+            <a href="/blog/twilio-api-autopsy" class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 hover:border-slate-600/60 transition-colors group">
+              <div class="text-xs font-mono text-emerald-400 uppercase tracking-wider mb-2">8.0</div>
+              <div class="font-semibold text-slate-200 group-hover:text-slate-100 transition-colors">Twilio</div>
+              <p class="text-sm text-slate-400 mt-1">What agent-native almost looks like.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>

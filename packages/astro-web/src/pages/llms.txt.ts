@@ -93,6 +93,18 @@ Each comparison includes live AN Score data, friction maps, routing rules for ag
 scenario-based recommendations, and failure mode analysis.
 Use comparisons when an agent needs to choose between tools in the same category.
 
+## API Autopsies (deep technical breakdowns of individual tools)
+Index: https://rhumb.dev/autopsy — all autopsies in one place
+
+- https://rhumb.dev/blog/hubspot-api-autopsy — HubSpot (4.6): Rate limit traps, cross-hub API inconsistency, OAuth maze, no idempotency
+- https://rhumb.dev/blog/salesforce-api-autopsy — Salesforce (4.8): SOQL barrier, governor limits, sandbox/production split, sales-gated onboarding
+- https://rhumb.dev/blog/twilio-api-autopsy — Twilio (8.0): What agent-native almost looks like. Simple auth, idempotency, error codes that teach
+- https://rhumb.dev/blog/shopify-api-autopsy — Shopify (7.8): GraphQL-first bet, query cost budgets, forced version migration
+
+Each autopsy dissects a single tool's failure modes, score anatomy, integration cost,
+and constructive recommendations. Use autopsies when an agent needs to understand
+the specific friction of a tool before integrating.
+
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust

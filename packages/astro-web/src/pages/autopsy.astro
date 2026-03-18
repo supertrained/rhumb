@@ -1,0 +1,170 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const PAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "API Autopsies for AI Agents",
+  description:
+    "Deep technical autopsies of popular APIs from an agent's perspective. What breaks, why, and what would need to change.",
+  url: "https://rhumb.dev/autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type Autopsy = {
+  slug: string;
+  category: string;
+  name: string;
+  score: number;
+  tagline: string;
+  failureCount: number;
+  keyFinding: string;
+  accent: string;
+  accentSoft: string;
+};
+
+const autopsies: Autopsy[] = [
+  {
+    slug: "hubspot-api-autopsy",
+    category: "CRM",
+    name: "HubSpot",
+    score: 4.6,
+    tagline: "What breaks when agents try to use it",
+    failureCount: 6,
+    keyFinding: "Cross-hub API inconsistency means agents need 3 separate adapters for one integration.",
+    accent: "#EF4444",
+    accentSoft: "rgba(239,68,68,0.14)",
+  },
+  {
+    slug: "salesforce-api-autopsy",
+    category: "CRM",
+    name: "Salesforce",
+    score: 4.8,
+    tagline: "The enterprise maze agents get lost in",
+    failureCount: 6,
+    keyFinding: "Governance 10.0, payment autonomy 2.0 — best security behind the highest wall.",
+    accent: "#3B82F6",
+    accentSoft: "rgba(59,130,246,0.14)",
+  },
+  {
+    slug: "twilio-api-autopsy",
+    category: "Communication",
+    name: "Twilio",
+    score: 8.0,
+    tagline: "What agent-native almost looks like",
+    failureCount: 0,
+    keyFinding: "Simple auth + idempotency + error codes that teach = the model for agent-friendly APIs.",
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.14)",
+  },
+  {
+    slug: "shopify-api-autopsy",
+    category: "E-commerce",
+    name: "Shopify",
+    score: 7.8,
+    tagline: "The GraphQL bet agents must navigate",
+    failureCount: 0,
+    keyFinding: "Strong fundamentals gated behind GraphQL — a technology most current agents aren't optimized for.",
+    accent: "#8B5CF6",
+    accentSoft: "rgba(139,92,246,0.14)",
+  },
+];
+
+function scoreColor(score: number): string {
+  if (score >= 8.0) return "text-emerald-400";
+  if (score >= 7.0) return "text-blue-400";
+  if (score >= 6.0) return "text-amber-400";
+  return "text-red-400";
+}
+---
+
+<Layout
+  title="API Autopsies for AI Agents | Rhumb"
+  description="Deep technical autopsies of popular APIs from an agent's perspective. What breaks, why, and what would need to change. HubSpot, Salesforce, Twilio, Shopify."
+  canonical="/autopsy"
+  ogTitle="API Autopsies for AI Agents"
+  ogDescription="What breaks when agents try to use HubSpot, Salesforce, Twilio, and Shopify. Technical deep dives with live Rhumb score data."
+  ogUrl="https://rhumb.dev/autopsy"
+  ogType="website"
+  twitterTitle="API Autopsies for AI Agents"
+  twitterDescription="Deep technical autopsies of popular APIs from an agent's perspective."
+  jsonLd={PAGE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.08),transparent_50%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-red-400 uppercase tracking-[0.28em]">Autopsy Series</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100">
+            API autopsies
+          </h1>
+          <p class="mt-4 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl">
+            Deep technical examinations of popular APIs from an agent's perspective.
+            What actually breaks, why it breaks, and what the provider would need to change.
+            Every autopsy uses live <a href="/blog/self-score" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">AN Score</a> data.
+          </p>
+
+          <div class="mt-8 inline-flex items-start gap-3 rounded-2xl border border-slate-700/40 bg-slate-900/40 px-5 py-4">
+            <p class="text-sm text-slate-400 leading-relaxed">
+              <span class="font-semibold text-slate-200">Not reviews. Autopsies.</span>
+              Reviews tell you what is good. Autopsies tell you what kills. For agents choosing tools,
+              knowing the failure modes is more valuable than knowing the features.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Autopsy cards -->
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="grid md:grid-cols-2 gap-6">
+          {autopsies.map((a) => (
+            <a
+              href={`/blog/${a.slug}`}
+              class="group rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6 sm:p-8 hover:border-slate-600/70 transition-all"
+              style={`background: linear-gradient(135deg, ${a.accentSoft} 0%, transparent 60%)`}
+            >
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-mono text-slate-500 uppercase tracking-wider">{a.category}</span>
+                <span class={`text-2xl font-display font-bold ${scoreColor(a.score)}`}>{a.score.toFixed(1)}</span>
+              </div>
+
+              <h2 class="font-display font-bold text-2xl text-slate-100 group-hover:text-white transition-colors mb-1">
+                {a.name}
+              </h2>
+              <p class="text-slate-400 font-light mb-4">{a.tagline}</p>
+
+              <p class="text-sm text-slate-400 leading-relaxed mb-4">{a.keyFinding}</p>
+
+              <span class="text-xs font-mono text-amber group-hover:text-amber-300 transition-colors">
+                Read autopsy →
+              </span>
+            </a>
+          ))}
+        </div>
+
+        <!-- Cross-reference -->
+        <div class="mt-12 max-w-3xl">
+          <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+            <p class="text-sm text-slate-400 leading-relaxed">
+              <span class="font-semibold text-slate-300">Looking for head-to-head comparisons?</span>
+              See <a href="/compare" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">Comparisons</a> —
+              6 categories, 18 tools scored side by side.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
