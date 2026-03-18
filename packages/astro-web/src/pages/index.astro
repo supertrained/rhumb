@@ -293,6 +293,60 @@ const stats = [
       </div>
     </section>
 
+    <!-- Three paths -->
+    <section class="border-t border-slate-800 bg-surface/30 reveal">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        <div class="mb-10">
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Three ways in</p>
+          <h2 class="font-display font-bold text-2xl text-slate-100">Browse. Query. Connect.</h2>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-6">
+          <!-- Browse -->
+          <div class="bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
+            <div class="text-2xl mb-3">🔍</div>
+            <h3 class="font-display font-semibold text-slate-100 text-lg mb-2">Browse</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">Explore scores, comparisons, and failure modes. No account needed.</p>
+            <p class="text-xs font-mono text-slate-500">Free &middot; No signup</p>
+          </div>
+
+          <!-- REST API -->
+          <div class="bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
+            <div class="text-2xl mb-3">⚡</div>
+            <h3 class="font-display font-semibold text-slate-100 text-lg mb-2">REST API</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">Query scores and execute capabilities from any language. Standard HTTP.</p>
+            <p class="text-xs font-mono text-slate-500">API key or x402 per-call payment</p>
+          </div>
+
+          <!-- MCP -->
+          <div class="bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
+            <div class="text-2xl mb-3">🔌</div>
+            <h3 class="font-display font-semibold text-slate-100 text-lg mb-2">MCP Server</h3>
+            <p class="text-sm text-slate-400 leading-relaxed mb-4">Connect directly from Claude, GPT, or any MCP-compatible agent. All tools available instantly.</p>
+            <p class="text-xs font-mono text-slate-500"><code>npx rhumb-mcp</code></p>
+          </div>
+        </div>
+
+        <!-- x402 callout -->
+        <div class="mt-8 bg-navy border border-amber/20 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Zero-signup agent payments</span>
+            </div>
+            <p class="text-sm text-slate-300">
+              Agents with <a href="/blog/how-agents-pay" class="text-amber hover:underline">x402</a> can execute capabilities and pay per call with USDC — no account, no API key, no human in the loop. The payment is the authentication.
+            </p>
+          </div>
+          <a
+            href="/blog/how-agents-pay"
+            class="shrink-0 px-5 py-2.5 rounded-lg border border-amber/30 text-sm text-amber hover:bg-amber/10 transition-colors font-mono"
+          >
+            Learn about x402 &rarr;
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- MCP Server -->
     <section id="install" class="border-t border-slate-800 bg-surface/30 reveal">
       <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
