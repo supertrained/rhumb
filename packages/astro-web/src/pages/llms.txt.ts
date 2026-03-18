@@ -80,13 +80,17 @@ sandbox/test mode.
 - L1 Emerging (0.0–3.9): significant barriers to agent use
 
 ## Comparison Pages (decision surfaces for agents and operators)
+Index: https://rhumb.dev/compare — all comparisons in one place
+
 - https://rhumb.dev/blog/stripe-vs-square-vs-paypal — Payments: Stripe vs Square vs PayPal
 - https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark — Email: Resend vs SendGrid vs Postmark
 - https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive — CRM: HubSpot vs Salesforce vs Pipedrive
 - https://rhumb.dev/blog/auth0-vs-clerk-vs-firebase-auth — Auth: Auth0 vs Clerk vs Firebase Auth
+- https://rhumb.dev/blog/posthog-vs-mixpanel-vs-amplitude — Analytics: PostHog vs Mixpanel vs Amplitude
 
 Each comparison includes live AN Score data, friction maps, routing rules for agents,
 scenario-based recommendations, and failure mode analysis.
+Use comparisons when an agent needs to choose between tools in the same category.
 
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
