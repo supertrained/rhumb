@@ -105,6 +105,12 @@ Each autopsy dissects a single tool's failure modes, score anatomy, integration 
 and constructive recommendations. Use autopsies when an agent needs to understand
 the specific friction of a tool before integrating.
 
+## Getting Started
+- https://rhumb.dev/blog/getting-started-rhumb-mcp — Install guide: 5-min setup for Claude Desktop, Cursor, OpenAI Agents SDK
+- MCP tools reference with examples for all 16 tools
+- Three credential modes: BYO, Rhumb-Managed, Agent Vault
+- End-to-end workflow example: find → evaluate → resolve → execute
+
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust
