@@ -90,5 +90,6 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
   - Live verification surfaced two trust-surface bugs and both are now fixed in code: `/quickstart` no longer points REST users at a nonexistent alternatives endpoint, and `/v1/pricing` now has an API-bundled pricing catalog fallback for Docker deploys
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)
   - Launch-prep advanced while blocked: shipped `docs/LAUNCH-ASSET-PACK-2026-03-19.md` covering Moltbook copy, channel hooks, and operator-vs-agent launch narrative variants
-  - Launch-proof tracker refreshed to current truth: launch copy readiness improved, but social proof remains zero, the lightning audit rerun is now stale, and GitHub public metadata still understates scope (`50+ APIs`)
+  - Launch-proof tracker refreshed to current truth: launch copy readiness improved, social proof remains zero, and the lightning audit rerun is now stale
   - Focused adversarial review caught a live trust-surface claim bug: `/trust` said runtime-backed coverage was over 20% even though current truth is 15.9%; source wording was corrected and production now serves the non-numeric claim
+  - Blocked-safe launch-prep continued: GitHub public metadata no longer understates scope; the repo description now reflects current public truth (`200+ services`, `100+ capabilities`)
