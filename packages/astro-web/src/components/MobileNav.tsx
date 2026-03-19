@@ -4,6 +4,7 @@ const NAV_LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/search", label: "Search" },
   { href: "/docs", label: "Docs" },
+  { href: "/glossary", label: "Glossary" },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
 ];

@@ -85,4 +85,5 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
 - WU-26.4: Activation MVP Phase B — IN PROGRESS
   - WU-B5 pricing contract shipped: `GET /v1/pricing` + public `/pricing` page live (commit `ad45d6f`)
   - `/glossary` shipped as the next unblocked trust/activation surface while signup remains OAuth-blocked
+  - Adversarial review immediately surfaced a discoverability gap; glossary is now wired into main nav, mobile nav, and trust page
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)

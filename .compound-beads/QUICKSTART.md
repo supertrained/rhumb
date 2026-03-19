@@ -1,7 +1,7 @@
 # Quick Start - Rhumb
 
-> **Last Updated:** 2026-03-19T06:43:00-07:00
-> **Current Round:** 26 IN_PROGRESS. Phase A complete (WU-A1–A4 shipped). Phase B partially complete: WU-B5 pricing contract + pricing page shipped. Homepage rewrite shipped (hero, blog content, three-path, x402 callout). Security/BYOK blog shipped. `api.rhumb.dev` live with TLS. `/glossary` shipped as the next unblocked trust/activation surface while signup remains OAuth-blocked. Next blocking slice: WU-B1 signup flow once OAuth creds exist.
+> **Last Updated:** 2026-03-19T06:58:00-07:00
+> **Current Round:** 26 IN_PROGRESS. Phase A complete (WU-A1–A4 shipped). Phase B partially complete: WU-B5 pricing contract + pricing page shipped. Homepage rewrite shipped (hero, blog content, three-path, x402 callout). Security/BYOK blog shipped. `api.rhumb.dev` live with TLS. `/glossary` shipped, then hardened after adversarial review with main-nav, mobile-nav, and trust-page discoverability. Next blocking slice: WU-B1 signup flow once OAuth creds exist.
 > **Status:** 23 blog posts across 4 formats. 9 comparisons, 4 autopsies, 2 guides. Homepage fully panel-informed. x402 zero-signup path live. `/v1/pricing` + `/pricing` now live. Launch timing Tom-gated.
 
 ## What's Live NOW
