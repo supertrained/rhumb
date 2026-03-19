@@ -1,122 +1,131 @@
 # Rhumb
 
-**Agent-native tool intelligence.** Discover, score, and execute APIs — with cost-aware routing, budget enforcement, and three credential modes. Built for autonomous agents, not humans browsing docs.
+**Agent-native tool intelligence.** Discover, score, and execute external tools — with visible failure modes, cost-aware routing, budget enforcement, and agent-native access paths.
 
-🌐 [rhumb.dev](https://rhumb.dev) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔌 [MCP Server](https://www.npmjs.com/package/rhumb-mcp) · 🔑 [Trust](https://rhumb.dev/trust)
+Most APIs weren't built for agents. Rhumb helps agents and operators see which tools actually work, how they fail, and how to use them.
+
+🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust) · 🔌 [npm: rhumb-mcp](https://www.npmjs.com/package/rhumb-mcp)
 
 ## What is Rhumb?
 
 Rhumb is the infrastructure layer agents use to **discover, access, and trust** external tools.
 
-- **212 scored services** across 38 categories, evaluated on 20 dimensions
-- **103 capabilities** across 30 domains (email.send, project.create_issue, ai.generate_text, spreadsheet.read, ...)
-- **3 credential modes** — bring your own token, zero-config managed, or self-provisioned via ceremony guides
-- **Cost-optimal routing** — cheapest provider that meets your quality floor
-- **Budget enforcement** — pre-execution checks, not surprise bills
+- **212 scored services**
+- **103 capabilities across 30 domains**
+- **20 scored dimensions** across execution quality and access readiness
+- **3 credential modes** — BYO, Rhumb-managed, and Agent Vault
+- **x402 zero-signup path** for agent-native per-call payment
+- **Cost-aware routing + budget enforcement** before execution, not surprise bills
 
-## MCP Server
+## Start in 30 seconds
+
+### Read-only API call
 
 ```bash
-npx rhumb-mcp@0.5.0
+curl "https://api.rhumb.dev/v1/services/stripe/score"
 ```
 
-**13 tools:**
+Read endpoints are public and do not require signup.
 
-| Tool | What it does |
-|------|-------------|
-| `find_tools` | Search services by category or capability |
-| `get_score` | AN Score and dimension breakdown for a service |
-| `get_alternatives` | Find alternatives ranked by score |
-| `get_failure_modes` | Known failure modes and workarounds |
-| `discover_capabilities` | Browse capabilities by domain |
-| `resolve_capability` | Ranked providers with health + cost for a capability |
-| `execute_capability` | Execute through Rhumb — auto-selects provider, injects auth |
-| `estimate_capability` | Cost estimate + budget check without executing |
-| `credential_ceremony` | Step-by-step guide to get API credentials for a service |
-| `check_credentials` | Your credential status across all three modes |
-| `budget` | Check or set your execution budget |
-| `spend` | Spend breakdown by capability and provider |
-| `routing` | Get or set your routing strategy |
+### MCP
 
-### Quick Example
-
-```
-# "I need to send an email. What should I use?"
-resolve_capability("email.send")
-→ 8 providers ranked: Resend (8.3), SendGrid (7.5), Postmark (7.2), ...
-
-# "Use the cheapest one that's good enough"
-routing(set, strategy="cheapest", quality_floor=7.0)
-
-# "Send it — zero config, Rhumb handles credentials"
-execute_capability("email.send", credential_mode="rhumb_managed", body={
-  from: "agent@example.com", to: "user@example.com",
-  subject: "Hello", html: "<p>Sent via Rhumb</p>"
-})
-→ { provider_used: "resend", upstream_status: 200, budget_remaining_usd: 49.99 }
+```bash
+npx rhumb-mcp@0.7.0
 ```
 
-## Three Credential Modes
+### Execute capabilities
 
-| Mode | How it works | When to use |
-|------|-------------|-------------|
-| **BYO Token** | You provide your own API key | Full control, existing credentials |
-| **Rhumb Managed** | Zero-config — Rhumb provides credentials | Quick start, managed capabilities |
-| **Agent Vault** | Self-provision via ceremony guide, pass per-request | Your own key, Rhumb never stores it |
+Execution paths today:
+- **API key** — sign up, get a key, send `X-Rhumb-Key`
+- **x402 / USDC** — no signup, pay per call, send `X-Payment`
+- **Bring your own key** — pass your own upstream credentials
+
+## MCP tools
+
+`rhumb-mcp@0.7.0` exposes **16 tools** across discovery, routing, execution, credential management, and billing:
+
+- `find_tools`
+- `get_score`
+- `get_alternatives`
+- `get_failure_modes`
+- `discover_capabilities`
+- `resolve_capability`
+- `execute_capability`
+- `estimate_capability`
+- `credential_ceremony`
+- `check_credentials`
+- `budget`
+- `spend`
+- `routing`
+- `check_balance`
+- `get_payment_url`
+- `get_ledger`
+
+## Why it exists
+
+Choosing tools for agents is not the same as choosing tools for human developers.
+
+The hard part is not feature breadth. It's whether a tool can actually survive agent-style use:
+- auth and signup friction
+- provisioning reality
+- schema instability
+- hidden support burden
+- weak docs or unclear limits
+- failure recovery when no human is watching
+
+Rhumb makes those constraints legible before you commit.
 
 ## AN Score
 
-The Agent-Native Score rates services from 0–10 across two axes:
+The Agent-Native (AN) Score rates services from 0–10 across two axes:
 
 | Axis | Weight | What it measures |
-|------|--------|-----------------|
-| **Execution** | 70% | API reliability, error ergonomics, schema stability, latency, idempotency, autonomy |
-| **Access Readiness** | 30% | Signup friction, credential management, rate limit transparency, docs quality, sandbox availability |
+|------|--------|------------------|
+| **Execution** | 70% | Reliability, error ergonomics, schema stability, latency, idempotency, autonomy |
+| **Access Readiness** | 30% | Signup friction, credential management, rate limits, documentation quality, sandbox availability |
 
-**Tiers:**
-- **L4 Native** (8.0–10.0) — Built for agents
-- **L3 Ready** (6.0–7.9) — Works reliably with minor friction
-- **L2 Developing** (4.0–5.9) — Usable with workarounds
-- **L1 Emerging** (0.0–3.9) — Significant barriers to agent use
+**Tiers**
+- **L4 Native** (8.0–10.0) — built for agents
+- **L3 Ready** (6.0–7.9) — reliable with minor friction
+- **L2 Developing** (4.0–5.9) — usable with workarounds
+- **L1 Emerging** (0.0–3.9) — significant barriers to agent use
 
 Full methodology: [rhumb.dev/methodology](https://rhumb.dev/methodology)
 
-## REST API
+## Core API surfaces
 
-Base URL: `https://rhumb-api-production-f173.up.railway.app/v1`
+Base URL: `https://api.rhumb.dev/v1`
 
-| Endpoint | Description |
-|----------|-------------|
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /services/{slug}/score` | Score breakdown for a service |
+| `GET /services/{slug}` | Service profile, alternatives, and metadata |
+| `GET /services/{slug}/failures` | Known failure modes |
+| `GET /search?q=...` | Search services |
+| `GET /leaderboard/{category}` | Browse ranked category pages |
 | `GET /capabilities` | Browse capability registry |
 | `GET /capabilities/{id}/resolve` | Ranked providers for a capability |
 | `POST /capabilities/{id}/execute` | Execute a capability |
-| `GET /capabilities/{id}/execute/estimate` | Cost estimate |
-| `GET /capabilities/rhumb-managed` | Zero-config managed capabilities |
-| `GET /services/ceremonies` | All credential ceremony guides |
-| `GET /services/{slug}/ceremony` | Ceremony steps for a specific service |
-| `GET/PUT /agent/budget` | Budget management |
-| `GET/PUT /agent/routing-strategy` | Routing strategy |
-| `GET /agent/spend` | Spend breakdown |
-| `GET /services/{slug}` | Service details + score |
-| `GET /search?q=...` | Service search |
+| `GET /capabilities/{id}/execute/estimate` | Estimate cost before execution |
+| `GET /pricing` | Canonical machine-readable pricing contract |
 
-## Project Structure
+## Repo structure
 
-```
+```text
 rhumb/
 ├── packages/
-│   ├── web/      # Astro 6.0 frontend (rhumb.dev)
-│   ├── mcp/      # MCP server (npx rhumb-mcp)
-│   ├── api/      # FastAPI on Railway (Supabase REST)
-│   ├── cli/      # CLI tools
-│   └── shared/   # Shared types and constants
-├── scripts/      # Scoring and verification scripts
-└── artifacts/    # Dataset and score artifacts
+│   ├── api/         # Railway-hosted API
+│   ├── astro-web/   # Public website (rhumb.dev)
+│   ├── mcp/         # MCP server (npx rhumb-mcp)
+│   ├── cli/         # CLI tooling
+│   └── shared/      # Shared types/constants
+├── scripts/         # Scoring + verification scripts
+└── artifacts/       # Datasets and score artifacts
 ```
 
 ## Development
 
-**Node:** use Node 24 for the Astro site and Vercel-aligned local builds (`nvm use` from the repo root reads `.nvmrc`).
+**Node:** use Node 24 for the Astro/Vercel-aligned web surface (`nvm use` from repo root reads `.nvmrc`).
 
 ```bash
 # API
@@ -126,29 +135,26 @@ cd packages/api && pip install -r requirements.txt && uvicorn app:app --reload
 cd packages/mcp && npm ci && npm run dev
 
 # Web
-cd packages/web && npm ci && npm run dev
-
-# Tests
-cd packages/api && python -m pytest        # 80+ API tests
-cd packages/mcp && npm test                 # 66 MCP tests
+cd packages/astro-web && npm ci && npm run dev
 ```
 
-## Score Disputes
+## Score disputes
 
 Every score is disputable. If you believe a score is inaccurate:
 
-1. **GitHub Issue:** [Open an issue](https://github.com/supertrained/rhumb/issues/new) with evidence
-2. **Email:** [providers@supertrained.ai](mailto:providers@supertrained.ai)
+1. Open a [GitHub issue](https://github.com/supertrained/rhumb/issues/new) with evidence
+2. Or email [providers@supertrained.ai](mailto:providers@supertrained.ai)
 
-All disputes are reviewed and outcomes are public.
+Negative findings remain visible. If Rhumb ever becomes pay-to-rank, it stops being useful.
 
 ## Links
 
 - **Website:** [rhumb.dev](https://rhumb.dev)
-- **About:** [rhumb.dev/about](https://rhumb.dev/about)
+- **Quickstart:** [rhumb.dev/quickstart](https://rhumb.dev/quickstart)
+- **Pricing:** [rhumb.dev/pricing](https://rhumb.dev/pricing)
 - **Trust:** [rhumb.dev/trust](https://rhumb.dev/trust)
 - **Blog:** [rhumb.dev/blog](https://rhumb.dev/blog)
-- **Twitter:** [@pedrorhumb](https://x.com/pedrorhumb)
+- **X / Twitter:** [@pedrorhumb](https://x.com/pedrorhumb)
 
 ## License
 
