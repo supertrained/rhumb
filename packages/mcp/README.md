@@ -1,88 +1,136 @@
 # Rhumb MCP Server
 
-Agent-native tool discovery via the [Model Context Protocol](https://modelcontextprotocol.io/).
+**Agent-native tool intelligence for the Model Context Protocol.**
 
-## Overview
+Rhumb helps agents discover, compare, route, and execute external tools with visible failure modes, budget controls, and multiple credential paths.
 
-The Rhumb MCP server exposes tool discovery and scoring as MCP tools that any agent framework can call. Agents register the server once and get inline access to:
+- Website: https://rhumb.dev
+- Quickstart: https://rhumb.dev/quickstart
+- Pricing: https://rhumb.dev/pricing
+- Trust: https://rhumb.dev/trust
+- Repo: https://github.com/supertrained/rhumb
 
-- **`find_tools`** — Semantic search for agent tools, ranked by AN Score
-- **`get_score`** — Detailed AN Score breakdown for a service
-- **`get_alternatives`** — Related services ranked by score
-- **`get_failure_modes`** — Known failure patterns for a service
+## What it gives you
 
-## Quick Start
+`rhumb-mcp@0.7.0` exposes **16 MCP tools** across discovery, scoring, capability routing, execution, credential management, and billing:
+
+- `find_tools`
+- `get_score`
+- `get_alternatives`
+- `get_failure_modes`
+- `discover_capabilities`
+- `resolve_capability`
+- `execute_capability`
+- `estimate_capability`
+- `credential_ceremony`
+- `check_credentials`
+- `budget`
+- `spend`
+- `routing`
+- `check_balance`
+- `get_payment_url`
+- `get_ledger`
+
+With those tools, an agent can:
+- find the best provider for a task
+- inspect scores and failure modes before committing
+- route to the cheapest acceptable provider
+- estimate cost before execution
+- execute through Rhumb with API key, x402 payment, or BYO upstream credentials
+- monitor credits, payments, and spend
+
+## Install
+
+Run directly with `npx`:
 
 ```bash
-# Development
-cd packages/mcp
-npm install
-npx tsx src/index.ts
+npx rhumb-mcp@0.7.0
 ```
+
+## Execution paths
+
+Rhumb currently supports three practical execution paths:
+
+1. **API key** — sign up, get a Rhumb key, send `X-Rhumb-Key`
+2. **x402 / USDC** — no signup, pay per call, send `X-Payment`
+3. **BYO upstream key** — pass your own upstream credentials when the capability supports it
 
 ## Claude Desktop
 
-Get started with Claude Desktop in under 5 minutes:
+Add Rhumb to your Claude Desktop MCP config:
 
-1. Build the server: `cd packages/mcp && npm run build`
-2. Add the server to `claude_desktop_config.json`
-3. Restart Claude Desktop
-
-📖 **Full guide:** [docs/CLAUDE-DEV.md](docs/CLAUDE-DEV.md)
-
-## Integration
-
-For architecture details, tool contracts, handler development, testing patterns, and deployment options:
-
-📖 **[MCP Integration Guide](docs/MCP-INTEGRATION.md)**
-
-### Framework links
-
-- [Anthropic Claude SDK](https://docs.anthropic.com/en/docs/agents-and-tools/mcp)
-- [LangChain MCP Adapters](https://github.com/langchain-ai/langchain-mcp-adapters)
-- [CrewAI](https://docs.crewai.com/)
-- [AutoGen](https://microsoft.github.io/autogen/)
-
-## Testing
-
-The test suite is organized into three layers:
-
-| Layer | Files | What it covers |
-|-------|-------|----------------|
-| **Contract** | `tests/types.contract.test.ts` | JSON Schema validity, TypeScript type compliance |
-| **Unit** | `tests/server.init.test.ts`, `tests/tools/*.test.ts` | Server init, individual handler logic with mock API clients |
-| **E2E** | `tests/e2e.server.test.ts` | Full server instance → tool call → response via MCP protocol |
-
-```bash
-# Run all tests
-npm run test
-
-# Run specific test file
-npx vitest run tests/e2e.server.test.ts
-
-# Run with verbose output
-npx vitest run --reporter=verbose
+```json
+{
+  "mcpServers": {
+    "rhumb": {
+      "command": "npx",
+      "args": ["-y", "rhumb-mcp@0.7.0"]
+    }
+  }
+}
 ```
 
-## Development
+Then restart Claude Desktop.
+
+For broader setup guidance, use:
+- Quickstart: https://rhumb.dev/quickstart
+- Repository docs: https://github.com/supertrained/rhumb/tree/main/packages/mcp/docs
+
+## Common workflows
+
+### 1) Discover tools
+
+> “I need an email provider for agents.”
+
+- `find_tools` to search the landscape
+- `get_score` to inspect a specific provider
+- `get_failure_modes` to see where it breaks in practice
+
+### 2) Route a capability
+
+> “I need `email.send`. What should I use?”
+
+- `resolve_capability` to get ranked providers
+- `estimate_capability` to preview cost
+- `routing` to choose a strategy (`cheapest`, `fastest`, `highest_quality`, `balanced`)
+
+### 3) Execute
+
+> “Send the email with the cheapest provider above my quality floor.”
+
+- `execute_capability` to actually perform the action
+- `budget` / `spend` / `check_balance` / `get_ledger` to control and audit usage
+
+## Local development
 
 ```bash
-# Run tests
-npm run test
+cd packages/mcp
+npm ci
+npm run dev
+```
 
-# Type-check
+## Test and build
+
+```bash
+npm test
 npm run type-check
-
-# Build
 npm run build
 ```
 
-## Architecture
+## Package structure
 
-- `src/index.ts` — Entry point, stdio transport
-- `src/types.ts` — Tool I/O contracts (JSON Schema + TypeScript types)
-- `src/server.ts` — Server initialization + tool registration
-- `src/api-client.ts` — Rhumb API client (DI-compatible interface)
-- `src/tools/` — Tool handler implementations
-- `tests/` — Contract, unit, and end-to-end tests
-- `docs/` — Integration and framework guides
+- `src/index.ts` — stdio entry point
+- `src/server.ts` — MCP server + tool registration
+- `src/api-client.ts` — Rhumb API client
+- `src/tools/` — tool handlers
+- `src/types.ts` — tool schemas and types
+
+## Related surfaces
+
+- API base: `https://api.rhumb.dev/v1`
+- npm package: https://www.npmjs.com/package/rhumb-mcp
+- Product repo: https://github.com/supertrained/rhumb
+
+## License
+
+MIT
