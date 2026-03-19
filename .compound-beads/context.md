@@ -87,4 +87,5 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
   - `/glossary` shipped as the next unblocked trust/activation surface while signup remains OAuth-blocked
   - Adversarial review immediately surfaced a discoverability gap; glossary is now wired into main nav, mobile nav, and trust page
   - Build/runtime alignment hardened for the Astro/Vercel surface: repo now pins Node 24 via `.nvmrc` + package engines
+  - Live verification surfaced two trust-surface bugs and both are now fixed in code: `/quickstart` no longer points REST users at a nonexistent alternatives endpoint, and `/v1/pricing` now has an API-bundled pricing catalog fallback for Docker deploys
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)

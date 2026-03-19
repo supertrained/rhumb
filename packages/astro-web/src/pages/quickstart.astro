@@ -2,7 +2,6 @@
 export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 
-// TODO: Switch to https://api.rhumb.dev/v1 once Railway custom domain binding is confirmed
 const API = "https://api.rhumb.dev/v1";
 ---
 
@@ -91,8 +90,8 @@ print(data["overall_score"])  # 8.1`}</code></pre>
             <pre class="text-xs font-mono text-slate-400 overflow-x-auto"><code>curl "{API}/leaderboard/payments"</code></pre>
           </div>
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
-            <p class="text-sm font-mono text-amber mb-2">Compare alternatives</p>
-            <pre class="text-xs font-mono text-slate-400 overflow-x-auto"><code>curl "{API}/services/stripe/alternatives"</code></pre>
+            <p class="text-sm font-mono text-amber mb-2">Service profile + alternatives</p>
+            <pre class="text-xs font-mono text-slate-400 overflow-x-auto"><code>curl "{API}/services/stripe"</code></pre>
           </div>
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
             <p class="text-sm font-mono text-amber mb-2">Check failure modes</p>
