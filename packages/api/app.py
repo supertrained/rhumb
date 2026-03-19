@@ -17,6 +17,7 @@ from routes import (
     capability_execute,
     leaderboard,
     launch,
+    pricing,
     probes,
     proxy,
     reviews,
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
     application.include_router(reviews.router, prefix="/v1", tags=["reviews"])
     application.include_router(launch.router, prefix="/v1", tags=["launch"])
+    application.include_router(pricing.router, prefix="/v1", tags=["pricing"])
     application.include_router(
         tester_fleet.router, prefix="/v1", tags=["tester-fleet"],
         dependencies=[Depends(require_admin_key)],

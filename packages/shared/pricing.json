@@ -1,0 +1,75 @@
+{
+  "pricing_version": "2026-03-18",
+  "published_at": "2026-03-18",
+  "public_pricing_url": "https://rhumb.dev/pricing",
+  "canonical_api_base_url": "https://api.rhumb.dev/v1",
+  "free_tier": {
+    "included_executions_per_month": 1000,
+    "unit": "executions",
+    "requires_credit_card": false,
+    "applies_to": [
+      "rhumb_managed"
+    ],
+    "notes": [
+      "Read-only discovery endpoints remain public and do not consume the free tier.",
+      "The free tier covers 1000 executions per month before paid Rhumb billing applies."
+    ]
+  },
+  "modes": {
+    "rhumb_managed": {
+      "label": "Rhumb-managed billing",
+      "execution_auth": [
+        "X-Rhumb-Key"
+      ],
+      "payment_settlement": "metered",
+      "pricing_model": "cost_plus_margin",
+      "margin_percent": 20,
+      "margin_bps": 2000,
+      "rhumb_markup": true,
+      "upstream_passthrough": false,
+      "notes": [
+        "Rhumb-managed billing charges upstream cost plus a 20 percent margin.",
+        "Exact per-call estimates are available from the execute estimate endpoint."
+      ]
+    },
+    "x402": {
+      "label": "x402 / USDC",
+      "execution_auth": [
+        "X-Payment"
+      ],
+      "payment_settlement": "per_call_on_chain",
+      "pricing_model": "cost_plus_margin",
+      "margin_percent": 15,
+      "margin_bps": 1500,
+      "rhumb_markup": true,
+      "upstream_passthrough": false,
+      "network": "Base",
+      "token": "USDC",
+      "notes": [
+        "Current public x402 payment support is USDC on Base only.",
+        "Exact payment instructions are returned on HTTP 402 for each execution."
+      ]
+    },
+    "byok": {
+      "label": "Bring your own key",
+      "execution_auth": [
+        "provider credential"
+      ],
+      "payment_settlement": "direct_to_provider",
+      "pricing_model": "passthrough",
+      "margin_percent": 0,
+      "margin_bps": 0,
+      "rhumb_markup": false,
+      "upstream_passthrough": true,
+      "passthrough_note": "Rhumb adds no markup in BYOK mode. Provider charges bill directly to your provider account.",
+      "notes": [
+        "BYOK keeps billing with the upstream provider.",
+        "Rhumb does not add a markup to BYOK usage."
+      ]
+    }
+  },
+  "notes": [
+    "Volume discount tiers are not final and are intentionally omitted from this pricing contract.",
+    "Token expansion beyond USDC is not final. Current public x402 support is USDC on Base only."
+  ]
+}

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getServices, getCategories } from '../lib/api';
+import pricing from "../../../shared/pricing.json";
 
 export const GET: APIRoute = async () => {
   const [services, categories] = await Promise.all([
@@ -47,11 +48,18 @@ MCP tools available:
 ${apiBase}
 
 ## API Endpoints
+- GET ${apiBase}/pricing - machine-readable public pricing contract
 - GET ${apiBase}/services — list scored services
 - GET ${apiBase}/services/{slug}/score — detailed score breakdown
 - GET ${apiBase}/services/{slug}/failures — active failure modes
 - GET ${apiBase}/leaderboard/{category} — ranked services by category
 - GET ${apiBase}/search?q={query} — semantic search
+
+## Pricing
+- Free tier: ${pricing.free_tier.included_executions_per_month} executions per month
+- Rhumb-managed billing: upstream cost + ${pricing.modes.rhumb_managed.margin_percent} percent
+- x402: ${pricing.modes.x402.token} on ${pricing.modes.x402.network}, upstream cost + ${pricing.modes.x402.margin_percent} percent
+- BYOK: no Rhumb markup, provider charges pass through directly
 
 ## Categories
 ${categoryList}

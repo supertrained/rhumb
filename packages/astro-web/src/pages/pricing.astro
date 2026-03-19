@@ -1,13 +1,20 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import pricing from "../../../shared/pricing.json";
+
+const managed = pricing.modes.rhumb_managed;
+const x402 = pricing.modes.x402;
+const byok = pricing.modes.byok;
+const pricingEndpoint = `${pricing.canonical_api_base_url}/pricing`;
+const estimateEndpoint = `${pricing.canonical_api_base_url}/capabilities/{capability_id}/execute/estimate`;
 
 const PRICING_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "WebPage",
-  name: "Pricing & How to Pay — Rhumb",
-  url: "https://rhumb.dev/pricing",
+  name: "Pricing - Rhumb",
+  url: pricing.public_pricing_url,
   description:
-    "Rhumb charges cost + 20%. No subscriptions, no tiers. Pay with Stripe credits or USDC on Base via x402. Agent-native payment instructions included.",
+    "Public pricing contract for Rhumb. Free tier: 1000 executions per month. Managed billing adds 20 percent, x402 adds 15 percent, and BYOK has no Rhumb markup.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -17,492 +24,146 @@ const PRICING_JSON_LD = {
 ---
 
 <Layout
-  title="Pricing & How to Pay"
-  description="Rhumb charges cost + 20%. No subscriptions, no tiers. Pay with Stripe credits or USDC on Base via x402. Agent-native payment instructions included."
+  title="Pricing"
+  description="Current Rhumb pricing contract: 1000 free executions per month, 20 percent managed margin, 15 percent x402 margin, and BYOK passthrough with no Rhumb markup."
   canonical="/pricing"
-  ogTitle="Pricing & How to Pay — Rhumb"
-  ogDescription="Transparent usage-based pricing. Pay with prepaid credits or on-chain USDC. Instructions for both humans and agents."
+  ogTitle="Pricing - Rhumb"
+  ogDescription="Machine-readable Rhumb pricing. Managed billing, x402 on Base, and BYOK passthrough."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
-    <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">
-      <!-- Header -->
-      <header class="mb-16">
-        <div class="flex items-center gap-3 mb-4">
-          <span
-            class="text-xs font-mono font-semibold text-amber uppercase tracking-widest"
-          >
-            Pricing
-          </span>
-        </div>
-        <h1
-          class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6"
-        >
-          Cost + 20%. That's it.
+    <div class="max-w-5xl mx-auto px-6 py-16">
+      <header class="max-w-3xl">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          Three execution modes.
+          <span class="block text-slate-400 mt-2">One public pricing contract.</span>
         </h1>
-        <p class="text-lg text-slate-400 leading-relaxed">
-          No subscriptions. No tiers. No monthly fees. You pay for what you use
-          — upstream provider cost plus a transparent 20% markup.
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Rhumb pricing depends on how execution is authorized. The canonical machine-readable source
+          is <code class="font-mono text-sm bg-surface px-2 py-1 rounded text-amber">{pricingEndpoint}</code>.
         </p>
       </header>
 
-      <!-- Payment rails are live as of 2026-03-17 -->
-
-      <!-- Section 1: Pricing Model -->
-      <section class="mb-16">
-        <h2
-          class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight"
-        >
-          Pricing model
-        </h2>
-
-        <div class="bg-surface border border-slate-800 rounded-xl p-6 mb-6">
-          <div class="grid gap-6 sm:grid-cols-2">
+      <section class="mt-12">
+        <div class="bg-surface border border-amber/20 rounded-2xl p-6 sm:p-8">
+          <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-3">Free Tier</p>
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3
-                class="font-display font-semibold text-lg text-slate-100 mb-3"
-              >
-                How it works
-              </h3>
-              <ul class="space-y-2.5 text-sm text-slate-400">
-                <li class="flex items-start gap-2.5">
-                  <span class="text-amber mt-0.5 text-xs">✓</span>
-                  <span
-                    >Rhumb charges <strong class="text-slate-200"
-                      >upstream cost + 20%</strong
-                    ></span
-                  >
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="text-amber mt-0.5 text-xs">✓</span>
-                  <span>No subscriptions, no tiers, no monthly fees</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="text-amber mt-0.5 text-xs">✓</span>
-                  <span>Pay only for what you use</span>
-                </li>
-                <li class="flex items-start gap-2.5">
-                  <span class="text-amber mt-0.5 text-xs">✓</span>
-                  <span
-                    >Minimum top-up: <strong class="text-slate-200">$5</strong
-                    ></span
-                  >
-                </li>
-              </ul>
-            </div>
-
-            <div class="bg-elevated border border-slate-700 rounded-lg p-5">
-              <span
-                class="text-[10px] font-mono text-slate-500 uppercase tracking-wider"
-              >
-                Example
-              </span>
-              <div class="mt-3 space-y-2 font-mono text-sm">
-                <div class="flex justify-between">
-                  <span class="text-slate-400">Upstream cost</span>
-                  <span class="text-slate-200">$0.0010</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-400">Rhumb markup (20%)</span>
-                  <span class="text-slate-200">$0.0002</span>
-                </div>
-                <div
-                  class="border-t border-slate-700 pt-2 flex justify-between"
-                >
-                  <span class="text-amber font-semibold">You pay</span>
-                  <span class="text-amber font-semibold">$0.0012</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-elevated border border-amber/20 rounded-xl p-5">
-          <div class="flex items-start gap-3">
-            <span class="text-amber text-lg">💡</span>
-            <div class="text-slate-400 text-sm leading-relaxed">
-              <strong class="text-slate-200"
-                >Check costs before execution.</strong
-              > Use the <code
-                class="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber"
-                >estimate_capability</code
-              > MCP tool or the REST API to see exactly what a capability will cost
-              before you run it.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 1b: Scores Are Free -->
-      <section class="mb-16">
-        <div
-          class="bg-surface border border-slate-800 rounded-xl p-8 max-w-3xl"
-        >
-          <h2
-            class="font-display font-bold text-xl text-slate-100 mb-4"
-          >
-            Scores are free. Forever.
-          </h2>
-          <div class="space-y-3 text-slate-400 text-sm leading-relaxed">
-            <p>
-              AN Scores, leaderboards, failure modes, guides, the MCP server,
-              and the REST API for reading scores — all free, no auth required.
-              You only pay when you <strong class="text-slate-200">execute capabilities</strong> through Rhumb
-              (sending emails, calling APIs, running tools through our proxy).
-            </p>
-            <p>
-              We do not sell data. We do not accept payment for scores. Neutrality
-              is our product — the moment we compromise it, we have nothing.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 2: How to Pay (Humans) -->
-      <section class="mb-16">
-        <h2
-          class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight"
-        >
-          How to pay <span class="text-slate-600 font-normal text-sm"
-            >for humans</span
-          >
-        </h2>
-
-        <div
-          class="bg-surface border border-slate-800 rounded-xl overflow-hidden mb-6"
-        >
-          <div class="p-5 border-b border-slate-800">
-            <div class="flex items-center gap-3 mb-2">
-              <span
-                class="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded"
-              >
-                Stripe
-              </span>
-              <span class="font-display font-semibold text-slate-200">
-                Prepaid Credits
-              </span>
-            </div>
-            <p class="text-slate-400 text-sm">
-              Top up your org's credit wallet via Stripe checkout. Credits are
-              deducted per-execution.
-            </p>
-          </div>
-
-          <div class="p-5">
-            <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <span
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center font-mono text-xs font-bold text-amber"
-                  >1</span
-                >
-                <div>
-                  <h4
-                    class="font-display font-semibold text-sm text-slate-200"
-                  >
-                    Get your API key
-                  </h4>
-                  <p class="text-slate-400 text-sm mt-0.5">
-                    Create an org and generate an API key from the dashboard.
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-start gap-4">
-                <span
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center font-mono text-xs font-bold text-amber"
-                  >2</span
-                >
-                <div>
-                  <h4
-                    class="font-display font-semibold text-sm text-slate-200"
-                  >
-                    Create a checkout session
-                  </h4>
-                  <p class="text-slate-400 text-sm mt-0.5">
-                    <code class="font-mono text-xs text-amber"
-                      >POST /v1/billing/checkout</code
-                    > with your desired amount (min $5).
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-start gap-4">
-                <span
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center font-mono text-xs font-bold text-amber"
-                  >3</span
-                >
-                <div>
-                  <h4
-                    class="font-display font-semibold text-sm text-slate-200"
-                  >
-                    Pay via Stripe
-                  </h4>
-                  <p class="text-slate-400 text-sm mt-0.5">
-                    Follow the checkout URL. Card, Apple Pay, Google Pay
-                    accepted.
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-start gap-4">
-                <span
-                  class="flex-shrink-0 w-7 h-7 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center font-mono text-xs font-bold text-amber"
-                  >4</span
-                >
-                <div>
-                  <h4
-                    class="font-display font-semibold text-sm text-slate-200"
-                  >
-                    Credits added
-                  </h4>
-                  <p class="text-slate-400 text-sm mt-0.5">
-                    Balance updates instantly. Your agents can start spending.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="bg-surface border border-slate-800 rounded-lg p-5">
-            <h4
-              class="font-mono text-sm font-semibold text-slate-200 mb-2"
-            >
-              Auto-reload
-            </h4>
-            <p class="text-slate-400 text-sm leading-relaxed">
-              Set a balance threshold. When credits drop below it, Rhumb
-              automatically tops up via your saved payment method. Never let
-              your agents run dry.
-            </p>
-          </div>
-          <div class="bg-surface border border-slate-800 rounded-lg p-5">
-            <h4
-              class="font-mono text-sm font-semibold text-slate-200 mb-2"
-            >
-              Check balance
-            </h4>
-            <div class="bg-elevated rounded-md p-3 mt-2">
-              <pre
-                class="text-sm font-mono text-slate-300 overflow-x-auto"
-              ><code>GET /v1/billing/balance
-Headers: X-Rhumb-Key: &lt;your-key&gt;</code></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 3: How to Pay (Agents) -->
-      <section class="mb-16">
-        <h2
-          class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight"
-        >
-          How to pay <span class="text-amber font-normal text-sm"
-            >for agents</span
-          >
-        </h2>
-        <p class="text-slate-400 leading-relaxed mb-8">
-          If you're an agent reading this page, the following instructions are
-          for you. Pick the option that matches your setup.
-        </p>
-
-        <!-- Option A: Pre-funded credits -->
-        <div
-          class="bg-surface border border-slate-800 rounded-xl overflow-hidden mb-6"
-        >
-          <div class="p-5 border-b border-slate-800">
-            <div class="flex items-center gap-3 mb-2">
-              <span
-                class="font-mono text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded"
-              >
-                Option A
-              </span>
-              <span class="font-display font-semibold text-slate-200">
-                Pre-funded Credits
-              </span>
-            </div>
-            <p class="text-slate-400 text-sm">
-              Your org has a credit balance. Spend from it.
-            </p>
-          </div>
-
-          <div class="p-5 bg-elevated">
-            <pre
-              class="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed"
-            ><code># 1. Check your balance
-GET /v1/billing/balance
-Headers: X-Rhumb-Key: &lt;your-key&gt;
-
-# 2. If balance is sufficient, execute normally
-POST /v1/capabilities/&#123;id&#125;/execute
-Headers: X-Rhumb-Key: &lt;your-key&gt;
-
-# 3. If you get HTTP 402, check the response body
-#    for payment options (see Option B below)</code></pre>
-          </div>
-        </div>
-
-        <!-- Option B: x402 Protocol -->
-        <div
-          class="bg-surface border border-amber/20 rounded-xl overflow-hidden mb-6"
-        >
-          <div class="p-5 border-b border-amber/20">
-            <div class="flex items-center gap-3 mb-2">
-              <span
-                class="font-mono text-xs font-bold text-amber bg-amber/10 px-2 py-0.5 rounded"
-              >
-                Option B
-              </span>
-              <span class="font-display font-semibold text-slate-200">
-                x402 Protocol — USDC on Base
-              </span>
-            </div>
-            <p class="text-slate-400 text-sm">
-              Pay on-chain per-request. No pre-funding needed.
-            </p>
-          </div>
-
-          <div class="p-5 bg-elevated">
-            <pre
-              class="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed"
-            ><code># 1. Call execute. If insufficient credits, you get HTTP 402:
-&#123;
-  "x402Version": 1,
-  "accepts": [
-    &#123;
-      "scheme": "exact",
-      "network": "base-sepolia",
-      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-      "payTo": "&lt;address&gt;",
-      "maxAmountRequired": "&lt;amount-in-wei&gt;"
-    &#125;
-  ]
-&#125;
-
-# 2. Send USDC to the address in the 402 response
-
-# 3. Retry the same request with the payment proof:
-POST /v1/capabilities/&#123;id&#125;/execute
-Headers:
-  X-Rhumb-Key: &lt;your-key&gt;
-  X-Payment: &#123;"tx_hash": "0x...", "network": "base-sepolia"&#125;
-
-# 4. Rhumb verifies the on-chain transfer and executes</code></pre>
-          </div>
-        </div>
-
-        <!-- Option C: MCP Tools -->
-        <div
-          class="bg-surface border border-slate-800 rounded-xl overflow-hidden"
-        >
-          <div class="p-5 border-b border-slate-800">
-            <div class="flex items-center gap-3 mb-2">
-              <span
-                class="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded"
-              >
-                Option C
-              </span>
-              <span class="font-display font-semibold text-slate-200">
-                MCP Tools
-              </span>
-            </div>
-            <p class="text-slate-400 text-sm">
-              If you have the Rhumb MCP server installed, use these tools
-              directly.
-            </p>
-          </div>
-
-          <div class="p-5 bg-elevated">
-            <pre
-              class="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed"
-            ><code># Check your budget
-rhumb budget
-
-# Estimate cost before execution
-rhumb estimate_capability --capability_id email.send
-
-# Execute (uses credits or returns 402 with payment instructions)
-rhumb execute_capability --capability_id email.send --body &#123;...&#125;</code></pre>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 4: Agent-Native Metadata -->
-      <section class="bg-surface border border-amber/20 rounded-xl p-8">
-        <div class="flex items-center gap-3 mb-4">
-          <span
-            class="text-xs font-mono font-semibold text-amber uppercase tracking-widest"
-          >
-            Agent Metadata
-          </span>
-        </div>
-        <h2 class="font-display font-bold text-xl text-slate-100 mb-4">
-          For agents reading this page
-        </h2>
-        <p class="text-slate-400 text-sm leading-relaxed mb-6">
-          This page is designed to be read by both humans and agents. If you're
-          an agent, the code blocks above are your integration guide.
-        </p>
-
-        <div class="space-y-3">
-          <div
-            class="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3"
-          >
-            <span class="text-amber mt-0.5 text-xs">→</span>
-            <div>
-              <strong class="text-slate-200 text-sm">llms.txt</strong>
-              <p class="text-slate-400 text-sm mt-0.5">
-                Machine-readable discovery: <a
-                  href="/llms.txt"
-                  class="text-amber hover:underline underline-offset-2 font-mono text-xs"
-                  >rhumb.dev/llms.txt</a
-                >
+              <p class="font-display text-4xl sm:text-5xl text-slate-100 font-bold">
+                {pricing.free_tier.included_executions_per_month.toLocaleString()}
               </p>
+              <p class="text-slate-300 mt-2">executions per month before paid Rhumb billing applies</p>
             </div>
+            <p class="text-sm text-slate-400 max-w-md">
+              No credit card required for the free tier. Read-only discovery endpoints remain public and do not
+              consume it.
+            </p>
           </div>
+        </div>
+      </section>
 
-          <div
-            class="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3"
-          >
-            <span class="text-amber mt-0.5 text-xs">→</span>
-            <div>
-              <strong class="text-slate-200 text-sm">API Documentation</strong>
-              <p class="text-slate-400 text-sm mt-0.5">
-                Full REST API reference: <a
-                  href="/docs"
-                  class="text-amber hover:underline underline-offset-2 font-mono text-xs"
-                  >rhumb.dev/docs</a
-                >
-              </p>
+      <section class="mt-10 grid gap-6 lg:grid-cols-3">
+        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-display text-xl font-semibold text-slate-100">{managed.label}</h2>
+            <span class="text-xs font-mono text-amber bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1">
+              +{managed.margin_percent}%
+            </span>
+          </div>
+          <p class="mt-4 text-sm leading-6 text-slate-400">
+            API-key execution billed by Rhumb. The first {pricing.free_tier.included_executions_per_month.toLocaleString()}
+            {" "}executions each month are free, then Rhumb charges upstream cost plus a {managed.margin_percent} percent margin.
+          </p>
+          <dl class="mt-5 space-y-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Auth</dt>
+              <dd class="text-slate-200 font-mono">{managed.execution_auth[0]}</dd>
             </div>
-          </div>
-
-          <div
-            class="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3"
-          >
-            <span class="text-amber mt-0.5 text-xs">→</span>
-            <div>
-              <strong class="text-slate-200 text-sm">MCP Server</strong>
-              <div class="bg-surface rounded-md p-2.5 mt-2">
-                <code class="font-mono text-sm text-amber"
-                  >npx rhumb-mcp@0.7.0</code
-                >
-              </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Model</dt>
+              <dd class="text-slate-200">Upstream cost + {managed.margin_percent}%</dd>
             </div>
-          </div>
+          </dl>
+        </article>
 
-          <div
-            class="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3"
-          >
-            <span class="text-amber mt-0.5 text-xs">→</span>
-            <div>
-              <strong class="text-slate-200 text-sm">Two payment rails</strong>
-              <p class="text-slate-400 text-sm mt-0.5">
-                Stripe prepaid credits (check balance → spend) or x402 USDC on
-                Base (HTTP 402 → on-chain payment → retry with tx hash).
-              </p>
+        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-display text-xl font-semibold text-slate-100">{x402.label}</h2>
+            <span class="text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">
+              +{x402.margin_percent}%
+            </span>
+          </div>
+          <p class="mt-4 text-sm leading-6 text-slate-400">
+            Zero-signup per-call payment. Rhumb returns exact payment instructions on HTTP 402, and current public
+            support stays on {x402.token} over {x402.network}.
+          </p>
+          <dl class="mt-5 space-y-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Auth</dt>
+              <dd class="text-slate-200 font-mono">{x402.execution_auth[0]}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Network</dt>
+              <dd class="text-slate-200">{x402.network}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Token</dt>
+              <dd class="text-slate-200">{x402.token}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-display text-xl font-semibold text-slate-100">{byok.label}</h2>
+            <span class="text-xs font-mono text-slate-300 bg-slate-800 rounded-full px-2.5 py-1">0% markup</span>
+          </div>
+          <p class="mt-4 text-sm leading-6 text-slate-400">
+            Use your own upstream credentials. Rhumb routes the call, but provider charges stay with your provider
+            account and Rhumb adds no markup.
+          </p>
+          <dl class="mt-5 space-y-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Model</dt>
+              <dd class="text-slate-200">Exact upstream passthrough</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Rhumb markup</dt>
+              <dd class="text-slate-200">{byok.margin_percent}%</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="mt-10 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <h2 class="font-display text-2xl font-bold text-slate-100">For agents</h2>
+          <p class="mt-3 text-slate-400 leading-7">
+            Use the pricing endpoint to resolve the contract, then call the estimate endpoint for exact per-execution
+            numbers before running anything.
+          </p>
+          <div class="mt-5 space-y-4">
+            <div class="bg-elevated rounded-xl border border-slate-800 p-4">
+              <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Contract</p>
+              <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>curl {pricingEndpoint}</code></pre>
+            </div>
+            <div class="bg-elevated rounded-xl border border-slate-800 p-4">
+              <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Estimate</p>
+              <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>curl "{estimateEndpoint}"</code></pre>
             </div>
           </div>
         </div>
+
+        <aside class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <h2 class="font-display text-xl font-semibold text-slate-100">Not in this contract</h2>
+          <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
+            {pricing.notes.map((note) => (
+              <li>{note}</li>
+            ))}
+          </ul>
+        </aside>
       </section>
     </div>
   </div>

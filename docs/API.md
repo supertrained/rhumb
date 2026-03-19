@@ -123,6 +123,43 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `limit` is optional and can be used by clients to cap result count.
 
+## Pricing Endpoint
+
+### `GET /v1/pricing`
+
+Returns Rhumb's current machine-readable public pricing contract.
+
+**Response body**
+
+```json
+{
+  "data": {
+    "pricing_version": "2026-03-18",
+    "canonical_api_base_url": "https://api.rhumb.dev/v1",
+    "free_tier": {
+      "included_executions_per_month": 1000
+    },
+    "modes": {
+      "rhumb_managed": {
+        "margin_percent": 20
+      },
+      "x402": {
+        "margin_percent": 15,
+        "network": "Base",
+        "token": "USDC"
+      },
+      "byok": {
+        "upstream_passthrough": true,
+        "margin_percent": 0
+      }
+    }
+  },
+  "error": null
+}
+```
+
+The pricing contract intentionally omits unfinished volume-discount tiers.
+
 ## Probe Endpoints
 
 ### `POST /v1/probes/run`
