@@ -15,7 +15,7 @@ export const GET: APIRoute = async () => {
     .map((s) => `- /service/${s.slug} — ${s.description ?? s.name} [${s.category}]`)
     .join("\n");
 
-  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://rhumb-api-production-f173.up.railway.app/v1";
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
 
   const content = `# Rhumb — Agent-Native Tool Intelligence
 > https://rhumb.dev
