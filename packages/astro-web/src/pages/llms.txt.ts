@@ -110,6 +110,7 @@ the specific friction of a tool before integrating.
 
 ## Getting Started
 - https://rhumb.dev/blog/getting-started-mcp — Install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
+- https://rhumb.dev/blog/securing-keys-for-agents — How to secure API keys for agent use: three credential modes (BYOK, managed, x402), storage hierarchy, honest threat modeling
 - MCP tools reference with examples for all 16 tools
 - Three credential modes: BYO, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute

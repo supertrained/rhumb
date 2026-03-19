@@ -1,0 +1,257 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How to Secure Your API Keys for Agent Use",
+  datePublished: "2026-03-18T00:00:00Z",
+  dateModified: "2026-03-18T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and what to avoid. Three credential modes explained.",
+  url: "https://rhumb.dev/blog/securing-keys-for-agents",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+function markdownToHtml(md: string): string {
+  let html = md;
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split('\n').map(r => r.replace(/^\||\|$/g, '').split('|').map(c => c.trim()));
+    if (rows.length < 2) return block;
+    const header = rows[0];
+    const dataRows = rows.slice(2);
+    let table = '<div class="overflow-x-auto my-6"><table class="w-full text-sm"><thead><tr>';
+    header.forEach(h => { table += `<th class="text-left py-2 px-3 border-b border-slate-700 text-slate-300 font-mono">${h}</th>`; });
+    table += '</tr></thead><tbody>';
+    dataRows.forEach(row => {
+      table += '<tr>';
+      row.forEach(cell => { table += `<td class="py-2 px-3 border-b border-slate-800 text-slate-400">${cell}</td>`; });
+      table += '</tr>';
+    });
+    table += '</tbody></table></div>';
+    return table;
+  });
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-lg text-slate-200 mt-10 mb-3">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-bold text-xl text-slate-100 mt-12 mb-4">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-14 mb-5">$1</h2>');
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-elevated px-1.5 py-0.5 rounded text-amber text-sm font-mono">$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em class="text-slate-300">$1</em>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber hover:underline">$1</a>');
+  html = html.replace(/^- (.+)$/gm, '<li class="text-slate-400 ml-4 pl-2 py-0.5">$1</li>');
+  html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul class="list-disc my-4 space-y-1">$1</ul>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li class="text-slate-400 ml-4 pl-2 py-0.5" value="$1">$2</li>');
+  html = html.replace(/^(?!<[a-z/])(.+)$/gm, (match) => {
+    if (match.startsWith('<')) return match;
+    return `<p class="text-slate-400 leading-relaxed my-4">${match}</p>`;
+  });
+  return html;
+}
+
+const CONTENT = `## The problem
+
+Your agent needs API keys to do useful work. Send an email through Resend, charge a card through Stripe, create a ticket in Linear — every capability requires a credential.
+
+The default behavior is terrifying: paste the key into a config file, hope nobody reads it.
+
+Most credential advice is written for human developers deploying web apps. Agents are different. They run unattended, make autonomous decisions about which keys to use, and often operate across multiple services in a single workflow. The attack surface is wider and the human oversight is narrower.
+
+This guide covers what actually works.
+
+## Three credential modes
+
+There's no single right answer. The right approach depends on how much you trust the infrastructure and how much operational control you want.
+
+### Mode 1: Bring Your Own Key (BYOK)
+
+You pass your existing API key to the tool or agent framework. The key stays under your control.
+
+\`\`\`bash
+# Environment variable (recommended for servers/CI)
+export STRIPE_API_KEY=sk_live_...
+
+# MCP server config (Claude Desktop example)
+{
+  "mcpServers": {
+    "rhumb": {
+      "command": "npx",
+      "args": ["rhumb-mcp"],
+      "env": {
+        "RHUMB_API_KEY": "rhumb_live_..."
+      }
+    }
+  }
+}
+\`\`\`
+
+**When to use it:** You already have accounts with the services you need. You want full control over credentials and billing. You're comfortable managing key rotation.
+
+**Security posture:** The key is only as safe as where you store it. OS keychain > environment variable > config file > hardcoded string.
+
+### Mode 2: Managed capabilities
+
+Rhumb holds the service credential and delivers the capability. You never touch the underlying API key.
+
+\`\`\`bash
+# You call Rhumb. Rhumb calls the service.
+curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
+  -H "X-Rhumb-Key: rhumb_live_..." \\
+  -d '{"to": "user@example.com", "subject": "Hello"}'
+\`\`\`
+
+**When to use it:** You don't want to manage individual service accounts. You want Rhumb to handle authentication, rate limits, and failover. You're okay with Rhumb's 20% markup on upstream cost.
+
+**Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
+
+### Mode 3: x402 anonymous payment
+
+No account. No key. The on-chain payment is the authentication.
+
+\`\`\`bash
+# First call: get payment instructions
+curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute
+# Returns 402 with USDC payment details
+
+# After paying on-chain:
+curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
+  -H "X-Payment: {tx_hash, network: base}"
+\`\`\`
+
+**When to use it:** Your agent has a crypto wallet. You want zero-signup, zero-credential execution. You're building autonomous agents that need to operate without human provisioning.
+
+**Security posture:** No credential to steal. The wallet's private key is the only secret, and it stays on the agent's machine. Replay protection via unique transaction hashes.
+
+## Credential storage hierarchy
+
+Not all storage is equal. Here's the ranking from most to least secure:
+
+| Storage | Security | When to use |
+|---------|----------|-------------|
+| OS keychain (macOS Keychain, Windows Credential Manager) | ★★★★★ | Desktop agents, local development |
+| Secret manager (1Password, HashiCorp Vault, AWS Secrets Manager) | ★★★★★ | Teams, production, enterprise |
+| Environment variables | ★★★★ | Servers, CI/CD, containers |
+| Encrypted config file | ★★★ | Offline agents, air-gapped systems |
+| Plaintext config file | ★★ | Last resort. Temporary only. |
+| Hardcoded in source | ★ | Never. Not even in private repos. |
+
+### OS keychain example (macOS)
+
+\`\`\`bash
+# Store
+security add-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w "rhumb_live_..."
+
+# Retrieve at runtime
+RHUMB_API_KEY=$(security find-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w)
+\`\`\`
+
+### Environment variable example (Docker)
+
+\`\`\`dockerfile
+# Don't bake keys into images. Pass at runtime.
+docker run -e RHUMB_API_KEY=rhumb_live_... my-agent
+\`\`\`
+
+## What we protect against (and what we don't)
+
+Honest security requires honest threat modeling.
+
+**Rhumb protects against:**
+- Credential exposure in logs and prompts — keys are injected at the HTTP layer, never surfaced in agent conversation history
+- Replay attacks on x402 payments — unique transaction hash constraint
+- Rate limit abuse per wallet (x402) or per API key (registered)
+- Accidental credential leakage in tool outputs — response sanitization strips auth headers
+
+**Rhumb does NOT protect against:**
+- A compromised machine — if an attacker has root access, all credentials on that machine are exposed regardless of storage method
+- Malicious agent code — if the agent framework itself is compromised, it can read any credential the agent has access to
+- Social engineering — if someone tricks you into sharing your API key, that's outside Rhumb's control
+
+We don't use phrases like "enterprise-grade security" or "bank-level encryption" because they don't mean anything specific. We tell you exactly what the boundaries are.
+
+## Best practices checklist
+
+1. **Use scoped keys.** If a service offers read-only or capability-scoped API keys, use the narrowest scope that works.
+2. **Rotate regularly.** Set a calendar reminder. Quarterly at minimum.
+3. **Never commit keys to git.** Use \`.env\` files with \`.gitignore\`, or better yet, use a secret manager reference.
+4. **One key per agent.** If you run multiple agents, give each one its own API key. Makes revocation surgical.
+5. **Monitor usage.** Rhumb's API shows per-key execution history. Watch for anomalies.
+6. **Prefer managed or x402 over BYOK** when possible. Fewer credentials to manage = smaller attack surface.
+7. **Use secret references in config, not raw values.** Instead of the key itself, store a reference to where the key lives:
+
+\`\`\`json
+{
+  "rhumb_api_key": "op://Shared/Rhumb/credential"
+}
+\`\`\`
+
+## The bottom line
+
+The safest credential is the one that doesn't exist. x402 payments eliminate credentials entirely. Managed capabilities reduce your credential surface to a single Rhumb API key. BYOK gives you full control when you need it.
+
+Pick the mode that matches your trust model. Store credentials in the highest-security option available. Be specific about what you're protecting against.
+
+Your agents are only as secure as their weakest credential.`;
+
+const rendered = markdownToHtml(CONTENT);
+---
+
+<Layout
+  title="How to Secure Your API Keys for Agent Use — Rhumb"
+  description="A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and three credential modes (BYOK, managed, x402)."
+  canonical="https://rhumb.dev/blog/securing-keys-for-agents"
+  ogTitle="How to Secure Your API Keys for Agent Use"
+  ogDescription="A practical guide to credential security for AI agents. Three credential modes, storage hierarchy, and honest threat modeling."
+  ogUrl="https://rhumb.dev/blog/securing-keys-for-agents"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 py-16">
+      <!-- Header -->
+      <div class="mb-12">
+        <div class="flex items-center gap-3 mb-4 flex-wrap">
+          <span class="px-2.5 py-1 rounded-full text-xs font-mono font-medium border border-score-native/30 text-score-native bg-score-native/10">Guide</span>
+          <span class="text-xs font-mono text-slate-500">Updated March 18, 2026</span>
+          <span class="text-xs font-mono text-slate-500">&middot; 8 min read</span>
+        </div>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          How to Secure Your API Keys for Agent Use
+        </h1>
+        <p class="mt-4 text-lg text-slate-400 leading-relaxed">
+          Three credential modes, a storage hierarchy, and honest threat modeling. No "enterprise-grade" theater.
+        </p>
+      </div>
+
+      <!-- Content -->
+      <div class="prose-rhumb" set:html={rendered} />
+
+      <!-- Footer nav -->
+      <div class="mt-16 pt-8 border-t border-slate-800 flex flex-wrap gap-4">
+        <a
+          href="/blog/how-agents-pay"
+          class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors font-medium"
+        >
+          &larr; How Agents Pay for APIs
+        </a>
+        <a
+          href="/blog/getting-started-mcp"
+          class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors font-medium"
+        >
+          Getting Started with MCP &rarr;
+        </a>
+      </div>
+    </article>
+  </div>
+</Layout>
