@@ -116,6 +116,8 @@ rhumb/
 
 ## Development
 
+**Node:** use Node 24 for the Astro site and Vercel-aligned local builds (`nvm use` from the repo root reads `.nvmrc`).
+
 ```bash
 # API
 cd packages/api && pip install -r requirements.txt && uvicorn app:app --reload

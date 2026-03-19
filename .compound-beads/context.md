@@ -86,4 +86,5 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
   - WU-B5 pricing contract shipped: `GET /v1/pricing` + public `/pricing` page live (commit `ad45d6f`)
   - `/glossary` shipped as the next unblocked trust/activation surface while signup remains OAuth-blocked
   - Adversarial review immediately surfaced a discoverability gap; glossary is now wired into main nav, mobile nav, and trust page
+  - Build/runtime alignment hardened for the Astro/Vercel surface: repo now pins Node 24 via `.nvmrc` + package engines
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)
