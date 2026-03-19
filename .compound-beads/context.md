@@ -89,3 +89,4 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
   - Build/runtime alignment hardened for the Astro/Vercel surface: repo now pins Node 24 via `.nvmrc` + package engines
   - Live verification surfaced two trust-surface bugs and both are now fixed in code: `/quickstart` no longer points REST users at a nonexistent alternatives endpoint, and `/v1/pricing` now has an API-bundled pricing catalog fallback for Docker deploys
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)
+  - Launch-prep advanced while blocked: shipped `docs/LAUNCH-ASSET-PACK-2026-03-19.md` covering Moltbook copy, channel hooks, and operator-vs-agent launch narrative variants
