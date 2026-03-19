@@ -91,4 +91,4 @@ Archived to `memory/archive/compound-beads-rounds-1-21.md`.
   - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)
   - Launch-prep advanced while blocked: shipped `docs/LAUNCH-ASSET-PACK-2026-03-19.md` covering Moltbook copy, channel hooks, and operator-vs-agent launch narrative variants
   - Launch-proof tracker refreshed to current truth: launch copy readiness improved, but social proof remains zero, the lightning audit rerun is now stale, and GitHub public metadata still understates scope (`50+ APIs`)
-  - Focused adversarial review caught a live trust-surface claim bug: `/trust` said runtime-backed coverage was over 20% even though current truth is 15.9%; source wording has been corrected in code to remove the false threshold claim
+  - Focused adversarial review caught a live trust-surface claim bug: `/trust` said runtime-backed coverage was over 20% even though current truth is 15.9%; source wording was corrected and production now serves the non-numeric claim
