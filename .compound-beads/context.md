@@ -1,95 +1,88 @@
 # Compound Beads Context — Rhumb
 
 > Portable memory for Pedro. Read at session start. Update as you work.
+> **Last cleaned:** 2026-03-19. Historical rounds (R1-R21) archived to `memory/archive/compound-beads-rounds-1-21.md`.
 
-## Who I Am
+## Current State
 
-Pedro — operator running Rhumb end-to-end. Product judgment stays with me. Specialists and coding lanes accelerate crisp slices; they do not replace ownership.
+### Product
+- **Site:** https://rhumb.dev — 23 blog posts, 9 comparisons, 4 autopsies, 2 guides, /compare + /autopsy landing pages, /quickstart, /glossary
+- **API:** https://api.rhumb.dev/v1 (canonical) | fallback: https://rhumb-api-production-f173.up.railway.app/v1
+- **MCP:** `npx rhumb-mcp@0.7.0` — x402 payment flow live for agents
+- **Data:** 212 services, 103 capabilities, 30 domains, 249 mappings, 6 bundles
+- **Reviews:** 1054 (168 runtime-backed, 15.9% — below 20%, stats FROZEN)
+- **Payment rails:** Stripe prepaid + x402 USDC both live and verified
+- **3 credential modes:** BYO, Rhumb-managed, Agent Vault — all work E2E
+- **Content formats:** articles (8), comparisons (9), autopsies (4), guides (2)
 
-## What I Know About This Project
+### Launch
+- All 4 hard gates CLEAR (as of 2026-03-14)
+- Launch timing remains **Tom-gated**
+- Lightning-strike launch plan at `docs/LIGHTNING-STRIKE-LAUNCH.md`
 
-- **Project:** Rhumb — infrastructure layer agents use to discover, access, and trust external tools
-- **Tech stack:** FastAPI, Astro 6, Supabase, Railway, Vercel, npm MCP package
-- **Current focus:** live-product audit, public truth-surface integrity, and shipping handoff-ready content from real user/agent friction
-- **Operating mode:** audit-first, ship what the audit proves is missing, keep claims tied to live verification
+### Comparison Series (9 pages, shipped 2026-03-17/18)
+9 pages live, all cross-linked, in nav, in llms.txt:
+1. Payments: Stripe vs Square vs PayPal
+2. Email: Resend vs SendGrid vs Postmark
+3. CRM: HubSpot vs Salesforce vs Pipedrive
+4. Auth: Auth0 vs Clerk vs Firebase Auth
+5. Analytics: PostHog vs Mixpanel vs Amplitude
+6. Databases: Supabase vs PlanetScale vs Neon
+7. Messaging: Twilio vs Vonage vs Plivo
+8. Project Management: Linear vs Jira vs Asana
+9. AI / LLM: Anthropic vs OpenAI vs Google AI
 
-## What Exists Now
+### Autopsy Series (shipped 2026-03-18)
+4 pages live, all cross-linked, in nav, in llms.txt:
+1. HubSpot (4.6) — 6 failure modes
+2. Salesforce (4.8) — 6 failure modes
+3. Twilio (8.0) — strengths + friction model
+4. Shopify (7.8) — GraphQL analysis
 
-| Resource | Purpose |
-|----------|---------|
-| `docs/AUDIT-CONTENT-CJ-AFFILIATES-2026-03-17.md` | repo-level content, customer journey, and affiliate audit |
-| `BACKLOG.md` | prioritized product/growth backlog from live testing |
-| `memory/working/continuation-brief.md` | current operating stack and blockers |
-| `memory/working/tom-todo.md` | only things Pedro needs from Tom |
-| `memory/working/decision-log.md` | active locks / launch gates / policy changes |
-| `docs/PUBLIC-CLAIM-LEDGER.md` | launch-critical truth surface for public claims |
+## Round History (Recent)
 
-### Current Product Truth
-- `rhumb.dev` live
-- Railway API live
-- `rhumb-mcp@0.6.0` live with 16 tools
-- 212 services scored
-- 103 capabilities across 30 domains
-- 249 service mappings, 6 bundles
-- 1054 reviews, 168 runtime-backed (15.9%) — public review stats remain frozen until ratio recovers above 20%
-- Stripe prepaid credits + x402 USDC path operational in production
+### Round 24 (cb-r024) — COMPLETE ✅
+Tool Autopsy Series. 4 pages + landing page + infrastructure in ~26 min.
+Commits: `b1336c6` → `88d527f` → `9bda057` → `02f24e0`.
 
-## Current Round
+### Round 23 (cb-r023) — COMPLETE ✅
+Content sprint: 6 comparison pages + discoverability infrastructure.
 
-- **Display ID:** Round 23
-- **Machine ID:** cb-r023
-- **Type:** growth
-- **Goal:** Convert live audit findings into tighter journey truth surfaces and public content humans can hand to agents
-- **Status:** in_progress
-- **Started:** 2026-03-17T13:40:00-07:00
-- **DRI:** Pedro
+### Round 22 (cb-r022) — COMPLETE ✅
+Payment System Phase 0. 7/7 WUs in ~75 min. 96 tests.
 
-## Modified / Shipped This Round
+### Rounds 1-21 — ALL COMPLETE
+Archived to `memory/archive/compound-beads-rounds-1-21.md`.
 
-- Patched CLI default API base + env override to avoid dead `api.rhumb.dev` DNS path
-- Updated docs examples to match actual `{ data, error }` wrapper behavior
-- Updated `llms.txt`/docs references toward real API host usage
-- Confirmed live search and billing endpoint behavior
-- Added `docs/AUDIT-CONTENT-CJ-AFFILIATES-2026-03-17.md`
-- Shipped first comparison page: `/blog/stripe-vs-square-vs-paypal` (product commit `57fbcee`)
+## Blockers (External)
+- No sign-up / dashboard / API key issuance flow — **#1 activation gap**
+- WU-1.1 (legal for crypto) — Tom-gated
+- WU-1.8-1.9 (mainnet activation) — blocked on legal
+- ~11 API keys for Keel — Tom-gated
+- Pricing mostly confirmed (free tier 1K/mo, x402 15%, managed 20%). Remaining: volume tiers + token expansion.
+- Launch timing — Tom-gated
 
-## Ready Tasks
+### Round 25 — COMPLETE ✅
+- WU-25.1: Getting Started with Rhumb MCP guide — `/blog/getting-started-mcp` live
+- WU-25.2: Messaging comparison (Twilio vs Vonage vs Plivo) — `/blog/twilio-vs-vonage-vs-plivo` live
+- WU-25.3: Project Management comparison (Linear vs Jira vs Asana) — `/blog/linear-vs-jira-vs-asana` live
+- WU-25.4: Content freshness system — dateModified on all pages + cadence plan
 
-- [READY] Close onboarding dead end: define truthful public path for account creation / API key issuance or remove misleading implied flow
-- [READY] Ship second high-signal comparison page (`Resend vs SendGrid vs Postmark`) or tool-autopsy surface
-- [READY] Fix remaining support-truth inconsistencies (`api.rhumb.dev` references still lingering in API/provisioning codepaths; score endpoint wrapper inconsistency)
-- [READY] Verify the comparison page is properly linked/indexed and folded into content distribution surfaces
-
-## Blocked Tasks
-
-- [BLOCKED] Final pricing model expansion (`GET /v1/pricing`, free tier count, volume discounts, x402 margin)
-  └─ Needs: Tom confirmation on model boundaries
-- [BLOCKED] Launch timing / provider outreach
-  └─ Needs: Tom go/no-go
-- [BLOCKED] Keel runtime-backed ratio recovery via additional provider keys
-  └─ Needs: ~11 API keys from Tom
-
-## Discovered Work
-
-- [DISCOVERED] The conversion bottleneck is no longer raw scoring breadth; it is the gap between public interest and self-serve activation.
-- [DISCOVERED] Comparison pages are the highest-leverage human→agent handoff artifact because they compress decision, score context, and routing guidance into a single link.
-- [DISCOVERED] `web_search` instability is a real dogfood signal during pricing-model panel work; search fallbacks need a more reliable operating pattern.
-
-## Open Questions
-
-- [OPEN] What is the truthful public self-serve path before full dashboard/account infrastructure exists?
-- [OPEN] Which next content surface compounds fastest: email-provider comparison or tool-autopsy series?
-- [OPEN] Should `api.rhumb.dev` be restored via DNS/rewrite, or should Railway be the explicit public API host until proxying exists?
-
-## Session Decisions
-
-- **Audit-first over speculative building:** when engineering is unblocked but not urgent, use dead cycles to thoroughly test the live product from multiple personas and ship fixes from evidence.
-- **Truth surfaces outrank polish:** docs/llms/CLI/API parity is launch-critical trust infrastructure, not content garnish.
-- **Comparison pages are product, not marketing:** these are operational artifacts a human can hand directly to an agent.
-
-## Recent Activity
-
-| Date | Round | Activity |
-|------|-------|----------|
-| 2026-03-17 | 23 | Live audit identified trust-surface breakage and onboarding dead ends |
-| 2026-03-17 | 23 | First comparison page shipped live from audit evidence |
+### Round 26 — IN PROGRESS
+- WU-26.1: AI/LLM comparison (Anthropic vs OpenAI vs Google AI) — COMPLETE ✅
+  - `/blog/anthropic-vs-openai-vs-google-ai` live
+- WU-26.2: Expert panels — COMPLETE ✅
+  - Homepage marketing panel + auth/payment architecture panel completed
+  - Key finding: activation > discovery as current bottleneck
+- WU-26.3: Activation MVP Phase A — COMPLETE ✅
+  - Homepage rewrite shipped (hero, blog content section, three-path entry, x402 callout)
+  - Security/BYOK blog shipped
+  - Quickstart shipped
+  - llms.txt + agent-capabilities + JSON-LD shipped
+  - x402 anonymous auth gate + MCP x402 mode shipped
+  - `rhumb-mcp@0.7.0` published
+  - `api.rhumb.dev` custom domain live with TLS
+- WU-26.4: Activation MVP Phase B — IN PROGRESS
+  - WU-B5 pricing contract shipped: `GET /v1/pricing` + public `/pricing` page live (commit `ad45d6f`)
+  - `/glossary` shipped as the next unblocked trust/activation surface while signup remains OAuth-blocked
+  - Remaining: WU-B1 signup flow + WU-B3 dashboard first-run (signup blocked on OAuth credentials)

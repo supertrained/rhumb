@@ -86,6 +86,7 @@ Each service has an evidence tier indicating the depth of evaluation:
 ## Trust & Methodology
 - Full methodology: https://rhumb.dev/methodology
 - Trust policy: https://rhumb.dev/trust
+- Glossary: https://rhumb.dev/glossary
 - About the team: https://rhumb.dev/about
 - Score disputes: providers@supertrained.ai or GitHub issues
 

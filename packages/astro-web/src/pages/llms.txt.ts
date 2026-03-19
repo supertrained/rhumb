@@ -127,6 +127,7 @@ the specific friction of a tool before integrating.
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust
+- Glossary: https://rhumb.dev/glossary
 - About the team: https://rhumb.dev/about
 - Score disputes: https://rhumb.dev/providers or providers@supertrained.ai
 - Extended version: https://rhumb.dev/llms-full.txt

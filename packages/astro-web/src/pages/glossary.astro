@@ -1,0 +1,516 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+type GlossaryLink = {
+  label: string;
+  href: string;
+};
+
+type GlossaryTerm = {
+  id: string;
+  name: string;
+  aliases?: string[];
+  category: string;
+  summary: string;
+  detail: string;
+  whyItMatters: string;
+  related: GlossaryLink[];
+};
+
+const LAST_UPDATED_ISO = "2026-03-18";
+const LAST_UPDATED_LABEL = "March 18, 2026";
+
+const RESOURCE_LINKS = [
+  {
+    label: "Quickstart",
+    href: "/quickstart",
+    desc: "Make the first read call, then move from discovery into execution.",
+  },
+  {
+    label: "Methodology",
+    href: "/methodology",
+    desc: "See how AN Score, dimensions, and evidence fit together.",
+  },
+  {
+    label: "Trust",
+    href: "/trust",
+    desc: "Inspect limitations, evidence claims, and the dispute path.",
+  },
+  {
+    label: "Pricing",
+    href: "/pricing",
+    desc: "Confirm the free tier, managed margin, x402 rail, and BYOK terms.",
+  },
+  {
+    label: "Docs",
+    href: "/docs",
+    desc: "Use the REST API and MCP surfaces programmatically.",
+  },
+  {
+    label: "MCP Guide",
+    href: "/blog/getting-started-mcp",
+    desc: "Connect Rhumb to agent clients through the MCP server.",
+  },
+];
+
+const TERMS: GlossaryTerm[] = [
+  {
+    id: "api",
+    name: "API",
+    aliases: ["Application Programming Interface"],
+    category: "Foundations",
+    summary: "A public interface that lets one piece of software call another over the network.",
+    detail:
+      "When a developer app or agent sends a request to Stripe, Resend, or Rhumb, it is using an API. Rhumb evaluates APIs from the perspective of execution, not dashboard usability.",
+    whyItMatters:
+      "Most of Rhumb's value starts with API selection: which service should an agent call, and what friction or failure risk comes with that choice?",
+    related: [
+      { label: "Docs", href: "/docs" },
+      { label: "REST API", href: "#rest-api" },
+      { label: "Service", href: "#service" },
+    ],
+  },
+  {
+    id: "rest-api",
+    name: "REST API",
+    category: "Foundations",
+    summary: "A common HTTP-based API style using methods like GET, POST, PUT, and DELETE.",
+    detail:
+      "Rhumb's public API at api.rhumb.dev uses REST conventions. That means any language or agent runtime that can make HTTP requests can consume Rhumb without needing a custom SDK.",
+    whyItMatters:
+      "This is the simplest path for direct integration when an agent or developer wants scores, search, leaderboards, or execution endpoints over plain HTTP.",
+    related: [
+      { label: "Docs", href: "/docs" },
+      { label: "Quickstart", href: "/quickstart" },
+      { label: "MCP", href: "#mcp" },
+    ],
+  },
+  {
+    id: "cli",
+    name: "CLI",
+    aliases: ["Command-Line Interface"],
+    category: "Foundations",
+    summary: "A text-based way to run software from a terminal.",
+    detail:
+      "Rhumb uses the CLI mainly as a transport for agent tooling. For example, `npx rhumb-mcp` starts the MCP server without requiring a separate desktop app or browser setup.",
+    whyItMatters:
+      "For many agent environments, CLI execution is the fastest bridge between a host and a tool surface.",
+    related: [
+      { label: "MCP Guide", href: "/blog/getting-started-mcp" },
+      { label: "Docs", href: "/docs" },
+      { label: "MCP", href: "#mcp" },
+    ],
+  },
+  {
+    id: "mcp",
+    name: "MCP",
+    aliases: ["Model Context Protocol"],
+    category: "Foundations",
+    summary: "An open protocol that lets AI agents discover and call external tools through a consistent interface.",
+    detail:
+      "Instead of writing custom code for every provider API, an agent can connect to Rhumb's MCP server and use tools such as service lookup, score retrieval, or capability execution through one protocol boundary.",
+    whyItMatters:
+      "MCP makes Rhumb directly usable inside agent clients and IDEs, not just through handwritten REST integrations.",
+    related: [
+      { label: "MCP Guide", href: "/blog/getting-started-mcp" },
+      { label: "Docs", href: "/docs" },
+      { label: "CLI", href: "#cli" },
+    ],
+  },
+  {
+    id: "primitive",
+    name: "Primitive",
+    category: "Rhumb Model",
+    summary: "A core job category agents repeatedly need, such as payments, email, or storage.",
+    detail:
+      "Primitives are the underlying work domains Rhumb analyzes. They are broader than a single provider and help frame the choice set before narrowing to concrete capabilities or services.",
+    whyItMatters:
+      "Thinking in primitives helps humans and agents start from the job to be done instead of locking onto a provider too early.",
+    related: [
+      { label: "Capability", href: "#capability" },
+      { label: "Leaderboard", href: "#leaderboard" },
+      { label: "Search", href: "/search" },
+    ],
+  },
+  {
+    id: "capability",
+    name: "Capability",
+    category: "Rhumb Model",
+    summary: "A specific action Rhumb can help an agent perform, such as sending an email or creating a payment link.",
+    detail:
+      "A capability is narrower than a primitive and operational enough to route or execute. Multiple services may satisfy the same capability, which lets Rhumb compare options instead of hard-coding a single provider.",
+    whyItMatters:
+      "Capabilities are the bridge between discovery and action: find the job, rank the providers, then execute with the right credential mode.",
+    related: [
+      { label: "Quickstart", href: "/quickstart" },
+      { label: "Docs", href: "/docs" },
+      { label: "Service", href: "#service" },
+    ],
+  },
+  {
+    id: "service",
+    name: "Service",
+    category: "Rhumb Model",
+    summary: "An external product or API provider that Rhumb scores, ranks, or routes to.",
+    detail:
+      "Stripe, Twilio, HubSpot, and Resend are services in Rhumb's model. A service can appear on leaderboards, expose failure modes, and fulfill one or more capabilities.",
+    whyItMatters:
+      "Service-level analysis is where Rhumb turns a broad need into a concrete integration choice.",
+    related: [
+      { label: "Leaderboard", href: "#leaderboard" },
+      { label: "Failure Mode", href: "#failure-mode" },
+      { label: "Methodology", href: "/methodology" },
+    ],
+  },
+  {
+    id: "an-score",
+    name: "AN Score",
+    aliases: ["Agent-Native Score"],
+    category: "Scoring",
+    summary: "Rhumb's score for how well a service works for autonomous AI agents.",
+    detail:
+      "The AN Score combines Execution and Access Readiness into a 0 to 10 rating. It is intended to answer a practical question: how likely is an agent to succeed with this tool without brittle workarounds or human rescue?",
+    whyItMatters:
+      "This is the core ranking signal behind service pages, leaderboards, and many comparison surfaces.",
+    related: [
+      { label: "Methodology", href: "/methodology" },
+      { label: "Dimension", href: "#dimension" },
+      { label: "Evidence Tier", href: "#evidence-tier" },
+    ],
+  },
+  {
+    id: "dimension",
+    name: "Dimension",
+    category: "Scoring",
+    summary: "One measurable factor inside the AN Score, such as schema stability or rate-limit transparency.",
+    detail:
+      "Rhumb breaks agent usability into 20 dimensions across Execution and Access Readiness. A dimension is not a marketing claim; it is a scoring component that rolls into the overall score.",
+    whyItMatters:
+      "Dimensions make the score explainable. They let builders inspect why a service is strong, weak, or risky for agent use.",
+    related: [
+      { label: "Methodology", href: "/methodology" },
+      { label: "AN Score", href: "#an-score" },
+      { label: "Failure Mode", href: "#failure-mode" },
+    ],
+  },
+  {
+    id: "evidence-tier",
+    name: "Evidence Tier",
+    category: "Scoring",
+    summary: "A label for how much validation sits behind a score: Pending, Assessed, Tested, or Verified.",
+    detail:
+      "Evidence tier tells you whether a score is mostly documentation-derived or backed by more direct runtime evidence. It does not replace the score; it qualifies confidence in the score source.",
+    whyItMatters:
+      "For agents making production decisions, provenance matters almost as much as the number itself.",
+    related: [
+      { label: "Trust", href: "/trust" },
+      { label: "Methodology", href: "/methodology" },
+      { label: "Failure Mode", href: "#failure-mode" },
+    ],
+  },
+  {
+    id: "failure-mode",
+    name: "Failure Mode",
+    category: "Scoring",
+    summary: "A concrete way an API can break, mislead, or slow down an agent in practice.",
+    detail:
+      "Examples include missing rate-limit headers, HTML error pages instead of JSON, or auth failures that look like empty data. Rhumb tracks these so an agent or developer can anticipate integration risk before production.",
+    whyItMatters:
+      "A service can look fine in a happy-path demo and still be dangerous for autonomous execution. Failure modes surface that hidden cost.",
+    related: [
+      { label: "Docs", href: "/docs" },
+      { label: "Trust", href: "/trust" },
+      { label: "Service", href: "#service" },
+    ],
+  },
+  {
+    id: "leaderboard",
+    name: "Leaderboard",
+    category: "Scoring",
+    summary: "A ranked list of services in a category, ordered by AN Score and related score breakdowns.",
+    detail:
+      "Leaderboards help humans compare options quickly and help agents narrow a routing set before deeper inspection. They are category-specific, so payments, email, auth, and analytics each get their own decision surface.",
+    whyItMatters:
+      "This is one of Rhumb's fastest paths from question to shortlist.",
+    related: [
+      { label: "Leaderboard Hub", href: "/leaderboard" },
+      { label: "Search", href: "/search" },
+      { label: "AN Score", href: "#an-score" },
+    ],
+  },
+  {
+    id: "execution",
+    name: "Execution",
+    category: "Execution and Billing",
+    summary: "A real action performed through Rhumb, such as sending an email or creating a payment link.",
+    detail:
+      "Execution is different from free discovery. Discovery means reading scores, search results, docs, or leaderboards. Execution means Rhumb is actually routing a task to an upstream provider. Rhumb's public free tier includes 1,000 executions per month.",
+    whyItMatters:
+      "This is the line between browsing intelligence and consuming paid operational infrastructure.",
+    related: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "Quickstart", href: "/quickstart" },
+      { label: "Managed Mode", href: "#managed-mode" },
+    ],
+  },
+  {
+    id: "byok",
+    name: "BYOK",
+    aliases: ["Bring Your Own Key"],
+    category: "Execution and Billing",
+    summary: "A mode where you pass your own upstream API credential through Rhumb.",
+    detail:
+      "In BYOK, Rhumb helps with routing and interface consistency, but the provider account remains yours. Rhumb adds no markup in this mode.",
+    whyItMatters:
+      "BYOK is the control-maximizing option for teams that already have provider accounts and want Rhumb's routing layer without paying Rhumb margin on upstream spend.",
+    related: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "Trust", href: "/trust" },
+      { label: "Managed Mode", href: "#managed-mode" },
+    ],
+  },
+  {
+    id: "managed-mode",
+    name: "Managed Mode",
+    category: "Execution and Billing",
+    summary: "A mode where Rhumb holds the upstream connection so you do not need your own provider account.",
+    detail:
+      "Managed mode is priced as upstream cost plus 20 percent. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
+    whyItMatters:
+      "This is the lowest-friction path from intent to working execution, but it trades that convenience for Rhumb-managed margin.",
+    related: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "Execution", href: "#execution" },
+      { label: "BYOK", href: "#byok" },
+    ],
+  },
+  {
+    id: "x402",
+    name: "x402",
+    category: "Execution and Billing",
+    summary: "A pay-per-call protocol using HTTP 402 payment flows instead of pre-issued API credentials.",
+    detail:
+      "Rhumb's current x402 support uses USDC on Base. Instead of signing up first, an agent receives payment requirements, pays the request, and uses that payment to authorize execution.",
+    whyItMatters:
+      "x402 is the most agent-native path when you want zero-signup access and per-call payment without an account creation step.",
+    related: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "Quickstart", href: "/quickstart" },
+      { label: "USDC", href: "#usdc" },
+    ],
+  },
+  {
+    id: "usdc",
+    name: "USDC",
+    category: "Execution and Billing",
+    summary: "A dollar-denominated stablecoin used on Rhumb's current x402 payment rail.",
+    detail:
+      "On Rhumb, USDC is currently used on the Base network for x402 payments. In practice, that means the unit of payment is crypto-backed infrastructure while the amount is intended to track US dollars.",
+    whyItMatters:
+      "Agents using x402 need to know both the asset and the chain, not just the idea of 'crypto payment.'",
+    related: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "x402", href: "#x402" },
+      { label: "How Agents Pay", href: "/blog/how-agents-pay" },
+    ],
+  },
+];
+
+const CATEGORY_ORDER = ["Foundations", "Rhumb Model", "Scoring", "Execution and Billing"];
+
+const groupedTerms = CATEGORY_ORDER.map((category) => ({
+  category,
+  items: TERMS.filter((term) => term.category === category),
+}));
+
+const GLOSSARY_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "DefinedTermSet",
+  name: "Rhumb Glossary",
+  url: "https://rhumb.dev/glossary",
+  description:
+    "Canonical definitions for Rhumb terminology, scoring language, and execution modes for developers and agents.",
+  dateModified: `${LAST_UPDATED_ISO}T00:00:00Z`,
+  hasDefinedTerm: TERMS.map((term) => ({
+    "@type": "DefinedTerm",
+    name: term.name,
+    url: `https://rhumb.dev/glossary#${term.id}`,
+    description: term.summary,
+    inDefinedTermSet: "https://rhumb.dev/glossary",
+  })),
+};
+---
+
+<Layout
+  title="Glossary"
+  description="Canonical Rhumb definitions for developers and agents: AN Score, evidence tiers, capabilities, x402, BYOK, managed mode, and more."
+  canonical="/glossary"
+  ogTitle="Rhumb Glossary"
+  ogDescription="A public glossary of Rhumb terms, scoring language, and execution modes for humans and agents."
+  ogUrl="https://rhumb.dev/glossary"
+  jsonLd={GLOSSARY_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <div class="max-w-5xl mx-auto px-6 pt-14 pb-24">
+      <header class="max-w-3xl mb-14">
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Glossary
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">Updated {LAST_UPDATED_LABEL}</span>
+        </div>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          Rhumb terms, without the hand-waving
+        </h1>
+        <p class="mt-5 text-lg text-slate-400 leading-relaxed">
+          A public glossary for developers evaluating Rhumb and for agents that need stable definitions,
+          clean anchors, and links into the operational surfaces behind each term.
+        </p>
+      </header>
+
+      <section class="mb-10 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-7">
+          <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight">How to use this page</h2>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div class="bg-elevated border border-slate-800 rounded-xl p-4">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-2">For Humans</p>
+              <p class="text-sm leading-6 text-slate-400">
+                Start with the quick definitions, then follow the related links for pricing, trust, methodology,
+                docs, or execution setup.
+              </p>
+            </div>
+            <div class="bg-elevated border border-slate-800 rounded-xl p-4">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-2">For Agents</p>
+              <p class="text-sm leading-6 text-slate-400">
+                Each term has a stable anchor, short summary, and bounded follow-up links so definitions can resolve
+                into the right public surface without searching the whole site.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <aside class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <h2 class="font-display text-xl font-semibold text-slate-100">Fast path</h2>
+          <ul class="mt-4 space-y-3 text-sm leading-6 text-slate-400">
+            <li>
+              New to Rhumb? Start at <a href="/quickstart" class="text-amber hover:underline underline-offset-2">Quickstart</a>.
+            </li>
+            <li>
+              Evaluating score logic? Read <a href="/methodology" class="text-amber hover:underline underline-offset-2">Methodology</a>.
+            </li>
+            <li>
+              Evaluating trust claims? Read <a href="/trust" class="text-amber hover:underline underline-offset-2">Trust</a>.
+            </li>
+            <li>
+              Choosing credential mode? Check <a href="/pricing" class="text-amber hover:underline underline-offset-2">Pricing</a>.
+            </li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-6">Related surfaces</h2>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {RESOURCE_LINKS.map((resource) => (
+            <a
+              href={resource.href}
+              class="group block bg-surface border border-slate-800 rounded-2xl p-5 hover:border-slate-600 transition-colors"
+            >
+              <p class="text-sm font-medium text-slate-100 group-hover:text-amber transition-colors">
+                {resource.label}
+              </p>
+              <p class="mt-2 text-sm leading-6 text-slate-400">{resource.desc}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-14">
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight">Quick index</h2>
+          <a href="/llms.txt" class="text-sm text-amber hover:underline underline-offset-2">Machine-readable site index</a>
+        </div>
+        <div class="space-y-5">
+          {groupedTerms.map((group) => (
+            <div class="bg-surface border border-slate-800 rounded-2xl p-5">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">{group.category}</p>
+              <div class="flex flex-wrap gap-2">
+                {group.items.map((term) => (
+                  <a
+                    href={`#${term.id}`}
+                    class="rounded-full border border-slate-700 bg-elevated px-3 py-1.5 text-sm text-slate-300 hover:border-amber/40 hover:text-amber transition-colors"
+                  >
+                    {term.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="space-y-10">
+        {groupedTerms.map((group) => (
+          <div>
+            <div class="mb-5">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-2">{group.category}</p>
+              <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight">
+                {group.category}
+              </h2>
+            </div>
+            <div class="space-y-5">
+              {group.items.map((term) => (
+                <article id={term.id} class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6 sm:p-7">
+                  <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h3 class="font-display font-bold text-2xl text-slate-100 tracking-tight">
+                        {term.name}
+                      </h3>
+                      {term.aliases && (
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          {term.aliases.map((alias) => (
+                            <span class="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-mono text-slate-400">
+                              {alias}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <a href={`#${term.id}`} class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500 hover:text-amber transition-colors">
+                      #{term.id}
+                    </a>
+                  </div>
+
+                  <div class="mt-6 space-y-4 text-slate-400 leading-7">
+                    <p>
+                      <strong class="text-slate-100">Definition:</strong> {term.summary}
+                    </p>
+                    <p>
+                      <strong class="text-slate-100">In Rhumb:</strong> {term.detail}
+                    </p>
+                    <p>
+                      <strong class="text-slate-100">Why it matters:</strong> {term.whyItMatters}
+                    </p>
+                  </div>
+
+                  <div class="mt-6 flex flex-wrap gap-2">
+                    {term.related.map((link) => (
+                      <a
+                        href={link.href}
+                        class="rounded-full border border-amber/20 bg-amber/10 px-3 py-1.5 text-sm text-amber hover:border-amber/40 transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  </div>
+</Layout>

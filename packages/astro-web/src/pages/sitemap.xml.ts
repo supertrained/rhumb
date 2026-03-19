@@ -8,6 +8,7 @@ const STATIC_PAGES = [
   { path: "/", priority: 1.0, changefreq: "daily" },
   { path: "/leaderboard", priority: 0.9, changefreq: "daily" },
   { path: "/about", priority: 0.7, changefreq: "monthly" },
+  { path: "/glossary", priority: 0.6, changefreq: "monthly" },
   { path: "/methodology", priority: 0.8, changefreq: "monthly" },
   { path: "/trust", priority: 0.7, changefreq: "monthly" },
   { path: "/providers", priority: 0.7, changefreq: "monthly" },
