@@ -592,20 +592,27 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
     async getBudget(): Promise<Record<string, unknown>> {
       const url = `${base}/agent/budget`;
-      const res = await fetch(url, { headers: defaultHeaders });
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+      const res = await fetch(url, { headers: reqHeaders });
       if (!res.ok) return { unlimited: true };
       return (await res.json()) as Record<string, unknown>;
     },
 
     async setBudget(budgetUsd: number, period?: string, hardLimit?: boolean): Promise<Record<string, unknown>> {
       const url = `${base}/agent/budget`;
+      const apiKey = process.env.RHUMB_API_KEY;
       const body: Record<string, unknown> = { budget_usd: budgetUsd };
       if (period) body.period = period;
       if (hardLimit !== undefined) body.hard_limit = hardLimit;
 
+      const reqHeaders: Record<string, string> = { ...defaultHeaders, "Content-Type": "application/json" };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+
       const res = await fetch(url, {
         method: "PUT",
-        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        headers: reqHeaders,
         body: JSON.stringify(body),
       });
       if (!res.ok) return { error: `Failed to set budget: ${res.status}` };
@@ -615,27 +622,37 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
     async getSpend(period?: string): Promise<Record<string, unknown>> {
       const params = period ? `?period=${encodeURIComponent(period)}` : "";
       const url = `${base}/agent/spend${params}`;
-      const res = await fetch(url, { headers: defaultHeaders });
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+      const res = await fetch(url, { headers: reqHeaders });
       if (!res.ok) return { total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] };
       return (await res.json()) as Record<string, unknown>;
     },
 
     async getRoutingStrategy(): Promise<Record<string, unknown>> {
       const url = `${base}/agent/routing-strategy`;
-      const res = await fetch(url, { headers: defaultHeaders });
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+      const res = await fetch(url, { headers: reqHeaders });
       if (!res.ok) return { strategy: "balanced", quality_floor: 6.0 };
       return (await res.json()) as Record<string, unknown>;
     },
 
     async setRoutingStrategy(strategy: string, qualityFloor?: number, maxCost?: number): Promise<Record<string, unknown>> {
       const url = `${base}/agent/routing-strategy`;
+      const apiKey = process.env.RHUMB_API_KEY;
       const body: Record<string, unknown> = { strategy };
       if (qualityFloor !== undefined) body.quality_floor = qualityFloor;
       if (maxCost !== undefined) body.max_cost_per_call_usd = maxCost;
 
+      const reqHeaders: Record<string, string> = { ...defaultHeaders, "Content-Type": "application/json" };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+
       const res = await fetch(url, {
         method: "PUT",
-        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        headers: reqHeaders,
         body: JSON.stringify(body),
       });
       if (!res.ok) return { error: `Failed to set strategy: ${res.status}` };
@@ -646,16 +663,23 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
     async getBalance(): Promise<BalanceResult> {
       const url = `${base}/billing/balance`;
-      const res = await fetch(url, { headers: defaultHeaders });
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+      const res = await fetch(url, { headers: reqHeaders });
       if (!res.ok) throw new Error(`Balance check failed: ${res.status}`);
       return (await res.json()) as BalanceResult;
     },
 
     async createCheckout(amount_usd: number): Promise<CheckoutResult> {
       const url = `${base}/billing/checkout`;
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders, "Content-Type": "application/json" };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+
       const res = await fetch(url, {
         method: "POST",
-        headers: { ...defaultHeaders, "Content-Type": "application/json" },
+        headers: reqHeaders,
         body: JSON.stringify({ amount_usd }),
       });
       if (!res.ok) throw new Error(`Checkout failed: ${res.status}`);
@@ -668,7 +692,10 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       if (event_type) params.set("event_type", event_type);
       const qs = params.toString();
       const url = `${base}/billing/ledger${qs ? `?${qs}` : ""}`;
-      const res = await fetch(url, { headers: defaultHeaders });
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+      const res = await fetch(url, { headers: reqHeaders });
       if (!res.ok) throw new Error(`Ledger fetch failed: ${res.status}`);
       return (await res.json()) as LedgerResult;
     }
