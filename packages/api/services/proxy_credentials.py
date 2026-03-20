@@ -56,6 +56,8 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "sendgrid_api_key": ("sendgrid", "api_key"),
     "firecrawl_api_key": ("firecrawl", "api_key"),
     "apify_api_token": ("apify", "api_token"),
+    "apollo_api_key": ("apollo", "api_key"),
+    "pdl_api_key": ("pdl", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -68,13 +70,15 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "sendgrid": ("RHUMB_CREDENTIAL_SENDGRID_API_KEY", "api_key"),
     "firecrawl": ("RHUMB_CREDENTIAL_FIRECRAWL_API_KEY", "api_key"),
     "apify": ("RHUMB_CREDENTIAL_APIFY_API_TOKEN", "api_token"),
+    "apollo": ("RHUMB_CREDENTIAL_APOLLO_API_KEY", "api_key"),
+    "pdl": ("RHUMB_CREDENTIAL_PDL_API_KEY", "api_key"),
 }
 
 
 class CredentialStore:
     """Manage provider credentials with 1Password integration and in-memory cache."""
 
-    SUPPORTED_SERVICES: List[str] = ["stripe", "slack", "github", "twilio", "sendgrid", "firecrawl", "apify"]
+    SUPPORTED_SERVICES: List[str] = ["stripe", "slack", "github", "twilio", "sendgrid", "firecrawl", "apify", "apollo", "pdl"]
 
     def __init__(self, *, auto_load: bool = True) -> None:
         self._cache: Dict[str, ProviderCredentials] = {}

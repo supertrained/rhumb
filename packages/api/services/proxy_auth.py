@@ -78,6 +78,16 @@ class AuthInjector:
             "header": "Authorization",
             "format": "Bearer {credential}",
         },
+        "apollo": {
+            "methods": ["api_key"],
+            "header": "x-api-key",
+            "format": "{credential}",
+        },
+        "pdl": {
+            "methods": ["api_key"],
+            "header": "X-Api-Key",
+            "format": "{credential}",
+        },
     }
 
     def __init__(

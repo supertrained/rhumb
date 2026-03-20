@@ -106,6 +106,20 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
+    "apollo": {
+        "domain": "api.apollo.io",
+        "auth_type": "api_key",
+        "rate_limit": "300/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "pdl": {
+        "domain": "api.peopledatalabs.com",
+        "auth_type": "api_key",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
 }
 
 
