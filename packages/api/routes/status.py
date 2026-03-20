@@ -111,25 +111,23 @@ async def _check_scoring() -> dict:
         from db.client import get_supabase_client
 
         client = await get_supabase_client()
-        # Table is "an_scores" (not "scores"), columns: score, tier, calculated_at.
-        # service_slug lives in the joined "services" table — we just check an_scores
-        # has rows to verify the scoring pipeline is healthy.
+        # Supabase exposes this as "scores" (PostgREST schema cache).
+        # Try to fetch one recent row to confirm scoring pipeline is healthy.
         resp = (
-            await client.table("an_scores")
-            .select("score, tier, calculated_at")
-            .order("calculated_at", desc=True)
+            await client.table("scores")
+            .select("*")
             .limit(1)
             .execute()
         )
         latency_ms = round((time.monotonic() - start) * 1000)
-        latest = resp.data[0] if resp.data else None
+        has_data = bool(resp.data)
         return {
             "component": "scoring",
-            "status": "operational" if latest else "degraded",
+            "status": "operational" if has_data else "degraded",
             "latency_ms": latency_ms,
             "details": {
-                "latest_score": float(latest["score"]) if latest else None,
-                "latest_tier": latest["tier"] if latest else None,
+                "has_scores": has_data,
+                "row_count_sampled": len(resp.data) if resp.data else 0,
             },
         }
     except Exception as exc:
