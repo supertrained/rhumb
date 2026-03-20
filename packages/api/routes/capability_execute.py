@@ -296,14 +296,38 @@ async def execute_capability(
         agent_id = agent.agent_id
         org_id = agent.organization_id
     elif x_payment and x_payment != "required":
-        # Path 2: x402 anonymous — payment header present, no API key
-        is_x402_anonymous = True
+        # Path 2: x402 anonymous — payment header present, no API key.
+        # SECURITY: We only set is_x402_anonymous AFTER validating the header
+        # contains a decodeable payment payload with a tx_hash.  A garbage
+        # header (e.g. "fake", "bypass") must NOT grant anonymous execution.
         payment_data = decode_x_payment_header(x_payment)
-        if payment_data:
-            x402_wallet_address = (
-                payment_data.get("wallet_address")
-                or payment_data.get("from")
+        if not payment_data or not payment_data.get("tx_hash"):
+            # Header present but invalid/missing tx_hash → treat as
+            # unauthenticated.  Return 402 with payment instructions.
+            cap_services_for_402 = await _get_capability_services(capability_id)
+            cost_for_402 = 0.0
+            if cap_services_for_402:
+                costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
+                cost_for_402 = min(costs) if costs else 0.0
+            billed_cents_for_402 = max(int(round(cost_for_402 * 1.15 * 100)), 1) if cost_for_402 > 0 else 1
+            api_base = os.environ.get("API_BASE_URL", "https://api.rhumb.dev")
+            body_402 = build_x402_response(
+                capability_id=capability_id,
+                cost_usd_cents=billed_cents_for_402,
+                resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
             )
+            return JSONResponse(
+                status_code=402,
+                content=body_402,
+                headers={"X-Payment": "required"},
+            )
+
+        # Valid payment payload — proceed with x402 anonymous flow
+        is_x402_anonymous = True
+        x402_wallet_address = (
+            payment_data.get("wallet_address")
+            or payment_data.get("from")
+        )
         # Derive deterministic identity from wallet (or use generic fallback)
         if x402_wallet_address:
             agent_id = f"x402_wallet_{x402_wallet_address.lower()}"
@@ -333,7 +357,7 @@ async def execute_capability(
             # No cost data: return 402 with error explaining cost is unknown.
             # Agent should call the estimate endpoint first.
             api_base = os.environ.get(
-                "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+                "API_BASE_URL", "https://api.rhumb.dev"
             )
             return JSONResponse(
                 status_code=402,
@@ -352,7 +376,7 @@ async def execute_capability(
         # Convert to USDC atomic units (6 decimals) for the x402 spec
         billed_cents_for_402 = max(int(round(billed_cost_usd * 100)), 1)
         api_base = os.environ.get(
-            "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+            "API_BASE_URL", "https://api.rhumb.dev"
         )
         body_402 = build_x402_response(
             capability_id=capability_id,
@@ -532,7 +556,7 @@ async def execute_capability(
     credit_reserved = False
     credit_remaining_cents: int | None = None
     api_base = os.environ.get(
-        "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+        "API_BASE_URL", "https://api.rhumb.dev"
     )
 
     if not is_x402_anonymous:

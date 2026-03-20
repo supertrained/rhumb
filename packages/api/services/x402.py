@@ -34,7 +34,7 @@ def build_x402_response(
 
     wallet_address = os.environ.get("RHUMB_USDC_WALLET_ADDRESS", "")
     api_base = os.environ.get(
-        "API_BASE_URL", "https://rhumb-api-production-f173.up.railway.app"
+        "API_BASE_URL", "https://api.rhumb.dev"
     )
     is_production = os.environ.get("RAILWAY_ENVIRONMENT", "") == "production"
 

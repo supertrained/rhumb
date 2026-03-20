@@ -1,6 +1,7 @@
 """FastAPI application factory and router registration."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -83,7 +84,17 @@ async def _lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    application = FastAPI(title="Rhumb API", version="0.0.1", lifespan=_lifespan)
+    # Disable interactive docs and OpenAPI schema on production.
+    # These expose the full attack surface to adversaries.
+    is_prod = os.environ.get("RAILWAY_ENVIRONMENT") == "production"
+    application = FastAPI(
+        title="Rhumb API",
+        version="0.0.1",
+        lifespan=_lifespan,
+        docs_url=None if is_prod else "/docs",
+        redoc_url=None if is_prod else "/redoc",
+        openapi_url=None if is_prod else "/openapi.json",
+    )
 
     # ── Middleware ──
     application.add_middleware(
