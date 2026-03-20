@@ -11,6 +11,7 @@ from services.x402 import PaymentRequiredException, payment_required_handler
 from routes import (
     admin_agents,
     admin_billing,
+    auth,
     billing,
     budget,
     capabilities,
@@ -40,6 +41,7 @@ async def _lifespan(app: FastAPI):
     # ACL/rate-limit path, and durable metering all point at the same identity source.
     from db.client import get_supabase_client
     from schemas.agent_identity import get_agent_identity_store
+    from schemas.user import get_user_store
     from services.agent_usage_analytics import get_usage_analytics
     from services.operational_fact_emitter import get_operational_fact_emitter
     from services.proxy_auth import get_auth_injector
@@ -49,6 +51,9 @@ async def _lifespan(app: FastAPI):
     supabase = await get_supabase_client()
     get_agent_identity_store(supabase)
     logger.info("Agent identity: Supabase client initialized")
+
+    get_user_store(supabase)
+    logger.info("User store: Supabase client initialized")
 
     emitter = get_operational_fact_emitter(supabase)
     logger.info("Operational fact emitter: Supabase client initialized")
@@ -130,6 +135,7 @@ def create_app() -> FastAPI:
         dependencies=[Depends(require_admin_key)],
     )
     application.include_router(billing.router, prefix="/v1", tags=["billing"])
+    application.include_router(auth.router, prefix="/v1", tags=["auth"])
     application.include_router(webhooks.router, tags=["webhooks"])
 
     @application.get("/healthz")

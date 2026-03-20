@@ -12,3 +12,4 @@ fakeredis==2.10.0
 async_timeout==4.0.1
 numpy>=1.26.0
 stripe>=8.0.0
+PyJWT>=2.8.0

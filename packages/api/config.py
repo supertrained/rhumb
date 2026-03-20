@@ -19,6 +19,17 @@ class Settings(BaseSettings):
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
 
+    # OAuth providers
+    github_client_id: str | None = None
+    github_client_secret: str | None = None
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+
+    # Auth
+    auth_jwt_secret: str | None = None  # Falls back to rhumb_admin_secret if unset
+    auth_frontend_url: str = "https://rhumb.dev"
+    auth_api_url: str = "https://api.rhumb.dev"  # Where OAuth callbacks land
+
     anthropic_api_key: str | None = None
     anthropic_base_url: str = "https://api.anthropic.com"
     anthropic_model: str = "claude-3-5-sonnet-latest"
