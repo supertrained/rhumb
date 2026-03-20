@@ -55,7 +55,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- find_tools --------------------------------------------------------
   server.tool(
     "find_tools",
-    "Semantic search for agent tools, ranked by AN Score",
+    "Search for services/APIs by what you need them to do. Returns ranked results with AN Scores (agent-nativeness ratings). Use this when you know the problem but not which service to use. For capability-level search (e.g. 'email.send'), use discover_capabilities instead.",
     {
       query: z.string().describe(FindToolInputSchema.properties.query.description),
       limit: z.number().min(1).max(50).optional().describe(FindToolInputSchema.properties.limit.description)
@@ -71,7 +71,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- get_score ---------------------------------------------------------
   server.tool(
     "get_score",
-    "Get detailed AN Score breakdown for a service",
+    "Get the full AN Score breakdown for a service: execution quality, access readiness, autonomy level, tier label, and freshness. Use after find_tools to evaluate a specific service.",
     {
       slug: z.string().describe(GetScoreInputSchema.properties.slug.description)
     },
@@ -86,7 +86,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- get_alternatives --------------------------------------------------
   server.tool(
     "get_alternatives",
-    "Find alternative services ranked by AN Score",
+    "Find alternatives to a service, ranked by AN Score. Use when a service doesn't meet your needs or you want to compare options in the same category.",
     {
       slug: z.string().describe(GetAlternativesInputSchema.properties.slug.description)
     },
@@ -101,7 +101,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- get_failure_modes -------------------------------------------------
   server.tool(
     "get_failure_modes",
-    "Get known failure patterns for a service",
+    "Get known failure patterns, impact severity, and workarounds for a service. Use BEFORE integrating to write defensive code, or AFTER hitting an error to diagnose it.",
     {
       slug: z.string().describe(GetFailureModesInputSchema.properties.slug.description)
     },
@@ -116,7 +116,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- discover_capabilities ----------------------------------------------
   server.tool(
     "discover_capabilities",
-    "Discover what capabilities are available — search by domain or text. Returns capabilities with provider counts and top provider info.",
+    "Browse capabilities by domain or search text. A capability is an action (e.g. 'email.send', 'payment.charge') that multiple providers can fulfill. Use this when you know WHAT you need to do but not which service does it. Returns capability IDs for resolve_capability. Different from find_tools: find_tools searches services, this searches capabilities.",
     {
       domain: z.string().optional().describe(DiscoverCapabilitiesInputSchema.properties.domain.description),
       search: z.string().optional().describe(DiscoverCapabilitiesInputSchema.properties.search.description),
@@ -133,7 +133,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- resolve_capability ------------------------------------------------
   server.tool(
     "resolve_capability",
-    "Resolve a capability to ranked providers with health-aware recommendations, costs, and fallback chains. The core agent decision: 'I need email.send — what should I use?'",
+    "Given a capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains. This is the core routing decision: 'I need email.send — which provider should I use?' Call this before execute_capability to understand your options.",
     {
       capability: z.string().describe(ResolveCapabilityInputSchema.properties.capability.description)
     },
@@ -148,7 +148,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- execute_capability ------------------------------------------------
   server.tool(
     "execute_capability",
-    "Execute a capability through Rhumb. Three credential modes: (1) byo — bring your own token, requires method+path; (2) rhumb_managed — zero-config, Rhumb provides credentials, method/path optional; (3) agent_vault — pass your own token via agent_token param (get it from credential_ceremony first). Use resolve_capability to see providers and check_credentials to see what modes are available.",
+    "Execute a capability through Rhumb's proxy. Typical workflow: discover_capabilities → resolve_capability → estimate_capability → execute_capability. Three credential modes: (1) rhumb_managed — simplest, zero-config, Rhumb provides credentials (just pass capability_id); (2) byo — bring your own API key via agent_token + method + path; (3) agent_vault — use a key from credential_ceremony via agent_token + method + path. Alternative: pass x_payment for per-call USDC payment with no account needed. Use check_credentials to see which modes are available.",
     {
       capability_id: z.string().describe(ExecuteCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.provider.description),
@@ -174,7 +174,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- estimate_capability -----------------------------------------------
   server.tool(
     "estimate_capability",
-    "Get cost estimate for executing a capability without actually executing it. Use before expensive operations or when building cost-aware workflows.",
+    "Get the cost of executing a capability WITHOUT actually executing it. Returns cost in USD, circuit health, and endpoint pattern. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
     {
       capability_id: z.string().describe(EstimateCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(EstimateCapabilityInputSchema.properties.provider.description),
@@ -194,7 +194,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- credential_ceremony ------------------------------------------------
   server.tool(
     "credential_ceremony",
-    "Get step-by-step instructions for obtaining API credentials for a service. Without a service param, lists all available ceremonies. With a service param, returns detailed steps, token format info, and documentation links. Use this before agent_vault execute mode.",
+    "Get step-by-step instructions to obtain API credentials for a service. Returns signup steps, expected token format (prefix, pattern), verification endpoint, estimated time, and whether human intervention is needed. Use before executing in agent_vault mode. Call without params to list all services with available ceremonies.",
     {
       service: z.string().optional().describe(CredentialCeremonyInputSchema.properties.service.description)
     },
@@ -209,7 +209,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- check_credentials ------------------------------------------------
   server.tool(
     "check_credentials",
-    "Check your credential status across all three modes. Shows which capabilities are available via Rhumb-managed (zero-config), which services have ceremony guides for self-provisioning, and BYO status. Start here to understand what you can execute.",
+    "Check what credential modes are available to you. Shows: (1) which capabilities have Rhumb-managed credentials (ready to execute immediately), (2) which services have ceremony guides (self-provision in minutes), and (3) BYO status. Start here when you're new to Rhumb or unsure what you can execute.",
     {
       capability: z.string().optional().describe(CheckCredentialsInputSchema.properties.capability.description)
     },
@@ -224,7 +224,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- budget -----------------------------------------------------------
   server.tool(
     "budget",
-    "Check or set your execution budget. Without action param, returns current status. Use action='set' with budget_usd to create/update. Budget is enforced pre-execution — you get 402 (not a surprise bill) when over limit.",
+    "Check or set your execution spending limit. Budgets are enforced BEFORE execution — you get HTTP 402 (not a surprise bill) when you'd exceed your limit. Call with no params to check current budget and remaining balance.",
     {
       action: z.string().optional().describe(BudgetInputSchema.properties.action.description),
       budget_usd: z.number().optional().describe(BudgetInputSchema.properties.budget_usd.description),
@@ -242,7 +242,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- spend ------------------------------------------------------------
   server.tool(
     "spend",
-    "Get your spend breakdown by capability and provider. Shows total spend, execution count, and cost averages. Defaults to current month.",
+    "Get your spending breakdown for a billing period: total USD spent, execution count, average cost per call, broken down by capability and by provider. Use to audit costs or optimize routing.",
     {
       period: z.string().optional().describe(SpendInputSchema.properties.period.description)
     },
@@ -257,7 +257,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- routing ----------------------------------------------------------
   server.tool(
     "routing",
-    "Get or set your provider routing strategy. Strategies: cheapest (lowest cost above quality floor), fastest (healthiest circuits), highest_quality (highest AN score), balanced (weighted mix). Quality floor filters out low-quality providers.",
+    "Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability. Controls the tradeoff between cost, speed, and quality. Also sets a quality floor (minimum AN Score) and optional per-call cost ceiling.",
     {
       action: z.string().optional().describe(RoutingInputSchema.properties.action.description),
       strategy: z.string().optional().describe(RoutingInputSchema.properties.strategy.description),
@@ -275,7 +275,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- check_balance -----------------------------------------------------
   server.tool(
     "check_balance",
-    "Check the current credit balance for your organization on Rhumb",
+    "Check your current Rhumb credit balance in USD. Also shows whether auto-reload is enabled. If balance is low, use get_payment_url to top up.",
     {},
     async () => {
       const result = await handleCheckBalance({}, client);
@@ -288,7 +288,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- get_payment_url ---------------------------------------------------
   server.tool(
     "get_payment_url",
-    "Get a Stripe checkout URL to top up Rhumb credits",
+    "Get a checkout URL to add credits to your Rhumb balance. Present this URL to a human to complete payment. Credits are available immediately after payment.",
     {
       amount_usd: z.number().min(5).max(5000).describe("Amount to add in USD (min $5, max $5000)")
     },
@@ -303,7 +303,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- get_ledger --------------------------------------------------------
   server.tool(
     "get_ledger",
-    "Get recent billing ledger entries for your organization",
+    "Get your billing history: charges (debits), top-ups (credits), and auto-reload events. Each entry shows amount, balance after, description, and timestamp. Most recent first.",
     {
       limit: z.number().min(1).max(100).optional().describe("Number of entries (default 20, max 100)"),
       event_type: z.string().optional().describe("Filter: debit, credit_added, auto_reload_triggered")

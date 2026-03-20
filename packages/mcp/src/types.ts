@@ -12,8 +12,8 @@
 export const FindToolInputSchema = {
   type: "object" as const,
   properties: {
-    query: { type: "string" as const, description: "Semantic search query for tool discovery" },
-    limit: { type: "number" as const, minimum: 1, maximum: 50, description: "Max results to return (default 10)" }
+    query: { type: "string" as const, description: "What you need the tool to do, in natural language. Examples: 'send email', 'process payments', 'generate images', 'web scraping'" },
+    limit: { type: "number" as const, minimum: 1, maximum: 50, description: "Max results (default 10). Each result includes a slug you can pass to get_score, get_alternatives, or get_failure_modes." }
   },
   required: ["query"] as const
 };
@@ -41,7 +41,7 @@ export type FindToolOutput = {
 export const GetScoreInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service slug to look up" }
+    slug: { type: "string" as const, description: "Service identifier from find_tools results (e.g. 'stripe', 'sendgrid', 'openai', 'twilio')" }
   },
   required: ["slug"] as const
 };
@@ -68,7 +68,7 @@ export type GetScoreOutput = {
 export const GetAlternativesInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service slug to find alternatives for" }
+    slug: { type: "string" as const, description: "Service slug from find_tools results (e.g. 'stripe'). Returns other services in the same category, ranked by AN Score." }
   },
   required: ["slug"] as const
 };
@@ -93,7 +93,7 @@ export type GetAlternativesOutput = {
 export const GetFailureModesInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service slug to get failure modes for" }
+    slug: { type: "string" as const, description: "Service slug from find_tools results (e.g. 'stripe'). Returns known failure patterns, impact severity, and workarounds." }
   },
   required: ["slug"] as const
 };
@@ -118,9 +118,9 @@ export type GetFailureModesOutput = {
 export const DiscoverCapabilitiesInputSchema = {
   type: "object" as const,
   properties: {
-    domain: { type: "string" as const, description: "Filter by capability domain (e.g. 'email', 'payment', 'ai')" },
-    search: { type: "string" as const, description: "Search capabilities by text" },
-    limit: { type: "number" as const, minimum: 1, maximum: 50, description: "Max results to return (default 20)" }
+    domain: { type: "string" as const, description: "Filter by domain: 'email', 'payment', 'ai', 'communication', 'data', 'storage', 'search', etc. Omit for all domains." },
+    search: { type: "string" as const, description: "Free-text search across capability names and descriptions. Examples: 'send message', 'charge card', 'scrape website'" },
+    limit: { type: "number" as const, minimum: 1, maximum: 50, description: "Max results (default 20). Returns capability IDs you can pass to resolve_capability." }
   },
   required: [] as const
 };
@@ -154,7 +154,7 @@ export type DiscoverCapabilitiesOutput = {
 export const ResolveCapabilityInputSchema = {
   type: "object" as const,
   properties: {
-    capability: { type: "string" as const, description: "Capability ID to resolve (e.g. 'email.send', 'payment.charge')" }
+    capability: { type: "string" as const, description: "Capability ID from discover_capabilities (e.g. 'email.send', 'payment.charge'). Returns ranked providers with costs, health status, and fallback chains." }
   },
   required: ["capability"] as const
 };
@@ -189,16 +189,16 @@ export type ResolveCapabilityOutput = {
 export const ExecuteCapabilityInputSchema = {
   type: "object" as const,
   properties: {
-    capability_id: { type: "string" as const, description: "Capability to execute (e.g. 'email.send', 'payment.charge')" },
-    provider: { type: "string" as const, description: "Optional: specific provider slug. If omitted, Rhumb auto-selects the best healthy provider." },
-    method: { type: "string" as const, description: "HTTP method for the upstream API call (GET, POST, PUT, PATCH, DELETE)" },
-    path: { type: "string" as const, description: "Provider-native API path (e.g. '/v3/mail/send'). Use resolve_capability first to get the endpoint pattern." },
-    body: { type: "object" as const, description: "Provider-native request body" },
-    params: { type: "object" as const, description: "Optional query parameters" },
-    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed (zero-config, omit method/path), or agent_vault (pass agent_token)" },
-    idempotency_key: { type: "string" as const, description: "Optional UUID for safe retry. Required to enable automatic fallback to backup providers." },
-    agent_token: { type: "string" as const, description: "For agent_vault mode only: the API token you obtained via the credential ceremony. NEVER stored by Rhumb — used for this single request only." },
-    x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Pass this after receiving a payment_required response to authorize execution without an API key. Contains tx hash and on-chain proof." }
+    capability_id: { type: "string" as const, description: "Capability to execute (e.g. 'email.send', 'payment.charge'). Get IDs from discover_capabilities or resolve_capability." },
+    provider: { type: "string" as const, description: "Specific provider slug (e.g. 'resend', 'stripe'). Omit to let Rhumb auto-select the best healthy provider based on your routing strategy." },
+    method: { type: "string" as const, description: "HTTP method (GET, POST, PUT, PATCH, DELETE). Required for byo and agent_vault modes. Not needed for rhumb_managed." },
+    path: { type: "string" as const, description: "Provider's API path (e.g. '/v3/mail/send'). Get the pattern from resolve_capability. Required for byo/agent_vault. Not needed for rhumb_managed." },
+    body: { type: "object" as const, description: "Request body in the provider's native format. See provider docs or resolve_capability for expected structure." },
+    params: { type: "object" as const, description: "URL query parameters as key-value pairs" },
+    credential_mode: { type: "string" as const, description: "'rhumb_managed' (zero-config, Rhumb provides credentials — simplest), 'byo' (your own API key via agent_token — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path). Default: byo" },
+    idempotency_key: { type: "string" as const, description: "UUID for safe retry — if this request was already processed, returns the cached result instead of re-executing. Required to enable automatic fallback to backup providers on failure." },
+    agent_token: { type: "string" as const, description: "Your API token for byo/agent_vault mode. For agent_vault: obtain via credential_ceremony first. Never stored by Rhumb — used for this single request only." },
+    x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Use this to pay per-call with USDC instead of an API key. Pass the proof from a payment_required (402) response. No account or signup needed." }
   },
   required: ["capability_id"] as const
 };
@@ -248,9 +248,9 @@ export type X402PaymentInfo = {
 export const EstimateCapabilityInputSchema = {
   type: "object" as const,
   properties: {
-    capability_id: { type: "string" as const, description: "Capability to estimate cost for (e.g. 'email.send')" },
-    provider: { type: "string" as const, description: "Optional: specific provider. If omitted, estimates for the auto-selected provider." },
-    credential_mode: { type: "string" as const, description: "Credential mode: byo (default), rhumb_managed, or agent_vault" }
+    capability_id: { type: "string" as const, description: "Capability to estimate (e.g. 'email.send'). Call this BEFORE execute_capability to know the cost in advance." },
+    provider: { type: "string" as const, description: "Specific provider slug. Omit to estimate for the auto-selected provider based on your routing strategy." },
+    credential_mode: { type: "string" as const, description: "'rhumb_managed', 'byo', or 'agent_vault'. Affects pricing — rhumb_managed includes a 20% markup." }
   },
   required: ["capability_id"] as const
 };
@@ -277,7 +277,7 @@ export type EstimateCapabilityOutput = {
 export const CredentialCeremonyInputSchema = {
   type: "object" as const,
   properties: {
-    service: { type: "string" as const, description: "Service slug to get the credential ceremony for (e.g. 'openai', 'stripe', 'resend'). Omit to list all available ceremonies." }
+    service: { type: "string" as const, description: "Service slug (e.g. 'openai', 'stripe', 'resend'). Returns step-by-step signup instructions, expected token format, and verification endpoint. Omit to list all services with available ceremonies." }
   },
   required: [] as const
 };
@@ -323,7 +323,7 @@ export type CredentialCeremonyOutput = {
 export const CheckCredentialsInputSchema = {
   type: "object" as const,
   properties: {
-    capability: { type: "string" as const, description: "Optional: check credential status for a specific capability (e.g. 'email.send')" }
+    capability: { type: "string" as const, description: "Check a specific capability (e.g. 'email.send'). Omit to see all modes and managed capabilities. Start here to understand what you can execute and how." }
   },
   required: [] as const
 };
@@ -355,10 +355,10 @@ export type CheckCredentialsOutput = {
 export const BudgetInputSchema = {
   type: "object" as const,
   properties: {
-    action: { type: "string" as const, description: "Action: 'get' to check budget, 'set' to create/update" },
-    budget_usd: { type: "number" as const, description: "Budget amount in USD (required for set)" },
-    period: { type: "string" as const, description: "Budget period: daily, weekly, monthly, total (default: monthly)" },
-    hard_limit: { type: "boolean" as const, description: "If true, reject executions over budget (default: true)" }
+    action: { type: "string" as const, description: "'get' (check current budget) or 'set' (create/update). Default: 'get'" },
+    budget_usd: { type: "number" as const, description: "Budget cap in USD. Required when action='set'. Example: 10.00 for $10/month." },
+    period: { type: "string" as const, description: "'daily', 'weekly', 'monthly', or 'total'. Default: 'monthly'. Resets at period boundary." },
+    hard_limit: { type: "boolean" as const, description: "true = reject executions over budget with HTTP 402. false = warn but allow. Default: true" }
   },
   required: [] as const
 };
@@ -387,7 +387,7 @@ export type BudgetOutput = {
 export const SpendInputSchema = {
   type: "object" as const,
   properties: {
-    period: { type: "string" as const, description: "Period (YYYY-MM). Defaults to current month." }
+    period: { type: "string" as const, description: "Billing period as YYYY-MM (e.g. '2026-03'). Defaults to current month. Returns per-capability and per-provider spend breakdown." }
   },
   required: [] as const
 };
@@ -421,10 +421,10 @@ export type SpendOutput = {
 export const RoutingInputSchema = {
   type: "object" as const,
   properties: {
-    action: { type: "string" as const, description: "Action: 'get' to check strategy, 'set' to update" },
-    strategy: { type: "string" as const, description: "Strategy: cheapest, fastest, highest_quality, balanced" },
-    quality_floor: { type: "number" as const, description: "Minimum AN score (0-10, default 6.0)" },
-    max_cost_per_call_usd: { type: "number" as const, description: "Maximum cost per call in USD" }
+    action: { type: "string" as const, description: "'get' (check current strategy) or 'set' (update). Default: 'get'" },
+    strategy: { type: "string" as const, description: "'cheapest' (lowest cost above quality floor), 'fastest' (healthiest circuits, lowest latency), 'highest_quality' (highest AN Score), or 'balanced' (weighted mix of all three). Default: 'balanced'" },
+    quality_floor: { type: "number" as const, description: "Minimum AN Score (0-10). Providers below this are excluded from auto-selection. Default: 6.0" },
+    max_cost_per_call_usd: { type: "number" as const, description: "Hard ceiling on per-call cost. Calls that would exceed this are rejected with 402." }
   },
   required: [] as const
 };
@@ -472,7 +472,7 @@ export type CheckBalanceOutput = {
 export const GetPaymentUrlInputSchema = {
   type: "object" as const,
   properties: {
-    amount_usd: { type: "number" as const, description: "Amount to add in USD (min $5, max $5000)" },
+    amount_usd: { type: "number" as const, description: "Amount to add to your Rhumb credit balance in USD (min $5, max $5000). Returns a checkout URL to complete payment." },
   },
   required: ["amount_usd"] as string[],
 };
@@ -494,8 +494,8 @@ export type GetPaymentUrlOutput = {
 export const GetLedgerInputSchema = {
   type: "object" as const,
   properties: {
-    limit: { type: "number" as const, description: "Number of entries to return (default 20, max 100)" },
-    event_type: { type: "string" as const, description: "Filter by event type: debit, credit_added, auto_reload_triggered" },
+    limit: { type: "number" as const, description: "Number of entries (default 20, max 100). Most recent first." },
+    event_type: { type: "string" as const, description: "Filter: 'debit' (execution charges), 'credit_added' (top-ups), 'auto_reload_triggered' (auto-refills). Omit for all types." },
   },
   required: [] as string[],
 };
