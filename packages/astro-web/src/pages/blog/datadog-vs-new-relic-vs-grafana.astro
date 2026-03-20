@@ -1,0 +1,347 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  datadog: await getServiceScore("datadog"),
+  "new-relic": await getServiceScore("new-relic"),
+  "grafana-cloud": await getServiceScore("grafana-cloud"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Datadog vs New Relic vs Grafana Cloud for AI Agents",
+  datePublished: "2026-03-20T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A side-by-side comparison of Datadog, New Relic, and Grafana Cloud APIs for AI agent observability. Datadog leads on execution; Grafana Cloud on openness.",
+  url: "https://rhumb.dev/blog/datadog-vs-new-relic-vs-grafana",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+type ComparedService = {
+  slug: "datadog" | "new-relic" | "grafana-cloud";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "datadog",
+    name: "Datadog",
+    accent: "#632CA6",
+    accentSoft: "rgba(99,44,166,0.16)",
+    bestFor: "Agents managing full-stack observability across cloud infrastructure, APM, logs, and security — all through a single API surface with strong execution consistency.",
+    avoidWhen: "You need open-source flexibility, want to avoid vendor lock-in on data formats, or are running on a tight budget where per-host pricing compounds fast.",
+    friction: "API key + application key dual authentication adds setup complexity. Custom metrics cardinality limits can surprise agents that dynamically create tags. Query API has tight rate limits (600 req/min default) that agents doing bulk analysis will hit.",
+    decision: "Pick Datadog when execution reliability and breadth of integrations matter more than cost or data portability.",
+    support: "Highest AN Score in the category. Best execution score — the API does what it says, consistently. Strongest integration breadth (800+ integrations) means an agent can observe almost anything through one API.",
+    data: scoreMap.datadog,
+  },
+  {
+    slug: "new-relic",
+    name: "New Relic",
+    accent: "#1CE783",
+    accentSoft: "rgba(28,231,131,0.16)",
+    bestFor: "Agents that need powerful ad-hoc querying via NRQL, generous free-tier data ingest, and a GraphQL API that maps cleanly to structured tool-use patterns.",
+    avoidWhen: "You need REST-first simplicity — New Relic's heavy reliance on NerdGraph (GraphQL) and NRQL query language means agents must handle nested query construction. Not ideal for simple metric push/pull workflows.",
+    friction: "NerdGraph mutations require careful schema introspection. NRQL syntax has edge cases around escaping and time windowing that trip up agents generating queries dynamically. License key vs API key vs user key vs ingest key — four different credential types for different purposes.",
+    decision: "Pick New Relic when powerful querying and data exploration are the primary use case. Its NRQL + GraphQL combination is uniquely powerful for agents that need to ask complex questions about system behavior.",
+    support: "Strong querying capabilities — NRQL is genuinely powerful for agents that can construct structured queries. Generous free tier (100GB/month ingest) lowers experimentation barriers. GraphQL API is well-documented.",
+    data: scoreMap["new-relic"],
+  },
+  {
+    slug: "grafana-cloud",
+    name: "Grafana Cloud",
+    accent: "#F46800",
+    accentSoft: "rgba(244,104,0,0.16)",
+    bestFor: "Agents operating in open-source ecosystems that need Prometheus, Loki, and Tempo APIs without vendor-specific abstractions. Best data portability story of the three.",
+    avoidWhen: "You want a single cohesive API — Grafana Cloud exposes separate APIs for metrics (Prometheus), logs (Loki), and traces (Tempo), each with different query languages and auth patterns.",
+    friction: "Three separate query languages (PromQL, LogQL, TraceQL) for three data types. API key scoping requires understanding Grafana Cloud's stack/organization model. Dashboard API is REST, but data queries hit different endpoints per signal type. The cognitive load is higher than the other two.",
+    decision: "Pick Grafana Cloud when data ownership, open-source compatibility, and avoiding vendor lock-in outweigh API surface simplicity.",
+    support: "Best portability story — everything speaks open standards (Prometheus, OpenTelemetry). No proprietary data formats. An agent's knowledge of PromQL transfers to any Prometheus-compatible system. Strong community ecosystem.",
+    data: scoreMap["grafana-cloud"],
+  },
+];
+
+// Sort by score, highest first
+const sorted = [...compared].sort((a, b) => {
+  const sa = a.data?.aggregateRecommendationScore ?? 0;
+  const sb = b.data?.aggregateRecommendationScore ?? 0;
+  return sb - sa;
+});
+
+const winner = sorted[0];
+const title = "Datadog vs New Relic vs Grafana Cloud for AI Agents";
+const description =
+  "A side-by-side comparison of Datadog, New Relic, and Grafana Cloud APIs for AI agent observability workflows using Rhumb's live AN Score data.";
+---
+
+<Layout
+  title={title}
+  description={description}
+  ogImage="/images/og-monitoring-comparison.png"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(ARTICLE_JSON_LD)} />
+  <meta name="rhumb:category" content="monitoring" />
+  <meta name="rhumb:type" content="comparison" />
+  <meta name="ai:content-type" content="api-comparison" />
+  <meta name="ai:services" content="datadog,new-relic,grafana-cloud" />
+
+  <main class="max-w-3xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="mb-10">
+      <a
+        href="/compare"
+        class="text-xs text-slate-500 hover:text-slate-400 transition-colors mb-3 inline-block"
+        >← All comparisons</a
+      >
+      <h1
+        class="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight"
+      >
+        {title}
+      </h1>
+      <p class="text-slate-400 text-base leading-relaxed max-w-2xl">
+        {description}
+      </p>
+      <p class="text-xs text-slate-600 mt-3">
+        Last updated March 2026 · Scores from live AN Score data
+      </p>
+    </div>
+
+    <!-- Score cards -->
+    <div class="grid gap-4 mb-10">
+      {
+        sorted.map((svc, i) => (
+          <div
+            class={`bg-slate-800/50 border rounded-lg p-5 transition-all ${
+              i === 0
+                ? "border-score-native/40 ring-1 ring-score-native/20"
+                : "border-slate-700/50"
+            }`}
+            data-testid={`score-card-${svc.slug}`}
+            data-service={svc.slug}
+            data-score={svc.data?.aggregateRecommendationScore ?? "N/A"}
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-semibold text-white">{svc.name}</h2>
+                  {i === 0 && (
+                    <span class="text-[10px] font-medium text-score-native bg-score-native/10 px-1.5 py-0.5 rounded-full">
+                      HIGHEST
+                    </span>
+                  )}
+                </div>
+                <p class="text-sm text-slate-400 mt-1">{svc.bestFor}</p>
+              </div>
+              {svc.data && (
+                <div class="text-right shrink-0 ml-4">
+                  <div
+                    class="text-2xl font-bold"
+                    style={`color: ${svc.accent}`}
+                  >
+                    {svc.data.aggregateRecommendationScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-xs text-slate-500">AN Score</div>
+                </div>
+              )}
+            </div>
+
+            {svc.data && (
+              <div class="grid grid-cols-3 gap-3 text-center mb-4">
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.executionScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Execution
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.accessReadinessScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Access
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {(svc.data.confidence ?? 0).toFixed(2)}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Confidence
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {svc.data?.tierLabel && (
+              <div class="mb-3">
+                <TierBadge tier={svc.data.tierLabel} />
+              </div>
+            )}
+
+            <p class="text-sm text-slate-400 leading-relaxed">{svc.support}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Detailed analysis -->
+    <div class="space-y-10">
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">
+          The monitoring problem for agents
+        </h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            AI agents need monitoring APIs for two distinct purposes: observing
+            the systems they manage, and being observed themselves. An agent
+            deploying infrastructure needs to push metrics, query dashboards, and
+            set up alerts — all through APIs, with no human clicking through UIs.
+          </p>
+          <p>
+            The gap between "has an API" and "an agent can actually use it" is
+            wider in monitoring than in most categories. These platforms were
+            built for human operators staring at dashboards. The API is often an
+            afterthought — functional, but designed for integration scripts, not
+            autonomous decision-making.
+          </p>
+          <p>
+            All three platforms score well on execution reliability — when you call
+            the API, it works. The differentiation is in access patterns (how easy
+            it is for an agent to authenticate and start working), query
+            flexibility (can the agent ask the questions it needs to), and the
+            cognitive load of stitching together metrics, logs, and traces across
+            different API surfaces.
+          </p>
+        </div>
+      </section>
+
+      {
+        compared.map((svc) => (
+          <section>
+            <h2 class="text-xl font-semibold text-white mb-4" style={`border-left: 3px solid ${svc.accent}; padding-left: 12px;`}>
+              {svc.name}
+            </h2>
+            <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+              <h3 class="text-base font-medium text-white">Best for</h3>
+              <p>{svc.bestFor}</p>
+
+              <h3 class="text-base font-medium text-white">Avoid when</h3>
+              <p>{svc.avoidWhen}</p>
+
+              <h3 class="text-base font-medium text-white">Friction points</h3>
+              <p>{svc.friction}</p>
+
+              <h3 class="text-base font-medium text-white">The call</h3>
+              <p>{svc.decision}</p>
+            </div>
+          </section>
+        ))
+      }
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">How we scored them</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            The AN Score measures how well an API works for autonomous agents
+            across three dimensions: <strong>Execution</strong> (does the API do
+            what it says?), <strong>Access</strong> (can an agent authenticate
+            and start working without human intervention?), and data-derived
+            <strong>confidence</strong> reflecting how much evidence backs each
+            score.
+          </p>
+          <p>
+            Scores combine documentation analysis, SDK quality assessment,
+            authentication flow evaluation, and — where available — runtime
+            testing of actual API calls. Confidence reflects the depth of
+            evidence: higher confidence means more data points informing the
+            score.
+          </p>
+          <p>
+            These scores are not pay-to-play. Rhumb has no commercial
+            relationship with Datadog, New Relic, or Grafana Labs. The AN Score
+            is editorially independent — always.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">Bottom line</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            <strong>Datadog</strong> leads on raw execution quality and
+            integration breadth. If your agent needs to observe a heterogeneous
+            stack through one API, Datadog has the highest reliability and the
+            most comprehensive coverage. The dual API key + app key auth is
+            annoying but manageable.
+          </p>
+          <p>
+            <strong>New Relic</strong> is the querying powerhouse. NRQL gives
+            agents a genuine analytical language for exploring system behavior
+            — something neither Datadog's API nor Grafana's PromQL can match
+            for ad-hoc exploration. The free tier is the most generous in the
+            category.
+          </p>
+          <p>
+            <strong>Grafana Cloud</strong> wins on openness and portability.
+            Everything speaks open standards — Prometheus, OpenTelemetry, Loki.
+            An agent that learns PromQL can take that knowledge anywhere. But the
+            three-API-surface reality (metrics, logs, traces as separate systems)
+            adds real cognitive overhead for agents trying to correlate across
+            signal types.
+          </p>
+          <p>
+            None of these platforms were designed for autonomous agent
+            consumption. All three require agents to handle complexity that
+            wouldn't exist if the APIs were built agent-first. The scores
+            reflect reality, not aspiration.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Related -->
+    <div class="mt-12 pt-8 border-t border-slate-800">
+      <h3 class="text-sm font-semibold text-white mb-4">Related comparisons</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a
+          href="/blog/anthropic-vs-openai-vs-google-ai"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">AI / LLM APIs</span>
+          <span class="text-xs text-slate-500 block mt-1">Anthropic vs OpenAI vs Google AI</span>
+        </a>
+        <a
+          href="/blog/supabase-vs-planetscale-vs-neon"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">Databases</span>
+          <span class="text-xs text-slate-500 block mt-1">Supabase vs PlanetScale vs Neon</span>
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>
