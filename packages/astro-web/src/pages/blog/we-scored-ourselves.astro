@@ -17,6 +17,25 @@ const ARTICLE_JSON_LD = {
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
 
+// Machine-readable score data for agents (AAG Level AAA: structured data endpoints)
+const SCORE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "Rhumb AN Score Self-Assessment",
+  description: "Agent-Native Score self-assessment for Rhumb API infrastructure platform. 20 dimensions, 3 axes.",
+  url: "https://rhumb.dev/blog/we-scored-ourselves",
+  creator: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  dateCreated: "2026-03-20",
+  variableMeasured: [
+    { "@type": "PropertyValue", name: "aggregate_score", value: 6.8, unitText: "AN Score (0-10)" },
+    { "@type": "PropertyValue", name: "execution_score", value: 7.25, unitText: "AN Score (0-10)" },
+    { "@type": "PropertyValue", name: "access_readiness_score", value: 6.43, unitText: "AN Score (0-10)" },
+    { "@type": "PropertyValue", name: "autonomy_score", value: 7.67, unitText: "AN Score (0-10)" },
+    { "@type": "PropertyValue", name: "tier", value: "L3", description: "Fluent" },
+    { "@type": "PropertyValue", name: "methodology_version", value: "0.3" },
+  ],
+};
+
 type DimensionScore = {
   name: string;
   score: number;
@@ -71,7 +90,23 @@ function scoreColor(score: number): string {
   description="Rhumb scores 6.8/10 on our own AN Score methodology. Here's every dimension, every gap, and what we're doing about it."
   jsonLd={ARTICLE_JSON_LD}
 >
-  <main class="max-w-4xl mx-auto px-6 py-16">
+  {/* Agent-readable structured score data (AAG Level AAA) */}
+  <script type="application/ld+json" set:html={JSON.stringify(SCORE_JSON_LD)} />
+
+  {/* Machine-readable score summary for agents parsing raw HTML (AAG Level AA) */}
+  <meta name="rhumb:service" content="rhumb" />
+  <meta name="rhumb:aggregate-score" content={aggregate.toFixed(2)} />
+  <meta name="rhumb:execution-score" content={executionAvg.toFixed(2)} />
+  <meta name="rhumb:access-readiness-score" content={accessAvg.toFixed(2)} />
+  <meta name="rhumb:autonomy-score" content={autonomyAvg.toFixed(2)} />
+  <meta name="rhumb:tier" content="L3" />
+  <meta name="rhumb:tier-label" content="Fluent" />
+  <meta name="rhumb:methodology-version" content="0.3" />
+  <meta name="rhumb:assessed-at" content="2026-03-20T00:00:00Z" />
+  <meta name="ai:content-type" content="self-assessment" />
+  <meta name="ai:data-format" content="structured-scores" />
+
+  <main class="max-w-4xl mx-auto px-6 py-16" data-testid="self-score-page">
     {/* Hero */}
     <div class="mb-12">
       <p class="text-sm text-zinc-500 mb-2">
@@ -94,18 +129,18 @@ function scoreColor(score: number): string {
       </div>
     </div>
 
-    {/* Score Summary */}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 p-6 bg-zinc-900/50 rounded-xl border border-zinc-800">
-      <div class="text-center">
-        <div class="text-3xl font-bold text-yellow-400">{executionAvg.toFixed(1)}</div>
+    {/* Score Summary — structured for agent parsing (AAG Level AA: machine-readable data) */}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 p-6 bg-zinc-900/50 rounded-xl border border-zinc-800" data-testid="score-summary" role="region" aria-label="Score summary">
+      <div class="text-center" data-testid="execution-score" data-score={executionAvg.toFixed(2)} data-weight="0.70">
+        <div class="text-3xl font-bold text-yellow-400" aria-label={`Execution score: ${executionAvg.toFixed(1)} out of 10`}>{executionAvg.toFixed(1)}</div>
         <div class="text-sm text-zinc-500 mt-1">Execution (70%)</div>
       </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-yellow-400">{accessAvg.toFixed(1)}</div>
+      <div class="text-center" data-testid="access-readiness-score" data-score={accessAvg.toFixed(2)} data-weight="0.30">
+        <div class="text-3xl font-bold text-yellow-400" aria-label={`Access readiness score: ${accessAvg.toFixed(1)} out of 10`}>{accessAvg.toFixed(1)}</div>
         <div class="text-sm text-zinc-500 mt-1">Access Readiness (30%)</div>
       </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-yellow-400">{autonomyAvg.toFixed(1)}</div>
+      <div class="text-center" data-testid="autonomy-score" data-score={autonomyAvg.toFixed(2)}>
+        <div class="text-3xl font-bold text-yellow-400" aria-label={`Autonomy score: ${autonomyAvg.toFixed(1)} out of 10`}>{autonomyAvg.toFixed(1)}</div>
         <div class="text-sm text-zinc-500 mt-1">Autonomy Bonus</div>
       </div>
     </div>
@@ -126,62 +161,62 @@ function scoreColor(score: number): string {
       </div>
     </section>
 
-    {/* Execution Dimensions */}
-    <section class="mb-12">
+    {/* Execution Dimensions — each card has data attributes for agent parsing (AAG Level AA) */}
+    <section class="mb-12" data-testid="execution-dimensions" aria-label="Execution dimensions">
       <h2 class="text-2xl font-bold text-white mb-6">Execution Dimensions <span class="text-zinc-500 text-lg font-normal">(70% weight)</span></h2>
-      <div class="space-y-4">
-        {executionDimensions.map((dim) => (
-          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+      <div class="space-y-4" role="list">
+        {executionDimensions.map((dim, i) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800" role="listitem" data-testid={`dim-execution-${i + 1}`} data-dimension={dim.name} data-score={dim.score.toFixed(1)} data-axis="execution">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-white font-semibold">{dim.name}</h3>
-              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`} aria-label={`${dim.name}: ${dim.score.toFixed(1)} out of 10`}>{dim.score.toFixed(1)}</span>
             </div>
-            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
-            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+            <p class="text-sm text-zinc-400 mb-1" data-testid="claim">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500" data-testid="limitation">⚠️ {dim.honest}</p>
           </div>
         ))}
       </div>
     </section>
 
     {/* Access Readiness Dimensions */}
-    <section class="mb-12">
+    <section class="mb-12" data-testid="access-readiness-dimensions" aria-label="Access readiness dimensions">
       <h2 class="text-2xl font-bold text-white mb-6">Access Readiness Dimensions <span class="text-zinc-500 text-lg font-normal">(30% weight)</span></h2>
-      <div class="space-y-4">
-        {accessDimensions.map((dim) => (
-          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+      <div class="space-y-4" role="list">
+        {accessDimensions.map((dim, i) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800" role="listitem" data-testid={`dim-access-${i + 1}`} data-dimension={dim.name} data-score={dim.score.toFixed(1)} data-axis="access-readiness">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-white font-semibold">{dim.name}</h3>
-              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`} aria-label={`${dim.name}: ${dim.score.toFixed(1)} out of 10`}>{dim.score.toFixed(1)}</span>
             </div>
-            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
-            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+            <p class="text-sm text-zinc-400 mb-1" data-testid="claim">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500" data-testid="limitation">⚠️ {dim.honest}</p>
           </div>
         ))}
       </div>
     </section>
 
     {/* Autonomy Dimensions */}
-    <section class="mb-12">
+    <section class="mb-12" data-testid="autonomy-dimensions" aria-label="Autonomy dimensions">
       <h2 class="text-2xl font-bold text-white mb-6">Autonomy Dimensions <span class="text-zinc-500 text-lg font-normal">(bonus)</span></h2>
-      <div class="space-y-4">
-        {autonomyDimensions.map((dim) => (
-          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+      <div class="space-y-4" role="list">
+        {autonomyDimensions.map((dim, i) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800" role="listitem" data-testid={`dim-autonomy-${i + 1}`} data-dimension={dim.name} data-score={dim.score.toFixed(1)} data-axis="autonomy">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-white font-semibold">{dim.name}</h3>
-              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`} aria-label={`${dim.name}: ${dim.score.toFixed(1)} out of 10`}>{dim.score.toFixed(1)}</span>
             </div>
-            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
-            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+            <p class="text-sm text-zinc-400 mb-1" data-testid="claim">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500" data-testid="limitation">⚠️ {dim.honest}</p>
           </div>
         ))}
       </div>
     </section>
 
-    {/* Failure Modes */}
-    <section class="mb-12">
+    {/* Failure Modes — structured for agent consumption (AAG Level AA) */}
+    <section class="mb-12" data-testid="failure-modes" aria-label="Known failure modes">
       <h2 class="text-2xl font-bold text-white mb-6">Our Failure Modes</h2>
-      <div class="space-y-4">
-        <div class="p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+      <div class="space-y-4" role="list">
+        <div class="p-4 bg-red-500/5 rounded-lg border border-red-500/20" role="listitem" data-testid="fm-sandbox" data-severity="critical" data-pattern="no-sandbox-environment">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">CRITICAL</span>
             <h3 class="text-white font-semibold">No Sandbox Environment</h3>
@@ -190,7 +225,7 @@ function scoreColor(score: number): string {
           <p class="text-sm text-zinc-500 mt-1">Workaround: Use discovery endpoints (free, read-only) for evaluation. Use x402 with small amounts for execution testing.</p>
         </div>
 
-        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20">
+        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20" role="listitem" data-testid="fm-single-key" data-severity="high" data-pattern="single-api-key">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-semibold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">HIGH</span>
             <h3 class="text-white font-semibold">Single API Key Per User</h3>
@@ -199,7 +234,7 @@ function scoreColor(score: number): string {
           <p class="text-sm text-zinc-500 mt-1">Workaround: Use x402 path (no key needed, per-call payment acts as implicit scoping).</p>
         </div>
 
-        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20">
+        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20" role="listitem" data-testid="fm-docs-gaps" data-severity="high" data-pattern="documentation-gaps">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-semibold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">HIGH</span>
             <h3 class="text-white font-semibold">Documentation Gaps</h3>
@@ -208,7 +243,7 @@ function scoreColor(score: number): string {
           <p class="text-sm text-zinc-500 mt-1">Workaround: Use MCP tool descriptions and <code class="text-xs bg-zinc-800 px-1 rounded">llms.txt</code> for agent-parseable documentation.</p>
         </div>
 
-        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20" role="listitem" data-testid="fm-no-multiregion" data-severity="medium" data-pattern="single-region">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">MEDIUM</span>
             <h3 class="text-white font-semibold">No Multi-Region</h3>
@@ -217,7 +252,7 @@ function scoreColor(score: number): string {
           <p class="text-sm text-zinc-500 mt-1">Workaround: None currently. Plan for multi-region deployment post-launch.</p>
         </div>
 
-        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20" role="listitem" data-testid="fm-docs-derived" data-severity="medium" data-pattern="docs-derived-evidence">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">MEDIUM</span>
             <h3 class="text-white font-semibold">Score Evidence Mostly Documentation-Derived</h3>

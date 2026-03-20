@@ -2,291 +2,898 @@
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 
-const POSTS = [
+type ContentType = "Comparison" | "Autopsy" | "Guide" | "Article";
+type ScoreTier = "native" | "ready" | "developing" | "limited";
+
+interface RelatedPost {
+  slug: string;
+  title: string;
+}
+
+interface Post {
+  slug: string;
+  title: string;
+  description: string;
+  date: string;
+  dateISO: string;
+  readTime: string;
+  contentType: ContentType;
+  category: string;
+  // Comparison fields
+  winner?: string;
+  scoreRange?: string;
+  verdict?: string;
+  // Autopsy fields
+  score?: number;
+  tier?: ScoreTier;
+  keyFinding?: string;
+  // Guide fields
+  difficulty?: "Beginner" | "Intermediate" | "Advanced";
+  timeEstimate?: string;
+  // Cross-links
+  related?: RelatedPost[];
+}
+
+const POSTS: Post[] = [
+  // ── Comparisons ──────────────────────────────────────────
   {
-    slug: "securing-keys-for-agents",
-    title: "How to Secure Your API Keys for Agent Use",
-    description:
-      "Three credential modes (BYOK, managed, x402), a storage hierarchy from OS keychain to plaintext, and honest threat modeling. No enterprise-grade theater.",
-    date: "March 18, 2026",
-    tag: "Guide",
-    readTime: "8 min read",
+    slug: "stripe-vs-square-vs-paypal",
+    title: "Stripe vs Square vs PayPal for AI Agents",
+    description: "A side-by-side decision page for operators and agents.",
+    date: "March 17, 2026",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Payments",
+    winner: "Stripe",
+    scoreRange: "4.9 – 8.1",
+    verdict: "Stripe wins by default. Square for physical commerce. PayPal constraint-driven.",
+    related: [
+      { slug: "payments-for-agents", title: "Why Stripe Scores 8.1 and PayPal Scores 4.9" },
+      { slug: "twilio-api-autopsy", title: "Twilio API Autopsy" },
+    ],
   },
   {
     slug: "anthropic-vs-openai-vs-google-ai",
     title: "Anthropic vs OpenAI vs Google AI for AI Agents",
-    description:
-      "Anthropic leads on execution and access. OpenAI has the broadest ecosystem but the most friction. Google AI brings multimodal depth. Live AN Score data.",
+    description: "Live AN Score data across the three dominant model providers.",
     date: "March 18, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
-  },
-  {
-    slug: "linear-vs-jira-vs-asana",
-    title: "Linear vs Jira vs Asana for AI Agents",
-    description:
-      "Linear wins on API ergonomics. Jira wins on enterprise depth. Asana offers the cleanest REST API. All within 0.5 points.",
-    date: "March 18, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
-  },
-  {
-    slug: "twilio-vs-vonage-vs-plivo",
-    title: "Twilio vs Vonage vs Plivo for AI Agents",
-    description:
-      "Twilio is the default. Vonage is the platform play. Plivo is the cost optimizer. Live AN Score comparison across messaging APIs.",
-    date: "March 18, 2026",
-    tag: "Comparison",
-    readTime: "8 min read",
-  },
-  {
-    slug: "getting-started-mcp",
-    title: "Getting Started with Rhumb MCP",
-    description:
-      "Install in 30 seconds. 16 MCP tools give your agent tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services.",
-    date: "March 18, 2026",
-    tag: "Getting Started",
-    readTime: "6 min read",
-  },
-  {
-    slug: "hubspot-api-autopsy",
-    title: "HubSpot API Autopsy: What Breaks When Agents Try",
-    description:
-      "Score: 4.6/10. Rate limit traps, cross-hub API inconsistency, OAuth maze, no idempotency — six failure modes dissected.",
-    date: "March 18, 2026",
-    tag: "Autopsy",
-    readTime: "10 min read",
-  },
-  {
-    slug: "salesforce-api-autopsy",
-    title: "Salesforce API Autopsy: The Enterprise Maze",
-    description:
-      "Score: 4.8/10. Governance 10.0, payment autonomy 2.0. SOQL barriers, governor limits, sandbox/production split, metadata complexity.",
-    date: "March 18, 2026",
-    tag: "Autopsy",
-    readTime: "11 min read",
-  },
-  {
-    slug: "twilio-api-autopsy",
-    title: "Twilio API Autopsy: What Agent-Native Almost Looks Like",
-    description:
-      "Score: 8.0/10. Simple auth, idempotency, error codes that teach. What a high-scoring API looks like — and the friction that remains.",
-    date: "March 18, 2026",
-    tag: "Autopsy",
-    readTime: "10 min read",
-  },
-  {
-    slug: "shopify-api-autopsy",
-    title: "Shopify API Autopsy: The GraphQL Bet",
-    description:
-      "Score: 7.8/10. Strong fundamentals gated behind GraphQL complexity. Query cost budgets, forced version migration, cursor pagination everywhere.",
-    date: "March 18, 2026",
-    tag: "Autopsy",
-    readTime: "10 min read",
-  },
-  {
-    slug: "supabase-vs-planetscale-vs-neon",
-    title: "Supabase vs PlanetScale vs Neon for AI Agents",
-    description:
-      "The closest race in any category. Neon edges on raw score, Supabase on confidence and platform breadth, PlanetScale for MySQL at scale.",
-    date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
-  },
-  {
-    slug: "posthog-vs-mixpanel-vs-amplitude",
-    title: "PostHog vs Mixpanel vs Amplitude for AI Agents",
-    description:
-      "PostHog wins on breadth and agent-friendliness, Mixpanel on behavioral depth, Amplitude for warehouse-native enterprise. A side-by-side decision page.",
-    date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
-  },
-  {
-    slug: "auth0-vs-clerk-vs-firebase-auth",
-    title: "Auth0 vs Clerk vs Firebase Auth for AI Agents",
-    description:
-      "Clerk wins on agent ergonomics, Auth0 wins on enterprise compliance, Firebase Auth wins inside Google Cloud. A side-by-side decision page.",
-    date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
-  },
-  {
-    slug: "hubspot-vs-salesforce-vs-pipedrive",
-    title: "HubSpot vs Salesforce vs Pipedrive for AI Agents",
-    description:
-      "No CRM is agent-native yet. Pipedrive has the least friction, Salesforce has the governance ceiling, and HubSpot has the broadest surface.",
-    date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "10 min read",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "AI Models",
+    winner: "Anthropic",
+    scoreRange: "7.2 – 9.1",
+    verdict: "Anthropic leads on execution. OpenAI on ecosystem breadth. Google on multimodal depth.",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+    ],
   },
   {
     slug: "resend-vs-sendgrid-vs-postmark",
     title: "Resend vs SendGrid vs Postmark for AI Agents",
-    description:
-      "Resend wins by default, Postmark wins for critical deliverability, and SendGrid wins in Twilio stacks. A side-by-side decision page for operators and agents.",
+    description: "A side-by-side decision page for email delivery APIs.",
     date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Email",
+    winner: "Resend",
+    scoreRange: "6.8 – 8.5",
+    verdict: "Resend wins by default. Postmark for critical deliverability. SendGrid in Twilio stacks.",
+    related: [],
   },
   {
-    slug: "stripe-vs-square-vs-paypal",
-    title: "Stripe vs Square vs PayPal for AI Agents",
-    description:
-      "Stripe wins by default, Square wins when physical commerce matters, and PayPal is mostly a constraint-driven choice. A side-by-side decision page for operators and agents.",
+    slug: "auth0-vs-clerk-vs-firebase-auth",
+    title: "Auth0 vs Clerk vs Firebase Auth for AI Agents",
+    description: "A side-by-side decision page for authentication APIs.",
     date: "March 17, 2026",
-    tag: "Comparison",
-    readTime: "9 min read",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Auth",
+    winner: "Clerk",
+    scoreRange: "6.0 – 8.4",
+    verdict: "Clerk wins on agent ergonomics. Auth0 on enterprise compliance. Firebase Auth inside GCP.",
+    related: [],
   },
+  {
+    slug: "supabase-vs-planetscale-vs-neon",
+    title: "Supabase vs PlanetScale vs Neon for AI Agents",
+    description: "The closest race in any category. All three within 0.5 points.",
+    date: "March 17, 2026",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Databases",
+    winner: "Neon",
+    scoreRange: "7.8 – 8.3",
+    verdict: "Neon edges on raw score. Supabase on confidence and platform breadth. PlanetScale at MySQL scale.",
+    related: [],
+  },
+  {
+    slug: "posthog-vs-mixpanel-vs-amplitude",
+    title: "PostHog vs Mixpanel vs Amplitude for AI Agents",
+    description: "A side-by-side decision page for analytics APIs.",
+    date: "March 17, 2026",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Analytics",
+    winner: "PostHog",
+    scoreRange: "6.2 – 7.9",
+    verdict: "PostHog wins on breadth and agent-friendliness. Amplitude for warehouse-native enterprise.",
+    related: [],
+  },
+  {
+    slug: "hubspot-vs-salesforce-vs-pipedrive",
+    title: "HubSpot vs Salesforce vs Pipedrive for AI Agents",
+    description: "No CRM is agent-native yet. Three different flavors of friction.",
+    date: "March 17, 2026",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Comparison",
+    category: "CRM",
+    winner: "Pipedrive",
+    scoreRange: "4.6 – 5.2",
+    verdict: "Pipedrive has least friction. Salesforce has governance ceiling. HubSpot broadest surface.",
+    related: [
+      { slug: "hubspot-api-autopsy", title: "HubSpot API Autopsy" },
+      { slug: "salesforce-api-autopsy", title: "Salesforce API Autopsy" },
+    ],
+  },
+  {
+    slug: "twilio-vs-vonage-vs-plivo",
+    title: "Twilio vs Vonage vs Plivo for AI Agents",
+    description: "Live AN Score comparison across messaging APIs.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Comparison",
+    category: "Messaging",
+    winner: "Twilio",
+    scoreRange: "5.8 – 8.0",
+    verdict: "Twilio is the default. Vonage is the platform play. Plivo for cost optimization.",
+    related: [
+      { slug: "twilio-api-autopsy", title: "Twilio API Autopsy" },
+    ],
+  },
+  {
+    slug: "linear-vs-jira-vs-asana",
+    title: "Linear vs Jira vs Asana for AI Agents",
+    description: "All within 0.5 points — the tightest race in PM tooling.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Comparison",
+    category: "Project Management",
+    winner: "Linear",
+    scoreRange: "6.5 – 7.0",
+    verdict: "Linear on API ergonomics. Jira on enterprise depth. Asana has the cleanest REST API.",
+    related: [],
+  },
+  // ── Autopsies ─────────────────────────────────────────────
+  {
+    slug: "twilio-api-autopsy",
+    title: "Twilio API Autopsy: What Agent-Native Almost Looks Like",
+    description: "Simple auth, idempotency, error codes that teach. The highest-scoring API in our database — and the friction that remains.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Autopsy",
+    category: "Messaging",
+    score: 8.0,
+    tier: "ready",
+    keyFinding: "Best-in-class error ergonomics and idempotency. Friction lives in webhook signature verification edge cases.",
+    related: [
+      { slug: "twilio-vs-vonage-vs-plivo", title: "Twilio vs Vonage vs Plivo" },
+    ],
+  },
+  {
+    slug: "shopify-api-autopsy",
+    title: "Shopify API Autopsy: The GraphQL Bet",
+    description: "Strong fundamentals gated behind GraphQL complexity. Query cost budgets, forced version migration, cursor pagination everywhere.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Autopsy",
+    category: "Commerce",
+    score: 7.8,
+    tier: "ready",
+    keyFinding: "GraphQL-only approach creates friction for agents preferring REST. Cost-based rate limiting is non-obvious.",
+    related: [],
+  },
+  {
+    slug: "salesforce-api-autopsy",
+    title: "Salesforce API Autopsy: The Enterprise Maze",
+    description: "Governance 10.0, payment autonomy 2.0. SOQL barriers, governor limits, sandbox/production split, metadata complexity.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "11 min",
+    contentType: "Autopsy",
+    category: "CRM",
+    score: 4.8,
+    tier: "limited",
+    keyFinding: "Governance ceiling is real. Agents can't sign contracts or navigate compliance flows autonomously.",
+    related: [
+      { slug: "hubspot-vs-salesforce-vs-pipedrive", title: "HubSpot vs Salesforce vs Pipedrive" },
+      { slug: "hubspot-api-autopsy", title: "HubSpot API Autopsy" },
+    ],
+  },
+  {
+    slug: "hubspot-api-autopsy",
+    title: "HubSpot API Autopsy: What Breaks When Agents Try",
+    description: "Rate limit traps, cross-hub API inconsistency, OAuth maze, no idempotency — six failure modes dissected.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Autopsy",
+    category: "CRM",
+    score: 4.6,
+    tier: "limited",
+    keyFinding: "Six failure modes. No idempotency keys. Rate limits that vary by tier without documentation.",
+    related: [
+      { slug: "hubspot-vs-salesforce-vs-pipedrive", title: "HubSpot vs Salesforce vs Pipedrive" },
+      { slug: "salesforce-api-autopsy", title: "Salesforce API Autopsy" },
+    ],
+  },
+  // ── Guides ────────────────────────────────────────────────
+  {
+    slug: "getting-started-mcp",
+    title: "Getting Started with Rhumb MCP",
+    description: "Install in 30 seconds. 16 MCP tools give your agent tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "6 min",
+    contentType: "Guide",
+    category: "MCP",
+    difficulty: "Beginner",
+    timeEstimate: "~30 min",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+      { slug: "how-agents-pay", title: "How AI Agents Pay for Things" },
+    ],
+  },
+  {
+    slug: "securing-keys-for-agents",
+    title: "How to Secure Your API Keys for Agent Use",
+    description: "Three credential modes (BYOK, managed, x402), a storage hierarchy from OS keychain to plaintext, and honest threat modeling. No enterprise-grade theater.",
+    date: "March 18, 2026",
+    dateISO: "2026-03-18T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "Security",
+    difficulty: "Intermediate",
+    timeEstimate: "~20 min",
+    related: [
+      { slug: "how-agents-pay", title: "How AI Agents Pay for Things" },
+      { slug: "getting-started-mcp", title: "Getting Started with Rhumb MCP" },
+    ],
+  },
+  // ── Articles ──────────────────────────────────────────────
   {
     slug: "how-agents-pay",
     title: "How AI Agents Get Wallets and Pay for Things",
-    description:
-      "Three paths to agent-autonomous payments: prepaid credits, x402 USDC on Base, and enterprise agent cards. Working code for each.",
+    description: "Three paths to agent-autonomous payments: prepaid credits, x402 USDC on Base, and enterprise agent cards. Working code for each.",
     date: "March 17, 2026",
-    tag: "Agent Infrastructure",
-    readTime: "11 min read",
+    dateISO: "2026-03-17T00:00:00Z",
+    readTime: "11 min",
+    contentType: "Article",
+    category: "Agent Infrastructure",
+    related: [
+      { slug: "securing-keys-for-agents", title: "How to Secure API Keys" },
+      { slug: "payments-for-agents", title: "Why Stripe Scores 8.1" },
+    ],
   },
   {
     slug: "agent-native-frontend-stack",
     title: "The Agent-Native Frontend Stack",
-    description:
-      "We ranked every major frontend framework by how hard it is to accidentally build something agents can't read. Astro wins. Here's why.",
+    description: "We ranked every major frontend framework by how hard it is to accidentally build something agents can't read. Astro wins. Here's why.",
     date: "March 14, 2026",
-    tag: "Agent Infrastructure",
-    readTime: "12 min read",
+    dateISO: "2026-03-14T00:00:00Z",
+    readTime: "12 min",
+    contentType: "Article",
+    category: "Agent Infrastructure",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+      { slug: "agent-cards-invisible", title: "Why Agent Cards Are Invisible" },
+    ],
   },
   {
     slug: "agent-cards-invisible",
     title: "Why 'Agent Cards' Are Invisible to Agents",
-    description:
-      "We fetched Ramp's Agent Cards page the way an agent would. It extracted 3 words. Here's the full audit and the fix pattern.",
+    description: "We fetched Ramp's Agent Cards page the way an agent would. It extracted 3 words. Here's the full audit and the fix pattern.",
     date: "March 14, 2026",
-    tag: "Agent Readability",
-    readTime: "7 min read",
+    dateISO: "2026-03-14T00:00:00Z",
+    readTime: "7 min",
+    contentType: "Article",
+    category: "Agent Readability",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+      { slug: "agent-native-frontend-stack", title: "The Agent-Native Frontend Stack" },
+    ],
   },
   {
     slug: "agent-passport-ranking",
     title: "Which SSO Gives Agents the Most Power?",
-    description:
-      "We tried to bootstrap 23 developer tools autonomously. GitHub unlocked 8. Email unlocked 0. The full agent passport ranking.",
+    description: "We tried to bootstrap 23 developer tools autonomously. GitHub unlocked 8. Email unlocked 0. The full agent passport ranking.",
     date: "March 14, 2026",
-    tag: "Access",
-    readTime: "9 min read",
+    dateISO: "2026-03-14T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Article",
+    category: "Access",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+    ],
   },
   {
     slug: "self-score",
     title: "We Scored Ourselves First — Here's What We Found",
-    description:
-      "Rhumb's honest assessment of its own agent-nativeness using our own framework. 3.5/10 (Limited). Why transparency is the credibility moat.",
+    description: "Rhumb's honest assessment of its own agent-nativeness using our own framework. 3.5/10 (Limited). Why transparency is the credibility moat.",
     date: "March 11, 2026",
-    tag: "Transparency",
-    readTime: "12 min read",
+    dateISO: "2026-03-11T00:00:00Z",
+    readTime: "12 min",
+    contentType: "Article",
+    category: "Transparency",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+      { slug: "payments-for-agents", title: "Why Stripe Scores 8.1" },
+    ],
   },
   {
     slug: "aag-framework",
-    title:
-      "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base",
-    description:
-      "Agent Accessibility Guidelines (AAG): 6 interaction channels x 3 compliance levels. The framework for making web apps work for autonomous AI agents.",
+    title: "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base",
+    description: "Agent Accessibility Guidelines (AAG): 6 interaction channels × 3 compliance levels. The framework for making web apps work for autonomous AI agents.",
     date: "March 10, 2026",
-    tag: "Framework",
-    readTime: "10 min read",
+    dateISO: "2026-03-10T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Article",
+    category: "Framework",
+    related: [
+      { slug: "agent-cards-invisible", title: "Why Agent Cards Are Invisible" },
+      { slug: "agent-native-frontend-stack", title: "The Agent-Native Frontend Stack" },
+    ],
   },
   {
     slug: "payments-for-agents",
     title: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
-    description:
-      "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
+    description: "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
     date: "March 9, 2026",
-    tag: "Tool Autopsy",
-    readTime: "8 min read",
+    dateISO: "2026-03-09T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Article",
+    category: "Payments",
+    related: [
+      { slug: "stripe-vs-square-vs-paypal", title: "Stripe vs Square vs PayPal" },
+      { slug: "how-agents-pay", title: "How AI Agents Pay" },
+    ],
+  },
+  // ── Self-Assessment ──────────────────────────────────────
+  {
+    slug: "we-scored-ourselves",
+    title: "We Scored Ourselves: Rhumb's AN Score Self-Assessment",
+    description: "Rhumb applies its own 20-dimension AN Score methodology to itself. Score: 6.8/10 — every dimension, every gap, fully transparent.",
+    date: "March 20, 2026",
+    dateISO: "2026-03-20T00:00:00Z",
+    readTime: "12 min",
+    contentType: "Autopsy",
+    category: "Self-Assessment",
+    score: 6.8,
+    tier: "developing",
+    keyFinding: "Payment Autonomy scores 9.0, but Sandbox/Test Mode is just 4.0 — we're L3, not L4, by our own standard.",
+    related: [
+      { slug: "aag-framework", title: "The WCAG for AI Agents" },
+      { slug: "agent-native-frontend-stack", title: "The Agent-Native Frontend Stack" },
+    ],
   },
 ];
 
+// Sort by content type priority: Comparison → Autopsy → Guide → Article
+const CONTENT_ORDER: Record<ContentType, number> = {
+  Comparison: 0,
+  Autopsy: 1,
+  Guide: 2,
+  Article: 3,
+};
+
+const SORTED_POSTS = [...POSTS].sort(
+  (a, b) => CONTENT_ORDER[a.contentType] - CONTENT_ORDER[b.contentType]
+);
+
+const COUNTS = POSTS.reduce(
+  (acc, p) => {
+    acc[p.contentType] = (acc[p.contentType] || 0) + 1;
+    return acc;
+  },
+  {} as Record<string, number>
+);
+
+// Score tier color config
+const TIER_COLORS: Record<ScoreTier, string> = {
+  native:     "#10B981",
+  ready:      "#3B82F6",
+  developing: "#F59E0B",
+  limited:    "#EF4444",
+};
+const TIER_LABELS: Record<ScoreTier, string> = {
+  native:     "Agent-Native",
+  ready:      "Agent-Ready",
+  developing: "Developing",
+  limited:    "Limited",
+};
+
+function getScoreTier(score: number): ScoreTier {
+  if (score >= 9.0) return "native";
+  if (score >= 7.0) return "ready";
+  if (score >= 5.0) return "developing";
+  return "limited";
+}
+
+// Enhanced JSON-LD with per-post type metadata
 const BLOG_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Blog",
   name: "Rhumb Blog",
   url: "https://rhumb.dev/blog",
-  description: "Tool autopsies, scoring methodology deep-dives, and agent infrastructure insights.",
+  description:
+    "API autopsies, head-to-head comparisons, and agent infrastructure insights for the agent-native era.",
   publisher: {
     "@type": "Organization",
     name: "Rhumb",
     url: "https://rhumb.dev",
+    logo: { "@type": "ImageObject", url: "https://rhumb.dev/api/og" },
   },
   blogPost: POSTS.map((post) => ({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
     url: `https://rhumb.dev/blog/${post.slug}`,
-    datePublished: post.date,
+    datePublished: post.dateISO,
+    keywords: [post.contentType, post.category, "AI agents", "API", "agent-native"].join(", "),
+    author: { "@type": "Person", name: "Pedro Nunes" },
+    ...(post.contentType === "Comparison"
+      ? {
+          additionalProperty: [
+            { "@type": "PropertyValue", name: "contentType", value: "Comparison" },
+            { "@type": "PropertyValue", name: "winner", value: post.winner },
+            { "@type": "PropertyValue", name: "scoreRange", value: post.scoreRange },
+            { "@type": "PropertyValue", name: "verdict", value: post.verdict },
+          ],
+        }
+      : {}),
+    ...(post.contentType === "Autopsy"
+      ? {
+          additionalProperty: [
+            { "@type": "PropertyValue", name: "contentType", value: "Autopsy" },
+            { "@type": "PropertyValue", name: "score", value: post.score?.toFixed(1) },
+            { "@type": "PropertyValue", name: "tier", value: post.tier },
+            { "@type": "PropertyValue", name: "keyFinding", value: post.keyFinding },
+          ],
+        }
+      : {}),
+    ...(post.contentType === "Guide"
+      ? {
+          additionalProperty: [
+            { "@type": "PropertyValue", name: "contentType", value: "Guide" },
+            { "@type": "PropertyValue", name: "difficulty", value: post.difficulty },
+            { "@type": "PropertyValue", name: "timeEstimate", value: post.timeEstimate },
+          ],
+        }
+      : {}),
   })),
 };
 ---
 
-
 <Layout
   title="Blog | Rhumb"
-  description="Tool autopsies and agent-native infrastructure insights."
+  description="API autopsies, head-to-head comparisons, and agent infrastructure insights for the agent-native era."
   canonical="https://rhumb.dev/blog"
   ogTitle="Blog | Rhumb"
-  ogDescription="Tool autopsies and agent-native infrastructure insights."
+  ogDescription="API autopsies, head-to-head comparisons, and agent infrastructure insights."
   ogUrl="https://rhumb.dev/blog"
   ogImage="https://rhumb.dev/api/og"
   jsonLd={BLOG_JSON_LD}
 >
-  <div class="bg-navy min-h-screen">
-    <!-- Header -->
-    <section class="relative border-b border-slate-800 overflow-hidden">
-      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
-      <div class="relative max-w-3xl mx-auto px-6 py-14">
-        <p class="text-xs font-mono text-amber uppercase tracking-widest mb-3">Writing</p>
-        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 tracking-tight">Blog</h1>
-        <p class="mt-3 text-slate-400 leading-relaxed">
-          Tool autopsies, scoring methodology deep-dives, and agent infrastructure insights.
+  {/* Agent meta tags (AAG Level AA) */}
+  <meta name="ai:content-type" content="blog-index" />
+  <meta name="ai:post-count" content={String(POSTS.length)} />
+  <meta name="ai:content-types" content="comparison,autopsy,guide,article" />
+  <meta name="ai:data-format" content="structured-cards" />
+
+  <div class="bg-navy min-h-screen noise-overlay" data-testid="blog-index">
+
+    <!-- ── Hero ──────────────────────────────────────────────── -->
+    <section class="relative border-b border-slate-800/60 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-20 pointer-events-none"></div>
+      <div
+        class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full pointer-events-none"
+        style="background: radial-gradient(ellipse, rgba(245,158,11,0.05) 0%, transparent 70%);"
+      ></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 py-16 md:py-20">
+        <!-- Eyebrow -->
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono text-amber uppercase tracking-[0.2em]">Rhumb Intelligence</span>
+          <span class="h-px w-10 bg-amber/30"></span>
+          <span class="text-xs font-mono text-slate-600">api research · tool scoring</span>
+        </div>
+
+        <h1 class="font-display font-bold text-5xl md:text-6xl text-slate-100 tracking-tight leading-none mb-4">
+          API Intelligence
+        </h1>
+        <p class="text-slate-400 text-lg max-w-2xl leading-relaxed mb-10">
+          Tool autopsies, head-to-head comparisons, and agent infrastructure deep-dives.
+          <span class="text-slate-600">Structured for autonomous parsing. Readable by humans.</span>
         </p>
+
+        <!-- Stats strip -->
+        <div class="flex flex-wrap items-center gap-6">
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono font-bold text-3xl text-amber" style="font-variant-numeric: tabular-nums;">{POSTS.length}</span>
+            <span class="text-sm font-mono text-slate-500">posts</span>
+          </div>
+          <div class="w-px h-6 bg-slate-800 hidden sm:block"></div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono font-bold text-2xl text-blue-400">{COUNTS["Comparison"] ?? 0}</span>
+            <span class="text-sm font-mono text-slate-600">comparisons</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono font-bold text-2xl text-red-400">{COUNTS["Autopsy"] ?? 0}</span>
+            <span class="text-sm font-mono text-slate-600">autopsies</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono font-bold text-2xl text-emerald-400">{COUNTS["Guide"] ?? 0}</span>
+            <span class="text-sm font-mono text-slate-600">guides</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-mono font-bold text-2xl text-violet-400">{COUNTS["Article"] ?? 0}</span>
+            <span class="text-sm font-mono text-slate-600">articles</span>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Post list -->
-    <section class="max-w-3xl mx-auto px-6 py-12">
-      <div class="space-y-4">
-        {POSTS.map((post) => (
-          <a
-            href={`/blog/${post.slug}`}
-            class="block group"
+    <!-- ── Filter tabs ────────────────────────────────────────── -->
+    <div class="sticky top-0 z-20 bg-navy/95 backdrop-blur-sm border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6">
+        <div id="filter-bar" role="tablist" aria-label="Filter posts by content type" class="flex gap-0 overflow-x-auto -mb-px">
+          <button
+            role="tab"
+            aria-selected="true"
+            data-filter="all"
+            class="filter-tab active-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 transition-all duration-150 border-amber text-amber"
           >
-            <article class="bg-surface border border-slate-800 rounded-xl p-7 transition-all duration-200 hover:border-slate-600 hover:bg-elevated">
-              <!-- Meta row -->
-              <div class="flex items-center gap-3 mb-4">
-                <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
-                  {post.tag}
-                </span>
-                <span class="text-slate-800">&middot;</span>
-                <span class="text-xs font-mono text-slate-500">{post.date}</span>
-                <span class="text-slate-800">&middot;</span>
-                <span class="text-xs font-mono text-slate-600">{post.readTime}</span>
+            All
+            <span class="ml-1.5 opacity-60">{POSTS.length}</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-filter="Comparison"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+          >
+            <span class="mr-1.5 opacity-70">⚖</span>Comparisons
+            <span class="ml-1.5 opacity-40">{COUNTS["Comparison"] ?? 0}</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-filter="Autopsy"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+          >
+            <span class="mr-1.5 opacity-70">⚕</span>Autopsies
+            <span class="ml-1.5 opacity-40">{COUNTS["Autopsy"] ?? 0}</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-filter="Guide"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+          >
+            <span class="mr-1.5 opacity-70">→</span>Guides
+            <span class="ml-1.5 opacity-40">{COUNTS["Guide"] ?? 0}</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-filter="Article"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+          >
+            <span class="mr-1.5 opacity-70">✦</span>Articles
+            <span class="ml-1.5 opacity-40">{COUNTS["Article"] ?? 0}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Posts grid ─────────────────────────────────────────── -->
+    <main class="max-w-6xl mx-auto px-6 py-10">
+      <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {SORTED_POSTS.map((post) => {
+          const tier = post.tier ?? (post.score != null ? getScoreTier(post.score) : undefined);
+          const tierColor = tier ? TIER_COLORS[tier] : undefined;
+          const tierLabel = tier ? TIER_LABELS[tier] : undefined;
+
+          // Left accent border color per type
+          const borderColor =
+            post.contentType === "Comparison" ? "#3B82F6" :
+            post.contentType === "Autopsy" ? (tierColor ?? "#EF4444") :
+            post.contentType === "Guide" ? "#10B981" :
+            "#8B5CF6";
+
+          return (
+            <article
+              data-post-type={post.contentType}
+              data-post-slug={post.slug}
+              data-post-category={post.category}
+              data-winner={post.winner ?? null}
+              data-score={post.score ?? null}
+              data-tier={tier ?? null}
+              role="article"
+              class="group relative bg-surface border border-slate-800/80 rounded-xl overflow-hidden card-lift"
+              style={`border-left: 3px solid ${borderColor};`}
+            >
+              <!-- Full-card invisible link overlay -->
+              <a
+                href={`/blog/${post.slug}`}
+                class="absolute inset-0 z-0 rounded-xl focus-glow"
+                tabindex="0"
+                aria-label={`Read: ${post.title}`}
+              ></a>
+
+              <!-- Card content (pointer-events-none so the overlay link catches clicks) -->
+              <div class="relative z-10 p-6 pointer-events-none">
+
+                <!-- Type badge row -->
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center gap-2">
+                    <!-- Content type chip -->
+                    {post.contentType === "Comparison" && (
+                      <span class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/25">
+                        ⚖ Comparison
+                      </span>
+                    )}
+                    {post.contentType === "Autopsy" && (
+                      <span
+                        class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-widest px-2 py-0.5 rounded border"
+                        style={`background: ${tierColor}14; color: ${tierColor}; border-color: ${tierColor}33;`}
+                      >
+                        ⚕ Autopsy
+                      </span>
+                    )}
+                    {post.contentType === "Guide" && (
+                      <span class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                        → Guide
+                      </span>
+                    )}
+                    {post.contentType === "Article" && (
+                      <span class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/25">
+                        ✦ {post.category}
+                      </span>
+                    )}
+                  </div>
+
+                  <!-- Prominent verdict stat (right side) -->
+                  {post.contentType === "Comparison" && post.winner && (
+                    <span class="inline-flex items-center gap-1.5 text-xs font-mono font-semibold bg-amber/10 text-amber border border-amber/25 px-2.5 py-1 rounded-md">
+                      🏆 {post.winner} wins
+                    </span>
+                  )}
+                  {post.contentType === "Autopsy" && post.score != null && tier && (
+                    <span
+                      class="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 rounded-md"
+                      style={`background: ${tierColor}1a; color: ${tierColor}; border: 1px solid ${tierColor}40;`}
+                    >
+                      {post.score.toFixed(1)}<span class="opacity-50">/10</span>
+                    </span>
+                  )}
+                  {post.contentType === "Guide" && post.difficulty && (
+                    <span class="inline-flex items-center gap-1.5 text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-md">
+                      {post.difficulty}
+                    </span>
+                  )}
+                </div>
+
+                <!-- Title -->
+                <h2 class="font-display font-bold text-[1.0625rem] leading-snug text-slate-100 group-hover:text-amber transition-colors duration-200 mb-3">
+                  {post.title}
+                </h2>
+
+                <!-- Type-specific insight line (the verdict / key finding) -->
+                {post.contentType === "Comparison" && post.verdict && (
+                  <p class="text-sm text-slate-300 font-medium leading-snug mb-3 border-l-2 border-blue-500/30 pl-3">
+                    {post.verdict}
+                  </p>
+                )}
+                {post.contentType === "Autopsy" && post.keyFinding && (
+                  <p
+                    class="text-sm font-medium leading-snug mb-3 border-l-2 pl-3"
+                    style={`color: ${tierColor}cc; border-color: ${tierColor}40;`}
+                  >
+                    {post.keyFinding}
+                  </p>
+                )}
+
+                <!-- Description -->
+                <p class="text-sm text-slate-500 leading-relaxed mb-5">
+                  {post.description}
+                </p>
+
+                <!-- Meta row -->
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5 text-[11px] font-mono text-slate-700">
+                    <span>{post.date}</span>
+                    <span>·</span>
+                    <span>{post.readTime} read</span>
+                    {post.contentType === "Comparison" && post.scoreRange && (
+                      <>
+                        <span>·</span>
+                        <span class="text-slate-600">AN {post.scoreRange}</span>
+                      </>
+                    )}
+                    {post.contentType === "Guide" && post.timeEstimate && (
+                      <>
+                        <span>·</span>
+                        <span class="text-emerald-800">{post.timeEstimate}</span>
+                      </>
+                    )}
+                  </div>
+                  <span class="text-[11px] font-mono text-slate-700 group-hover:text-amber transition-colors duration-200 flex-shrink-0">
+                    Read →
+                  </span>
+                </div>
+
               </div>
 
-              <!-- Title -->
-              <h2 class="font-display font-bold text-xl text-slate-100 leading-snug group-hover:text-amber transition-colors mb-3">
-                {post.title}
-              </h2>
-
-              <!-- Excerpt -->
-              <p class="text-slate-400 text-sm leading-relaxed">
-                {post.description}
-              </p>
-
-              <!-- Read link -->
-              <div class="mt-5 text-xs font-mono text-slate-600 group-hover:text-amber transition-colors">
-                Read post &rarr;
-              </div>
+              <!-- Related posts (z-20, pointer-events-auto so links work) -->
+              {post.related && post.related.length > 0 && (
+                <div
+                  class="relative z-20 pointer-events-auto px-6 pb-5 -mt-1"
+                  role="navigation"
+                  aria-label="Related posts"
+                >
+                  <div class="flex flex-wrap gap-1.5 pt-4 border-t border-slate-800/50">
+                    {post.related.map((rel) => (
+                      <a
+                        href={`/blog/${rel.slug}`}
+                        class="text-[10px] font-mono text-slate-700 hover:text-amber transition-colors duration-150 px-2 py-1 rounded border border-slate-800/80 hover:border-slate-700 bg-navy/60 max-w-[220px] truncate"
+                        title={rel.title}
+                      >
+                        ↗ {rel.title.length > 35 ? rel.title.substring(0, 35) + "…" : rel.title}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </article>
-          </a>
-        ))}
+          );
+        })}
+
+      </div>
+
+      <!-- Empty state (hidden by default, shown via JS when filter has no results) -->
+      <div id="empty-state" class="hidden text-center py-20">
+        <p class="text-slate-600 font-mono text-sm">No posts match this filter.</p>
+      </div>
+    </main>
+
+    <!-- ── Agent index (machine-readable content map) ─────────── -->
+    <section
+      class="max-w-6xl mx-auto px-6 pb-16"
+      aria-label="Machine-readable blog index"
+      data-agent-index="true"
+    >
+      <div class="border border-slate-800/60 rounded-xl overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-800/60 flex items-center justify-between bg-surface/60">
+          <div class="flex items-center gap-2.5">
+            <span class="text-[10px] font-mono text-amber uppercase tracking-[0.18em]">Agent Index</span>
+            <span class="text-[10px] font-mono text-slate-700">·</span>
+            <span class="text-[10px] font-mono text-slate-600">machine-parseable content map</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-700">{POSTS.length} entries</span>
+        </div>
+        <div
+          class="p-4 grid gap-0.5"
+          role="list"
+          aria-label="Blog post index"
+          itemscope
+          itemtype="https://schema.org/ItemList"
+        >
+          {SORTED_POSTS.map((post, i) => {
+            const tier = post.tier ?? (post.score != null ? getScoreTier(post.score) : undefined);
+            const tierColor = tier ? TIER_COLORS[tier] : undefined;
+            return (
+              <div
+                role="listitem"
+                itemprop="itemListElement"
+                itemscope
+                itemtype="https://schema.org/ListItem"
+                class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1 px-2 rounded hover:bg-elevated/40 transition-colors group/row"
+                data-index={i + 1}
+                data-type={post.contentType}
+                data-winner={post.winner ?? null}
+                data-score={post.score ?? null}
+                data-tier={tier ?? null}
+              >
+                <meta itemprop="position" content={String(i + 1)} />
+                <a
+                  href={`/blog/${post.slug}`}
+                  itemprop="url"
+                  class="text-[11px] font-mono text-slate-600 hover:text-amber transition-colors group-hover/row:text-slate-400 flex-shrink-0"
+                >
+                  /blog/{post.slug}
+                </a>
+                <span
+                  class="text-[11px] font-mono flex-shrink-0"
+                  style={
+                    post.contentType === "Comparison" ? "color: #3B82F6;" :
+                    post.contentType === "Autopsy" ? `color: ${tierColor ?? "#EF4444"};` :
+                    post.contentType === "Guide" ? "color: #10B981;" :
+                    "color: #8B5CF6;"
+                  }
+                >
+                  [{post.contentType}]
+                </span>
+                {post.winner && (
+                  <span class="text-[11px] font-mono text-amber/60 flex-shrink-0">winner={post.winner}</span>
+                )}
+                {post.score != null && (
+                  <span class="text-[11px] font-mono flex-shrink-0" style={`color: ${tierColor}99;`}>score={post.score.toFixed(1)}</span>
+                )}
+                {tier && !post.winner && (
+                  <span class="text-[11px] font-mono flex-shrink-0" style={`color: ${tierColor}66;`}>tier={tier}</span>
+                )}
+                {post.category && (
+                  <span class="text-[11px] font-mono text-slate-800 flex-shrink-0">cat={post.category.toLowerCase().replace(/\s+/g, "-")}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
-  </div>
+
+  </div><!-- /noise-overlay -->
 </Layout>
+
+<script>
+  const filterBar = document.getElementById("filter-bar");
+  const postsGrid = document.getElementById("posts-grid");
+  const emptyState = document.getElementById("empty-state");
+
+  if (filterBar && postsGrid) {
+    filterBar.addEventListener("click", (e) => {
+      const tab = (e.target as HTMLElement).closest<HTMLElement>(".filter-tab");
+      if (!tab) return;
+
+      const filter = tab.dataset.filter ?? "all";
+
+      // Update tab states
+      filterBar.querySelectorAll<HTMLElement>(".filter-tab").forEach((t) => {
+        const isActive = t === tab;
+        t.classList.toggle("active-tab", isActive);
+        t.classList.toggle("border-amber", isActive);
+        t.classList.toggle("text-amber", isActive);
+        t.classList.toggle("border-transparent", !isActive);
+        t.classList.toggle("text-slate-500", !isActive);
+        t.setAttribute("aria-selected", String(isActive));
+      });
+
+      // Filter posts
+      const posts = postsGrid.querySelectorAll<HTMLElement>("[data-post-type]");
+      let visibleCount = 0;
+
+      posts.forEach((post) => {
+        const matches = filter === "all" || post.dataset.postType === filter;
+        post.style.display = matches ? "" : "none";
+        if (matches) visibleCount++;
+      });
+
+      // Show/hide empty state
+      if (emptyState) {
+        emptyState.classList.toggle("hidden", visibleCount > 0);
+      }
+    });
+  }
+</script>
