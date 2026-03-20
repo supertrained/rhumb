@@ -73,6 +73,43 @@ _wallet_requests: dict[str, list[float]] = defaultdict(list)
 _WALLET_RATE_LIMIT = 60   # requests per minute per wallet
 _WALLET_RATE_WINDOW = 60  # seconds
 
+# ---------------------------------------------------------------------------
+# Per-agent execution rate limiter (in-memory, per-process)
+# Prevents abuse of managed credentials and general execution flooding.
+# ---------------------------------------------------------------------------
+
+_agent_exec_requests: dict[str, list[float]] = defaultdict(list)
+_AGENT_EXEC_RATE_LIMIT = 30   # requests per minute per agent (all modes)
+_AGENT_EXEC_RATE_WINDOW = 60  # seconds
+
+_agent_managed_daily: dict[str, list[float]] = defaultdict(list)
+_MANAGED_DAILY_LIMIT = 200    # managed executions per day per agent
+_MANAGED_DAILY_WINDOW = 86400  # 24 hours
+
+
+def check_agent_exec_rate_limit(agent_id: str) -> tuple[bool, int]:
+    """Check per-agent per-minute execution rate limit. Returns (allowed, remaining)."""
+    now = time.time()
+    key = agent_id.lower()
+    _agent_exec_requests[key] = [t for t in _agent_exec_requests[key] if now - t < _AGENT_EXEC_RATE_WINDOW]
+    remaining = _AGENT_EXEC_RATE_LIMIT - len(_agent_exec_requests[key])
+    if remaining <= 0:
+        return False, 0
+    _agent_exec_requests[key].append(now)
+    return True, remaining - 1
+
+
+def check_managed_daily_limit(agent_id: str) -> tuple[bool, int]:
+    """Check per-agent daily managed execution cap. Returns (allowed, remaining)."""
+    now = time.time()
+    key = agent_id.lower()
+    _agent_managed_daily[key] = [t for t in _agent_managed_daily[key] if now - t < _MANAGED_DAILY_WINDOW]
+    remaining = _MANAGED_DAILY_LIMIT - len(_agent_managed_daily[key])
+    if remaining <= 0:
+        return False, 0
+    _agent_managed_daily[key].append(now)
+    return True, remaining - 1
+
 
 def check_wallet_rate_limit(wallet_address: str) -> tuple[bool, int]:
     """Check per-wallet rate limit. Returns (allowed, remaining_requests)."""
@@ -388,6 +425,27 @@ async def execute_capability(
             content=body_402,
             headers={"X-Payment": "required"},
         )
+
+    # ── Per-agent execution rate limiting ────────────────────────────
+    # Applies to all execution modes to prevent flooding.
+    exec_allowed, exec_remaining = check_agent_exec_rate_limit(agent_id)
+    if not exec_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Execution rate limit exceeded (30/min). Slow down.",
+            headers={"Retry-After": "60"},
+        )
+
+    # Stricter daily cap for managed credentials (Rhumb's own keys)
+    if request.credential_mode == "rhumb_managed":
+        managed_allowed, managed_remaining = check_managed_daily_limit(agent_id)
+        if not managed_allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Daily managed execution limit exceeded (200/day). "
+                       "Consider using BYO credentials for higher volume.",
+                headers={"Retry-After": "3600"},
+            )
 
     # Validate required fields before reserving any budget/credits.
     if request.credential_mode == "agent_vault":
