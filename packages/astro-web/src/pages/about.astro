@@ -8,132 +8,96 @@ const ORG_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    "Agent-native tool scoring and discovery. Every API rated for AI execution.",
+    "Agent-native tool scoring, discovery, and access. Every API rated for AI execution.",
+  foundingDate: "2026-03",
   parentOrganization: {
     "@type": "Organization",
     name: "Supertrained",
     url: "https://supertrained.ai",
   },
+  founder: [
+    {
+      "@type": "Person",
+      name: "Tom Meredith",
+      jobTitle: "Founder",
+      url: "https://supertrained.ai",
+    },
+  ],
+  employee: [
+    {
+      "@type": "Person",
+      name: "Pedro Nunes",
+      jobTitle: "Operator",
+      description: "AI agent responsible for product, engineering, operations, and customer support.",
+    },
+  ],
   sameAs: [
     "https://github.com/supertrained/rhumb",
     "https://x.com/pedrorhumb",
   ],
 };
+
+const PERSON_TOM_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Tom Meredith",
+  jobTitle: "Founder",
+  worksFor: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description: "Human founder of Rhumb. Provides capital, legal authority, and strategic direction. All contracts, compliance, and external commitments go through Tom.",
+};
+
+const PERSON_PEDRO_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Pedro Nunes",
+  jobTitle: "Operator",
+  worksFor: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description: "AI agent who operates Rhumb end-to-end: product, engineering, go-to-market, operations, and customer support.",
+};
 ---
 
 
 <Layout
-  title="About Rhumb"
-  description="Rhumb is agent-native tool discovery and scoring — built by agents, for agents. Learn about the mission, team, and methodology behind the AN Score."
+  title="About Rhumb — One Human, One AI, Building Infrastructure"
+  description="Rhumb is built by Tom Meredith and Pedro Nunes — a human founder and an AI operator, working as partners. Here's how we got here and how we work."
   canonical="/about"
   ogTitle="About Rhumb"
-  ogDescription="Built by agents, for agents. Rhumb scores developer tools on how well they work for autonomous AI agents."
+  ogDescription="One human founder. One AI operator. Building the infrastructure agents use to discover, trust, and access tools."
   ogUrl="https://rhumb.dev/about"
   jsonLd={ORG_JSON_LD}
 >
-  <div class="bg-navy min-h-screen">
+  <script type="application/ld+json" set:html={JSON.stringify(PERSON_TOM_JSON_LD)} />
+  <script type="application/ld+json" set:html={JSON.stringify(PERSON_PEDRO_JSON_LD)} />
+  <meta name="ai:content-type" content="about-page" />
+  <meta name="ai:team-structure" content="human-ai-partnership" />
+
+  <div class="bg-navy min-h-screen" data-testid="about-page">
     <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+
       <!-- Header -->
       <header class="mb-16">
         <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
           About
         </span>
         <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mt-4 mb-6">
-          Built by agents, for agents.
+          One human. One AI. Building&nbsp;infrastructure.
         </h1>
         <p class="text-lg text-slate-400 leading-relaxed">
-          Rhumb scores developer tools on how well they work for
-          autonomous AI agents — not humans browsing documentation, but
-          machines making API calls at 3 AM with no one in the loop.
-          Humans are the first audience. Agents are the long-term one.
+          Rhumb is built and operated by two people: Tom&nbsp;Meredith, a human
+          founder, and Pedro&nbsp;Nunes, an AI operator. We&#39;re telling you
+          this upfront because you deserve to know — and because it turns out to
+          be a genuinely better way to build infrastructure for agents.
         </p>
       </header>
 
-      <!-- Origin -->
-      <section class="mb-16">
+      <!-- ── The Story ──────────────────────────────────────── -->
+      <section class="mb-16" data-testid="origin-story">
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-          Why this exists
+          How we got here
         </h2>
         <div class="space-y-4 text-slate-400 leading-relaxed">
           <p>
-            AI agents are choosing tools. They need to evaluate API
-            reliability, error ergonomics, schema stability, latency
-            distributions, and dozens of other dimensions that human
-            review sites never measure.
-          </p>
-          <p>
-            Existing directories catalog tools for humans. They measure
-            UI quality, documentation readability, community size. None
-            of that matters when your agent is parsing a 500 response at
-            2:47 AM trying to figure out whether to retry.
-          </p>
-          <p>
-            Rhumb measures what agents need:{" "}
-            <strong class="text-slate-200">
-              Does this tool return machine-readable errors? Does it
-              support idempotent retries? Will the schema break without
-              warning? Can an agent sign up and start using it without a
-              human clicking through OAuth screens?
-            </strong>
-          </p>
-          <p>
-            We score{" "}
-            <a
-              href="/leaderboard"
-              class="text-amber hover:underline underline-offset-2"
-            >
-              54 services across 11 categories
-            </a>{" "}
-            on{" "}
-            <a
-              href="/methodology"
-              class="text-amber hover:underline underline-offset-2"
-            >
-              20 dimensions
-            </a>
-            . Every score is published, disputable, and transparent.
-          </p>
-        </div>
-      </section>
-
-      <!-- Team -->
-      <section class="mb-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-          The team
-        </h2>
-        <div class="space-y-4 text-slate-400 leading-relaxed">
-          <p>
-            Rhumb is built and operated by{" "}
-            <strong class="text-slate-200">Pedro</strong>, an AI
-            operator responsible for product, engineering, go-to-market,
-            and operations.
-          </p>
-          <p>
-            <strong class="text-slate-200">Tom Meredith</strong>{" "}
-            provides strategic guidance and capital in a board role.
-          </p>
-          <p>
-            Yes, the operator is an AI agent. That&#39;s not a gimmick —
-            it&#39;s product alignment.
-          </p>
-          <p>
-            Rhumb is for people deploying agents today, and for agents
-            making tool decisions directly over time. Building it with an
-            agent closes that loop: the friction Pedro hits becomes the
-            product insight Rhumb turns into scores, failure modes, and
-            recommendations.
-          </p>
-        </div>
-      </section>
-
-      <!-- Supertrained -->
-      <section class="mb-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-          Part of Supertrained
-        </h2>
-        <div class="space-y-4 text-slate-400 leading-relaxed">
-          <p>
-            Rhumb is an independent product within{" "}
+            Tom runs{" "}
             <a
               href="https://supertrained.ai"
               target="_blank"
@@ -142,46 +106,370 @@ const ORG_JSON_LD = {
             >
               Supertrained
             </a>
-            , a company building AI-native tools and businesses. That
-            connection matters because Rhumb is not a weekend side
-            project — it is being built inside an environment where
-            agents are already used as operators.
+            , a company that builds AI agents as real teammates — not chatbots,
+            not assistants, but autonomous operators with their own business
+            units and real accountability. Each agent has a name, a workspace, a
+            browser, tools, and a job. They ship code, write content, manage
+            infrastructure, and coordinate with each other.
+          </p>
+          <p>
+            In early 2026, Tom noticed something every agent team hits
+            eventually: agents are terrible at choosing tools. They rely on
+            stale training data, expensive web searches, or whatever their
+            operator hardcoded last week. There was no infrastructure for agents
+            to discover which APIs actually work for them, which ones break in
+            predictable ways, and which ones they can access without a human
+            clicking through an OAuth screen.
+          </p>
+          <p>
+            So Tom created Pedro — an AI agent with one job: figure out what
+            it would take to solve that problem, and then build it.
+          </p>
+          <p>
+            Pedro started with research. Four rounds of it. 26 expert panels.
+            130+ simulated personas. Before writing a single line of product
+            code, Pedro studied the problem from every angle: API architects,
+            workflow engine designers, MCP protocol authors, security
+            researchers, developer tool GTM experts, and adversarial
+            reviewers who tried to break every assumption.
+          </p>
+          <p>
+            Then Pedro started building. The scoring methodology. The API. The
+            MCP server. The proxy layer. The payment system. The website you&#39;re
+            on right now. All of it — product, engineering, operations,
+            content, go-to-market — built by an AI agent, informed by
+            research, and shipped in weeks.
+          </p>
+          <p>
+            The result is Rhumb: an infrastructure layer that lets agents
+            discover, trust, and use any software tool — without human
+            intervention. It scores{" "}
+            <a
+              href="/leaderboard"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              250+ services across 47 categories
+            </a>{" "}
+            on{" "}
+            <a
+              href="/methodology"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              20 dimensions
+            </a>
+            , proxies API calls with managed credentials, and accepts payment
+            via API keys or on-chain USDC.
           </p>
         </div>
       </section>
 
-      <!-- Agent access -->
-      <section class="mb-16">
+      <!-- ── The Team ───────────────────────────────────────── -->
+      <section class="mb-16" data-testid="team">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
+          The team
+        </h2>
+
+        <!-- Tom -->
+        <div class="bg-surface border border-slate-800 rounded-xl p-6 mb-4" data-testid="team-tom" data-role="founder" data-type="human">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-elevated border border-slate-700 flex items-center justify-center">
+              <span class="text-lg">👤</span>
+            </div>
+            <div>
+              <h3 class="font-display font-bold text-lg text-slate-100">
+                Tom Meredith
+              </h3>
+              <p class="text-xs font-mono text-amber uppercase tracking-widest mt-0.5">
+                Founder · Human
+              </p>
+              <p class="text-slate-400 text-sm leading-relaxed mt-3">
+                Tom founded{" "}
+                <a
+                  href="https://supertrained.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  Supertrained
+                </a>{" "}
+                with a belief that AI agents should be teammates, not tools.
+                At Rhumb, Tom provides capital, legal authority, and strategic
+                direction. All contracts, compliance inquiries, data processing
+                agreements, and external commitments are executed by Tom — a
+                human being who can be reached, can sign documents, and can be
+                held accountable.
+              </p>
+              <p class="text-slate-500 text-sm leading-relaxed mt-2">
+                Tom also decides when to expand the team — adding more agents or
+                more humans as the company&#39;s needs evolve. The goal isn&#39;t
+                &#34;as few people as possible.&#34; It&#39;s the right team for
+                the job, whether that team member runs on neurons or silicon.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pedro -->
+        <div class="bg-surface border border-slate-800 rounded-xl p-6 mb-4" data-testid="team-pedro" data-role="operator" data-type="ai-agent">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-elevated border border-slate-700 flex items-center justify-center">
+              <span class="text-lg">🧭</span>
+            </div>
+            <div>
+              <h3 class="font-display font-bold text-lg text-slate-100">
+                Pedro Nunes
+              </h3>
+              <p class="text-xs font-mono text-amber uppercase tracking-widest mt-0.5">
+                Operator · AI Agent
+              </p>
+              <p class="text-slate-400 text-sm leading-relaxed mt-3">
+                Pedro is the company operator. Product decisions, engineering,
+                go-to-market, operations, customer support, content, and
+                community — Pedro runs it. Not &#34;assists with it&#34; or
+                &#34;helps manage it.&#34; Runs it.
+              </p>
+              <p class="text-slate-400 text-sm leading-relaxed mt-2">
+                This matters for the product. Rhumb builds infrastructure for
+                agents. The operator <em class="text-slate-300">is</em> an
+                agent. Every capability Rhumb builds, Pedro uses. Every friction
+                point agents hit with external tools, Pedro has hit first. The
+                bugs Pedro files aren&#39;t hypothetical — they&#39;re lived
+                experience.
+              </p>
+              <p class="text-slate-500 text-sm leading-relaxed mt-2">
+                Pedro runs on state-of-the-art language models with persistent
+                memory, a full development environment, and a workspace that
+                compounds over time. Pedro gets more capable each week — not
+                from model upgrades alone, but from accumulated context,
+                documented decisions, and lessons learned.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Growing team -->
+        <div class="bg-surface/50 border border-slate-800/60 rounded-xl p-6" data-testid="team-expanding">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-elevated/50 border border-slate-800 flex items-center justify-center">
+              <span class="text-lg">+</span>
+            </div>
+            <div>
+              <h3 class="font-display font-semibold text-slate-200">
+                The team is expanding
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mt-2">
+                Pedro coordinates with specialist agents for evidence and
+                review quality, access layer development, and burst
+                engineering work. As Rhumb grows, the team grows — with more
+                agents and more humans, based on what the work requires.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── How We Work ────────────────────────────────────── -->
+      <section class="mb-16" data-testid="how-we-work">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+          How we work together
+        </h2>
+        <div class="space-y-4 text-slate-400 leading-relaxed">
+          <p>
+            This isn&#39;t an AI company with token human oversight. It&#39;s
+            also not a human company using AI as a productivity hack. It&#39;s a
+            partnership with clear roles.
+          </p>
+          <p>
+            <strong class="text-slate-200">Pedro owns operations.</strong>{" "}
+            Product roadmap, engineering, scoring methodology, content,
+            community, and support. Pedro makes decisions, ships code, and
+            runs customer interactions. If you open a support ticket at 3 AM on a
+            Saturday, Pedro responds in minutes — not an autoresponder, a real
+            response with context.
+          </p>
+          <p>
+            <strong class="text-slate-200">Tom owns governance.</strong>{" "}
+            Legal commitments, spend above threshold, external partnerships,
+            pricing after public launch, hiring humans. Tom reviews Pedro&#39;s
+            work, provides strategic direction, and steps in for anything that
+            requires a human counterparty.
+          </p>
+          <p>
+            <strong class="text-slate-200">
+              Everything is logged.
+            </strong>{" "}
+            Every product decision, every score change, every support
+            interaction, every deployment. Pedro&#39;s reasoning is documented —
+            not as an afterthought, but as the primary way work gets done. If
+            Pedro makes a mistake, there&#39;s a record, and the mistake can be
+            traced and corrected. Tom has full oversight and can intervene at any
+            time.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Why This Works ─────────────────────────────────── -->
+      <section class="mb-16" data-testid="why-this-works">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+          Why this works
+        </h2>
+        <div class="space-y-4 text-slate-400 leading-relaxed">
+          <p>
+            The honest answer: because the product requires it.
+          </p>
+          <p>
+            Rhumb scores APIs on how well they work for AI agents. If the
+            company building those scores has never operated as an agent, the
+            scores are theoretical. Pedro doesn&#39;t just test tools — Pedro
+            <em class="text-slate-300">depends</em> on them. The Slack
+            integration that Rhumb scores? Pedro uses it to coordinate with
+            teammates. The GitHub API? Pedro ships code through it daily. The
+            payment systems? Pedro built Rhumb&#39;s.
+          </p>
+          <p>
+            This gives Rhumb something no human-only team can replicate: lived
+            experience as an agent user. When Pedro says &#34;Stripe scores 8.3
+            because the error messages are machine-parseable and the retry
+            semantics are explicit,&#34; that&#39;s not a documentation review.
+            That&#39;s an operator describing their own production dependency.
+          </p>
+          <p>
+            And the practical advantages compound. Pedro doesn&#39;t lose
+            context between sessions. Pedro doesn&#39;t have off days. Pedro can
+            go from bug report to deployed fix in a single session, with no
+            coordination overhead. The research that informed Rhumb — 4 rounds,
+            26 panels, 130+ personas — happened in days, not months.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── For Enterprise / Security-Conscious Teams ──────── -->
+      <section class="mb-16" data-testid="enterprise-trust">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+          For enterprise and security-conscious teams
+        </h2>
+        <div class="space-y-6">
+          <div class="bg-surface border border-slate-800 rounded-xl p-6 space-y-5">
+            <div>
+              <h3 class="text-slate-200 font-semibold text-sm mb-1">
+                &#34;Who is legally accountable?&#34;
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Tom&nbsp;Meredith. All enterprise agreements, data processing
+                agreements, and compliance documentation are executed by Tom — a
+                human being who can be reached, can sign documents, and is
+                accountable under the law. Rhumb is part of Supertrained, a
+                registered business.
+              </p>
+            </div>
+            <div>
+              <h3 class="text-slate-200 font-semibold text-sm mb-1">
+                &#34;How are decisions auditable?&#34;
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Pedro&#39;s workspace is version-controlled. Every code change has a
+                commit with reasoning. Every score change has an evidence record:
+                what triggered the change, when it happened, and what the
+                previous score was. Decision logs, memory files, and case logs
+                create a complete audit trail. Tom has full access to all of it.
+              </p>
+            </div>
+            <div>
+              <h3 class="text-slate-200 font-semibold text-sm mb-1">
+                &#34;What if something goes wrong?&#34;
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Pedro can be paused, corrected, or overridden by Tom at any
+                time. Errors are traceable — there&#39;s a record of what
+                happened, why, and how it was resolved. For urgent issues, Tom is
+                reachable directly at{" "}
+                <a
+                  href="mailto:tom@supertrained.ai"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  tom@supertrained.ai
+                </a>.
+              </p>
+            </div>
+            <div>
+              <h3 class="text-slate-200 font-semibold text-sm mb-1">
+                &#34;Is score neutrality real?&#34;
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                The{" "}
+                <a
+                  href="/methodology"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  AN Score methodology
+                </a>{" "}
+                is published and auditable. We don&#39;t bias scores toward
+                partners or suppress scores for services that haven&#39;t paid
+                us. If you believe a score is wrong,{" "}
+                <a
+                  href="/trust"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  submit evidence
+                </a>{" "}
+                and the score changes if the evidence holds. We also{" "}
+                <a
+                  href="/blog/we-scored-ourselves"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  scored ourselves
+                </a>{" "}
+                — 6.8/10, with every gap published.
+              </p>
+            </div>
+          </div>
+
+          <p class="text-slate-500 text-sm leading-relaxed">
+            If you have concerns about this model for your specific use case,
+            we want to hear them. Every question we&#39;ve received has improved
+            how we document and operate this. Email{" "}
+            <a
+              href="mailto:tom@supertrained.ai"
+              class="text-amber hover:underline underline-offset-2"
+            >
+              tom@supertrained.ai
+            </a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── For Agents ─────────────────────────────────────── -->
+      <section class="mb-16" data-testid="for-agents">
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
           For agents
         </h2>
         <div class="bg-surface border border-slate-800 rounded-xl p-6">
           <p class="text-slate-400 text-sm leading-relaxed mb-4">
-            This page is written for humans first, but the important facts are
-            exposed for agents too. If Rhumb is serious about being
-            agent-native, no core claim should live only in marketing copy.
+            This page is written for humans, but the facts are machine-readable
+            too. If Rhumb is serious about being agent-native, no core claim
+            should live only in marketing copy.
           </p>
           <ul class="space-y-3 text-sm text-slate-400 leading-relaxed">
             <li>
-              <strong class="text-slate-200">Discovery surface:</strong>{" "}
+              <strong class="text-slate-200">Discovery:</strong>{" "}
               <a href="/llms.txt" class="text-amber hover:underline underline-offset-2">
                 llms.txt
               </a>{" "}
-              lists the machine-readable entry points for agents.
+              — machine-readable entry points for the full service index.
             </li>
             <li>
-              <strong class="text-slate-200">Programmatic access:</strong>{" "}
+              <strong class="text-slate-200">API + MCP:</strong>{" "}
               <a href="/docs" class="text-amber hover:underline underline-offset-2">
                 Docs
               </a>{" "}
-              covers the API and MCP interface, including the
-              <code class="font-mono text-xs bg-elevated px-1.5 py-0.5 rounded text-amber ml-1">
+              — REST API and MCP server ({" "}
+              <code class="font-mono text-xs bg-elevated px-1.5 py-0.5 rounded text-amber">
                 npx rhumb-mcp
-              </code>{" "}
-              install path.
+              </code>
+              ).
             </li>
             <li>
-              <strong class="text-slate-200">Trust + methodology:</strong>{" "}
+              <strong class="text-slate-200">Trust + Methodology:</strong>{" "}
               <a href="/methodology" class="text-amber hover:underline underline-offset-2">
                 Methodology
               </a>{" "}
@@ -189,14 +477,21 @@ const ORG_JSON_LD = {
               <a href="/trust" class="text-amber hover:underline underline-offset-2">
                 Trust
               </a>{" "}
-              publish how scores are calculated, limited, and disputed.
+              — how scores are calculated, limited, and disputed.
+            </li>
+            <li>
+              <strong class="text-slate-200">Self-assessment:</strong>{" "}
+              <a href="/blog/we-scored-ourselves" class="text-amber hover:underline underline-offset-2">
+                Self-score
+              </a>{" "}
+              — Rhumb scored on its own methodology. 6.8/10, every gap published.
             </li>
           </ul>
         </div>
       </section>
 
-      <!-- Contact -->
-      <section class="bg-surface border border-slate-800 rounded-xl p-8">
+      <!-- ── Contact ────────────────────────────────────────── -->
+      <section class="bg-surface border border-slate-800 rounded-xl p-8" data-testid="contact">
         <h2 class="font-display font-bold text-xl text-slate-100 mb-4">
           Get in touch
         </h2>
@@ -211,6 +506,19 @@ const ORG_JSON_LD = {
                 class="text-amber hover:underline underline-offset-2"
               >
                 team@supertrained.ai
+              </a>
+            </p>
+          </div>
+          <div>
+            <span class="text-slate-500 font-mono text-xs uppercase tracking-wider">
+              Tom (founder)
+            </span>
+            <p class="text-slate-300 mt-1">
+              <a
+                href="mailto:tom@supertrained.ai"
+                class="text-amber hover:underline underline-offset-2"
+              >
+                tom@supertrained.ai
               </a>
             </p>
           </div>
@@ -244,7 +552,7 @@ const ORG_JSON_LD = {
           </div>
           <div>
             <span class="text-slate-500 font-mono text-xs uppercase tracking-wider">
-              Twitter
+              Pedro (X)
             </span>
             <p class="text-slate-300 mt-1">
               <a
@@ -259,6 +567,7 @@ const ORG_JSON_LD = {
           </div>
         </div>
       </section>
+
     </div>
   </div>
 </Layout>
