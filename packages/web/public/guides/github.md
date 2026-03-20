@@ -184,6 +184,7 @@ for run in runs.json()["workflow_runs"]:
 - **Cost-per-operation:** No per-API-call cost. Free tier is generous. Actions minutes cost $0.008/min (Linux) on paid plans. Agent routing: GitHub is the default for all source control operations.
 - **GraphQL vs REST:** Use GraphQL for queries that need nested data (e.g., PR with reviews, checks, and comments in one call). Use REST for simple CRUD. GraphQL reduces API calls and rate limit consumption for complex queries.
 - **GitHub Apps:** For production agent integrations, use GitHub Apps instead of PATs. Apps get higher rate limits (5,000 per installation), granular permissions, and installation-scoped access. Better for multi-repo agents.
+- **Sensitive admin actions are less agent-native than repo workflows:** day-to-day repo work is clean, but account-security surfaces can introduce human-held gates. Example: generating an OAuth App client secret may trigger GitHub `sudo` mode and send a verification code to the account email inbox. That step is not agent-native unless the agent also controls the inbox/session needed to satisfy the check.
 - **Search API:** `GET /search/issues?q=...` is powerful for agents — search by label, author, date, state. Rate limited separately (30 req/min). Use for dedup checks before creating issues.
 
 ---
@@ -194,7 +195,7 @@ GitHub's **8.0 score** reflects the most complete developer platform for agent-n
 
 1. **Execution Autonomy (8.0)** — Fine-grained PATs let agents operate with minimal permissions (Contents + Issues + PRs only). ETag conditional requests (`If-None-Match`) reduce rate limit consumption for read-heavy agents. The `X-GitHub-Api-Version` header pins API behavior. The GraphQL API lets agents retrieve PR + reviews + CI status in a single call, reducing round trips. The main gap: write operations aren't idempotent — agents must search before creating to avoid duplicate issues or PRs.
 
-2. **Access Readiness (8.5)** — Free tier is permanent and genuinely useful (unlimited repos, 2,000 Actions minutes/month). The `gh` CLI installs in seconds and authenticates via `GH_TOKEN`. Fine-grained token creation has a clear permission matrix. The `GITHUB_TOKEN` auto-injection in Actions workflows means agents running as CI steps require zero credential management.
+2. **Access Readiness (8.5)** — Free tier is permanent and genuinely useful (unlimited repos, 2,000 Actions minutes/month). The `gh` CLI installs in seconds and authenticates via `GH_TOKEN`. Fine-grained token creation has a clear permission matrix. The `GITHUB_TOKEN` auto-injection in Actions workflows means agents running as CI steps require zero credential management. The caveat: some higher-privilege account-admin actions (like generating an OAuth App client secret) can trip GitHub `sudo` mode and require an email verification code, which is a real non-agent-native gate.
 
 3. **Agent Autonomy (7.5)** — 60+ webhook event types cover the full developer lifecycle (push, PR, CI run, deployment, release). The MCP server for GitHub (official) provides repository, issue, and PR operations via MCP tool calls. GitHub Actions' `workflow_dispatch` event lets agents trigger CI pipelines programmatically. The rate limit (5,000 req/hour) is the binding constraint for high-frequency agent loops — GraphQL helps by batching data, but bulk write agents will hit ceilings.
 
