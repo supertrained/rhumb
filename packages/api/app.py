@@ -5,10 +5,18 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from middleware.error_response import (
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 from middleware.query_logging import QueryLoggingMiddleware
+from middleware.request_id import RequestIDMiddleware
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -124,9 +132,15 @@ def create_app() -> FastAPI:
         allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
+    application.add_middleware(RequestIDMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
 
     # ── Exception handlers ──
+    # Standardized error envelope: request_id + resolution on every error
+    application.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    application.add_exception_handler(RequestValidationError, validation_exception_handler)
+    application.add_exception_handler(Exception, unhandled_exception_handler)
+    # x402 payment-required has its own handler (returns 402 with payment envelope)
     application.add_exception_handler(PaymentRequiredException, payment_required_handler)
 
     # ── Routers ──
