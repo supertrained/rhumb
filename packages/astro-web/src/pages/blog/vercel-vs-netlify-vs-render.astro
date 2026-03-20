@@ -1,0 +1,349 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  vercel: await getServiceScore("vercel"),
+  netlify: await getServiceScore("netlify"),
+  render: await getServiceScore("render"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Vercel vs Netlify vs Render for AI Agents",
+  datePublished: "2026-03-20T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A side-by-side comparison of Vercel, Netlify, and Render deployment APIs for AI agent workflows. Vercel leads on execution; Render on simplicity.",
+  url: "https://rhumb.dev/blog/vercel-vs-netlify-vs-render",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+type ComparedService = {
+  slug: "vercel" | "netlify" | "render";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "vercel",
+    name: "Vercel",
+    accent: "#000000",
+    accentSoft: "rgba(255,255,255,0.12)",
+    bestFor: "Agents deploying frontend applications, Next.js projects, and edge functions where deployment speed and preview environments matter. Highest execution score of the three.",
+    avoidWhen: "You need to deploy arbitrary containers, background workers, or anything that doesn't fit the serverless/edge model. Vercel's opinions about architecture are strong, and fighting them costs more than switching platforms.",
+    friction: "Team and project scoping adds authentication complexity — agents need to understand the org → project → deployment hierarchy. API rate limits are tight for programmatic workflows (100 deployments/day on free tier). Git-based deployments are first-class; API-triggered deployments require more setup.",
+    decision: "Pick Vercel when deploying frontend applications where build speed, preview URLs, and edge performance are the primary concerns.",
+    support: "Highest execution score. Build and deploy APIs work reliably. Preview deployment URLs are automatically generated and accessible — an agent can deploy, get a URL, and verify its work in a single pipeline. Edge functions deploy fast.",
+    data: scoreMap.vercel,
+  },
+  {
+    slug: "render",
+    name: "Render",
+    accent: "#46E3B7",
+    accentSoft: "rgba(70,227,183,0.16)",
+    bestFor: "Agents deploying mixed workloads — web services, background workers, cron jobs, databases — through a clean REST API with minimal abstraction overhead.",
+    avoidWhen: "You need the sophisticated edge network and build optimization that Vercel provides for frontend-heavy projects. Render is simpler by design, which means fewer knobs to turn but also fewer optimizations.",
+    friction: "Service types (web service, private service, background worker, cron job, static site) require upfront decision-making. Auto-scaling configuration is less granular than Vercel's edge network. Blueprint spec (render.yaml) is powerful but another format to learn.",
+    decision: "Pick Render when you need a straightforward deployment API that handles backends, databases, and cron jobs — not just frontends.",
+    support: "Cleanest API design of the three for general-purpose deployment. REST endpoints are predictable and well-documented. Blueprint infrastructure-as-code (render.yaml) lets agents define entire stacks declaratively. Native PostgreSQL and Redis mean fewer external dependencies.",
+    data: scoreMap.render,
+  },
+  {
+    slug: "netlify",
+    name: "Netlify",
+    accent: "#00C7B7",
+    accentSoft: "rgba(0,199,183,0.16)",
+    bestFor: "Agents deploying static sites, Jamstack applications, and projects that benefit from built-in form handling, identity, and serverless functions bundled into the platform.",
+    avoidWhen: "You need to deploy containers, run long-running processes, or work outside the Jamstack paradigm. Netlify's platform has strong opinions that work well within its model and poorly outside it.",
+    friction: "Deploy hooks vs API deployments vs Git-triggered builds — three different deployment paths with different capabilities. Function bundling behavior can surprise agents that expect standard Node.js module resolution. Build plugin ecosystem adds power but also complexity for agents trying to understand the build pipeline.",
+    decision: "Pick Netlify when deploying Jamstack sites where built-in platform features (forms, identity, edge functions) reduce the number of external services an agent needs to integrate.",
+    support: "Mature platform with well-documented APIs. Deploy previews work well. The Netlify CLI is comprehensive. Built-in features (forms, identity, edge functions) reduce integration surface area — fewer services means fewer failure points for an agent to manage.",
+    data: scoreMap.netlify,
+  },
+];
+
+// Sort by score, highest first
+const sorted = [...compared].sort((a, b) => {
+  const sa = a.data?.aggregateRecommendationScore ?? 0;
+  const sb = b.data?.aggregateRecommendationScore ?? 0;
+  return sb - sa;
+});
+
+const winner = sorted[0];
+const title = "Vercel vs Netlify vs Render for AI Agents";
+const description =
+  "A side-by-side comparison of Vercel, Netlify, and Render deployment APIs for AI agent workflows using Rhumb's live AN Score data.";
+---
+
+<Layout
+  title={title}
+  description={description}
+  ogImage="/images/og-devops-comparison.png"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(ARTICLE_JSON_LD)} />
+  <meta name="rhumb:category" content="devops" />
+  <meta name="rhumb:type" content="comparison" />
+  <meta name="ai:content-type" content="api-comparison" />
+  <meta name="ai:services" content="vercel,netlify,render" />
+
+  <main class="max-w-3xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="mb-10">
+      <a
+        href="/compare"
+        class="text-xs text-slate-500 hover:text-slate-400 transition-colors mb-3 inline-block"
+        >← All comparisons</a
+      >
+      <h1
+        class="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight"
+      >
+        {title}
+      </h1>
+      <p class="text-slate-400 text-base leading-relaxed max-w-2xl">
+        {description}
+      </p>
+      <p class="text-xs text-slate-600 mt-3">
+        Last updated March 2026 · Scores from live AN Score data
+      </p>
+    </div>
+
+    <!-- Score cards -->
+    <div class="grid gap-4 mb-10">
+      {
+        sorted.map((svc, i) => (
+          <div
+            class={`bg-slate-800/50 border rounded-lg p-5 transition-all ${
+              i === 0
+                ? "border-score-native/40 ring-1 ring-score-native/20"
+                : "border-slate-700/50"
+            }`}
+            data-testid={`score-card-${svc.slug}`}
+            data-service={svc.slug}
+            data-score={svc.data?.aggregateRecommendationScore ?? "N/A"}
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-semibold text-white">{svc.name}</h2>
+                  {i === 0 && (
+                    <span class="text-[10px] font-medium text-score-native bg-score-native/10 px-1.5 py-0.5 rounded-full">
+                      HIGHEST
+                    </span>
+                  )}
+                </div>
+                <p class="text-sm text-slate-400 mt-1">{svc.bestFor}</p>
+              </div>
+              {svc.data && (
+                <div class="text-right shrink-0 ml-4">
+                  <div
+                    class="text-2xl font-bold text-white"
+                  >
+                    {svc.data.aggregateRecommendationScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-xs text-slate-500">AN Score</div>
+                </div>
+              )}
+            </div>
+
+            {svc.data && (
+              <div class="grid grid-cols-3 gap-3 text-center mb-4">
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.executionScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Execution
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.accessReadinessScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Access
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {(svc.data.confidence ?? 0).toFixed(2)}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Confidence
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {svc.data?.tierLabel && (
+              <div class="mb-3">
+                <TierBadge tier={svc.data.tierLabel} />
+              </div>
+            )}
+
+            <p class="text-sm text-slate-400 leading-relaxed">{svc.support}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Detailed analysis -->
+    <div class="space-y-10">
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">
+          The deployment problem for agents
+        </h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            An agent that can write code but can't deploy it is half an agent.
+            Deployment APIs are the bridge between "code exists on disk" and
+            "code is running in production." For AI agents, the key question
+            isn't which platform is fastest — it's which platform's API makes
+            the full deploy → verify → rollback loop achievable without human
+            intervention.
+          </p>
+          <p>
+            All three platforms started as "push code, get URL" services. But
+            their APIs have diverged significantly. Vercel optimized for frontend
+            build performance and edge distribution. Render optimized for
+            general-purpose simplicity — deploy anything, no opinions about
+            framework. Netlify optimized for the Jamstack ecosystem with
+            built-in platform primitives.
+          </p>
+          <p>
+            For agents, the relevant axes are: how easy is it to trigger a
+            deployment programmatically, how quickly can you verify the
+            deployment succeeded, and how cleanly can you roll back if something
+            breaks? None of these platforms were designed for agents — but some
+            are significantly easier to automate than others.
+          </p>
+        </div>
+      </section>
+
+      {
+        compared.map((svc) => (
+          <section>
+            <h2 class="text-xl font-semibold text-white mb-4" style={`border-left: 3px solid ${svc.accent === "#000000" ? "#ffffff" : svc.accent}; padding-left: 12px;`}>
+              {svc.name}
+            </h2>
+            <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+              <h3 class="text-base font-medium text-white">Best for</h3>
+              <p>{svc.bestFor}</p>
+
+              <h3 class="text-base font-medium text-white">Avoid when</h3>
+              <p>{svc.avoidWhen}</p>
+
+              <h3 class="text-base font-medium text-white">Friction points</h3>
+              <p>{svc.friction}</p>
+
+              <h3 class="text-base font-medium text-white">The call</h3>
+              <p>{svc.decision}</p>
+            </div>
+          </section>
+        ))
+      }
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">How we scored them</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            The AN Score measures how well an API works for autonomous agents
+            across three dimensions: <strong>Execution</strong> (does the API do
+            what it says?), <strong>Access</strong> (can an agent authenticate
+            and start working without human intervention?), and data-derived
+            <strong>confidence</strong> reflecting how much evidence backs each
+            score.
+          </p>
+          <p>
+            Vercel's high confidence (0.97) reflects deeper evidence — more
+            reviews, more runtime data. Render and Netlify are also well-evidenced
+            (0.84 and 0.89 respectively). These are not provisional scores.
+          </p>
+          <p>
+            These scores are not pay-to-play. Rhumb has no commercial
+            relationship with Vercel, Netlify, or Render. The AN Score
+            is editorially independent — always.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">Bottom line</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            <strong>Vercel</strong> has the highest execution score (8.0) —
+            when you call its API, deployments work reliably and fast. But the
+            lowest access readiness score (5.8) means getting authenticated and
+            configured is harder. The platform has strong opinions about how
+            you should build (Next.js, edge-first, serverless), and those
+            opinions help if you're aligned with them and hurt if you're not.
+          </p>
+          <p>
+            <strong>Render</strong> offers the most straightforward deployment
+            model for mixed workloads. Web services, background workers, cron
+            jobs, PostgreSQL — all through one REST API with consistent
+            patterns. The Blueprint spec (render.yaml) is infrastructure-as-code
+            that an agent can generate and commit. It won't win on frontend
+            build speed, but it will deploy a complete backend stack with less
+            friction than either competitor.
+          </p>
+          <p>
+            <strong>Netlify</strong> is the platform for teams already in the
+            Jamstack ecosystem. Built-in forms, identity, and edge functions
+            reduce the number of services an agent needs to integrate. But the
+            multiple deployment paths (API, deploy hooks, Git) add cognitive
+            overhead, and the platform's abstractions can surprise agents that
+            expect standard behavior.
+          </p>
+          <p>
+            The scores are close (6.2 – 7.1) because all three platforms are
+            genuinely functional for programmatic deployment. The differentiation
+            is in what kind of deployment your agent needs, not whether the API
+            works.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Related -->
+    <div class="mt-12 pt-8 border-t border-slate-800">
+      <h3 class="text-sm font-semibold text-white mb-4">Related comparisons</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a
+          href="/blog/datadog-vs-new-relic-vs-grafana"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">Monitoring</span>
+          <span class="text-xs text-slate-500 block mt-1">Datadog vs New Relic vs Grafana Cloud</span>
+        </a>
+        <a
+          href="/blog/supabase-vs-planetscale-vs-neon"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">Databases</span>
+          <span class="text-xs text-slate-500 block mt-1">Supabase vs PlanetScale vs Neon</span>
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>

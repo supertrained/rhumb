@@ -129,6 +129,7 @@ sandbox/test mode.
 - /blog/linear-vs-jira-vs-asana — Project Management (Winner: Linear 7.5)
 - /blog/anthropic-vs-openai-vs-google-ai — AI/LLM (Winner: Anthropic 8.4)
 - /blog/datadog-vs-new-relic-vs-grafana — Monitoring (Winner: Datadog 7.8)
+- /blog/vercel-vs-netlify-vs-render — DevOps/Deployment (Winner: Vercel 7.1)
 
 ## Tool Autopsies (deep failure mode analysis)
 - /blog/hubspot-api-autopsy — HubSpot (4.6): Cross-hub API inconsistency
