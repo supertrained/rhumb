@@ -92,6 +92,20 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
+    "firecrawl": {
+        "domain": "api.firecrawl.dev",
+        "auth_type": "bearer_token",
+        "rate_limit": "500/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "apify": {
+        "domain": "api.apify.com",
+        "auth_type": "bearer_token",
+        "rate_limit": "250/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
 }
 
 

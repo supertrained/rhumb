@@ -68,6 +68,16 @@ class AuthInjector:
             "header": "Authorization",
             "format": "Bearer {credential}",
         },
+        "firecrawl": {
+            "methods": ["api_key"],
+            "header": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "apify": {
+            "methods": ["api_token"],
+            "header": "Authorization",
+            "format": "Bearer {credential}",
+        },
     }
 
     def __init__(
