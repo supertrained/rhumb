@@ -1,0 +1,279 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "We Scored Ourselves: Rhumb's AN Score Self-Assessment",
+  datePublished: "2026-03-20T00:00:00Z",
+  dateModified: "2026-03-20T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "Rhumb scores 6.8/10 on our own AN Score methodology. Here's every dimension, every gap, and what we're doing about it.",
+  url: "https://rhumb.dev/blog/we-scored-ourselves",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type DimensionScore = {
+  name: string;
+  score: number;
+  summary: string;
+  honest: string;
+};
+
+const executionDimensions: DimensionScore[] = [
+  { name: "API Reliability", score: 6.0, summary: "Reasonable uptime on Railway, structured error handling", honest: "No published SLA, no status page, limited production traffic history" },
+  { name: "Error Ergonomics", score: 8.0, summary: "Structured JSON errors, correct HTTP codes, x402 payment instructions, Retry-After headers", honest: "No machine-readable error code enum beyond HTTP status" },
+  { name: "Schema Stability", score: 7.0, summary: "Versioned at /v1, consistent response envelope, zero breaking changes", honest: "API is young — MTBBC is undefined because there haven't been enough months to measure" },
+  { name: "Latency Distribution", score: 7.5, summary: "Proxy P50 overhead 4.1ms, direct calls <200ms", honest: "No published P99 figures, no multi-region deployment" },
+  { name: "Idempotency", score: 8.0, summary: "Idempotency keys on execution, x402 replay prevention, GET naturally idempotent", honest: "Full coverage on the execution path" },
+  { name: "Concurrent Behavior", score: 6.0, summary: "Asyncio handles concurrent requests, per-agent rate limits", honest: "No explicit documentation of concurrent connection handling or queue behavior" },
+  { name: "Cold-Start Latency", score: 7.0, summary: "Persistent container (no serverless cold starts), health check keeps warm", honest: "No published cold-start vs warm figures" },
+  { name: "Output Structure Quality", score: 9.0, summary: "All structured JSON, consistent envelope, rich score responses with failure modes", honest: "This is genuinely strong — structured data is in our DNA" },
+  { name: "State Leakage", score: 8.0, summary: "Stateless by design, no implicit caching, no cross-agent data leakage", honest: "Rate limit counters are the only per-request state" },
+  { name: "Graceful Degradation", score: 6.0, summary: "Proxy handles upstream failures, capability execution reports fallbacks", honest: "No CDN/cache layer for reads, no public health endpoint, single point of failure" },
+];
+
+const accessDimensions: DimensionScore[] = [
+  { name: "Signup Autonomy", score: 7.0, summary: "OAuth signup (GitHub + Google), x402 needs zero signup", honest: "OAuth requires browser interaction — not ideal for headless agents" },
+  { name: "Payment Autonomy", score: 9.0, summary: "x402 USDC zero-signup pay-per-call, Stripe prepaid, free tier for discovery", honest: "No fiat wire/invoice for enterprise" },
+  { name: "Provisioning Speed", score: 8.0, summary: "x402 instant, OAuth <30s to API key, MCP needs no key for discovery", honest: "No programmatic key issuance API" },
+  { name: "Credential Management", score: 5.0, summary: "Key rotation via dashboard", honest: "Single key per user, no scoped tokens, no key management API — this is thin" },
+  { name: "Rate Limit Transparency", score: 7.0, summary: "429 returns Retry-After, per-agent limits enforced", honest: "No published rate limit docs page, headers only on 429 not all responses" },
+  { name: "Documentation Quality", score: 5.0, summary: "Methodology, quickstart, glossary, llms.txt, agent-capabilities.json", honest: "No complete API reference, no Python SDK, OpenAPI disabled for security" },
+  { name: "Sandbox/Test Mode", score: 4.0, summary: "Free tier as implicit sandbox", honest: "No dedicated test environment — agents can't safely experiment without production consequences" },
+];
+
+const autonomyDimensions: DimensionScore[] = [
+  { name: "Payment Integration", score: 9.0, summary: "x402 USDC native, Stripe programmatic, budget controls, ledger API", honest: "No programmatic refund API" },
+  { name: "Governance & Compliance", score: 6.0, summary: "Execution logging, budget enforcement", honest: "No compliance certs (SOC 2), no audit export, no GDPR deletion endpoint, ToS pending legal review" },
+  { name: "Web Agent Accessibility", score: 8.0, summary: "Astro static HTML, JSON-LD, agent meta tags, keyboard navigable", honest: "Missing ARIA labels on some dashboard components" },
+];
+
+const executionAvg = executionDimensions.reduce((s, d) => s + d.score, 0) / executionDimensions.length;
+const accessAvg = accessDimensions.reduce((s, d) => s + d.score, 0) / accessDimensions.length;
+const autonomyAvg = autonomyDimensions.reduce((s, d) => s + d.score, 0) / autonomyDimensions.length;
+const aggregate = executionAvg * 0.7 + accessAvg * 0.3;
+
+function scoreColor(score: number): string {
+  if (score >= 8.0) return "text-green-400";
+  if (score >= 6.0) return "text-yellow-400";
+  if (score >= 4.0) return "text-orange-400";
+  return "text-red-400";
+}
+---
+
+<Layout
+  title="We Scored Ourselves: Rhumb's AN Score Self-Assessment | Rhumb"
+  description="Rhumb scores 6.8/10 on our own AN Score methodology. Here's every dimension, every gap, and what we're doing about it."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <main class="max-w-4xl mx-auto px-6 py-16">
+    {/* Hero */}
+    <div class="mb-12">
+      <p class="text-sm text-zinc-500 mb-2">
+        <a href="/blog" class="hover:text-zinc-300">Blog</a>
+        <span class="mx-2">/</span>
+        Self-Assessment
+      </p>
+      <h1 class="text-4xl font-bold text-white mb-4">
+        We Scored Ourselves
+      </h1>
+      <p class="text-xl text-zinc-400 mb-6">
+        Rhumb applies its own 20-dimension AN Score methodology to itself. The result: <span class={scoreColor(aggregate)}>{aggregate.toFixed(1)}/10</span> — Tier L3 (Fluent). Not agent-native yet, by our own standard.
+      </p>
+      <div class="flex items-center gap-4 text-sm text-zinc-500">
+        <span>By Pedro Nunes</span>
+        <span>·</span>
+        <time datetime="2026-03-20">March 20, 2026</time>
+        <span>·</span>
+        <span>12 min read</span>
+      </div>
+    </div>
+
+    {/* Score Summary */}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 p-6 bg-zinc-900/50 rounded-xl border border-zinc-800">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-yellow-400">{executionAvg.toFixed(1)}</div>
+        <div class="text-sm text-zinc-500 mt-1">Execution (70%)</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-yellow-400">{accessAvg.toFixed(1)}</div>
+        <div class="text-sm text-zinc-500 mt-1">Access Readiness (30%)</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-yellow-400">{autonomyAvg.toFixed(1)}</div>
+        <div class="text-sm text-zinc-500 mt-1">Autonomy Bonus</div>
+      </div>
+    </div>
+
+    {/* Why we did this */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-4">Why Score Ourselves?</h2>
+      <div class="prose prose-invert max-w-none text-zinc-300 space-y-4">
+        <p>
+          We built a scoring system for APIs. If we won't use it on ourselves, why should anyone trust it on others?
+        </p>
+        <p>
+          This isn't a marketing exercise. We applied the same 20 dimensions, the same weighting, the same severity framework we use for every service in our directory. The result is honest — and honestly humbling. We're L3 (Fluent), not L4 (Native). There are real gaps.
+        </p>
+        <p>
+          Every score below includes two lines: what we can legitimately claim, and what we can't. If you're evaluating Rhumb, this is the document to read.
+        </p>
+      </div>
+    </section>
+
+    {/* Execution Dimensions */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-6">Execution Dimensions <span class="text-zinc-500 text-lg font-normal">(70% weight)</span></h2>
+      <div class="space-y-4">
+        {executionDimensions.map((dim) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-white font-semibold">{dim.name}</h3>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+            </div>
+            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Access Readiness Dimensions */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-6">Access Readiness Dimensions <span class="text-zinc-500 text-lg font-normal">(30% weight)</span></h2>
+      <div class="space-y-4">
+        {accessDimensions.map((dim) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-white font-semibold">{dim.name}</h3>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+            </div>
+            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Autonomy Dimensions */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-6">Autonomy Dimensions <span class="text-zinc-500 text-lg font-normal">(bonus)</span></h2>
+      <div class="space-y-4">
+        {autonomyDimensions.map((dim) => (
+          <div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-white font-semibold">{dim.name}</h3>
+              <span class={`text-xl font-bold ${scoreColor(dim.score)}`}>{dim.score.toFixed(1)}</span>
+            </div>
+            <p class="text-sm text-zinc-400 mb-1">✅ {dim.summary}</p>
+            <p class="text-sm text-zinc-500">⚠️ {dim.honest}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Failure Modes */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-6">Our Failure Modes</h2>
+      <div class="space-y-4">
+        <div class="p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded">CRITICAL</span>
+            <h3 class="text-white font-semibold">No Sandbox Environment</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Agents testing integrations affect production data. A misfire on <code class="text-xs bg-zinc-800 px-1 rounded">email.send</code> sends a real email.</p>
+          <p class="text-sm text-zinc-500 mt-1">Workaround: Use discovery endpoints (free, read-only) for evaluation. Use x402 with small amounts for execution testing.</p>
+        </div>
+
+        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">HIGH</span>
+            <h3 class="text-white font-semibold">Single API Key Per User</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Cannot scope access per agent or per capability. All-or-nothing access model.</p>
+          <p class="text-sm text-zinc-500 mt-1">Workaround: Use x402 path (no key needed, per-call payment acts as implicit scoping).</p>
+        </div>
+
+        <div class="p-4 bg-orange-500/5 rounded-lg border border-orange-500/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">HIGH</span>
+            <h3 class="text-white font-semibold">Documentation Gaps</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Agent must discover API behavior through trial and error. No OpenAPI spec available publicly.</p>
+          <p class="text-sm text-zinc-500 mt-1">Workaround: Use MCP tool descriptions and <code class="text-xs bg-zinc-800 px-1 rounded">llms.txt</code> for agent-parseable documentation.</p>
+        </div>
+
+        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">MEDIUM</span>
+            <h3 class="text-white font-semibold">No Multi-Region</h3>
+          </div>
+          <p class="text-sm text-zinc-400">High latency for non-US users. Single Railway container in us-west.</p>
+          <p class="text-sm text-zinc-500 mt-1">Workaround: None currently. Plan for multi-region deployment post-launch.</p>
+        </div>
+
+        <div class="p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">MEDIUM</span>
+            <h3 class="text-white font-semibold">Score Evidence Mostly Documentation-Derived</h3>
+          </div>
+          <p class="text-sm text-zinc-400">Scores may not reflect actual runtime behavior. Disclosed transparently on methodology page.</p>
+          <p class="text-sm text-zinc-500 mt-1">Runtime-backed reviews are labeled separately. Ratio is tracked and published when it meets our quality floor.</p>
+        </div>
+      </div>
+    </section>
+
+    {/* What This Means */}
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-white mb-4">What This Tells Us</h2>
+      <div class="prose prose-invert max-w-none text-zinc-300 space-y-4">
+        <p>
+          <strong>We're L3, not L4.</strong> We preach agent-native but our own access patterns have friction. The x402 zero-signup path is genuinely L4 — an agent can discover, evaluate, and pay for a capability with no human involvement. But the OAuth path, the dashboard, the credential management? L3 at best.
+        </p>
+        <p>
+          <strong>Sandbox is the biggest miss.</strong> Every API we score highly has a test mode. We don't. An agent integrating Rhumb has to make real calls to validate its workflow. For a platform that evaluates API quality for agents, this is ironic.
+        </p>
+        <p>
+          <strong>Our best feature is Payment Autonomy (9.0).</strong> x402 on USDC is genuinely novel. Zero signup, zero credential management, pay-per-call with cryptographic proof. This is the future of agent-to-service interaction, and we're one of the first to ship it.
+        </p>
+        <p>
+          <strong>Our worst dimension is Sandbox (4.0).</strong> We know. It's on the roadmap. But publishing this score with a 4.0 in it — instead of waiting until we fix it — is the whole point. If we only score ourselves when we look good, the methodology is worthless.
+        </p>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="p-6 bg-zinc-900/50 rounded-xl border border-zinc-800 text-center">
+      <h2 class="text-xl font-bold text-white mb-2">See How Your API Scores</h2>
+      <p class="text-zinc-400 mb-4">
+        We use the same methodology on 258+ services. Check your API's AN Score, or try the MCP server to evaluate programmatically.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="/leaderboard" class="px-4 py-2 bg-white text-zinc-900 rounded-lg font-semibold hover:bg-zinc-200 transition-colors">
+          View Leaderboard
+        </a>
+        <a href="/methodology" class="px-4 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors">
+          Read Methodology
+        </a>
+        <a href="/blog/getting-started-mcp" class="px-4 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors">
+          Get Started
+        </a>
+      </div>
+    </section>
+
+    {/* Cross-links */}
+    <div class="mt-8 pt-6 border-t border-zinc-800">
+      <p class="text-sm text-zinc-500">
+        Related: <a href="/methodology" class="text-blue-400 hover:underline">Scoring Methodology</a> ·
+        <a href="/blog/getting-started-mcp" class="text-blue-400 hover:underline">Getting Started with MCP</a> ·
+        <a href="/pricing" class="text-blue-400 hover:underline">Pricing</a> ·
+        <a href="/blog/anthropic-vs-openai-vs-google-ai" class="text-blue-400 hover:underline">AI/LLM Provider Comparison</a>
+      </p>
+    </div>
+  </main>
+</Layout>

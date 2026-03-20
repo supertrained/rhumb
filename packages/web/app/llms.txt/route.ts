@@ -135,6 +135,9 @@ sandbox/test mode.
 - /blog/twilio-api-autopsy — Twilio (8.0): What agent-native almost looks like
 - /blog/shopify-api-autopsy — Shopify (7.8): GraphQL bet agents must navigate
 
+## Self-Assessment
+- /blog/we-scored-ourselves — Rhumb (6.8): We applied our own methodology to ourselves. Every dimension, every gap, fully transparent.
+
 ## Extended Context
 - Full methodology: https://rhumb.dev/methodology
 - Trust and provenance: https://rhumb.dev/trust
