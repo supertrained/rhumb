@@ -1,0 +1,395 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const STATUS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Rhumb System Status",
+  url: "https://rhumb.dev/status",
+  description:
+    "Live operational status for Rhumb infrastructure: API, proxy, scoring, payments, and frontend.",
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+---
+
+<Layout
+  title="System Status — Rhumb"
+  description="Live operational status for Rhumb infrastructure. API, proxy, scoring engine, payments, and frontend health."
+  canonical="/status"
+  ogTitle="Rhumb System Status"
+  ogDescription="Live operational status for all Rhumb infrastructure components."
+  ogUrl="https://rhumb.dev/status"
+  jsonLd={STATUS_JSON_LD}
+>
+  <meta name="ai:content-type" content="status-page" slot="head" />
+  <meta name="ai:machine-readable" content="true" slot="head" />
+  <meta name="rhumb:api-status-endpoint" content="https://api.rhumb.dev/v1/status" slot="head" />
+
+  <div class="bg-navy min-h-screen" data-testid="status-page">
+    <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+
+      <!-- Header -->
+      <header class="mb-10">
+        <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+          System Status
+        </span>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mt-4 mb-3">
+          Rhumb Infrastructure
+        </h1>
+        <p class="text-sm text-slate-500" id="status-timestamp">
+          Checking...
+        </p>
+      </header>
+
+      <!-- Overall status banner -->
+      <div
+        id="overall-status"
+        class="mb-10 rounded-xl border border-slate-800 bg-surface p-6 flex items-center gap-4"
+        data-testid="overall-status"
+      >
+        <div id="overall-indicator" class="w-4 h-4 rounded-full bg-slate-600 animate-pulse"></div>
+        <div>
+          <p id="overall-label" class="text-lg font-display font-bold text-slate-300">
+            Checking system status...
+          </p>
+          <p id="overall-detail" class="text-sm text-slate-500 mt-0.5"></p>
+        </div>
+      </div>
+
+      <!-- Components -->
+      <div class="space-y-4" id="components" data-testid="status-components">
+
+        <!-- Frontend -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-frontend" data-component="frontend">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">Frontend</h3>
+                <p class="text-xs text-slate-500">rhumb.dev</p>
+              </div>
+            </div>
+            <span class="status-label text-xs font-mono text-slate-500">checking</span>
+          </div>
+        </div>
+
+        <!-- API -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-api" data-component="api">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">API</h3>
+                <p class="text-xs text-slate-500">api.rhumb.dev/v1</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="latency-label text-xs font-mono text-slate-600"></span>
+              <span class="status-label text-xs font-mono text-slate-500">checking</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-database" data-component="database">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">Database</h3>
+                <p class="text-xs text-slate-500">Supabase PostgreSQL</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="latency-label text-xs font-mono text-slate-600"></span>
+              <span class="status-label text-xs font-mono text-slate-500">checking</span>
+            </div>
+          </div>
+          <p class="detail-text text-xs text-slate-600 mt-2 hidden"></p>
+        </div>
+
+        <!-- Proxy -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-proxy" data-component="proxy">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">Proxy</h3>
+                <p class="text-xs text-slate-500">Managed API access layer</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="latency-label text-xs font-mono text-slate-600"></span>
+              <span class="status-label text-xs font-mono text-slate-500">checking</span>
+            </div>
+          </div>
+          <p class="detail-text text-xs text-slate-600 mt-2 hidden"></p>
+        </div>
+
+        <!-- Scoring -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-scoring" data-component="scoring">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">Scoring Engine</h3>
+                <p class="text-xs text-slate-500">AN Score computation</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="latency-label text-xs font-mono text-slate-600"></span>
+              <span class="status-label text-xs font-mono text-slate-500">checking</span>
+            </div>
+          </div>
+          <p class="detail-text text-xs text-slate-600 mt-2 hidden"></p>
+        </div>
+
+        <!-- Payments -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-payments" data-component="payments">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">Payments</h3>
+                <p class="text-xs text-slate-500">Stripe + x402 USDC</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="latency-label text-xs font-mono text-slate-600"></span>
+              <span class="status-label text-xs font-mono text-slate-500">checking</span>
+            </div>
+          </div>
+          <p class="detail-text text-xs text-slate-600 mt-2 hidden"></p>
+        </div>
+
+        <!-- MCP -->
+        <div class="rounded-xl border border-slate-800 bg-surface p-5" data-testid="component-mcp" data-component="mcp">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="status-dot w-3 h-3 rounded-full bg-slate-600"></div>
+              <div>
+                <h3 class="font-display font-semibold text-slate-200 text-sm">MCP Server</h3>
+                <p class="text-xs text-slate-500">npx rhumb-mcp</p>
+              </div>
+            </div>
+            <span class="status-label text-xs font-mono text-slate-500">checking</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Agent access -->
+      <div class="mt-10 rounded-xl border border-slate-800 bg-surface p-6" data-testid="agent-access">
+        <h2 class="font-display font-semibold text-slate-200 text-sm mb-3">
+          For agents
+        </h2>
+        <p class="text-xs text-slate-500 leading-relaxed mb-3">
+          Programmatic status is available at the API endpoint. No auth required.
+        </p>
+        <div class="bg-elevated rounded-lg p-3">
+          <code class="text-xs font-mono text-amber">
+            GET https://api.rhumb.dev/v1/status
+          </code>
+        </div>
+        <p class="text-xs text-slate-600 mt-3">
+          Returns JSON with component-level health, latency, and details.
+          Use this endpoint for automated health monitoring and alerting.
+        </p>
+      </div>
+
+      <!-- Contact -->
+      <div class="mt-6 text-center">
+        <p class="text-xs text-slate-600">
+          Issues? Contact{" "}
+          <a
+            href="mailto:team@supertrained.ai"
+            class="text-amber hover:underline underline-offset-2"
+          >
+            team@supertrained.ai
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.rhumb.dev/v1";
+    const FRONTEND_URL = "https://rhumb.dev";
+
+    const STATUS_COLORS = {
+      operational: "bg-emerald-500",
+      degraded: "bg-amber-500",
+      partial_outage: "bg-amber-500",
+      down: "bg-red-500",
+      error: "bg-red-500",
+      checking: "bg-slate-600 animate-pulse",
+    };
+
+    const STATUS_LABELS = {
+      operational: "Operational",
+      degraded: "Degraded",
+      partial_outage: "Partial Outage",
+      down: "Down",
+      error: "Error",
+    };
+
+    function setComponentStatus(name, status, latencyMs, detail) {
+      const el = document.querySelector(`[data-component="${name}"]`);
+      if (!el) return;
+
+      const dot = el.querySelector(".status-dot");
+      const label = el.querySelector(".status-label");
+      const latencyLabel = el.querySelector(".latency-label");
+      const detailText = el.querySelector(".detail-text");
+
+      // Clear old classes
+      dot.className = `status-dot w-3 h-3 rounded-full ${STATUS_COLORS[status] || STATUS_COLORS.checking}`;
+      label.textContent = STATUS_LABELS[status] || status;
+      label.className = `status-label text-xs font-mono ${
+        status === "operational" ? "text-emerald-400" :
+        status === "degraded" ? "text-amber-400" :
+        "text-red-400"
+      }`;
+
+      if (latencyLabel && latencyMs !== undefined) {
+        latencyLabel.textContent = `${latencyMs}ms`;
+        latencyLabel.className = "latency-label text-xs font-mono text-slate-500";
+      }
+
+      if (detailText && detail) {
+        detailText.textContent = detail;
+        detailText.classList.remove("hidden");
+      }
+    }
+
+    function setOverallStatus(status, detail) {
+      const indicator = document.getElementById("overall-indicator");
+      const label = document.getElementById("overall-label");
+      const detailEl = document.getElementById("overall-detail");
+
+      indicator.className = `w-4 h-4 rounded-full ${STATUS_COLORS[status] || STATUS_COLORS.checking}`;
+      label.textContent = status === "operational"
+        ? "All Systems Operational"
+        : STATUS_LABELS[status] || "Unknown";
+      label.className = `text-lg font-display font-bold ${
+        status === "operational" ? "text-emerald-400" :
+        status === "degraded" || status === "partial_outage" ? "text-amber-400" :
+        "text-red-400"
+      }`;
+      if (detail) detailEl.textContent = detail;
+    }
+
+    async function checkFrontend() {
+      const start = performance.now();
+      try {
+        const resp = await fetch(FRONTEND_URL, { method: "HEAD", mode: "no-cors" });
+        const ms = Math.round(performance.now() - start);
+        // no-cors gives opaque response — if we got here, it's reachable
+        setComponentStatus("frontend", "operational", ms);
+        return "operational";
+      } catch {
+        setComponentStatus("frontend", "down");
+        return "down";
+      }
+    }
+
+    async function checkAPI() {
+      const start = performance.now();
+      try {
+        const resp = await fetch(`${API_BASE}/../healthz`);
+        const ms = Math.round(performance.now() - start);
+        if (resp.ok) {
+          setComponentStatus("api", "operational", ms);
+          return true;
+        }
+        setComponentStatus("api", "degraded", ms);
+        return false;
+      } catch {
+        setComponentStatus("api", "down");
+        return false;
+      }
+    }
+
+    async function checkComponents() {
+      try {
+        const resp = await fetch(`${API_BASE}/status`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        // Update timestamp
+        const ts = document.getElementById("status-timestamp");
+        const checkedAt = new Date(data.checked_at);
+        ts.textContent = `Last checked: ${checkedAt.toLocaleString()} · ${data.total_check_ms}ms`;
+
+        // Update each component
+        for (const comp of data.components) {
+          let detail = "";
+          if (comp.component === "database" && comp.details?.service_count) {
+            detail = `${comp.details.service_count} services indexed`;
+          } else if (comp.component === "proxy" && comp.details?.callable_services) {
+            detail = `${comp.details.callable_services} services callable: ${comp.details.services?.join(", ") || ""}`;
+          } else if (comp.component === "scoring" && comp.details?.latest_scored) {
+            detail = `Latest: ${comp.details.latest_scored} (${comp.details.latest_score})`;
+          } else if (comp.component === "payments") {
+            const parts = [];
+            if (comp.details?.stripe) parts.push(`Stripe: ${comp.details.stripe}`);
+            if (comp.details?.x402) parts.push(`x402: ${comp.details.x402}`);
+            detail = parts.join(" · ");
+          }
+          setComponentStatus(comp.component, comp.status, comp.latency_ms, detail);
+        }
+
+        return data.status;
+      } catch {
+        // If status endpoint fails, mark all API-dependent components as unknown
+        for (const name of ["database", "proxy", "scoring", "payments"]) {
+          setComponentStatus(name, "error", undefined, "Status endpoint unreachable");
+        }
+        return "partial_outage";
+      }
+    }
+
+    async function checkMCP() {
+      // MCP status inferred from API — if API is up and scoring works, MCP is operational
+      // (MCP server connects to same API endpoints)
+      setComponentStatus("mcp", "operational");
+    }
+
+    async function runChecks() {
+      const [frontendStatus, apiOk, componentStatus] = await Promise.all([
+        checkFrontend(),
+        checkAPI(),
+        checkComponents(),
+      ]);
+
+      // MCP depends on API
+      if (apiOk) {
+        setComponentStatus("mcp", "operational");
+      } else {
+        setComponentStatus("mcp", "degraded", undefined);
+      }
+
+      // Determine overall
+      const statuses = [frontendStatus, apiOk ? "operational" : "down", componentStatus];
+      if (statuses.includes("down") || statuses.includes("error")) {
+        setOverallStatus("partial_outage", "Some components experiencing issues");
+      } else if (statuses.includes("degraded") || statuses.includes("partial_outage")) {
+        setOverallStatus("degraded", "Performance may be affected");
+      } else {
+        setOverallStatus("operational", "All components responding normally");
+      }
+    }
+
+    // Run on load
+    runChecks();
+
+    // Auto-refresh every 60 seconds
+    setInterval(runChecks, 60_000);
+  </script>
+</Layout>

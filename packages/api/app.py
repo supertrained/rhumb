@@ -48,6 +48,7 @@ from routes import (
     scores,
     search,
     services,
+    status,
     tester_fleet,
     webhooks,
 )
@@ -174,6 +175,7 @@ def create_app() -> FastAPI:
         dependencies=[Depends(require_admin_key)],
     )
     application.include_router(billing.router, prefix="/v1", tags=["billing"])
+    application.include_router(status.router, prefix="/v1", tags=["status"])
     application.include_router(auth.router, prefix="/v1", tags=["auth"])
     application.include_router(webhooks.router, tags=["webhooks"])
 
