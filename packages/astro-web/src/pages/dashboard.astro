@@ -1,0 +1,232 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
+---
+
+<Layout
+  title="Dashboard | Rhumb"
+  description="Your Rhumb developer dashboard — API key, usage, and quickstart."
+  noindex={true}
+>
+  <main class="min-h-screen bg-midnight px-4 py-12">
+    <div class="max-w-2xl mx-auto">
+      <!-- Loading state -->
+      <div id="loading" class="text-center py-20">
+        <div class="inline-block w-6 h-6 border-2 border-slate-600 border-t-score-native rounded-full animate-spin"></div>
+        <p class="text-slate-400 mt-4 text-sm">Loading dashboard...</p>
+      </div>
+
+      <!-- Not authenticated -->
+      <div id="not-auth" class="hidden text-center py-20">
+        <h1 class="text-xl font-semibold text-white mb-4">Not signed in</h1>
+        <p class="text-slate-400 mb-6">Sign in to access your dashboard.</p>
+        <a
+          href="/auth/login"
+          class="inline-flex items-center px-6 py-2.5 rounded-lg bg-score-native text-midnight font-medium text-sm hover:bg-score-native/90 transition-colors"
+        >
+          Sign in
+        </a>
+      </div>
+
+      <!-- Dashboard content -->
+      <div id="dashboard" class="hidden">
+        <!-- Welcome header -->
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="text-xl font-semibold text-white" id="welcome-name">Dashboard</h1>
+            <p class="text-sm text-slate-400" id="welcome-email"></p>
+          </div>
+          <button
+            id="logout-btn"
+            class="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+
+        <!-- New user: show API key -->
+        <div id="new-key-banner" class="hidden mb-6 p-4 rounded-lg bg-score-native/10 border border-score-native/20">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            <h2 class="text-sm font-semibold text-score-native">Your API Key</h2>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">Save this key — it won't be shown again.</p>
+          <div class="flex items-center gap-2">
+            <code id="api-key-value" class="flex-1 px-3 py-2 rounded bg-midnight text-sm text-white font-mono break-all"></code>
+            <button
+              id="copy-key-btn"
+              class="px-3 py-2 rounded bg-slate-700 text-slate-300 text-xs hover:bg-slate-600 transition-colors"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- API Key card -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-white">API Key</h2>
+            <button
+              id="rotate-btn"
+              class="text-xs text-slate-400 hover:text-red-400 transition-colors"
+            >
+              Rotate key
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <code id="key-prefix" class="text-sm text-slate-400 font-mono">rhumb_****</code>
+            <span class="text-xs text-slate-500">•••••••••</span>
+          </div>
+        </div>
+
+        <!-- Quick Start checklist -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
+          <h2 class="text-sm font-semibold text-white mb-4">Quick Start</h2>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full border-2 border-score-native bg-score-native/20 flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm text-white">Create account</p>
+                <p class="text-xs text-slate-500">Done!</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div id="step2-circle" class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
+              <div>
+                <p class="text-sm text-white">Copy your API key</p>
+                <p class="text-xs text-slate-500">Use the key above in your requests.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
+              <div>
+                <p class="text-sm text-white">Make your first API call</p>
+                <pre class="mt-1 text-xs text-slate-400 bg-midnight rounded px-2 py-1.5 overflow-x-auto"><code>curl https://api.rhumb.dev/v1/scores/stripe \
+  -H "X-Rhumb-Key: YOUR_KEY"</code></pre>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
+              <div>
+                <p class="text-sm text-white">Try the MCP server</p>
+                <pre class="mt-1 text-xs text-slate-400 bg-midnight rounded px-2 py-1.5 overflow-x-auto"><code>npx rhumb-mcp@latest</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Useful links -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5">
+          <h2 class="text-sm font-semibold text-white mb-3">Resources</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <a href="/quickstart" class="text-sm text-score-native hover:underline">Quickstart →</a>
+            <a href="/docs" class="text-sm text-score-native hover:underline">API Docs →</a>
+            <a href="/methodology" class="text-sm text-score-native hover:underline">Methodology →</a>
+            <a href="/pricing" class="text-sm text-score-native hover:underline">Pricing →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script define:vars={{ API_URL }}>
+    const loading = document.getElementById("loading");
+    const notAuth = document.getElementById("not-auth");
+    const dashboard = document.getElementById("dashboard");
+
+    async function init() {
+      // Check for new signup API key in URL fragment
+      const hash = window.location.hash;
+      const isNew = new URLSearchParams(window.location.search).get("new") === "1";
+
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me`, {
+          credentials: "include",
+        });
+
+        if (!resp.ok) {
+          loading.classList.add("hidden");
+          notAuth.classList.remove("hidden");
+          return;
+        }
+
+        const user = await resp.json();
+
+        // Populate dashboard
+        document.getElementById("welcome-name").textContent =
+          user.name ? `Welcome, ${user.name}` : "Dashboard";
+        document.getElementById("welcome-email").textContent = user.email || "";
+        document.getElementById("key-prefix").textContent =
+          user.api_key_prefix ? `${user.api_key_prefix}••••••••` : "No key";
+
+        // Show new API key if present
+        if (isNew && hash && hash.length > 1) {
+          const apiKey = hash.substring(1);
+          const keyBanner = document.getElementById("new-key-banner");
+          const keyValue = document.getElementById("api-key-value");
+          keyBanner.classList.remove("hidden");
+          keyValue.textContent = apiKey;
+
+          // Clean URL (remove hash + new param) without reload
+          history.replaceState(null, "", "/dashboard");
+        }
+
+        loading.classList.add("hidden");
+        dashboard.classList.remove("hidden");
+      } catch (e) {
+        console.error("Dashboard init error:", e);
+        loading.classList.add("hidden");
+        notAuth.classList.remove("hidden");
+      }
+    }
+
+    // Copy key button
+    document.getElementById("copy-key-btn")?.addEventListener("click", () => {
+      const key = document.getElementById("api-key-value")?.textContent;
+      if (key) {
+        navigator.clipboard.writeText(key);
+        const btn = document.getElementById("copy-key-btn");
+        btn.textContent = "Copied!";
+        setTimeout(() => (btn.textContent = "Copy"), 2000);
+      }
+    });
+
+    // Rotate key button
+    document.getElementById("rotate-btn")?.addEventListener("click", async () => {
+      if (!confirm("Rotate your API key? The old key will stop working immediately.")) return;
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/rotate-key`, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (!resp.ok) throw new Error("Rotation failed");
+        const data = await resp.json();
+        const keyBanner = document.getElementById("new-key-banner");
+        const keyValue = document.getElementById("api-key-value");
+        keyBanner.classList.remove("hidden");
+        keyValue.textContent = data.api_key;
+        document.getElementById("key-prefix").textContent = data.api_key.substring(0, 12) + "••••••••";
+      } catch (e) {
+        alert("Failed to rotate key: " + e.message);
+      }
+    });
+
+    // Logout button
+    document.getElementById("logout-btn")?.addEventListener("click", async () => {
+      await fetch(`${API_URL}/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/auth/login";
+    });
+
+    init();
+  </script>
+</Layout>
