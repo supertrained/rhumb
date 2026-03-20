@@ -16,6 +16,7 @@ from middleware.error_response import (
     validation_exception_handler,
 )
 from middleware.query_logging import QueryLoggingMiddleware
+from middleware.rate_limit import RateLimitMiddleware
 from middleware.request_id import RequestIDMiddleware
 
 
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
         allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
+    application.add_middleware(RateLimitMiddleware)
     application.add_middleware(RequestIDMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
 
