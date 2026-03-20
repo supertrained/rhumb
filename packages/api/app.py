@@ -4,10 +4,23 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from middleware.query_logging import QueryLoggingMiddleware
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add standard security headers to all API responses."""
+
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
 from services.x402 import PaymentRequiredException, payment_required_handler
 from routes import (
     admin_agents,
@@ -111,6 +124,7 @@ def create_app() -> FastAPI:
         allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
+    application.add_middleware(SecurityHeadersMiddleware)
 
     # ── Exception handlers ──
     application.add_exception_handler(PaymentRequiredException, payment_required_handler)
