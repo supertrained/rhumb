@@ -35,18 +35,19 @@ class SetBudgetRequest(BaseModel):
     alert_threshold_pct: int = Field(80, ge=1, le=100)
 
 
-def _extract_agent_id(api_key: str | None) -> str:
-    """Extract agent identity from API key.
+async def _extract_agent_id(api_key: str | None) -> str:
+    """Validate API key and extract agent identity.
 
-    For now, uses the API key itself as the agent identifier.
-    In production, this would decode a JWT or look up the agent.
+    Returns the agent_id from the identity store, or raises 401.
     """
     if not api_key:
         raise HTTPException(401, "Missing X-Rhumb-Key header")
-    # Use a hash prefix as agent_id to avoid storing the full key
-    import hashlib
-
-    return f"agent_{hashlib.sha256(api_key.encode()).hexdigest()[:16]}"
+    from schemas.agent_identity import get_agent_identity_store
+    store = get_agent_identity_store()
+    agent = await store.verify_api_key_with_agent(api_key)
+    if agent is None:
+        raise HTTPException(401, "Invalid or expired API key")
+    return agent.agent_id
 
 
 @router.get("/budget", response_model=BudgetResponse)
@@ -54,7 +55,7 @@ async def get_budget(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Get current budget status for the authenticated agent."""
-    agent_id = _extract_agent_id(x_rhumb_key)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     status = await _enforcer.get_budget(agent_id)
 
     if status.budget_usd is None:
@@ -78,7 +79,7 @@ async def set_budget(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Create or update budget for the authenticated agent."""
-    agent_id = _extract_agent_id(x_rhumb_key)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     status = await _enforcer.set_budget(
         agent_id=agent_id,
         budget_usd=body.budget_usd,

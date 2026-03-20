@@ -6,10 +6,13 @@ Mounted at /v1 prefix in app.py.
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from routes._supabase import supabase_count, supabase_fetch, supabase_patch
+from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.payment_health import get_payment_health
 from services.stripe_billing import create_checkout_session
 
@@ -20,6 +23,15 @@ MAX_AMOUNT_USD = 5000.0
 
 DEFAULT_SUCCESS_URL = "https://rhumb.dev/billing/success"
 DEFAULT_CANCEL_URL = "https://rhumb.dev/billing/cancel"
+
+_identity_store: Optional[AgentIdentityStore] = None
+
+
+def _get_identity_store() -> AgentIdentityStore:
+    global _identity_store
+    if _identity_store is None:
+        _identity_store = get_agent_identity_store()
+    return _identity_store
 
 
 class CheckoutRequest(BaseModel):
@@ -34,15 +46,17 @@ class AutoReloadRequest(BaseModel):
     amount_usd: float | None = None
 
 
-def _require_org(api_key: str | None) -> str:
-    """Extract org_id from API key.
+async def _require_org(api_key: str | None) -> str:
+    """Validate API key against the identity store and return org_id.
 
-    For Phase 0 the API key *is* the org_id.  A real implementation
-    would decode a JWT or look up the key in the identity store.
+    Returns the organization_id associated with the key, or raises 401.
     """
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing X-Rhumb-Key header")
-    return api_key
+    agent = await _get_identity_store().verify_api_key_with_agent(api_key)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired API key")
+    return agent.organization_id
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +70,7 @@ async def checkout(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Create a Stripe Checkout Session to purchase credits."""
-    org_id = _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
 
     if body.amount_usd < MIN_AMOUNT_USD or body.amount_usd > MAX_AMOUNT_USD:
         raise HTTPException(
@@ -85,7 +99,7 @@ async def get_balance(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Return the org's current credit balance with auto-reload config."""
-    org_id = _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
 
     rows = await supabase_fetch(
         f"org_credits?org_id=eq.{org_id}"
@@ -155,7 +169,7 @@ async def get_ledger(
     event_type: str | None = Query(None),
 ) -> dict:
     """Return paginated, optionally filtered ledger entries for the org."""
-    org_id = _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
 
     base_filter = f"credit_ledger?org_id=eq.{org_id}"
     if event_type:
@@ -205,7 +219,7 @@ async def update_auto_reload(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Update the auto-reload configuration for an org's credit wallet."""
-    org_id = _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
 
     if body.enabled:
         if body.threshold_usd is None or body.threshold_usd <= 0:

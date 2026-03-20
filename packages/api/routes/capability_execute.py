@@ -74,6 +74,36 @@ _WALLET_RATE_LIMIT = 60   # requests per minute per wallet
 _WALLET_RATE_WINDOW = 60  # seconds
 
 # ---------------------------------------------------------------------------
+# x402 transaction replay prevention (in-memory, per-process)
+# Prevents the same on-chain tx_hash from being used for multiple executions.
+# ---------------------------------------------------------------------------
+
+_used_tx_hashes: dict[str, float] = {}  # tx_hash -> first_seen_timestamp
+_TX_HASH_TTL = 86400  # Keep hashes for 24h before allowing cleanup
+_TX_HASH_CLEANUP_INTERVAL = 3600  # Prune expired entries every hour
+_tx_hash_last_cleanup: float = 0.0
+
+
+def check_tx_hash_replay(tx_hash: str) -> bool:
+    """Check if a tx_hash has already been used. Returns True if it's a replay (rejected)."""
+    global _tx_hash_last_cleanup
+    now = time.time()
+    key = tx_hash.lower().strip()
+
+    # Periodic cleanup of expired entries
+    if now - _tx_hash_last_cleanup > _TX_HASH_CLEANUP_INTERVAL:
+        expired = [h for h, ts in _used_tx_hashes.items() if now - ts > _TX_HASH_TTL]
+        for h in expired:
+            del _used_tx_hashes[h]
+        _tx_hash_last_cleanup = now
+
+    if key in _used_tx_hashes:
+        return True  # Replay detected
+
+    _used_tx_hashes[key] = now
+    return False  # First use, allowed
+
+# ---------------------------------------------------------------------------
 # Per-agent execution rate limiter (in-memory, per-process)
 # Prevents abuse of managed credentials and general execution flooding.
 # ---------------------------------------------------------------------------
@@ -357,6 +387,14 @@ async def execute_capability(
                 status_code=402,
                 content=body_402,
                 headers={"X-Payment": "required"},
+            )
+
+        # Replay prevention: reject reused tx_hash
+        tx_hash = payment_data["tx_hash"]
+        if check_tx_hash_replay(tx_hash):
+            raise HTTPException(
+                status_code=409,
+                detail="Transaction hash has already been used. Each payment can only be applied once.",
             )
 
         # Valid payment payload — proceed with x402 anonymous flow

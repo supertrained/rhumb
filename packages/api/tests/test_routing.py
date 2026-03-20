@@ -142,8 +142,23 @@ class TestRoutingRoutes:
     """Test routing API endpoints."""
 
     def setup_method(self):
+        # Patch identity extraction: accept any non-None key, reject None
+        async def _mock_extract(api_key):
+            if not api_key:
+                from fastapi import HTTPException
+                raise HTTPException(401, "Missing X-Rhumb-Key header")
+            return "agent_test123"
+
+        self._agent_id_patcher = patch(
+            "routes.routing._extract_agent_id",
+            side_effect=_mock_extract,
+        )
+        self._agent_id_patcher.start()
         self.app = create_app()
         self.client = TestClient(self.app)
+
+    def teardown_method(self):
+        self._agent_id_patcher.stop()
 
     def test_get_strategy_requires_auth(self):
         resp = self.client.get("/v1/agent/routing-strategy")

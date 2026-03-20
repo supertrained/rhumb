@@ -19,11 +19,16 @@ router = APIRouter(prefix="/v1/agent", tags=["routing"])
 _engine = RoutingEngine()
 
 
-def _extract_agent_id(api_key: str | None) -> str:
+async def _extract_agent_id(api_key: str | None) -> str:
+    """Validate API key and extract agent identity."""
     if not api_key:
         raise HTTPException(401, "Missing X-Rhumb-Key header")
-    import hashlib
-    return f"agent_{hashlib.sha256(api_key.encode()).hexdigest()[:16]}"
+    from schemas.agent_identity import get_agent_identity_store
+    store = get_agent_identity_store()
+    agent = await store.verify_api_key_with_agent(api_key)
+    if agent is None:
+        raise HTTPException(401, "Invalid or expired API key")
+    return agent.agent_id
 
 
 # -- Routing Strategy --
@@ -53,7 +58,7 @@ async def get_routing_strategy(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Get agent's current routing strategy."""
-    agent_id = _extract_agent_id(x_rhumb_key)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     strat = await _engine.get_strategy(agent_id)
     return RoutingStrategyResponse(
         agent_id=agent_id,
@@ -72,7 +77,7 @@ async def set_routing_strategy(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Set agent's routing strategy."""
-    agent_id = _extract_agent_id(x_rhumb_key)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     strat = await _engine.set_strategy(
         agent_id=agent_id,
         strategy=body.strategy,
@@ -107,6 +112,6 @@ async def get_spend(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Get spend breakdown for the authenticated agent."""
-    agent_id = _extract_agent_id(x_rhumb_key)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     summary = await _engine.get_spend_summary(agent_id, period)
     return SpendResponse(**summary)
