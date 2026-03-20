@@ -160,11 +160,18 @@ def admin_client(
     usage_meter: UsageMeterEngine,
     billing_aggregator: BillingAggregator,
     stripe_manager: StripeIntegrationManager,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> TestClient:
-    """FastAPI client wired with billing test stores."""
+    """FastAPI client wired with billing test stores + admin auth."""
+    monkeypatch.setenv("RHUMB_ADMIN_SECRET", "test-admin-secret")
+    # Reload settings so the env var is picked up
+    from config import settings as _settings
+    _settings.rhumb_admin_secret = "test-admin-secret"
     set_test_billing_stores(usage_meter, billing_aggregator, stripe_manager)
     app = create_app()
-    return TestClient(app)
+    client = TestClient(app)
+    client.headers["X-Rhumb-Admin-Key"] = "test-admin-secret"
+    return client
 
 
 def _register_agent(identity_store: AgentIdentityStore, organization_id: str = "org_1") -> str:
