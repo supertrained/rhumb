@@ -1,0 +1,350 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  "aws-s3": await getServiceScore("aws-s3"),
+  "cloudflare-r2": await getServiceScore("cloudflare-r2"),
+  "backblaze-b2": await getServiceScore("backblaze-b2"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "AWS S3 vs Cloudflare R2 vs Backblaze B2 for AI Agents",
+  datePublished: "2026-03-20T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A side-by-side comparison of AWS S3, Cloudflare R2, and Backblaze B2 object storage APIs for AI agent workflows. S3 dominates on execution; R2 on egress economics.",
+  url: "https://rhumb.dev/blog/s3-vs-r2-vs-b2",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+type ComparedService = {
+  slug: "aws-s3" | "cloudflare-r2" | "backblaze-b2";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "aws-s3",
+    name: "AWS S3",
+    accent: "#FF9900",
+    accentSoft: "rgba(255,153,0,0.16)",
+    bestFor: "Agents that need the most mature, battle-tested object storage API with the broadest ecosystem of SDKs, integrations, and third-party tooling. S3 is the protocol standard — everything else implements S3-compatible APIs.",
+    avoidWhen: "Egress costs matter. S3's per-GB egress pricing compounds fast for agents that read data frequently or serve files to end users. IAM complexity is real — agents managing S3 permissions need to understand policies, roles, bucket policies, and ACLs.",
+    friction: "IAM policy authoring is the single biggest friction point. An agent creating a bucket with specific access patterns needs to write JSON policy documents that are notoriously easy to get wrong. Request signing (SigV4) is well-supported by SDKs but adds complexity for custom integrations. Region-specific endpoints require agents to track where buckets live.",
+    decision: "Pick S3 when you need the most reliable object storage with the deepest integration ecosystem. Accept the IAM complexity and egress costs as the price of maturity.",
+    support: "Only service in the category to reach Native tier. Highest execution score (8.6) — the API is extraordinarily reliable. The S3 API is the de facto standard; skills learned here transfer to R2, B2, MinIO, and every S3-compatible service. Presigned URLs, multipart uploads, lifecycle policies, versioning — all work as documented.",
+    data: scoreMap["aws-s3"],
+  },
+  {
+    slug: "cloudflare-r2",
+    name: "Cloudflare R2",
+    accent: "#F48120",
+    accentSoft: "rgba(244,129,32,0.16)",
+    bestFor: "Agents that need S3-compatible object storage without egress fees. If your agent reads data frequently or serves files globally, R2's zero-egress model fundamentally changes the cost equation.",
+    avoidWhen: "You need the full depth of S3 features — lifecycle rules, object lock, batch operations, S3 Select, and advanced versioning are either missing or limited in R2. The API is compatible enough for basic operations but diverges on advanced features.",
+    friction: "S3 compatibility is good but not complete — agents that rely on S3-specific features (event notifications via EventBridge, S3 Select, object lock) will hit gaps. Workers integration is powerful but adds another programming model. R2-specific features (like R2 bindings in Workers) don't transfer to other S3-compatible services.",
+    decision: "Pick R2 when egress costs dominate your storage economics and you don't need S3's advanced features. The S3-compatible API means low switching cost.",
+    support: "Zero egress fees are the headline, but the API quality is genuinely good. S3-compatible endpoints mean existing S3 SDKs work with minimal changes. Cloudflare Workers integration enables compute-at-storage patterns that neither S3 nor B2 offer. Access readiness is strong (7.0) — API tokens are straightforward.",
+    data: scoreMap["cloudflare-r2"],
+  },
+  {
+    slug: "backblaze-b2",
+    name: "Backblaze B2",
+    accent: "#E21F26",
+    accentSoft: "rgba(226,31,38,0.16)",
+    bestFor: "Agents managing cost-sensitive bulk storage — backups, archives, media libraries — where price per GB stored matters more than API sophistication.",
+    avoidWhen: "You need low-latency access patterns, sophisticated lifecycle policies, or a feature-rich API. B2 is optimized for cost, not capability. The native B2 API predates the S3-compatible layer and shows its age.",
+    friction: "Two separate APIs — the native B2 API and the S3-compatible API — with different capabilities and different authentication. The native API uses application keys with bucket-scoping that works differently from IAM policies. Large file uploads require a multi-step authorize/start/upload/finish flow that's more complex than S3's multipart upload. S3-compatible endpoint has limitations around key naming.",
+    decision: "Pick B2 when storage cost is the dominant concern and your agent doesn't need real-time access patterns or advanced storage features.",
+    support: "Lowest storage cost of the three ($0.006/GB/month vs $0.023 for S3). Free egress through Cloudflare Bandwidth Alliance partnership helps if you're already in the Cloudflare ecosystem. The S3-compatible API works for basic operations. But the overall API experience — documentation quality, SDK support, error messages — trails both S3 and R2.",
+    data: scoreMap["backblaze-b2"],
+  },
+];
+
+// Sort by score, highest first
+const sorted = [...compared].sort((a, b) => {
+  const sa = a.data?.aggregateRecommendationScore ?? 0;
+  const sb = b.data?.aggregateRecommendationScore ?? 0;
+  return sb - sa;
+});
+
+const title = "AWS S3 vs Cloudflare R2 vs Backblaze B2 for AI Agents";
+const description =
+  "A side-by-side comparison of AWS S3, Cloudflare R2, and Backblaze B2 object storage APIs for AI agent workflows using Rhumb's live AN Score data.";
+---
+
+<Layout
+  title={title}
+  description={description}
+  ogImage="/images/og-storage-comparison.png"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(ARTICLE_JSON_LD)} />
+  <meta name="rhumb:category" content="storage" />
+  <meta name="rhumb:type" content="comparison" />
+  <meta name="ai:content-type" content="api-comparison" />
+  <meta name="ai:services" content="aws-s3,cloudflare-r2,backblaze-b2" />
+
+  <main class="max-w-3xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="mb-10">
+      <a
+        href="/compare"
+        class="text-xs text-slate-500 hover:text-slate-400 transition-colors mb-3 inline-block"
+        >← All comparisons</a
+      >
+      <h1
+        class="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight"
+      >
+        {title}
+      </h1>
+      <p class="text-slate-400 text-base leading-relaxed max-w-2xl">
+        {description}
+      </p>
+      <p class="text-xs text-slate-600 mt-3">
+        Last updated March 2026 · Scores from live AN Score data
+      </p>
+    </div>
+
+    <!-- Score cards -->
+    <div class="grid gap-4 mb-10">
+      {
+        sorted.map((svc, i) => (
+          <div
+            class={`bg-slate-800/50 border rounded-lg p-5 transition-all ${
+              i === 0
+                ? "border-score-native/40 ring-1 ring-score-native/20"
+                : "border-slate-700/50"
+            }`}
+            data-testid={`score-card-${svc.slug}`}
+            data-service={svc.slug}
+            data-score={svc.data?.aggregateRecommendationScore ?? "N/A"}
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-semibold text-white">{svc.name}</h2>
+                  {i === 0 && (
+                    <span class="text-[10px] font-medium text-score-native bg-score-native/10 px-1.5 py-0.5 rounded-full">
+                      HIGHEST
+                    </span>
+                  )}
+                </div>
+                <p class="text-sm text-slate-400 mt-1">{svc.bestFor}</p>
+              </div>
+              {svc.data && (
+                <div class="text-right shrink-0 ml-4">
+                  <div
+                    class="text-2xl font-bold"
+                    style={`color: ${svc.accent}`}
+                  >
+                    {svc.data.aggregateRecommendationScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-xs text-slate-500">AN Score</div>
+                </div>
+              )}
+            </div>
+
+            {svc.data && (
+              <div class="grid grid-cols-3 gap-3 text-center mb-4">
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.executionScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Execution
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {svc.data.accessReadinessScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Access
+                  </div>
+                </div>
+                <div class="bg-slate-900/50 rounded p-2">
+                  <div class="text-sm font-semibold text-white">
+                    {(svc.data.confidence ?? 0).toFixed(2)}
+                  </div>
+                  <div class="text-[10px] text-slate-500 uppercase tracking-wider">
+                    Confidence
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {svc.data?.tierLabel && (
+              <div class="mb-3">
+                <TierBadge tier={svc.data.tierLabel} />
+              </div>
+            )}
+
+            <p class="text-sm text-slate-400 leading-relaxed">{svc.support}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Detailed analysis -->
+    <div class="space-y-10">
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">
+          The storage problem for agents
+        </h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            Agents need object storage for the same reasons humans do — storing
+            files, serving assets, managing backups, persisting state. But agents
+            interact with storage exclusively through APIs, which means the API
+            quality and authentication complexity matter far more than dashboard
+            UX or web console features.
+          </p>
+          <p>
+            The object storage market has an unusual dynamic: S3 defined the API
+            standard, and every competitor implements S3-compatible endpoints.
+            This means an agent that learns the S3 API can, in theory, switch
+            between providers with minimal code changes. In practice, the
+            compatibility is good but imperfect — edge cases around authentication,
+            advanced features, and error response formats still diverge.
+          </p>
+          <p>
+            The real differentiator for agents isn't the storage API itself — it's
+            the surrounding ecosystem. IAM policies, lifecycle management,
+            event notifications, CDN integration, and cost models all affect
+            how autonomously an agent can manage storage without human help.
+          </p>
+        </div>
+      </section>
+
+      {
+        compared.map((svc) => (
+          <section>
+            <h2 class="text-xl font-semibold text-white mb-4" style={`border-left: 3px solid ${svc.accent}; padding-left: 12px;`}>
+              {svc.name}
+            </h2>
+            <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+              <h3 class="text-base font-medium text-white">Best for</h3>
+              <p>{svc.bestFor}</p>
+
+              <h3 class="text-base font-medium text-white">Avoid when</h3>
+              <p>{svc.avoidWhen}</p>
+
+              <h3 class="text-base font-medium text-white">Friction points</h3>
+              <p>{svc.friction}</p>
+
+              <h3 class="text-base font-medium text-white">The call</h3>
+              <p>{svc.decision}</p>
+            </div>
+          </section>
+        ))
+      }
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">How we scored them</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            The AN Score measures how well an API works for autonomous agents
+            across three dimensions: <strong>Execution</strong> (does the API do
+            what it says?), <strong>Access</strong> (can an agent authenticate
+            and start working without human intervention?), and data-derived
+            <strong>confidence</strong> reflecting how much evidence backs each
+            score.
+          </p>
+          <p>
+            S3 is the only service in this comparison to reach the Native tier —
+            a designation reserved for APIs that are genuinely built for
+            programmatic access. R2 and B2 are both Ready tier, meaning they
+            work well for agents but have friction points that prevent full
+            autonomous operation.
+          </p>
+          <p>
+            These scores are not pay-to-play. Rhumb has no commercial
+            relationship with AWS, Cloudflare, or Backblaze. The AN Score
+            is editorially independent — always.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-white mb-4">Bottom line</h2>
+        <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
+          <p>
+            <strong>AWS S3</strong> is the standard for a reason. Execution score
+            of 8.6 — the highest in the storage category and among the highest
+            across all services Rhumb scores. The API is the reference
+            implementation that everything else copies. The IAM complexity is
+            real, but it's also what enables fine-grained access control that
+            agents need for production workloads. If you're building anything
+            serious, S3 is the default until you have a specific reason to
+            choose otherwise.
+          </p>
+          <p>
+            <strong>Cloudflare R2</strong> is the compelling alternative when
+            egress economics matter. Zero egress fees fundamentally change the
+            cost model for read-heavy workloads. The S3-compatible API means low
+            switching cost, and the Workers integration enables patterns that
+            aren't possible with pure object storage. The feature gap with S3
+            is real but narrowing.
+          </p>
+          <p>
+            <strong>Backblaze B2</strong> wins on raw storage cost and makes
+            sense for backup and archival workloads where API sophistication
+            doesn't matter. The dual-API surface (native + S3-compatible) adds
+            unnecessary cognitive overhead, and the overall developer experience
+            trails both competitors. Use it when price per terabyte is the only
+            metric that matters.
+          </p>
+          <p>
+            The spread in this category (6.6 – 8.1) is the widest of any
+            comparison Rhumb has published. S3's Native-tier score isn't close
+            — it reflects a genuinely superior API execution experience that
+            decades of development have refined.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Related -->
+    <div class="mt-12 pt-8 border-t border-slate-800">
+      <h3 class="text-sm font-semibold text-white mb-4">Related comparisons</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a
+          href="/blog/vercel-vs-netlify-vs-render"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">DevOps</span>
+          <span class="text-xs text-slate-500 block mt-1">Vercel vs Netlify vs Render</span>
+        </a>
+        <a
+          href="/blog/supabase-vs-planetscale-vs-neon"
+          class="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3 hover:border-slate-600/50 transition-colors"
+        >
+          <span class="text-sm text-white">Databases</span>
+          <span class="text-xs text-slate-500 block mt-1">Supabase vs PlanetScale vs Neon</span>
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>

@@ -27,6 +27,18 @@ type Comparison = {
 
 const comparisons: Comparison[] = [
   {
+    slug: "s3-vs-r2-vs-b2",
+    category: "Storage",
+    title: "AWS S3 vs Cloudflare R2 vs Backblaze B2",
+    description: "Which object storage API should an AI agent use?",
+    services: ["AWS S3 8.1 L5", "Cloudflare R2 7.4 L3", "Backblaze B2 6.6 L3"],
+    winner: "AWS S3",
+    winnerNote: "Native tier — the reference implementation everything else copies.",
+    narrative: "S3 dominates on execution. R2 on economics. B2 on raw cost per terabyte.",
+    accent: "#FF9900",
+    accentSoft: "rgba(255,153,0,0.14)",
+  },
+  {
     slug: "vercel-vs-netlify-vs-render",
     category: "DevOps",
     title: "Vercel vs Netlify vs Render",
