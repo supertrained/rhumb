@@ -82,6 +82,55 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           </div>
         </div>
 
+        <!-- Usage card -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
+          <h2 class="text-sm font-semibold text-white mb-3">Usage</h2>
+          <div id="usage-loading" class="text-xs text-slate-500">Loading usage...</div>
+          <div id="usage-content" class="hidden">
+            <div class="grid grid-cols-2 gap-4 mb-3">
+              <div>
+                <p class="text-2xl font-semibold text-white" id="calls-month">0</p>
+                <p class="text-xs text-slate-500">calls this month</p>
+              </div>
+              <div>
+                <p class="text-2xl font-semibold text-white" id="calls-today">0</p>
+                <p class="text-xs text-slate-500">calls today</p>
+              </div>
+            </div>
+            <div id="service-breakdown" class="hidden">
+              <p class="text-xs text-slate-500 mb-2">Top services</p>
+              <div id="service-bars" class="space-y-1.5"></div>
+            </div>
+          </div>
+          <div id="usage-empty" class="hidden">
+            <p class="text-xs text-slate-500">No API calls yet. Make your first request to see usage here.</p>
+          </div>
+        </div>
+
+        <!-- Billing card -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-white">Billing</h2>
+            <button
+              id="add-funds-btn"
+              class="text-xs text-score-native hover:text-score-native/80 transition-colors"
+            >
+              Add funds →
+            </button>
+          </div>
+          <div id="billing-loading" class="text-xs text-slate-500">Loading billing...</div>
+          <div id="billing-content" class="hidden">
+            <div class="flex items-baseline gap-2 mb-3">
+              <p class="text-2xl font-semibold text-white" id="balance-amount">$0.00</p>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400" id="plan-badge">free</span>
+            </div>
+            <div id="transactions-list" class="hidden">
+              <p class="text-xs text-slate-500 mb-2">Recent activity</p>
+              <div id="transactions" class="space-y-1.5"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Quick Start checklist -->
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
           <h2 class="text-sm font-semibold text-white mb-4">Quick Start</h2>
@@ -180,6 +229,10 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
         loading.classList.add("hidden");
         dashboard.classList.remove("hidden");
+
+        // Load usage + billing in parallel (non-blocking)
+        loadUsage();
+        loadBilling();
       } catch (e) {
         console.error("Dashboard init error:", e);
         loading.classList.add("hidden");
@@ -225,6 +278,94 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         credentials: "include",
       });
       window.location.href = "/auth/login";
+    });
+
+    // ── Usage + Billing loaders ────────────────────────────────────
+
+    async function loadUsage() {
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/usage`, { credentials: "include" });
+        if (!resp.ok) throw new Error("fetch failed");
+        const data = await resp.json();
+
+        document.getElementById("usage-loading").classList.add("hidden");
+
+        if (data.total_calls === 0 && data.calls_this_month === 0) {
+          document.getElementById("usage-empty").classList.remove("hidden");
+          return;
+        }
+
+        document.getElementById("usage-content").classList.remove("hidden");
+        document.getElementById("calls-month").textContent = data.calls_this_month.toLocaleString();
+        document.getElementById("calls-today").textContent = data.calls_today.toLocaleString();
+
+        // Service breakdown bars
+        const services = data.calls_by_service || {};
+        const sorted = Object.entries(services).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        if (sorted.length > 0) {
+          const maxCalls = sorted[0][1];
+          const barsEl = document.getElementById("service-bars");
+          document.getElementById("service-breakdown").classList.remove("hidden");
+          barsEl.innerHTML = sorted.map(([svc, calls]) => {
+            const pct = Math.max(8, (calls / maxCalls) * 100);
+            return `<div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400 w-20 truncate">${svc}</span>
+              <div class="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full bg-score-native/60 rounded-full" style="width:${pct}%"></div>
+              </div>
+              <span class="text-xs text-slate-500 w-8 text-right">${calls}</span>
+            </div>`;
+          }).join("");
+        }
+      } catch (e) {
+        document.getElementById("usage-loading").textContent = "Unable to load usage";
+      }
+    }
+
+    async function loadBilling() {
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/billing`, { credentials: "include" });
+        if (!resp.ok) throw new Error("fetch failed");
+        const data = await resp.json();
+
+        document.getElementById("billing-loading").classList.add("hidden");
+        document.getElementById("billing-content").classList.remove("hidden");
+        document.getElementById("balance-amount").textContent = `$${data.balance_usd.toFixed(2)}`;
+        document.getElementById("plan-badge").textContent = data.plan;
+
+        // Style plan badge
+        const badge = document.getElementById("plan-badge");
+        if (data.plan === "prepaid") {
+          badge.classList.remove("bg-slate-700", "text-slate-400");
+          badge.classList.add("bg-score-native/20", "text-score-native");
+        }
+
+        // Transactions
+        const txns = data.recent_transactions || [];
+        if (txns.length > 0) {
+          document.getElementById("transactions-list").classList.remove("hidden");
+          const txnEl = document.getElementById("transactions");
+          txnEl.innerHTML = txns.map(t => {
+            const sign = t.type === "deposit" || t.type === "credit" ? "+" : "-";
+            const color = sign === "+" ? "text-green-400" : "text-red-400";
+            const date = t.timestamp ? new Date(t.timestamp).toLocaleDateString() : "";
+            return `<div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400">${t.description || t.type}</span>
+              <div class="flex items-center gap-2">
+                <span class="${color}">${sign}$${Math.abs(t.amount_usd).toFixed(2)}</span>
+                <span class="text-slate-600">${date}</span>
+              </div>
+            </div>`;
+          }).join("");
+        }
+      } catch (e) {
+        document.getElementById("billing-loading").textContent = "Unable to load billing";
+      }
+    }
+
+    // Add funds button
+    document.getElementById("add-funds-btn")?.addEventListener("click", () => {
+      window.location.href = "/pricing";
     });
 
     init();

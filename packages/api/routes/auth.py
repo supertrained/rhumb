@@ -330,6 +330,157 @@ async def rotate_key(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
     return JSONResponse({"api_key": new_key, "message": "Save this key — it won't be shown again."})
 
 
+# ── Dashboard Data Endpoints ─────────────────────────────────────────
+
+
+async def _require_session(rhumb_session: Optional[str]) -> Dict[str, Any]:
+    """Verify session cookie and return JWT claims.  Raises 401 on failure."""
+    if not rhumb_session:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    claims = _verify_jwt(rhumb_session)
+    if claims is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    return claims
+
+
+@router.get("/me/usage")
+async def me_usage(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONResponse:
+    """Return usage stats for the logged-in user's agent."""
+    claims = await _require_session(rhumb_session)
+    agent_id = claims.get("agent_id")
+
+    if not agent_id:
+        return JSONResponse({
+            "total_calls": 0,
+            "calls_this_month": 0,
+            "calls_today": 0,
+            "calls_by_service": {},
+            "recent_calls": [],
+        })
+
+    try:
+        from services.agent_usage_analytics import get_usage_analytics
+
+        analytics = get_usage_analytics()
+
+        # Get 30-day summary
+        summary = await analytics.get_usage_summary(agent_id, days=30)
+
+        # Get today's summary (1-day window)
+        today_summary = await analytics.get_usage_summary(agent_id, days=1)
+
+        # Get recent events
+        recent_raw = await analytics.get_recent_events(agent_id, limit=10)
+        recent_calls = [
+            {
+                "service": e.get("service", ""),
+                "result": e.get("result", ""),
+                "latency_ms": e.get("latency_ms", 0),
+                "timestamp": e.get("created_at", ""),
+            }
+            for e in recent_raw
+        ]
+
+        # Build per-service call counts
+        calls_by_service = {
+            svc: info["calls"]
+            for svc, info in summary.get("services", {}).items()
+        }
+
+        return JSONResponse({
+            "total_calls": summary.get("total_calls", 0),
+            "calls_this_month": summary.get("total_calls", 0),
+            "calls_today": today_summary.get("total_calls", 0),
+            "calls_by_service": calls_by_service,
+            "recent_calls": recent_calls,
+        })
+    except Exception as exc:
+        logger.warning("Dashboard usage fetch failed: %s", exc)
+        return JSONResponse({
+            "total_calls": 0,
+            "calls_this_month": 0,
+            "calls_today": 0,
+            "calls_by_service": {},
+            "recent_calls": [],
+        })
+
+
+@router.get("/me/billing")
+async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONResponse:
+    """Return billing status for the logged-in user's organization."""
+    claims = await _require_session(rhumb_session)
+
+    # Get user to find org_id
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    org_id = user.organization_id
+    if not org_id:
+        return JSONResponse({
+            "balance_usd": 0.0,
+            "plan": "free",
+            "has_payment_method": False,
+            "recent_transactions": [],
+        })
+
+    try:
+        from routes._supabase import supabase_fetch
+
+        # Fetch credit balance
+        rows = await supabase_fetch(
+            f"org_credits?org_id=eq.{org_id}"
+            f"&select=balance_usd_cents,reserved_usd_cents,"
+            f"auto_reload_enabled"
+            f"&limit=1"
+        )
+
+        if rows:
+            row = rows[0]
+            balance_cents = row.get("balance_usd_cents", 0)
+            balance_usd = balance_cents / 100
+            has_payment = row.get("auto_reload_enabled", False)
+        else:
+            balance_usd = 0.0
+            has_payment = False
+
+        # Determine plan
+        plan = "prepaid" if balance_usd > 0 else "free"
+
+        # Fetch recent ledger entries
+        ledger_rows = await supabase_fetch(
+            f"billing_ledger?org_id=eq.{org_id}"
+            f"&select=event_type,amount_cents,description,created_at"
+            f"&order=created_at.desc&limit=5"
+        )
+
+        recent_transactions = [
+            {
+                "type": entry.get("event_type", "unknown"),
+                "amount_usd": entry.get("amount_cents", 0) / 100,
+                "description": entry.get("description", ""),
+                "timestamp": entry.get("created_at", ""),
+            }
+            for entry in (ledger_rows or [])
+        ]
+
+        return JSONResponse({
+            "balance_usd": balance_usd,
+            "plan": plan,
+            "has_payment_method": has_payment,
+            "recent_transactions": recent_transactions,
+        })
+    except Exception as exc:
+        logger.warning("Dashboard billing fetch failed: %s", exc)
+        return JSONResponse({
+            "balance_usd": 0.0,
+            "plan": "free",
+            "has_payment_method": False,
+            "recent_transactions": [],
+        })
+
+
 @router.post("/logout")
 async def logout() -> JSONResponse:
     """Clear session cookie."""
