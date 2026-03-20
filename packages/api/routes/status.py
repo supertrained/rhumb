@@ -111,10 +111,13 @@ async def _check_scoring() -> dict:
         from db.client import get_supabase_client
 
         client = await get_supabase_client()
+        # Table is "an_scores" (not "scores"), columns: score, tier, calculated_at.
+        # service_slug lives in the joined "services" table — we just check an_scores
+        # has rows to verify the scoring pipeline is healthy.
         resp = (
-            await client.table("scores")
-            .select("service_slug, overall_score")
-            .order("updated_at", desc=True)
+            await client.table("an_scores")
+            .select("score, tier, calculated_at")
+            .order("calculated_at", desc=True)
             .limit(1)
             .execute()
         )
@@ -125,8 +128,8 @@ async def _check_scoring() -> dict:
             "status": "operational" if latest else "degraded",
             "latency_ms": latency_ms,
             "details": {
-                "latest_scored": latest["service_slug"] if latest else None,
-                "latest_score": latest["overall_score"] if latest else None,
+                "latest_score": float(latest["score"]) if latest else None,
+                "latest_tier": latest["tier"] if latest else None,
             },
         }
     except Exception as exc:
