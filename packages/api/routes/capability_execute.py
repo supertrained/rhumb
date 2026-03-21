@@ -453,6 +453,19 @@ async def execute_capability(
 
     Supports x402 inline payment via the ``X-Payment`` header.
     """
+    # ── Kill Switch: full execution shutdown ───────────────────────
+    if os.environ.get("MANAGED_EXECUTION_ENABLED", "").lower() == "false":
+        logger.warning("Kill switch active: MANAGED_EXECUTION_ENABLED=false — rejecting execution")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "managed_execution_disabled",
+                "message": "Capability execution is temporarily disabled for maintenance",
+                "resolution": "Check https://rhumb.dev/status for updates",
+                "request_id": f"req_{uuid.uuid4().hex[:12]}",
+            },
+        )
+
     capability = await _resolve_capability(capability_id)
     if capability is None:
         return _not_found_response(
@@ -587,6 +600,21 @@ async def execute_capability(
             status_code=429,
             detail="Execution rate limit exceeded (30/min). Slow down.",
             headers={"Retry-After": "60"},
+        )
+
+    # ── Kill Switch: managed-only shutdown ──────────────────────
+    # Blocks Mode 2 (Rhumb's credentials) while allowing BYOK and x402.
+    # Use when our upstream API budgets are being consumed too fast.
+    if request.credential_mode == "rhumb_managed" and os.environ.get("MANAGED_ONLY_KILL", "").lower() == "true":
+        logger.warning("Managed-only kill switch active — rejecting rhumb_managed execution for %s", agent_id)
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "managed_execution_suspended",
+                "message": "Managed credential execution is temporarily suspended. Use your own API key (credential_mode: byo) to continue.",
+                "resolution": "Check https://rhumb.dev/status for updates or switch to BYO credentials",
+                "request_id": f"req_{uuid.uuid4().hex[:12]}",
+            },
         )
 
     # Stricter daily cap for managed credentials (Rhumb's own keys)
@@ -915,6 +943,24 @@ async def execute_capability(
     # ── Mode 2: Rhumb-managed execution ──────────────────────────────
     if request.credential_mode == "rhumb_managed":
         from services.rhumb_managed import get_managed_executor
+        from services.upstream_budget import check_provider_budget, record_provider_usage
+
+        # Check upstream provider budget before burning our API credits
+        provider_slug = request.provider
+        if provider_slug:
+            budget_ok, budget_reason = check_provider_budget(provider_slug)
+            if not budget_ok:
+                await _release_reservations()
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "error": "provider_budget_exhausted",
+                        "message": budget_reason,
+                        "resolution": "Switch to credential_mode: byo with your own API key, or try again after budget reset",
+                        "request_id": f"req_{uuid.uuid4().hex[:12]}",
+                    },
+                )
+
         executor = get_managed_executor()
         try:
             result = await executor.execute(
@@ -928,6 +974,10 @@ async def execute_capability(
         except Exception:
             await _release_reservations()
             raise
+
+        # Record successful execution against upstream budget
+        if provider_slug:
+            record_provider_usage(provider_slug)
         if budget_remaining is not None:
             result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
         if credit_remaining_cents is not None:

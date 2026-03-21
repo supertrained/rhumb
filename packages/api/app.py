@@ -34,6 +34,7 @@ from services.x402 import PaymentRequiredException, payment_required_handler
 from routes import (
     admin_agents,
     admin_billing,
+    admin_budgets,
     auth,
     billing,
     budget,
@@ -176,6 +177,7 @@ def create_app() -> FastAPI:
         admin_billing.router, prefix="/v1", tags=["admin-billing"],
         dependencies=[Depends(require_admin_key)],
     )
+    application.include_router(admin_budgets.router, tags=["admin-budgets"])
     application.include_router(billing.router, prefix="/v1", tags=["billing"])
     application.include_router(status.router, prefix="/v1", tags=["status"])
     application.include_router(auth.router, prefix="/v1", tags=["auth"])
