@@ -1,0 +1,309 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const PAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: "Failure Modes — What Happens When Things Go Wrong",
+  datePublished: "2026-03-21T00:00:00Z",
+  dateModified: "2026-03-21T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A complete reference for every failure mode an agent can encounter when using Rhumb. Each failure includes: what the agent sees, blast radius, recovery steps, and prevention.",
+  url: "https://rhumb.dev/docs/failure-modes",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type FailureMode = {
+  id: string;
+  title: string;
+  severity: "critical" | "high" | "medium" | "low";
+  httpStatus: number;
+  errorCode: string;
+  agentSees: string;
+  blastRadius: string;
+  recovery: string;
+  prevention: string;
+  affects: string;
+};
+
+const failureModes: FailureMode[] = [
+  {
+    id: "rhumb-down",
+    title: "Rhumb API Unavailable",
+    severity: "critical",
+    httpStatus: 503,
+    errorCode: "service_unavailable",
+    agentSees: "TCP connection refused or HTTP 503 with JSON body: {\"error\": {\"code\": \"service_unavailable\", \"message\": \"Rhumb is temporarily unavailable\", \"resolution\": \"Retry after 30 seconds or check https://rhumb.dev/status\"}}",
+    blastRadius: "All executions, all agents. Discovery endpoints may also be affected. BYOK agents can fall back to direct provider calls if they have their own keys.",
+    recovery: "Retry with exponential backoff (recommended: 1s, 2s, 4s, 8s, max 30s). Check /status for incident updates. If you have BYOK credentials, call the provider directly as a fallback.",
+    prevention: "Cache discovery results locally. Keep BYOK credentials as a fallback path. Design agent workflows to degrade gracefully when Rhumb is unreachable.",
+    affects: "All modes (Managed, x402, BYOK)",
+  },
+  {
+    id: "provider-down",
+    title: "Upstream Provider Failure",
+    severity: "high",
+    httpStatus: 502,
+    errorCode: "upstream_error",
+    agentSees: "HTTP 502 with JSON body: {\"error\": {\"code\": \"upstream_error\", \"message\": \"Provider returned an error\", \"resolution\": \"Try an alternative provider via /v1/services/{slug}/alternatives\", \"request_id\": \"req_...\"}}",
+    blastRadius: "Single provider. Other providers and capabilities are unaffected. Your agent's other active executions continue normally.",
+    recovery: "Call /v1/services/{slug}/alternatives to find a working substitute. Re-route to the alternative. You are NOT charged for failed provider calls.",
+    prevention: "Use /v1/capabilities/{id}/resolve to pre-select backup providers. Build routing fallback chains: primary → alternative → manual.",
+    affects: "Managed and BYOK modes for that provider",
+  },
+  {
+    id: "billing-unavailable",
+    title: "Billing System Unreachable",
+    severity: "critical",
+    httpStatus: 503,
+    errorCode: "billing_unavailable",
+    agentSees: "HTTP 503 with JSON body: {\"error\": {\"code\": \"billing_unavailable\", \"message\": \"Billing system temporarily unreachable. Managed executions are paused.\", \"resolution\": \"Check https://rhumb.dev/status or use x402/BYOK\"}}",
+    blastRadius: "Managed billing (Mode 2) executions only. x402 and BYOK continue working because they don't depend on Rhumb's billing database.",
+    recovery: "Switch to x402 (per-call USDC payment — no account needed) or BYOK (use your own provider credentials). Both bypass the billing system entirely.",
+    prevention: "Maintain x402 wallet funding as a hot standby. Keep BYOK credentials configured for critical paths. Rhumb's billing is fail-closed by design — we will never execute without confirmed billing.",
+    affects: "Managed billing only. x402 and BYOK are unaffected.",
+  },
+  {
+    id: "wrong-score",
+    title: "Stale or Incorrect AN Score",
+    severity: "medium",
+    httpStatus: 200,
+    errorCode: "n/a (data quality issue)",
+    agentSees: "Normal 200 response, but the score data may not reflect the provider's current state. Check the confidence field and calculated_at timestamp.",
+    blastRadius: "Decision quality for one service. Does not affect execution or billing.",
+    recovery: "Check the confidence field — scores below 0.5 confidence should be treated as provisional. Check calculated_at for freshness. Cross-reference with the provider's own status page.",
+    prevention: "Use confidence-weighted decisions: high-confidence scores (>0.8) are reliable; low-confidence scores (<0.5) are estimates. Prefer services with runtime-backed reviews.",
+    affects: "Discovery and routing decisions",
+  },
+  {
+    id: "provider-selection-fails",
+    title: "No Provider Available for Capability",
+    severity: "high",
+    httpStatus: 404,
+    errorCode: "no_provider_available",
+    agentSees: "HTTP 404 with JSON body: {\"error\": {\"code\": \"no_provider_available\", \"message\": \"No providers are currently available for this capability\", \"resolution\": \"Check /v1/capabilities for available capabilities\", \"request_id\": \"req_...\"}}",
+    blastRadius: "Single capability. Other capabilities and providers work normally.",
+    recovery: "List available capabilities via /v1/capabilities. Find a related capability that serves your use case. If the capability exists but no providers are mapped, the capability may be in a discovery-only state.",
+    prevention: "Call /v1/capabilities/{id}/resolve before execution to verify provider availability. Cache capability-to-provider mappings with a short TTL.",
+    affects: "Execution for that specific capability",
+  },
+  {
+    id: "credential-invalid",
+    title: "Invalid or Expired Credentials",
+    severity: "high",
+    httpStatus: 401,
+    errorCode: "credential_invalid",
+    agentSees: "HTTP 401 with JSON body: {\"error\": {\"code\": \"credential_invalid\", \"message\": \"The provided credential is invalid or expired\", \"resolution\": \"Re-authenticate at /auth/login or provide a valid API key\", \"request_id\": \"req_...\"}}",
+    blastRadius: "Single agent session. Other agents and other authentication methods are unaffected.",
+    recovery: "For API keys: generate a new key from the dashboard. For BYOK: check your provider credential is still valid. For x402: no credentials needed — switch to x402 to bypass.",
+    prevention: "Monitor credential expiry. Rotate API keys periodically. Use x402 for workflows where credential management is overhead.",
+    affects: "The specific agent or session with the invalid credential",
+  },
+  {
+    id: "quota-exceeded",
+    title: "Rate Limit or Budget Exceeded",
+    severity: "medium",
+    httpStatus: 429,
+    errorCode: "rate_limit_exceeded",
+    agentSees: "HTTP 429 with JSON body: {\"error\": {\"code\": \"rate_limit_exceeded\", \"message\": \"Rate limit exceeded. Try again in {retry_after} seconds.\", \"resolution\": \"Wait and retry, or contact support for limit increases\", \"request_id\": \"req_...\"}} with Retry-After header.",
+    blastRadius: "Single agent. Other agents are rate-limited independently.",
+    recovery: "Wait for the duration specified in the Retry-After header. Reduce request frequency. For budget limits: top up your prepaid balance via the dashboard.",
+    prevention: "Implement client-side rate limiting. Use the /v1/budget endpoint to monitor remaining balance before executing. Set up budget alerts in the dashboard.",
+    affects: "The rate-limited agent only",
+  },
+  {
+    id: "x402-settlement-failure",
+    title: "x402 Payment Not Confirmed",
+    severity: "high",
+    httpStatus: 402,
+    errorCode: "payment_required",
+    agentSees: "HTTP 402 with payment instructions in the response body, including: wallet address, exact USDC amount, network (Base), and contract address.",
+    blastRadius: "Single execution attempt. No charge occurs — you only pay when payment is confirmed on-chain.",
+    recovery: "Verify: (1) correct USDC amount sent, (2) correct wallet address, (3) transaction confirmed on Base network, (4) payment proof included in X-Payment header on retry. Check transaction on Basescan.",
+    prevention: "Use a wallet with sufficient USDC balance on Base. Ensure gas fees are covered. The /v1/capabilities/{id}/execute/estimate endpoint returns the exact cost before you commit.",
+    affects: "Single x402 execution attempt",
+  },
+  {
+    id: "chain-mid-failure",
+    title: "Multi-Step Execution Partial Failure",
+    severity: "high",
+    httpStatus: 207,
+    errorCode: "partial_failure",
+    agentSees: "HTTP 207 (Multi-Status) with per-step results. Completed steps show their results; failed steps show the specific error. You are only charged for steps that succeeded.",
+    blastRadius: "Single execution chain. Steps that completed are final — there is no automatic rollback. The agent must decide whether to retry failed steps, compensate, or abort.",
+    recovery: "Inspect the per-step results. Retry only the failed steps. For idempotent operations (reads, searches), retry is safe. For non-idempotent operations (sends, creates), check the provider for the actual state before retrying.",
+    prevention: "Design chains with idempotent steps where possible. Use the estimate endpoint to verify all steps will succeed before executing. Keep chains short — each additional step multiplies failure probability.",
+    affects: "The specific execution chain",
+  },
+  {
+    id: "managed-execution-disabled",
+    title: "Managed Execution Kill Switch Active",
+    severity: "critical",
+    httpStatus: 503,
+    errorCode: "managed_execution_disabled",
+    agentSees: "HTTP 503 with JSON body: {\"error\": {\"code\": \"managed_execution_disabled\", \"message\": \"Managed execution is temporarily disabled\", \"resolution\": \"Use BYOK or x402 payment mode\"}}",
+    blastRadius: "All managed execution (Mode 2). BYOK and x402 continue working.",
+    recovery: "Switch to x402 (no account needed) or BYOK (your own credentials). The kill switch is activated by Rhumb operators when upstream provider budgets are exhausted or a security concern is detected.",
+    prevention: "Maintain x402 as a fallback payment method. Keep BYOK credentials for mission-critical workflows. This kill switch exists specifically to protect agents from unexpected costs.",
+    affects: "Managed billing only. x402 and BYOK are unaffected.",
+  },
+];
+
+const severityColors: Record<string, { bg: string; text: string; border: string }> = {
+  critical: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
+  high: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20" },
+  medium: { bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20" },
+  low: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
+};
+---
+
+<Layout
+  title="Failure Modes"
+  description="Every failure mode an agent can encounter when using Rhumb. What you see, blast radius, recovery steps, and prevention — documented honestly."
+  canonical="/docs/failure-modes"
+  ogTitle="Failure Modes — Rhumb"
+  ogDescription="What happens when things go wrong. Every failure mode, documented with HTTP codes, blast radius, recovery, and prevention."
+  ogUrl="https://rhumb.dev/docs/failure-modes"
+  jsonLd={PAGE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="failure-modes-page" data-page-type="docs">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Documentation</p>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          What happens when things go wrong.
+        </h1>
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Every infrastructure service fails. The difference is whether you know
+          <em>how</em> it fails before it happens. This page documents every failure mode
+          an agent can encounter when using Rhumb — what you'll see, how far the damage spreads,
+          how to recover, and how to prevent it.
+        </p>
+        <p class="mt-4 text-sm text-slate-500">
+          {failureModes.length} failure modes documented · Last updated March 2026
+        </p>
+      </header>
+
+      <!-- Design principle callout -->
+      <div class="mt-10 bg-surface border border-slate-800 rounded-xl p-6" data-section="principles">
+        <h2 class="font-display text-lg font-semibold text-slate-100">Design Principles</h2>
+        <ul class="mt-4 space-y-3 text-sm text-slate-400">
+          <li class="flex gap-3">
+            <span class="text-amber font-mono text-xs mt-0.5">01</span>
+            <span><strong class="text-slate-200">Fail closed, not open.</strong> If Rhumb can't confirm billing, no paid execution proceeds. We'd rather block a valid request than execute without confirmed payment.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-amber font-mono text-xs mt-0.5">02</span>
+            <span><strong class="text-slate-200">Never charge for failures.</strong> If the upstream provider returns an error, you are not charged. Period.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-amber font-mono text-xs mt-0.5">03</span>
+            <span><strong class="text-slate-200">Every error is actionable.</strong> Every error response includes a <code class="text-amber/80 bg-amber/5 px-1 rounded">resolution</code> field telling the agent exactly what to do next.</span>
+          </li>
+          <li class="flex gap-3">
+            <span class="text-amber font-mono text-xs mt-0.5">04</span>
+            <span><strong class="text-slate-200">Blast radius is always documented.</strong> An agent should know whether a failure affects just its request, its account, or all of Rhumb.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Quick reference table -->
+      <div class="mt-12" data-section="quick-reference">
+        <h2 class="font-display text-2xl font-bold text-slate-100">Quick Reference</h2>
+        <p class="mt-2 text-sm text-slate-400">Jump to any failure mode. Sorted by severity.</p>
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm" data-testid="failure-reference-table">
+            <thead>
+              <tr class="border-b border-slate-800">
+                <th class="text-left text-slate-500 font-mono text-xs py-2 pr-4">Severity</th>
+                <th class="text-left text-slate-500 font-mono text-xs py-2 pr-4">HTTP</th>
+                <th class="text-left text-slate-500 font-mono text-xs py-2 pr-4">Failure</th>
+                <th class="text-left text-slate-500 font-mono text-xs py-2">Affects</th>
+              </tr>
+            </thead>
+            <tbody>
+              {failureModes.map((fm) => (
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/20">
+                  <td class="py-2 pr-4">
+                    <span class={`text-xs font-mono px-2 py-0.5 rounded ${severityColors[fm.severity].bg} ${severityColors[fm.severity].text}`}>
+                      {fm.severity}
+                    </span>
+                  </td>
+                  <td class="py-2 pr-4 font-mono text-slate-300">{fm.httpStatus}</td>
+                  <td class="py-2 pr-4">
+                    <a href={`#${fm.id}`} class="text-slate-200 hover:text-amber transition-colors">{fm.title}</a>
+                  </td>
+                  <td class="py-2 text-slate-400 text-xs">{fm.affects}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Individual failure mode cards -->
+      <div class="mt-16 space-y-10" data-section="failure-details">
+        {failureModes.map((fm) => (
+          <article
+            id={fm.id}
+            class={`bg-surface border rounded-xl p-6 ${severityColors[fm.severity].border}`}
+            data-testid={`failure-${fm.id}`}
+            data-severity={fm.severity}
+            data-http-status={fm.httpStatus}
+          >
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <h3 class="font-display text-xl font-semibold text-slate-100">{fm.title}</h3>
+              <div class="flex items-center gap-3">
+                <span class={`text-xs font-mono px-2 py-0.5 rounded ${severityColors[fm.severity].bg} ${severityColors[fm.severity].text}`}>
+                  {fm.severity}
+                </span>
+                <span class="text-xs font-mono text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded">
+                  HTTP {fm.httpStatus}
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-6 grid gap-6 sm:grid-cols-2">
+              <div>
+                <h4 class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-wider mb-2">What the agent sees</h4>
+                <p class="text-sm text-slate-300 leading-relaxed">{fm.agentSees}</p>
+              </div>
+              <div>
+                <h4 class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-wider mb-2">Blast radius</h4>
+                <p class="text-sm text-slate-300 leading-relaxed">{fm.blastRadius}</p>
+              </div>
+              <div>
+                <h4 class="text-xs font-mono font-semibold text-red-400/70 uppercase tracking-wider mb-2">Recovery</h4>
+                <p class="text-sm text-slate-300 leading-relaxed">{fm.recovery}</p>
+              </div>
+              <div>
+                <h4 class="text-xs font-mono font-semibold text-emerald-400/70 uppercase tracking-wider mb-2">Prevention</h4>
+                <p class="text-sm text-slate-300 leading-relaxed">{fm.prevention}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <!-- Footer section -->
+      <footer class="mt-16 border-t border-slate-800 pt-8" data-section="footer">
+        <div class="bg-surface border border-slate-800 rounded-xl p-6">
+          <h2 class="font-display text-lg font-semibold text-slate-100">Missing a failure mode?</h2>
+          <p class="mt-2 text-sm text-slate-400">
+            If your agent encountered a failure not documented here, we want to know.
+            Email <a href="mailto:team@supertrained.ai" class="text-amber hover:underline">team@supertrained.ai</a>
+            with the request_id from the error response and we'll document it.
+          </p>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-4 text-sm">
+          <a href="/status" class="text-slate-400 hover:text-amber transition-colors">System Status →</a>
+          <a href="/docs" class="text-slate-400 hover:text-amber transition-colors">API Reference →</a>
+          <a href="/trust" class="text-slate-400 hover:text-amber transition-colors">Trust & Methodology →</a>
+          <a href="/blog/rhumb-self-score" class="text-slate-400 hover:text-amber transition-colors">Rhumb Self-Score →</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+</Layout>
