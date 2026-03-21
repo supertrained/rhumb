@@ -27,6 +27,7 @@ class CreditDeductionResult:
     ledger_id: str | None = None
     reason: str | None = None
     used_budget_fallback: bool = False
+    billing_unavailable: bool = False
 
 
 @dataclass
@@ -64,7 +65,7 @@ class CreditDeductionService:
     ) -> CreditDeductionResult:
         """Attempt org-credit deduction.
 
-        Fail-open on RPC/system errors.
+        Fail closed on billing RPC/system errors.
         If org credits do not exist, optionally fall back to BudgetEnforcer.
         """
         if amount_cents <= 0:
@@ -87,14 +88,28 @@ class CreditDeductionService:
                 )
 
             if resp.status_code != 200:
-                logger.warning(
+                logger.error(
                     "Credit deduction RPC failed (%s): %s",
                     resp.status_code,
                     resp.text,
                 )
-                return CreditDeductionResult(allowed=True, remaining_cents=None)
+                return CreditDeductionResult(
+                    allowed=False,
+                    remaining_cents=None,
+                    reason="billing_unavailable",
+                    billing_unavailable=True,
+                )
 
-            data = resp.json() if isinstance(resp.json(), dict) else {}
+            data_raw = resp.json()
+            if not isinstance(data_raw, dict):
+                logger.error("Credit deduction RPC returned malformed payload: %r", data_raw)
+                return CreditDeductionResult(
+                    allowed=False,
+                    remaining_cents=None,
+                    reason="billing_unavailable",
+                    billing_unavailable=True,
+                )
+            data = data_raw
             allowed = bool(data.get("allowed", False))
             if allowed:
                 remaining = data.get("remaining_cents")
@@ -133,10 +148,10 @@ class CreditDeductionService:
 
                 # Backward compatibility in paths that already checked agent budget.
                 return CreditDeductionResult(
-                    allowed=True,
+                    allowed=False,
                     remaining_cents=None,
                     reason="no_org_credits",
-                    used_budget_fallback=True,
+                    used_budget_fallback=False,
                 )
 
             log_payment_event(
@@ -156,8 +171,13 @@ class CreditDeductionService:
             )
 
         except Exception as e:
-            logger.warning("Credit deduction failed, allowing execution: %s", e)
-            return CreditDeductionResult(allowed=True, remaining_cents=None)
+            logger.error("Credit deduction failed, blocking execution: %s", e)
+            return CreditDeductionResult(
+                allowed=False,
+                remaining_cents=None,
+                reason="billing_unavailable",
+                billing_unavailable=True,
+            )
 
     async def release(
         self,

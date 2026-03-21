@@ -160,6 +160,74 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_billable_execution_checks_billing_health_before_execute(app):
+    """Billable execution proceeds when billing health check succeeds."""
+    _, mock_pool = _build_patches()
+
+    with (
+        patch("routes.capability_execute.check_billing_health", new_callable=AsyncMock, return_value=(True, "ok")) as mock_billing_health,
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    mock_billing_health.assert_awaited_once()
+    mock_pool.acquire.assert_awaited_once()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("billing_reason", ["timeout", "connection_error"])
+async def test_billable_execution_blocks_when_billing_health_fails(app, billing_reason):
+    """Billable execution returns 503 and does not execute when billing is unavailable."""
+    _, mock_pool = _build_patches()
+
+    with (
+        patch("routes.capability_execute.check_billing_health", new_callable=AsyncMock, return_value=(False, billing_reason)),
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True) as mock_insert,
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Request-ID": f"req-{billing_reason}",
+                },
+            )
+
+    assert resp.status_code == 503
+    assert resp.json() == {
+        "error": "billing_unavailable",
+        "message": "Billing system temporarily unavailable. Execution blocked for safety.",
+        "resolution": "Retry in 30 seconds. If persistent, check https://rhumb.dev/status",
+        "request_id": f"req-{billing_reason}",
+    }
+    mock_pool.acquire.assert_not_awaited()
+    mock_insert.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_auto_select_provider(app):
     """POST execute without provider auto-selects best by AN score."""
     _, mock_pool = _build_patches()
@@ -331,13 +399,14 @@ async def test_idempotency_prevents_duplicate(app):
 
 @pytest.mark.anyio
 async def test_execute_requires_auth_header(app):
-    """POST execute without X-Rhumb-Key returns 401."""
+    """POST execute without auth returns x402 payment instructions."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post(
             "/v1/capabilities/email.send/execute",
             json={"method": "POST", "path": "/foo", "body": {}},
         )
-    assert resp.status_code == 401
+    assert resp.status_code == 402
+    assert resp.headers["x-payment"] == "required"
 
 
 @pytest.mark.anyio

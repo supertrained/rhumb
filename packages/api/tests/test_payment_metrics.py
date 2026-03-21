@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from services.payment_metrics import log_payment_event, payment_timer
-from services.payment_health import get_payment_health
+from services import payment_health as payment_health_module
+from services.payment_health import check_billing_health, get_payment_health
 
 
 class TestLogPaymentEvent:
@@ -124,8 +126,9 @@ class TestPaymentHealth:
     @pytest.mark.asyncio
     async def test_returns_correct_structure(self):
         """Health check returns expected keys regardless of env."""
-        mock_resp = AsyncMock()
+        mock_resp = MagicMock()
         mock_resp.status_code = 200
+        mock_resp.json.return_value = []
 
         with patch("services.payment_health.httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
@@ -139,17 +142,19 @@ class TestPaymentHealth:
         assert "stripe_configured" in health
         assert "usdc_configured" in health
         assert "billing_table_accessible" in health
+        assert "billing_reason" in health
         assert "status" in health
         assert isinstance(health["stripe_configured"], bool)
         assert isinstance(health["usdc_configured"], bool)
         assert isinstance(health["billing_table_accessible"], bool)
         assert health["billing_table_accessible"] is True
+        assert health["billing_reason"] == "ok"
         assert health["status"] == "operational"
 
     @pytest.mark.asyncio
     async def test_degraded_on_db_failure(self):
         """Health returns degraded when Supabase is unreachable."""
-        mock_resp = AsyncMock()
+        mock_resp = MagicMock()
         mock_resp.status_code = 500
 
         with patch("services.payment_health.httpx.AsyncClient") as MockClient:
@@ -162,6 +167,7 @@ class TestPaymentHealth:
             health = await get_payment_health("http://localhost:54321", "test-key")
 
         assert health["billing_table_accessible"] is False
+        assert health["billing_reason"] == "connection_error"
         assert health["status"] == "degraded"
 
     @pytest.mark.asyncio
@@ -177,4 +183,59 @@ class TestPaymentHealth:
             health = await get_payment_health("http://localhost:54321", "test-key")
 
         assert health["billing_table_accessible"] is False
+        assert health["billing_reason"] == "connection_error"
         assert health["status"] == "degraded"
+
+    @pytest.mark.asyncio
+    async def test_check_billing_health_timeout(self):
+        """Shared billing health probe maps timeouts to an explicit timeout reason."""
+        with (
+            patch.object(
+                payment_health_module.settings,
+                "supabase_url",
+                "http://localhost:54321",
+            ),
+            patch.object(
+                payment_health_module.settings,
+                "supabase_service_role_key",
+                "test-key",
+            ),
+            patch("services.payment_health.httpx.AsyncClient") as MockClient,
+        ):
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.ReadTimeout("timed out")
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_client
+
+            healthy, reason = await check_billing_health()
+
+        assert healthy is False
+        assert reason == "timeout"
+
+    @pytest.mark.asyncio
+    async def test_check_billing_health_connection_error(self):
+        """Shared billing health probe maps connection failures to connection_error."""
+        with (
+            patch.object(
+                payment_health_module.settings,
+                "supabase_url",
+                "http://localhost:54321",
+            ),
+            patch.object(
+                payment_health_module.settings,
+                "supabase_service_role_key",
+                "test-key",
+            ),
+            patch("services.payment_health.httpx.AsyncClient") as MockClient,
+        ):
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.ConnectError("connection refused")
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            MockClient.return_value = mock_client
+
+            healthy, reason = await check_billing_health()
+
+        assert healthy is False
+        assert reason == "connection_error"

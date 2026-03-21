@@ -5,6 +5,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Generator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -120,6 +121,51 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     reset_agent_rate_limit_checker()
     reset_usage_meter_engine()
     reset_operational_fact_emitter()
+
+
+@pytest.fixture(autouse=True)
+def _mock_execute_billing_health() -> Generator[None, None, None]:
+    """Default billable execute-path health probe to healthy in tests."""
+    from services.budget_enforcer import BudgetCheckResult
+    from services.budget_enforcer import BudgetStatus
+    from services.credit_deduction import CreditDeductionResult, CreditReleaseResult
+
+    with (
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
+        patch("routes.capability_execute._budget_enforcer") as mock_budget,
+        patch("routes.capability_execute._credit_deduction") as mock_credit,
+    ):
+        mock_budget.check_and_decrement = AsyncMock(
+            return_value=BudgetCheckResult(allowed=True, remaining_usd=10.0)
+        )
+        mock_budget.get_budget = AsyncMock(
+            return_value=BudgetStatus(
+                allowed=True,
+                remaining_usd=None,
+                budget_usd=None,
+                spent_usd=None,
+                period=None,
+                hard_limit=None,
+                alert_threshold_pct=None,
+                alert_fired=None,
+            )
+        )
+        mock_budget.release = AsyncMock(return_value=10.0)
+        mock_credit.deduct = AsyncMock(
+            return_value=CreditDeductionResult(allowed=True, remaining_cents=None)
+        )
+        mock_credit.release = AsyncMock(
+            return_value=CreditReleaseResult(
+                released=True,
+                remaining_cents=None,
+                idempotent=False,
+            )
+        )
+        yield
 
 
 @pytest.fixture

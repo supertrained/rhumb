@@ -41,6 +41,7 @@ from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.auto_reload import check_and_trigger_auto_reload
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
+from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header
@@ -63,6 +64,19 @@ def _get_identity_store() -> AgentIdentityStore:
     return _identity_store
 
 logger = logging.getLogger(__name__)
+
+
+def _billing_unavailable_response(raw_request: Request) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": "billing_unavailable",
+            "message": "Billing system temporarily unavailable. Execution blocked for safety.",
+            "resolution": "Retry in 30 seconds. If persistent, check https://rhumb.dev/status",
+            "request_id": request_id,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +272,75 @@ async def _auto_select_provider(
 
     # Return the mapping dict for the selected provider
     return next((m for m in mappings if m["service_slug"] == routed.service_slug), None)
+
+
+def _extract_cost_usd(mapping: dict | None) -> float:
+    """Convert a capability_services mapping cost to float USD."""
+    if mapping is None or mapping.get("cost_per_call") is None:
+        return 0.0
+    return float(mapping["cost_per_call"])
+
+
+def _calculate_billing_amounts(cost_usd: float) -> tuple[int, int, int]:
+    """Return upstream, billed, and margin cents for a USD cost."""
+    upstream_cost_cents = int(round(cost_usd * 100)) if cost_usd > 0 else 0
+    billed_cost_cents = int(round(upstream_cost_cents * 1.2)) if upstream_cost_cents > 0 else 0
+    margin_cents = billed_cost_cents - upstream_cost_cents
+    return upstream_cost_cents, billed_cost_cents, margin_cents
+
+
+async def _select_provider_mapping(
+    mappings: list[dict],
+    requested_provider: Optional[str],
+    agent_id: str,
+    capability_id: str,
+) -> dict:
+    """Resolve the actual provider mapping for a BYO execution."""
+    if not mappings:
+        raise HTTPException(
+            status_code=503,
+            detail=f"No providers configured for capability '{capability_id}'",
+        )
+
+    if requested_provider:
+        chosen = next((m for m in mappings if m["service_slug"] == requested_provider), None)
+        if chosen is None:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Provider '{requested_provider}' not available for capability '{capability_id}'",
+            )
+        breaker = get_breaker_registry().get(requested_provider, agent_id)
+        if not breaker.allow_request():
+            raise HTTPException(
+                status_code=503,
+                detail=f"Provider '{requested_provider}' circuit is open — try later",
+            )
+        return chosen
+
+    chosen = await _auto_select_provider(mappings, agent_id)
+    if chosen is None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"No healthy providers available for capability '{capability_id}'",
+        )
+    return chosen
+
+
+async def _resolve_managed_provider_mapping(
+    capability_id: str,
+    mappings: list[dict],
+    requested_provider: Optional[str],
+) -> dict | None:
+    """Resolve the managed provider mapping used for a rhumb_managed execution."""
+    from services.rhumb_managed import get_managed_executor
+
+    executor = get_managed_executor()
+    managed_config = await executor.get_managed_config(capability_id, requested_provider)
+    if managed_config is None:
+        return None
+
+    managed_slug = managed_config["service_slug"]
+    return next((m for m in mappings if m["service_slug"] == managed_slug), None)
 
 
 def _resolve_base_url(service_slug: str, api_domain: Optional[str]) -> str:
@@ -526,33 +609,69 @@ async def execute_capability(
                 "error": None,
             }
 
-    # 0. Pre-execution budget/credit reservation estimate
-    cost_estimate = 0.0
-    cap_services = await _get_capability_services(capability_id)
-    if cap_services:
-        costs = [float(m["cost_per_call"]) for m in cap_services if m.get("cost_per_call") is not None]
-        cost_estimate = min(costs) if costs else 0.0
+    if await _resolve_capability(capability_id) is None:
+        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
 
-    upstream_cost_cents = int(round(cost_estimate * 100)) if cost_estimate > 0 else 0
-    billed_cost_cents = int(round(upstream_cost_cents * 1.2)) if upstream_cost_cents > 0 else 0
-    margin_cents = billed_cost_cents - upstream_cost_cents
+    cap_services = await _get_capability_services(capability_id)
+    selected_mapping: dict | None = None
+    if request.credential_mode == "byo":
+        selected_mapping = await _select_provider_mapping(
+            mappings=cap_services,
+            requested_provider=request.provider,
+            agent_id=agent_id,
+            capability_id=capability_id,
+        )
+    elif request.credential_mode == "agent_vault":
+        selected_mapping = next(
+            (m for m in cap_services if m["service_slug"] == request.provider),
+            None,
+        )
+    elif request.credential_mode == "rhumb_managed":
+        selected_mapping = await _resolve_managed_provider_mapping(
+            capability_id=capability_id,
+            mappings=cap_services,
+            requested_provider=request.provider,
+        )
+
+    # 0. Pre-execution budget/credit reservation estimate
+    cost_estimate = _extract_cost_usd(selected_mapping)
+    upstream_cost_cents, billed_cost_cents, margin_cents = _calculate_billing_amounts(cost_estimate)
 
     execution_id = f"exec_{uuid.uuid4().hex}"
+    has_inline_x402_payment = bool(x_payment and x_payment != "required")
+
+    # Free calls do not depend on org-credit balance. Billable non-x402 calls must
+    # verify billing availability before any execution work starts.
+    if billed_cost_cents > 0 and not has_inline_x402_payment:
+        billing_healthy, billing_reason = await check_billing_health()
+        if not billing_healthy:
+            request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+            logger.error(
+                "Blocking billable execution due to billing health failure "
+                "request_id=%s agent_id=%s org_id=%s capability_id=%s reason=%s",
+                request_id,
+                agent_id,
+                org_id,
+                capability_id,
+                billing_reason,
+            )
+            return _billing_unavailable_response(raw_request)
 
     # ── x402 inline payment handling ─────────────────────────────────
     # If the client sends an X-Payment header with a USDC tx_hash, we:
     #   1. Verify the tx hasn't been used before (replay protection)
     #   2. Verify the on-chain USDC transfer matches expected amount/recipient
     #   3. Record the receipt in usdc_receipts
-    #   4. For registered agents: credit the org's balance so the normal
-    #      credit-deduction flow succeeds
-    #   5. For x402 anonymous: payment is the only gate — skip budget/credits
+    #   4. Best-effort record the payment on the org ledger for registered agents
+    #   5. Treat verified on-chain payment as authorization and skip Supabase
+    #      billing reservations entirely
     x402_receipt: dict | None = None
     if x_payment and x_payment != "required":
         payment_data = decode_x_payment_header(x_payment)
         if payment_data and payment_data.get("tx_hash"):
             tx_hash = payment_data["tx_hash"]
             network = payment_data.get("network", "base-sepolia")
+            declared_wallet = payment_data.get("wallet_address") or payment_data.get("from")
 
             # Replay protection: check if tx_hash is already recorded
             existing_receipt = await supabase_fetch(
@@ -571,12 +690,23 @@ async def execute_capability(
                     status_code=402,
                     detail="Payment verification failed: wallet not configured",
                 )
+            if not declared_wallet:
+                raise HTTPException(
+                    status_code=402,
+                    detail="Payment verification failed: payer wallet not declared",
+                )
+            if selected_mapping is None or selected_mapping.get("cost_per_call") is None:
+                raise HTTPException(
+                    status_code=402,
+                    detail="Payment verification failed: cost data unavailable for selected provider",
+                )
 
             expected_atomic = str(billed_cost_cents * 10000) if billed_cost_cents > 0 else "0"
             verification = await verify_usdc_payment(
                 tx_hash=tx_hash,
                 expected_to=wallet,
                 expected_amount_atomic=expected_atomic,
+                expected_from=declared_wallet,
                 network=network,
             )
 
@@ -596,6 +726,20 @@ async def execute_capability(
                     detail=f"Payment verification failed: {verification.get('error', 'unknown')}",
                 )
 
+            expected_atomic_int = billed_cost_cents * 10000
+            paid_atomic = int(verification.get("amount_atomic", "0"))
+            if expected_atomic_int > 0 and paid_atomic > ((expected_atomic_int * 120) // 100):
+                logger.warning(
+                    "Suspicious x402 overpayment detected tx_hash=%s org_id=%s capability_id=%s "
+                    "paid_atomic=%s expected_atomic=%s provider=%s",
+                    tx_hash,
+                    org_id,
+                    capability_id,
+                    paid_atomic,
+                    expected_atomic_int,
+                    selected_mapping["service_slug"],
+                )
+
             # Record receipt in usdc_receipts (replay protection via UNIQUE constraint)
             await supabase_insert("usdc_receipts", {
                 "tx_hash": tx_hash,
@@ -610,9 +754,9 @@ async def execute_capability(
                 "status": "confirmed",
             })
 
-            # For registered agents, credit the org's balance so the normal
-            # credit-deduction flow succeeds. For x402 anonymous, skip this —
-            # the on-chain payment IS the authorization.
+            # For registered agents, record the payment on the org ledger when
+            # billing storage is available. Execution authorization comes from
+            # the verified on-chain payment itself.
             if not is_x402_anonymous:
                 current_credits = await supabase_fetch(
                     f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
@@ -648,14 +792,17 @@ async def execute_capability(
 
     # ── Budget & credit reservation (registered agents only) ──────
     # x402 anonymous agents pay per-call on-chain; no budget/credit system.
+    # Registered agents with verified x402 payments are also exempt from the
+    # Supabase billing gate because the payment proof is on-chain.
     budget_remaining: float | None = None
     credit_reserved = False
     credit_remaining_cents: int | None = None
+    on_chain_payment_authorized = x402_receipt is not None
     api_base = os.environ.get(
         "API_BASE_URL", "https://api.rhumb.dev"
     )
 
-    if not is_x402_anonymous:
+    if not is_x402_anonymous and not on_chain_payment_authorized:
         budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
         if not budget_result.allowed:
             log_payment_event(
@@ -684,6 +831,20 @@ async def execute_capability(
                 fallback_cost_usd=cost_estimate,
                 skip_budget_fallback=True,
             )
+            if credit_result.billing_unavailable:
+                if cost_estimate > 0:
+                    await _budget_enforcer.release(agent_id, cost_estimate)
+                request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+                logger.error(
+                    "Blocking execution after billing RPC failure "
+                    "request_id=%s agent_id=%s org_id=%s capability_id=%s execution_id=%s",
+                    request_id,
+                    agent_id,
+                    org_id,
+                    capability_id,
+                    execution_id,
+                )
+                return _billing_unavailable_response(raw_request)
             if not credit_result.allowed:
                 if cost_estimate > 0:
                     await _budget_enforcer.release(agent_id, cost_estimate)
@@ -721,12 +882,6 @@ async def execute_capability(
                 fallback_cost_usd=cost_estimate,
                 skip_budget_fallback=True,
             )
-
-    # 1. Verify capability exists
-    cap = await _resolve_capability(capability_id)
-    if cap is None:
-        await _release_reservations()
-        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
 
     # ── Mode 2: Rhumb-managed execution ──────────────────────────────
     if request.credential_mode == "rhumb_managed":
@@ -863,41 +1018,17 @@ async def execute_capability(
             )
 
     # ── Mode 1 (BYO) continues below ────────────────────────────────
-    mappings = await _get_capability_services(capability_id)
-    if not mappings:
+    mappings = cap_services
+    if not mappings or selected_mapping is None:
         await _release_reservations()
         raise HTTPException(
             status_code=503,
             detail=f"No providers configured for capability '{capability_id}'",
         )
 
-    chosen: Optional[dict] = None
+    chosen = selected_mapping
     fallback_attempted = False
     fallback_provider: Optional[str] = None
-
-    if request.provider:
-        chosen = next((m for m in mappings if m["service_slug"] == request.provider), None)
-        if chosen is None:
-            await _release_reservations()
-            raise HTTPException(
-                status_code=503,
-                detail=f"Provider '{request.provider}' not available for capability '{capability_id}'",
-            )
-        breaker = get_breaker_registry().get(request.provider, agent_id)
-        if not breaker.allow_request():
-            await _release_reservations()
-            raise HTTPException(
-                status_code=503,
-                detail=f"Provider '{request.provider}' circuit is open — try later",
-            )
-    else:
-        chosen = await _auto_select_provider(mappings, agent_id)
-        if chosen is None:
-            await _release_reservations()
-            raise HTTPException(
-                status_code=503,
-                detail=f"No healthy providers available for capability '{capability_id}'",
-            )
 
     provider_slug = chosen["service_slug"]
     auth_method = chosen.get("auth_method")

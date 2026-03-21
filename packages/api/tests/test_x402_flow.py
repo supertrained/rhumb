@@ -24,6 +24,7 @@ from schemas.agent_identity import AgentIdentitySchema
 
 FAKE_RHUMB_KEY = "rhumb_test_key_x402_flow"
 WALLET = "0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623"
+PAYER_WALLET = "0x1234567890abcdef1234567890abcdef12345678"
 TX_HASH = "0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1"
 
 
@@ -137,7 +138,7 @@ def _make_credit_denied():
 def _verification_success() -> dict:
     return {
         "valid": True,
-        "from_address": "0x1234567890abcdef1234567890abcdef12345678",
+        "from_address": PAYER_WALLET,
         "to_address": WALLET,
         "amount_atomic": "100000",
         "block_number": 420,
@@ -149,14 +150,26 @@ def _verification_failed(error: str = "Transaction reverted") -> dict:
     return {"valid": False, "error": error}
 
 
-def _x_payment_header(tx_hash: str = TX_HASH, network: str = "base-sepolia") -> str:
+def _x_payment_header(
+    tx_hash: str = TX_HASH,
+    network: str = "base-sepolia",
+    wallet_address: str = PAYER_WALLET,
+) -> str:
     """Build a raw JSON X-Payment header value."""
-    return json.dumps({"tx_hash": tx_hash, "network": network})
+    return json.dumps(
+        {"tx_hash": tx_hash, "network": network, "wallet_address": wallet_address}
+    )
 
 
-def _x_payment_header_b64(tx_hash: str = TX_HASH, network: str = "base-sepolia") -> str:
+def _x_payment_header_b64(
+    tx_hash: str = TX_HASH,
+    network: str = "base-sepolia",
+    wallet_address: str = PAYER_WALLET,
+) -> str:
     """Build a base64-encoded X-Payment header value."""
-    payload = json.dumps({"tx_hash": tx_hash, "network": network})
+    payload = json.dumps(
+        {"tx_hash": tx_hash, "network": network, "wallet_address": wallet_address}
+    )
     return base64.b64encode(payload.encode()).decode()
 
 
@@ -317,6 +330,51 @@ class TestX402ValidPayment:
         assert resp.status_code == 200
         assert resp.headers.get("x-payment-response") is not None
 
+    @pytest.mark.anyio
+    async def test_x402_payment_bypasses_billing_health_gate(self, app):
+        """Verified x402 payment proceeds even when Supabase billing health is down."""
+        patches = _build_common_patches(
+            verification_result=_verification_success(),
+            org_credits=[{"balance_usd_cents": 500}],
+        )
+
+        with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": WALLET}):
+            ctx_managers = [p for p in patches.values()]
+            with (
+                patch(
+                    "routes.capability_execute.check_billing_health",
+                    new_callable=AsyncMock,
+                    return_value=(False, "connection_error"),
+                ),
+                ctx_managers[0],
+                ctx_managers[1],
+                ctx_managers[2],
+                ctx_managers[3],
+                ctx_managers[4],
+                ctx_managers[5],
+                ctx_managers[6],
+                ctx_managers[7],
+            ):
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    resp = await client.post(
+                        "/v1/capabilities/email.send/execute",
+                        json={
+                            "provider": "sendgrid",
+                            "method": "POST",
+                            "path": "/v3/mail/send",
+                            "body": {"to": "test@example.com"},
+                        },
+                        headers={
+                            "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                            "X-Payment": _x_payment_header(),
+                        },
+                    )
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["x402_receipt"]["verified"] is True
+
 
 # ---------------------------------------------------------------------------
 # Tests: invalid x402 payment
@@ -357,6 +415,96 @@ class TestX402InvalidPayment:
 
         assert resp.status_code == 402
         assert "verification failed" in resp.json()["detail"].lower()
+
+    @pytest.mark.anyio
+    async def test_amount_check_uses_actual_provider_cost_not_cheapest_estimate(self, app):
+        """Explicit provider cost is used for x402 validation, not the cheapest mapping."""
+
+        async def mock_verify(*args, **kwargs):
+            if kwargs["expected_amount_atomic"] == "1200000":
+                return {
+                    "valid": False,
+                    "error": "Underpayment detected: paid 100000 atomic, expected at least 1200000",
+                }
+            return _verification_success()
+
+        expensive_mappings = [
+            {
+                "service_slug": "sendgrid",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /v3/mail/send",
+                "cost_per_call": "0.01",
+                "cost_currency": "USD",
+                "free_tier_calls": 100,
+            },
+            {
+                "service_slug": "resend",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": "1.00",
+                "cost_currency": "USD",
+                "free_tier_calls": 0,
+            },
+        ]
+
+        def mock_supabase(path: str):
+            if path.startswith("capabilities?"):
+                return SAMPLE_CAP
+            if path.startswith("capability_services?"):
+                return expensive_mappings
+            if path.startswith("scores?"):
+                return [
+                    {"service_slug": "sendgrid", "aggregate_recommendation_score": 6.35},
+                    {"service_slug": "resend", "aggregate_recommendation_score": 7.10},
+                ]
+            if path.startswith("services?"):
+                return [{"slug": "resend", "api_domain": "api.resend.com"}]
+            if path.startswith("capability_executions?"):
+                return []
+            if path.startswith("usdc_receipts?"):
+                return []
+            if path.startswith("org_credits?"):
+                return []
+            return []
+
+        patches = _build_common_patches()
+        patches["supabase_fetch"] = patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_supabase,
+        )
+        patches["verify"] = patch(
+            "routes.capability_execute.verify_usdc_payment",
+            new_callable=AsyncMock,
+            side_effect=mock_verify,
+        )
+
+        with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": WALLET}):
+            ctx_managers = [p for p in patches.values()]
+            with ctx_managers[0], ctx_managers[1], ctx_managers[2], \
+                 ctx_managers[3], ctx_managers[4], ctx_managers[5], \
+                 ctx_managers[6], ctx_managers[7]:
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    resp = await client.post(
+                        "/v1/capabilities/email.send/execute",
+                        json={
+                            "provider": "resend",
+                            "method": "POST",
+                            "path": "/emails",
+                            "body": {},
+                        },
+                        headers={
+                            "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                            "X-Payment": _x_payment_header(),
+                        },
+                    )
+
+        assert resp.status_code == 402
+        assert "underpayment" in resp.json()["detail"].lower()
 
     @pytest.mark.anyio
     async def test_wallet_not_configured_returns_402(self, app):

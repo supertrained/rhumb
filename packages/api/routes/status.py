@@ -104,6 +104,31 @@ async def _check_payment() -> dict:
         }
 
 
+async def _check_billing() -> dict:
+    """Check billing backend readiness for billable execution gating."""
+    start = time.monotonic()
+    try:
+        from services.payment_health import check_billing_health
+
+        healthy, reason = await check_billing_health()
+        latency_ms = round((time.monotonic() - start) * 1000)
+        return {
+            "component": "billing",
+            "status": "operational" if healthy else "degraded",
+            "latency_ms": latency_ms,
+            "details": {"reason": reason},
+        }
+    except Exception as exc:
+        latency_ms = round((time.monotonic() - start) * 1000)
+        logger.warning("Status check: billing failed: %s", exc)
+        return {
+            "component": "billing",
+            "status": "degraded",
+            "latency_ms": latency_ms,
+            "details": {"error": str(exc)[:200]},
+        }
+
+
 async def _check_scoring() -> dict:
     """Verify scoring engine can produce scores."""
     start = time.monotonic()
@@ -158,6 +183,7 @@ async def system_status():
         _check_supabase(),
         _check_proxy(),
         _check_payment(),
+        _check_billing(),
         _check_scoring(),
         return_exceptions=True,
     )
