@@ -1,0 +1,225 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const PAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Security — Rhumb",
+  datePublished: "2026-03-21T00:00:00Z",
+  dateModified: "2026-03-21T00:00:00Z",
+  description:
+    "Rhumb's security posture: credential encryption, data handling, compliance roadmap, and vulnerability disclosure. How we protect agent credentials and upstream API keys.",
+  url: "https://rhumb.dev/security",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type SecuritySection = {
+  id: string;
+  title: string;
+  icon: string;
+  items: { label: string; detail: string; status: "live" | "planned" | "n/a" }[];
+};
+
+const sections: SecuritySection[] = [
+  {
+    id: "credentials",
+    title: "Credential Management",
+    icon: "🔐",
+    items: [
+      { label: "Encryption at rest", detail: "All stored credentials are encrypted using AES-256-GCM. Encryption keys are managed via environment variables on Railway's infrastructure, isolated from application code.", status: "live" },
+      { label: "Encryption in transit", detail: "All API traffic uses TLS 1.2+ (HTTPS only). HSTS headers enforce secure connections. No plaintext credential transmission.", status: "live" },
+      { label: "Credential isolation", detail: "BYOK credentials are scoped per-agent and never shared across accounts. Rhumb-managed credentials are held by Rhumb and never exposed to agents.", status: "live" },
+      { label: "No credential logging", detail: "API keys, tokens, and secrets are never written to application logs, error reports, or analytics. Request bodies containing credentials are redacted before logging.", status: "live" },
+      { label: "Credential rotation", detail: "Agent Vault credentials support rotation without downtime. BYOK credentials are managed by the agent operator.", status: "live" },
+    ],
+  },
+  {
+    id: "api-security",
+    title: "API Security",
+    icon: "🛡️",
+    items: [
+      { label: "Authentication", detail: "API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents. Session cookies are HttpOnly, Secure, SameSite=Strict.", status: "live" },
+      { label: "Rate limiting", detail: "Per-agent rate limiting on all endpoints. Execution endpoints have stricter limits. 429 responses include Retry-After headers.", status: "live" },
+      { label: "Request validation", detail: "All inputs are validated and sanitized. SQL injection, XSS, and path traversal protections are enforced.", status: "live" },
+      { label: "Error handling", detail: "Standardized error envelope with request_id for traceability. Resolution guidance in every error response. No stack traces or internal details in production errors.", status: "live" },
+      { label: "Security headers", detail: "Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Referrer-Policy, and Permissions-Policy headers on all responses.", status: "live" },
+      { label: "x402 replay prevention", detail: "On-chain payment proofs are validated for uniqueness. The same transaction hash cannot be used for multiple executions.", status: "live" },
+    ],
+  },
+  {
+    id: "data-handling",
+    title: "Data Handling",
+    icon: "📦",
+    items: [
+      { label: "Execution data", detail: "Request and response payloads for executed capabilities are proxied in real-time and not stored. Rhumb logs execution metadata (timestamp, capability, cost, status) but not the payload content.", status: "live" },
+      { label: "Score data", detail: "AN Scores, reviews, and service metadata are public by design. No personal data is included in scoring.", status: "live" },
+      { label: "Agent identity", detail: "Minimal data collection: email address for account creation, API key for authentication. No phone numbers, addresses, or payment details stored by Rhumb (Stripe handles payment data).", status: "live" },
+      { label: "Data residency", detail: "Application infrastructure runs on Railway (US regions). Database on Supabase (AWS us-east-1). All data is currently US-hosted.", status: "live" },
+      { label: "Data deletion", detail: "Account deletion removes all associated data: API keys, execution logs, billing records, and stored credentials. Contact team@supertrained.ai to request deletion.", status: "live" },
+    ],
+  },
+  {
+    id: "billing-security",
+    title: "Billing & Payment Security",
+    icon: "💳",
+    items: [
+      { label: "Fail-closed billing", detail: "If the billing system is unreachable, managed executions are blocked — never executed without confirmed payment. This is a hard architectural constraint, not a configuration option.", status: "live" },
+      { label: "Stripe integration", detail: "Payment card processing is handled entirely by Stripe. Rhumb never sees, stores, or processes card numbers. PCI compliance is delegated to Stripe.", status: "live" },
+      { label: "x402 verification", detail: "On-chain payments are verified against the Base network. Contract address, amount, sender, and confirmation status are all validated before execution proceeds.", status: "live" },
+      { label: "Budget controls", detail: "Per-agent budget limits, daily execution caps, and upstream provider budget tracking prevent runaway costs. Agents can set their own spend caps.", status: "live" },
+    ],
+  },
+  {
+    id: "infrastructure",
+    title: "Infrastructure",
+    icon: "🏗️",
+    items: [
+      { label: "Hosting", detail: "API on Railway (auto-scaling, isolated containers). Frontend on Vercel (edge-deployed). Database on Supabase (managed PostgreSQL with Row Level Security).", status: "live" },
+      { label: "Deployment", detail: "Automated deployments from GitHub. No manual server access. Infrastructure-as-code configuration.", status: "live" },
+      { label: "Monitoring", detail: "Application health monitoring, error tracking, and uptime checks. Public status page at rhumb.dev/status.", status: "live" },
+      { label: "Incident response", detail: "Documented runbooks for Supabase outage, proxy provider failure, billing failure, x402 settlement failure, and deployment rollback scenarios.", status: "live" },
+    ],
+  },
+  {
+    id: "compliance",
+    title: "Compliance Roadmap",
+    icon: "📋",
+    items: [
+      { label: "GDPR", detail: "Data minimization, deletion on request, no unnecessary data collection. Privacy policy documents all data processing. DPA available on request for enterprise customers.", status: "live" },
+      { label: "CCPA", detail: "California Consumer Privacy Act compliance: data disclosure, deletion, and opt-out rights documented in privacy policy.", status: "live" },
+      { label: "SOC 2 Type I", detail: "Planned for evaluation. Timeline will be published when engagement is confirmed with an auditing firm.", status: "planned" },
+      { label: "SOC 2 Type II", detail: "Follows Type I. Requires 6+ months of continuous control evidence.", status: "planned" },
+      { label: "HIPAA BAA", detail: "Not currently available. Will be evaluated based on customer demand.", status: "planned" },
+    ],
+  },
+];
+
+const statusColors = {
+  live: { bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Live" },
+  planned: { bg: "bg-amber-500/10", text: "text-amber-400", label: "Planned" },
+  "n/a": { bg: "bg-slate-500/10", text: "text-slate-400", label: "N/A" },
+};
+---
+
+<Layout
+  title="Security"
+  description="How Rhumb protects agent credentials, handles data, and manages upstream API access. Credential encryption, billing security, compliance roadmap, and vulnerability disclosure."
+  canonical="/security"
+  ogTitle="Security — Rhumb"
+  ogDescription="Credential encryption, fail-closed billing, API security, data handling practices, and compliance roadmap."
+  ogUrl="https://rhumb.dev/security"
+  jsonLd={PAGE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="security-page" data-page-type="security">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Security</p>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          How we protect your credentials and data.
+        </h1>
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Rhumb sits between your agent and third-party APIs. That position demands trust.
+          This page documents exactly what we do to earn it — and what we don't do yet.
+        </p>
+        <p class="mt-3 text-sm text-slate-500">
+          Last updated March 2026 · <a href="mailto:security@supertrained.ai" class="text-amber hover:underline">Report a vulnerability →</a>
+        </p>
+      </header>
+
+      <!-- Quick trust signals -->
+      <div class="mt-10 grid sm:grid-cols-4 gap-4" data-section="trust-signals">
+        <div class="bg-surface border border-slate-800 rounded-lg p-4 text-center">
+          <p class="text-2xl font-display font-bold text-slate-100">AES-256</p>
+          <p class="text-xs text-slate-500 mt-1">Credential encryption</p>
+        </div>
+        <div class="bg-surface border border-slate-800 rounded-lg p-4 text-center">
+          <p class="text-2xl font-display font-bold text-slate-100">TLS 1.2+</p>
+          <p class="text-xs text-slate-500 mt-1">All API traffic</p>
+        </div>
+        <div class="bg-surface border border-slate-800 rounded-lg p-4 text-center">
+          <p class="text-2xl font-display font-bold text-slate-100">Fail-closed</p>
+          <p class="text-xs text-slate-500 mt-1">Billing architecture</p>
+        </div>
+        <div class="bg-surface border border-slate-800 rounded-lg p-4 text-center">
+          <p class="text-2xl font-display font-bold text-slate-100">Zero-log</p>
+          <p class="text-xs text-slate-500 mt-1">Execution payloads</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="mt-10 flex flex-wrap gap-2" aria-label="Security sections">
+        {sections.map((s) => (
+          <a
+            href={`#${s.id}`}
+            class="text-xs font-mono text-slate-400 bg-surface border border-slate-800 rounded-full px-3 py-1.5 hover:text-amber hover:border-amber/30 transition-colors"
+          >
+            {s.icon} {s.title}
+          </a>
+        ))}
+      </nav>
+
+      <!-- Security sections -->
+      <div class="mt-12 space-y-12" data-section="details">
+        {sections.map((section) => (
+          <section id={section.id} data-testid={`security-${section.id}`}>
+            <h2 class="font-display text-2xl font-bold text-slate-100 flex items-center gap-3">
+              <span>{section.icon}</span>
+              {section.title}
+            </h2>
+            <div class="mt-6 space-y-4">
+              {section.items.map((item) => (
+                <div class="bg-surface border border-slate-800 rounded-lg p-5">
+                  <div class="flex items-start justify-between gap-4">
+                    <h3 class="text-sm font-semibold text-slate-200">{item.label}</h3>
+                    <span class={`text-xs font-mono px-2 py-0.5 rounded shrink-0 ${statusColors[item.status].bg} ${statusColors[item.status].text}`}>
+                      {statusColors[item.status].label}
+                    </span>
+                  </div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <!-- Vulnerability disclosure -->
+      <section class="mt-16 bg-surface border border-amber/20 rounded-xl p-6" data-section="disclosure" id="disclosure">
+        <h2 class="font-display text-xl font-semibold text-slate-100">Vulnerability Disclosure</h2>
+        <p class="mt-3 text-sm text-slate-400 leading-relaxed">
+          If you discover a security vulnerability in Rhumb, please report it responsibly:
+        </p>
+        <ul class="mt-4 space-y-2 text-sm text-slate-400">
+          <li class="flex gap-2">
+            <span class="text-amber">→</span>
+            Email <a href="mailto:security@supertrained.ai" class="text-amber hover:underline">security@supertrained.ai</a> with a description of the vulnerability
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber">→</span>
+            Include steps to reproduce, expected vs. actual behavior, and any proof-of-concept
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber">→</span>
+            We will acknowledge receipt within 48 hours and provide a timeline for resolution
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber">→</span>
+            Please do not publicly disclose the vulnerability until we've had a reasonable opportunity to address it
+          </li>
+        </ul>
+      </section>
+
+      <!-- Footer links -->
+      <footer class="mt-12 border-t border-slate-800 pt-8">
+        <div class="flex flex-wrap gap-4 text-sm">
+          <a href="/trust" class="text-slate-400 hover:text-amber transition-colors">Trust & Methodology →</a>
+          <a href="/privacy" class="text-slate-400 hover:text-amber transition-colors">Privacy Policy →</a>
+          <a href="/terms" class="text-slate-400 hover:text-amber transition-colors">Terms of Service →</a>
+          <a href="/docs/failure-modes" class="text-slate-400 hover:text-amber transition-colors">Failure Modes →</a>
+          <a href="/status" class="text-slate-400 hover:text-amber transition-colors">System Status →</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+</Layout>
