@@ -184,6 +184,13 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": 30000,  # Scraping can be slow
     },
+    "deepgram": {
+        "domain": "api.deepgram.com",
+        "auth_type": "api_key",
+        "rate_limit": "200/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,  # Audio processing can be slow
+    },
 }
 
 
