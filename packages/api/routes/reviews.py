@@ -8,9 +8,10 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Query
 
-from routes._supabase import supabase_fetch
+from routes._supabase import cached_query, supabase_fetch
 
 router = APIRouter()
+_READ_CACHE_TTL_SECONDS = 60.0
 
 _TRUST_LABELS = {
     "runtime_verified": "\U0001F7E2 Runtime-verified",
@@ -39,6 +40,10 @@ _SOURCE_TYPE_BREAKDOWN_KEYS = (
     "probe_generated",
     "manual_operator",
 )
+
+
+async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
+    return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
 
 
 def trust_label(source_type: str | None) -> str:
@@ -147,7 +152,8 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
     if not review_ids:
         return {}, []
 
-    links = await supabase_fetch(
+    links = await _cached_fetch(
+        "review_evidence_links",
         "review_evidence_links"
         f"?review_id=in.({_postgrest_in(review_ids)})"
         "&select=review_id,evidence_record_id"
@@ -159,7 +165,8 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
     if not evidence_ids:
         return {}, []
 
-    evidence_rows = await supabase_fetch(
+    evidence_rows = await _cached_fetch(
+        "evidence_records",
         "evidence_records"
         f"?id=in.({_postgrest_in(evidence_ids)})"
         "&select=id,source_type,observed_at"
@@ -190,7 +197,8 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 @router.get("/services/{slug}/reviews")
 async def get_service_reviews(slug: str) -> dict[str, Any]:
     """Return published reviews for one service."""
-    reviews = await supabase_fetch(
+    reviews = await _cached_fetch(
+        "service_reviews",
         "service_reviews"
         f"?service_slug=eq.{quote(slug)}"
         "&review_status=eq.published"
@@ -274,7 +282,7 @@ async def get_service_evidence(
     if kind:
         path += f"&evidence_kind=eq.{quote(kind)}"
 
-    evidence_rows = (await supabase_fetch(path)) or []
+    evidence_rows = (await _cached_fetch("evidence_records", path)) or []
     return {
         "service_slug": slug,
         "evidence": [
@@ -301,11 +309,11 @@ async def get_service_evidence(
 async def get_review_stats() -> dict[str, Any]:
     """Return aggregate review and evidence coverage stats."""
     review_rows = (
-        await supabase_fetch(
-            "service_reviews?review_status=eq.published&select=id,review_type"
-        )
+        await _cached_fetch("service_reviews", "service_reviews?review_status=eq.published&select=id,review_type")
     ) or []
-    evidence_rows = (await supabase_fetch("evidence_records?select=id,source_type")) or []
+    evidence_rows = (
+        await _cached_fetch("evidence_records", "evidence_records?select=id,source_type")
+    ) or []
 
     review_type_breakdown = {key: 0 for key in _REVIEW_TYPE_BREAKDOWN_KEYS}
     for row in review_rows:

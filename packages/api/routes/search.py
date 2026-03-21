@@ -6,9 +6,14 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Query
 
-from routes._supabase import supabase_fetch
+from routes._supabase import cached_query, supabase_fetch
 
 router = APIRouter()
+_READ_CACHE_TTL_SECONDS = 60.0
+
+
+async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
+    return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
 
 
 @router.get("/search")
@@ -43,7 +48,7 @@ async def search_services(
         f"&order=name.asc"
     )
 
-    services = await supabase_fetch(path)
+    services = await _cached_fetch("services", path)
     if services is None:
         return {
             "data": {"query": q, "limit": limit, "results": []},
@@ -60,7 +65,8 @@ async def search_services(
     slugs = [s["slug"] for s in services]
     slug_filter = ",".join(f'"{s}"' for s in slugs)
 
-    scores_data = await supabase_fetch(
+    scores_data = await _cached_fetch(
+        "scores",
         f"scores?service_slug=in.({slug_filter})"
         f"&order=aggregate_recommendation_score.desc.nullslast"
     )

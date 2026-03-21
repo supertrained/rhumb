@@ -8,9 +8,24 @@ from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-from routes._supabase import supabase_count, supabase_fetch
+from routes._supabase import cached_query, supabase_count, supabase_fetch
 
 router = APIRouter()
+_READ_CACHE_TTL_SECONDS = 60.0
+
+
+async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
+    return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
+
+
+async def _cached_count(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> int:
+    result = await cached_query(
+        table,
+        lambda: supabase_count(path),
+        cache_key=f"count:{path}",
+        ttl=ttl,
+    )
+    return 0 if result is None else int(result)
 
 
 def _build_in_filter(values: set[str]) -> str:
@@ -53,7 +68,7 @@ async def list_services(
     effective_limit = min(limit, 500)
 
     # Fetch the set of slugs that actually have scores.
-    scored_rows = await supabase_fetch("scores?select=service_slug")
+    scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
     if scored_rows is None:
         return {
             "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
@@ -79,9 +94,9 @@ async def list_services(
     if category:
         path += f"&category=eq.{quote(category)}"
 
-    total = await supabase_count(path)
+    total = await _cached_count("services", path)
     paginated_path = f"{path}&limit={effective_limit}&offset={offset}"
-    data = await supabase_fetch(paginated_path)
+    data = await _cached_fetch("services", paginated_path)
     if data is None:
         return {
             "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
@@ -113,7 +128,8 @@ async def list_services(
 async def get_service(slug: str) -> dict:
     """Fetch a service profile by slug, including latest score."""
     # Get service info
-    services = await supabase_fetch(
+    services = await _cached_fetch(
+        "services",
         f"services?slug=eq.{quote(slug)}&select=slug,name,category,description&limit=1"
     )
     if not services:
@@ -122,7 +138,8 @@ async def get_service(slug: str) -> dict:
     service = services[0]
 
     # Get latest score
-    scores = await supabase_fetch(
+    scores = await _cached_fetch(
+        "scores",
         f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
     )
     score: dict[str, Any] = {}
@@ -149,13 +166,15 @@ async def get_service(slug: str) -> dict:
     # Get alternatives (same category, different slug, ranked by score)
     alternatives: list[dict] = []
     if service.get("category"):
-        alt_scores = await supabase_fetch(
+        alt_scores = await _cached_fetch(
+            "scores",
             f"scores?service_slug=neq.{quote(slug)}"
             f"&order=aggregate_recommendation_score.desc.nullslast&limit=5"
         )
         if alt_scores:
             # Filter to same category by cross-referencing services
-            alt_services = await supabase_fetch(
+            alt_services = await _cached_fetch(
+                "services",
                 f"services?category=eq.{quote(service['category'])}"
                 f"&slug=neq.{quote(slug)}&select=slug,name"
             )
@@ -186,7 +205,8 @@ async def get_service(slug: str) -> dict:
 @router.get("/services/{slug}/score", response_model=None)
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
-    service_rows = await supabase_fetch(
+    service_rows = await _cached_fetch(
+        "services",
         f"services?slug=eq.{quote(slug)}"
         f"&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"
     )
@@ -204,7 +224,8 @@ async def get_service_score(slug: str, raw_request: Request):
             )
     service = service_rows[0]
 
-    scores = await supabase_fetch(
+    scores = await _cached_fetch(
+        "scores",
         f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
     )
     if not scores:
@@ -253,7 +274,8 @@ async def get_service_score(slug: str, raw_request: Request):
     explanation = ". ".join(parts) + "." if parts else ""
 
     # Fetch active failure modes
-    failures = await supabase_fetch(
+    failures = await _cached_fetch(
+        "failure_modes",
         f"failure_modes?service_slug=eq.{quote(slug)}"
         f"&resolved_at=is.null"
         f"&order=severity.asc"
@@ -301,7 +323,8 @@ async def get_service_score(slug: str, raw_request: Request):
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
-    failures = await supabase_fetch(
+    failures = await _cached_fetch(
+        "failure_modes",
         f"failure_modes?service_slug=eq.{quote(slug)}"
         f"&resolved_at=is.null"
         f"&order=severity.asc,frequency.asc"
@@ -335,7 +358,8 @@ async def get_failures(slug: str) -> dict:
 @router.get("/services/{slug}/history")
 async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -> dict:
     """Fetch historical AN score entries for a service."""
-    scores = await supabase_fetch(
+    scores = await _cached_fetch(
+        "scores",
         f"scores?service_slug=eq.{quote(slug)}"
         f"&order=calculated_at.desc&limit={limit}"
         f"&select=aggregate_recommendation_score,execution_score,access_readiness_score,"
