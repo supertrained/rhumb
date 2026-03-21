@@ -58,6 +58,12 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "apify_api_token": ("apify", "api_token"),
     "apollo_api_key": ("apollo", "api_key"),
     "pdl_api_key": ("pdl", "api_key"),
+    # Stateless utility APIs (Rhumb-managed, free-tier)
+    "tavily_api_key": ("tavily", "api_key"),
+    "exa_api_key": ("exa", "api_key"),
+    "brave_search_api_key": ("brave-search", "api_key"),
+    "replicate_api_token": ("replicate", "api_token"),
+    "algolia_api_key": ("algolia", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -72,13 +78,24 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "apify": ("RHUMB_CREDENTIAL_APIFY_API_TOKEN", "api_token"),
     "apollo": ("RHUMB_CREDENTIAL_APOLLO_API_KEY", "api_key"),
     "pdl": ("RHUMB_CREDENTIAL_PDL_API_KEY", "api_key"),
+    # Stateless utility APIs (Rhumb-managed, free-tier)
+    "tavily": ("RHUMB_CREDENTIAL_TAVILY_API_KEY", "api_key"),
+    "exa": ("RHUMB_CREDENTIAL_EXA_API_KEY", "api_key"),
+    "brave-search": ("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "api_key"),
+    "replicate": ("RHUMB_CREDENTIAL_REPLICATE_API_TOKEN", "api_token"),
+    "algolia": ("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "api_key"),
 }
 
 
 class CredentialStore:
     """Manage provider credentials with 1Password integration and in-memory cache."""
 
-    SUPPORTED_SERVICES: List[str] = ["stripe", "slack", "github", "twilio", "sendgrid", "firecrawl", "apify", "apollo", "pdl"]
+    SUPPORTED_SERVICES: List[str] = [
+        "stripe", "slack", "github", "twilio", "sendgrid",
+        "firecrawl", "apify", "apollo", "pdl",
+        # Stateless utility APIs (Rhumb-managed, free-tier)
+        "tavily", "exa", "brave-search", "replicate", "algolia",
+    ]
 
     def __init__(self, *, auto_load: bool = True) -> None:
         self._cache: Dict[str, ProviderCredentials] = {}

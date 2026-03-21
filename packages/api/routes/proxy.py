@@ -120,6 +120,42 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
+    # --- Stateless utility APIs (Rhumb-managed, free-tier) ---
+    "tavily": {
+        "domain": "api.tavily.com",
+        "auth_type": "api_key",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "exa": {
+        "domain": "api.exa.ai",
+        "auth_type": "bearer_token",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "brave-search": {
+        "domain": "api.search.brave.com",
+        "auth_type": "api_key",
+        "rate_limit": "60/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "replicate": {
+        "domain": "api.replicate.com",
+        "auth_type": "bearer_token",
+        "rate_limit": "600/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "algolia": {
+        "domain": "80LYFTF37Y-dsn.algolia.net",
+        "auth_type": "api_key",
+        "rate_limit": "1000/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
 }
 
 
