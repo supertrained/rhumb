@@ -1,11 +1,19 @@
+import { getCapabilityCount, getCategories, getServiceCount } from "../../../lib/api";
+
 export const revalidate = 3600; // Cache for 1 hour
 
 export async function GET() {
+  const [servicesScored, capabilities, categories] = await Promise.all([
+    getServiceCount(),
+    getCapabilityCount(),
+    getCategories(),
+  ]);
+
   const manifest = {
     name: "Rhumb",
-    version: "0.6.0",
+    version: "0.3.2",
     description:
-      "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores 212+ APIs for AI agent compatibility (AN Score).",
+      `Agent-native infrastructure for discovering, evaluating, and using external tools. Scores ${servicesScored} APIs for AI agent compatibility (AN Score).`,
     url: "https://rhumb.dev",
     api: {
       base_url: "https://api.rhumb.dev/v1",
@@ -53,9 +61,9 @@ export async function GET() {
       ],
     },
     coverage: {
-      services_scored: 212,
-      capabilities: 103,
-      domains: 30,
+      services_scored: servicesScored,
+      capabilities,
+      domains: categories.length,
       comparisons: 9,
       autopsies: 4,
     },

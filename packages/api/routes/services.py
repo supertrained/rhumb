@@ -5,16 +5,42 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
-from routes._supabase import supabase_fetch
+from routes._supabase import supabase_count, supabase_fetch
 
 router = APIRouter()
 
 
+def _build_in_filter(values: set[str]) -> str:
+    """Build a PostgREST `in.(...)` filter from a set of string identifiers."""
+    return ",".join(f'"{value}"' for value in sorted(values))
+
+
+def _not_found_response(
+    raw_request: Request,
+    *,
+    error: str,
+    message: str,
+    resolution: str,
+) -> JSONResponse:
+    """Return a standardized route-level 404 envelope."""
+    request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": error,
+            "message": message,
+            "resolution": resolution,
+            "request_id": request_id,
+        },
+    )
+
+
 @router.get("/services")
 async def list_services(
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=50, ge=1),
     offset: int = Query(default=0, ge=0),
     category: str | None = Query(default=None),
 ) -> dict:
@@ -24,25 +50,45 @@ async def list_services(
     Scoreless/ghost services are excluded to prevent 404 cascades
     when users click through from search or API results.
     """
-    path = "services?select=slug,name,category,description&order=name.asc"
+    effective_limit = min(limit, 500)
+
+    # Fetch the set of slugs that actually have scores.
+    scored_rows = await supabase_fetch("scores?select=service_slug")
+    if scored_rows is None:
+        return {
+            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "error": "Unable to load services.",
+        }
+
+    scored_slugs = {
+        str(row["service_slug"])
+        for row in scored_rows
+        if row.get("service_slug")
+    }
+    if not scored_slugs:
+        return {
+            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "error": None,
+        }
+
+    path = (
+        "services?select=slug,name,category,description"
+        f"&slug=in.({_build_in_filter(scored_slugs)})"
+        "&order=name.asc"
+    )
     if category:
         path += f"&category=eq.{quote(category)}"
 
-    data = await supabase_fetch(path)
+    total = await supabase_count(path)
+    paginated_path = f"{path}&limit={effective_limit}&offset={offset}"
+    data = await supabase_fetch(paginated_path)
     if data is None:
-        return {"data": {"items": [], "limit": limit, "offset": offset}, "error": "Unable to load services."}
+        return {
+            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "error": "Unable to load services.",
+        }
 
-    # Fetch the set of slugs that actually have scores
-    scored_rows = await supabase_fetch("scores?select=service_slug")
-    scored_slugs: set[str] = set()
-    if scored_rows:
-        scored_slugs = {str(row["service_slug"]) for row in scored_rows if row.get("service_slug")}
-
-    # Exclude scoreless ghost services
-    scored_data = [s for s in data if s.get("slug") in scored_slugs]
-
-    # Apply offset/limit
-    items = scored_data[offset : offset + limit]
+    items = data
 
     return {
         "data": {
@@ -55,8 +101,8 @@ async def list_services(
                 }
                 for s in items
             ],
-            "total": len(scored_data),
-            "limit": limit,
+            "total": total,
+            "limit": effective_limit,
             "offset": offset,
         },
         "error": None,
@@ -137,14 +183,26 @@ async def get_service(slug: str) -> dict:
     }
 
 
-@router.get("/services/{slug}/score")
-async def get_service_score(slug: str) -> dict:
+@router.get("/services/{slug}/score", response_model=None)
+async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
     service_rows = await supabase_fetch(
         f"services?slug=eq.{quote(slug)}"
         f"&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"
     )
-    service = service_rows[0] if service_rows else {}
+    if not service_rows:
+        from routes import scores as score_routes
+
+        try:
+            return await score_routes.get_score(slug)
+        except HTTPException:
+            return _not_found_response(
+                raw_request,
+                error="service_not_found",
+                message=f"No service found with slug '{slug}'",
+                resolution="Check available services at GET /v1/services or /v1/search?q=...",
+            )
+    service = service_rows[0]
 
     scores = await supabase_fetch(
         f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"

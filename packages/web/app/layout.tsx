@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s | Rhumb",
   },
   description:
-    "Rhumb scores 212 external APIs for AI agent compatibility. Discover, evaluate, and use tools via MCP, REST API, or x402 per-call payment. Free tier: 1,000 executions/month.",
+    "Rhumb scores hundreds of external APIs for AI agent compatibility. Discover, evaluate, and use tools via MCP, REST API, or x402 per-call payment. Free tier: 1,000 executions/month.",
   metadataBase: new URL("https://rhumb.dev"),
   other: {
     "ai:capabilities": "tool-discovery,an-scoring,mcp,rest-api,x402-payment",
@@ -64,7 +64,7 @@ const jsonLd = {
   "@type": "SoftwareApplication",
   name: "Rhumb",
   description:
-    "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores 212 APIs for AI agent compatibility (AN Score). Supports MCP, REST API, and x402 per-call payment.",
+    "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores hundreds of APIs for AI agent compatibility (AN Score). Supports MCP, REST API, and x402 per-call payment.",
   url: "https://rhumb.dev",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Any",
@@ -85,7 +85,7 @@ const jsonLd = {
     },
   ],
   featureList: [
-    "AN (Agent-Nativeness) Scores for 212+ services",
+    "AN (Agent-Nativeness) Scores for hundreds of services",
     "MCP server: npx rhumb-mcp@0.6.0",
     "REST API at api.rhumb.dev",
     "x402 per-call payment (USDC) — no signup required",

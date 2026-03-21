@@ -66,6 +66,26 @@ def _get_identity_store() -> AgentIdentityStore:
 logger = logging.getLogger(__name__)
 
 
+def _not_found_response(
+    raw_request: Request,
+    *,
+    error: str,
+    message: str,
+    resolution: str,
+) -> JSONResponse:
+    """Return a standardized route-level 404 envelope."""
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": error,
+            "message": message,
+            "resolution": resolution,
+            "request_id": request_id,
+        },
+    )
+
+
 def _billing_unavailable_response(raw_request: Request) -> JSONResponse:
     request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
     return JSONResponse(
@@ -433,6 +453,18 @@ async def execute_capability(
 
     Supports x402 inline payment via the ``X-Payment`` header.
     """
+    capability = await _resolve_capability(capability_id)
+    if capability is None:
+        return _not_found_response(
+            raw_request,
+            error="capability_not_found",
+            message=f"No capability found with id '{capability_id}'",
+            resolution=(
+                "Browse capabilities at GET /v1/capabilities or use "
+                "discover_capabilities MCP tool"
+            ),
+        )
+
     # ── Authentication: API key OR x402 payment ────────────────────
     is_x402_anonymous = False
     x402_wallet_address: Optional[str] = None
@@ -608,9 +640,6 @@ async def execute_capability(
                 },
                 "error": None,
             }
-
-    if await _resolve_capability(capability_id) is None:
-        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
 
     cap_services = await _get_capability_services(capability_id)
     selected_mapping: dict | None = None

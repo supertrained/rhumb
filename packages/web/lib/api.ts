@@ -338,7 +338,7 @@ async function fetchAdminPayload(path: string, adminKey: string): Promise<unknow
 }
 
 async function getServicesFromAPI(): Promise<Service[]> {
-  const payload = await fetchPayload("/services");
+  const payload = await fetchPayload("/services?limit=500");
   return parseServicesResponse(payload);
 }
 
@@ -422,6 +422,26 @@ export async function getServiceCount(): Promise<number> {
   }
   const services = await getServicesFromAPI();
   return services.length;
+}
+
+/** Fetch total number of published capabilities. */
+export async function getCapabilityCount(): Promise<number> {
+  if (useSupabase) {
+    const data = await supabaseFetch<Array<{ id: string }>>("capabilities?select=id");
+    return data?.length ?? 0;
+  }
+
+  const payload = await fetchPayload("/capabilities?limit=1");
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return 0;
+  }
+
+  const data = payload.data;
+  if (!data || typeof data !== "object" || !("total" in data)) {
+    return 0;
+  }
+
+  return typeof data.total === "number" ? data.total : 0;
 }
 
 /** Fetch launch dashboard data from the admin API. */

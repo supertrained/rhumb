@@ -160,6 +160,33 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_unknown_capability_returns_404_before_payment_flow(app):
+    """Unknown capabilities should return 404 before any x402/payment flow."""
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/nonexistent/execute",
+                json={},
+                headers={"X-Request-ID": "req-capability-404"},
+            )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "capability_not_found",
+        "message": "No capability found with id 'nonexistent'",
+        "resolution": (
+            "Browse capabilities at GET /v1/capabilities or use "
+            "discover_capabilities MCP tool"
+        ),
+        "request_id": "req-capability-404",
+    }
+
+
+@pytest.mark.anyio
 async def test_billable_execution_checks_billing_health_before_execute(app):
     """Billable execution proceeds when billing health check succeeds."""
     _, mock_pool = _build_patches()
@@ -276,7 +303,16 @@ async def test_execute_unknown_capability(app):
             )
 
     assert resp.status_code == 404
-    assert "not found" in resp.json()["detail"]
+    body = resp.json()
+    assert body == {
+        "error": "capability_not_found",
+        "message": "No capability found with id 'nonexistent'",
+        "resolution": (
+            "Browse capabilities at GET /v1/capabilities or use "
+            "discover_capabilities MCP tool"
+        ),
+        "request_id": body["request_id"],
+    }
 
 
 @pytest.mark.anyio
@@ -400,11 +436,16 @@ async def test_idempotency_prevents_duplicate(app):
 @pytest.mark.anyio
 async def test_execute_requires_auth_header(app):
     """POST execute without auth returns x402 payment instructions."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post(
-            "/v1/capabilities/email.send/execute",
-            json={"method": "POST", "path": "/foo", "body": {}},
-        )
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={"method": "POST", "path": "/foo", "body": {}},
+            )
     assert resp.status_code == 402
     assert resp.headers["x-payment"] == "required"
 
