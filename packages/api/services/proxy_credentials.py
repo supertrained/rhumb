@@ -88,6 +88,8 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "algolia": ("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "api_key"),
     "e2b": ("RHUMB_CREDENTIAL_E2B_API_KEY", "api_key"),
     "unstructured": ("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "api_key"),
+    "ipinfo": ("RHUMB_CREDENTIAL_IPINFO_API_TOKEN", "bearer_token"),
+    "scraperapi": ("RHUMB_CREDENTIAL_SCRAPERAPI_API_KEY", "api_key"),
 }
 
 
@@ -99,6 +101,7 @@ class CredentialStore:
         "firecrawl", "apify", "apollo", "pdl",
         # Stateless utility APIs (Rhumb-managed, free-tier)
         "tavily", "exa", "brave-search", "replicate", "algolia", "e2b", "unstructured",
+        "ipinfo", "scraperapi",
     ]
 
     def __init__(self, *, auto_load: bool = True) -> None:

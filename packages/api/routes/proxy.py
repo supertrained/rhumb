@@ -170,6 +170,20 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": 30000,  # Document processing can be slow
     },
+    "ipinfo": {
+        "domain": "api.ipinfo.io",
+        "auth_type": "bearer_token",
+        "rate_limit": "1000/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "scraperapi": {
+        "domain": "api.scraperapi.com",
+        "auth_type": "api_key",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,  # Scraping can be slow
+    },
 }
 
 
