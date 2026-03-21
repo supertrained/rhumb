@@ -8,7 +8,9 @@ from typing import Optional, Tuple
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.usage_metering import UsageMeterEngine, get_usage_meter_engine
 
-FREE_TIER_LIMIT = 1000
+# Free tier disabled (Tom decision 2026-03-21): pure cost + margin model.
+# Discovery (search, scores, browsing) remains free. Executions are always billed.
+FREE_TIER_LIMIT = 0
 
 
 class FreeTierQuotaManager:

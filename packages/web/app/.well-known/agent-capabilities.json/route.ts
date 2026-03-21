@@ -28,7 +28,7 @@ export async function GET() {
           flow: "Send request → receive 402 with payment details → submit payment → retry with proof",
         },
         api_key: {
-          description: "Bearer token from signup. Free tier: 1,000 executions/month.",
+          description: "Bearer token from signup. Pay-as-you-go: upstream cost + 20% margin.",
           header: "Authorization: Bearer rhumb_live_{key}",
           signup_url: "https://rhumb.dev/signup",
         },
@@ -68,10 +68,10 @@ export async function GET() {
       autopsies: 4,
     },
     pricing: {
-      free_tier: {
-        executions_per_month: 1000,
+      discovery: {
+        cost: "free",
+        includes: "search, scores, comparisons, browsing",
         signup_required: false,
-        credit_card_required: false,
       },
       x402: {
         margin: "15% over upstream cost",

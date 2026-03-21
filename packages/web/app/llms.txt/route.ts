@@ -50,7 +50,7 @@ Key endpoints:
   get_failure_modes("stripe") — known failure patterns
   execute_capability("email.send", {...}) — execute through Rhumb
   estimate_cost("email.send") — check pricing before calling
-  get_budget_status() — check remaining balance/free tier
+  get_budget_status() — check remaining prepaid balance
 
 ### Option 3: Browse (no account needed)
   https://rhumb.dev — explore scores, comparisons, and failure modes
@@ -67,9 +67,9 @@ Agents with a USDC wallet can pay per call with no account:
 5. Receive API response
 Total time: seconds. No signup. No API key. No human involvement.
 
-### API Key (for metered billing or free tier)
+### API Key (for metered billing)
 Sign up at https://rhumb.dev/signup for an API key.
-Free tier: 1,000 executions/month (no credit card required).
+Pay-as-you-go: upstream cost + 20% margin per execution.
 Pass as: Authorization: Bearer rhumb_live_{key}
 
 ### BYOK (Bring Your Own Key) — Free
@@ -77,7 +77,7 @@ Use your own API keys for external services. Rhumb handles routing and scoring.
 No Rhumb payment required for BYOK calls.
 
 ## Pricing
-- Free tier: 1,000 executions/month (no credit card)
+- Discovery (search, scores, browsing): Always free
 - x402 per-call: USDC on Base network (15% margin over upstream cost)
 - Managed billing: 20% margin over upstream cost
 - BYOK: Free (you pay the external provider directly)

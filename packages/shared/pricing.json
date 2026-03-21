@@ -3,18 +3,7 @@
   "published_at": "2026-03-18",
   "public_pricing_url": "https://rhumb.dev/pricing",
   "canonical_api_base_url": "https://api.rhumb.dev/v1",
-  "free_tier": {
-    "included_executions_per_month": 1000,
-    "unit": "executions",
-    "requires_credit_card": false,
-    "applies_to": [
-      "rhumb_managed"
-    ],
-    "notes": [
-      "Read-only discovery endpoints remain public and do not consume the free tier.",
-      "The free tier covers 1000 executions per month before paid Rhumb billing applies."
-    ]
-  },
+  "free_tier": null,
   "modes": {
     "rhumb_managed": {
       "label": "Rhumb-managed billing",

@@ -56,7 +56,7 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Rhumb pricing for developers and teams: 1,000 free executions per month, standard API-key billing, and enterprise contact. On-chain x402 payments are documented on a separate agent payments page.",
+    "Rhumb pricing: pay only for what you execute. Upstream cost plus a transparent margin. Discovery, scoring, and browsing are always free. On-chain x402 payments on a separate page.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -67,10 +67,10 @@ const PRICING_JSON_LD = {
 
 <Layout
   title="Pricing"
-  description="Start with 1,000 free executions per month, move to standard API-key billing as you scale, or contact Rhumb for enterprise access. On-chain agent payments live on a separate page."
+  description="Pay only for what you execute. Upstream cost plus a transparent margin. Discovery, scoring, and browsing are always free. On-chain agent payments on a separate page."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Free tier, standard API-key pricing, and enterprise access for Rhumb. Dedicated page for on-chain agent payments."
+  ogDescription="Pay only for executions. Upstream cost plus transparent margin. Discovery is always free. Dedicated page for on-chain agent payments."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
@@ -79,13 +79,13 @@ const PRICING_JSON_LD = {
       <header class="max-w-3xl" data-section="hero">
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
-          Start free.
-          <span class="block text-slate-400 mt-2">Scale with API-key billing when you need more.</span>
+          Pay for what you use.
+          <span class="block text-slate-400 mt-2">Upstream cost + transparent margin. Nothing else.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Rhumb is priced for mainstream developer workflows first: a free tier for getting started,
-          standard pay-as-you-go billing for production usage, and an enterprise path for teams that
-          need a human conversation.
+          Discovery, scoring, and browsing are always free. When your agent executes a capability
+          through Rhumb, you pay the upstream provider cost plus a transparent margin. That's it.
+          No subscriptions, no seat fees, no minimums.
         </p>
       </header>
 
@@ -96,39 +96,39 @@ const PRICING_JSON_LD = {
       >
         <article
           class="bg-surface border border-amber/20 rounded-2xl p-6"
-          data-tier="free"
+          data-tier="discovery"
           role="region"
-          aria-label="Free tier"
+          aria-label="Discovery (always free)"
         >
           <div class="flex items-center justify-between gap-4">
-            <h2 class="font-display text-xl font-semibold text-slate-100">Free</h2>
+            <h2 class="font-display text-xl font-semibold text-slate-100">Discovery</h2>
             <span class="text-xs font-mono text-amber bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1">
-              No card
+              Always free
             </span>
           </div>
           <p class="mt-4 font-display text-4xl text-slate-100 font-bold">
-            {pricing.free_tier.included_executions_per_month.toLocaleString()}
+            $0
           </p>
           <p class="mt-2 text-sm leading-6 text-slate-400">
-            executions per month. Sign up, get an API key, and start calling execution endpoints
-            without a billing setup step.
+            Browse services, read scores, search the directory, check comparisons, and call any
+            read-only endpoint. No signup required. No limits.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Best for</dt>
-              <dd class="text-slate-200">Evaluation and early builds</dd>
+              <dt class="text-slate-500">Includes</dt>
+              <dd class="text-slate-200">Search, scores, comparisons, MCP discovery</dd>
             </div>
             <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Billing</dt>
-              <dd class="text-slate-200">Free up to the monthly limit</dd>
+              <dt class="text-slate-500">Auth</dt>
+              <dd class="text-slate-200">None required</dd>
             </div>
           </dl>
           <a
-            href={signupHref}
+            href="/search"
             class="mt-6 inline-flex items-center justify-center rounded-lg bg-amber px-4 py-2.5 text-sm font-semibold text-navy hover:bg-amber-light transition-colors"
-            aria-label="Sign up for the free tier"
+            aria-label="Start exploring services"
           >
-            Sign up
+            Explore services
           </a>
         </article>
 
@@ -146,8 +146,8 @@ const PRICING_JSON_LD = {
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Rhumb-managed execution for production use. After the free tier, usage is billed
-            pay-as-you-go at upstream cost plus a {managed.margin_percent} percent margin.
+            Rhumb-managed execution. Every call is billed at upstream provider cost
+            plus a {managed.margin_percent}% margin. No minimums, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">

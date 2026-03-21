@@ -18,7 +18,7 @@ def test_get_pricing_returns_public_contract() -> None:
 
     data = body["data"]
     assert data["canonical_api_base_url"] == "https://api.rhumb.dev/v1"
-    assert data["free_tier"]["included_executions_per_month"] == 1000
+    assert data["free_tier"] is None
     assert data["modes"]["rhumb_managed"]["margin_percent"] == 20
     assert data["modes"]["x402"]["margin_percent"] == 15
     assert data["modes"]["x402"]["network"] == "Base"

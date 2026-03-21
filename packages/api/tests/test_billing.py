@@ -381,26 +381,26 @@ def test_free_tier_active_no_stripe(
     assert _run(free_tier_manager.is_free_tier(agent_id)) is True
 
 
-def test_free_tier_quota_within_limit(
+def test_free_tier_always_blocked_when_limit_zero(
     free_tier_manager: FreeTierQuotaManager,
     usage_meter: UsageMeterEngine,
     identity_store: AgentIdentityStore,
 ) -> None:
+    """With FREE_TIER_LIMIT=0, any free-tier usage is blocked (no free executions)."""
     agent_id = _register_agent(identity_store)
-    _seed_meter_events(usage_meter, agent_id, "openai", 10)
-
+    # Even zero usage should block because limit is 0
     allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed is True
-    assert remaining == FREE_TIER_LIMIT - 10
+    assert allowed is False
+    assert remaining == 0
 
 
-def test_free_tier_quota_exceeded(
+def test_free_tier_quota_exceeded_with_usage(
     free_tier_manager: FreeTierQuotaManager,
     usage_meter: UsageMeterEngine,
     identity_store: AgentIdentityStore,
 ) -> None:
     agent_id = _register_agent(identity_store)
-    _seed_meter_events(usage_meter, agent_id, "openai", FREE_TIER_LIMIT)
+    _seed_meter_events(usage_meter, agent_id, "openai", FREE_TIER_LIMIT + 10)
 
     allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
     assert allowed is False
