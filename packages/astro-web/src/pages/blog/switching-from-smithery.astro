@@ -1,0 +1,342 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Switching from Smithery to Rhumb: When It Makes Sense (and When It Doesn't)",
+  datePublished: "2026-03-21T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "An honest comparison between Smithery and Rhumb for AI agent tool discovery. When Rhumb is the better choice, when Smithery is, and how to use both.",
+  url: "https://rhumb.dev/blog/switching-from-smithery",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+---
+
+<Layout
+  title="Switching from Smithery to Rhumb"
+  description="When Rhumb is the better choice for AI agent tool discovery, when Smithery is, and how to use both together. An honest migration guide."
+  canonical="/blog/switching-from-smithery"
+  ogTitle="Switching from Smithery to Rhumb — Rhumb"
+  ogDescription="Honest comparison: catalog breadth vs. trust depth for AI agents. When to switch, when to stay, and how to use both."
+  ogUrl="https://rhumb.dev/blog/switching-from-smithery"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="migration-guide" data-page-type="blog">
+    <div class="max-w-3xl mx-auto px-6 py-16">
+      <header>
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Migration Guide</p>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight">
+          Switching from Smithery to Rhumb: When It Makes Sense (and When It Doesn't)
+        </h1>
+        <p class="mt-4 text-sm text-slate-500">
+          March 2026 · 8 min read
+        </p>
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Smithery and Rhumb solve different problems. Smithery is an MCP server registry —
+          the largest catalog of agent-accessible tools. Rhumb is a trust and quality layer —
+          it scores tools, surfaces failure modes, and executes capabilities with cost controls.
+          This guide helps you figure out which one you actually need.
+        </p>
+      </header>
+
+      <article class="mt-12 prose-invert">
+        <!-- The honest comparison -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">The honest comparison</h2>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-slate-700">
+                  <th class="text-left py-3 pr-4 text-slate-500 font-mono text-xs">Dimension</th>
+                  <th class="text-left py-3 pr-4 text-slate-500 font-mono text-xs">Smithery</th>
+                  <th class="text-left py-3 text-slate-500 font-mono text-xs">Rhumb</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-300">
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Catalog size</td>
+                  <td class="py-3 pr-4 font-semibold text-emerald-400">4,000+ MCP servers</td>
+                  <td class="py-3">525 services scored</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Quality scoring</td>
+                  <td class="py-3 pr-4">Community ratings</td>
+                  <td class="py-3 font-semibold text-emerald-400">20-dimension AN Score with confidence</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Failure mode docs</td>
+                  <td class="py-3 pr-4">None</td>
+                  <td class="py-3 font-semibold text-emerald-400">Per-service failure modes</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Cost estimation</td>
+                  <td class="py-3 pr-4">None</td>
+                  <td class="py-3 font-semibold text-emerald-400">Pre-execution cost estimates</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Credential modes</td>
+                  <td class="py-3 pr-4">Managed OAuth</td>
+                  <td class="py-3 font-semibold text-emerald-400">BYOK + Managed + x402 USDC</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Agent payments</td>
+                  <td class="py-3 pr-4">Stripe only</td>
+                  <td class="py-3 font-semibold text-emerald-400">x402 USDC (no account needed)</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Time to first tool</td>
+                  <td class="py-3 pr-4 font-semibold text-emerald-400">Minutes</td>
+                  <td class="py-3">Minutes (discovery is free, no auth)</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Onboarding</td>
+                  <td class="py-3 pr-4 font-semibold text-emerald-400">Web UI + CLI</td>
+                  <td class="py-3">CLI + API (MCP or REST)</td>
+                </tr>
+                <tr class="border-b border-slate-800/50">
+                  <td class="py-3 pr-4 text-slate-400">Pricing (execution)</td>
+                  <td class="py-3 pr-4">25,000 free RPCs/mo, then $30/mo</td>
+                  <td class="py-3">Cost + 20% margin per call</td>
+                </tr>
+                <tr>
+                  <td class="py-3 pr-4 text-slate-400">Best for</td>
+                  <td class="py-3 pr-4">Exploration, breadth, rapid prototyping</td>
+                  <td class="py-3">Production reliability, compliance, autonomous agents</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- When to switch -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">When Rhumb is the better choice</h2>
+
+          <div class="space-y-6">
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 mb-2">Your agent picks tools autonomously</h3>
+              <p class="text-sm text-slate-400">
+                If a human selects which MCP server to use, Smithery's catalog is fine. But if your
+                agent is choosing tools at runtime — based on capability, cost, and reliability —
+                it needs quality signals. Rhumb's AN Score gives agents a machine-readable trust metric
+                that community star ratings can't provide.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 mb-2">You need to know how tools fail before they fail</h3>
+              <p class="text-sm text-slate-400">
+                Rhumb documents failure modes per service: what error codes you'll see, common rate limit
+                behaviors, and authentication edge cases. In production, knowing that an API returns 500
+                on malformed dates (instead of 400) before you hit it is the difference between a retry
+                and a crash loop.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 mb-2">You need cost controls</h3>
+              <p class="text-sm text-slate-400">
+                Rhumb provides pre-execution cost estimates and per-agent budget caps. Your agent knows
+                what a call will cost before making it, and can route to cheaper alternatives automatically.
+                This matters when an agent is running unattended and could burn through credits.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 mb-2">Your agent has its own wallet</h3>
+              <p class="text-sm text-slate-400">
+                x402 payments let agents pay per-call with USDC on Base. No account signup, no OAuth flow,
+                no human in the loop. The payment is the authentication. If your agent operates autonomously
+                with its own funds, this is the most native payment path.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 mb-2">You need alternatives at runtime</h3>
+              <p class="text-sm text-slate-400">
+                When a provider goes down, Rhumb surfaces scored alternatives for the same capability.
+                Your agent can failover to a backup without human intervention. Smithery lists tools
+                but doesn't tell your agent which one to switch to when the first choice fails.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- When to stay -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">When Smithery is the better choice</h2>
+
+          <div class="space-y-6">
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-amber mb-2">You need maximum catalog breadth</h3>
+              <p class="text-sm text-slate-400">
+                Smithery has 4,000+ MCP servers. Rhumb has 525 scored services. If you're exploring
+                what's possible, experimenting with niche tools, or building a proof-of-concept where
+                breadth matters more than depth, Smithery is the right starting point.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-amber mb-2">A human is selecting the tools</h3>
+              <p class="text-sm text-slate-400">
+                If a developer manually picks which tools to connect, they can apply their own judgment
+                about quality. Smithery's web UI makes browsing and installation fast. The trust layer
+                is less critical when human judgment is in the loop.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-amber mb-2">You want a web UI for management</h3>
+              <p class="text-sm text-slate-400">
+                Smithery offers a polished web dashboard for managing servers, viewing analytics, and
+                configuring connections. Rhumb is API-first and MCP-first — the web interface is for
+                reading scores and comparisons, not for managing tool connections.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-amber mb-2">You need hosted MCP servers</h3>
+              <p class="text-sm text-slate-400">
+                Smithery can host MCP servers for you, handling infrastructure and scaling. Rhumb
+                doesn't host tools — it proxies requests to upstream providers. If you need managed
+                hosting for custom MCP servers, Smithery is the right choice.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Using both -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">Using both together</h2>
+
+          <div class="bg-surface border border-amber/20 rounded-lg p-6">
+            <p class="text-sm text-slate-300 leading-relaxed mb-4">
+              The best setup for many teams: <strong class="text-slate-100">discover on Smithery, deploy through Rhumb.</strong>
+            </p>
+            <ol class="space-y-3 text-sm text-slate-400">
+              <li class="flex gap-3">
+                <span class="text-amber font-mono font-bold shrink-0">1.</span>
+                <span>Browse Smithery's catalog to find tools that match your use case</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-amber font-mono font-bold shrink-0">2.</span>
+                <span>Check the tool's AN Score on Rhumb — look at execution score, access readiness, and confidence</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-amber font-mono font-bold shrink-0">3.</span>
+                <span>Read the failure modes on Rhumb before integrating</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-amber font-mono font-bold shrink-0">4.</span>
+                <span>Route production traffic through Rhumb for cost controls, budget caps, and failover</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-amber font-mono font-bold shrink-0">5.</span>
+                <span>Keep Smithery for experimenting with new tools outside your production stack</span>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- Migration steps -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">Migration steps</h2>
+
+          <p class="text-sm text-slate-400 mb-6">
+            If you're moving production workloads from Smithery to Rhumb:
+          </p>
+
+          <div class="space-y-4">
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">1. Check coverage</h3>
+              <p class="text-xs text-slate-400">
+                Search for your current tools on Rhumb:
+              </p>
+              <pre class="mt-2 text-xs font-mono text-slate-300 bg-elevated rounded p-3 overflow-x-auto"><code>curl "https://api.rhumb.dev/v1/search?q=your-tool-name"</code></pre>
+              <p class="mt-2 text-xs text-slate-500">
+                If the tool isn't in Rhumb's catalog yet, you can still use it via BYOK mode
+                with your own credentials — Rhumb will proxy the request but won't have scoring data.
+              </p>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">2. Compare credential modes</h3>
+              <p class="text-xs text-slate-400">
+                Smithery uses managed OAuth. Map your current auth to one of Rhumb's three modes:
+              </p>
+              <ul class="mt-2 space-y-1 text-xs text-slate-400">
+                <li><span class="text-amber">BYOK:</span> Bring your existing API keys. Rhumb adds routing and scoring, you keep billing with the provider. No Rhumb markup.</li>
+                <li><span class="text-amber">Managed:</span> Rhumb holds the credentials and bills you. Upstream cost + 20% margin.</li>
+                <li><span class="text-amber">x402:</span> Pay per call with USDC. No account needed. 15% margin.</li>
+              </ul>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">3. Switch the MCP server</h3>
+              <p class="text-xs text-slate-400">
+                Replace the Smithery MCP config with Rhumb's:
+              </p>
+              <pre class="mt-2 text-xs font-mono text-slate-300 bg-elevated rounded p-3 overflow-x-auto"><code>{`// Before (Smithery)
+"smithery": {
+  "command": "smithery",
+  "args": ["mcp", "run"]
+}
+
+// After (Rhumb)
+"rhumb": {
+  "command": "npx",
+  "args": ["rhumb-mcp"],
+  "env": { "RHUMB_API_KEY": "rhumb_live_..." }
+}`}</code></pre>
+            </div>
+            <div class="bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-slate-200 mb-2">4. Test with discovery first</h3>
+              <p class="text-xs text-slate-400">
+                Before switching execution, use Rhumb's read-only endpoints alongside Smithery to verify
+                coverage. Discovery endpoints are free and require no authentication.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- What we're honest about -->
+        <section class="mb-12">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-6">What we're honest about</h2>
+
+          <div class="bg-surface border border-red-500/20 rounded-lg p-6">
+            <ul class="space-y-3 text-sm text-slate-400">
+              <li class="flex gap-3">
+                <span class="text-red-400">→</span>
+                <span><strong class="text-slate-200">Catalog gap is real.</strong> Smithery has 8x more listings. If a tool exists only on Smithery, that's where you'll find it.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-red-400">→</span>
+                <span><strong class="text-slate-200">No web UI for tool management.</strong> Rhumb is API-first. If you want a visual dashboard for connecting tools, Smithery is more polished.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-red-400">→</span>
+                <span><strong class="text-slate-200">No hosted MCP servers.</strong> Rhumb proxies to upstream providers. It doesn't host custom MCP servers for you.</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="text-red-400">→</span>
+                <span><strong class="text-slate-200">Per-call pricing can add up.</strong> Smithery's flat $30/month is simpler to budget. Rhumb's per-call model is transparent but harder to predict upfront.</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Bottom line -->
+        <section class="border-t border-slate-800 pt-8">
+          <h2 class="font-display text-2xl font-bold text-slate-100 mb-4">Bottom line</h2>
+          <p class="text-slate-400 leading-relaxed">
+            Smithery is the best place to discover MCP tools. Rhumb is the best place to evaluate
+            and deploy them. If your agent browses a catalog with human guidance, Smithery is great.
+            If your agent picks tools autonomously, manages its own budget, and needs to know
+            how things fail before they fail, Rhumb is built for that.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-4 text-sm">
+            <a href="/quickstart" class="text-amber hover:underline">Quickstart →</a>
+            <a href="/search" class="text-amber hover:underline">Search services →</a>
+            <a href="/compare" class="text-amber hover:underline">Comparisons →</a>
+            <a href="/docs/failure-modes" class="text-amber hover:underline">Failure modes →</a>
+          </div>
+        </section>
+      </article>
+    </div>
+  </div>
+</Layout>
