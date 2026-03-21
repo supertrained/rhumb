@@ -64,6 +64,8 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "brave_search_api_key": ("brave-search", "api_key"),
     "replicate_api_token": ("replicate", "api_token"),
     "algolia_api_key": ("algolia", "api_key"),
+    "e2b_api_key": ("e2b", "api_key"),
+    "unstructured_api_key": ("unstructured", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -84,6 +86,8 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "brave-search": ("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "api_key"),
     "replicate": ("RHUMB_CREDENTIAL_REPLICATE_API_TOKEN", "api_token"),
     "algolia": ("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "api_key"),
+    "e2b": ("RHUMB_CREDENTIAL_E2B_API_KEY", "api_key"),
+    "unstructured": ("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "api_key"),
 }
 
 
@@ -94,7 +98,7 @@ class CredentialStore:
         "stripe", "slack", "github", "twilio", "sendgrid",
         "firecrawl", "apify", "apollo", "pdl",
         # Stateless utility APIs (Rhumb-managed, free-tier)
-        "tavily", "exa", "brave-search", "replicate", "algolia",
+        "tavily", "exa", "brave-search", "replicate", "algolia", "e2b", "unstructured",
     ]
 
     def __init__(self, *, auto_load: bool = True) -> None:

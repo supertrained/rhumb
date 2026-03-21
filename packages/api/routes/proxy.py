@@ -156,6 +156,20 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
     },
+    "e2b": {
+        "domain": "api.e2b.dev",
+        "auth_type": "api_key",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "unstructured": {
+        "domain": "api.unstructuredapp.io",
+        "auth_type": "api_key",
+        "rate_limit": "100/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,  # Document processing can be slow
+    },
 }
 
 
