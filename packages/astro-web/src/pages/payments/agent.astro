@@ -1,0 +1,348 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import pricing from "../../../../shared/pricing.json";
+
+const x402 = pricing.modes.x402;
+const pricingEndpoint = `${pricing.canonical_api_base_url}/pricing`;
+const estimateEndpoint = `${pricing.canonical_api_base_url}/capabilities/{capability_id}/execute/estimate`;
+const executeEndpoint = `${pricing.canonical_api_base_url}/capabilities/{capability_id}/execute`;
+
+const FLOW_STEPS = [
+  {
+    step: "1",
+    title: "Request execution",
+    description:
+      "Call the execution endpoint without an API key when you want the payment rail to handle authorization.",
+  },
+  {
+    step: "2",
+    title: "Receive HTTP 402",
+    description:
+      "Rhumb responds with exact payment requirements for that execution, including amount, token, and network.",
+  },
+  {
+    step: "3",
+    title: "Pay in USDC on Base",
+    description:
+      "Your agent submits the on-chain payment from its wallet instead of relying on pre-issued credentials.",
+  },
+  {
+    step: "4",
+    title: "Retry with proof",
+    description:
+      `Repeat the request with ${x402.execution_auth[0]} so Rhumb can verify payment and execute the capability.`,
+  },
+];
+
+const WALLET_STEPS = [
+  {
+    title: "Use a Base-compatible wallet",
+    detail:
+      "Your agent needs a wallet that can hold USDC on Base and sign transactions programmatically.",
+  },
+  {
+    title: "Fund it with USDC on Base",
+    detail:
+      "The current public rail is fixed: USDC on Base. Other assets and networks are intentionally not advertised as public options yet.",
+  },
+  {
+    title: "Store the wallet secret like production credentials",
+    detail:
+      "Keep private keys in your wallet system or secret manager. x402 removes API-key signup, but it does not remove wallet-key security.",
+  },
+];
+
+const USE_CASES = [
+  {
+    title: "Autonomous agents",
+    detail:
+      "Best when the agent should discover, pay for, and execute work without waiting for a human to create an account first.",
+  },
+  {
+    title: "No-signup execution",
+    detail:
+      "Useful for ephemeral agents, sandboxes, and evaluation flows where provisioning an API key would add avoidable friction.",
+  },
+  {
+    title: "Per-call spend control",
+    detail:
+      "Each execution carries its own payment event, which is easier to reason about when you want strict request-level budget visibility.",
+  },
+];
+
+const AGENT_PAYMENTS_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      name: "Agent Payments - Rhumb",
+      url: "https://rhumb.dev/payments/agent",
+      description:
+        "Rhumb x402 agent payments: HTTP 402 flow, USDC on Base, wallet setup, and when to use on-chain per-call authorization.",
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Rhumb",
+        url: "https://rhumb.dev",
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "What is x402 on Rhumb?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Rhumb uses x402 as a zero-signup payment flow where HTTP 402 returns exact execution payment requirements and payment proof authorizes the request.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Which network and token are supported?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Current public support is USDC on Base only.",
+          },
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title="Agent Payments"
+  description="Use Rhumb x402 agent payments for zero-signup execution: HTTP 402 payment flow, USDC on Base, wallet setup, and per-call pricing."
+  canonical="/payments/agent"
+  ogTitle="Agent Payments - Rhumb"
+  ogDescription="x402 payments for autonomous agents: USDC on Base, wallet setup, request flow, and pricing."
+  ogUrl="https://rhumb.dev/payments/agent"
+  jsonLd={AGENT_PAYMENTS_JSON_LD}
+>
+  <div
+    class="bg-navy min-h-screen"
+    data-testid="agent-payments-page"
+    data-page-type="agent-payments"
+    data-payment-rail="x402"
+  >
+    <div class="max-w-5xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">
+          Agent Payments
+        </p>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          x402 for agents that should pay, not sign up.
+        </h1>
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Rhumb&apos;s on-chain payment flow is a separate path from standard API-key pricing. Use it
+          when a wallet should authorize each execution and the right UX is zero-signup, per-call payment.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href="/pricing"
+            class="inline-flex items-center justify-center rounded-lg bg-amber px-4 py-2.5 text-sm font-semibold text-navy hover:bg-amber-light transition-colors"
+            aria-label="Back to Rhumb pricing"
+          >
+            Back to pricing
+          </a>
+          <a
+            href="/auth/login"
+            class="inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            aria-label="Use standard API-key pricing instead"
+          >
+            Use standard pricing instead
+          </a>
+        </div>
+      </header>
+
+      <section
+        class="mt-12 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
+        data-section="overview"
+      >
+        <div
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="region"
+          aria-label="x402 overview"
+        >
+          <h2 class="font-display text-2xl font-bold text-slate-100">What x402 means here</h2>
+          <p class="mt-3 text-slate-400 leading-7">
+            x402 is the payment-first execution rail. Instead of creating an account and receiving a
+            reusable API key, an agent asks to run a capability, receives payment requirements on HTTP 402,
+            pays that request, and then proves payment to complete execution.
+          </p>
+          <p class="mt-4 text-slate-400 leading-7">
+            Current public support is intentionally narrow: {x402.token} on {x402.network}. That keeps the
+            flow deterministic for agents and clear for operators.
+          </p>
+        </div>
+
+        <aside
+          class="bg-surface border border-emerald-500/20 rounded-2xl p-6"
+          role="complementary"
+          aria-label="Agent payments details"
+        >
+          <h2 class="font-display text-xl font-semibold text-slate-100">Current public rail</h2>
+          <dl class="mt-4 space-y-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Protocol</dt>
+              <dd class="text-slate-200">x402</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Token</dt>
+              <dd class="text-slate-200">{x402.token}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Network</dt>
+              <dd class="text-slate-200">{x402.network}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Auth header</dt>
+              <dd class="text-slate-200 font-mono">{x402.execution_auth[0]}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Markup</dt>
+              <dd class="text-emerald-300">+{x402.margin_percent}%</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+
+      <section
+        class="mt-10"
+        data-section="flow"
+        aria-label="How x402 agent payments work"
+      >
+        <h2 class="font-display text-2xl font-bold text-slate-100">USDC on Base flow</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4" role="list">
+          {FLOW_STEPS.map((item) => (
+            <article
+              class="bg-surface border border-slate-800 rounded-2xl p-5"
+              role="listitem"
+              data-step={item.step}
+            >
+              <p class="text-xs font-mono text-amber uppercase tracking-widest">{item.step}</p>
+              <h3 class="mt-3 font-display text-lg font-semibold text-slate-100">{item.title}</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">{item.description}</p>
+            </article>
+          ))}
+        </div>
+
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+          <div class="bg-surface border border-slate-800 rounded-2xl p-6">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Discover contract</p>
+            <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>curl {pricingEndpoint}</code></pre>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-2xl p-6">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Estimate before execution</p>
+            <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>curl "{estimateEndpoint}"</code></pre>
+          </div>
+        </div>
+
+        <div class="mt-6 bg-surface border border-slate-800 rounded-2xl p-6">
+          <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Execution flow</p>
+          <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>{`# Step 1: request execution without an API key
+curl -X POST "${executeEndpoint}"
+
+# Step 2: pay the returned USDC-on-Base requirement
+
+# Step 3: retry with payment proof
+curl -X POST "${executeEndpoint}" \\
+  -H "${x402.execution_auth[0]}: {tx_hash, network: base}" \\
+  -H "Content-Type: application/json"`}</code></pre>
+        </div>
+      </section>
+
+      <section
+        class="mt-10 grid gap-6 lg:grid-cols-2"
+        data-section="wallet-setup"
+      >
+        <div
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="region"
+          aria-label="Wallet setup instructions"
+        >
+          <h2 class="font-display text-2xl font-bold text-slate-100">Wallet setup</h2>
+          <div class="mt-5 space-y-4">
+            {WALLET_STEPS.map((item) => (
+              <div class="bg-elevated rounded-xl border border-slate-800 p-4" data-wallet-step={item.title}>
+                <h3 class="font-display text-lg font-semibold text-slate-100">{item.title}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="region"
+          aria-label="When to use agent payments"
+        >
+          <h2 class="font-display text-2xl font-bold text-slate-100">Good fits for this rail</h2>
+          <div class="mt-5 space-y-4">
+            {USE_CASES.map((item) => (
+              <div class="border-l-2 border-amber/40 pl-4" data-use-case={item.title}>
+                <h3 class="font-display text-lg font-semibold text-slate-100">{item.title}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+          <p class="mt-6 text-sm text-slate-500">
+            If you need team billing, human-friendly procurement, or a reusable credential for repeated app traffic,
+            standard API-key pricing is usually the better default.
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
+        data-section="markup"
+      >
+        <div
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="region"
+          aria-label="Agent payment pricing"
+        >
+          <h2 class="font-display text-2xl font-bold text-slate-100">Why the {x402.margin_percent}% markup exists</h2>
+          <p class="mt-3 text-slate-400 leading-7">
+            x402 pricing is still cost-plus pricing. Rhumb passes through the upstream execution cost
+            and adds a {x402.margin_percent} percent margin on top.
+          </p>
+          <p class="mt-4 text-slate-400 leading-7">
+            That margin covers the agent-payment-specific overhead: verifying payment proof, operating the
+            on-chain settlement path, abuse controls around zero-signup execution, and the managed capability
+            routing behind the request.
+          </p>
+        </div>
+
+        <aside
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="complementary"
+          aria-label="Agent payments summary"
+        >
+          <h2 class="font-display text-xl font-semibold text-slate-100">Pricing summary</h2>
+          <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
+            <li>Authorization comes from payment proof, not account signup.</li>
+            <li>Current public support is {x402.token} on {x402.network} only.</li>
+            <li>Exact per-call requirements are returned before execution.</li>
+            <li>Rhumb markup on this rail is {x402.margin_percent}%.</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section
+        class="mt-10 border-t border-slate-800 pt-6"
+        data-section="return-link"
+        aria-label="Return to main pricing"
+      >
+        <p class="text-sm text-slate-500">
+          Looking for standard API-key plans instead? Go back to{" "}
+          <a href="/pricing" class="text-amber hover:underline underline-offset-2">
+            main pricing
+          </a>
+          .
+        </p>
+      </section>
+    </div>
+  </div>
+</Layout>

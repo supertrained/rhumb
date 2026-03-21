@@ -1,12 +1,54 @@
 ---
+export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import pricing from "../../../shared/pricing.json";
 
 const managed = pricing.modes.rhumb_managed;
-const x402 = pricing.modes.x402;
-const byok = pricing.modes.byok;
 const pricingEndpoint = `${pricing.canonical_api_base_url}/pricing`;
 const estimateEndpoint = `${pricing.canonical_api_base_url}/capabilities/{capability_id}/execute/estimate`;
+const signupHref = "/auth/login";
+const enterpriseHref = "mailto:team@supertrained.ai?subject=Enterprise%20Pricing%20Inquiry";
+const executionExplainerId = "what-counts-as-an-execution";
+
+const EXECUTION_EXAMPLES = [
+  {
+    label: "Send an email via Resend",
+    executions: "1 execution",
+    note: "Rhumb makes one third-party API call on your behalf.",
+    charged: "yes",
+  },
+  {
+    label: "Search for a service on Rhumb",
+    executions: "0 executions",
+    note: "Discovery is never charged.",
+    charged: "no",
+  },
+  {
+    label: "Get an AN Score for a service",
+    executions: "0 executions",
+    note: "Scoring is always free.",
+    charged: "no",
+  },
+  {
+    label: "Execute a 3-step capability chain",
+    executions: "3 executions",
+    note: "Each provider API call counts separately.",
+    charged: "yes",
+  },
+  {
+    label: "Failed execution (provider error)",
+    executions: "0 executions",
+    note: "Provider errors are not charged.",
+    charged: "no",
+  },
+];
+
+const FAQ = [
+  {
+    q: "What counts as an execution?",
+    a: "An execution is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider executions are not charged.",
+  },
+];
 
 const PRICING_JSON_LD = {
   "@context": "https://schema.org",
@@ -14,7 +56,7 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Public pricing contract for Rhumb. Free tier: 1000 executions per month. Managed billing adds 20 percent, x402 adds 15 percent, and BYOK has no Rhumb markup.",
+    "Rhumb pricing for developers and teams: 1,000 free executions per month, standard API-key billing, and enterprise contact. On-chain x402 payments are documented on a separate agent payments page.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -25,56 +67,87 @@ const PRICING_JSON_LD = {
 
 <Layout
   title="Pricing"
-  description="Current Rhumb pricing contract: 1000 free executions per month, 20 percent managed margin, 15 percent x402 margin, and BYOK passthrough with no Rhumb markup."
+  description="Start with 1,000 free executions per month, move to standard API-key billing as you scale, or contact Rhumb for enterprise access. On-chain agent payments live on a separate page."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Machine-readable Rhumb pricing. Managed billing, x402 on Base, and BYOK passthrough."
+  ogDescription="Free tier, standard API-key pricing, and enterprise access for Rhumb. Dedicated page for on-chain agent payments."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
-  <div class="bg-navy min-h-screen">
+  <div class="bg-navy min-h-screen" data-testid="pricing-page" data-page-type="pricing">
     <div class="max-w-5xl mx-auto px-6 py-16">
-      <header class="max-w-3xl">
+      <header class="max-w-3xl" data-section="hero">
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
-          Three execution modes.
-          <span class="block text-slate-400 mt-2">One public pricing contract.</span>
+          Start free.
+          <span class="block text-slate-400 mt-2">Scale with API-key billing when you need more.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Rhumb pricing depends on how execution is authorized. The canonical machine-readable source
-          is <code class="font-mono text-sm bg-surface px-2 py-1 rounded text-amber">{pricingEndpoint}</code>.
+          Rhumb is priced for mainstream developer workflows first: a free tier for getting started,
+          standard pay-as-you-go billing for production usage, and an enterprise path for teams that
+          need a human conversation.
         </p>
       </header>
 
-      <section class="mt-12">
-        <div class="bg-surface border border-amber/20 rounded-2xl p-6 sm:p-8">
-          <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-3">Free Tier</p>
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p class="font-display text-4xl sm:text-5xl text-slate-100 font-bold">
-                {pricing.free_tier.included_executions_per_month.toLocaleString()}
-              </p>
-              <p class="text-slate-300 mt-2">executions per month before paid Rhumb billing applies</p>
-            </div>
-            <p class="text-sm text-slate-400 max-w-md">
-              No credit card required for the free tier. Read-only discovery endpoints remain public and do not
-              consume it.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="mt-10 grid gap-6 lg:grid-cols-3">
-        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
+      <section
+        class="mt-12 grid gap-6 lg:grid-cols-3"
+        aria-label="Pricing tiers"
+        data-section="tiers"
+      >
+        <article
+          class="bg-surface border border-amber/20 rounded-2xl p-6"
+          data-tier="free"
+          role="region"
+          aria-label="Free tier"
+        >
           <div class="flex items-center justify-between gap-4">
-            <h2 class="font-display text-xl font-semibold text-slate-100">{managed.label}</h2>
+            <h2 class="font-display text-xl font-semibold text-slate-100">Free</h2>
             <span class="text-xs font-mono text-amber bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1">
-              +{managed.margin_percent}%
+              No card
+            </span>
+          </div>
+          <p class="mt-4 font-display text-4xl text-slate-100 font-bold">
+            {pricing.free_tier.included_executions_per_month.toLocaleString()}
+          </p>
+          <p class="mt-2 text-sm leading-6 text-slate-400">
+            executions per month. Sign up, get an API key, and start calling execution endpoints
+            without a billing setup step.
+          </p>
+          <dl class="mt-5 space-y-3 text-sm">
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Best for</dt>
+              <dd class="text-slate-200">Evaluation and early builds</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Billing</dt>
+              <dd class="text-slate-200">Free up to the monthly limit</dd>
+            </div>
+          </dl>
+          <a
+            href={signupHref}
+            class="mt-6 inline-flex items-center justify-center rounded-lg bg-amber px-4 py-2.5 text-sm font-semibold text-navy hover:bg-amber-light transition-colors"
+            aria-label="Sign up for the free tier"
+          >
+            Sign up
+          </a>
+        </article>
+
+        <article
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          data-tier="standard"
+          data-payment-mode="api-key"
+          role="region"
+          aria-label="Standard tier"
+        >
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="font-display text-xl font-semibold text-slate-100">Standard</h2>
+            <span class="text-xs font-mono text-amber bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1">
+              API key
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            API-key execution billed by Rhumb. The first {pricing.free_tier.included_executions_per_month.toLocaleString()}
-            {" "}executions each month are free, then Rhumb charges upstream cost plus a {managed.margin_percent} percent margin.
+            Rhumb-managed execution for production use. After the free tier, usage is billed
+            pay-as-you-go at upstream cost plus a {managed.margin_percent} percent margin.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
@@ -82,67 +155,146 @@ const PRICING_JSON_LD = {
               <dd class="text-slate-200 font-mono">{managed.execution_auth[0]}</dd>
             </div>
             <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Model</dt>
+              <dt class="text-slate-500">Pricing</dt>
               <dd class="text-slate-200">Upstream cost + {managed.margin_percent}%</dd>
             </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-slate-500">Best for</dt>
+              <dd class="text-slate-200">Apps, agents, and production workloads</dd>
+            </div>
           </dl>
+          <a
+            href={signupHref}
+            class="mt-6 inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            aria-label="Create an API key for standard pricing"
+          >
+            Get API key
+          </a>
         </article>
 
-        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
+        <article
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          data-tier="enterprise"
+          role="region"
+          aria-label="Enterprise tier"
+        >
           <div class="flex items-center justify-between gap-4">
-            <h2 class="font-display text-xl font-semibold text-slate-100">{x402.label}</h2>
-            <span class="text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1">
-              +{x402.margin_percent}%
+            <h2 class="font-display text-xl font-semibold text-slate-100">Enterprise</h2>
+            <span class="text-xs font-mono text-slate-300 bg-slate-800 rounded-full px-2.5 py-1">
+              Contact
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Zero-signup per-call payment. Rhumb returns exact payment instructions on HTTP 402, and current public
-            support stays on {x402.token} over {x402.network}.
+            For teams that need procurement support, security review coordination, or a direct
+            conversation about rollout and controls.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Auth</dt>
-              <dd class="text-slate-200 font-mono">{x402.execution_auth[0]}</dd>
+              <dt class="text-slate-500">Best for</dt>
+              <dd class="text-slate-200">Security-conscious teams and larger deployments</dd>
             </div>
             <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Network</dt>
-              <dd class="text-slate-200">{x402.network}</dd>
-            </div>
-            <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Token</dt>
-              <dd class="text-slate-200">{x402.token}</dd>
+              <dt class="text-slate-500">Commercial model</dt>
+              <dd class="text-slate-200">Discuss with Rhumb</dd>
             </div>
           </dl>
-        </article>
-
-        <article class="bg-surface border border-slate-800 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="font-display text-xl font-semibold text-slate-100">{byok.label}</h2>
-            <span class="text-xs font-mono text-slate-300 bg-slate-800 rounded-full px-2.5 py-1">0% markup</span>
-          </div>
-          <p class="mt-4 text-sm leading-6 text-slate-400">
-            Use your own upstream credentials. Rhumb routes the call, but provider charges stay with your provider
-            account and Rhumb adds no markup.
-          </p>
-          <dl class="mt-5 space-y-3 text-sm">
-            <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Model</dt>
-              <dd class="text-slate-200">Exact upstream passthrough</dd>
-            </div>
-            <div class="flex justify-between gap-4">
-              <dt class="text-slate-500">Rhumb markup</dt>
-              <dd class="text-slate-200">{byok.margin_percent}%</dd>
-            </div>
-          </dl>
+          <a
+            href={enterpriseHref}
+            class="mt-6 inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            aria-label="Contact Rhumb about enterprise pricing"
+          >
+            Contact
+          </a>
         </article>
       </section>
 
-      <section class="mt-10 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-        <div class="bg-surface border border-slate-800 rounded-2xl p-6">
-          <h2 class="font-display text-2xl font-bold text-slate-100">For agents</h2>
+      <section
+        id={executionExplainerId}
+        class="mt-10"
+        data-testid="execution-explainer"
+        data-section="execution-explainer"
+      >
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl">
+            <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-3">Usage</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">What counts as an execution?</h2>
+            <p class="mt-3 text-slate-400 leading-7" data-testid="execution-definition">
+              1 execution = 1 API call to a third-party service routed through Rhumb. Scoring, searching, and
+              browsing are always free. You&apos;re only charged when Rhumb makes an API call on your behalf.
+            </p>
+          </div>
+
+          <div class="mt-6 overflow-x-auto">
+            <table class="min-w-full text-sm" data-testid="execution-examples-table">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-slate-500">
+                  <th class="py-3 pr-6 font-medium">Example</th>
+                  <th class="py-3 pr-6 font-medium">Counts as</th>
+                  <th class="py-3 font-medium">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {EXECUTION_EXAMPLES.map((example) => (
+                  <tr
+                    class="border-b border-slate-800/80 last:border-b-0"
+                    data-testid={`execution-example-${example.label
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "")}`}
+                    data-example={example.label}
+                    data-executions={example.executions}
+                    data-charged={example.charged}
+                  >
+                    <td class="py-4 pr-6 text-slate-200">{example.label}</td>
+                    <td class="py-4 pr-6 font-mono text-slate-100">{example.executions}</td>
+                    <td class="py-4 text-slate-400">{example.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-testid="pricing-faq" data-section="faq">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">Pricing FAQ</h2>
+        <div class="space-y-4">
+          {FAQ.map((item) => (
+            <div
+              class="bg-surface border border-slate-800 rounded-lg p-5"
+              data-testid="pricing-faq-item"
+              data-faq-question={item.q}
+            >
+              <h3 class="font-display font-semibold text-base text-slate-100 mb-2">{item.q}</h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                {item.a}{" "}
+                <a
+                  href={`#${executionExplainerId}`}
+                  class="text-amber underline decoration-amber/40 underline-offset-4 hover:decoration-amber"
+                  data-testid="pricing-faq-link"
+                >
+                  See the examples above
+                </a>
+                .
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section
+        class="mt-10 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]"
+        data-section="machine-readable-pricing"
+      >
+        <div
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="region"
+          aria-label="Machine-readable pricing contract"
+        >
+          <h2 class="font-display text-2xl font-bold text-slate-100">For agents and automation</h2>
           <p class="mt-3 text-slate-400 leading-7">
-            Use the pricing endpoint to resolve the contract, then call the estimate endpoint for exact per-execution
-            numbers before running anything.
+            The canonical machine-readable source remains public. Resolve the pricing contract,
+            then call the estimate endpoint for exact per-execution numbers before you run anything.
           </p>
           <div class="mt-5 space-y-4">
             <div class="bg-elevated rounded-xl border border-slate-800 p-4">
@@ -156,14 +308,36 @@ const PRICING_JSON_LD = {
           </div>
         </div>
 
-        <aside class="bg-surface border border-slate-800 rounded-2xl p-6">
-          <h2 class="font-display text-xl font-semibold text-slate-100">Not in this contract</h2>
+        <aside
+          class="bg-surface border border-slate-800 rounded-2xl p-6"
+          role="complementary"
+          aria-label="Pricing notes"
+        >
+          <h2 class="font-display text-xl font-semibold text-slate-100">Included in this page</h2>
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
-            {pricing.notes.map((note) => (
-              <li>{note}</li>
-            ))}
+            <li>Free tier for getting started with authenticated execution.</li>
+            <li>Standard API-key billing for pay-as-you-go production usage.</li>
+            <li>Enterprise path for teams that need direct support.</li>
           </ul>
+          <p class="mt-5 text-xs font-mono text-slate-500">
+            Need direct provider billing? BYOK passthrough still exists at the API layer for
+            supported execution flows.
+          </p>
         </aside>
+      </section>
+
+      <section
+        class="mt-10 border-t border-slate-800 pt-6"
+        data-section="agent-payments-link"
+        aria-label="Agent payments link"
+      >
+        <p class="text-sm text-slate-500">
+          For on-chain agent payments, see our{" "}
+          <a href="/payments/agent" class="text-amber hover:underline underline-offset-2">
+            Agent Payments
+          </a>{" "}
+          page.
+        </p>
       </section>
     </div>
   </div>
