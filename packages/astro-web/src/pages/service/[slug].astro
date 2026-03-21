@@ -4,13 +4,16 @@ import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import AutonomySection from "../../components/AutonomySection.astro";
 import GuideSection from "../../components/GuideSection.tsx";
-import { getServiceScore } from "../../lib/api";
+import { getServiceReviews, getServiceScore } from "../../lib/api";
 import { getTierInfo, getTierInfoFromString } from "../../lib/utils";
 import { buildTrackedOutboundHref } from "../../lib/tracking";
-import type { ServiceScoreViewModel } from "../../lib/types";
+import type { ReviewTrustSource, ServiceScoreViewModel } from "../../lib/types";
 
 const { slug } = Astro.params;
-const score = await getServiceScore(slug!);
+const [score, reviews] = await Promise.all([
+  getServiceScore(slug!),
+  getServiceReviews(slug!),
+]);
 
 if (score === null) {
   return Astro.redirect("/leaderboard");
@@ -61,6 +64,44 @@ const EVIDENCE_TIER_STYLES = {
     dotClass: "bg-score-native",
   },
 } as const;
+
+const REVIEW_BADGE_STYLES: Record<ReviewTrustSource, {
+  icon: string;
+  label: string;
+  className: string;
+  description: string;
+}> = {
+  docs_derived: {
+    icon: "📄",
+    label: "Docs-backed",
+    className: "border-slate-700 bg-slate-800/70 text-slate-300",
+    description: "Built from public docs and product materials.",
+  },
+  tester_generated: {
+    icon: "🧪",
+    label: "Test-backed",
+    className: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+    description: "Backed by guided testing or evaluator-run checks.",
+  },
+  runtime_verified: {
+    icon: "⚡",
+    label: "Runtime-verified",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+    description: "Verified from authenticated runtime evidence.",
+  },
+  unknown: {
+    icon: "❔",
+    label: "Source pending",
+    className: "border-slate-700 bg-slate-800/70 text-slate-400",
+    description: "Source metadata is not available yet.",
+  },
+};
+
+const REVIEW_SOURCE_ORDER: ReviewTrustSource[] = [
+  "docs_derived",
+  "tester_generated",
+  "runtime_verified",
+];
 
 const evidenceStyle = EVIDENCE_TIER_STYLES[score.evidenceTier];
 const evidenceDate = formatDate(score.lastEvaluated);
@@ -404,6 +445,93 @@ const dimensions: DimensionBarData[] = [
             </ul>
           ) : (
             <p class="text-sm text-slate-500">No active failure modes reported.</p>
+          )}
+        </section>
+
+        <!-- Reviews -->
+        <section class="bg-surface border border-slate-800 rounded-xl p-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 class="font-display font-semibold text-slate-100 text-lg">Reviews</h2>
+              <p class="mt-1 text-sm text-slate-500">
+                Published review summaries with trust provenance attached to each card.
+              </p>
+            </div>
+
+            <details class="w-full rounded-lg border border-slate-800 bg-elevated px-4 py-3 text-sm text-slate-400 md:max-w-xl">
+              <summary class="cursor-pointer list-none text-xs font-mono uppercase tracking-[0.2em] text-slate-300">
+                How are reviews sourced?
+              </summary>
+              <div class="mt-4 space-y-3">
+                {REVIEW_SOURCE_ORDER.map((source) => {
+                  const badge = REVIEW_BADGE_STYLES[source];
+                  return (
+                    <p class="flex flex-wrap items-center gap-2 leading-relaxed">
+                      <span
+                        class:list={[
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
+                          badge.className,
+                        ]}
+                      >
+                        <span aria-hidden="true">{badge.icon}</span>
+                        {badge.label}
+                      </span>
+                      <span>{badge.description}</span>
+                    </p>
+                  );
+                })}
+              </div>
+            </details>
+          </div>
+
+          {reviews.length > 0 ? (
+            <div class="mt-6 space-y-4">
+              {reviews.map((review) => {
+                const badge = REVIEW_BADGE_STYLES[review.trustSource];
+                return (
+                  <article
+                    class="bg-elevated border border-slate-800 rounded-lg p-4 card-lift"
+                    data-review-source={review.trustSource}
+                    data-trust-level={review.trustSource}
+                  >
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <h3 class="text-sm font-semibold text-slate-200">
+                            {review.headline ?? "Published review"}
+                          </h3>
+                          <span
+                            aria-label={`Review provenance: ${badge.label}`}
+                            class:list={[
+                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
+                              badge.className,
+                            ]}
+                          >
+                            <span aria-hidden="true">{badge.icon}</span>
+                            {badge.label}
+                          </span>
+                        </div>
+
+                        {review.summary && (
+                          <p class="mt-2 text-sm leading-relaxed text-slate-400">
+                            {review.summary}
+                          </p>
+                        )}
+
+                        {(review.reviewerLabel || review.reviewedAt) && (
+                          <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-slate-500">
+                            {review.reviewerLabel && <span>{review.reviewerLabel}</span>}
+                            {review.reviewedAt && <span>{formatDate(review.reviewedAt)}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <p class="mt-6 text-sm text-slate-500">No published reviews yet.</p>
           )}
         </section>
 

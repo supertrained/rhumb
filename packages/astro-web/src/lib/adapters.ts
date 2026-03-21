@@ -2,9 +2,11 @@ import type {
   EvidenceTier,
   LeaderboardItem,
   LeaderboardViewModel,
+  ReviewTrustSource,
   Service,
   ServiceAlternative,
   ServiceFailureMode,
+  ServiceReview,
   ServiceScoreViewModel
 } from "./types";
 
@@ -135,6 +137,29 @@ function parseEvidenceFreshness(snapshot: Record<string, unknown>): string | nul
   );
 }
 
+function parseReviewTrustSource(value: unknown, trustLabel: unknown): ReviewTrustSource {
+  if (
+    value === "docs_derived"
+    || value === "tester_generated"
+    || value === "runtime_verified"
+  ) {
+    return value;
+  }
+
+  const label = asString(trustLabel);
+  if (label?.includes("Docs-derived")) {
+    return "docs_derived";
+  }
+  if (label?.includes("Tester-generated")) {
+    return "tester_generated";
+  }
+  if (label?.includes("Runtime-verified")) {
+    return "runtime_verified";
+  }
+
+  return "unknown";
+}
+
 export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewModel | null {
   if (!isRecord(payload)) {
     return null;
@@ -182,6 +207,32 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     evidenceCount: asNumber(payload.evidence_count) ?? 0,
     lastEvaluated: asString(payload.last_evaluated) ?? asString(payload.calculated_at),
   };
+}
+
+export function parseServiceReviewsResponse(payload: unknown): ServiceReview[] {
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  return asItems(payload.reviews)
+    .map((item) => {
+      const id = asString(item.id);
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        headline: asString(item.headline),
+        summary: asString(item.summary),
+        reviewerLabel: asString(item.reviewer_label),
+        reviewedAt: asString(item.reviewed_at),
+        confidence: asNumber(item.confidence),
+        evidenceCount: asNumber(item.evidence_count) ?? 0,
+        trustSource: parseReviewTrustSource(item.highest_trust_source, item.trust_label),
+      };
+    })
+    .filter((item): item is ServiceReview => item !== null);
 }
 
 export function parseLaunchDashboardResponse(payload: unknown) {

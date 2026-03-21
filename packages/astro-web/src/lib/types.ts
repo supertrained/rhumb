@@ -14,6 +14,23 @@ export type ANScore = {
 
 export type EvidenceTier = "pending" | "assessed" | "tested" | "verified";
 
+export type ReviewTrustSource =
+  | "docs_derived"
+  | "tester_generated"
+  | "runtime_verified"
+  | "unknown";
+
+export type ServiceReview = {
+  id: string;
+  headline: string | null;
+  summary: string | null;
+  reviewerLabel: string | null;
+  reviewedAt: string | null;
+  confidence: number | null;
+  evidenceCount: number;
+  trustSource: ReviewTrustSource;
+};
+
 export type LeaderboardItem = {
   serviceSlug: string;
   name: string;

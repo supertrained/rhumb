@@ -4,6 +4,7 @@ import type {
   LaunchDashboardViewModel,
   LeaderboardViewModel,
   Service,
+  ServiceReview,
   ServiceScoreViewModel,
 } from "./types";
 
@@ -64,6 +65,17 @@ type SupabaseServiceLinks = {
   docs_url: string | null;
   openapi_url: string | null;
   mcp_server_url: string | null;
+};
+
+type SupabaseServiceReview = {
+  id: string;
+  headline: string | null;
+  summary: string | null;
+  reviewer_label: string | null;
+  reviewed_at: string | null;
+  confidence: number | null;
+  evidence_count: number | null;
+  highest_trust_source: string | null;
 };
 
 // ---------- Evidence tier helpers ----------
@@ -303,6 +315,7 @@ async function getCategoriesFromSupabase(): Promise<CategorySummary[]> {
 import {
   parseLaunchDashboardResponse,
   parseLeaderboardResponse,
+  parseServiceReviewsResponse,
   parseServiceScoreResponse,
   parseServicesResponse,
 } from "./adapters";
@@ -374,6 +387,24 @@ async function getServiceScoreFromAPI(
   return parseServiceScoreResponse(payload);
 }
 
+async function getServiceReviewsFromSupabase(
+  slug: string
+): Promise<ServiceReview[]> {
+  const reviews = await supabaseFetch<SupabaseServiceReview[]>(
+    `service_reviews?service_slug=eq.${encodeURIComponent(slug)}&review_status=eq.published&select=id,headline,summary,reviewer_label,reviewed_at,confidence,evidence_count,highest_trust_source&order=reviewed_at.desc`
+  );
+  return parseServiceReviewsResponse({ reviews: reviews ?? [] });
+}
+
+async function getServiceReviewsFromAPI(
+  slug: string
+): Promise<ServiceReview[]> {
+  const payload = await fetchPayload(
+    `/services/${encodeURIComponent(slug)}/reviews`
+  );
+  return parseServiceReviewsResponse(payload);
+}
+
 // ---------- Exported functions (auto-select mode) ----------
 
 /** Fetch all services. */
@@ -398,6 +429,15 @@ export async function getServiceScore(
   return useSupabase
     ? getServiceScoreFromSupabase(slug)
     : getServiceScoreFromAPI(slug);
+}
+
+/** Fetch published reviews for one service. */
+export async function getServiceReviews(
+  slug: string
+): Promise<ServiceReview[]> {
+  return useSupabase
+    ? getServiceReviewsFromSupabase(slug)
+    : getServiceReviewsFromAPI(slug);
 }
 
 /** Fetch all categories with service counts. */
