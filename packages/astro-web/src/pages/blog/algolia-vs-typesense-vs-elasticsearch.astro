@@ -1,0 +1,265 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  algolia: await getServiceScore("algolia"),
+  typesense: await getServiceScore("typesense"),
+  elasticsearch: await getServiceScore("elasticsearch"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Algolia vs Typesense vs Elasticsearch for AI Agents",
+  datePublished: "2026-03-22T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "Search-as-a-service comparison for AI agent workflows. Algolia leads on developer experience, Typesense on self-hosting simplicity, Elasticsearch on flexibility. Live AN Score data.",
+  url: "https://rhumb.dev/blog/algolia-vs-typesense-vs-elasticsearch",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type ServiceEntry = {
+  slug: string;
+  name: string;
+  tagline: string;
+  useWhen: string;
+  avoidWhen: string;
+  friction: string;
+  support: string;
+  decision: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const services: ServiceEntry[] = [
+  {
+    slug: "algolia",
+    name: "Algolia",
+    tagline: "Managed search-as-a-service with the strongest API developer experience",
+    useWhen: "You need sub-50ms search with zero infrastructure management. Your agent needs to index documents, configure relevance, and query results through clean REST endpoints.",
+    avoidWhen: "You need full-text analytics, complex aggregations, or log-based search. Algolia is optimized for user-facing search, not data exploration. Pricing scales with record count and search operations — large datasets get expensive fast.",
+    friction: "API key management is clean (application ID + API key pair). The Dashboard handles index configuration, but agents can do everything via the REST API or official SDKs. The main friction point is relevance tuning — Algolia's ranking formula has many knobs that require domain understanding.",
+    support: "Best-in-class documentation. REST API is consistent and well-typed. Official SDKs in every major language. InstantSearch UI components for frontend if needed. The API surface is broad (search, indexing, analytics, A/B testing, rules) and well-maintained.",
+    decision: "Pick Algolia when search quality and developer experience matter more than infrastructure cost. The managed service eliminates operational overhead entirely — no clusters, no shards, no version upgrades.",
+    data: scoreMap.algolia,
+  },
+  {
+    slug: "typesense",
+    name: "Typesense",
+    tagline: "Open-source search engine optimized for simplicity and typo tolerance",
+    useWhen: "You want search that's easy to deploy and configure without deep search expertise. Your agent needs fast, typo-tolerant search with a straightforward API. You prefer open-source with a managed cloud option.",
+    avoidWhen: "You need complex nested document structures, advanced aggregation pipelines, or massive scale (billions of documents). Typesense trades some flexibility for simplicity.",
+    friction: "Self-hosted deployment is genuinely simple — single binary, no JVM, no cluster configuration for small-to-medium workloads. Typesense Cloud removes even that. API design is clean and RESTful. Collection schemas are required upfront (no schemaless mode), which is actually better for agents because it catches errors early.",
+    support: "Good documentation with clear examples. The REST API is straightforward — collections, documents, search — without the sprawling surface area of Elasticsearch. Community is smaller but responsive. Typesense Cloud adds managed hosting. Geosearch, vector search, and federated multi-search are supported.",
+    decision: "Pick Typesense when you want search that works well out of the box without tuning. The default relevance is surprisingly good. Best ratio of capability-to-complexity in the category.",
+    data: scoreMap.typesense,
+  },
+  {
+    slug: "elasticsearch",
+    name: "Elasticsearch",
+    tagline: "The original search engine — maximum flexibility, maximum complexity",
+    useWhen: "You need full-text search combined with analytics, log aggregation, or complex query patterns. Your use case requires nested aggregations, custom scoring functions, or sub-document indexing. You have infrastructure expertise.",
+    avoidWhen: "You just need product search or autocomplete. Elasticsearch's power comes with operational complexity — cluster management, shard allocation, version upgrades, JVM tuning. For simple search use cases, it's overkill and the operational burden will outweigh the flexibility.",
+    friction: "Deployment complexity is the defining friction. Self-hosted requires JVM management, cluster topology decisions, shard planning, and monitoring. Elastic Cloud reduces this but adds cost. The Query DSL is powerful but verbose — agents need to construct nested JSON query objects that are non-trivial. Mapping types and index settings have many gotchas.",
+    support: "The most comprehensive documentation in the search space — bordering on overwhelming. The REST API is complete but the surface area is enormous. Community is massive. Plugin ecosystem is deep. But the learning curve is steep, and misconfigured clusters degrade silently until they fail hard.",
+    decision: "Pick Elasticsearch when your search requirements genuinely need its power — analytics, complex queries, log aggregation, or when you're already in the Elastic ecosystem. Don't pick it for simple search just because it's the default name.",
+    data: scoreMap.elasticsearch,
+  },
+];
+
+services.sort(
+  (a, b) =>
+    (b.data?.aggregateRecommendationScore ?? 0) -
+    (a.data?.aggregateRecommendationScore ?? 0)
+);
+
+const desc =
+  "Search-as-a-service comparison for AI agents: Algolia vs Typesense vs Elasticsearch with live AN Score data, failure modes, and agent-readiness analysis.";
+---
+
+<Layout
+  title="Algolia vs Typesense vs Elasticsearch for AI Agents"
+  description={desc}
+  canonical="/blog/algolia-vs-typesense-vs-elasticsearch"
+  ogTitle="Algolia vs Typesense vs Elasticsearch — Search for AI Agents"
+  ogDescription={desc}
+  ogUrl="https://rhumb.dev/blog/algolia-vs-typesense-vs-elasticsearch"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="comparison-page" data-comparison="search-service">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <div class="flex items-center gap-3 mb-4">
+          <a
+            href="/compare"
+            class="text-xs font-mono text-slate-500 hover:text-amber transition-colors"
+          >
+            ← All comparisons
+          </a>
+          <span class="text-slate-700">·</span>
+          <span class="text-xs font-mono text-slate-500">Search-as-a-Service</span>
+        </div>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight">
+          Algolia vs Typesense vs Elasticsearch
+        </h1>
+        <p class="mt-4 text-lg text-slate-400 leading-relaxed">
+          Three search engines, three philosophies. Algolia bets on managed simplicity.
+          Typesense bets on open-source pragmatism. Elasticsearch bets on being the
+          Swiss Army knife of search. Here's what the data says about using each one
+          from an AI agent.
+        </p>
+        <p class="mt-3 text-sm text-slate-500">
+          Last updated March 2026 · Scores from live AN Score data
+        </p>
+      </header>
+
+      <!-- Score cards -->
+      <section class="mt-10 grid gap-4 sm:grid-cols-3" data-section="scores">
+        {services.map((svc, i) => (
+          <div
+            class={`bg-surface border rounded-xl p-5 ${
+              i === 0
+                ? "border-score-native/40 ring-1 ring-score-native/20"
+                : "border-slate-800"
+            }`}
+            data-testid={`score-card-${svc.slug}`}
+          >
+            {i === 0 && (
+              <span class="text-[10px] font-mono text-score-native uppercase tracking-widest mb-2 block">
+                Highest scored
+              </span>
+            )}
+            <h3 class="font-display font-semibold text-lg text-slate-100">{svc.name}</h3>
+            <p class="text-xs text-slate-500 mt-0.5">{svc.tagline}</p>
+            {svc.data && (
+              <div class="mt-4">
+                <ScoreDisplay score={svc.data.aggregateRecommendationScore} size="small" />
+              </div>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <!-- Agent analysis per service -->
+      <section class="mt-12 space-y-10" data-section="analysis">
+        {services.map((svc) => (
+          <article
+            id={svc.slug}
+            class="bg-surface border border-slate-800 rounded-xl p-6"
+            data-testid={`analysis-${svc.slug}`}
+          >
+            <div class="flex items-start justify-between gap-4">
+              <h2 class="font-display text-xl font-bold text-slate-100">{svc.name}</h2>
+              {svc.data && <TierBadge tier={svc.data.tierLabel ?? svc.data.tier} />}
+            </div>
+            <p class="mt-3 text-sm text-slate-400 leading-relaxed">{svc.support}</p>
+
+            <div class="mt-5 grid sm:grid-cols-2 gap-4">
+              <div class="bg-elevated rounded-lg p-4">
+                <p class="text-xs font-mono text-emerald-400 mb-2">Use when</p>
+                <p class="text-sm text-slate-300">{svc.useWhen}</p>
+              </div>
+              <div class="bg-elevated rounded-lg p-4">
+                <p class="text-xs font-mono text-rose-400 mb-2">Avoid when</p>
+                <p class="text-sm text-slate-300">{svc.avoidWhen}</p>
+              </div>
+            </div>
+
+            <div class="mt-4 bg-elevated rounded-lg p-4">
+              <p class="text-xs font-mono text-amber mb-2">Agent friction</p>
+              <p class="text-sm text-slate-300">{svc.friction}</p>
+            </div>
+
+            <div class="mt-4 border-t border-slate-800 pt-4">
+              <p class="text-sm text-slate-200 font-medium">{svc.decision}</p>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-3 text-xs">
+              <a
+                href={`/services/${svc.slug}`}
+                class="text-amber hover:underline"
+              >
+                Full service profile →
+              </a>
+              <a
+                href={`https://api.rhumb.dev/v1/services/${svc.slug}/failures`}
+                class="text-slate-500 hover:text-slate-300"
+              >
+                Failure modes →
+              </a>
+              <a
+                href={`https://api.rhumb.dev/v1/services/${svc.slug}/alternatives`}
+                class="text-slate-500 hover:text-slate-300"
+              >
+                Alternatives →
+              </a>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <!-- The real question -->
+      <section class="mt-12" data-section="verdict">
+        <div class="bg-surface border border-amber/20 rounded-xl p-6">
+          <h2 class="font-display text-xl font-semibold text-slate-100">The agent perspective</h2>
+          <p class="mt-3 text-sm text-slate-400 leading-relaxed">
+            For most agent workflows, the choice comes down to one question:
+            <strong class="text-slate-200">do you need analytics and complex queries, or just search?</strong>
+          </p>
+          <div class="mt-4 space-y-3 text-sm text-slate-400">
+            <p>
+              <strong class="text-slate-200">Just search?</strong> Algolia if you want managed, Typesense
+              if you want open-source. Both have clean APIs that agents can drive without deep search expertise.
+              Typesense's default relevance is surprisingly good without tuning. Algolia's is better with tuning
+              but requires more domain knowledge.
+            </p>
+            <p>
+              <strong class="text-slate-200">Search + analytics + logs?</strong> Elasticsearch, but go in
+              with your eyes open about operational complexity. The Query DSL gives agents maximum flexibility
+              at the cost of verbose, nested JSON queries. Consider Elastic Cloud over self-hosted unless you
+              have strong infrastructure reasons.
+            </p>
+            <p>
+              <strong class="text-slate-200">Cost-sensitive?</strong> Typesense self-hosted is free.
+              Algolia's pricing scales with operations and records — it gets expensive at scale.
+              Elasticsearch self-hosted is free; Elastic Cloud pricing is usage-based.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Category context -->
+      <section class="mt-10 border-t border-slate-800 pt-8" data-section="related">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <a
+            href="/compare"
+            class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"
+          >
+            <span class="text-sm text-slate-200 group-hover:text-amber transition-colors">All comparisons</span>
+            <span class="block text-xs text-slate-500 mt-1">Head-to-head across every category</span>
+          </a>
+          <a
+            href="/search"
+            class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"
+          >
+            <span class="text-sm text-slate-200 group-hover:text-amber transition-colors">Search directory</span>
+            <span class="block text-xs text-slate-500 mt-1">Find any service by name or capability</span>
+          </a>
+          <a
+            href="/blog/supabase-vs-planetscale-vs-neon"
+            class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"
+          >
+            <span class="text-sm text-slate-200 group-hover:text-amber transition-colors">Database comparison</span>
+            <span class="block text-xs text-slate-500 mt-1">Supabase vs PlanetScale vs Neon</span>
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>
