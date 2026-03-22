@@ -146,10 +146,12 @@ class RhumbManagedExecutor:
 
         base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"
 
-        # Load Rhumb's credentials from env
+        # Load Rhumb's credentials from env and inject into headers/params/body
         credential_keys = config.get("credential_env_keys", [])
         headers = dict(default_headers)
-        headers = self._inject_credentials(slug, credential_keys, headers)
+        headers, params, body = self._inject_credentials(
+            slug, credential_keys, headers, params, body
+        )
 
         # Merge body
         final_body = body  # agent provides full body for managed capabilities
@@ -236,19 +238,47 @@ class RhumbManagedExecutor:
             return rows[0]["api_domain"]
         return None
 
+    # Per-service auth injection strategies.
+    # Key = service_slug, value = (header_name, prefix|None).
+    # If prefix is None, the raw value is set as the header value.
+    # Special value "query:key_name" means inject as query parameter.
+    _AUTH_STRATEGIES: dict[str, tuple[str, str | None]] = {
+        # Custom header auth
+        "algolia": ("X-Algolia-API-Key", None),
+        "postmark": ("X-Postmark-Server-Token", None),
+        "elevenlabs": ("xi-api-key", None),
+        "unstructured": ("unstructured-api-key", None),
+        "brave-search": ("X-Subscription-Token", None),
+        "apollo": ("X-Api-Key", None),
+        "people-data-labs": ("X-API-Key", None),
+        # Query parameter auth (handled specially in execute)
+        "google-maps": ("query:key", None),
+        "google-places": ("query:key", None),
+        "scraperapi": ("query:api_key", None),
+        "ipinfo": ("query:token", None),
+        # Body-injected auth
+        "tavily": ("body:api_key", None),
+    }
+
     def _inject_credentials(
         self,
         service_slug: str,
         credential_env_keys: list[str],
         headers: dict[str, str],
-    ) -> dict[str, str]:
+        params: dict | None = None,
+        body: dict | None = None,
+    ) -> tuple[dict[str, str], dict | None, dict | None]:
         """Inject Rhumb's credentials from environment variables.
 
+        Returns (headers, params, body) — all potentially modified.
+
         Security: credential VALUES never leave this method —
-        they go into headers that are sent upstream, but never returned
+        they go into headers/params/body sent upstream, but never returned
         in any response payload.
         """
         headers = headers.copy()
+        params = dict(params) if params else {}
+        body = dict(body) if body else body
 
         for env_key in credential_env_keys:
             value = os.environ.get(env_key)
@@ -258,13 +288,31 @@ class RhumbManagedExecutor:
                     detail=f"Managed credential not configured (missing env var)",
                 )
 
-            # Determine header injection strategy from the env key naming
-            key_lower = env_key.lower()
-            if "basic" in key_lower:
-                encoded = base64.b64encode(value.encode()).decode()
-                headers["Authorization"] = f"Basic {encoded}"
+            # Check for service-specific auth strategy
+            strategy = self._AUTH_STRATEGIES.get(service_slug)
+            if strategy:
+                header_name, prefix = strategy
+                if header_name.startswith("query:"):
+                    # Inject as query parameter
+                    param_name = header_name.split(":", 1)[1]
+                    params[param_name] = value
+                elif header_name.startswith("body:"):
+                    # Inject into request body
+                    body_key = header_name.split(":", 1)[1]
+                    if body is None:
+                        body = {}
+                    body[body_key] = value
+                else:
+                    # Inject as custom header
+                    headers[header_name] = f"{prefix}{value}" if prefix else value
             else:
-                # Default: Bearer token
-                headers["Authorization"] = f"Bearer {value}"
+                # Determine from env key naming convention
+                key_lower = env_key.lower()
+                if "basic" in key_lower:
+                    encoded = base64.b64encode(value.encode()).decode()
+                    headers["Authorization"] = f"Basic {encoded}"
+                else:
+                    # Default: Bearer token
+                    headers["Authorization"] = f"Bearer {value}"
 
-        return headers
+        return headers, params, body
