@@ -1,0 +1,290 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "AWS S3 vs Cloudflare R2 vs Backblaze B2 for AI Agents",
+  datePublished: "2026-03-22T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "Which object storage works best for autonomous agents? Comparing S3, R2, and B2 on execution quality, access readiness, egress costs, and agent-native integration.",
+  url: "https://rhumb.dev/blog/aws-s3-vs-cloudflare-r2-vs-backblaze-b2",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type Service = {
+  slug: string;
+  name: string;
+  score: number;
+  execution: number;
+  access: number;
+  confidence: number;
+  tier: string;
+  verdict: string;
+  strengths: string[];
+  weaknesses: string[];
+  agentFit: string;
+};
+
+const services: Service[] = [
+  {
+    slug: "aws-s3",
+    name: "AWS S3",
+    score: 8.1,
+    execution: 8.6,
+    access: 7.2,
+    confidence: 0.60,
+    tier: "L4 Native",
+    verdict: "The default choice when you need maximum reliability and ecosystem breadth.",
+    strengths: [
+      "Near-universal SDK support — every language, every framework, every agent runtime",
+      "Pre-signed URLs enable secure, time-limited access without exposing credentials",
+      "Deep integration with 200+ AWS services (Lambda triggers, CloudFront CDN, Athena queries)",
+      "Highest AN Score (8.1) in the storage category — execution quality is industry-leading",
+      "Fine-grained IAM policies allow scoped, least-privilege access for agent credentials",
+    ],
+    weaknesses: [
+      "Egress fees are significant — $0.09/GB for data leaving AWS (the hidden cost that compounds)",
+      "IAM complexity is real — agents need correctly configured policies, which is a non-trivial setup step",
+      "Access readiness (7.2) trails execution quality (8.6) — the API is excellent but onboarding is harder",
+      "Multi-region replication adds cost and config complexity vs R2's automatic global distribution",
+    ],
+    agentFit: "Best for agents already in the AWS ecosystem or needing cross-service integration. The SDK breadth means any agent framework can connect immediately. IAM scoping enables secure BYOK patterns.",
+  },
+  {
+    slug: "cloudflare-r2",
+    name: "Cloudflare R2",
+    score: 7.4,
+    execution: 7.6,
+    access: 7.0,
+    confidence: 0.55,
+    tier: "L3 Ready",
+    verdict: "The best choice when egress costs matter — which for high-throughput agents, they usually do.",
+    strengths: [
+      "Zero egress fees — read as much data as you want without cost anxiety",
+      "S3-compatible API — most S3 SDKs work with R2 by changing the endpoint URL",
+      "Workers integration enables compute-at-the-edge patterns for data processing",
+      "Automatic global distribution without multi-region configuration",
+      "Simpler pricing model — no data transfer surprises",
+    ],
+    weaknesses: [
+      "Younger ecosystem — fewer integrations, less battle-tested at extreme scale",
+      "No native equivalent of S3 Select, Glacier tiers, or S3 Event Notifications",
+      "Confidence score (0.55) reflects less community evidence than S3",
+      "Access readiness (7.0) slightly below S3's — fewer auth pattern examples in the wild",
+    ],
+    agentFit: "Best for agents that read heavily from storage. If your agent retrieves files, serves assets, or processes stored data frequently, R2's zero egress eliminates a cost variable that's hard to predict. S3-compatible API means migration is usually a config change.",
+  },
+  {
+    slug: "backblaze-b2",
+    name: "Backblaze B2",
+    score: 6.6,
+    execution: 7.0,
+    access: 5.8,
+    confidence: 0.52,
+    tier: "L3 Ready",
+    verdict: "The budget option for bulk storage. Less polished, but significantly cheaper per GB stored.",
+    strengths: [
+      "Lowest storage cost — $0.005/GB/month vs S3's $0.023/GB",
+      "S3-compatible API available (alongside native B2 API)",
+      "Free egress via Cloudflare Bandwidth Alliance partnership",
+      "Simple, transparent pricing with no request-type complexity",
+    ],
+    weaknesses: [
+      "Access readiness score (5.8) is notably lower — fewer SDKs, less documentation, fewer auth examples",
+      "Narrower ecosystem — no equivalent of Lambda triggers or Workers integration",
+      "Lower confidence (0.52) — less community evidence and fewer runtime-verified reviews",
+      "Native B2 API is non-standard — the S3-compatible layer is the practical option for agents",
+      "No edge distribution — single-region storage with CDN as an add-on",
+    ],
+    agentFit: "Best for agents with large cold storage needs and tight budgets. If your agent archives data, stores backups, or holds large media files that are rarely accessed, B2 offers significant savings. Not ideal for latency-sensitive or high-frequency read patterns.",
+  },
+];
+
+const winner = services[0];
+---
+
+<Layout
+  title="S3 vs R2 vs B2 — Object Storage for AI Agents"
+  description="AWS S3 (8.1), Cloudflare R2 (7.4), and Backblaze B2 (6.6) compared for AI agent workloads. AN Scores, egress costs, SDK support, and agent-native access patterns."
+  canonical="/blog/aws-s3-vs-cloudflare-r2-vs-backblaze-b2"
+  ogTitle="S3 vs R2 vs B2 for AI Agents — Storage Comparison"
+  ogDescription="S3 wins on execution (8.6). R2 wins on egress costs ($0). B2 wins on storage price. Full AN Score comparison."
+  ogUrl="https://rhumb.dev/blog/aws-s3-vs-cloudflare-r2-vs-backblaze-b2"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="comparison-page" data-page-type="comparison" data-comparison-category="storage">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Comparison</p>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight">
+          AWS S3 vs Cloudflare R2 vs Backblaze B2
+        </h1>
+        <p class="mt-2 text-slate-500 text-sm font-mono">Object storage for AI agent workloads</p>
+        <p class="mt-6 text-lg text-slate-400 leading-relaxed">
+          Object storage is infrastructure agents touch constantly — storing retrieved data, serving assets,
+          archiving outputs. The choice matters more than it looks: egress fees, SDK breadth, and auth
+          complexity all affect how autonomously an agent can operate.
+        </p>
+      </header>
+
+      <!-- Score cards -->
+      <div class="mt-10 grid sm:grid-cols-3 gap-4" data-section="scores">
+        {services.map((s, i) => (
+          <div
+            class={`bg-surface border rounded-xl p-5 ${i === 0 ? "border-amber/30" : "border-slate-800"}`}
+            data-service={s.slug}
+            data-score={s.score}
+            data-tier={s.tier}
+          >
+            {i === 0 && (
+              <span class="text-xs font-mono text-amber bg-amber/10 rounded-full px-2 py-0.5 mb-3 inline-block">
+                Highest AN Score
+              </span>
+            )}
+            <h2 class="font-display text-lg font-semibold text-slate-100">{s.name}</h2>
+            <p class="mt-2 font-display text-3xl font-bold text-slate-100">
+              {s.score}<span class="text-lg text-slate-500">/10</span>
+            </p>
+            <dl class="mt-3 space-y-1.5 text-sm">
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Execution</dt>
+                <dd class="text-slate-200 font-mono">{s.execution}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Access</dt>
+                <dd class="text-slate-200 font-mono">{s.access}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Confidence</dt>
+                <dd class="text-slate-200 font-mono">{s.confidence}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Tier</dt>
+                <dd class="text-slate-200">{s.tier}</dd>
+              </div>
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      <!-- Key insight -->
+      <div class="mt-8 bg-surface border border-amber/20 rounded-xl p-6" data-section="key-insight">
+        <h2 class="font-display text-lg font-semibold text-slate-100">The real question isn't "which is best" — it's "what do you read?"</h2>
+        <p class="mt-3 text-sm text-slate-400 leading-relaxed">
+          If your agent reads more than it writes, <strong class="text-slate-200">R2 wins on total cost</strong> despite 
+          a lower AN Score. Egress is the hidden multiplier in storage economics. S3 charges $0.09/GB out; 
+          R2 charges $0. For an agent that reads 100GB/month, that's $9/month in invisible S3 fees.
+          S3 wins on execution quality (8.6 vs 7.6) and ecosystem breadth, but R2's cost advantage 
+          compounds over time.
+        </p>
+      </div>
+
+      <!-- Detailed reviews -->
+      <div class="mt-12 space-y-10" data-section="detailed-reviews">
+        {services.map((s) => (
+          <section id={s.slug} data-testid={`review-${s.slug}`}>
+            <h2 class="font-display text-2xl font-bold text-slate-100 flex items-center gap-3">
+              {s.name}
+              <span class="text-sm font-mono text-amber bg-amber/10 rounded-full px-2.5 py-1">
+                {s.score}/10
+              </span>
+            </h2>
+            <p class="mt-2 text-slate-400">{s.verdict}</p>
+
+            <div class="mt-6 grid sm:grid-cols-2 gap-4">
+              <div class="bg-surface border border-slate-800 rounded-lg p-5">
+                <h3 class="text-sm font-semibold text-emerald-400 mb-3">Strengths</h3>
+                <ul class="space-y-2 text-sm text-slate-400">
+                  {s.strengths.map((str) => (
+                    <li class="flex gap-2">
+                      <span class="text-emerald-400 shrink-0">+</span>
+                      {str}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div class="bg-surface border border-slate-800 rounded-lg p-5">
+                <h3 class="text-sm font-semibold text-red-400 mb-3">Weaknesses</h3>
+                <ul class="space-y-2 text-sm text-slate-400">
+                  {s.weaknesses.map((w) => (
+                    <li class="flex gap-2">
+                      <span class="text-red-400 shrink-0">−</span>
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-4 bg-surface border border-slate-800 rounded-lg p-5">
+              <h3 class="text-sm font-semibold text-amber mb-2">Agent fit</h3>
+              <p class="text-sm text-slate-400">{s.agentFit}</p>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <!-- Cost comparison -->
+      <section class="mt-12" data-section="cost-comparison">
+        <h2 class="font-display text-2xl font-bold text-slate-100">Cost comparison at agent-relevant scale</h2>
+        <p class="mt-2 text-sm text-slate-400">100GB stored, 500GB read, 50GB written per month</p>
+        <div class="mt-6 grid sm:grid-cols-3 gap-4">
+          <div class="bg-surface border border-slate-800 rounded-lg p-5 text-center">
+            <p class="text-sm text-slate-500">AWS S3</p>
+            <p class="font-display text-2xl font-bold text-slate-100 mt-2">~$49.80</p>
+            <p class="text-xs text-slate-500 mt-1">$2.30 storage + $45 egress + $2.50 requests</p>
+          </div>
+          <div class="bg-surface border border-amber/20 rounded-lg p-5 text-center">
+            <p class="text-sm text-slate-500">Cloudflare R2</p>
+            <p class="font-display text-2xl font-bold text-amber mt-2">~$6.25</p>
+            <p class="text-xs text-slate-500 mt-1">$1.50 storage + $0 egress + $4.75 operations</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5 text-center">
+            <p class="text-sm text-slate-500">Backblaze B2</p>
+            <p class="font-display text-2xl font-bold text-slate-100 mt-2">~$5.50</p>
+            <p class="text-xs text-slate-500 mt-1">$0.50 storage + $0 egress* + $5 transactions</p>
+            <p class="text-xs text-slate-600 mt-1">*Via Cloudflare Bandwidth Alliance</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Decision matrix -->
+      <section class="mt-12 bg-surface border border-slate-800 rounded-xl p-6" data-section="decision-matrix">
+        <h2 class="font-display text-xl font-semibold text-slate-100 mb-4">Quick decision</h2>
+        <div class="space-y-3 text-sm">
+          <div class="flex gap-3">
+            <span class="text-amber shrink-0 font-semibold">S3</span>
+            <span class="text-slate-400">if you're in the AWS ecosystem, need cross-service triggers, or prioritize SDK breadth and proven reliability at massive scale.</span>
+          </div>
+          <div class="flex gap-3">
+            <span class="text-amber shrink-0 font-semibold">R2</span>
+            <span class="text-slate-400">if your agent reads heavily from storage and egress costs would dominate your bill. S3-compatible API makes switching easy.</span>
+          </div>
+          <div class="flex gap-3">
+            <span class="text-amber shrink-0 font-semibold">B2</span>
+            <span class="text-slate-400">if you're archiving large volumes of data that's rarely accessed and need the lowest possible storage cost per GB.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Methodology note -->
+      <section class="mt-10 border-t border-slate-800 pt-8" data-section="methodology">
+        <p class="text-sm text-slate-500">
+          Scores are from Rhumb's AN Score — a 20-dimension analysis of execution quality, access readiness, 
+          and autonomy readiness, weighted for agent use. Scores update as new evidence is collected.
+          <a href="/methodology" class="text-amber hover:underline ml-1">Full methodology →</a>
+        </p>
+      </section>
+
+      <!-- Footer links -->
+      <footer class="mt-8 flex flex-wrap gap-4 text-sm">
+        <a href="/compare" class="text-slate-400 hover:text-amber transition-colors">All comparisons →</a>
+        <a href="/blog/datadog-vs-new-relic-vs-grafana" class="text-slate-400 hover:text-amber transition-colors">Monitoring comparison →</a>
+        <a href="/blog/vercel-vs-netlify-vs-render" class="text-slate-400 hover:text-amber transition-colors">Deployment comparison →</a>
+      </footer>
+    </div>
+  </div>
+</Layout>
