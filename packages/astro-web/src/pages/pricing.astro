@@ -56,7 +56,7 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Rhumb pricing: pay only for what you execute. Upstream cost plus a transparent margin. Discovery, scoring, and browsing are always free. On-chain x402 payments on a separate page.",
+    "Rhumb pricing: pay only for what you execute. Discovery, scoring, and browsing are always free. Per-execution pricing with cost estimates before every call.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -67,10 +67,10 @@ const PRICING_JSON_LD = {
 
 <Layout
   title="Pricing"
-  description="Pay only for what you execute. Upstream cost plus a transparent margin. Discovery, scoring, and browsing are always free. On-chain agent payments on a separate page."
+  description="Pay only for what you execute. Per-execution pricing with pre-call cost estimates. Discovery, scoring, and browsing are always free."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Pay only for executions. Upstream cost plus transparent margin. Discovery is always free. Dedicated page for on-chain agent payments."
+  ogDescription="Pay only for what you execute. Know the cost before every call. Discovery is always free."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
@@ -80,11 +80,11 @@ const PRICING_JSON_LD = {
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
           Pay for what you use.
-          <span class="block text-slate-400 mt-2">Upstream cost + transparent margin. Nothing else.</span>
+          <span class="block text-slate-400 mt-2">Know the cost before every call.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
           Discovery, scoring, and browsing are always free. When your agent executes a capability
-          through Rhumb, you pay the upstream provider cost plus a transparent margin. That's it.
+          through Rhumb, you pay per call — and you can check the exact price before committing.
           No subscriptions, no seat fees, no minimums.
         </p>
       </header>
@@ -146,8 +146,8 @@ const PRICING_JSON_LD = {
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Rhumb-managed execution. Every call is billed at upstream provider cost
-            plus a {managed.margin_percent}% margin. No minimums, no commitments.
+            Rhumb handles credentials, routing, failover, and billing. You get pre-call cost
+            estimates, smart provider selection, and fail-closed execution safety. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
@@ -156,7 +156,7 @@ const PRICING_JSON_LD = {
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Pricing</dt>
-              <dd class="text-slate-200">Upstream cost + {managed.margin_percent}%</dd>
+              <dd class="text-slate-200">Per-execution, with estimates before every call</dd>
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Best for</dt>
@@ -313,15 +313,15 @@ const PRICING_JSON_LD = {
           role="complementary"
           aria-label="Pricing notes"
         >
-          <h2 class="font-display text-xl font-semibold text-slate-100">Included in this page</h2>
+          <h2 class="font-display text-xl font-semibold text-slate-100">What you get</h2>
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
-            <li>Free tier for getting started with authenticated execution.</li>
-            <li>Standard API-key billing for pay-as-you-go production usage.</li>
-            <li>Enterprise path for teams that need direct support.</li>
+            <li>Pre-call cost estimates — know the price before you execute.</li>
+            <li>Smart provider routing — Rhumb picks the best provider for each call.</li>
+            <li>Fail-closed billing — you're never charged for failed executions.</li>
           </ul>
           <p class="mt-5 text-xs font-mono text-slate-500">
-            Need direct provider billing? BYOK passthrough still exists at the API layer for
-            supported execution flows.
+            Already have provider API keys? BYOK passthrough routes through Rhumb at zero
+            markup — you pay only your provider directly.
           </p>
         </aside>
       </section>

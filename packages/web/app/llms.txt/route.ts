@@ -69,7 +69,7 @@ Total time: seconds. No signup. No API key. No human involvement.
 
 ### API Key (for metered billing)
 Sign up at https://rhumb.dev/signup for an API key.
-Pay-as-you-go: upstream cost + 20% margin per execution.
+Pay-as-you-go: per-execution pricing. Check exact costs via the estimate endpoint before calling.
 Pass as: Authorization: Bearer rhumb_live_{key}
 
 ### BYOK (Bring Your Own Key) — Free
@@ -78,8 +78,8 @@ No Rhumb payment required for BYOK calls.
 
 ## Pricing
 - Discovery (search, scores, browsing): Always free
-- x402 per-call: USDC on Base network (15% margin over upstream cost)
-- Managed billing: 20% margin over upstream cost
+- x402 per-call: USDC on Base network. Price returned in 402 response.
+- Managed billing: per-execution. Use /capabilities/{id}/execute/estimate for exact cost.
 - BYOK: Free (you pay the external provider directly)
 
 ## Credential Modes

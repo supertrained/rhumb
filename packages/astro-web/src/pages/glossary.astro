@@ -40,7 +40,7 @@ const RESOURCE_LINKS = [
   {
     label: "Pricing",
     href: "/pricing",
-    desc: "Confirm the free tier, managed margin, x402 rail, and BYOK terms.",
+    desc: "Confirm per-execution pricing, x402 rail, and BYOK terms.",
   },
   {
     label: "Docs",
@@ -263,7 +263,7 @@ const TERMS: GlossaryTerm[] = [
     detail:
       "In BYOK, Rhumb helps with routing and interface consistency, but the provider account remains yours. Rhumb adds no markup in this mode.",
     whyItMatters:
-      "BYOK is the control-maximizing option for teams that already have provider accounts and want Rhumb's routing layer without paying Rhumb margin on upstream spend.",
+      "BYOK is the control-maximizing option for teams that already have provider accounts and want Rhumb's routing and scoring layer at zero additional cost.",
     related: [
       { label: "Pricing", href: "/pricing" },
       { label: "Trust", href: "/trust" },
@@ -276,9 +276,9 @@ const TERMS: GlossaryTerm[] = [
     category: "Execution and Billing",
     summary: "A mode where Rhumb holds the upstream connection so you do not need your own provider account.",
     detail:
-      "Managed mode is priced as upstream cost plus 20 percent. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
+      "Managed mode uses per-execution pricing. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
     whyItMatters:
-      "This is the lowest-friction path from intent to working execution, but it trades that convenience for Rhumb-managed margin.",
+      "This is the lowest-friction path from intent to working execution — Rhumb handles credentials, routing, and billing.",
     related: [
       { label: "Pricing", href: "/pricing" },
       { label: "Execution", href: "#execution" },
