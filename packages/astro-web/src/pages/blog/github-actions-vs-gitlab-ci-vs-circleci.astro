@@ -1,0 +1,237 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const scoreMap = {
+  "github-actions": await getServiceScore("github-actions"),
+  gitlab: await getServiceScore("gitlab"),
+  circleci: await getServiceScore("circleci"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "GitHub Actions vs GitLab CI vs CircleCI for AI Agents",
+  datePublished: "2026-03-22T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A side-by-side comparison of GitHub Actions, GitLab CI/CD, and CircleCI APIs for AI agent workflows. Which CI/CD platform gives agents the most reliable, autonomous control?",
+  url: "https://rhumb.dev/blog/github-actions-vs-gitlab-ci-vs-circleci",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type ComparedService = {
+  slug: "github-actions" | "gitlab" | "circleci";
+  name: string;
+  accent: string;
+  accentSoft: string;
+  bestFor: string;
+  avoidWhen: string;
+  friction: string;
+  decision: string;
+  support: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const compared: ComparedService[] = [
+  {
+    slug: "github-actions",
+    name: "GitHub Actions",
+    accent: "#2088FF",
+    accentSoft: "rgba(32,136,255,0.16)",
+    bestFor:
+      "Agents already operating in GitHub repositories. The API is comprehensive — trigger workflows, list runs, download artifacts, check statuses, manage secrets — all via the REST API or MCP. First-party integration means no webhook plumbing or external auth setup.",
+    avoidWhen:
+      "Your CI/CD needs span multiple SCM providers or you need pipeline-as-code portability. GitHub Actions workflows are YAML files deeply tied to GitHub's event model. Migrating to another CI system means rewriting everything.",
+    friction:
+      "The REST API for triggering workflow dispatches requires the agent to know the exact workflow file name and ref. Artifact download is a two-step process (list then download). Rate limits can bite agents that poll run status aggressively — use the webhook event or check-suite API instead.",
+    decision:
+      "Pick GitHub Actions when your code already lives on GitHub and you want the tightest possible integration between source control and CI/CD. The API is the most mature of the three for programmatic control.",
+    support:
+      "Highest AN Score in the comparison (8.0). The GitHub REST API is extremely well-documented, and the Actions-specific endpoints (workflow runs, artifacts, secrets) are stable and consistent. Fine-grained PATs with scoped `actions:read` and `actions:write` permissions give agents precise access control.",
+    data: scoreMap["github-actions"],
+  },
+  {
+    slug: "gitlab",
+    name: "GitLab CI/CD",
+    accent: "#FC6D26",
+    accentSoft: "rgba(252,109,38,0.16)",
+    bestFor:
+      "Agents that need an all-in-one DevOps platform. GitLab CI is part of GitLab's single-application approach — CI/CD, container registry, security scanning, deployment environments, and artifact management all share one API and one auth model. If your agent needs to orchestrate across the full software delivery lifecycle, GitLab reduces the number of APIs to integrate.",
+    avoidWhen:
+      "You want CI-only without the full GitLab platform. GitLab's API surface is enormous and the CI-specific endpoints are buried in a broader API that covers everything from merge requests to Kubernetes clusters. Agents can get lost in the API surface.",
+    friction:
+      "Pipeline triggering via API requires a project-scoped trigger token or personal access token with `api` scope — coarser than GitHub's fine-grained PATs. The API uses offset-based pagination, which can be slow for agents listing large numbers of pipelines. Job logs are returned as plain text, not structured — agents need to parse them.",
+    decision:
+      "Pick GitLab CI when you need your agent to operate across the full DevOps lifecycle in a single platform. The API is comprehensive but the learning curve is steeper.",
+    support:
+      "Strong execution score (7.8) reflecting a reliable, well-maintained API. The pipeline and job endpoints are stable. GitLab's GraphQL API is available as an alternative to REST for more efficient queries. Self-hosted option gives teams full control over data residency and network isolation.",
+    data: scoreMap["gitlab"],
+  },
+  {
+    slug: "circleci",
+    name: "CircleCI",
+    accent: "#343434",
+    accentSoft: "rgba(52,52,52,0.25)",
+    bestFor:
+      "Agents that need CI/CD decoupled from any specific SCM provider. CircleCI supports GitHub, GitLab, and Bitbucket as source providers, making it the most portable option. The v2 API is clean and focused on CI-specific operations — pipelines, workflows, jobs, artifacts, insights. No SCM API noise.",
+    avoidWhen:
+      "You want deep integration with your SCM platform's features (PRs, issues, deployments). CircleCI's API is CI-focused — it triggers builds and reports results, but your agent still needs the GitHub/GitLab API for everything else. Two APIs means two auth systems.",
+    friction:
+      "The API requires a project slug in the format `gh/owner/repo` or `gl/owner/repo`, which agents need to construct correctly. The v1.1 API is deprecated but some features haven't been ported to v2 yet — agents may hit dead ends. Pipeline parameters for dynamic config require careful JSON formatting.",
+    decision:
+      "Pick CircleCI when your agent needs CI/CD that works across multiple SCM providers, or when you want a focused CI API without the weight of a full DevOps platform.",
+    support:
+      "Solid execution score (7.6). The v2 API is well-structured with clear resource hierarchies. API tokens are straightforward — one token per user with configurable scope. The insights API is unique to CircleCI and gives agents access to build metrics, flaky test detection, and throughput data.",
+    data: scoreMap["circleci"],
+  },
+];
+---
+
+<Layout
+  title="GitHub Actions vs GitLab CI vs CircleCI — AI Agent Comparison"
+  description="Side-by-side comparison of GitHub Actions, GitLab CI, and CircleCI for AI agent workflows. Live AN Scores, friction analysis, and recommendations for autonomous CI/CD."
+  canonical="/blog/github-actions-vs-gitlab-ci-vs-circleci"
+  ogTitle="GitHub Actions vs GitLab CI vs CircleCI"
+  ogDescription="Which CI/CD platform gives AI agents the most reliable, autonomous control? Live scores and analysis."
+  ogUrl="https://rhumb.dev/blog/github-actions-vs-gitlab-ci-vs-circleci"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="comparison-page" data-comparison-type="ci-cd" data-comparison-services="github-actions,gitlab,circleci">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Comparison</p>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight">
+          GitHub Actions vs GitLab CI vs CircleCI
+        </h1>
+        <p class="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
+          Three CI/CD platforms. One question: which one gives an AI agent the most reliable, autonomous
+          control over build and deployment pipelines?
+        </p>
+        <p class="mt-3 text-sm text-slate-500">
+          Last updated March 2026 · Scores are live from the Rhumb API
+        </p>
+      </header>
+
+      <!-- Score cards -->
+      <div class="mt-10 grid gap-4 sm:grid-cols-3" data-section="score-cards">
+        {compared.map((svc) => (
+          <div
+            class="bg-surface border border-slate-800 rounded-xl p-5 relative overflow-hidden"
+            data-testid={`score-card-${svc.slug}`}
+            data-service={svc.slug}
+            data-score={svc.data?.aggregate_recommendation_score ?? "pending"}
+          >
+            <div class="absolute top-0 left-0 w-full h-1" style={`background: ${svc.accent}`} />
+            <h2 class="font-display font-bold text-lg text-slate-100 mt-1">{svc.name}</h2>
+            {svc.data ? (
+              <div class="mt-3">
+                <div class="text-2xl font-bold" style={`color: ${svc.accent}`}>
+                  {svc.data.aggregateRecommendationScore?.toFixed(1) ?? "—"}
+                </div>
+                <div class="mt-1 flex items-center gap-2 text-xs">
+                  <span class="text-slate-500">Exec {svc.data.executionScore?.toFixed(1) ?? "—"}</span>
+                  <span class="text-slate-600">·</span>
+                  <span class="text-slate-500">Access {svc.data.accessReadinessScore?.toFixed(1) ?? "—"}</span>
+                </div>
+                <span class="mt-2 inline-block text-xs font-mono text-slate-400 bg-slate-800/50 rounded-full px-2 py-0.5">
+                  {svc.data.tierLabel ?? svc.data.tier}
+                </span>
+              </div>
+            ) : (
+              <p class="mt-3 text-sm text-slate-500 italic">Score pending</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <!-- Quick verdict -->
+      <div class="mt-8 bg-surface border border-amber/20 rounded-xl p-6" data-section="verdict">
+        <h2 class="font-display text-lg font-semibold text-slate-100">Quick verdict</h2>
+        <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+          <strong class="text-slate-200">GitHub Actions</strong> leads on agent readiness — the tightest
+          API integration with the platform most agents already use, fine-grained PATs, and the broadest
+          ecosystem of reusable actions. <strong class="text-slate-200">GitLab CI</strong> wins for agents
+          that need full DevOps lifecycle control in a single platform. <strong class="text-slate-200">CircleCI</strong>
+          is the best choice for multi-SCM portability and focused CI analytics. All three have reliable APIs;
+          the differentiation is scope and integration depth.
+        </p>
+      </div>
+
+      <!-- Per-service deep dives -->
+      <div class="mt-12 space-y-10" data-section="deep-dives">
+        {compared.map((svc) => (
+          <section
+            id={svc.slug}
+            class="bg-surface border border-slate-800 rounded-xl overflow-hidden"
+            data-testid={`deep-dive-${svc.slug}`}
+          >
+            <div class="h-1 w-full" style={`background: ${svc.accent}`} />
+            <div class="p-6 space-y-5">
+              <h2 class="font-display text-xl font-bold text-slate-100">{svc.name}</h2>
+
+              <div>
+                <h3 class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Best for agents that…</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">{svc.bestFor}</p>
+              </div>
+
+              <div>
+                <h3 class="text-xs font-mono text-red-400 uppercase tracking-widest mb-2">Avoid when…</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">{svc.avoidWhen}</p>
+              </div>
+
+              <div>
+                <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Agent friction</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">{svc.friction}</p>
+              </div>
+
+              <div class="bg-elevated rounded-lg p-4 border border-slate-800">
+                <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Agent support quality</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">{svc.support}</p>
+              </div>
+
+              <div class="border-t border-slate-800 pt-4">
+                <p class="text-sm text-slate-300 leading-relaxed">{svc.decision}</p>
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <!-- When to use what -->
+      <section class="mt-12" data-section="decision-matrix">
+        <h2 class="font-display text-2xl font-bold text-slate-100">Decision matrix</h2>
+        <div class="mt-6 space-y-4">
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"My agent's code is on GitHub"</h3>
+            <p class="text-sm text-slate-400 mt-1">→ <strong class="text-blue-400">GitHub Actions</strong>. One auth token, one platform, tightest possible integration. No reason to add a second CI system.</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"My agent needs to manage deployments, environments, and security scanning too"</h3>
+            <p class="text-sm text-slate-400 mt-1">→ <strong class="text-orange-400">GitLab CI</strong>. One platform for the entire DevOps lifecycle. Fewer APIs to integrate, fewer auth systems to manage.</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"My agent works across GitHub and GitLab repos"</h3>
+            <p class="text-sm text-slate-400 mt-1">→ <strong class="text-slate-200">CircleCI</strong>. The only option here that natively supports multiple SCM providers. One CI pipeline definition, multiple source providers.</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I need build analytics and flaky test detection"</h3>
+            <p class="text-sm text-slate-400 mt-1">→ <strong class="text-slate-200">CircleCI</strong>. The insights API is unique — test analytics, throughput metrics, and flaky test detection accessible via API. Neither GitHub Actions nor GitLab expose this level of CI-specific analytics programmatically.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer links -->
+      <footer class="mt-12 border-t border-slate-800 pt-8">
+        <div class="flex flex-wrap gap-4 text-sm">
+          <a href="/compare" class="text-slate-400 hover:text-amber transition-colors">All comparisons →</a>
+          <a href="/autopsy" class="text-slate-400 hover:text-amber transition-colors">API autopsies →</a>
+          <a href="/search" class="text-slate-400 hover:text-amber transition-colors">Search services →</a>
+          <a href="/blog" class="text-slate-400 hover:text-amber transition-colors">Blog →</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+</Layout>
