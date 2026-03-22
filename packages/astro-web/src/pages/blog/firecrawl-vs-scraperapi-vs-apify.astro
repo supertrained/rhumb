@@ -1,0 +1,296 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Firecrawl vs ScraperAPI vs Apify for AI Agents",
+  datePublished: "2026-03-22T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "Which web scraping API works best for autonomous agents? Comparing Firecrawl, ScraperAPI, and Apify on execution quality, access readiness, agent-native integration, and failure modes.",
+  url: "https://rhumb.dev/blog/firecrawl-vs-scraperapi-vs-apify",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+type Service = {
+  slug: string;
+  name: string;
+  score: number;
+  execution: number;
+  access: number;
+  confidence: number;
+  tier: string;
+  verdict: string;
+  strengths: string[];
+  weaknesses: string[];
+  agentFit: string;
+};
+
+const services: Service[] = [
+  {
+    slug: "scraperapi",
+    name: "ScraperAPI",
+    score: 7.6,
+    execution: 7.8,
+    access: 7.3,
+    confidence: 0.58,
+    tier: "L3 Fluent",
+    verdict: "Highest AN Score in web scraping. Clean REST API, proxy rotation and CAPTCHA solving handled server-side. Strong agent fit for structured data extraction.",
+    strengths: [
+      "Highest execution score (7.8) in the category",
+      "Handles proxy rotation and CAPTCHAs transparently",
+      "Simple REST API — pass a URL, get HTML back",
+      "JavaScript rendering support for SPAs",
+      "Geolocation selection for region-specific scraping",
+    ],
+    weaknesses: [
+      "Returns raw HTML — agents need to parse it themselves",
+      "No built-in markdown conversion (unlike Firecrawl)",
+      "Limited structured extraction compared to Apify actors",
+    ],
+    agentFit: "Best for agents that need reliable raw HTML extraction with minimal configuration. The API is simple enough that most agents can call it without custom tooling.",
+  },
+  {
+    slug: "firecrawl",
+    name: "Firecrawl",
+    score: 7.2,
+    execution: 7.6,
+    access: 6.5,
+    confidence: 0.55,
+    tier: "L3 Fluent",
+    verdict: "Purpose-built for AI/LLM workflows. Returns clean markdown instead of raw HTML. The only scraping API that understands what agents actually need from web content.",
+    strengths: [
+      "Returns markdown by default — ideal for LLM consumption",
+      "Crawl mode for multi-page extraction",
+      "Built-in structured data extraction with schemas",
+      "Map endpoint for sitemap discovery",
+      "Designed explicitly for AI/agent workflows",
+    ],
+    weaknesses: [
+      "Lower access readiness (6.5) — API key management less mature",
+      "Smaller infrastructure than ScraperAPI or Bright Data",
+      "Free tier is limited (500 credits/month)",
+      "Newer service — less battle-tested at scale",
+    ],
+    agentFit: "Best for agents that need to understand web pages, not just download them. The markdown output eliminates the HTML-to-useful-text pipeline that other scrapers require.",
+  },
+  {
+    slug: "apify",
+    name: "Apify",
+    score: 7.2,
+    execution: 7.6,
+    access: 6.5,
+    confidence: 0.55,
+    tier: "L3 Fluent",
+    verdict: "Most powerful and most complex. 2,000+ pre-built actors for specific sites (LinkedIn, Amazon, Google Maps). Overkill for simple scraping, unmatched for structured data from specific platforms.",
+    strengths: [
+      "2,000+ pre-built actors for specific websites and platforms",
+      "Full browser automation (Playwright, Puppeteer) for complex flows",
+      "Built-in data storage and dataset management",
+      "Webhooks and integrations for pipeline automation",
+      "Platform-specific extractors (LinkedIn, Google Maps, Amazon) with structured output",
+    ],
+    weaknesses: [
+      "Complexity — the actor model has a learning curve",
+      "Finding the right actor for a task requires browsing a marketplace",
+      "Per-actor pricing makes cost prediction harder",
+      "Overkill for simple URL-to-HTML scraping",
+    ],
+    agentFit: "Best for agents that need structured data from specific platforms (e.g., LinkedIn profiles, Google search results, e-commerce listings). The actor marketplace is powerful but adds a discovery step.",
+  },
+];
+---
+
+<Layout
+  title="Firecrawl vs ScraperAPI vs Apify for AI Agents"
+  description="Comparing Firecrawl, ScraperAPI, and Apify for autonomous agent web scraping. AN Scores, failure modes, agent-native integration, and recommendations."
+  canonical="/blog/firecrawl-vs-scraperapi-vs-apify"
+  ogTitle="Firecrawl vs ScraperAPI vs Apify — Which Scraping API for Agents?"
+  ogDescription="ScraperAPI scores 7.6 AN, Firecrawl and Apify at 7.2. Here's which one your agent should use."
+  ogUrl="https://rhumb.dev/blog/firecrawl-vs-scraperapi-vs-apify"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen" data-testid="comparison-page" data-comparison="firecrawl-vs-scraperapi-vs-apify" data-page-type="comparison">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <header class="max-w-3xl" data-section="hero">
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <a href="/compare" class="text-xs font-mono text-slate-500 hover:text-amber transition-colors">← All Comparisons</a>
+          <span class="text-slate-700">·</span>
+          <span class="text-xs font-mono text-amber uppercase tracking-widest">Web Scraping</span>
+        </div>
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight">
+          Firecrawl vs ScraperAPI vs Apify
+        </h1>
+        <p class="mt-4 text-lg text-slate-400 leading-relaxed">
+          Web scraping is one of the highest-demand capabilities for AI agents — and one of the
+          hardest to get right. Anti-bot measures, JavaScript rendering, and rate limiting make
+          every scraping API a different tradeoff between simplicity and power.
+        </p>
+        <p class="mt-2 text-sm text-slate-500">
+          Scores from Rhumb AN Score v0.3 · Last updated March 2026
+        </p>
+      </header>
+
+      <!-- Quick verdict -->
+      <div class="mt-10 bg-surface border border-amber/20 rounded-xl p-6" data-section="tldr">
+        <h2 class="font-display text-lg font-semibold text-slate-100">Quick verdict</h2>
+        <ul class="mt-3 space-y-2 text-sm text-slate-400">
+          <li class="flex gap-2">
+            <span class="text-amber shrink-0">→</span>
+            <span><strong class="text-slate-200">ScraperAPI (7.6)</strong> if you need reliable HTML extraction with zero configuration. Highest AN Score. Best overall execution quality.</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber shrink-0">→</span>
+            <span><strong class="text-slate-200">Firecrawl (7.2)</strong> if your agent needs to understand web content. Returns markdown, not HTML. Built for LLM workflows.</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber shrink-0">→</span>
+            <span><strong class="text-slate-200">Apify (7.2)</strong> if you need structured data from specific platforms. 2,000+ actors for LinkedIn, Amazon, Google Maps, and more.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Score cards -->
+      <section class="mt-10 grid gap-6 sm:grid-cols-3" data-section="scores">
+        {services.map((s) => (
+          <a
+            href={`/services/${s.slug}`}
+            class="group block bg-surface border border-slate-800 rounded-xl p-5 hover:border-amber/30 transition-colors"
+            data-testid={`score-card-${s.slug}`}
+            data-service={s.slug}
+            data-score={s.score}
+          >
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-display font-semibold text-slate-100 group-hover:text-amber transition-colors">{s.name}</h3>
+              <span class="text-2xl font-display font-bold text-amber">{s.score}</span>
+            </div>
+            <dl class="space-y-1 text-xs">
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Execution</dt>
+                <dd class="text-slate-300 font-mono">{s.execution}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Access</dt>
+                <dd class="text-slate-300 font-mono">{s.access}</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Confidence</dt>
+                <dd class="text-slate-300 font-mono">{(s.confidence * 100).toFixed(0)}%</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-slate-500">Tier</dt>
+                <dd class="text-slate-300">{s.tier}</dd>
+              </div>
+            </dl>
+          </a>
+        ))}
+      </section>
+
+      <!-- Deep dives -->
+      <section class="mt-12 space-y-10" data-section="deep-dives">
+        {services.map((s) => (
+          <div class="bg-surface border border-slate-800 rounded-xl p-6" data-testid={`deep-dive-${s.slug}`}>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-display text-xl font-bold text-slate-100">{s.name}</h2>
+              <span class="text-xs font-mono text-amber bg-amber/10 rounded-full px-2.5 py-1">AN {s.score}</span>
+            </div>
+            <p class="text-sm text-slate-400 leading-relaxed">{s.verdict}</p>
+
+            <div class="mt-5 grid sm:grid-cols-2 gap-4">
+              <div>
+                <h3 class="text-xs font-mono text-emerald-400 uppercase tracking-widest mb-2">Strengths</h3>
+                <ul class="space-y-1.5">
+                  {s.strengths.map((str) => (
+                    <li class="text-sm text-slate-400 flex gap-2">
+                      <span class="text-emerald-500 shrink-0">+</span> {str}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 class="text-xs font-mono text-red-400 uppercase tracking-widest mb-2">Weaknesses</h3>
+                <ul class="space-y-1.5">
+                  {s.weaknesses.map((w) => (
+                    <li class="text-sm text-slate-400 flex gap-2">
+                      <span class="text-red-500 shrink-0">−</span> {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-5 bg-elevated rounded-lg border border-slate-800 p-4">
+              <h3 class="text-xs font-mono text-amber uppercase tracking-widest mb-1">Agent Fit</h3>
+              <p class="text-sm text-slate-400">{s.agentFit}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <!-- The real question -->
+      <section class="mt-12" data-section="decision-framework">
+        <h2 class="font-display text-2xl font-bold text-slate-100">Which one should your agent use?</h2>
+        <div class="mt-6 space-y-4">
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I just need the content of a webpage"</h3>
+            <p class="text-sm text-slate-400 mt-1">
+              <strong class="text-amber">Firecrawl.</strong> One API call, markdown back. Your agent can feed it directly to an LLM without parsing HTML. This is the 80% case for agent web access.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I need to scrape at scale with high reliability"</h3>
+            <p class="text-sm text-slate-400 mt-1">
+              <strong class="text-amber">ScraperAPI.</strong> Highest execution score, handles proxy rotation and CAPTCHAs transparently. Built for volume. You'll need to parse the HTML yourself, but the extraction is reliable.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I need structured data from a specific platform"</h3>
+            <p class="text-sm text-slate-400 mt-1">
+              <strong class="text-amber">Apify.</strong> Pre-built actors for LinkedIn, Amazon, Google Maps, Twitter, and hundreds more. The output is structured JSON, not raw HTML. Overkill for general scraping, unmatched for specific platforms.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I'm not sure — I want the safest bet"</h3>
+            <p class="text-sm text-slate-400 mt-1">
+              Start with <strong class="text-amber">Firecrawl</strong> for general web access and add <strong class="text-amber">Apify</strong> when you hit a platform-specific extraction need. ScraperAPI is the fallback when you need raw HTML at scale.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Also in this category -->
+      <section class="mt-12 border-t border-slate-800 pt-8" data-section="also-scored">
+        <h2 class="font-display text-lg font-semibold text-slate-100 mb-4">Also scored in web scraping</h2>
+        <div class="grid sm:grid-cols-3 gap-3">
+          {[
+            { slug: "bright-data", name: "Bright Data", score: 7.4 },
+            { slug: "oxylabs", name: "Oxylabs", score: 7.3 },
+            { slug: "zyte", name: "Zyte", score: 7.3 },
+            { slug: "crawlbase", name: "Crawlbase", score: 7.1 },
+            { slug: "zenrows", name: "ZenRows", score: 7.1 },
+            { slug: "scrapingbee", name: "ScrapingBee", score: 6.5 },
+          ].map((s) => (
+            <a
+              href={`/services/${s.slug}`}
+              class="group flex items-center justify-between bg-surface border border-slate-800 rounded-lg px-4 py-3 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-sm text-slate-300 group-hover:text-amber transition-colors">{s.name}</span>
+              <span class="text-sm font-mono text-slate-500">{s.score}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="mt-10 border-t border-slate-800 pt-8">
+        <div class="flex flex-wrap gap-4 text-sm">
+          <a href="/compare" class="text-slate-400 hover:text-amber transition-colors">All Comparisons →</a>
+          <a href="/search" class="text-slate-400 hover:text-amber transition-colors">Search Services →</a>
+          <a href="/blog" class="text-slate-400 hover:text-amber transition-colors">Blog →</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+</Layout>
