@@ -11,7 +11,7 @@ Most APIs weren't built for agents. Rhumb helps agents and operators see which t
 Rhumb is the infrastructure layer agents use to **discover, access, and trust** external tools.
 
 - **212 scored services**
-- **103 capabilities across 30 domains**
+- **251 capabilities across 74 domains**
 - **20 scored dimensions** across execution quality and access readiness
 - **3 credential modes** — BYO, Rhumb-managed, and Agent Vault
 - **x402 zero-signup path** for agent-native per-call payment
