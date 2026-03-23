@@ -114,7 +114,9 @@ def admin_client(
     """FastAPI TestClient wired to in-memory stores."""
     set_test_stores(identity_store, analytics, acl)
     app = create_app()
-    return TestClient(app)
+    # Admin routes require X-Rhumb-Admin-Key; use the test secret set in conftest.
+    _ADMIN_SECRET = "rhumb_test_admin_secret_0000"
+    return TestClient(app, headers={"X-Rhumb-Admin-Key": _ADMIN_SECRET})
 
 
 class _FakeResponse:

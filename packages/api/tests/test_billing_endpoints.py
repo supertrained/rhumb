@@ -19,19 +19,23 @@ from app import create_app
 # Fixtures
 # ---------------------------------------------------------------------------
 
-ORG_ID = "org_test_billing"
+# ORG_ID must match the bypass agent's organization_id seeded in conftest.
+# _auth_headers must use the bypass API key so verify_api_key_with_agent() resolves.
+ORG_ID = "org-test"
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
 
 
 @pytest.fixture
 def client() -> TestClient:
-    """TestClient for the billing routes (no admin header needed)."""
-    app = create_app()
-    return TestClient(app)
+    """TestClient for the billing routes — reuses the conftest-created app so the
+    autouse _inject_proxy_bypass_auth fixture wires up the identity store."""
+    from app import app as _app
+    return TestClient(_app)
 
 
 def _auth_headers(org_id: str = ORG_ID) -> dict[str, str]:
-    """Return X-Rhumb-Key header (Phase 0: key == org_id)."""
-    return {"X-Rhumb-Key": org_id}
+    """Return X-Rhumb-Key header using the bypass key seeded in conftest."""
+    return {"X-Rhumb-Key": _BYPASS_KEY}
 
 
 # ---------------------------------------------------------------------------

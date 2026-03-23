@@ -16,6 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
+from app import app as _shared_app
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetCheckResult
@@ -24,7 +25,37 @@ from services.budget_enforcer import BudgetCheckResult
 # Helpers
 # ---------------------------------------------------------------------------
 
-ORG_ID = "org_phase0_test"
+# ORG_ID must match the bypass agent's organization_id seeded in conftest
+# so that _require_org() resolves the key correctly on billing endpoints.
+ORG_ID = "org-test"
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
+
+def _make_execute_mock_fetch(service_slug: str = "resend", api_domain: str = "api.resend.com"):
+    """Path-routing supabase_fetch mock for capability execute tests.
+    Matches by URL pattern rather than call order so it survives code refactors.
+    """
+    _cap_svc_row = {
+        "cost_per_call": 0.10, "service_slug": service_slug,
+        "auth_method": "api_key", "credential_modes": ["byo"],
+        "endpoint_pattern": "POST /emails", "cost_currency": "USD", "free_tier_calls": 0,
+    }
+    _cap_row = [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+    _svc_row = [{"slug": service_slug, "api_domain": api_domain}]
+
+    async def _fetch(path: str):
+        if "capabilities?" in path and "id=eq." in path:
+            return _cap_row
+        if "capability_services?" in path:
+            return [_cap_svc_row]
+        if "rhumb_managed_capabilities?" in path:
+            return []
+        if "services?" in path and "capability_services?" not in path:
+            return _svc_row
+        return []
+
+    return _fetch
+
+
 
 
 def _mock_agent(org_id: str = ORG_ID) -> AgentIdentitySchema:
@@ -64,8 +95,7 @@ class TestTopUpFlow:
             "session_id": "cs_test_topup",
         }
 
-        app = create_app()
-        client = TestClient(app, headers={"X-Rhumb-Key": ORG_ID})
+        client = TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
         resp = client.post("/v1/billing/checkout", json={"amount_usd": 50.0})
 
         assert resp.status_code == 200
@@ -142,21 +172,14 @@ class TestDeductionFlow:
             mock_budget.check_and_decrement = AsyncMock(
                 return_value=BudgetCheckResult(allowed=True, remaining_usd=49.9)
             )
+            mock_budget.release = AsyncMock()
+            mock_budget.get_budget = AsyncMock(return_value=MagicMock(budget_usd=None))
             mock_credit.deduct = AsyncMock(
-                return_value=MagicMock(allowed=True, remaining_cents=4880)
+                return_value=MagicMock(allowed=True, remaining_cents=4880, billing_unavailable=False)
             )
             mock_credit.release = AsyncMock()
 
-            mock_fetch.side_effect = [
-                [{"cost_per_call": 0.10, "service_slug": "resend", "auth_method": "api_key",
-                  "credential_modes": ["byo"], "endpoint_pattern": "POST /emails",
-                  "cost_currency": "USD", "free_tier_calls": 0}],
-                [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}],
-                [{"cost_per_call": 0.10, "service_slug": "resend", "auth_method": "api_key",
-                  "credential_modes": ["byo"], "endpoint_pattern": "POST /emails",
-                  "cost_currency": "USD", "free_tier_calls": 0}],
-                [{"slug": "resend", "api_domain": "api.resend.com"}],
-            ]
+            mock_fetch.side_effect = _make_execute_mock_fetch()
 
             mock_cred = MagicMock()
             mock_cred.get_credential.return_value = "re_test_key"
@@ -223,14 +246,11 @@ class TestInsufficientCredits:
                     allowed=False,
                     remaining_cents=5,
                     reason="insufficient_credits",
+                    billing_unavailable=False,
                 )
             )
 
-            mock_fetch.side_effect = [
-                [{"cost_per_call": 0.10, "service_slug": "resend", "auth_method": "api_key",
-                  "credential_modes": ["byo"], "endpoint_pattern": "POST /emails",
-                  "cost_currency": "USD", "free_tier_calls": 0}],
-            ]
+            mock_fetch.side_effect = _make_execute_mock_fetch()
 
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url="http://test"
@@ -443,22 +463,15 @@ class TestAutoReloadTrigger:
             mock_budget.check_and_decrement = AsyncMock(
                 return_value=BudgetCheckResult(allowed=True, remaining_usd=49.9)
             )
+            mock_budget.release = AsyncMock()
+            mock_budget.get_budget = AsyncMock(return_value=MagicMock(budget_usd=None))
             mock_credit.deduct = AsyncMock(
-                return_value=MagicMock(allowed=True, remaining_cents=800)
+                return_value=MagicMock(allowed=True, remaining_cents=800, billing_unavailable=False)
             )
             mock_credit.release = AsyncMock()
             mock_reload.return_value = {"status": "triggered", "amount_cents": 5000}
 
-            mock_fetch.side_effect = [
-                [{"cost_per_call": 0.10, "service_slug": "resend", "auth_method": "api_key",
-                  "credential_modes": ["byo"], "endpoint_pattern": "POST /emails",
-                  "cost_currency": "USD", "free_tier_calls": 0}],
-                [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}],
-                [{"cost_per_call": 0.10, "service_slug": "resend", "auth_method": "api_key",
-                  "credential_modes": ["byo"], "endpoint_pattern": "POST /emails",
-                  "cost_currency": "USD", "free_tier_calls": 0}],
-                [{"slug": "resend", "api_domain": "api.resend.com"}],
-            ]
+            mock_fetch.side_effect = _make_execute_mock_fetch()
 
             mock_cred = MagicMock()
             mock_cred.get_credential.return_value = "re_test_key"
@@ -564,8 +577,7 @@ class TestBillingEndpointsIntegration:
 
     def test_balance_reflects_auto_reload_config(self) -> None:
         """GET /billing/balance includes auto-reload config when set."""
-        app = create_app()
-        client = TestClient(app, headers={"X-Rhumb-Key": ORG_ID})
+        client = TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
         mock_row = {
             "balance_usd_cents": 6000,
@@ -589,8 +601,7 @@ class TestBillingEndpointsIntegration:
 
     def test_ledger_shows_credit_and_debit_entries(self) -> None:
         """GET /billing/ledger returns both credit_added and debit events."""
-        app = create_app()
-        client = TestClient(app, headers={"X-Rhumb-Key": ORG_ID})
+        client = TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
         entries = [
             {
@@ -636,8 +647,7 @@ class TestBillingEndpointsIntegration:
 
     def test_auto_reload_config_roundtrip(self) -> None:
         """PUT /billing/auto-reload saves config and returns it correctly."""
-        app = create_app()
-        client = TestClient(app, headers={"X-Rhumb-Key": ORG_ID})
+        client = TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
         returned_row = {
             "auto_reload_enabled": True,
@@ -659,8 +669,7 @@ class TestBillingEndpointsIntegration:
 
     def test_disable_auto_reload_clears_thresholds(self) -> None:
         """Disabling auto-reload clears threshold/amount values."""
-        app = create_app()
-        client = TestClient(app, headers={"X-Rhumb-Key": ORG_ID})
+        client = TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
         returned_row = {
             "auto_reload_enabled": False,
