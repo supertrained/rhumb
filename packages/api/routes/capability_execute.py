@@ -201,7 +201,13 @@ class CapabilityExecuteRequest(BaseModel):
     path: Optional[str] = Field(None, description="Provider API path (e.g. /v3/mail/send) — required for byo/agent_vault, optional for rhumb_managed")
     body: Optional[dict] = Field(None, description="Request body (provider-native)")
     params: Optional[dict] = Field(None, description="Query parameters")
-    credential_mode: str = Field("byo", description="Credential mode (byo, rhumb_managed, agent_vault)")
+    credential_mode: str = Field(
+        "auto",
+        description=(
+            "Credential mode (auto, byo, rhumb_managed, agent_vault). "
+            "'auto' uses rhumb_managed when available, falls back to byo."
+        ),
+    )
     idempotency_key: Optional[str] = Field(None, description="Idempotency key to prevent duplicate execution")
     interface: str = Field("rest", description="Client interface (rest, mcp, cli, sdk)")
 
@@ -361,6 +367,57 @@ async def _resolve_managed_provider_mapping(
 
     managed_slug = managed_config["service_slug"]
     return next((m for m in mappings if m["service_slug"] == managed_slug), None)
+
+
+def _parse_credential_modes(raw_modes: Any) -> list[str]:
+    """Normalize credential_modes from Supabase into a list of strings."""
+    if isinstance(raw_modes, str):
+        return [mode.strip() for mode in raw_modes.split(",") if mode.strip()]
+    if isinstance(raw_modes, (list, tuple, set)):
+        parsed_modes: list[str] = []
+        for mode in raw_modes:
+            normalized = str(mode).strip()
+            if normalized:
+                parsed_modes.append(normalized)
+        return parsed_modes
+    return []
+
+
+async def _resolve_auto_credential_mode(
+    capability_id: str,
+    credential_mode: str,
+    mappings: list[dict],
+    requested_provider: Optional[str],
+) -> tuple[str, dict | None]:
+    """Resolve auto mode to rhumb_managed when an active managed config exists."""
+    if credential_mode != "auto":
+        return credential_mode, None
+
+    candidate_mappings = [
+        mapping
+        for mapping in mappings
+        if requested_provider is None or mapping.get("service_slug") == requested_provider
+    ]
+    managed_advertised = any(
+        "rhumb_managed" in _parse_credential_modes(mapping.get("credential_modes", []))
+        for mapping in candidate_mappings
+    )
+
+    managed_mapping: dict | None = None
+    if managed_advertised:
+        managed_mapping = await _resolve_managed_provider_mapping(
+            capability_id=capability_id,
+            mappings=mappings,
+            requested_provider=requested_provider,
+        )
+
+    resolved_mode = "rhumb_managed" if managed_mapping is not None else "byo"
+    logger.info(
+        "credential_mode auto-resolved to %s for capability %s",
+        resolved_mode,
+        capability_id,
+    )
+    return resolved_mode, managed_mapping
 
 
 def _resolve_base_url(service_slug: str, api_domain: Optional[str]) -> str:
@@ -602,6 +659,30 @@ async def execute_capability(
             headers={"Retry-After": "60"},
         )
 
+    # Idempotency before reservations.
+    if request.idempotency_key:
+        existing = await supabase_fetch(
+            f"capability_executions?idempotency_key=eq.{quote(request.idempotency_key)}"
+            f"&select=id,upstream_status,cost_estimate_usd&limit=1"
+        )
+        if existing:
+            return {
+                "data": {
+                    "capability_id": capability_id,
+                    "execution_id": existing[0]["id"],
+                    "deduplicated": True,
+                },
+                "error": None,
+            }
+
+    cap_services = await _get_capability_services(capability_id)
+    request.credential_mode, managed_mapping = await _resolve_auto_credential_mode(
+        capability_id=capability_id,
+        credential_mode=request.credential_mode,
+        mappings=cap_services,
+        requested_provider=request.provider,
+    )
+
     # ── Kill Switch: managed-only shutdown ──────────────────────
     # Blocks Mode 2 (Rhumb's credentials) while allowing BYOK and x402.
     # Use when our upstream API budgets are being consumed too fast.
@@ -653,23 +734,6 @@ async def execute_capability(
                 detail="method and path are required for byo credential mode",
             )
 
-    # Idempotency before reservations.
-    if request.idempotency_key:
-        existing = await supabase_fetch(
-            f"capability_executions?idempotency_key=eq.{quote(request.idempotency_key)}"
-            f"&select=id,upstream_status,cost_estimate_usd&limit=1"
-        )
-        if existing:
-            return {
-                "data": {
-                    "capability_id": capability_id,
-                    "execution_id": existing[0]["id"],
-                    "deduplicated": True,
-                },
-                "error": None,
-            }
-
-    cap_services = await _get_capability_services(capability_id)
     selected_mapping: dict | None = None
     if request.credential_mode == "byo":
         selected_mapping = await _select_provider_mapping(
@@ -684,7 +748,7 @@ async def execute_capability(
             None,
         )
     elif request.credential_mode == "rhumb_managed":
-        selected_mapping = await _resolve_managed_provider_mapping(
+        selected_mapping = managed_mapping or await _resolve_managed_provider_mapping(
             capability_id=capability_id,
             mappings=cap_services,
             requested_provider=request.provider,
@@ -1284,7 +1348,13 @@ async def execute_capability(
 async def estimate_capability(
     capability_id: str,
     provider: Optional[str] = Query(None, description="Provider slug"),
-    credential_mode: str = Query("byo", description="Credential mode"),
+    credential_mode: str = Query(
+        "auto",
+        description=(
+            "Credential mode (auto, byo, rhumb_managed, agent_vault). "
+            "'auto' uses rhumb_managed when available, falls back to byo."
+        ),
+    ),
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Dry-run cost estimate — returns provider selection, cost, and circuit state without executing.
@@ -1317,8 +1387,18 @@ async def estimate_capability(
             detail=f"No providers configured for capability '{capability_id}'",
         )
 
+    requested_credential_mode = credential_mode
+    credential_mode, managed_mapping = await _resolve_auto_credential_mode(
+        capability_id=capability_id,
+        credential_mode=credential_mode,
+        mappings=mappings,
+        requested_provider=provider,
+    )
+
     chosen: Optional[dict] = None
-    if provider:
+    if requested_credential_mode == "auto" and credential_mode == "rhumb_managed":
+        chosen = managed_mapping
+    elif provider:
         chosen = next((m for m in mappings if m["service_slug"] == provider), None)
         if chosen is None:
             raise HTTPException(

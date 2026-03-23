@@ -33,7 +33,7 @@ export async function handleCheckCredentials(
       mode: "rhumb_managed",
       available: managed.length > 0,
       detail: managed.length > 0
-        ? `${managed.length} zero-config capability(ies) available. No credentials needed — just call execute with credential_mode=rhumb_managed.`
+        ? `${managed.length} zero-config capability(ies) available. No credentials needed — omit credential_mode or use credential_mode=auto to prefer Rhumb-managed execution when available.`
         : "No managed capabilities currently available.",
     },
     {

@@ -501,7 +501,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return {
         capabilityId: asString(d.capability_id) ?? capabilityId,
         providerUsed: asString(d.provider_used) ?? "unknown",
-        credentialMode: asString(d.credential_mode) ?? "byo",
+        credentialMode: asString(d.credential_mode) ?? "auto",
         upstreamStatus: typeof d.upstream_status === "number" ? d.upstream_status : null,
         upstreamResponse: d.upstream_response ?? null,
         costEstimateUsd: asNumber(d.cost_estimate_usd),
@@ -545,7 +545,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return {
         capabilityId: asString(d.capability_id) ?? capabilityId,
         provider: asString(d.provider) ?? "unknown",
-        credentialMode: asString(d.credential_mode) ?? "byo",
+        credentialMode: asString(d.credential_mode) ?? "auto",
         costEstimateUsd: asNumber(d.cost_estimate_usd),
         circuitState: asString(d.circuit_state) ?? "unknown",
         endpointPattern: asString(d.endpoint_pattern)

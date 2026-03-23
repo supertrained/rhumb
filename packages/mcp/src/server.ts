@@ -148,7 +148,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- execute_capability ------------------------------------------------
   server.tool(
     "execute_capability",
-    "Execute a capability through Rhumb's proxy. Typical workflow: discover_capabilities → resolve_capability → estimate_capability → execute_capability. Three credential modes: (1) rhumb_managed — simplest, zero-config, Rhumb provides credentials (just pass capability_id); (2) byo — bring your own API key via agent_token + method + path; (3) agent_vault — use a key from credential_ceremony via agent_token + method + path. Alternative: pass x_payment for per-call USDC payment with no account needed. Use check_credentials to see which modes are available.",
+    "Execute a capability through Rhumb's proxy. Typical workflow: discover_capabilities → resolve_capability → estimate_capability → execute_capability. Default credential mode is auto: Rhumb uses rhumb_managed when an active managed config exists, otherwise falls back to byo. Other explicit modes: rhumb_managed — zero-config when available; byo — bring your own API key via agent_token + method + path; agent_vault — use a key from credential_ceremony via agent_token + method + path. Alternative: pass x_payment for per-call USDC payment with no account needed. Use check_credentials to see which modes are available.",
     {
       capability_id: z.string().describe(ExecuteCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.provider.description),
@@ -174,7 +174,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- estimate_capability -----------------------------------------------
   server.tool(
     "estimate_capability",
-    "Get the cost of executing a capability WITHOUT actually executing it. Returns cost in USD, circuit health, and endpoint pattern. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
+    "Get the cost of executing a capability WITHOUT actually executing it. Returns cost in USD, circuit health, and endpoint pattern. Default credential mode is auto: Rhumb uses rhumb_managed when an active managed config exists, otherwise falls back to byo. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
     {
       capability_id: z.string().describe(EstimateCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(EstimateCapabilityInputSchema.properties.provider.description),

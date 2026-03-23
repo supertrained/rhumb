@@ -195,7 +195,7 @@ export const ExecuteCapabilityInputSchema = {
     path: { type: "string" as const, description: "Provider's API path (e.g. '/v3/mail/send'). Get the pattern from resolve_capability. Required for byo/agent_vault. Not needed for rhumb_managed." },
     body: { type: "object" as const, description: "Request body in the provider's native format. See provider docs or resolve_capability for expected structure." },
     params: { type: "object" as const, description: "URL query parameters as key-value pairs" },
-    credential_mode: { type: "string" as const, description: "'rhumb_managed' (zero-config, Rhumb provides credentials — simplest), 'byo' (your own API key via agent_token — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path). Default: byo" },
+    credential_mode: { type: "string" as const, description: "'auto' (default: use rhumb_managed when an active managed config exists, otherwise fall back to byo), 'rhumb_managed' (zero-config, Rhumb provides credentials), 'byo' (your own API key via agent_token — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path)." },
     idempotency_key: { type: "string" as const, description: "UUID for safe retry — if this request was already processed, returns the cached result instead of re-executing. Required to enable automatic fallback to backup providers on failure." },
     agent_token: { type: "string" as const, description: "Your API token for byo/agent_vault mode. For agent_vault: obtain via credential_ceremony first. Never stored by Rhumb — used for this single request only." },
     x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Use this to pay per-call with USDC instead of an API key. Pass the proof from a payment_required (402) response. No account or signup needed." }
@@ -250,7 +250,7 @@ export const EstimateCapabilityInputSchema = {
   properties: {
     capability_id: { type: "string" as const, description: "Capability to estimate (e.g. 'email.send'). Call this BEFORE execute_capability to know the cost in advance." },
     provider: { type: "string" as const, description: "Specific provider slug. Omit to estimate for the auto-selected provider based on your routing strategy." },
-    credential_mode: { type: "string" as const, description: "'rhumb_managed', 'byo', or 'agent_vault'. Affects pricing — rhumb_managed includes a 20% markup." }
+    credential_mode: { type: "string" as const, description: "'auto' (default: use rhumb_managed when an active managed config exists, otherwise fall back to byo), 'rhumb_managed', 'byo', or 'agent_vault'. Affects pricing — rhumb_managed includes a 20% markup." }
   },
   required: ["capability_id"] as const
 };
