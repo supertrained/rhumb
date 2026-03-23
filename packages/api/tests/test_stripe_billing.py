@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app import create_app
+from app import app as _shared_app
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -28,11 +28,12 @@ def _stripe_signature(payload: bytes, secret: str) -> str:
     return f"t={timestamp},v1={signature}"
 
 
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
+
 @pytest.fixture
 def billing_client() -> TestClient:
     """Fresh test client with no admin auth needed."""
-    app = create_app()
-    return TestClient(app, headers={"X-Rhumb-Key": "org_test_123"})
+    return TestClient(_shared_app, headers={"X-Rhumb-Key": _BYPASS_KEY})
 
 
 # ── Checkout endpoint tests ──────────────────────────────────────────
@@ -51,8 +52,7 @@ def test_checkout_amount_too_high(billing_client: TestClient) -> None:
 
 
 def test_checkout_missing_auth() -> None:
-    app = create_app()
-    client = TestClient(app)
+    client = TestClient(_shared_app)
     resp = client.post("/v1/billing/checkout", json={"amount_usd": 25.00})
     assert resp.status_code == 401
 
@@ -169,8 +169,7 @@ def webhook_client() -> TestClient:
     """Test client for webhook route (no auth headers)."""
     import os
     os.environ["STRIPE_WEBHOOK_SECRET"] = WEBHOOK_SECRET
-    app = create_app()
-    return TestClient(app)
+    return TestClient(_shared_app)
 
 
 def test_webhook_rejects_bad_signature(webhook_client: TestClient) -> None:
@@ -188,8 +187,7 @@ def test_webhook_rejects_bad_signature(webhook_client: TestClient) -> None:
 
 
 def test_webhook_missing_signature() -> None:
-    app = create_app()
-    client = TestClient(app, raise_server_exceptions=False)
+    client = TestClient(_shared_app, raise_server_exceptions=False)
     resp = client.post(
         "/webhooks/stripe",
         content=b'{"type": "test"}',
@@ -218,8 +216,7 @@ def test_webhook_processes_checkout_completed(
     }
     raw_body = json.dumps(event_payload).encode()
 
-    app = create_app()
-    client = TestClient(app)
+    client = TestClient(_shared_app)
 
     with patch("config.settings.stripe_webhook_secret", WEBHOOK_SECRET):
         # Mock the construct_event to return the event directly

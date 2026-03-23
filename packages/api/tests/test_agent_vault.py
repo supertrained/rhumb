@@ -15,13 +15,16 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app import create_app
+from app import app as _shared_app
 from services.agent_vault import AgentVaultTokenValidator
+
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
 
 
 @pytest.fixture
 def app():
-    return create_app()
+    # Use shared app instance so conftest autouse identity-store wiring applies.
+    return _shared_app
 
 
 # ── Format validation ────────────────────────────────────────────
@@ -164,7 +167,7 @@ async def test_execute_agent_vault_requires_token(app):
                     "path": "/emails",
                     "body": {},
                 },
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
     assert resp.status_code == 400
@@ -190,7 +193,7 @@ async def test_execute_agent_vault_requires_provider(app):
                     "body": {},
                 },
                 headers={
-                    "X-Rhumb-Key": "test-agent",
+                    "X-Rhumb-Key": _BYPASS_KEY,
                     "X-Agent-Token": "re_testtoken123456789012345",
                 },
             )
@@ -233,7 +236,7 @@ async def test_execute_agent_vault_validates_token_format(app):
                     "body": {},
                 },
                 headers={
-                    "X-Rhumb-Key": "test-agent",
+                    "X-Rhumb-Key": _BYPASS_KEY,
                     "X-Agent-Token": "wrong_prefix_token",
                 },
             )
@@ -252,7 +255,7 @@ async def test_execute_agent_vault_token_never_in_response(app):
     async def mock_cap_fetch(path):
         if "capabilities?" in path and "id=eq." in path:
             return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
-        if "services?" in path:
+        if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
 
@@ -267,7 +270,7 @@ async def test_execute_agent_vault_token_never_in_response(app):
                 "estimated_minutes": 3, "requires_human": False,
                 "documentation_url": None, "description": "Resend",
             }]
-        if "services?" in path:
+        if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
 
@@ -317,7 +320,7 @@ async def test_execute_agent_vault_token_never_in_response(app):
                         "body": {"from": "a@b.com", "to": "c@d.com", "subject": "Hi", "html": "hey"},
                     },
                     headers={
-                        "X-Rhumb-Key": "test-agent",
+                        "X-Rhumb-Key": _BYPASS_KEY,
                         "X-Agent-Token": secret_token,
                     },
                 )
