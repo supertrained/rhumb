@@ -29,6 +29,11 @@ async def search_services(
 
     Returns matching services ranked by relevance then score.
     """
+    # Ensure limit is a plain int. When this function is called directly
+    # in tests (not via HTTP), FastAPI's Query FieldInfo object is the default
+    # value instead of an integer — extract .default in that case.
+    if not isinstance(limit, int):
+        limit = getattr(limit, "default", 10)
     query_lower = q.strip()
 
     if not query_lower:

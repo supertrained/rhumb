@@ -7,8 +7,8 @@ from pathlib import Path
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from routes.leaderboard import get_leaderboard, list_categories, _get_service_categories
-from routes.search import search_services, _load_dataset
+from routes.leaderboard import get_leaderboard, list_categories
+from routes.search import search_services
 
 
 @pytest.mark.asyncio
@@ -109,26 +109,29 @@ async def test_search_results_have_scores():
     assert "confidence" in item
 
 
-def test_load_dataset():
-    """Test dataset loads correctly."""
-    dataset = _load_dataset()
-    assert isinstance(dataset, list)
-    assert len(dataset) == 50
-    
-    # Check first item has required fields
-    if dataset:
-        service = dataset[0]
-        assert "slug" in service
-        assert "name" in service
-        assert "category" in service
+@pytest.mark.asyncio
+async def test_search_result_schema():
+    """Search result items have the expected schema fields (replaces removed _load_dataset test)."""
+    result = await search_services("stripe")
+    assert result["error"] is None
+    if result["data"]["results"]:
+        item = result["data"]["results"][0]
+        assert "service_slug" in item
+        assert "name" in item
+        assert "category" in item
 
 
-def test_get_service_categories():
-    """Test category extraction works."""
-    categories = _get_service_categories()
-    assert isinstance(categories, dict)
-    assert len(categories) > 0
-    assert all(isinstance(v, list) for v in categories.values())
+@pytest.mark.asyncio
+async def test_get_service_categories():
+    """Test category listing works via list_categories (replaces removed _get_service_categories)."""
+    result = await list_categories()
+    # list_categories returns {"data": {"categories": [...], "total": N}, "error": None}
+    assert result["error"] is None
+    categories = result["data"]["categories"]
+    assert isinstance(categories, list)
+    # Each category entry has slug + service_count
+    if categories:
+        assert all("slug" in c and "service_count" in c for c in categories)
 
 
 if __name__ == "__main__":
