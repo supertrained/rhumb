@@ -136,6 +136,15 @@ class RhumbManagedExecutor:
         path = config["default_path"]
         default_headers = config.get("default_headers") or {}
 
+        # Path template interpolation: replace {param} with values from body or params
+        if "{" in path:
+            sources = {**(params or {}), **(body or {})}
+            for key, val in sources.items():
+                path = path.replace(f"{{{key}}}", str(val))
+            # If any unresolved templates remain, strip them (e.g. /{ip} → /)
+            import re as _re
+            path = _re.sub(r"\{[^}]+\}", "", path)
+
         # Resolve API domain
         api_domain = await self._get_api_domain(slug)
         if not api_domain:
