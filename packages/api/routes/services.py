@@ -146,7 +146,7 @@ async def get_service(slug: str) -> dict:
     if scores:
         sc = scores[0]
         score = {
-            "aggregate_recommendation_score": sc.get("aggregate_recommendation_score"),
+            "an_score": sc.get("aggregate_recommendation_score"),
             "execution_score": sc.get("execution_score"),
             "access_readiness_score": sc.get("access_readiness_score"),
             "confidence": sc.get("confidence"),
@@ -186,6 +186,7 @@ async def get_service(slug: str) -> dict:
                         alternatives.append({
                             "slug": asc["service_slug"],
                             "name": alt_names.get(asc["service_slug"], asc["service_slug"]),
+                            "an_score": asc.get("aggregate_recommendation_score"),
                             "score": asc.get("aggregate_recommendation_score"),
                             "tier": asc.get("tier"),
                         })
@@ -231,6 +232,7 @@ async def get_service_score(slug: str, raw_request: Request):
     if not scores:
         return {
             "service_slug": slug,
+            "an_score": None,
             "score": None,
             "execution_score": None,
             "access_readiness_score": None,
@@ -238,7 +240,6 @@ async def get_service_score(slug: str, raw_request: Request):
             "tier": "unknown",
             "tier_label": "Unknown",
             "explanation": f"No score found for '{slug}'",
-            "aggregate_recommendation_score": None,
             "an_score_version": "0.3",
             "dimension_snapshot": {},
             "calculated_at": None,
@@ -295,11 +296,11 @@ async def get_service_score(slug: str, raw_request: Request):
 
     return {
         "service_slug": sc.get("service_slug", slug),
+        "an_score": sc.get("aggregate_recommendation_score"),
         "score": sc.get("aggregate_recommendation_score"),
         "execution_score": sc.get("execution_score"),
         "access_readiness_score": sc.get("access_readiness_score"),
         "autonomy_score": sc.get("autonomy_score"),
-        "aggregate_recommendation_score": sc.get("aggregate_recommendation_score"),
         "an_score_version": "0.3",
         "confidence": sc.get("confidence", 0),
         "tier": sc.get("tier", "unknown"),
@@ -371,7 +372,18 @@ async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -
     return {
         "data": {
             "slug": slug,
-            "history": scores,
+            "history": [
+                {
+                    "an_score": sc.get("aggregate_recommendation_score"),
+                    "execution_score": sc.get("execution_score"),
+                    "access_readiness_score": sc.get("access_readiness_score"),
+                    "confidence": sc.get("confidence"),
+                    "tier": sc.get("tier"),
+                    "tier_label": sc.get("tier_label"),
+                    "calculated_at": sc.get("calculated_at"),
+                }
+                for sc in scores
+            ],
         },
         "error": None,
     }

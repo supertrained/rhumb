@@ -110,7 +110,7 @@ class ANScoreSchema(BaseModel):
     access_readiness_score: float | None = None
     autonomy_score: float | None = None
     autonomy: AutonomySectionSchema | None = None
-    aggregate_recommendation_score: float
+    an_score: float
     an_score_version: str = "0.3"
     confidence: float
     tier: str

@@ -2,9 +2,9 @@
  * check_credentials tool handler
  *
  * Returns the agent's credential status across all three modes:
- * - Mode 1 (BYO): which services have agent-provided credentials
- * - Mode 2 (Rhumb Managed): which capabilities are zero-config
- * - Mode 3 (Agent Vault): which services have ceremony skills available
+ * - Mode 1 (BYOK): which Services have agent-provided credentials
+ * - Mode 2 (Rhumb Resolve): which Capabilities are zero-config
+ * - Mode 3 (Agent Vault): which Services have ceremony skills available
  *
  * This is the starting point for an agent to understand what it can
  * execute and what credentials it still needs.
@@ -27,20 +27,20 @@ export async function handleCheckCredentials(
     {
       mode: "byo",
       available: true,
-      detail: "Bring your own token. Set RHUMB_API_KEY env var and pass credentials via the execute call.",
+      detail: "BYOK. Set RHUMB_API_KEY env var and pass credentials via the call.",
     },
     {
       mode: "rhumb_managed",
       available: managed.length > 0,
       detail: managed.length > 0
-        ? `${managed.length} zero-config capability(ies) available. No credentials needed — omit credential_mode or use credential_mode=auto to prefer Rhumb-managed execution when available.`
+        ? `${managed.length} zero-config Capability(ies) available through Rhumb Resolve. No credentials needed — omit credential_mode or use credential_mode=auto to prefer Rhumb Resolve when available.`
         : "No managed capabilities currently available.",
     },
     {
       mode: "agent_vault",
       available: ceremonies.length > 0,
       detail: ceremonies.length > 0
-        ? `${ceremonies.length} ceremony guide(s) available. Get your own API key following the guide, then pass it per-request via agent_token parameter.`
+        ? `${ceremonies.length} ceremony guide(s) available. Get your own API key following the guide, then pass it per call via the agent_token parameter.`
         : "No ceremony guides available yet.",
     },
   ];

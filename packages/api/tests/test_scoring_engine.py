@@ -352,7 +352,7 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
         "access_readiness_score",
         "autonomy_score",
         "autonomy",
-        "aggregate_recommendation_score",
+        "an_score",
         "an_score_version",
         "confidence",
         "tier",
@@ -363,7 +363,7 @@ def test_score_endpoint_returns_full_schema(client, monkeypatch: pytest.MonkeyPa
 
     assert body["service_slug"] == "stripe"
     assert body["tier"] == "L4"
-    assert body["score"] == body["aggregate_recommendation_score"]
+    assert body["score"] == body["an_score"]
     assert body["access_readiness_score"] is None
     assert body["autonomy_score"] is not None
     assert body["autonomy"]["avg"] == body["autonomy_score"]
@@ -410,7 +410,7 @@ def test_score_endpoint_supports_access_dimensions_contract(
     assert body["autonomy_score"] is not None
     assert body["autonomy"] is not None
     assert body["execution_score"] >= 0.0
-    assert body["score"] == body["aggregate_recommendation_score"]
+    assert body["score"] == body["an_score"]
 
 
 def test_get_service_score_fixture_fallback_exposes_dual_scores(
@@ -436,7 +436,7 @@ def test_get_service_score_fixture_fallback_exposes_dual_scores(
     assert body["autonomy"] is not None
     assert body["autonomy"]["avg"] is not None
     assert len(body["autonomy"]["dimensions"]) == 3
-    assert body["score"] == body["aggregate_recommendation_score"]
+    assert body["score"] == body["an_score"]
 
 
 def test_compare_route_exposes_dual_score_fields(
@@ -461,7 +461,7 @@ def test_compare_route_exposes_dual_score_fields(
 
     for item in payload:
         assert item["an_score_version"] == AN_SCORE_VERSION
-        assert item["score"] == item["aggregate_recommendation_score"]
+        assert item["score"] == item["an_score"]
         assert item["execution_score"] >= 0.0
         assert item["access_readiness_score"] is not None
         assert item["autonomy_score"] is not None

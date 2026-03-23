@@ -17,7 +17,7 @@ import type {
   ServiceSearchItem,
   ServiceScoreItem,
 } from "../src/api-client.js";
-import type { FindToolOutput, GetScoreOutput, GetAlternativesOutput, GetFailureModesOutput } from "../src/types.js";
+import type { FindServiceOutput, GetScoreOutput, GetAlternativesOutput, GetFailureModesOutput } from "../src/types.js";
 
 // ---------------------------------------------------------------------------
 // Mock API client fixtures
@@ -234,7 +234,7 @@ describe("e2e: MCP server integration", () => {
         "discover_capabilities",
         "estimate_capability",
         "execute_capability",
-        "find_tools",
+        "find_services",
         "get_alternatives",
         "get_failure_modes",
         "get_ledger",
@@ -254,32 +254,32 @@ describe("e2e: MCP server integration", () => {
     });
   });
 
-  describe("find_tools", () => {
+  describe("find_services", () => {
     it("returns ranked results with correct output shape", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
       const result = await client.callTool({
-        name: "find_tools",
+        name: "find_services",
         arguments: { query: "email delivery", limit: 3 },
       }, CallToolResultSchema);
 
-      const parsed: FindToolOutput = JSON.parse(extractText(result));
-      expect(parsed.tools.length).toBeGreaterThan(0);
-      expect(parsed.tools.length).toBeLessThanOrEqual(3);
+      const parsed: FindServiceOutput = JSON.parse(extractText(result));
+      expect(parsed.services.length).toBeGreaterThan(0);
+      expect(parsed.services.length).toBeLessThanOrEqual(3);
 
       // Verify ranking — first result should have highest score
-      expect(parsed.tools[0].slug).toBe("resend");
-      expect(parsed.tools[0].aggregateScore).toBe(91);
+      expect(parsed.services[0].slug).toBe("resend");
+      expect(parsed.services[0].aggregateScore).toBe(91);
 
       // Verify output shape
-      for (const tool of parsed.tools) {
-        expect(tool).toHaveProperty("name");
-        expect(tool).toHaveProperty("slug");
-        expect(tool).toHaveProperty("aggregateScore");
-        expect(tool).toHaveProperty("executionScore");
-        expect(tool).toHaveProperty("accessScore");
-        expect(tool).toHaveProperty("explanation");
+      for (const service of parsed.services) {
+        expect(service).toHaveProperty("name");
+        expect(service).toHaveProperty("slug");
+        expect(service).toHaveProperty("aggregateScore");
+        expect(service).toHaveProperty("executionScore");
+        expect(service).toHaveProperty("accessScore");
+        expect(service).toHaveProperty("explanation");
       }
 
       expect(apiClient.searchServices).toHaveBeenCalledWith("email delivery");
@@ -390,13 +390,13 @@ describe("e2e: MCP server integration", () => {
       const apiClient = createErrorApiClient();
       const { client } = await createConnectedClient(apiClient);
 
-      // find_tools — should return empty tools, not throw
+      // find_services — should return empty services, not throw
       const findResult = await client.callTool({
-        name: "find_tools",
+        name: "find_services",
         arguments: { query: "email" },
       }, CallToolResultSchema);
-      const findParsed: FindToolOutput = JSON.parse(extractText(findResult));
-      expect(findParsed.tools).toEqual([]);
+      const findParsed: FindServiceOutput = JSON.parse(extractText(findResult));
+      expect(findParsed.services).toEqual([]);
 
       // get_score — should return error response, not throw
       const scoreResult = await client.callTool({

@@ -78,6 +78,7 @@ async def get_leaderboard(
         items.append({
             "service_slug": slug,
             "name": name_map.get(slug, slug),
+            "an_score": sc.get("aggregate_recommendation_score"),
             "score": sc.get("aggregate_recommendation_score"),
             "execution_score": sc.get("execution_score"),
             "access_score": sc.get("access_readiness_score"),

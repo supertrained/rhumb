@@ -85,7 +85,7 @@ def _result_to_schema(
             None if resolved_autonomy_score is None else round(float(resolved_autonomy_score), 1)
         ),
         autonomy=autonomy_section,
-        aggregate_recommendation_score=round(aggregate_recommendation_score, 1),
+        an_score=round(aggregate_recommendation_score, 1),
         an_score_version=an_score_version,
         confidence=round(confidence, 2),
         tier=tier,
@@ -372,11 +372,11 @@ async def compare_services(services: str) -> dict:
         comparisons.append(
             {
                 "service_slug": schema_payload.service_slug,
+                "an_score": schema_payload.an_score,
                 "score": schema_payload.score,
                 "execution_score": schema_payload.execution_score,
                 "access_readiness_score": schema_payload.access_readiness_score,
                 "autonomy_score": schema_payload.autonomy_score,
-                "aggregate_recommendation_score": schema_payload.aggregate_recommendation_score,
                 "an_score_version": schema_payload.an_score_version,
                 "confidence": schema_payload.confidence,
                 "tier": schema_payload.tier,

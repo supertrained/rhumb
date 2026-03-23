@@ -104,7 +104,7 @@ async def test_search_results_have_scores():
     assert len(result["data"]["results"]) > 0
     
     item = result["data"]["results"][0]
-    assert "aggregate_recommendation_score" in item
+    assert "an_score" in item
     assert "tier" in item
     assert "confidence" in item
 

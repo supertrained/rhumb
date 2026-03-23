@@ -89,6 +89,7 @@ async def search_services(
     for svc in services:
         slug = svc["slug"]
         sc = scores_by_slug.get(slug, {})
+        an_score = sc.get("aggregate_recommendation_score")
 
         freshness = None
         probe_metadata = sc.get("probe_metadata")
@@ -100,7 +101,7 @@ async def search_services(
             "name": svc.get("name"),
             "category": svc.get("category"),
             "description": svc.get("description"),
-            "aggregate_recommendation_score": sc.get("aggregate_recommendation_score"),
+            "an_score": an_score,
             "execution_score": sc.get("execution_score"),
             "access_readiness_score": sc.get("access_readiness_score"),
             "tier": sc.get("tier"),
@@ -110,14 +111,14 @@ async def search_services(
         })
 
     # Exclude scoreless ghost services (no score = no front-end page = 404)
-    results = [r for r in results if r.get("aggregate_recommendation_score") is not None]
+    results = [r for r in results if r.get("an_score") is not None]
 
     # Sort: exact name match first, then by score descending
     ql = query_lower.lower()
     results.sort(
         key=lambda x: (
             (x.get("name") or "").lower() != ql,  # exact match first
-            -(x.get("aggregate_recommendation_score") or 0),  # then by score
+            -(x.get("an_score") or 0),  # then by score
         )
     )
 

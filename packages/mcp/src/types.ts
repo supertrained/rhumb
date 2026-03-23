@@ -6,25 +6,25 @@
  */
 
 // ---------------------------------------------------------------------------
-// find_tools
+// find_services
 // ---------------------------------------------------------------------------
 
-export const FindToolInputSchema = {
+export const FindServiceInputSchema = {
   type: "object" as const,
   properties: {
-    query: { type: "string" as const, description: "What you need the tool to do, in natural language. Examples: 'send email', 'process payments', 'generate images', 'web scraping'" },
+    query: { type: "string" as const, description: "What you need the Service to do, in natural language. Examples: 'send email', 'process payments', 'generate images', 'web scraping'" },
     limit: { type: "number" as const, minimum: 1, maximum: 50, description: "Max results (default 10). Each result includes a slug you can pass to get_score, get_alternatives, or get_failure_modes." }
   },
   required: ["query"] as const
 };
 
-export type FindToolInput = {
+export type FindServiceInput = {
   query: string;
   limit?: number;
 };
 
-export type FindToolOutput = {
-  tools: Array<{
+export type FindServiceOutput = {
+  services: Array<{
     name: string;
     slug: string;
     aggregateScore: number | null;
@@ -41,7 +41,7 @@ export type FindToolOutput = {
 export const GetScoreInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service identifier from find_tools results (e.g. 'stripe', 'sendgrid', 'openai', 'twilio')" }
+    slug: { type: "string" as const, description: "Service identifier from find_services results (e.g. 'stripe', 'sendgrid', 'openai', 'twilio')" }
   },
   required: ["slug"] as const
 };
@@ -68,7 +68,7 @@ export type GetScoreOutput = {
 export const GetAlternativesInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service slug from find_tools results (e.g. 'stripe'). Returns other services in the same category, ranked by AN Score." }
+    slug: { type: "string" as const, description: "Service slug from find_services results (e.g. 'stripe'). Returns other Services in the same category, ranked by AN Score." }
   },
   required: ["slug"] as const
 };
@@ -93,7 +93,7 @@ export type GetAlternativesOutput = {
 export const GetFailureModesInputSchema = {
   type: "object" as const,
   properties: {
-    slug: { type: "string" as const, description: "Service slug from find_tools results (e.g. 'stripe'). Returns known failure patterns, impact severity, and workarounds." }
+    slug: { type: "string" as const, description: "Service slug from find_services results (e.g. 'stripe'). Returns known failure patterns, impact severity, and workarounds." }
   },
   required: ["slug"] as const
 };
@@ -189,15 +189,15 @@ export type ResolveCapabilityOutput = {
 export const ExecuteCapabilityInputSchema = {
   type: "object" as const,
   properties: {
-    capability_id: { type: "string" as const, description: "Capability to execute (e.g. 'email.send', 'payment.charge'). Get IDs from discover_capabilities or resolve_capability." },
+    capability_id: { type: "string" as const, description: "Capability to call (e.g. 'email.send', 'payment.charge'). Get IDs from discover_capabilities or resolve_capability." },
     provider: { type: "string" as const, description: "Specific provider slug (e.g. 'resend', 'stripe'). Omit to let Rhumb auto-select the best healthy provider based on your routing strategy." },
-    method: { type: "string" as const, description: "HTTP method (GET, POST, PUT, PATCH, DELETE). Required for byo and agent_vault modes. Not needed for rhumb_managed." },
-    path: { type: "string" as const, description: "Provider's API path (e.g. '/v3/mail/send'). Get the pattern from resolve_capability. Required for byo/agent_vault. Not needed for rhumb_managed." },
+    method: { type: "string" as const, description: "HTTP method (GET, POST, PUT, PATCH, DELETE). Required for byo (BYOK) and agent_vault modes. Not needed for rhumb_managed." },
+    path: { type: "string" as const, description: "Provider API path (e.g. '/v3/mail/send'). Get the pattern from resolve_capability. Required for byo (BYOK)/agent_vault. Not needed for rhumb_managed." },
     body: { type: "object" as const, description: "Request body in the provider's native format. See provider docs or resolve_capability for expected structure." },
     params: { type: "object" as const, description: "URL query parameters as key-value pairs" },
-    credential_mode: { type: "string" as const, description: "'auto' (default: use rhumb_managed when an active managed config exists, otherwise fall back to byo), 'rhumb_managed' (zero-config, Rhumb provides credentials), 'byo' (your own API key via agent_token — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path)." },
-    idempotency_key: { type: "string" as const, description: "UUID for safe retry — if this request was already processed, returns the cached result instead of re-executing. Required to enable automatic fallback to backup providers on failure." },
-    agent_token: { type: "string" as const, description: "Your API token for byo/agent_vault mode. For agent_vault: obtain via credential_ceremony first. Never stored by Rhumb — used for this single request only." },
+    credential_mode: { type: "string" as const, description: "'auto' (default: use Rhumb Resolve when an active managed config exists, otherwise fall back to byo), 'rhumb_managed' (Rhumb Resolve zero-config call path), 'byo' (BYOK via agent_token — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path)." },
+    idempotency_key: { type: "string" as const, description: "UUID for safe retry — if this request was already processed, returns the cached result instead of re-calling the provider. Required to enable automatic fallback to backup providers on failure." },
+    agent_token: { type: "string" as const, description: "Your API token for byo/agent_vault mode. For agent_vault: obtain via credential_ceremony first. Never stored by Rhumb — used for this single call only." },
     x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Use this to pay per-call with USDC instead of an API key. Pass the proof from a payment_required (402) response. No account or signup needed." }
   },
   required: ["capability_id"] as const
@@ -250,7 +250,7 @@ export const EstimateCapabilityInputSchema = {
   properties: {
     capability_id: { type: "string" as const, description: "Capability to estimate (e.g. 'email.send'). Call this BEFORE execute_capability to know the cost in advance." },
     provider: { type: "string" as const, description: "Specific provider slug. Omit to estimate for the auto-selected provider based on your routing strategy." },
-    credential_mode: { type: "string" as const, description: "'auto' (default: use rhumb_managed when an active managed config exists, otherwise fall back to byo), 'rhumb_managed', 'byo', or 'agent_vault'. Affects pricing — rhumb_managed includes a 20% markup." }
+    credential_mode: { type: "string" as const, description: "'auto' (default: use Rhumb Resolve when an active managed config exists, otherwise fall back to byo), 'rhumb_managed', 'byo' (BYOK), or 'agent_vault'. Affects pricing — rhumb_managed includes a 20% markup." }
   },
   required: ["capability_id"] as const
 };
@@ -323,7 +323,7 @@ export type CredentialCeremonyOutput = {
 export const CheckCredentialsInputSchema = {
   type: "object" as const,
   properties: {
-    capability: { type: "string" as const, description: "Check a specific capability (e.g. 'email.send'). Omit to see all modes and managed capabilities. Start here to understand what you can execute and how." }
+    capability: { type: "string" as const, description: "Check a specific Capability (e.g. 'email.send'). Omit to see all modes and managed Capabilities. Start here to understand what you can call and how." }
   },
   required: [] as const
 };
@@ -358,7 +358,7 @@ export const BudgetInputSchema = {
     action: { type: "string" as const, description: "'get' (check current budget) or 'set' (create/update). Default: 'get'" },
     budget_usd: { type: "number" as const, description: "Budget cap in USD. Required when action='set'. Example: 10.00 for $10/month." },
     period: { type: "string" as const, description: "'daily', 'weekly', 'monthly', or 'total'. Default: 'monthly'. Resets at period boundary." },
-    hard_limit: { type: "boolean" as const, description: "true = reject executions over budget with HTTP 402. false = warn but allow. Default: true" }
+    hard_limit: { type: "boolean" as const, description: "true = reject calls over budget with HTTP 402. false = warn but allow. Default: true" }
   },
   required: [] as const
 };
@@ -495,7 +495,7 @@ export const GetLedgerInputSchema = {
   type: "object" as const,
   properties: {
     limit: { type: "number" as const, description: "Number of entries (default 20, max 100). Most recent first." },
-    event_type: { type: "string" as const, description: "Filter: 'debit' (execution charges), 'credit_added' (top-ups), 'auto_reload_triggered' (auto-refills). Omit for all types." },
+    event_type: { type: "string" as const, description: "Filter: 'debit' (call charges), 'credit_added' (top-ups), 'auto_reload_triggered' (auto-refills). Omit for all types." },
   },
   required: [] as string[],
 };
@@ -522,7 +522,7 @@ export type GetLedgerOutput = {
 // ---------------------------------------------------------------------------
 
 export const TOOL_SCHEMAS = {
-  find_tools: FindToolInputSchema,
+  find_services: FindServiceInputSchema,
   get_score: GetScoreInputSchema,
   get_alternatives: GetAlternativesInputSchema,
   get_failure_modes: GetFailureModesInputSchema,

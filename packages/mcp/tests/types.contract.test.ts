@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
-  FindToolInputSchema,
+  FindServiceInputSchema,
   GetScoreInputSchema,
   GetAlternativesInputSchema,
   GetFailureModesInputSchema,
   TOOL_SCHEMAS,
   TOOL_NAMES,
-  type FindToolInput,
-  type FindToolOutput,
+  type FindServiceInput,
+  type FindServiceOutput,
   type GetScoreInput,
   type GetScoreOutput,
   type GetAlternativesInput,
@@ -28,7 +28,7 @@ describe("types.contract", () => {
 
   it("TOOL_NAMES lists all 16 registered tools", () => {
     expect(TOOL_NAMES).toEqual([
-      "find_tools",
+      "find_services",
       "get_score",
       "get_alternatives",
       "get_failure_modes",
@@ -52,13 +52,13 @@ describe("types.contract", () => {
     // These assignments verify the TS types compile correctly.
     // At runtime we spot-check the schemas match expected shapes.
 
-    const findInput: FindToolInput = { query: "email", limit: 5 };
+    const findInput: FindServiceInput = { query: "email", limit: 5 };
     expect(findInput.query).toBe("email");
 
-    const findOutput: FindToolOutput = {
-      tools: [{ name: "SendGrid", slug: "sendgrid", aggregateScore: 82, executionScore: 85, accessScore: 79, explanation: "Top email API" }]
+    const findOutput: FindServiceOutput = {
+      services: [{ name: "SendGrid", slug: "sendgrid", aggregateScore: 82, executionScore: 85, accessScore: 79, explanation: "Top email API" }]
     };
-    expect(findOutput.tools).toHaveLength(1);
+    expect(findOutput.services).toHaveLength(1);
 
     const scoreInput: GetScoreInput = { slug: "sendgrid" };
     expect(scoreInput.slug).toBe("sendgrid");

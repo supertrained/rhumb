@@ -249,7 +249,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         .map((item) => ({
           name: asString(item.name) ?? asString(item.slug) ?? asString(item.service_slug) ?? "unknown",
           slug: asString(item.service_slug) ?? asString(item.slug) ?? "unknown",
-          aggregateScore: asNumber(item.aggregate_recommendation_score),
+          aggregateScore: asNumber(item.an_score) ?? asNumber(item.aggregate_recommendation_score),
           executionScore: asNumber(item.execution_score),
           accessScore: asNumber(item.access_readiness_score),
           explanation: asString(item.explanation) ?? ""
@@ -303,7 +303,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
       return {
         slug: serviceSlug,
-        aggregateScore: asNumber(payload.aggregate_recommendation_score),
+        aggregateScore: asNumber(payload.an_score) ?? asNumber(payload.aggregate_recommendation_score),
         executionScore: asNumber(payload.execution_score),
         accessScore: asNumber(payload.access_readiness_score),
         confidence: asNumber(payload.confidence) ?? 0,

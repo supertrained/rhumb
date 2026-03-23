@@ -11,7 +11,7 @@ describe("server.init", () => {
 
   it("server registers all 16 tools", () => {
     const names = getRegisteredToolNames();
-    expect(names).toContain("find_tools");
+    expect(names).toContain("find_services");
     expect(names).toContain("get_score");
     expect(names).toContain("get_alternatives");
     expect(names).toContain("get_failure_modes");
