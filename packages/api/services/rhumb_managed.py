@@ -162,8 +162,9 @@ class RhumbManagedExecutor:
             slug, credential_keys, headers, params, body
         )
 
-        # Merge body
-        final_body = body  # agent provides full body for managed capabilities
+        # Merge body — GET/HEAD/DELETE requests should not send a body upstream
+        # (body values may have already been used for path template substitution)
+        final_body = body if method.upper() not in ("GET", "HEAD", "DELETE") else None
 
         # Execute
         execution_id = f"exec_{uuid.uuid4().hex}"
