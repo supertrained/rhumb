@@ -251,6 +251,8 @@ class RhumbManagedExecutor:
         "brave-search": ("X-Subscription-Token", None),
         "apollo": ("X-Api-Key", None),
         "people-data-labs": ("X-API-Key", None),
+        # Token auth (non-Bearer Authorization header)
+        "deepgram": ("Authorization", "Token "),
         # Query parameter auth (handled specially in execute)
         "google-maps": ("query:key", None),
         "google-places": ("query:key", None),
