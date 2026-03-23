@@ -162,9 +162,21 @@ class RhumbManagedExecutor:
             slug, credential_keys, headers, params, body
         )
 
-        # Merge body — GET/HEAD/DELETE requests should not send a body upstream
-        # (body values may have already been used for path template substitution)
-        final_body = body if method.upper() not in ("GET", "HEAD", "DELETE") else None
+        # For GET/HEAD/DELETE: promote remaining body fields to query params,
+        # then null the body.  (Body values may already have been consumed by path
+        # template substitution above; any that remain need to reach the upstream as
+        # query-string parameters — e.g. Brave Search requires `q` as a query param.)
+        if method.upper() in ("GET", "HEAD", "DELETE"):
+            if body:
+                if params is None:
+                    params = {}
+                for k, v in body.items():
+                    # Don't overwrite credential params already injected
+                    if k not in params:
+                        params[k] = v
+            final_body = None
+        else:
+            final_body = body
 
         # Execute
         execution_id = f"exec_{uuid.uuid4().hex}"
