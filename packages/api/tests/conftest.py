@@ -50,6 +50,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     Uses a fixed BYPASS_AGENT_ID constant so integration tests can pre-seed
     breakers and assert on latency records without dynamic UUID resolution.
     """
+    import routes.capability_execute as cap_execute_module
     import routes.proxy as proxy_module
     from schemas.agent_identity import AgentIdentityStore, hash_api_key, reset_identity_store
     from services.agent_access_control import AgentAccessControl, reset_agent_access_control
@@ -103,6 +104,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     meter = UsageMeterEngine(identity_store=identity_store)
 
     proxy_module._identity_store = identity_store
+    cap_execute_module._identity_store = identity_store
     proxy_module._acl_instance = acl
     proxy_module._rate_checker_instance = rate_checker
     proxy_module._auth_injector_instance = auth_injector
@@ -112,6 +114,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     yield
 
     proxy_module._identity_store = None
+    cap_execute_module._identity_store = None
     proxy_module._acl_instance = None
     proxy_module._rate_checker_instance = None
     proxy_module._auth_injector_instance = None

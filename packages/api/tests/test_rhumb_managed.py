@@ -16,6 +16,10 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 
+# Bypass key must match conftest.BYPASS_KEY so the autouse identity-store
+# fixture resolves it to the pre-seeded bypass agent.
+_BYPASS_KEY = "rhumb_test_bypass_key_0000"
+
 
 @pytest.fixture
 def app():
@@ -139,7 +143,7 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
                 "default_headers": {},
                 "daily_limit_per_agent": 100,
             }]
-        if "services?" in path:
+        if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
 
@@ -171,7 +175,7 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
                     "body": {"from": "test@rhumb.dev", "to": "user@example.com",
                              "subject": "Test", "html": "<p>Hello</p>"},
                 },
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
     assert resp.status_code == 200
@@ -212,9 +216,10 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
                 json={"credential_mode": "rhumb_managed", "body": {}},
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
+    assert resp.status_code == 200
     response_text = resp.text
     assert "re_SECRET_VALUE_12345" not in response_text
     assert "RHUMB_CREDENTIAL_RESEND_API_KEY" not in response_text
@@ -243,7 +248,7 @@ async def test_execute_rhumb_managed_missing_env_var(app, monkeypatch):
                 "default_headers": {},
                 "daily_limit_per_agent": None,
             }]
-        if "services?" in path:
+        if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
 
@@ -254,7 +259,7 @@ async def test_execute_rhumb_managed_missing_env_var(app, monkeypatch):
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
                 json={"credential_mode": "rhumb_managed", "body": {}},
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
     assert resp.status_code == 503
@@ -275,7 +280,7 @@ async def test_execute_byo_still_requires_method_path(app):
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
                 json={"credential_mode": "byo", "body": {}},
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
     assert resp.status_code == 400
@@ -313,7 +318,7 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
                     "credential_mode": "rhumb_managed",
                     "body": {"from": "a@b.com", "to": "c@d.com", "subject": "Hi", "html": "hey"},
                 },
-                headers={"X-Rhumb-Key": "test-agent"},
+                headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
 
     assert resp.status_code == 200
