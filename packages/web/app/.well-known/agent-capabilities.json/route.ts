@@ -1,6 +1,6 @@
 import { getCapabilityCount, getCategories, getServiceCount } from "../../../lib/api";
 
-export const revalidate = 300; // Cache for 5 minutes
+export const dynamic = "force-dynamic"; // Always fresh — no ISR cache
 
 export async function GET() {
   const [servicesScored, capabilities, categories] = await Promise.all([
