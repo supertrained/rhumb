@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.supertrained/rhumb-mcp",
+  "description": "Agent-native tool intelligence \u2014 discover, score, and execute across 600+ services",
+  "repository": {
+    "url": "https://github.com/supertrained/rhumb",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "version": "0.8.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "rhumb-mcp",
+      "version": "0.8.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Rhumb API key for authenticated access (optional \u2014 discovery works without auth, execution requires auth or x402 payment)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "RHUMB_API_KEY"
+        }
+      ]
+    }
+  ]
+}
