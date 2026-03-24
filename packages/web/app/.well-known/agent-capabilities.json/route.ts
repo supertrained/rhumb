@@ -39,10 +39,10 @@ export async function GET() {
       },
     },
     mcp: {
-      activation: "npx rhumb-mcp@0.6.0",
+      activation: "npx rhumb-mcp@latest",
       tools: 16,
       tool_list: [
-        "find_tools",
+        "find_services",
         "get_score",
         "get_alternatives",
         "get_failure_modes",
@@ -64,7 +64,7 @@ export async function GET() {
       services_scored: servicesScored,
       capabilities,
       domains: categories.length,
-      comparisons: 9,
+      comparisons: 13,
       autopsies: 4,
     },
     pricing: {

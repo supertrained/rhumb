@@ -414,11 +414,12 @@ export async function getCategories(): Promise<CategorySummary[]> {
 /** Fetch total number of scored services (services with a score row). */
 export async function getServiceCount(): Promise<number> {
   if (useSupabase) {
-    const data = await supabaseFetch<Array<{ service_slug: string }>>(
-      "scores?select=service_slug"
+    // Count from services table (all indexed services), not scores table
+    const data = await supabaseFetch<Array<{ slug: string }>>(
+      "services?select=slug"
     );
     if (!data) return 0;
-    return new Set(data.map((r) => r.service_slug)).size;
+    return data.length;
   }
   const services = await getServicesFromAPI();
   return services.length;
