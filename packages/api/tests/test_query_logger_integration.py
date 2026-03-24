@@ -110,14 +110,11 @@ def capture_client(monkeypatch):
             ]
         if path.startswith("failure_modes?service_slug=eq.stripe"):
             return []
-        if path.startswith("services?slug=eq.stripe&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"):
+        if path.startswith("services?slug=eq.stripe&select=slug,official_docs&limit=1"):
             return [
                 {
                     "slug": "stripe",
-                    "base_url": "https://stripe.com",
-                    "docs_url": "https://docs.stripe.com",
-                    "openapi_url": None,
-                    "mcp_server_url": None,
+                    "official_docs": "https://docs.stripe.com",
                 }
             ]
         return []

@@ -125,7 +125,7 @@ async def list_services(
 
 
 @router.get("/services/{slug}")
-async def get_service(slug: str) -> dict:
+async def get_service(slug: str, raw_request: Request):
     """Fetch a service profile by slug, including latest score."""
     # Get service info
     services = await _cached_fetch(
@@ -133,7 +133,12 @@ async def get_service(slug: str) -> dict:
         f"services?slug=eq.{quote(slug)}&select=slug,name,category,description&limit=1"
     )
     if not services:
-        return {"data": None, "error": f"Service '{slug}' not found."}
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
 
     service = services[0]
 
@@ -209,7 +214,7 @@ async def get_service_score(slug: str, raw_request: Request):
     service_rows = await _cached_fetch(
         "services",
         f"services?slug=eq.{quote(slug)}"
-        f"&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"
+        f"&select=slug,official_docs&limit=1"
     )
     if not service_rows:
         from routes import scores as score_routes
@@ -243,10 +248,10 @@ async def get_service_score(slug: str, raw_request: Request):
             "an_score_version": "0.3",
             "dimension_snapshot": {},
             "calculated_at": None,
-            "base_url": service.get("base_url"),
-            "docs_url": service.get("docs_url"),
-            "openapi_url": service.get("openapi_url"),
-            "mcp_server_url": service.get("mcp_server_url"),
+            "base_url": None,
+            "docs_url": service.get("official_docs"),
+            "openapi_url": None,
+            "mcp_server_url": None,
         }
 
     sc = scores[0]
@@ -314,10 +319,10 @@ async def get_service_score(slug: str, raw_request: Request):
         "governance_readiness": sc.get("governance_readiness"),
         "web_accessibility": sc.get("web_accessibility"),
         "failure_modes": failure_modes,
-        "base_url": service.get("base_url"),
-        "docs_url": service.get("docs_url"),
-        "openapi_url": service.get("openapi_url"),
-        "mcp_server_url": service.get("mcp_server_url"),
+        "base_url": None,
+        "docs_url": service.get("official_docs"),
+        "openapi_url": None,
+        "mcp_server_url": None,
     }
 
 

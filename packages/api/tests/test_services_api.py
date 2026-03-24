@@ -39,9 +39,18 @@ async def _mock_supabase_fetch(path: str):
 
     if path.startswith(
         "services?slug=eq.unknown-service"
-        "&select=slug,base_url,docs_url,openapi_url,mcp_server_url&limit=1"
+        "&select=slug,name,category,description&limit=1"
     ):
         return []
+
+    if path.startswith(
+        "services?slug=eq.unknown-service"
+        "&select=slug,official_docs&limit=1"
+    ):
+        return []
+
+    if path.startswith("services?slug=eq.stripe&select=slug,official_docs&limit=1"):
+        return [{"slug": "stripe", "official_docs": "https://docs.stripe.com"}]
 
     if path.startswith("services?select=slug,name,category,description"):
         query = _parse_query(path)
@@ -49,6 +58,24 @@ async def _mock_supabase_fetch(path: str):
         offset = int(query.get("offset", ["0"])[0])
         limit = int(query.get("limit", [str(len(filtered))])[0])
         return filtered[offset : offset + limit]
+
+    if path.startswith("scores?service_slug=eq.stripe&order=calculated_at.desc&limit=1"):
+        return [
+            {
+                "service_slug": "stripe",
+                "aggregate_recommendation_score": 8.9,
+                "execution_score": 9.1,
+                "access_readiness_score": 8.4,
+                "confidence": 0.98,
+                "tier": "L4",
+                "tier_label": "Agent Native",
+                "probe_metadata": {"freshness": "12 minutes ago"},
+                "calculated_at": "2026-03-13T00:00:00Z",
+            }
+        ]
+
+    if path.startswith("failure_modes?service_slug=eq.stripe"):
+        return []
 
     if path.startswith("scores?service_slug=eq."):
         return []
@@ -81,6 +108,45 @@ def test_unknown_service_slug_returns_404(client) -> None:
         "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
         "request_id": "req-service-404",
     }
+
+
+def test_unknown_service_detail_returns_404(client) -> None:
+    """GET /v1/services/{slug} should return the standardized 404 envelope."""
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/unknown-service",
+            headers={"X-Request-ID": "req-service-detail-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'unknown-service'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-detail-404",
+    }
+
+
+def test_service_score_uses_official_docs_column(client) -> None:
+    """GET /v1/services/{slug}/score should map docs_url from official_docs."""
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/stripe/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "stripe"
+    assert payload["docs_url"] == "https://docs.stripe.com"
+    assert payload["base_url"] is None
+    assert payload["openapi_url"] is None
+    assert payload["mcp_server_url"] is None
 
 
 def test_services_endpoint_returns_paginated_results_with_total_count(client) -> None:
