@@ -1,12 +1,24 @@
 import { getServices, getCategories } from "../../lib/api";
 
 export const revalidate = 3600; // Cache for 1 hour
+export const maxDuration = 30; // Allow up to 30s for Supabase queries
 
 export async function GET() {
-  const [services, categories] = await Promise.all([
-    getServices(),
-    getCategories(),
-  ]);
+  let services: Awaited<ReturnType<typeof getServices>>;
+  let categories: Awaited<ReturnType<typeof getCategories>>;
+
+  try {
+    [services, categories] = await Promise.all([
+      getServices(),
+      getCategories(),
+    ]);
+  } catch (err) {
+    console.error("llms.txt data fetch failed:", err);
+    return new Response(`# Rhumb — Agent-Native Tool Intelligence\n> https://rhumb.dev\n\nTemporarily unavailable. Visit https://rhumb.dev or use the API at https://api.rhumb.dev/v1\n`, {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
   const categoryList = categories
     .map((c) => `- /leaderboard/${c.slug} (${c.serviceCount} services)`)
@@ -41,10 +53,10 @@ Key endpoints:
   POST /v1/capabilities/{id}/execute — execute a capability through Rhumb
 
 ### Option 2: MCP Server (for MCP-compatible runtimes)
-  npx rhumb-mcp@0.6.0
+  npx rhumb-mcp@latest
 
 16 MCP tools available:
-  find_tools("payment processing") — discover services by need
+  find_services("payment processing") — discover services by need
   get_score("stripe") — detailed AN Score breakdown
   get_alternatives("stripe") — comparable services ranked
   get_failure_modes("stripe") — known failure patterns
@@ -153,7 +165,7 @@ sandbox/test mode.
 - Website: https://rhumb.dev
 - API: https://api.rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
-- MCP Server: npx rhumb-mcp@0.6.0
+- MCP Server: npx rhumb-mcp@latest
 `;
 
   return new Response(content, {
