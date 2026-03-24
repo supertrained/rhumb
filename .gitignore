@@ -35,3 +35,7 @@ coverage/
 supabase/.temp/
 .vercel
 uv.lock
+
+# MCP Registry auth tokens
+packages/mcp/.mcpregistry_*
+prompts/

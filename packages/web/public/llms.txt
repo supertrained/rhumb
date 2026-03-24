@@ -1,0 +1,852 @@
+# Rhumb — Agent-Native Tool Intelligence
+> https://rhumb.dev
+
+## What is Rhumb?
+Rhumb is agent-native infrastructure for discovering, evaluating, and using external tools.
+It scores 645 developer APIs on AI Agent-Nativeness (AN Score: 0-10) across
+20 dimensions. Scores are computed as 70% Execution + 30% Access Readiness.
+
+## How to Use Rhumb
+
+### Option 1: REST API (no install, no signup required with x402)
+Base URL: https://api.rhumb.dev/v1
+
+Example:
+  curl https://api.rhumb.dev/v1/services/stripe/score
+
+Key endpoints:
+  GET /v1/services — list all scored services
+  GET /v1/services/{slug}/score — detailed AN Score breakdown
+  GET /v1/leaderboard/{category} — ranked services by category
+  GET /v1/search?q={query} — semantic search
+  GET /v1/capabilities — available managed capabilities
+  POST /v1/capabilities/{id}/execute — execute a capability through Rhumb
+
+### Option 2: MCP Server (for MCP-compatible runtimes)
+  npx rhumb-mcp@latest
+
+16 MCP tools available:
+  find_services("payment processing") — discover services by need
+  get_score("stripe") — detailed AN Score breakdown
+  get_alternatives("stripe") — comparable services ranked
+  get_failure_modes("stripe") — known failure patterns
+  execute_capability("email.send", {...}) — execute through Rhumb
+  estimate_cost("email.send") — check pricing before calling
+  get_budget_status() — check remaining prepaid balance
+
+### Option 3: Browse (no account needed)
+  https://rhumb.dev — explore scores, comparisons, and failure modes
+
+## Payment / Authentication
+Rhumb supports three payment methods. No signup is required for agents using x402.
+
+### x402 Per-Call Payment (zero signup, zero API key)
+Agents with a USDC wallet can pay per call with no account:
+1. Make an API request without auth headers
+2. Receive HTTP 402 with X-Payment-Required header (amount + address)
+3. Submit USDC payment on Base network
+4. Retry request with payment proof in header
+5. Receive API response
+
+### API Key (for metered billing)
+Sign up at https://rhumb.dev/signup for an API key.
+Pass as: Authorization: Bearer rhumb_live_{key}
+
+### BYOK (Bring Your Own Key) — Free
+Use your own API keys for external services. Rhumb handles routing and scoring.
+
+## Pricing
+- Discovery (search, scores, browsing): Always free
+- x402 per-call: USDC on Base network. Price returned in 402 response.
+- Managed billing: per-call. Use /capabilities/{id}/execute/estimate for exact cost.
+- BYOK: Free (you pay the external provider directly)
+
+## Credential Modes
+1. BYOK — bring your own API keys. Rhumb routes and scores, you pay upstream directly.
+2. Rhumb-managed — Rhumb holds credentials, handles auth. You pay Rhumb.
+3. Agent Vault — secure credential storage with scoped, rotatable access tokens.
+
+## Trust and Neutrality
+- AN Scores are computed, not curated. No pay-to-rank. No sponsored scores.
+- Methodology: https://rhumb.dev/methodology
+- Score disputes: providers@supertrained.ai
+
+## Categories
+- /leaderboard/agent-payments (5 services)
+- /leaderboard/ai (30 services)
+- /leaderboard/analytics (12 services)
+- /leaderboard/api-gateway (5 services)
+- /leaderboard/api-testing (5 services)
+- /leaderboard/apm (5 services)
+- /leaderboard/auth (21 services)
+- /leaderboard/authorization (4 services)
+- /leaderboard/background-jobs (8 services)
+- /leaderboard/browser-automation (7 services)
+- /leaderboard/cache (5 services)
+- /leaderboard/calendar (10 services)
+- /leaderboard/cdn (5 services)
+- /leaderboard/chat-messaging (5 services)
+- /leaderboard/code-execution (4 services)
+- /leaderboard/code-quality (4 services)
+- /leaderboard/communication (15 services)
+- /leaderboard/compliance (5 services)
+- /leaderboard/content-moderation (6 services)
+- /leaderboard/crm (9 services)
+- /leaderboard/customer-data-platform (5 services)
+- /leaderboard/customer-support (7 services)
+- /leaderboard/data-app (6 services)
+- /leaderboard/data-enrichment (7 services)
+- /leaderboard/data-pipeline (6 services)
+- /leaderboard/data-warehouse (5 services)
+- /leaderboard/databases (19 services)
+- /leaderboard/design (5 services)
+- /leaderboard/devops (26 services)
+- /leaderboard/document-processing (4 services)
+- /leaderboard/e-signatures (8 services)
+- /leaderboard/ecommerce (8 services)
+- /leaderboard/email (17 services)
+- /leaderboard/email-validation (5 services)
+- /leaderboard/feature-flags (11 services)
+- /leaderboard/fintech (7 services)
+- /leaderboard/forms (5 services)
+- /leaderboard/geolocation (5 services)
+- /leaderboard/headless-cms (12 services)
+- /leaderboard/hris (5 services)
+- /leaderboard/identity (4 services)
+- /leaderboard/identity-verification (5 services)
+- /leaderboard/incident-management (5 services)
+- /leaderboard/infrastructure-as-code (8 services)
+- /leaderboard/integrations-platform (5 services)
+- /leaderboard/iot (5 services)
+- /leaderboard/lifecycle-marketing (5 services)
+- /leaderboard/localization (5 services)
+- /leaderboard/logging (5 services)
+- /leaderboard/low-code (5 services)
+- /leaderboard/maps (5 services)
+- /leaderboard/media (9 services)
+- /leaderboard/message-queues (6 services)
+- /leaderboard/ml-experiment-tracking (5 services)
+- /leaderboard/monitoring (24 services)
+- /leaderboard/networking (5 services)
+- /leaderboard/notifications (5 services)
+- /leaderboard/payments (13 services)
+- /leaderboard/pdf-processing (5 services)
+- /leaderboard/productivity (16 services)
+- /leaderboard/push-notifications (5 services)
+- /leaderboard/real-time (6 services)
+- /leaderboard/reverse-etl (4 services)
+- /leaderboard/scheduling (5 services)
+- /leaderboard/screenshots (4 services)
+- /leaderboard/sdk-tooling (5 services)
+- /leaderboard/search (11 services)
+- /leaderboard/secrets (4 services)
+- /leaderboard/security-scanning (9 services)
+- /leaderboard/social (7 services)
+- /leaderboard/sso-directory (5 services)
+- /leaderboard/storage (13 services)
+- /leaderboard/subscription-billing (5 services)
+- /leaderboard/survey (5 services)
+- /leaderboard/testing (6 services)
+- /leaderboard/testing-automation (5 services)
+- /leaderboard/time-tracking (4 services)
+- /leaderboard/translation (4 services)
+- /leaderboard/vector-database (6 services)
+- /leaderboard/video (7 services)
+- /leaderboard/video-conferencing (5 services)
+- /leaderboard/web-scraping (6 services)
+- /leaderboard/web3 (5 services)
+- /leaderboard/webhooks (5 services)
+- /leaderboard/workflow-automation (11 services)
+- /leaderboard/workflow-orchestration (5 services)
+
+## Scored Services (645 total)
+- /service/100ms — 100ms is a cloud-based video conferencing infrastructure platform providing SDKs and a REST API for embedding live video, audio, and screen sharing into applications. It offers flexible room templates [video-conferencing]
+- /service/ably — Real-time messaging platform with pub/sub, presence, history, push notifications, and MQTT support, built for high-scale distributed systems with global edge delivery and guaranteed message ordering. [real-time]
+- /service/abstract-api — Abstract API provides a suite of utility APIs — email validation, phone validation, IP geolocation, VAT validation, timezone lookup, holiday data, and more — accessible via a single account and consis [email-validation]
+- /service/activecampaign — Email marketing and marketing automation platform with CRM, API for contact management, campaign automation, deal tracking, and customer experience automation for SMBs. [email]
+- /service/activepieces — Open-source workflow automation platform with 200+ integrations, visual flow builder, and REST API for managing flows, triggering runs, and embedding automation in applications. [workflow-automation]
+- /service/acuity-scheduling — Appointment scheduling platform (part of Squarespace) with API for managing appointment types, availability, and bookings — widely used by service businesses for client scheduling. [calendar]
+- /service/adobe-pdf-services — Adobe's REST API for PDF operations including creation, conversion, OCR, compression, protection, and document generation — enterprise-grade with broad format support and Adobe's document processing q [pdf-processing]
+- /service/adyen — Enterprise payment platform with global reach [payments]
+- /service/aerospike — Aerospike is a high-performance distributed NoSQL database and cache optimized for real-time use cases — sub-millisecond latency at scale, with native support for key-value, document, graph, and time- [cache]
+- /service/africa-is-talking — African telecom API platform — provides SMS, USSD, voice, airtime, mobile payments, and IoT APIs for reaching mobile users across 20+ African markets via a single REST API, designed for developers bui [communication]
+- /service/agentql — Web query language and API for structured data extraction from web pages, designed for agent workflows with semantic element targeting, natural language queries, and reliable extraction across site la [browser-automation]
+- /service/agora — Agora is a real-time communication (RTC) platform providing SDKs for video calling, voice calling, interactive live streaming, and real-time messaging — used to embed multi-party video conferencing in [video-conferencing]
+- /service/airbrake — Error and performance monitoring platform with REST API for error aggregation, notice retrieval, and project management — one of the earliest error monitoring platforms, providing error tracking with  [monitoring]
+- /service/airbyte — Open-source data integration platform for building ELT pipelines with 350+ pre-built connectors for syncing data between sources and destinations including warehouses, databases, and SaaS tools. [data-pipeline]
+- /service/airtable — Spreadsheet-database hybrid with REST API for records and bases [productivity]
+- /service/alchemy — Blockchain infrastructure and developer platform with APIs for Ethereum, Polygon, Solana, and other chains — provides node access, enhanced APIs (NFT, token, transaction history), and webhook notifica [web3]
+- /service/alertmanager — Prometheus Alertmanager — open-source alert routing, grouping, and notification system with REST API for managing alert rules, silences, and receiving/querying active alerts from Prometheus-based moni [monitoring]
+- /service/algolia — Hosted search API with faceted search [search]
+- /service/amazon-ses — AWS Simple Email Service for scalable email sending [email]
+- /service/amazon-sqs — AWS managed message queuing service with standard and FIFO queues, dead-letter queues, visibility timeouts, and pay-per-use pricing for decoupling distributed systems and microservices. [message-queues]
+- /service/amazon-translate — Amazon Translate is a neural machine translation service from AWS supporting 75+ language pairs with real-time and async batch modes. It includes automatic language detection, custom terminology for d [translation]
+- /service/amberflo — Amberflo is a usage-based billing and metering infrastructure platform providing a REST API for ingesting usage events, defining meters, configuring pricing plans, computing real-time usage aggregates [fintech]
+- /service/amplitude — Product intelligence and cohort analysis [analytics]
+- /service/amplitude-cdp — Customer data platform (formerly Iteratively) with REST API for defining and enforcing event schemas, routing customer data to downstream tools, and managing identity resolution — Amplitude's data gov [lifecycle-marketing]
+- /service/anthropic — Claude language models API [ai]
+- /service/anthropic-api — Claude model API with messages, tool use, and computer use capabilities [ai]
+- /service/anvil — PDF filling, e-signatures, and document workflow API — enables programmatic PDF generation from templates, embedded signature collection, and workflow automation for document-heavy business processes. [e-signatures]
+- /service/anyscale — Managed Ray and LLM inference platform with OpenAI-compatible API for running and fine-tuning open-source language models at scale — designed for teams deploying production AI workloads on Ray cluster [ai]
+- /service/api-video — Video hosting and streaming API with upload, encoding, live streaming, player customization, and analytics. Designed for easy integration into applications. [video]
+- /service/apideck — Apideck is a Unified API platform providing a single integration layer over multiple SaaS categories — CRM, HRIS, accounting, file storage, email marketing, e-commerce, and more. Agents and applicatio [integrations-platform]
+- /service/apify — Web scraping and automation platform with pre-built scrapers (Actors), cloud browser infrastructure, and data extraction pipeline management. [browser-automation]
+- /service/apigee — Apigee is Google Cloud's full-lifecycle API management platform for designing, securing, analyzing, and scaling APIs. It provides API proxy creation with a policy engine (40+ built-in policies), devel [api-gateway]
+- /service/apollo — Sales intelligence and engagement platform with B2B contact database, email sequencing, and enrichment API. [data-enrichment]
+- /service/applitools — Applitools is an AI-powered visual testing and monitoring platform that detects visual regressions in web and mobile applications using computer vision — comparing screenshots at a pixel/layout level  [testing-automation]
+- /service/appsmith — Appsmith is an open-source low-code framework for building internal apps, dashboards, and admin panels with a drag-and-drop UI builder, JavaScript support for custom logic, and REST API connectors to  [low-code]
+- /service/aqua-security — Aqua Security is a cloud-native security platform for container and Kubernetes workload protection, providing vulnerability scanning (images, code, IaC), runtime security, and compliance policies. Its [security-scanning]
+- /service/arangodb — Multi-model database with REST API supporting document, graph, and key-value data models in a single engine — provides AQL (ArangoDB Query Language) for unified queries across data models. [databases]
+- /service/arduino-cloud — Arduino Cloud is a managed IoT platform for connecting, managing, and monitoring Arduino and ESP32-based devices at scale. Its REST API enables programmatic management of Things (device configurations [iot]
+- /service/argocd — Declarative GitOps continuous delivery tool for Kubernetes with REST API — synchronizes Kubernetes cluster state with Git repository definitions, providing automated deployment, rollback, and drift de [devops]
+- /service/asana — Work management API for tasks, projects, and portfolios [productivity]
+- /service/aspecto — OpenTelemetry-based observability and testing platform with REST API for distributed trace analysis and API flow visualization — designed for microservices debugging with automatic span correlation an [apm]
+- /service/assemblyai — AI-powered speech-to-text and audio intelligence API. Transcription, summarization, content moderation, and speaker diarization. [media]
+- /service/atlantis — Open-source Terraform pull request automation tool — provides a REST API and webhook integration for triggering Terraform plan/apply workflows from pull request comments, enabling collaborative infras [infrastructure-as-code]
+- /service/attio — Modern, data-model-flexible CRM with real-time collaboration, custom objects, and powerful automation. API-first design for developer-centric teams. [crm]
+- /service/auth0 — Universal authentication platform with SAML/OAuth/OIDC [auth]
+- /service/authentik — Open-source identity provider with REST API for SSO, OAuth2, SAML, LDAP, and SCIM — self-hosted alternative to Okta/Auth0 with a full-featured identity management UI and comprehensive REST API for aut [auth]
+- /service/aws — Comprehensive cloud infrastructure [devops]
+- /service/aws-api-gateway — AWS API Gateway is a fully managed service for creating, securing, and scaling REST, HTTP, and WebSocket APIs. It handles traffic management, authorization (IAM, Cognito, Lambda authorizers), throttli [api-gateway]
+- /service/aws-rekognition — AWS Rekognition is a managed computer vision service providing image and video analysis — object detection, facial recognition, text extraction, content moderation, celebrity recognition, and activity [ai]
+- /service/aws-s3 — Industry-standard object storage with near-universal SDK support, pre-signed URLs, and deep AWS ecosystem integration. [storage]
+- /service/aws-secrets-manager — AWS managed secrets storage with automatic rotation, fine-grained IAM access control, and SDK/API for retrieving secrets at runtime — natively integrated with the AWS ecosystem for applications runnin [secrets]
+- /service/aws-ses — Amazon Simple Email Service (SES) is a cloud-based email delivery service for sending bulk, transactional, and marketing email at scale. It provides SMTP and REST API access, integrates with AWS Lambd [email]
+- /service/axiom — Cloud-native log management and observability platform. Ingest, store, and query structured logs with no data limits on the free tier. [logging]
+- /service/azure — Cloud platform with REST APIs for compute, storage, and AI [devops]
+- /service/azure-blob — Azure Blob Storage is Microsoft Azure's massively scalable object storage service for unstructured data — supporting block blobs (general files), append blobs (logs), and page blobs (VM disks). Its RE [storage]
+- /service/azure-content-safety — Azure Content Safety is Microsoft's managed content moderation API providing text and image analysis for hate speech, sexual content, violence, and self-harm — with configurable severity thresholds, c [content-moderation]
+- /service/azure-iot-hub — Azure IoT Hub is Microsoft's managed cloud service for bidirectional IoT communication — providing device registration, telemetry ingestion, cloud-to-device commands, device twins, and direct methods  [iot]
+- /service/azure-translator — Azure AI Translator is Microsoft's cloud-based neural machine translation service supporting 100+ languages and dialects. It offers real-time text translation, document translation for Office and PDF  [translation]
+- /service/backblaze — S3-compatible cloud object storage with REST API — offers significantly lower storage and egress costs than AWS S3 while maintaining S3 API compatibility for drop-in integration with existing tooling. [storage]
+- /service/backblaze-b2 — Low-cost cloud object storage with S3-compatible API and native B2 API. Optimized for cost-sensitive storage workloads. [storage]
+- /service/backstage — Open-source developer portal framework by Spotify with REST API — provides a service catalog, software templates, TechDocs, and plugin architecture for building internal developer platforms. [devops]
+- /service/balena — Open-source IoT fleet management platform with REST API for deploying containerized applications to edge devices — provides OTA updates, device monitoring, remote access, and fleet management for Linu [iot]
+- /service/bamboohr — BambooHR is a cloud-based HR information system (HRIS) for small and mid-sized businesses, providing employee records, time-off tracking, onboarding, performance management, and payroll integrations — [hris]
+- /service/bandwidth — Enterprise communications platform with REST API for voice, messaging (SMS/MMS), emergency services, and WebRTC — provides direct carrier network access for high-reliability enterprise telephony and m [communication]
+- /service/basecamp — Project collaboration platform with APIs for messages, to-dos, schedules, documents, and team communication around projects and clients. [productivity]
+- /service/baselime — Serverless and edge observability platform (acquired by Cloudflare) with OpenTelemetry-native ingestion, SQL-based log querying, and alerting — designed for distributed serverless architectures that a [monitoring]
+- /service/baserow — Open-source no-code database platform with Airtable-compatible REST API for table management, record CRUD, field configuration, and real-time data access — self-hostable or cloud-hosted. [data-app]
+- /service/baseten — Baseten is a platform for deploying and serving ML models at scale, supporting custom models (PyTorch, TensorFlow, Hugging Face, ONNX) and popular open-source models via Truss containers. Its REST API [ai]
+- /service/beam — Serverless GPU compute platform for AI workloads — run Python functions on GPU cloud with REST API for job submission, function deployment, and async task execution without managing infrastructure. [ai]
+- /service/beehiiv — Beehiiv is a newsletter and email publication platform with a REST API for managing subscribers, publications, and email automation. Built for creators and media companies, it supports subscriber mana [email]
+- /service/betterstack — Uptime monitoring, incident management, and log management platform. Combines status pages, on-call scheduling, and log analysis. [monitoring]
+- /service/bigcommerce — SaaS ecommerce platform with headless commerce APIs, multi-storefront support, and extensive catalog and order management. [ecommerce]
+- /service/bird — Bird (formerly MessageBird) is a cloud communications platform providing SMS, WhatsApp, voice, email, and chat messaging APIs via a unified platform. Its REST API enables programmatic messaging across [communication]
+- /service/bitbucket — Git hosting platform with REST API for repos and pipelines [devops]
+- /service/bland-ai — Bland AI provides programmable phone and voice-agent infrastructure for outbound and inbound calling workflows, call control, and voice automation. [communication]
+- /service/bluesky — Open social network built on the AT Protocol with APIs for posts, feeds, identities, moderation, and custom social graph applications. [social]
+- /service/bluesky-api — Decentralized social network API [social]
+- /service/box — Enterprise content management with REST API for files and collaboration [storage]
+- /service/boxyhq — Open-source enterprise readiness toolkit with REST API for SAML SSO, Directory Sync (SCIM), and audit logs — helps SaaS teams add enterprise authentication requirements without building SAML/SCIM infr [auth]
+- /service/braintree — PayPal-owned payment processor [payments]
+- /service/braintrust — AI product evaluation platform for logging, scoring, and comparing LLM outputs with dataset management, prompt experimentation, regression tracking, and CI/CD integration. [monitoring]
+- /service/brave-search — Independent web search API with web, news, image, and video results. Privacy-focused with no tracking. [search]
+- /service/brevo — All-in-one marketing platform (formerly Sendinblue) with email, SMS, chat, CRM, and marketing automation. Transactional and campaign email APIs. [email]
+- /service/brex — Business banking and spend management platform for startups and enterprises with API access for card management, expense submission, team management, and transaction data for automated financial workf [fintech]
+- /service/bright-data — Enterprise proxy network and web scraping infrastructure platform with residential, datacenter, and ISP proxies, a scraping browser, and structured data extraction APIs for large-scale data collection [web-scraping]
+- /service/browserbase — Cloud browser infrastructure for agents and automation workloads, with managed browsers, sessions, debugging tools, and automation-friendly APIs. [browser-automation]
+- /service/browserless — Cloud browser automation platform providing headless Chrome/Chromium instances via API. PDF generation, screenshots, scraping, and Puppeteer/Playwright support. [browser-automation]
+- /service/browserstack — Cloud device and browser testing platform for manual, automated, mobile, and visual testing across real devices and browsers. [testing]
+- /service/bubble — No-code application builder for creating web applications with visual programming, database, workflows, and API connector — with a Data API for external read/write access to app data. [low-code]
+- /service/budibase — Budibase is an open-source low-code platform for building internal tools, admin panels, and CRUD apps with a visual builder, external data source connectors, and a REST API for programmatic app and us [low-code]
+- /service/builder-io — Visual headless CMS with REST and GraphQL APIs — enables visual drag-and-drop page building with structured content that's accessible via API, targeting both developer and non-developer content workfl [headless-cms]
+- /service/bullmq — Redis-based Node.js job queue library with a REST API board (Bull Board) for queue monitoring — provides reliable job processing with priorities, delays, retries, and rate limiting for TypeScript/Java [background-jobs]
+- /service/bunny-cdn — Cost-effective CDN and storage platform with simple API, edge scripting, and DNS management. Known for competitive pricing. [cdn]
+- /service/bunny-net — Bunny.net is a high-performance CDN and edge storage platform offering global content delivery, video streaming, image optimization, and edge scripting. Its REST API provides programmatic management o [cdn]
+- /service/bunny-stream — Video hosting, processing, and delivery platform with REST API for uploading, transcoding, and streaming video — integrated with Bunny.net's CDN for cost-effective global video delivery with DRM and a [video]
+- /service/caddy — Open-source web server and reverse proxy with automatic HTTPS — provides a JSON-based Admin API for live configuration management without restarts, built-in TLS via Let's Encrypt/ZeroSSL, and a declar [networking]
+- /service/cal-api — Cal.com's REST API for programmatic scheduling — enables agents to create bookings, manage availability rules, query event types, and handle webhooks for meeting lifecycle events across individual and [calendar]
+- /service/cal-com — Open-source scheduling infrastructure [calendar]
+- /service/calendly — Scheduling assistant with workflow automation [calendar]
+- /service/campaign-monitor — Email marketing platform with API for subscriber management, campaign creation, transactional email, and list management — used by agencies and businesses for bulk email marketing and automation. [email]
+- /service/canva-api — The Canva Connect API provides programmatic access to Canva's design platform — enabling agents to create designs from templates, export finished assets, manage brand templates, and integrate Canva in [data-app]
+- /service/cartesia — Cartesia provides low-latency speech AI APIs focused on text-to-speech and voice generation for interactive assistants, calling systems, and real-time voice products. [ai]
+- /service/casdoor — Open-source centralized authentication and authorization platform with REST API — provides SSO, OAuth2, SAML, and LDAP in a self-hosted package with a web UI and API for user and application managemen [auth]
+- /service/celery — Distributed task queue for Python — processes asynchronous tasks and scheduled jobs across multiple workers using message brokers (Redis, RabbitMQ, SQS); Flower provides a REST API for task monitoring [background-jobs]
+- /service/celery-flower — Distributed Python task queue using message brokers (Redis, RabbitMQ, SQS) with Flower monitoring UI — the dominant background task processing solution for Python applications with strong support for  [background-jobs]
+- /service/census — Reverse ETL platform for syncing data from warehouses to CRM, advertising, and business tools with model-driven sync configuration, API access, and audience management. [reverse-etl]
+- /service/census-api — Census is a reverse-ETL platform that syncs data from warehouses (Snowflake, BigQuery, Redshift, dbt) to business tools (CRM, email, ads, customer success platforms). Its REST API enables programmatic [reverse-etl]
+- /service/centrifugo — Open-source self-hosted real-time messaging server — provides WebSocket, SSE, and HTTP streaming transports with a REST API for publishing messages to channels, user management, and presence/history f [real-time]
+- /service/cerbos — Open-source, stateless authorization service with REST and gRPC APIs for evaluating fine-grained RBAC and ABAC policies — policies are defined as YAML files and evaluated by a self-hosted Cerbos PDP i [authorization]
+- /service/cerebras — High-throughput inference platform for large language models with OpenAI-compatible APIs and unusually fast token generation on Cerebras hardware. [ai]
+- /service/chargebee — Subscription management and recurring billing platform with APIs for plan management, subscription lifecycle, invoicing, revenue recognition, and dunning for SaaS and subscription businesses. [subscription-billing]
+- /service/chatwoot — Open-source customer support and engagement platform with shared inbox, live chat, and API for conversation management, agent assignment, and integration with external tools — self-hostable alternativ [customer-support]
+- /service/checkly — Programmable monitoring platform for API and browser checks with TypeScript/JavaScript configuration, global check locations, alerting, and CI/CD integration for continuous reliability validation. [monitoring]
+- /service/checkmarx — Application security testing platform with REST API for SAST (static analysis), SCA (dependency scanning), and IaC security scanning — enterprise-grade code security integrated into CI/CD pipelines. [security-scanning]
+- /service/chroma — Embeddings database focused on AI applications, with simple developer ergonomics for storing and retrieving documents and vectors. [vector-database]
+- /service/circle — Circle provides APIs for USDC stablecoin payments, cross-border transfers, and programmable money flows via the Circle Payments and Web3 Services platforms. Key services include programmable wallets ( [agent-payments]
+- /service/circleci — Continuous integration platform with pipeline and job APIs [devops]
+- /service/clarifai — AI-powered visual and text content moderation platform with REST API for detecting explicit content, unsafe images, text toxicity, and custom concept recognition — supports both pre-built and custom t [content-moderation]
+- /service/clay-data — Clay is a data enrichment and outbound automation platform aggregating 100+ data sources into a spreadsheet-like workspace for building enriched prospect lists and automating research workflows. [ecommerce]
+- /service/clearbit — B2B data enrichment API for person and company intelligence. Real-time enrichment, prospecting, and lead scoring data. [data-enrichment]
+- /service/clerk — Modern auth platform optimized for developers [auth]
+- /service/clickhouse — Open-source column-oriented OLAP database with REST and native protocol APIs — designed for real-time analytics over large datasets with sub-second query performance, available self-hosted or as Click [data-warehouse]
+- /service/clickup — All-in-one productivity platform with tasks, docs, goals, whiteboards, and time tracking. Extensive API for workspace automation. [productivity]
+- /service/clockify — Free time tracking platform with comprehensive API for time entries, projects, workspaces, reports, and team management — widely used as a cost-free alternative to Toggl and Harvest. [time-tracking]
+- /service/close-crm — Sales-focused CRM with built-in calling, email, and SMS. REST API for leads, contacts, opportunities, activities, and communication automation. [crm]
+- /service/cloudflare — CDN, DNS, and edge computing platform with REST API [networking]
+- /service/cloudflare-images — Cloudflare Images is a managed image storage and optimization service with a REST API for uploading, storing, and delivering images globally via Cloudflare's edge network. It provides automatic format [media]
+- /service/cloudflare-r2 — S3-compatible object storage with zero egress fees and native Cloudflare Workers integration. [storage]
+- /service/cloudflare-stream — Video storage, encoding, and delivery API built on Cloudflare's global network with upload, adaptive bitrate streaming, thumbnail generation, and live streaming capabilities. [video]
+- /service/cloudinary — Image and video management API with transformations [media]
+- /service/cloudinary-video — Media management platform with REST API for video upload, transformation, optimization, and delivery — provides on-the-fly video transcoding, adaptive streaming, and AI-powered video analysis. [video]
+- /service/cockroachdb — Distributed SQL database with PostgreSQL wire compatibility, multi-region support, and a serverless tier for elastic workloads. [databases]
+- /service/coda — Doc-database hybrid platform with tables, docs, formulas, buttons, and Packs integrations. API for docs, tables, rows, and automation. [productivity]
+- /service/codacy — Automated code review platform with API for quality gates, security analysis, test coverage, and engineering metrics — supports 40+ languages with PR decoration and CI/CD quality gating. [code-quality]
+- /service/codeclimate — Automated code review and quality analysis platform with API for retrieving test coverage, maintainability grades, code smells, and technical debt data for CI/CD integration and engineering metrics re [code-quality]
+- /service/codesandbox — CodeSandbox provides browser-accessible and API-driven cloud development environments (Sandboxes and Devboxes) for running code, building previews, and automated testing. Its API enables programmatic  [code-execution]
+- /service/cognito — AWS user authentication and identity management [auth]
+- /service/cohere — Large language models for enterprise [ai]
+- /service/coinbase-commerce — Cryptocurrency payment processing API. Accept Bitcoin, Ethereum, USDC, and other cryptocurrencies with simple checkout and webhook integration. [agent-payments]
+- /service/comet-ml — ML experiment tracking platform with REST API for logging, comparing, and retrieving training experiments, model registry management, and production model monitoring. [ml-experiment-tracking]
+- /service/composio — Agent-focused tool integration platform that connects LLM agents to SaaS tools, auth flows, and action surfaces with managed connector abstractions. [workflow-automation]
+- /service/confluent-kafka — Fully managed Apache Kafka with schema registry, connectors, stream processing, and enterprise-grade event streaming. The standard for high-throughput messaging. [message-queues]
+- /service/contentful — Composable content platform with structured content modeling, delivery and management APIs, and multi-environment support. [headless-cms]
+- /service/convertkit — Creator-focused email marketing platform with subscriber management, email sequences, broadcasts, and commerce features for digital products. [email]
+- /service/convoy-webhooks — Convoy is an open-source, high-performance webhooks gateway providing reliable webhook delivery with retries, fanout, rate limiting, circuit breaking, and delivery analytics — self-hostable or availab [webhooks]
+- /service/copper — Gmail-native CRM for small business [crm]
+- /service/couchbase — Distributed NoSQL database with REST and SQL++ (N1QL) API — combines document storage with SQL-like querying, full-text search, analytics, and mobile sync (Couchbase Lite + Sync Gateway) in a single p [databases]
+- /service/courier — Multi-channel notification infrastructure platform with REST API for sending and managing notifications across email, push, SMS, Slack, and in-app channels — with a drag-and-drop template designer and [notifications]
+- /service/crawlbase — Web scraping and data extraction API with JavaScript rendering, CAPTCHA solving, and rotating proxies — provides both raw HTML scraping and structured data extraction endpoints for common site types. [web-scraping]
+- /service/creem — Modern merchant-of-record payments platform for SaaS and digital products — handles global tax compliance, checkout, and subscription management via REST API with simple pricing and developer-first de [payments]
+- /service/crisp — Customer messaging platform with live chat, chatbot, knowledge base, and shared inbox. Developer-friendly with real-time API capabilities. [customer-support]
+- /service/cronitor — Cron monitoring and scheduling service that tracks job execution, alerts on failures, and provides scheduling-as-a-service for automated workflows. [scheduling]
+- /service/crossplane — Kubernetes-native infrastructure control plane that extends Kubernetes with custom resource definitions (CRDs) for managing cloud infrastructure — uses the Kubernetes API as the interface for all infr [infrastructure-as-code]
+- /service/crowdin — Localization management platform with API for project management, file upload/download, translation workflow automation, and integrations for open-source and commercial software localization. [localization]
+- /service/crowdstrike — CrowdStrike Falcon API exposes security, endpoint, threat, detection, and incident-management surfaces for programmatic access to the CrowdStrike platform. [security-scanning]
+- /service/customer-io — Customer messaging platform with email, SMS, push, and in-app messages. Behavioral automation triggered by user events and attributes. [email]
+- /service/customerio — Behavioral messaging and lifecycle automation platform with REST API for triggering email, push, SMS, and in-app messages based on user events and segment membership — data-model-first approach for pr [lifecycle-marketing]
+- /service/cyclr — Cyclr is an embedded integration platform as a service (iPaaS) for SaaS products — enabling software vendors to add native, in-product integrations to their applications without building or maintainin [integrations-platform]
+- /service/cypress — End-to-end testing framework for web applications with cloud test recording, API for test run management, and integrations for CI/CD pipeline automation of browser-based tests. [testing]
+- /service/cypress-cloud — Cloud platform for Cypress test orchestration, flake detection, dashboards, and CI analytics. [testing]
+- /service/dagger — Programmable CI/CD engine — allows defining pipelines as code using Go, Python, TypeScript, or PHP SDKs, executing them in isolated containers locally or on any CI platform, with a GraphQL API for pip [devops]
+- /service/dagster — Data orchestration platform with asset-centric pipeline model, REST API for job runs and asset materialization, and Dagster Cloud for managed deployment — focused on data asset lineage and software-de [workflow-orchestration]
+- /service/daily — Developer-first WebRTC video and audio API with REST API for room management, recording, transcription, and real-time media capabilities for building embedded video applications. [video-conferencing]
+- /service/datadog — Infrastructure monitoring and APM with comprehensive REST API [monitoring]
+- /service/dataforseo — SEO and search intelligence API suite covering SERP data, keyword metrics, backlinks, on-page analysis, and business data for analytics and automation workflows. [data-enrichment]
+- /service/datocms — GraphQL-first headless CMS with localization, structured text, environment management, and editorial workflows. [headless-cms]
+- /service/daytona — Daytona is an open-source developer environment manager providing a REST API and CLI for creating, managing, and destroying reproducible development environments (workspaces) from Git repositories — s [devops]
+- /service/dbt-cloud — Cloud-hosted data transformation platform for running dbt (data build tool) models with scheduling, CI/CD, metadata, lineage, and API access for transformation orchestration. [data-pipeline]
+- /service/deel — Global payroll and contractor management platform with REST API for managing international employees, contractors, and compliance across 150+ countries — API covers contracts, payroll, expenses, and c [hris]
+- /service/deepgram — AI speech-to-text platform with real-time and pre-recorded transcription, text-to-speech, and audio intelligence features. [media]
+- /service/deepinfra — Serverless AI inference platform with OpenAI-compatible REST API for running open-source models (Llama, Mistral, Qwen, SDXL, Whisper) at low cost — per-token billing with no cold start on popular mode [ai]
+- /service/deepl — AI-powered translation API with superior quality for European languages. Document translation, glossary support, and formal/informal tone control. [translation]
+- /service/deepseek — Reasoning-optimized LLM API with OpenAI-compatible interface [ai]
+- /service/deepsource — Automated code review platform with REST and GraphQL APIs for issue tracking, quality gate evaluation, and analysis history — focuses on autofix capabilities that automatically resolve common code iss [code-quality]
+- /service/deno-deploy — Deno Deploy is a serverless edge runtime for JavaScript and TypeScript — providing global deployment of HTTP servers with zero configuration, built-in KV store, queues, and cron jobs. Its REST API and [devops]
+- /service/descope — No-code/low-code authentication platform with visual flow builder, passwordless auth, SSO, and user management. Drag-and-drop auth workflow design. [auth]
+- /service/digital-ocean — Cloud platform for app deployment and databases [devops]
+- /service/directus — Open-source data platform and headless CMS that layers instant REST and GraphQL APIs over SQL databases. [headless-cms]
+- /service/discord — Chat platform API for bots, webhooks, and guild management [communication]
+- /service/docusign — Enterprise e-signature and agreement management platform with APIs for envelope creation, signing workflows, template management, and agreement analytics. [e-signatures]
+- /service/doodle — Meeting scheduling and poll coordination platform with API for creating scheduling polls, managing availability slots, and handling participant responses — used for group meeting coordination. [calendar]
+- /service/doppler — Cloud-native secrets management platform. Centralized secrets with environment sync, change logs, and integrations. Developer-friendly alternative to Vault. [secrets]
+- /service/dots-api — Dots is a payments and payout infrastructure platform designed for platforms and marketplaces needing to disburse funds to users, contractors, and sellers — providing a REST API for user onboarding (w [agent-payments]
+- /service/dragonfly — Redis-compatible in-memory data store with dramatically higher throughput and memory efficiency — drop-in Redis replacement with the same API surface but significantly better performance characteristi [cache]
+- /service/drata — Continuous security compliance automation platform for SOC 2, ISO 27001, GDPR, HIPAA, and more with automated evidence collection, control monitoring, personnel management, and audit readiness workflo [compliance]
+- /service/dropbox — Cloud file storage with REST API for file operations and sharing [storage]
+- /service/dropbox-sign — E-signature API (formerly HelloSign) for requesting, managing, and embedding legally binding digital signatures with templates, embedded signing flows, and workflow automation. [e-signatures]
+- /service/dvc — Open-source ML experiment tracking, data versioning, and pipeline management tool — provides Git-based version control for datasets, models, and experiment metrics with a CLI and Python API for ML wor [ml-experiment-tracking]
+- /service/dynatrace — Dynatrace is an enterprise AI-powered observability platform covering full-stack monitoring: APM, infrastructure, Kubernetes, user experience, logs, and business analytics. Its API provides programmat [monitoring]
+- /service/e2b — Secure sandboxed cloud environments for AI agents to execute code, run tools, and handle data processing. Firecracker microVM-based with <200ms cold starts. [code-execution]
+- /service/edgedb — Next-generation relational database with a graph-relational data model, strongly typed schema, and REST/HTTP query API — designed to replace ORMs by making the database itself expressive enough for co [databases]
+- /service/elastic-apm — Application performance monitoring component of the Elastic Stack with REST API for transaction tracing, error tracking, and service maps — integrates with Elasticsearch and Kibana for APM data storag [apm]
+- /service/elastic-email — Email delivery and marketing platform with REST API for transactional email, campaigns, and list management — cost-focused provider with pay-per-email pricing and straightforward REST API for sending  [email]
+- /service/elasticsearch — Distributed search and analytics engine [search]
+- /service/elevenlabs — AI-powered text-to-speech and voice cloning API with natural-sounding voices, multilingual support, and voice design. [media]
+- /service/encharge — Encharge is a lifecycle marketing automation platform built for SaaS companies — providing behavior-based email sequences, user event tracking, segment automation, and CRM integrations. Its REST API e [lifecycle-marketing]
+- /service/env0 — Infrastructure workflow platform for Terraform, OpenTofu, Pulumi, and Terragrunt with environment management, approvals, and cost/security controls. [infrastructure-as-code]
+- /service/eppo — Eppo is an experimentation and feature-management platform focused on statistically rigorous A/B testing, flag delivery, and experiment analysis for product teams. [feature-flags]
+- /service/eversign — Electronic signature platform with REST API for document creation, signature request sending, template management, and signing status tracking — cost-effective for SMB document signing automation. [e-signatures]
+- /service/exa — Neural search API that finds content using embeddings rather than keywords. Designed for AI agents and RAG pipelines. [search]
+- /service/expo-notifications — Expo's Push Notification service provides a unified REST API and SDK for sending push notifications to iOS and Android apps built with React Native/Expo — abstracting APNs (Apple) and FCM (Google) beh [push-notifications]
+- /service/faktory — Language-agnostic background job server — provides a TCP protocol and REST API for enqueuing and processing jobs across any language, with a Web UI dashboard and support for retries, scheduling, and f [background-jobs]
+- /service/fal-ai — Serverless AI model inference platform with REST API for running image generation, video, and specialized AI models at scale — developer-focused with fast cold starts and straightforward model invocat [ai]
+- /service/fastly — Edge cloud platform with CDN, edge compute (Compute@Edge), and real-time log streaming. Known for instant purge and Varnish-based caching. [cdn]
+- /service/fauna — Document-relational database with globally distributed transactions, schema controls, and an HTTP-first developer experience for serverless applications. [databases]
+- /service/figma — Collaborative design platform with REST API for reading design files, accessing components, exporting assets, managing users and teams, and integrating design data into development workflows. [productivity]
+- /service/figma-api — Figma's REST API provides programmatic access to design files, components, variables, comments, and version history in Figma projects. Agents can use it to extract design tokens, read component struct [data-app]
+- /service/filestack — Filestack is a file upload, storage, and transformation API supporting 20+ file sources (local, cloud storage, social media, URLs), on-the-fly image and document processing, and global CDN delivery. I [storage]
+- /service/fillout — Modern form builder with conditional logic, multi-page forms, scheduling, payments, and API access for form management and submission data retrieval with integrations for common data destinations. [forms]
+- /service/firebase-auth — Google's backend auth service for mobile/web [auth]
+- /service/firebolt — Firebolt is a cloud data warehouse built for high-performance analytics on large datasets, offering sub-second query response times via a vectorized query engine, intelligent indexing (sparse, aggrega [data-warehouse]
+- /service/firecrawl — Web scraping and crawling API that converts web pages to clean markdown or structured data. Built for AI/LLM consumption. [browser-automation]
+- /service/firehydrant — FireHydrant is an incident management and reliability platform that provides automated runbooks, incident channels, status page updates, on-call scheduling, and retrospectives via Slack, Teams, and a  [incident-management]
+- /service/fireworks-ai — Fast inference platform for open-source and custom AI models. OpenAI-compatible API with function calling, fine-tuning, and model serving. [ai]
+- /service/fivetran — Automated data movement platform with 500+ managed connectors for syncing data from SaaS, databases, and files to warehouses with schema normalization and incremental sync. [data-pipeline]
+- /service/flagsmith — Open-source feature flag and remote configuration platform with REST API, self-hostable, supporting feature flags, segments, remote configuration, and A/B testing with a strong API-first design. [feature-flags]
+- /service/flipt — Open-source, self-hosted feature flag platform with gRPC and REST APIs for flag evaluation and management — designed for teams that require complete data sovereignty and cannot use cloud-hosted featur [feature-flags]
+- /service/flux-cd — GitOps toolkit for Kubernetes using native Kubernetes custom resources — reconciles cluster state with Git repositories using a modular, composable architecture built on Kubernetes controllers. [devops]
+- /service/fly-io — Edge-native application deployment platform with Machines API [devops]
+- /service/formbricks — Formbricks is an open-source experience management platform for creating targeted in-product surveys, feedback forms, and research flows with a REST API for programmatic survey management, response re [survey]
+- /service/framer — Visual website builder and design tool with CMS, component publishing, and API for managing CMS collections and content for teams building design-driven marketing and product sites. [design]
+- /service/freshdesk — Cloud-based helpdesk software with ticketing, knowledge base, community forums, and multi-channel support. Part of the Freshworks suite. [customer-support]
+- /service/freshsales — Freshworks CRM suite with AI-powered lead scoring, built-in phone and email, deal management, and workflow automation. Part of the Freshworks platform. [crm]
+- /service/frontegg — B2B SaaS authentication and user management platform with multi-tenancy, enterprise SSO, MFA, and API for managing users, tenants, roles, and permissions — designed for SaaS applications serving busin [auth]
+- /service/fullstory — FullStory is a digital experience intelligence platform providing session replay, heatmaps, event analytics, and funnel analysis — capturing every user interaction on web and mobile applications to su [analytics]
+- /service/fusionauth — Customer identity and access management platform with APIs for user management, OAuth2/OIDC, SSO, MFA, and advanced identity features — deployable on-premises, cloud-hosted, or as managed service. [identity]
+- /service/gcp — Cloud computing services with comprehensive API management [devops]
+- /service/geoapify — Geoapify is a geolocation platform providing REST APIs for geocoding, reverse geocoding, routing, isochrones, map tiles, and Places API — a developer-friendly Google Maps alternative with a generous f [maps]
+- /service/getstream — Activity feed and social graph API platform with REST API — provides scalable newsfeed, notification feed, and social timeline infrastructure (follows, likes, reactions) as a managed service separate  [chat-messaging]
+- /service/ghost — Open-source headless CMS and publishing platform with Content and Admin REST APIs — purpose-built for professional publishing with membership, subscriptions, and email newsletter capabilities built in [headless-cms]
+- /service/github — Version control, CI/CD, and developer collaboration platform [devops]
+- /service/github-actions — CI/CD workflow automation with REST API for runs, jobs, and artifacts [devops]
+- /service/github-apps — GitHub App API for installation-scoped OAuth and fine-grained permissions [devops]
+- /service/gitlab — DevOps platform with comprehensive REST and GraphQL APIs [devops]
+- /service/glif — AI composition platform for building and running multi-step AI workflows (glifs) combining image generation, text, and other AI models. [ai]
+- /service/google-ai — Gemini model API for text, vision, and multimodal tasks [ai]
+- /service/google-calendar — Google's calendar service with extensive integration options [calendar]
+- /service/google-cloud-storage — Unified object storage with multi-regional redundancy, fine-grained IAM, and deep integration with Google Cloud services. [storage]
+- /service/google-document-ai — Google Cloud's document understanding platform with pre-trained models for OCR, form parsing, invoice processing, and custom document extraction. [document-processing]
+- /service/google-maps — Maps, geocoding, directions, and places APIs [maps]
+- /service/google-places — Google's Places API (New) for place search, details, photos, and autocomplete with the world's largest location database. [maps]
+- /service/google-pubsub — Google Cloud Pub/Sub is a fully managed, scalable messaging and streaming service providing asynchronous pub/sub messaging between services with guaranteed at-least-once delivery, message replay, orde [message-queues]
+- /service/google-translate — Google's neural machine translation API supporting 130+ languages. Basic and Advanced editions with AutoML custom models, glossaries, and batch translation. [translation]
+- /service/gotify — Self-hosted, open-source push notification server with REST API for sending messages and WebSocket subscription for real-time delivery — designed for self-hosted teams that want complete notification  [push-notifications]
+- /service/grafana — Open-source observability and visualization platform with dashboards, alerting, and HTTP API for programmatic dashboard management, alert rule configuration, and metric querying across data sources. [monitoring]
+- /service/grafana-cloud — Managed observability platform with Grafana, Prometheus, Loki, and Tempo. Open-source-compatible metrics, logs, and traces. [monitoring]
+- /service/gravitee — Open-source API management platform with REST and GraphQL API management capabilities — provides an API gateway, developer portal, and analytics with event-native support for async APIs (Kafka, MQTT,  [api-gateway]
+- /service/grist — Spreadsheet-database hybrid with Python formulas, granular access control, and REST API for record management — particularly suited to workflows requiring custom formula logic and fine-grained data ac [data-app]
+- /service/groq — Ultra-low-latency LLM inference API [ai]
+- /service/growthbook — Open-source feature flagging and A/B testing platform with REST API and SDKs — self-hostable with a cloud option; designed for teams that want feature flag infrastructure with built-in experiment anal [feature-flags]
+- /service/gumroad — Creator-focused digital commerce platform with simple selling tools for digital products, memberships, and subscriptions. API for product and sale management. [payments]
+- /service/gusto — Payroll, benefits, and HR platform with REST API for employee management, payroll runs, benefits enrollment, and time tracking — primarily US-focused with a partner API for platform integrations. [hris]
+- /service/hanko — Open-source passkey-first authentication platform with REST API — provides passkey registration and login, session management, and OAuth connections with a focus on passwordless-native user experience [auth]
+- /service/harness-ci — Cloud-native CI/CD platform with AI-assisted pipeline optimization — provides YAML-defined pipelines, a REST API for triggering builds, managing pipelines, and querying execution status, with built-in [devops]
+- /service/harvest — Time tracking and invoicing platform with API for time entries, projects, clients, invoices, and expense tracking — widely used by service businesses for client billing workflows. [time-tracking]
+- /service/hashicorp-vault — Enterprise secrets management with dynamic secrets, encryption-as-a-service, and identity-based access. Self-hosted and HCP Vault Cloud options. [secrets]
+- /service/hatchet — Hatchet is an open-source distributed task queue and workflow orchestration platform designed for background job processing, fan-out/fan-in patterns, and durable execution. It provides a Go/TypeScript [workflow-orchestration]
+- /service/hazelcast — Hazelcast is a distributed in-memory data platform providing a distributed cache, in-memory data grid, stream processing, and pub/sub messaging — all in a single embeddable Java library and standalone [cache]
+- /service/heap — Automatic event capture analytics [analytics]
+- /service/height — Task and project management tool designed for engineering teams with AI features, API for task and list management, and integrations for workflow automation in software development contexts. [productivity]
+- /service/helicone — LLM observability and gateway platform for logging, analytics, caching, experimentation, and monitoring across multiple model providers. [monitoring]
+- /service/hellosign — Electronic signature REST API (rebranded to Dropbox Sign) for requesting, tracking, and managing document signatures — embedded signing, signature requests, and template management for workflow automa [e-signatures]
+- /service/help-scout — Customer support platform with shared inbox, knowledge base, and API for managing conversations, customers, mailboxes, and teams — designed for support-focused businesses prioritizing human-feeling in [customer-support]
+- /service/helpscout — Customer support platform focused on email-based support with shared inboxes, knowledge base, and in-app messaging. Designed for simplicity. [customer-support]
+- /service/here-api — Enterprise mapping and location platform with REST APIs for geocoding, routing, places search, traffic data, and map rendering — used in logistics, automotive, and enterprise location applications. [geolocation]
+- /service/here-maps — Location platform with APIs for geocoding, routing, traffic, isoline calculation, map rendering, transit, and places data for web, mobile, and enterprise automation workflows. [maps]
+- /service/heroku — Platform-as-a-service for app deployment [devops]
+- /service/hetzner-cloud — Hetzner Cloud is a German cloud infrastructure provider offering VMs, load balancers, object storage, and networking at competitive prices, with a well-designed REST API for full programmatic infrastr [devops]
+- /service/hevo — No-code ELT platform with REST API for pipeline management, data source configuration, and sync monitoring — connects 150+ sources to data warehouses with real-time replication and built-in transforma [data-pipeline]
+- /service/hex — Collaborative data workspace with notebooks, SQL, Python, and no-code components for data analysis with API access for triggering and managing project runs in automated pipelines. [analytics]
+- /service/hex-tech — Hex is a collaborative data workspace for notebooks, SQL, Python, dashboards, and lightweight data apps, with APIs for project and content workflows around analytics delivery. [data-app]
+- /service/highlight — Open-source full-stack monitoring platform with session replay, error tracking, logging, and distributed tracing — single SDK covers frontend (session replay, JS errors) and backend (logs, traces, err [monitoring]
+- /service/hightouch — Reverse ETL and data activation platform with warehouse-to-destination sync, audience builder, journey orchestration, and API for programmatic sync and audience management. [reverse-etl]
+- /service/hive-moderation — AI-powered content moderation API for detecting hate speech, adult content, violence, spam, and other policy violations in text, images, and video at scale. [content-moderation]
+- /service/hivemoderation — Hive Moderation provides AI-powered content moderation APIs for text, images, video, and audio — detecting hate speech, NSFW content, spam, violence, and custom policy violations at scale. Its REST AP [content-moderation]
+- /service/honeybadger — Error monitoring, uptime monitoring, and check-in monitoring platform with API for retrieving errors, managing projects, and reporting check-in health from background jobs and scheduled tasks. [monitoring]
+- /service/honeycomb — Observability platform designed for high-cardinality event data, distributed tracing, and exploratory analysis of production systems. [monitoring]
+- /service/hookdeck — Webhook infrastructure and event gateway for receiving, routing, filtering, replaying, and observing webhook traffic. [webhooks]
+- /service/hoppscotch — Open-source API development and testing tool with REST, GraphQL, and WebSocket support, team workspaces, collections, and self-hostable enterprise edition for privacy-conscious teams. [api-testing]
+- /service/htmlcsstoimage — REST API for generating screenshots and images from HTML, CSS, and URLs — converts HTML templates or web URLs to PNG/JPEG/PDF via a simple API call, designed for automated image generation pipelines. [screenshots]
+- /service/hubspot — CRM platform with free tier, API, and workflow automation [crm]
+- /service/huggingface — Open-source ML models and hub [ai]
+- /service/humanloop — Humanloop is an LLM ops and prompt-management platform for evaluation, prompt versioning, tracing, and human feedback workflows around production AI systems. [ai]
+- /service/hunter — Email finder and verification platform. Domain search, email verification, and outreach tools with a focused REST API. [data-enrichment]
+- /service/hunter-io — Hunter.io is an email finding and verification service providing a REST API to search for professional email addresses by domain or person name, verify email deliverability, and enrich contact data. U [email-validation]
+- /service/hygraph — GraphQL-native headless CMS with content federation, localization, and a visual schema builder. Formerly GraphCMS. [headless-cms]
+- /service/ifttt — Consumer and IoT automation platform with REST API for trigger-action automation — connects 700+ services with simple applet-based workflows and a developer API for custom integrations. [workflow-automation]
+- /service/imagekit — Image and video CDN with real-time transformations, optimization, and Media Library API for programmatic asset management, upload, search, and transformation in image-heavy applications. [media]
+- /service/imagekit-cdn — Image and video optimization CDN with a real-time transformation API — provides URL-based image resizing/compression, a media library REST API for asset management, and webhooks for processing events. [cdn]
+- /service/imgix — Real-time image processing and CDN service. URL-based image transformation with resizing, cropping, format conversion, and AI-powered features. [media]
+- /service/incident-io — Modern incident management platform with REST API for creating incidents, managing status updates, querying incident history, and building automated incident response workflows — Slack-native with str [incident-management]
+- /service/infisical — Open-source secrets management platform with end-to-end encryption. Self-hosted and cloud options with native integrations and automatic secret rotation. [secrets]
+- /service/infura — ConsenSys blockchain infrastructure API for Ethereum and IPFS with JSON-RPC endpoints, Gas API, and transaction management — one of the most widely used Ethereum node providers with a free tier for de [web3]
+- /service/inngest — Event-driven background job and workflow platform. Serverless function orchestration with retries, scheduling, step functions, and fan-out. [background-jobs]
+- /service/insomnia — Insomnia is an open-source API design and testing tool (by Kong) providing a desktop client and CLI for building, testing, and debugging REST, GraphQL, gRPC, and WebSocket APIs. Its inso CLI enables a [api-testing]
+- /service/intercom — Customer messaging platform with live chat, bots, help center, and product tours. API-first approach to customer communication. [customer-support]
+- /service/involve-me — Interactive content and form builder with calculators, quizzes, surveys, and lead capture forms with API for embedding, submissions management, and integration with marketing automation tools. [forms]
+- /service/ipinfo — IP address geolocation, ASN, company, carrier, and abuse detection API. Trusted by major tech companies for IP intelligence. [geolocation]
+- /service/ipstack — IP address geolocation API with location data including country, region, city, coordinates, timezone, and connection type — simple REST API for identifying the geographic location of IP addresses. [geolocation]
+- /service/iterable — Iterable is a growth marketing platform and customer data platform (CDP) providing omnichannel campaign orchestration — email, SMS, push, in-app, and web — driven by user event data. Its REST API enab [customer-data-platform]
+- /service/jaeger — Open-source end-to-end distributed tracing system — collects, stores, and visualizes trace data for microservices, with HTTP and gRPC APIs for trace ingestion and query, designed for Kubernetes-native [apm]
+- /service/jira — Issue tracking and project management REST API [productivity]
+- /service/jotform — Online form builder and data collection platform with API access for form management, submission retrieval, and workflow triggers supporting 100+ integrations and advanced conditional logic. [forms]
+- /service/jumio — AI-powered identity verification and eKYC platform with REST API for document verification, biometric facial matching, and AML/watchlist screening — enterprise-focused with broad document coverage and [identity-verification]
+- /service/jumpcloud — Directory-as-a-service platform with API for user, device, and group management across Mac, Windows, and Linux — combining SSO, LDAP, RADIUS, and MDM in a cloud-native directory for modern IT environm [sso-directory]
+- /service/k6 — Developer-centric load testing tool with JavaScript scripting, cloud execution, and API for triggering and managing performance test runs in CI/CD pipelines. [testing]
+- /service/kameleoon — Enterprise A/B testing and feature flagging platform with REST and SDK APIs for experiment management, targeting rules, and feature flag evaluation — strong in server-side and full-stack experimentati [feature-flags]
+- /service/kestra — Open-source, API-first workflow orchestration platform with YAML-based flow definitions, REST API for execution management, and support for any language via scripting tasks — self-hostable with cloud  [workflow-orchestration]
+- /service/keycdn — Content delivery network with HTTP/2, WebP processing, real-time image optimization, origin shield, API-driven zone management, and pay-as-you-go pricing for web and media delivery. [cdn]
+- /service/keycloak — Keycloak is an open-source Identity and Access Management (IAM) solution providing SSO, OAuth2/OIDC, SAML 2.0, user federation (LDAP/AD), social login, and fine-grained authorization — self-hostable w [identity]
+- /service/keydb — Multi-threaded Redis fork with REST and Redis protocol APIs — provides higher throughput than Redis via multi-threading while maintaining full Redis API compatibility; open-source with KeyDB Pro for e [cache]
+- /service/keystonejs — Open-source headless CMS and application framework built on Node.js with auto-generated GraphQL and REST APIs — schema-driven content modeling with a customizable admin UI and full application-level e [headless-cms]
+- /service/keywords-everywhere — Keyword intelligence API and browser-tooling platform for search volume, CPC, competition, and related query enrichment used in SEO and content workflows. [data-enrichment]
+- /service/kickbox — Email verification API with deliverability scoring and 'sendex' quality metric — real-time and bulk verification for preventing invalid addresses from entering email lists and reducing bounce rates. [email-validation]
+- /service/kimi — Moonshot AI's Kimi API with long-context capabilities, OpenAI-compatible interface, and strong multilingual performance. [ai]
+- /service/kinde — Authentication and authorization platform with SDK-first integration, user management, multi-tenant organization support, fine-grained permissions, and B2B SaaS-oriented features. [auth]
+- /service/klaviyo — Email and SMS marketing platform for e-commerce with API for profile management, event tracking, campaign creation, flow automation, and deep integrations with Shopify and other commerce platforms. [email]
+- /service/knock — Notification infrastructure for product teams. Multi-channel notifications (email, push, in-app, SMS, Slack, chat) with workflow orchestration and preferences management. [notifications]
+- /service/kong-api — Open-source API gateway and platform with REST Admin API for managing routes, services, plugins, and consumers — provides rate limiting, auth, logging, and transformation plugins for API traffic manag [api-gateway]
+- /service/lacework — Lacework is a cloud security platform using machine learning for anomaly detection across cloud accounts, container workloads, and CI/CD pipelines. Its API provides programmatic access to policy viola [security-scanning]
+- /service/lago — Lago is an open-source metered billing and subscription management platform with a REST API for usage ingestion, subscription lifecycle management, invoice generation, and customer management. Designe [subscription-billing]
+- /service/lambdatest — Cross-browser and mobile app testing cloud with automation, live interactive testing, visual regression, and test orchestration features. [testing]
+- /service/langfuse — Open-source LLM observability and analytics platform with tracing, user feedback collection, prompt management, cost analytics, and dataset creation for production AI applications. [monitoring]
+- /service/langsmith — LLM application observability and evaluation platform with tracing, debugging, prompt management, dataset annotation, and CI/CD evaluation workflows for AI systems. [monitoring]
+- /service/launchdarkly — Enterprise feature management platform with flag evaluation, targeting, experimentation, and real-time flag delivery via SDKs and REST API. [feature-flags]
+- /service/lemon-squeezy — Merchant platform for digital product sales [payments]
+- /service/lemonsqueezy — Merchant of record platform for selling digital products and SaaS. Handles payments, tax compliance, subscriptions, and license keys via API. [ecommerce]
+- /service/lepton-ai — Serverless LLM inference and fine-tuning platform with OpenAI-compatible API — designed for teams that want simple, cost-effective access to open-source models without GPU infrastructure management. [ai]
+- /service/lightstep — Distributed tracing and observability platform (now ServiceNow Cloud Observability) with REST API for trace analysis, service performance monitoring, and change intelligence — OpenTelemetry-native APM [apm]
+- /service/linear — Modern project management tool with streamlined issue tracking, cycles, and roadmaps. GraphQL API designed for developer workflows. [productivity]
+- /service/linkedin-api — LinkedIn's API for enterprise networking [social]
+- /service/liveblocks — Real-time collaboration infrastructure with presence, live cursors, conflict-free document sync (CRDT), comments, and notifications for building collaborative editing experiences in web applications. [real-time]
+- /service/livekit — Open-source, real-time video, audio, and data infrastructure with server SDKs, REST API for room and participant management, and self-hostable architecture for building real-time applications. [video-conferencing]
+- /service/llamaparse — Cloud-based PDF and document parsing API from LlamaIndex — extracts structured text, tables, images, and markdown from complex documents using LLM-assisted processing, optimized for downstream RAG and [document-processing]
+- /service/lob — Lob provides a REST API for programmatic direct mail delivery — postcards, letters, self-mailers, and checks — plus USPS CASS-certified address verification and standardization. Used by marketing plat [communication]
+- /service/localazy — AI-assisted translation management platform with REST API for managing localization files, triggering machine translation, and integrating continuous localization into CI/CD — cost-competitive alterna [localization]
+- /service/logdna — Log management platform (now Mezmo) with REST API for log ingestion, querying, alerting, and archiving — historically popular for its simple setup and now evolving toward log processing pipeline capab [logging]
+- /service/logflare — Log management platform built on BigQuery. Structured log ingestion with BigQuery-powered querying. Acquired by Supabase. [logging]
+- /service/logtail — Structured log management platform (part of Better Stack) with REST API for log ingestion, querying, and alerting — integrates with standard logging libraries for structured, queryable log storage. [logging]
+- /service/logto — Open-source OIDC-based identity platform with REST Management API for user authentication, organization management, and MFA — designed as a modern Auth0 alternative with strong developer experience. [auth]
+- /service/lokalise — Localization and translation management platform with API for key management, automated translation, branch-based workflows, and integrations for software and content localization at scale. [localization]
+- /service/loops — Email marketing platform designed for SaaS companies. Transactional and marketing email with event-based automation, audience segmentation, and clean API. [email]
+- /service/lucia-auth — Open-source TypeScript authentication library providing session management primitives — not a hosted service but a composable auth library for building custom authentication in TypeScript/JavaScript a [auth]
+- /service/lunacy — Lunacy is a free, native design application by Icons8 that runs on Windows, macOS, and Linux — fully compatible with Sketch files (.sketch format) and featuring built-in AI tools, icon libraries, stoc [design]
+- /service/lytics — AI-powered customer data platform with REST API for audience segmentation, behavioral scoring, content affinity modeling, and profile enrichment — targets enterprise teams needing ML-driven customer i [lifecycle-marketing]
+- /service/mabl — Intelligent test automation platform with REST API for executing and managing end-to-end tests — provides cloud browser test execution, auto-healing tests, and deployment event integration for quality [testing-automation]
+- /service/magic-link — Passwordless authentication SDK and API for email magic links, WebAuthn passkeys, and social OAuth — provides user authentication infrastructure as a managed service with wallet-based Web3 auth suppor [auth]
+- /service/mailgun — Email API with powerful webhooks and validation [email]
+- /service/make — Visual automation platform (formerly Integromat) with advanced workflow logic, data transformation, and API integration builder. More powerful than Zapier for complex automations. [workflow-automation]
+- /service/make-api — REST API for Make (formerly Integromat) automation platform — enables programmatic scenario management, execution triggering, and monitoring of Make workflows that connect 1000+ apps via visual automa [workflow-automation]
+- /service/mapbox — Mapping and geocoding API for location-based services [maps]
+- /service/marqo — Open-source tensor search and vector database with REST API — multimodal search across text and images with built-in embedding generation, structured filtering, and a developer-friendly document-orien [vector-database]
+- /service/mastodon — Federated social platform with APIs for accounts, posts, timelines, media, notifications, and moderation across independent instances. [social]
+- /service/mattermost — Mattermost is an open-source, self-hostable team messaging platform providing Slack-equivalent functionality — channels, direct messages, threads, file sharing, and integrations — with a comprehensive [chat-messaging]
+- /service/maxio — Subscription billing and revenue management platform (Chargify + SaaSOptics merged) with REST API for subscription lifecycle management, billing, invoicing, and revenue analytics — targets B2B SaaS co [payments]
+- /service/maxmind — IP geolocation and fraud detection databases. GeoIP2 provides location, ISP, and connection data. minFraud provides transaction risk scoring. [geolocation]
+- /service/medusa — Open-source headless commerce platform with modular architecture, REST and GraphQL APIs, and extensive customization for building custom storefronts. [ecommerce]
+- /service/meilisearch — Open-source search engine optimized for UX [search]
+- /service/meltano — Open-source, CLI-driven ELT platform built on Singer extractors and dbt — manages data pipeline configurations, runs, and schedules with a REST API for programmatic pipeline management. [data-pipeline]
+- /service/mercury — Business banking platform for startups with API access for account information, transactions, payments, and team management for automated financial workflows and treasury operations. [fintech]
+- /service/merge-api — Unified API platform providing a single integration layer for HRIS, ATS, CRM, accounting, ticketing, and file storage categories — one Merge integration replaces per-provider integrations across entir [integrations-platform]
+- /service/mergent — Task scheduling API for serverless and API-based workflows. Schedule one-time or recurring HTTP requests with cron expressions, retries, and delivery guarantees. [scheduling]
+- /service/messagebird — Omnichannel messaging platform for SMS, WhatsApp, Telegram, email, and voice. Recently rebranded as Bird. [communication]
+- /service/metabase — Open-source business intelligence and analytics platform with question builder, dashboards, embedding, and REST API for programmatic report management and data querying. [analytics]
+- /service/microsoft-entra — Microsoft's enterprise identity and access management platform (formerly Azure Active Directory) with Microsoft Graph API for user, group, device, and application management across the Microsoft 365 a [sso-directory]
+- /service/microsoft-outlook — Outlook/Microsoft Graph calendar integration [calendar]
+- /service/microsoft-teams — Enterprise communication and collaboration platform with messaging, video, and app integration via Microsoft Graph API. [communication]
+- /service/milvus — Open-source vector database for similarity search at scale, with managed cloud offering via Zilliz Cloud. [vector-database]
+- /service/minio — Open-source S3-compatible object storage designed for self-hosted and on-premise deployments — provides the full S3 API for applications requiring data sovereignty, air-gapped environments, or edge st [storage]
+- /service/miro — Collaborative whiteboard platform with boards, widgets, comments, and app integrations. API for board automation and structured board manipulation. [productivity]
+- /service/mistral — Open-weight and commercial LLM API with chat and embeddings [ai]
+- /service/mixpanel — Product analytics with cohort analysis [analytics]
+- /service/modal — Serverless cloud platform for Python workloads. GPU-accelerated compute, sub-second cold starts, and scale-to-zero billing. Popular for ML inference and batch jobs. [code-execution]
+- /service/mode — SQL-based collaborative analytics platform with notebooks, visualizations, report scheduling, and API for triggering report runs and managing analytics workflows programmatically. [analytics]
+- /service/momento — Serverless cache and pub/sub platform with REST and SDK APIs — provides Redis-compatible caching without provisioning clusters, with per-request billing and automatic scaling for serverless and edge w [cache]
+- /service/monday — Work operating system with customizable boards, automations, and integrations. GraphQL API for workspace management and workflow automation. [productivity]
+- /service/mongodb-atlas — Cloud-hosted MongoDB with Data API for REST access [databases]
+- /service/moov — Moov is an embedded payments infrastructure platform providing a developer-first API for ACH transfers, card payments, and money movement — designed for platforms and marketplaces needing to embed fin [fintech]
+- /service/moralis — Web3 data API platform with REST and streaming APIs for NFT data, DeFi protocol data, token prices, wallet portfolio, and blockchain event streams — enables building web3 applications without running  [web3]
+- /service/motherduck — Serverless cloud DuckDB service with SQL API — brings DuckDB's fast local OLAP engine to the cloud with collaboration features, sharing, and a managed service model for analytical queries without infr [data-warehouse]
+- /service/mparticle — Enterprise Customer Data Platform with REST API for event data ingestion, identity management, audience creation, and data forwarding to analytics, advertising, and marketing destinations at enterpris [customer-data-platform]
+- /service/mux — Video streaming and analytics API for live and on-demand content [media]
+- /service/mux-video — Video infrastructure API for live and on-demand video — provides upload, encoding, streaming, and analytics with a developer-first REST API designed for programmatic video workflows. [video]
+- /service/n8n — Open-source workflow automation platform with visual editor, 400+ integrations, and API for programmatic workflow management. Self-hostable or cloud-hosted. [workflow-automation]
+- /service/nango — Open-source unified integrations platform with OAuth management, sync infrastructure, and proxy API for building product integrations — handles OAuth token lifecycle, data syncing, and webhook process [integrations-platform]
+- /service/nats — NATS is an open-source, high-performance cloud-native messaging system providing pub/sub, request/reply, and queue groups (load-balanced consumers) with optional persistence via JetStream. Its lightwe [message-queues]
+- /service/neon — Serverless Postgres with branching, autoscaling, and management API [databases]
+- /service/neptune-ai — ML experiment management platform with REST API and Python SDK for logging, comparing, and querying training runs, model metadata, and datasets — designed for teams that need reproducibility and trace [ml-experiment-tracking]
+- /service/netbird — NetBird is an open-source, WireGuard-based overlay network platform providing zero-config peer-to-peer VPN and access control, with a REST management API for peer management, policies, and network rou [networking]
+- /service/netlify — Jamstack platform for web projects [devops]
+- /service/neverbounce — Real-time email verification API for single and bulk email validation with deliverability scoring — used for list cleaning, form validation, and maintaining sender reputation in email marketing workfl [email-validation]
+- /service/new-relic — Full-stack observability platform with APM, infrastructure monitoring, logs, and AI-powered anomaly detection. [monitoring]
+- /service/ngrok — Secure ingress and tunneling platform for exposing local or private services, with traffic inspection, auth, and edge routing features. [webhooks]
+- /service/nile-db — Nile Database is a serverless Postgres platform purpose-built for multi-tenant SaaS applications — providing built-in tenant isolation, per-tenant virtual databases, tenant placement control, and a RE [databases]
+- /service/nocodb — Open-source Airtable alternative that converts any relational database (MySQL, PostgreSQL, SQLite) into a no-code spreadsheet interface with REST and GraphQL APIs for programmatic data access. [data-app]
+- /service/notion — Workspace API for pages, databases, and content management [productivity]
+- /service/notion-api — Official Notion REST API for reading and writing pages, databases, blocks, and comments — enables agents to query Notion databases as structured data stores, create pages programmatically, and sync co [productivity]
+- /service/novu — Open-source notification infrastructure with multi-channel delivery, template management, and subscriber preferences. Self-hosted or cloud. [notifications]
+- /service/ntfy — Open-source HTTP-based push notification service that uses topic subscriptions — self-hostable with a public cloud option; agents POST to a topic URL to deliver notifications to any subscribed client. [push-notifications]
+- /service/okta — Enterprise identity and access management [auth]
+- /service/onelogin — Enterprise SSO and identity management platform with SAML/OIDC federation, SCIM directory sync, MFA, and API for user and application lifecycle management in enterprise environments. [sso-directory]
+- /service/onesignal — Multi-channel messaging platform for push notifications, email, SMS, and in-app messages. REST API for audience management and message sending. [notifications]
+- /service/onfido — AI-powered identity verification platform with REST API for document checks, facial similarity, database checks, and risk scores — used by financial services and regulated industries for automated KYC [identity-verification]
+- /service/openai — GPT models and embeddings API [ai]
+- /service/openapi-generator — Open-source code generation tool with REST API wrapper (openapi-generator-online) for generating client SDKs, server stubs, and documentation from OpenAPI specifications — community-maintained with 50 [sdk-tooling]
+- /service/openfga — Open-source fine-grained authorization system (Zanzibar-inspired) with REST API for relationship-based access control (ReBAC) — developed by Auth0/Okta and used for modeling complex permission systems [authorization]
+- /service/openrouter — Unified LLM API gateway routing to 100+ models from multiple providers [ai]
+- /service/opensearch — Open-source search and analytics engine (AWS fork of Elasticsearch) with REST API for indexing, querying, aggregation, and full-text search — fully compatible with Elasticsearch APIs and self-hostable [search]
+- /service/opentelemetry — Open-source observability framework providing vendor-neutral SDKs, APIs, and a Collector for distributed tracing, metrics, and logging — the CNCF standard for instrumenting applications and exporting  [apm]
+- /service/opsgenie — Atlassian incident management and on-call platform with REST API for alert management, on-call schedule queries, escalation policies, and incident creation — widely deployed in enterprise DevOps and S [incident-management]
+- /service/optimizely — Optimizely is an enterprise experimentation and feature management platform covering A/B testing, multivariate experiments, feature flags, and personalization. Its REST API and server-side SDKs allow  [feature-flags]
+- /service/orb-billing — Orb is a billing platform built for usage-based and hybrid pricing models, with APIs for meters, invoices, subscriptions, credits, and customer billing workflows. [subscription-billing]
+- /service/ory — Open-source identity infrastructure with Ory Kratos (identity management), Ory Hydra (OAuth2/OIDC server), and Ory Keto (permissions) — self-hostable or managed cloud. [identity]
+- /service/osso — Open-source SAML SSO service for adding enterprise single sign-on to SaaS applications — provides a hosted OAuth2 broker over SAML identity providers with an admin portal and REST API for managing ide [sso-directory]
+- /service/oxylabs — Enterprise web scraping infrastructure with residential, datacenter, and mobile proxies, a web scraper API, and real-time crawler for large-scale structured data extraction at enterprise scale. [web-scraping]
+- /service/paddle — Merchant of record billing platform with REST API [payments]
+- /service/paddle-billing — Paddle's next-generation billing API for subscription management, usage-based billing, and global tax compliance — the new Paddle API (distinct from Paddle Classic) with webhooks, catalog management,  [payments]
+- /service/pagerduty — Incident management and alerting REST API [monitoring]
+- /service/pandadoc — Document automation platform with e-signatures, proposals, contracts, and CPQ. API for document creation from templates, signing workflows, and CRM integration. [e-signatures]
+- /service/panora — Open-source unified API platform for B2B integrations (CRM, HRIS, ATS, ticketing, file storage) — self-hostable alternative to Merge with an open data model and REST API for building product integrati [integrations-platform]
+- /service/paperform — Form and survey builder with a rich editing experience, payment integration, and API for managing submissions, automating notifications, and integrating form data into external workflows. [survey]
+- /service/papertrail — Cloud-hosted log management by SolarWinds. Syslog and HTTP log aggregation with real-time search, alerts, and log archive. [logging]
+- /service/particle — IoT device platform with REST API for fleet management, OTA firmware updates, device telemetry, and event streaming — provides the cloud infrastructure for connected hardware products at scale. [iot]
+- /service/partykit — PartyKit is a serverless real-time collaboration platform built on Cloudflare's edge network — providing WebSocket rooms, shared state, and broadcast messaging via a simple API and SDK. Agents use Par [real-time]
+- /service/payload-cms — TypeScript-native headless CMS with auto-generated REST and GraphQL APIs, built-in auth, access control, and self-hostable architecture — developer-first with strong TypeScript support. [headless-cms]
+- /service/paypal — Classic payment processor and marketplace [payments]
+- /service/pdf-co — REST API for PDF processing operations including text extraction, conversion, merging, splitting, watermarking, form filling, and data extraction — agent-friendly with simple HTTP endpoints. [pdf-processing]
+- /service/pdfmonkey — PDFMonkey is a PDF generation SaaS providing a REST API that merges JSON data into Handlebars/HTML templates to produce pixel-perfect PDFs — suitable for invoices, contracts, reports, and certificates [pdf-processing]
+- /service/pdftron — Enterprise PDF SDK and WebViewer with REST API for annotation, collaboration, form filling, redaction, and document manipulation — deep document control for applications requiring rich PDF interaction [pdf-processing]
+- /service/pendo — Pendo is a product analytics and in-app guidance platform providing page views, feature usage, NPS surveys, and user journey analytics. Its REST API enables programmatic access to account and visitor  [analytics]
+- /service/penpot — Open-source design and prototyping platform with vector editing, component libraries, and an emerging API for teams that need a self-hostable alternative to Figma. [design]
+- /service/people-data-labs — Person and company data enrichment API with search, enrichment, and matching capabilities across a large professional database. [data-enrichment]
+- /service/percy — Percy (by BrowserStack) is a visual review and testing platform that captures screenshots of web pages during CI/CD runs and highlights visual diffs for human review. It integrates with Selenium, Cypr [testing-automation]
+- /service/permit-io — Full-stack authorization platform with REST API for defining and enforcing RBAC, ABAC, and ReBAC policies — provides policy decision point (PDP) infrastructure so teams separate authorization logic fr [authorization]
+- /service/perplexity — AI search and answer engine with API access. Sonar models provide web-grounded answers with citations from real-time search results. [ai]
+- /service/perplexity-api — Perplexity API offers answer-generation and search-grounded responses via hosted LLM endpoints, aimed at research, synthesis, and assistant workflows that benefit from web-aware reasoning. [ai]
+- /service/persona — Identity verification platform with API for KYC workflows — document verification, selfie matching, database checks, and fraud detection — designed to be embedded in onboarding flows with configurable [identity-verification]
+- /service/perspective-api — Google's free text toxicity detection API that scores comments and text for attributes including toxicity, severe toxicity, spam, insults, profanity, and threats using ML models trained on online conv [content-moderation]
+- /service/pgvector — Open-source vector similarity search extension for PostgreSQL — adds HNSW and IVFFlat index types to enable semantic search, embedding storage, and nearest-neighbor queries directly in a Postgres data [databases]
+- /service/phrase — Localization management platform with translation memory, machine translation, API for key/string management, workflow automation, and integrations for continuous software localization. [localization]
+- /service/pinecone — Vector database API for embeddings search and retrieval [databases]
+- /service/pipedream — Developer-focused workflow automation platform with code-first workflows, 2000+ API integrations, and serverless execution for event-driven automation. [workflow-automation]
+- /service/pipedrive — Sales-focused CRM with visual pipeline management [crm]
+- /service/plaid — Financial data network connecting applications to bank accounts with APIs for account verification, transaction history, income verification, identity, investments, and liabilities. [fintech]
+- /service/plane — Open-source project management tool for software teams with issue tracking, sprints, and cycles — self-hostable with API for task and project management and an alternative to Jira and Linear. [productivity]
+- /service/planetscale — Serverless MySQL platform with branching and deploy requests [databases]
+- /service/playwright-cloud — Microsoft's managed Playwright testing infrastructure providing cloud-hosted browser test execution, trace viewing, and CI/CD integration — hosted service for running Playwright end-to-end tests witho [testing-automation]
+- /service/playwright-mcp — Official Playwright MCP server — exposes browser automation capabilities (navigate, click, fill, screenshot, extract) as MCP tools that AI agents can call directly without writing Playwright code. [browser-automation]
+- /service/plivo — Cloud communications API for SMS and voice. Strong for high-volume messaging with competitive per-message pricing. [communication]
+- /service/polytomic — Reverse ETL and data sync platform for bidirectional sync between databases, warehouses, spreadsheets, and SaaS tools with no-code configuration and API access for automated data pipelines. [reverse-etl]
+- /service/portkey — AI gateway and observability platform for model routing, logging, caching, governance, and reliability across many LLM providers. [monitoring]
+- /service/posthog — Open-source product analytics [analytics]
+- /service/postman — API development and testing platform with collections, automated testing, mocking, monitoring, and a public API for managing workspaces, collections, environments, and test runs programmatically. [api-testing]
+- /service/postmark — Hosted email infrastructure with bounce management [email]
+- /service/prefect — Python-native workflow orchestration platform with REST API and Prefect Cloud for scheduling, observing, and managing data pipeline runs — distinguishes itself with minimal-ceremony workflow definitio [workflow-orchestration]
+- /service/prismic — Slice-based headless CMS with API delivery, previews, releases, and strong support for marketing sites and content teams. [headless-cms]
+- /service/prometheus — Open-source metrics collection and alerting system with HTTP API — the standard metrics backend in the cloud-native ecosystem with a powerful query language (PromQL) and native Kubernetes integration. [monitoring]
+- /service/propelauth — B2B authentication service with built-in organization management, enterprise SSO, and API for managing users and organizations — designed for B2B SaaS with a focus on developer experience and organiza [auth]
+- /service/pspdfkit — PDF SDK and API covering annotation, viewing, form operations, digital signatures, and document processing — available as a local SDK and as a hosted API with deep document manipulation capabilities. [pdf-processing]
+- /service/pubnub — PubNub is a real-time messaging and data streaming network providing publish/subscribe channels, presence detection, message persistence, and push notifications — via REST API and 70+ language SDKs. [message-queues]
+- /service/pulumi — Infrastructure as Code platform using general-purpose programming languages (TypeScript, Python, Go, C#) with REST API and Pulumi Cloud for state management, deployment history, and team collaboration [infrastructure-as-code]
+- /service/pulumi-cloud — Managed Pulumi backend for stacks, state, deployment history, policy, secrets, and team collaboration using general-purpose languages for IaC. [infrastructure-as-code]
+- /service/pusher — Real-time messaging infrastructure with Channels (pub/sub WebSocket) and Beams (push notifications). APIs for real-time data broadcasting. [notifications]
+- /service/pushover — Simple real-time push notification service with REST API for sending notifications to iOS, Android, and desktop — designed for developers to deliver operational alerts and custom notifications without [push-notifications]
+- /service/qdrant — Vector similarity search engine and database with filtering, payload storage, and hybrid search. Open-source and cloud-hosted options. [vector-database]
+- /service/qstash — QStash (by Upstash) is a serverless message queue and task scheduling service providing HTTP-based message delivery, delayed sends, cron scheduling, and retry logic — designed for edge and serverless  [scheduling]
+- /service/qualtrics — Enterprise experience management platform with comprehensive survey and research API for programmatic survey design, distribution, response collection, and advanced analytics used in market research a [survey]
+- /service/quickbooks-api — QuickBooks API (Intuit Developer Platform) provides programmatic access to QuickBooks Online financial data: invoices, expenses, customers, vendors, employees, payroll, and financial reports. It is th [fintech]
+- /service/quicknode — Multi-chain blockchain infrastructure provider with dedicated nodes, add-on APIs (NFT, token, DeFi data), and streams (real-time blockchain data) — used for production web3 applications requiring reli [web3]
+- /service/radar — Geofencing, geocoding, and address validation API platform with SDKs for location-based features — covers geocoding, reverse geocoding, address autocomplete, route calculation, and geofence event dete [geolocation]
+- /service/railway — Infrastructure platform with GraphQL API for project management [devops]
+- /service/ramp-agent-cards — Programmable virtual Visa cards for AI agents with spend controls, merchant restrictions, and audit trails [agent-payments]
+- /service/razorpay — India-focused payment gateway with support for Indian payment methods (UPI, Netbanking, Wallets), subscriptions, payouts, and banking APIs. [payments]
+- /service/readme-io — ReadMe is an API documentation and developer experience platform for publishing interactive API references, guides, and changelogs. Its REST API enables programmatic management of API specifications ( [sdk-tooling]
+- /service/readyset — ReadySet is an open-source SQL caching proxy that sits between applications and Postgres/MySQL databases — automatically caching query results and serving them from memory while keeping the cache cons [databases]
+- /service/recurly — Subscription billing platform with APIs for subscription management, invoicing, coupons, dunning, and revenue recognition for enterprise SaaS and subscription commerce. [subscription-billing]
+- /service/redash — Open-source SQL query and dashboard tool with API for query execution, result retrieval, and dashboard management — self-hostable for teams that need analytics infrastructure under their control. [analytics]
+- /service/reddit — Community discussion platform with APIs for reading posts, comments, user info, moderation actions, and subreddit workflows across public communities. [social]
+- /service/redis-cloud — Managed Redis with REST API for cache and data operations [databases]
+- /service/reducto — AI-native document parsing API for extracting structured data from PDFs, Word documents, and images with layout-aware chunking, table extraction, and figure recognition for RAG and data pipelines. [document-processing]
+- /service/render — Modern cloud platform for full-stack apps [devops]
+- /service/replicache — Replicache is a client-side state management and sync framework providing instant local mutations, offline support, and real-time sync between clients and a server — using a push/pull sync protocol th [real-time]
+- /service/replicate — API for running machine learning models [ai]
+- /service/replit — Cloud-based collaborative IDE and code execution environment with instant deployments, database provisioning, multi-language support, and AI coding assistance for rapid prototyping and development. [code-execution]
+- /service/resend — Modern transactional email API built for developers [email]
+- /service/resend-v2 — Modern email API for transactional and marketing emails [email]
+- /service/restate — Restate is a durable execution and workflow orchestration runtime built for distributed systems, providing durable async/await, exactly-once semantics, and stateful services via a Rust-based server. I [workflow-orchestration]
+- /service/retool — Low-code internal tool builder with drag-and-drop UI components, database and API connections, JavaScript customization, and workflow automation for teams building admin panels, dashboards, and operat [low-code]
+- /service/rippling — All-in-one workforce management platform with REST API for HR, IT, and finance data — covers employees, payroll, devices, apps, and benefits across global workforces, with a platform API for workflow  [hris]
+- /service/rollbar — Error monitoring and tracking platform with REST API for real-time error aggregation, alerting, and deployment tracking — provides actionable error context with stack traces, code versions, and affect [monitoring]
+- /service/rootly — Rootly is a Slack-native incident management platform that automates incident workflows: declaration, role assignment, communication updates, runbooks, and retrospectives — all triggered and managed f [incident-management]
+- /service/rudderstack — Open-source customer data platform with event streaming API compatible with the Segment API — self-hostable with cloud option for collecting, transforming, and routing customer event data to analytics [customer-data-platform]
+- /service/safetykit — SafetyKit provides trust, safety, and policy-operations tooling for case handling, moderation workflows, escalations, and operational review processes. [compliance]
+- /service/salesforce — Enterprise CRM with extensive API ecosystem [crm]
+- /service/saml-jackson — Open-source SAML SSO and Directory Sync (SCIM) service with REST API — the standalone SAML-as-a-service component from BoxyHQ that translates SAML IdP assertions into OAuth 2.0 tokens for simpler appl [auth]
+- /service/sanity — Real-time content platform with structured content, GROQ query language, and customizable editing studio. Treats content as data. [headless-cms]
+- /service/sauce-labs — Cloud testing platform for browser, mobile, API, and visual testing with enterprise controls and broad automation support. [testing]
+- /service/savvycal — Scheduling platform designed to respect recipient preferences with overlapping availability display, API for managing scheduling links and bookings programmatically. [calendar]
+- /service/scraperapi — Web scraping API that handles proxy rotation, CAPTCHA solving, and browser rendering — accepts a target URL and returns the raw HTML, with options for JavaScript rendering, geolocation selection, and  [web-scraping]
+- /service/scrapingbee — Web scraping API that handles proxy rotation, headless browser rendering, and CAPTCHA solving. Simple REST API for extracting web page content. [browser-automation]
+- /service/screenshotapi — REST API for capturing full-page and viewport screenshots of URLs — renders pages with Chromium, supports custom viewports, delays, CSS injection, and block-list filtering, returning PNG/JPEG as a dow [screenshots]
+- /service/screenshotone — Screenshot and PDF render API for capturing web pages, custom viewports, dark mode, animations, and full-page renders with flexible URL-based and programmatic access. [screenshots]
+- /service/secureframe — Secureframe streamlines compliance certification with continuous monitoring, automated evidence collection, and pre-built control frameworks for SOC 2 Type I/II, ISO 27001, HIPAA, and PCI DSS. Organiz [compliance]
+- /service/segment — Customer data platform for unified analytics [analytics]
+- /service/semgrep — Lightweight static analysis tool with pattern-based SAST, custom rules, and API for automated security scanning in CI/CD pipelines with coverage for 30+ languages. [security-scanning]
+- /service/sendbird — Enterprise in-app chat and messaging platform with REST and Platform API for user management, channel operations, and message moderation — used in healthcare, finance, and marketplace applications req [chat-messaging]
+- /service/sendgrid — Email delivery platform with high-volume SMTP + API [email]
+- /service/sentry — Error tracking and performance monitoring API [monitoring]
+- /service/serper-api — Serper provides a Google Search API for web, news, images, shopping, and local results with low-friction JSON responses, suitable for search augmentation, ranking checks, and retrieval pipelines. [search]
+- /service/shopify — E-commerce platform with Admin and Storefront GraphQL APIs [ecommerce]
+- /service/shopify-api — Shopify's Admin API (REST and GraphQL) provides programmatic access to all aspects of a Shopify store — products, variants, inventory, orders, customers, discounts, fulfillments, and webhooks. [ecommerce]
+- /service/shortcut — Project management for software teams with stories, epics, iterations, and milestones. Clean REST API with strong GitHub/GitLab integration. [productivity]
+- /service/sidekiq — Redis-backed Ruby background job processor with a REST API for queue monitoring — the dominant background job solution in the Ruby/Rails ecosystem with support for job priorities, scheduling, and batc [background-jobs]
+- /service/sightengine — Image and video content moderation API for detecting nudity, violence, weapons, hate symbols, and quality issues with real-time and batch processing modes. [content-moderation]
+- /service/sigma — Cloud-native analytics platform with spreadsheet-style interface, live warehouse queries, and API for embedding analytics and managing workbook automation in data workflows. [analytics]
+- /service/signnow — Electronic signature platform with REST API for document sending, signature collection, template management, and signing workflow automation — cost-competitive alternative to DocuSign for SMB and ente [e-signatures]
+- /service/signwell — Simple electronic signature API with REST endpoints for document creation, template management, signature requests, and webhook notifications — designed for developer-first e-signature integration. [e-signatures]
+- /service/sinch — Cloud communications platform with SMS, voice, video, email, and WhatsApp APIs with global carrier network for building customer engagement and communication workflows at scale. [communication]
+- /service/singlestore — Distributed SQL database combining OLTP and OLAP workloads in a single engine — supports real-time analytics alongside transactional operations with MySQL-compatible SQL, vector search, and a managed  [databases]
+- /service/sketch-api — Sketch provides a REST API for programmatic access to documents, artboards, components, and assets stored in Sketch Cloud — enabling design-to-code workflows, asset export automation, design token ext [design]
+- /service/slack — Team communication and messaging platform with rich API [social]
+- /service/snyk — Developer-first security platform for scanning code, dependencies, containers, and IaC for vulnerabilities — with API for automating security checks in CI/CD pipelines and managing security findings p [security-scanning]
+- /service/soketi — Open-source Pusher-compatible WebSocket server — a self-hostable drop-in replacement for Pusher Channels with the same API and client library compatibility, providing real-time event broadcasting with [real-time]
+- /service/sonarcloud — Cloud-hosted code quality and security analysis platform with REST API for retrieving issues, quality gate status, metrics, and project analysis data — the cloud version of the widely-used SonarQube. [code-quality]
+- /service/sonarqube — Code quality and security analysis platform with SAST capabilities, technical debt tracking, and Web API for automating code quality gates and integrating analysis results into CI/CD workflows. [security-scanning]
+- /service/sonatype — Software supply chain security platform with REST API for dependency vulnerability scanning, artifact repository management, and license compliance — Nexus Repository and Nexus Lifecycle for developer [security-scanning]
+- /service/sourcegraph — Code intelligence and search platform with REST and GraphQL APIs for cross-repository code search, symbol navigation, code insights, and batch changes — enables searching and analyzing large codebases [search]
+- /service/spacelift — GitOps-driven infrastructure orchestration platform with REST API for managing Terraform, OpenTofu, Pulumi, and Ansible stacks — adds policy enforcement, drift detection, and access controls on top of [infrastructure-as-code]
+- /service/sparkpost — Transactional and marketing email delivery API with REST API for sending, template management, and engagement analytics — now part of Bird (formerly MessageBird), maintaining the SparkPost API surface [email]
+- /service/speakeasy — Automated SDK generation platform that produces idiomatic client libraries in multiple languages from OpenAPI specs — with API to trigger generation and retrieve generated SDK packages for CI/CD integ [sdk-tooling]
+- /service/split — Feature flagging and experimentation platform with REST API for feature lifecycle management, targeting rules, metrics tracking, and experiment analysis — enterprise-grade with strong governance featu [feature-flags]
+- /service/sprinto — Sprinto is a compliance automation platform helping SaaS companies achieve SOC 2, ISO 27001, GDPR, and HIPAA certification. It offers entity-level risk management, automated evidence collection across [compliance]
+- /service/square — Payment processor with strong POS integration [payments]
+- /service/ssoready — Developer-first SAML and SCIM platform for adding enterprise SSO and directory sync to SaaS products — provides a hosted API for managing organization SSO configurations, user provisioning, and a self [sso-directory]
+- /service/stability-ai — Image generation and editing API (Stable Diffusion) [ai]
+- /service/stainless — SDK generation platform producing high-quality, production-ready client libraries from OpenAPI specs — used by major API companies (OpenAI, Anthropic, Cloudflare) for their official SDKs. [sdk-tooling]
+- /service/standardwebhooks — Standard Webhooks is an open specification and tooling project defining a common format, headers, and signature verification approach for webhook delivery — ensuring interoperability and security cons [webhooks]
+- /service/starburst — Starburst is an enterprise analytics platform built on Trino (formerly PrestoSQL) — a distributed SQL query engine that federates queries across data sources (S3 data lakes, Snowflake, BigQuery, Redsh [data-warehouse]
+- /service/statsig — Feature flags, experimentation, and product analytics platform with server-side evaluation and statistical rigor for A/B testing. [feature-flags]
+- /service/statuscake — Website and API monitoring platform with REST API for managing uptime tests, SSL monitoring, page speed checks, and status pages — cost-competitive with a generous free tier for simple uptime monitori [monitoring]
+- /service/stitch — Simple cloud-based ETL service (Talend) with REST API for managing data sources, destinations, and replication jobs — designed for teams that need fast ELT setup without custom pipeline development. [data-pipeline]
+- /service/stoplight — Stoplight is an API design and governance platform providing a visual OpenAPI editor, API style guide enforcement, mock servers, and documentation hosting. Its REST API and CLI (Spectral) enable progr [api-testing]
+- /service/storyblok — Visual headless CMS with real-time visual editor, component-based content model, and multi-language support. Content and Management APIs. [headless-cms]
+- /service/strapi — Open-source headless CMS with customizable API, content types builder, and admin panel. Self-hosted or Strapi Cloud. [headless-cms]
+- /service/stream-chat — Scalable in-app chat and messaging API platform with REST and WebSocket APIs — provides channels, messages, reactions, threads, and moderation infrastructure for building real-time chat features witho [chat-messaging]
+- /service/stripe — Payment processing with comprehensive API [payments]
+- /service/stripe-connect — Marketplace and platform payments with connected accounts and transfers API [payments]
+- /service/stripe-identity — Stripe's identity verification product with API for programmatic document verification and selfie matching — designed for teams already in the Stripe ecosystem who want KYC without adding a separate v [identity-verification]
+- /service/stytch — Developer-focused authentication platform with passwordless auth, MFA, session management, and B2B organization management. [auth]
+- /service/supabase — Open source Firebase alternative with Postgres, auth, and realtime [devops]
+- /service/supabase-edge — Serverless Deno functions at the edge with management API [devops]
+- /service/supertokens — Open-source authentication with session management, social login, MFA, and multi-tenancy — self-hostable core with managed cloud option and SDKs for quick integration. [identity]
+- /service/surveymonkey — Survey platform with API for programmatic survey creation, distribution, response collection, and analysis — widely used for market research, customer feedback, and employee engagement surveys. [survey]
+- /service/surveysparrow — SurveySparrow is a conversational survey and feedback automation platform providing a REST API for creating surveys, managing contacts, distributing surveys, collecting responses, and analyzing result [survey]
+- /service/svix — Webhook sending infrastructure for SaaS platforms with retries, signatures, endpoint management, and observability. [webhooks]
+- /service/tago-io — IoT platform with REST API for device data ingestion, dashboards, and automation rules — designed for building IoT applications with a low-code dashboard builder alongside a full REST API for data and [iot]
+- /service/tailscale — Zero-config mesh VPN and private network service for secure connectivity between devices, services, and cloud environments using WireGuard with centralized identity and policy management. [networking]
+- /service/tally — Simple form builder with API access, webhooks, and integrations. Focus on ease of use with unlimited forms and responses on the free tier. [forms]
+- /service/tavily — Search API optimized for AI agents and LLMs, with built-in content extraction and relevance scoring. [search]
+- /service/tealium — Enterprise CDP and tag management platform with HTTP API for server-side event ingestion, data enrichment, and audience activation — widely deployed in enterprise marketing and analytics stacks. [customer-data-platform]
+- /service/telegram — Bot API for messaging, media, and inline query automation [communication]
+- /service/telnyx — Communications platform with SMS, voice, video, SIP trunking, number management, and API-first design for building communication workflows on Telnyx's own global network. [communication]
+- /service/temporal — Durable execution platform for reliable distributed workflows. Workflow-as-code with automatic retries, state management, and versioning. [background-jobs]
+- /service/terraform-cloud — Managed Terraform execution, state, policy enforcement, and team collaboration platform for infrastructure-as-code workflows. [infrastructure-as-code]
+- /service/terrateam — GitOps Terraform automation via GitHub pull requests — runs plans and applies as PR comments with API for workflow configuration and run status, keeping Terraform operations inside the code review wor [infrastructure-as-code]
+- /service/testim — AI-powered test automation platform with REST API for creating, managing, and executing end-to-end UI tests — uses machine learning to stabilize tests against UI changes and reduce test maintenance ov [testing-automation]
+- /service/thirdweb — Full-stack web3 development platform with REST API, SDKs, and smart contract tools for building NFT, token, and DApp applications — simplifies smart contract deployment, wallet management, and on-chai [web3]
+- /service/tidycal — Scheduling and booking platform with REST API for managing booking types, availability, and appointments — lightweight alternative to Calendly with a straightforward API for calendar scheduling automa [calendar]
+- /service/timescaledb — Time-series database built on PostgreSQL with REST and SQL API — purpose-built for time-series workloads (IoT telemetry, metrics, financial data) while maintaining full PostgreSQL compatibility for re [databases]
+- /service/tinybird — Real-time data pipeline and analytics API platform built on ClickHouse — ingest events, define SQL transformations as data pipes, and publish the results as low-latency REST API endpoints for real-tim [data-warehouse]
+- /service/together-ai — Open-source model inference API [ai]
+- /service/toggl — Time tracking platform with API for programmatic time entry management, project and client tracking, reporting, and workspace administration for freelancers, agencies, and teams. [time-tracking]
+- /service/toggl-api — Toggl Track is a time tracking application with a comprehensive REST API for managing workspaces, clients, projects, time entries, tags, and detailed reporting. Used by freelancers, agencies, and team [time-tracking]
+- /service/toolhouse — Managed tool hosting and execution platform for AI agents with pre-built integrations, serverless tool execution, retrieval-augmented tool calling, and SDK-first developer experience. [workflow-automation]
+- /service/traefik — Cloud-native reverse proxy and load balancer — provides dynamic configuration via container labels and service discovery, a REST API for routing inspection and management, and built-in Let's Encrypt T [networking]
+- /service/transifex — Translation management and localization platform with REST API for managing projects, uploading source strings, downloading translations, and integrating continuous localization into CI/CD pipelines. [localization]
+- /service/transloadit — Transloadit is a file processing service providing cloud-based encoding, resizing, conversion, and transformation for images, videos, audio, and documents via a REST API and assembly-based pipeline ap [media]
+- /service/tray-io — Enterprise iPaaS (Integration Platform as a Service) with REST API for workflow automation — provides a visual workflow builder and embedding API for building automation into SaaS products. [workflow-automation]
+- /service/treasure-data — Treasure Data is an enterprise Customer Data Platform (CDP) providing a central data store for unified customer profiles, behavioral event tracking, audience segmentation, and ML-powered predictive sc [customer-data-platform]
+- /service/treblle — API observability and documentation platform with lightweight SDK integration — captures real API requests/responses, generates automatic documentation, and provides error tracking and performance mon [sdk-tooling]
+- /service/trello — Kanban-style project and task management platform with boards, lists, cards, comments, labels, and automation via Butler and API. [productivity]
+- /service/trevor-io — Trevor.io is a task scheduling and workflow automation platform providing a no-code/low-code scheduler for running recurring jobs, API calls, database queries, and multi-step workflows on a defined sc [scheduling]
+- /service/trigger-dev — Open-source background job platform for serverless and long-running tasks. TypeScript-first with managed infrastructure and self-hosted options. [background-jobs]
+- /service/trivy — Open-source vulnerability and misconfiguration scanner for container images, filesystems, Kubernetes, and IaC — widely used in CI/CD pipelines with CLI and integrations for automated security scanning [security-scanning]
+- /service/turso — Edge-native SQLite database with HTTP API and embedded replicas [databases]
+- /service/twenty-crm — Open-source CRM platform with a REST and GraphQL API — self-hostable HubSpot alternative with workspace-based data models, contact/company/deal pipelines, custom fields, and webhook support. [crm]
+- /service/twilio — Programmable communication APIs for SMS, voice, and video [communication]
+- /service/twitter-api — Twitter's API for posts, threads, and analytics [social]
+- /service/tyk — Open-source API gateway and management platform with REST API for policy management, key creation, and analytics — provides quota enforcement, rate limiting, versioning, and a developer portal for API [api-gateway]
+- /service/typeform — Form and survey API for creating and collecting responses [forms]
+- /service/typesense — Fast open-source search engine [search]
+- /service/unkey — Open-source API key management and rate limiting platform — provides programmatic key creation, revocation, metadata tagging, and per-key rate limits via a simple REST API, designed for developer tool [auth]
+- /service/unleash — Open-source feature flag management with self-hosted and cloud options. Activation strategies, constraints, and SDK evaluation. [feature-flags]
+- /service/unstructured — Document parsing and extraction API that converts PDFs, Word docs, images, and other unstructured content into structured data for AI/LLM pipelines. [document-processing]
+- /service/uploadcare — Uploadcare is a cloud file upload, storage, delivery, and transformation platform with a REST API for managing uploaded files, applying on-the-fly image transformations, and configuring upload sources [storage]
+- /service/uploadthing — UploadThing is a file upload service designed for Next.js and TypeScript applications, providing server-side file handling, client SDK, and direct-to-cloud storage with a simple REST API. It abstracts [storage]
+- /service/upstash — Serverless Redis and Kafka with REST API for edge computing [databases]
+- /service/upstash-kafka — Serverless Kafka with HTTP/REST API and per-message pricing. No cluster management, instant scaling, and pay-per-use billing. [message-queues]
+- /service/uptime-robot — Website and API uptime monitoring service with REST API for managing monitors, retrieving downtime data, and managing alert contacts — widely used for simple, cost-effective uptime monitoring. [monitoring]
+- /service/urlbox — Website screenshot and PDF render API with full-page capture, custom viewports, CSS injection, wait logic, caching, and webhook delivery for automation and content pipeline use cases. [screenshots]
+- /service/vanta — Automated security compliance platform for SOC 2, ISO 27001, HIPAA, and other frameworks with continuous monitoring, evidence collection, vendor risk management, and audit support. [compliance]
+- /service/vectara — Managed vector search platform with a REST API for document ingestion, hybrid search (dense + sparse), and RAG-ready retrieval — designed to minimize the infrastructure work for production semantic se [vector-database]
+- /service/vercel — Frontend deployment platform optimized for Next.js [devops]
+- /service/vercel-ai — Framework for building AI-powered applications with streaming and tool calling [ai]
+- /service/vercel-kv — Serverless Redis-compatible key-value store via REST [databases]
+- /service/veriff — Identity verification and fraud prevention platform with API for document verification, biometric matching, and automated KYC decisions — serving regulated industries including fintech, banking, and s [identity-verification]
+- /service/vero — Vero is a lifecycle email marketing platform for product and growth teams — specializing in behavior-triggered email campaigns, A/B testing, and event-based segmentation. Its REST API enables agents t [lifecycle-marketing]
+- /service/victorops — On-call and incident management platform (now Splunk On-Call) with REST API for alert ingestion, routing, and incident lifecycle management — integrates with monitoring tools for automated incident cr [incident-management]
+- /service/vimeo-api — Video hosting and streaming platform with REST API for upload, management, privacy controls, and OTT distribution — provides professional video hosting with advanced privacy, domain-level embedding co [video]
+- /service/vonage — CPaaS platform for SMS, voice, video, and messaging APIs. Formerly Nexmo. Strong in global SMS delivery and number management. [communication]
+- /service/vwo — VWO is an A/B testing, experimentation, and feature management platform with a REST API for managing experiments, retrieving variation assignments, and accessing results. Its Feature Rollouts capabili [feature-flags]
+- /service/wandb — Weights & Biases (W&B) is the industry-standard ML experiment tracking, model evaluation, and dataset versioning platform — providing real-time metric logging, sweep (hyperparameter optimization), and [ml-experiment-tracking]
+- /service/warrant — Open-source fine-grained authorization service — provides a REST API for managing permissions, roles, and object-level access controls using relationship-based access control (ReBAC), suitable for mul [authorization]
+- /service/wasabi — Hot cloud storage service with S3-compatible API, no egress fees, and competitive pricing. Single-tier storage model. [storage]
+- /service/weaviate — Vector database and knowledge graph platform with hybrid search, modules, and schema-aware object storage. [vector-database]
+- /service/webflow — Visual web development platform with CMS, e-commerce, and hosting with a REST API for programmatic content management, collection item manipulation, and site publishing workflows. [low-code]
+- /service/webpushr — Webpushr is a web push notification service providing a REST API and JavaScript SDK for sending browser push notifications to Chrome, Firefox, and Edge users on websites — without requiring a mobile a [push-notifications]
+- /service/weights-biases — ML experiment tracking, model versioning, and dataset management platform with REST API and Python SDK — widely used for tracking training runs, comparing hyperparameters, and managing the full ML mod [ml-experiment-tracking]
+- /service/when2meet — Collaborative meeting scheduling [calendar]
+- /service/whereby — Video meeting platform with Embedded API for integrating video calls into applications without WebRTC complexity — suitable for agents that need to create and manage meeting rooms programmatically. [video-conferencing]
+- /service/whimsical — Visual workspace for flowcharts, wireframes, mind maps, and sticky notes with API access for document and content management in collaborative planning and design workflows. [design]
+- /service/windmill — Open-source developer platform for building internal tools, workflows, and scripts with REST API — runs Python, TypeScript, Go, Bash scripts as workflows with scheduling, webhooks, and a visual flow e [workflow-automation]
+- /service/wiremock — HTTP mock server for API contract testing and service virtualization — provides a REST Admin API for dynamically configuring request stubs, verifying call counts, and simulating failure scenarios in t [api-testing]
+- /service/wise — International money transfer and multi-currency account API for sending payments, managing balances across 50+ currencies, and automating cross-border financial workflows. [agent-payments]
+- /service/wistia — Video hosting and analytics platform for B2B marketing and sales teams with embeddable player, viewer tracking, CTAs, A/B testing, and API access for video management and analytics. [video]
+- /service/woocommerce — Open-source ecommerce plugin for WordPress with REST API for store management. Self-hosted with extensive plugin ecosystem. [ecommerce]
+- /service/woocommerce-api — REST API for WooCommerce (WordPress e-commerce plugin) enabling programmatic management of products, orders, customers, coupons, and store settings for shops running on WordPress. [ecommerce]
+- /service/workday-api — Workday is an enterprise Human Capital Management (HCM) and financial management cloud suite providing SOAP/REST APIs and Workday Integration Cloud for programmatic access to employee data, organizati [hris]
+- /service/workos — Enterprise authentication infrastructure with SSO (SAML/OIDC), directory sync (SCIM), MFA, and admin portal. Designed for B2B SaaS enterprise readiness. [auth]
+- /service/xai-grok — xAI's large language model API with OpenAI-compatible endpoints, real-time web knowledge, and reasoning capabilities. [ai]
+- /service/xata — Serverless database platform with built-in full-text search, file attachments, and branch-based development. TypeScript-first SDK. [databases]
+- /service/xero — Xero is a cloud accounting platform with a comprehensive API providing access to invoices, bills, bank transactions, contacts, payroll, and financial reporting for small businesses. Supports 180+ coun [fintech]
+- /service/zapier — No-code automation platform connecting 6000+ apps with trigger-action workflows (Zaps). API for managing Zaps and triggering custom integrations. [workflow-automation]
+- /service/zendesk — Customer service platform with ticketing, live chat, knowledge base, and omnichannel support. Industry standard for helpdesk operations. [customer-support]
+- /service/zenrows — Web scraping API with automatic anti-bot bypass, JavaScript rendering, rotating proxies, CSS extraction, and structured response formats for reliable automated data extraction. [web-scraping]
+- /service/zeplo — HTTP-based job queue and scheduler for serverless and distributed systems with delay, cron scheduling, retry logic, and fan-out without infrastructure setup. [scheduling]
+- /service/zerobounce — Email validation and deliverability API for verifying email addresses, detecting invalid/spam-trap/disposable addresses, and improving list quality before sending campaigns. [email-validation]
+- /service/zinc-search — Lightweight open-source search engine with Elasticsearch-compatible REST API — designed as a low-resource alternative to Elasticsearch for full-text search use cases where minimal infrastructure overh [search]
+- /service/zitadel — Open-source cloud-native identity and access management platform with REST and gRPC APIs for user management, OIDC/OAuth2 flows, multi-tenancy, and enterprise SSO — self-hostable alternative to Auth0  [auth]
+- /service/zoho-crm — Cost-effective CRM with Deluge automation [crm]
+- /service/zoom — Video conferencing and communication platform with REST API for meetings, webinars, users, and phone management. [communication]
+- /service/zoominfo — Enterprise B2B data platform with contact database, intent signals, and company intelligence. Primarily enterprise sales-focused. [data-enrichment]
+- /service/zulip — Zulip is an open-source team messaging platform with a unique topic-threaded conversation model — every message belongs to a stream (channel) and a topic, making it easier to follow parallel conversat [chat-messaging]
+- /service/zuora — Enterprise subscription management and monetization platform with APIs for subscription lifecycle, usage-based billing, revenue recognition (RevRec), and financial reporting for large-scale subscripti [subscription-billing]
+- /service/zyte — Web scraping platform (formerly Scrapy Cloud) with Zyte API for automatic data extraction, smart proxy management, and Scrapy-native cloud execution — provides structured data extraction with AI-power [web-scraping]
+
+## Scoring Formula
+AN Score = (Execution x 0.70) + (Access Readiness x 0.30)
+
+## Tier System
+- L4 Native (8.0-10.0): built for agents, minimal friction
+- L3 Fluent (6.0-7.9): agents can use reliably with minor friction
+- L2 Developing (4.0-5.9): usable with workarounds
+- L1 Emerging (0.0-3.9): significant barriers to agent use
+
+## Comparisons
+- /blog/stripe-vs-square-vs-paypal — Payments (Winner: Stripe 8.1)
+- /blog/resend-vs-sendgrid-vs-postmark — Email (Winner: Resend 7.8)
+- /blog/hubspot-vs-salesforce-vs-pipedrive — CRM (No clear winner, all <6.0)
+- /blog/auth0-vs-clerk-vs-firebase-auth — Auth (Winner: Clerk 7.4)
+- /blog/posthog-vs-mixpanel-vs-amplitude — Analytics (Winner: PostHog 6.9)
+- /blog/supabase-vs-planetscale-vs-neon — Databases (Too close: 7.2-7.6)
+- /blog/twilio-vs-vonage-vs-plivo — Messaging (Winner: Twilio 8.0)
+- /blog/linear-vs-jira-vs-asana — Project Management (Winner: Linear 7.5)
+- /blog/anthropic-vs-openai-vs-google-ai — AI/LLM (Winner: Anthropic 8.4)
+- /blog/datadog-vs-new-relic-vs-grafana — Monitoring (Winner: Datadog 7.8)
+- /blog/vercel-vs-netlify-vs-render — DevOps/Deployment (Winner: Vercel 7.1)
+- /blog/s3-vs-r2-vs-b2 — Storage (Winner: AWS S3 8.1)
+
+## Tool Autopsies
+- /blog/hubspot-api-autopsy — HubSpot (4.6)
+- /blog/salesforce-api-autopsy — Salesforce (4.8)
+- /blog/twilio-api-autopsy — Twilio (8.0)
+- /blog/shopify-api-autopsy — Shopify (7.8)
+
+## Self-Assessment
+- /blog/we-scored-ourselves — Rhumb (6.8)
+
+## Extended Context
+- Methodology: https://rhumb.dev/methodology
+- Trust: https://rhumb.dev/trust
+- About: https://rhumb.dev/about
+- Agent manifest: https://rhumb.dev/.well-known/agent-capabilities.json
+- Extended version: https://rhumb.dev/llms-full.txt
+
+## Links
+- Website: https://rhumb.dev
+- API: https://api.rhumb.dev
+- GitHub: https://github.com/supertrained/rhumb
+- MCP: npx rhumb-mcp@latest
