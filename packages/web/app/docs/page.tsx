@@ -117,25 +117,104 @@ const ENDPOINTS = [
 ];
 
 const MCP_TOOLS = [
+  // Discovery tools (no auth required)
   {
-    name: "find_tools",
-    desc: "Search for agent-native tools by use case",
-    example: 'find_tools("payment processing")',
+    name: "find_services",
+    desc: "Search for services by use case or need",
+    example: 'find_services("payment processing")',
+    category: "discovery",
   },
   {
     name: "get_score",
-    desc: "Get the full AN Score breakdown for a specific service",
+    desc: "Full AN Score breakdown for a specific service",
     example: 'get_score("stripe")',
+    category: "discovery",
   },
   {
     name: "get_alternatives",
-    desc: "Find alternatives to a service in the same category",
+    desc: "Find scored alternatives in the same category",
     example: 'get_alternatives("paypal")',
+    category: "discovery",
   },
   {
     name: "get_failure_modes",
-    desc: "Get known failure modes and workarounds for a service",
+    desc: "Known failure modes and workarounds for a service",
     example: 'get_failure_modes("stripe")',
+    category: "discovery",
+  },
+  {
+    name: "search_services",
+    desc: "Semantic search across all scored services",
+    example: 'search_services("email sending API")',
+    category: "discovery",
+  },
+  {
+    name: "get_ceremonies",
+    desc: "Signup and onboarding friction for a service",
+    example: 'get_ceremonies("sendgrid")',
+    category: "discovery",
+  },
+  // Capability resolution tools (auth required for execution)
+  {
+    name: "resolve_capability",
+    desc: "Find the best provider for a capability based on AN Score",
+    example: 'resolve_capability("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "execute_capability",
+    desc: "Execute a capability through Rhumb's managed proxy",
+    example: 'execute_capability("email.send", {to: "user@example.com", subject: "Hello"})',
+    category: "resolve",
+  },
+  {
+    name: "estimate_cost",
+    desc: "Check pricing before executing a capability",
+    example: 'estimate_cost("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "get_credentials",
+    desc: "Check available credential modes for a capability",
+    example: 'get_credentials("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "get_routing",
+    desc: "See how a capability routes to providers",
+    example: 'get_routing("scrape.extract")',
+    category: "resolve",
+  },
+  // Billing & budget tools (auth required)
+  {
+    name: "get_budget_status",
+    desc: "Check remaining prepaid balance and spend",
+    example: "get_budget_status()",
+    category: "billing",
+  },
+  {
+    name: "get_balance",
+    desc: "Current account balance",
+    example: "get_balance()",
+    category: "billing",
+  },
+  {
+    name: "get_spend",
+    desc: "Spend breakdown by service and time period",
+    example: "get_spend()",
+    category: "billing",
+  },
+  {
+    name: "get_ledger",
+    desc: "Transaction history and billing ledger",
+    example: "get_ledger()",
+    category: "billing",
+  },
+  {
+    name: "get_payment_url",
+    desc: "Get URL to add prepaid balance via Stripe",
+    example: "get_payment_url()",
+    category: "billing",
   },
 ];
 
@@ -233,31 +312,47 @@ export default function DocsPage() {
               Install & run
             </span>
             <pre className="mt-3 text-sm font-mono text-slate-300 overflow-x-auto">
-              <code>{`RHUMB_API_BASE_URL="${BASE_URL}" npx rhumb-mcp`}</code>
+              <code>{`npx rhumb-mcp@latest`}</code>
             </pre>
           </div>
 
           <h3 className="font-display font-semibold text-lg text-slate-200 mb-4">
-            Available tools
+            Available tools ({MCP_TOOLS.length})
           </h3>
-          <div className="space-y-3">
-            {MCP_TOOLS.map((tool) => (
-              <div
-                key={tool.name}
-                className="bg-surface border border-slate-800 rounded-lg p-4"
-              >
-                <div className="flex items-baseline gap-3 mb-1">
-                  <code className="font-mono text-sm font-semibold text-amber">
-                    {tool.name}
-                  </code>
+
+          {(["discovery", "resolve", "billing"] as const).map((cat) => {
+            const tools = MCP_TOOLS.filter((t) => t.category === cat);
+            const labels = {
+              discovery: "Discovery (no auth required)",
+              resolve: "Capability Resolution (auth required for execution)",
+              billing: "Billing & Budget (auth required)",
+            };
+            return (
+              <div key={cat} className="mb-8">
+                <h4 className="font-mono text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  {labels[cat]}
+                </h4>
+                <div className="space-y-3">
+                  {tools.map((tool) => (
+                    <div
+                      key={tool.name}
+                      className="bg-surface border border-slate-800 rounded-lg p-4"
+                    >
+                      <div className="flex items-baseline gap-3 mb-1">
+                        <code className="font-mono text-sm font-semibold text-amber">
+                          {tool.name}
+                        </code>
+                      </div>
+                      <p className="text-slate-400 text-sm mb-2">{tool.desc}</p>
+                      <code className="font-mono text-xs text-slate-500 bg-elevated px-2 py-1 rounded">
+                        {tool.example}
+                      </code>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-slate-400 text-sm mb-2">{tool.desc}</p>
-                <code className="font-mono text-xs text-slate-500 bg-elevated px-2 py-1 rounded">
-                  {tool.example}
-                </code>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </section>
 
         {/* Notes */}
@@ -270,19 +365,41 @@ export default function DocsPage() {
               <span className="text-amber mt-0.5">•</span>
               <span>
                 <strong className="text-slate-200">
-                  No auth required
+                  Discovery is free
                 </strong>{" "}
-                — all endpoints are currently open. API keys and rate
-                limiting are coming soon.
+                — search, scores, leaderboards, and failure modes require
+                no authentication.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber mt-0.5">•</span>
+              <span>
+                <strong className="text-slate-200">
+                  Execution requires auth
+                </strong>{" "}
+                — capability execution via Rhumb Resolve requires an API
+                key or x402 payment. Sign up at{" "}
+                <a
+                  href="https://rhumb.dev/auth/login"
+                  className="text-amber hover:underline underline-offset-2"
+                >
+                  rhumb.dev/auth/login
+                </a>
+                .
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-amber mt-0.5">•</span>
               <span>
                 <strong className="text-slate-200">JSON responses</strong>{" "}
-                — all endpoints return JSON with{" "}
+                — all endpoints return JSON with standardized error
+                envelopes including{" "}
                 <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
-                  Content-Type: application/json
+                  request_id
+                </code>{" "}
+                and{" "}
+                <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
+                  resolution
                 </code>
                 .
               </span>
@@ -291,10 +408,15 @@ export default function DocsPage() {
               <span className="text-amber mt-0.5">•</span>
               <span>
                 <strong className="text-slate-200">
-                  Categories
+                  92 categories
                 </strong>{" "}
-                — payments, email, search, auth, database, ai, cms,
-                analytics, monitoring, communication
+                — browse all at{" "}
+                <a
+                  href="https://rhumb.dev/leaderboard"
+                  className="text-amber hover:underline underline-offset-2"
+                >
+                  rhumb.dev/leaderboard
+                </a>
               </span>
             </li>
             <li className="flex items-start gap-2">
