@@ -8,9 +8,24 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch
+
+
+def _capability_not_found(raw_request: Request, capability_id: str) -> JSONResponse:
+    """Return a standardized 404 for missing capabilities."""
+    request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "capability_not_found",
+            "message": f"No capability found with id '{capability_id}'",
+            "resolution": "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+            "request_id": request_id,
+        },
+    )
 
 router = APIRouter()
 
@@ -253,14 +268,14 @@ async def list_rhumb_managed() -> dict:
 
 
 @router.get("/capabilities/{capability_id}")
-async def get_capability(capability_id: str) -> dict:
+async def get_capability(capability_id: str, raw_request: Request):
     """Get a single capability with full provider details."""
     caps = await supabase_fetch(
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description,input_hint,outcome&limit=1"
     )
     if not caps:
-        return {"data": None, "error": f"Capability '{capability_id}' not found."}
+        return _capability_not_found(raw_request, capability_id)
 
     cap = caps[0]
 
@@ -336,6 +351,7 @@ async def get_capability(capability_id: str) -> dict:
 @router.get("/capabilities/{capability_id}/resolve")
 async def resolve_capability(
     capability_id: str,
+    raw_request: Request,
     credential_mode: str | None = Query(default=None, description="Filter by credential mode (byo, rhumb_managed, agent_vault)"),
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
@@ -352,7 +368,7 @@ async def resolve_capability(
         f"&select=id,domain,action,description&limit=1"
     )
     if not caps:
-        return {"data": None, "error": f"Capability '{capability_id}' not found."}
+        return _capability_not_found(raw_request, capability_id)
 
     # Get service mappings
     mapping_path = (
@@ -528,6 +544,7 @@ async def resolve_capability(
 @router.get("/capabilities/{capability_id}/credential-modes")
 async def get_credential_modes(
     capability_id: str,
+    raw_request: Request,
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Return credential mode availability for a capability, per provider.
@@ -543,7 +560,7 @@ async def get_credential_modes(
         f"&select=id,domain,action,description&limit=1"
     )
     if not caps:
-        return {"data": None, "error": f"Capability '{capability_id}' not found."}
+        return _capability_not_found(raw_request, capability_id)
 
     # Get provider mappings
     mappings = await supabase_fetch(

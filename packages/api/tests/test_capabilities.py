@@ -147,14 +147,15 @@ async def test_get_capability(app):
 
 @pytest.mark.anyio
 async def test_get_capability_not_found(app):
-    """GET /v1/capabilities/nonexistent returns error."""
+    """GET /v1/capabilities/nonexistent returns 404 with standardized envelope."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/v1/capabilities/nonexistent")
-    assert resp.status_code == 200
+    assert resp.status_code == 404
     body = resp.json()
-    assert body["data"] is None
-    assert "not found" in body["error"]
+    assert body["error"] == "capability_not_found"
+    assert "nonexistent" in body["message"]
+    assert "resolution" in body
 
 
 @pytest.mark.anyio
@@ -177,14 +178,15 @@ async def test_resolve_capability(app):
 
 @pytest.mark.anyio
 async def test_resolve_capability_not_found(app):
-    """GET /v1/capabilities/nonexistent/resolve returns error."""
+    """GET /v1/capabilities/nonexistent/resolve returns 404 with standardized envelope."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/v1/capabilities/nonexistent/resolve")
-    assert resp.status_code == 200
+    assert resp.status_code == 404
     body = resp.json()
-    assert body["data"] is None
-    assert "not found" in body["error"]
+    assert body["error"] == "capability_not_found"
+    assert "nonexistent" in body["message"]
+    assert "resolution" in body
 
 
 @pytest.mark.anyio
