@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from routes._supabase import supabase_fetch
 
@@ -655,11 +655,19 @@ async def get_agent_credentials(
 
     Shows which services have BYO credentials configured, which capabilities
     those credentials unlock, and which capabilities need credentials.
+
+    Requires a valid API key — this endpoint exposes Rhumb's managed
+    credential inventory and must not be accessible to unauthenticated callers.
     """
     if not x_rhumb_key:
-        return {"data": None, "error": "X-Rhumb-Key header required"}
+        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
-    agent_id = x_rhumb_key
+    from schemas.agent_identity import get_agent_identity_store
+    agent = await get_agent_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+
+    agent_id = agent.agent_id
 
     # Get all capability-service mappings
     all_mappings = await supabase_fetch(
