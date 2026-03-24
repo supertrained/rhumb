@@ -46,7 +46,7 @@ const API = "https://api.rhumb.dev/v1";
           <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">JavaScript</p>
           <pre class="bg-surface border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300"><code>{`const res = await fetch("${API}/services/stripe/score");
 const { data } = await res.json();
-console.log(data.overall_score); // 8.1`}</code></pre>
+console.log(data.an_score); // 8.1`}</code></pre>
         </div>
 
         <!-- Python -->
@@ -54,7 +54,7 @@ console.log(data.overall_score); // 8.1`}</code></pre>
           <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Python</p>
           <pre class="bg-surface border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300"><code>{`import requests
 data = requests.get("${API}/services/stripe/score").json()["data"]
-print(data["overall_score"])  # 8.1`}</code></pre>
+print(data["an_score"])  # 8.1`}</code></pre>
         </div>
 
         <div class="bg-surface border border-slate-800 rounded-lg p-4 text-sm text-slate-400">
@@ -62,7 +62,7 @@ print(data["overall_score"])  # 8.1`}</code></pre>
           <pre class="mt-2 text-xs font-mono overflow-x-auto"><code>{`{
   "data": {
     "slug": "stripe",
-    "overall_score": 8.1,
+    "an_score": 8.1,
     "tier": "L4 Native",
     "execution_score": 8.4,
     "access_readiness_score": 7.3,
@@ -183,7 +183,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
         </div>
 
         <p class="text-slate-400 text-sm">
-          16 tools available: <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">find_tools</code>, 
+          16 tools available: <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">find_services</code>, 
           <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_score</code>, 
           <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_alternatives</code>, 
           <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_failure_modes</code>, 
