@@ -1,7 +1,7 @@
 {
   "name": "rhumb-mcp",
-  "version": "0.7.1",
-  "description": "Model Context Protocol (MCP) server for Rhumb — agent-native tool intelligence with capability execution and discovery across 200+ scored services",
+  "version": "0.8.0",
+  "description": "Model Context Protocol (MCP) server for Rhumb — agent-native tool intelligence with capability execution and discovery across 600+ scored services",
   "private": false,
   "type": "module",
   "main": "dist/src/index.js",
