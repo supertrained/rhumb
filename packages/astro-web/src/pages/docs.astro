@@ -19,7 +19,7 @@ const ENDPOINTS = [
         "description": "Enterprise payment platform with global reach"
       }
     ],
-    "total": 212,
+    "total": 665,
     "limit": 1,
     "offset": 0
   },
@@ -146,25 +146,104 @@ const DOCS_JSON_LD = {
 };
 
 const MCP_TOOLS = [
+  // Discovery (no auth required)
   {
-    name: "find_tools",
-    desc: "Search for agent-native tools by use case",
-    example: 'find_tools("payment processing")',
+    name: "find_services",
+    desc: "Search for services by use case or need",
+    example: 'find_services("payment processing")',
+    category: "discovery",
   },
   {
     name: "get_score",
-    desc: "Get the full AN Score breakdown for a specific service",
+    desc: "Full AN Score breakdown for a specific service",
     example: 'get_score("stripe")',
+    category: "discovery",
   },
   {
     name: "get_alternatives",
-    desc: "Find alternatives to a service in the same category",
+    desc: "Find scored alternatives in the same category",
     example: 'get_alternatives("paypal")',
+    category: "discovery",
   },
   {
     name: "get_failure_modes",
-    desc: "Get known failure modes and workarounds for a service",
+    desc: "Known failure modes and workarounds for a service",
     example: 'get_failure_modes("stripe")',
+    category: "discovery",
+  },
+  {
+    name: "search_services",
+    desc: "Semantic search across all scored services",
+    example: 'search_services("email sending API")',
+    category: "discovery",
+  },
+  {
+    name: "get_ceremonies",
+    desc: "Signup and onboarding friction for a service",
+    example: 'get_ceremonies("sendgrid")',
+    category: "discovery",
+  },
+  // Resolve (auth required for execution)
+  {
+    name: "resolve_capability",
+    desc: "Find the best provider for a capability based on AN Score",
+    example: 'resolve_capability("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "execute_capability",
+    desc: "Execute a capability through Rhumb's managed proxy",
+    example: 'execute_capability("email.send", {to: "user@example.com", subject: "Hello"})',
+    category: "resolve",
+  },
+  {
+    name: "estimate_cost",
+    desc: "Check pricing before executing a capability",
+    example: 'estimate_cost("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "get_credentials",
+    desc: "Check available credential modes for a capability",
+    example: 'get_credentials("email.send")',
+    category: "resolve",
+  },
+  {
+    name: "get_routing",
+    desc: "See how a capability routes to providers",
+    example: 'get_routing("scrape.extract")',
+    category: "resolve",
+  },
+  // Billing & budget
+  {
+    name: "get_budget_status",
+    desc: "Check remaining prepaid balance and spend",
+    example: "get_budget_status()",
+    category: "billing",
+  },
+  {
+    name: "get_balance",
+    desc: "Current account balance",
+    example: "get_balance()",
+    category: "billing",
+  },
+  {
+    name: "get_spend",
+    desc: "Spend breakdown by service and time period",
+    example: "get_spend()",
+    category: "billing",
+  },
+  {
+    name: "get_ledger",
+    desc: "Transaction history and billing ledger",
+    example: "get_ledger()",
+    category: "billing",
+  },
+  {
+    name: "get_payment_url",
+    desc: "Get URL to add prepaid balance via Stripe",
+    example: "get_payment_url()",
+    category: "billing",
   },
 ];
 ---
