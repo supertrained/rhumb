@@ -1,6 +1,13 @@
 import type { APIRoute } from 'astro';
 import { getServices, getCategories } from '../lib/api';
-import pricing from "../../../shared/pricing.json";
+// Pricing values inlined to avoid cross-package JSON import failures on Vercel
+const pricing = {
+  free_tier: null,
+  modes: {
+    rhumb_managed: { margin_percent: 20 },
+    x402: { margin_percent: 15, token: "USDC", network: "Base" },
+  },
+};
 
 export const GET: APIRoute = async () => {
   const [services, categories] = await Promise.all([
@@ -31,7 +38,7 @@ Install the MCP server for programmatic access:
   npx rhumb-mcp
 
 MCP tools available:
-  find_tools("payment processing") — discover services by need
+  find_services("payment processing") — discover services by need
   get_score("stripe") — detailed AN Score breakdown
   get_alternatives("stripe") — comparable services ranked
   get_failure_modes("stripe") — known failure patterns
@@ -56,7 +63,7 @@ ${apiBase}
 - GET ${apiBase}/search?q={query} — semantic search
 
 ## Pricing
-- Free tier: ${pricing.free_tier.included_executions_per_month} calls per month
+- Discovery (search, scores, browsing): Always free
 - Rhumb-managed billing: upstream cost + ${pricing.modes.rhumb_managed.margin_percent} percent
 - x402: ${pricing.modes.x402.token} on ${pricing.modes.x402.network}, upstream cost + ${pricing.modes.x402.margin_percent} percent
 - BYOK: no Rhumb markup, provider charges pass through directly
