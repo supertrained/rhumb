@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const POSTS = [
   {
+    slug: "how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+    description:
+      "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents.",
+    date: "March 24, 2026",
+    tag: "Methodology",
+    readTime: "11 min read",
+  },
+  {
     slug: "agent-native-frontend-stack",
     title: "The Agent-Native Frontend Stack",
     description:
