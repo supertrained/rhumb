@@ -56,7 +56,7 @@ ${apiBase}
 - GET ${apiBase}/search?q={query} — semantic search
 
 ## Pricing
-- Free tier: ${pricing.free_tier.included_executions_per_month} executions per month
+- Free tier: ${pricing.free_tier.included_executions_per_month} calls per month
 - Rhumb-managed billing: upstream cost + ${pricing.modes.rhumb_managed.margin_percent} percent
 - x402: ${pricing.modes.x402.token} on ${pricing.modes.x402.network}, upstream cost + ${pricing.modes.x402.margin_percent} percent
 - BYOK: no Rhumb markup, provider charges pass through directly

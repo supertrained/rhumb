@@ -13,31 +13,31 @@ const executionExplainerId = "what-counts-as-an-execution";
 const EXECUTION_EXAMPLES = [
   {
     label: "Send an email via Resend",
-    executions: "1 execution",
+    executions: "1 call",
     note: "Rhumb makes one third-party API call on your behalf.",
     charged: "yes",
   },
   {
     label: "Search for a service on Rhumb",
-    executions: "0 executions",
+    executions: "0 calls",
     note: "Discovery is never charged.",
     charged: "no",
   },
   {
     label: "Get an AN Score for a service",
-    executions: "0 executions",
+    executions: "0 calls",
     note: "Scoring is always free.",
     charged: "no",
   },
   {
     label: "Execute a 3-step capability chain",
-    executions: "3 executions",
+    executions: "3 calls",
     note: "Each provider API call counts separately.",
     charged: "yes",
   },
   {
-    label: "Failed execution (provider error)",
-    executions: "0 executions",
+    label: "Failed call (provider error)",
+    executions: "0 calls",
     note: "Provider errors are not charged.",
     charged: "no",
   },
@@ -45,8 +45,8 @@ const EXECUTION_EXAMPLES = [
 
 const FAQ = [
   {
-    q: "What counts as an execution?",
-    a: "An execution is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider executions are not charged.",
+    q: "What counts as a call?",
+    a: "A call is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider calls are not charged.",
   },
 ];
 
@@ -56,7 +56,7 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Rhumb pricing: pay only for what you execute. Discovery, scoring, and browsing are always free. Per-execution pricing with cost estimates before every call.",
+    "Rhumb pricing: pay only for the calls you make. Discovery, scoring, and browsing are always free. Per-call pricing with cost estimates before every call.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -67,10 +67,10 @@ const PRICING_JSON_LD = {
 
 <Layout
   title="Pricing"
-  description="Pay only for what you execute. Per-execution pricing with pre-call cost estimates. Discovery, scoring, and browsing are always free."
+  description="Pay only for the calls you make. Per-call pricing with pre-call cost estimates. Discovery, scoring, and browsing are always free."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Pay only for what you execute. Know the cost before every call. Discovery is always free."
+  ogDescription="Pay only for the calls you make. Know the cost before every call. Discovery is always free."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
@@ -83,7 +83,7 @@ const PRICING_JSON_LD = {
           <span class="block text-slate-400 mt-2">Know the cost before every call.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Discovery, scoring, and browsing are always free. When your agent executes a capability
+          Discovery, scoring, and browsing are always free. When your agent runs a capability
           through Rhumb, you pay per call — and you can check the exact price before committing.
           No subscriptions, no seat fees, no minimums.
         </p>
@@ -156,7 +156,7 @@ const PRICING_JSON_LD = {
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Pricing</dt>
-              <dd class="text-slate-200">Per-execution, with estimates before every call</dd>
+              <dd class="text-slate-200">Per-call, with estimates before every call</dd>
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Best for</dt>
@@ -212,14 +212,14 @@ const PRICING_JSON_LD = {
         id={executionExplainerId}
         class="mt-10"
         data-testid="execution-explainer"
-        data-section="execution-explainer"
+          data-section="execution-explainer"
       >
         <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
           <div class="max-w-3xl">
             <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-3">Usage</p>
-            <h2 class="font-display text-2xl font-bold text-slate-100">What counts as an execution?</h2>
+            <h2 class="font-display text-2xl font-bold text-slate-100">What counts as a call?</h2>
             <p class="mt-3 text-slate-400 leading-7" data-testid="execution-definition">
-              1 execution = 1 API call to a third-party service routed through Rhumb. Scoring, searching, and
+              1 call = 1 API call to a third-party service routed through Rhumb. Scoring, searching, and
               browsing are always free. You&apos;re only charged when Rhumb makes an API call on your behalf.
             </p>
           </div>
@@ -294,7 +294,7 @@ const PRICING_JSON_LD = {
           <h2 class="font-display text-2xl font-bold text-slate-100">For agents and automation</h2>
           <p class="mt-3 text-slate-400 leading-7">
             The canonical machine-readable source remains public. Resolve the pricing contract,
-            then call the estimate endpoint for exact per-execution numbers before you run anything.
+            then call the estimate endpoint for exact per-call numbers before you run anything.
           </p>
           <div class="mt-5 space-y-4">
             <div class="bg-elevated rounded-xl border border-slate-800 p-4">
@@ -317,7 +317,7 @@ const PRICING_JSON_LD = {
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
             <li>Pre-call cost estimates — know the price before you execute.</li>
             <li>Smart provider routing — Rhumb picks the best provider for each call.</li>
-            <li>Fail-closed billing — you're never charged for failed executions.</li>
+            <li>Fail-closed billing — you're never charged for failed calls.</li>
           </ul>
           <p class="mt-5 text-xs font-mono text-slate-500">
             Already have provider API keys? BYOK passthrough routes through Rhumb at zero

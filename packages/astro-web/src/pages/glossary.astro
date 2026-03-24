@@ -25,7 +25,7 @@ const RESOURCE_LINKS = [
   {
     label: "Quickstart",
     href: "/quickstart",
-    desc: "Make the first read call, then move from discovery into execution.",
+    desc: "Make the first read call, then move from discovery into live calls.",
   },
   {
     label: "Methodology",
@@ -40,7 +40,7 @@ const RESOURCE_LINKS = [
   {
     label: "Pricing",
     href: "/pricing",
-    desc: "Confirm per-execution pricing, x402 rail, and BYOK terms.",
+    desc: "Confirm per-call pricing, x402 rail, and BYOK terms.",
   },
   {
     label: "Docs",
@@ -119,14 +119,14 @@ const TERMS: GlossaryTerm[] = [
     ],
   },
   {
-    id: "primitive",
-    name: "Primitive",
+    id: "category",
+    name: "Category",
     category: "Rhumb Model",
     summary: "A core job category agents repeatedly need, such as payments, email, or storage.",
     detail:
-      "Primitives are the underlying work domains Rhumb analyzes. They are broader than a single provider and help frame the choice set before narrowing to concrete capabilities or services.",
+      "Categories are the underlying work domains Rhumb analyzes. They are broader than a single provider and help frame the choice set before narrowing to concrete capabilities or services.",
     whyItMatters:
-      "Thinking in primitives helps humans and agents start from the job to be done instead of locking onto a provider too early.",
+      "Thinking in categories helps humans and agents start from the job to be done instead of locking onto a provider too early.",
     related: [
       { label: "Capability", href: "#capability" },
       { label: "Leaderboard", href: "#leaderboard" },
@@ -139,7 +139,7 @@ const TERMS: GlossaryTerm[] = [
     category: "Rhumb Model",
     summary: "A specific action Rhumb can help an agent perform, such as sending an email or creating a payment link.",
     detail:
-      "A capability is narrower than a primitive and operational enough to route or execute. Multiple services may satisfy the same capability, which lets Rhumb compare options instead of hard-coding a single provider.",
+      "A capability is narrower than a category and operational enough to route or execute. Multiple services may satisfy the same capability, which lets Rhumb compare options instead of hard-coding a single provider.",
     whyItMatters:
       "Capabilities are the bridge between discovery and action: find the job, rank the providers, then execute with the right credential mode.",
     related: [
@@ -240,12 +240,12 @@ const TERMS: GlossaryTerm[] = [
     ],
   },
   {
-    id: "execution",
-    name: "Execution",
-    category: "Execution and Billing",
-    summary: "A real action performed through Rhumb, such as sending an email or creating a payment link.",
+    id: "call",
+    name: "Call",
+    category: "Calls and Billing",
+    summary: "A billed API call routed through Rhumb, such as sending an email or creating a payment link.",
     detail:
-      "Execution is different from free discovery. Discovery means reading scores, search results, docs, or leaderboards. Execution means Rhumb is actually routing a task to an upstream provider. Rhumb's public free tier includes 1,000 executions per month.",
+      "A call is different from free discovery. Discovery means reading scores, search results, docs, or leaderboards. A call means Rhumb is actually routing a task to an upstream provider. Rhumb's public free tier includes 1,000 calls per month.",
     whyItMatters:
       "This is the line between browsing intelligence and consuming paid operational infrastructure.",
     related: [
@@ -258,7 +258,7 @@ const TERMS: GlossaryTerm[] = [
     id: "byok",
     name: "BYOK",
     aliases: ["Bring Your Own Key"],
-    category: "Execution and Billing",
+    category: "Calls and Billing",
     summary: "A mode where you pass your own upstream API credential through Rhumb.",
     detail:
       "In BYOK, Rhumb helps with routing and interface consistency, but the provider account remains yours. Rhumb adds no markup in this mode.",
@@ -273,25 +273,25 @@ const TERMS: GlossaryTerm[] = [
   {
     id: "managed-mode",
     name: "Managed Mode",
-    category: "Execution and Billing",
+    category: "Calls and Billing",
     summary: "A mode where Rhumb holds the upstream connection so you do not need your own provider account.",
     detail:
-      "Managed mode uses per-execution pricing. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
+      "Managed mode uses per-call pricing. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
     whyItMatters:
-      "This is the lowest-friction path from intent to working execution — Rhumb handles credentials, routing, and billing.",
+      "This is the lowest-friction path from intent to a completed call — Rhumb handles credentials, routing, and billing.",
     related: [
       { label: "Pricing", href: "/pricing" },
-      { label: "Execution", href: "#execution" },
+      { label: "Call", href: "#call" },
       { label: "BYOK", href: "#byok" },
     ],
   },
   {
     id: "x402",
     name: "x402",
-    category: "Execution and Billing",
+    category: "Calls and Billing",
     summary: "A pay-per-call protocol using HTTP 402 payment flows instead of pre-issued API credentials.",
     detail:
-      "Rhumb's current x402 support uses USDC on Base. Instead of signing up first, an agent receives payment requirements, pays the request, and uses that payment to authorize execution.",
+      "Rhumb's current x402 support uses USDC on Base. Instead of signing up first, an agent receives payment requirements, pays the request, and uses that payment to authorize the call.",
     whyItMatters:
       "x402 is the most agent-native path when you want zero-signup access and per-call payment without an account creation step.",
     related: [
@@ -303,7 +303,7 @@ const TERMS: GlossaryTerm[] = [
   {
     id: "usdc",
     name: "USDC",
-    category: "Execution and Billing",
+    category: "Calls and Billing",
     summary: "A dollar-denominated stablecoin used on Rhumb's current x402 payment rail.",
     detail:
       "On Rhumb, USDC is currently used on the Base network for x402 payments. In practice, that means the unit of payment is crypto-backed infrastructure while the amount is intended to track US dollars.",
@@ -317,7 +317,7 @@ const TERMS: GlossaryTerm[] = [
   },
 ];
 
-const CATEGORY_ORDER = ["Foundations", "Rhumb Model", "Scoring", "Execution and Billing"];
+const CATEGORY_ORDER = ["Foundations", "Rhumb Model", "Scoring", "Calls and Billing"];
 
 const groupedTerms = CATEGORY_ORDER.map((category) => ({
   category,
@@ -330,7 +330,7 @@ const GLOSSARY_JSON_LD = {
   name: "Rhumb Glossary",
   url: "https://rhumb.dev/glossary",
   description:
-    "Canonical definitions for Rhumb terminology, scoring language, and execution modes for developers and agents.",
+    "Canonical definitions for Rhumb terminology, scoring language, and call modes for developers and agents.",
   dateModified: `${LAST_UPDATED_ISO}T00:00:00Z`,
   hasDefinedTerm: TERMS.map((term) => ({
     "@type": "DefinedTerm",
@@ -347,7 +347,7 @@ const GLOSSARY_JSON_LD = {
   description="Canonical Rhumb definitions for developers and agents: AN Score, evidence tiers, capabilities, x402, BYOK, managed mode, and more."
   canonical="/glossary"
   ogTitle="Rhumb Glossary"
-  ogDescription="A public glossary of Rhumb terms, scoring language, and execution modes for humans and agents."
+  ogDescription="A public glossary of Rhumb terms, scoring language, and call modes for humans and agents."
   ogUrl="https://rhumb.dev/glossary"
   jsonLd={GLOSSARY_JSON_LD}
 >
@@ -378,7 +378,7 @@ const GLOSSARY_JSON_LD = {
               <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber mb-2">For Humans</p>
               <p class="text-sm leading-6 text-slate-400">
                 Start with the quick definitions, then follow the related links for pricing, trust, methodology,
-                docs, or execution setup.
+                docs, or call setup.
               </p>
             </div>
             <div class="bg-elevated border border-slate-800 rounded-xl p-4">

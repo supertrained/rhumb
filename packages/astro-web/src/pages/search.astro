@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import Search from "../components/Search.tsx";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
-import { getServices } from "../lib/api";
+import { getServiceCount, getServices } from "../lib/api";
 
 // Bypass Vercel edge caching — search results depend on query params
 Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
@@ -10,9 +10,11 @@ Astro.response.headers.set('CDN-Cache-Control', 'no-store');
 Astro.response.headers.set('Vercel-CDN-Cache-Control', 'no-store');
 
 const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const serviceCountPromise = getServiceCount();
 
 // Fetch and filter services
 const allServices = query ? await getServices() : [];
+const serviceCount = query ? allServices.length : await serviceCountPromise;
 const results = allServices.filter((s) => {
   const search = query.toLowerCase();
   return (
@@ -28,7 +30,7 @@ const SEARCH_JSON_LD = {
   "@type": "SearchResultsPage",
   name: "Search | Rhumb",
   url: "https://rhumb.dev/search",
-  description: "Search agent-native developer tools and APIs scored by Rhumb.",
+  description: "Search agent-native services scored by Rhumb.",
   ...(query
     ? {
         mainEntity: {
@@ -51,7 +53,7 @@ const SEARCH_JSON_LD = {
 
 <Layout
   title="Search | Rhumb"
-  description="Search agent-native developer tools and APIs scored by Rhumb."
+  description="Search agent-native services scored by Rhumb."
   canonical="https://rhumb.dev/search"
   jsonLd={SEARCH_JSON_LD}
 >
@@ -121,7 +123,7 @@ const SEARCH_JSON_LD = {
       ) : (
         <div class="py-12">
           <p class="text-slate-400 text-sm leading-relaxed mb-6 max-w-xl mx-auto text-center">
-            Search across 100+ scored APIs and developer tools. Every service is rated on 20 dimensions using
+            Search across {serviceCount} scored services. Every service is rated on 20 dimensions using
             the AN Score methodology — 70% Execution reliability + 30% Access Readiness. Results are
             server-rendered for both human and agent access.
           </p>

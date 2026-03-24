@@ -3,7 +3,7 @@ export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 
 type ContentType = "Comparison" | "Autopsy" | "Guide" | "Article";
-type ScoreTier = "native" | "ready" | "developing" | "limited";
+type ScoreTier = "native" | "ready" | "developing" | "emerging";
 
 interface RelatedPost {
   slug: string;
@@ -264,7 +264,7 @@ const POSTS: Post[] = [
     contentType: "Autopsy",
     category: "CRM",
     score: 4.8,
-    tier: "limited",
+    tier: "emerging",
     keyFinding: "Governance ceiling is real. Agents can't sign contracts or navigate compliance flows autonomously.",
     related: [
       { slug: "hubspot-vs-salesforce-vs-pipedrive", title: "HubSpot vs Salesforce vs Pipedrive" },
@@ -281,7 +281,7 @@ const POSTS: Post[] = [
     contentType: "Autopsy",
     category: "CRM",
     score: 4.6,
-    tier: "limited",
+    tier: "emerging",
     keyFinding: "Six failure modes. No idempotency keys. Rate limits that vary by tier without documentation.",
     related: [
       { slug: "hubspot-vs-salesforce-vs-pipedrive", title: "HubSpot vs Salesforce vs Pipedrive" },
@@ -396,7 +396,7 @@ const POSTS: Post[] = [
   {
     slug: "self-score",
     title: "We Scored Ourselves First — Here's What We Found",
-    description: "Rhumb's honest assessment of its own agent-nativeness using our own framework. 3.5/10 (Limited). Why transparency is the credibility moat.",
+    description: "Rhumb's honest assessment of its own agent-nativeness using our own framework. 3.5/10 (Emerging). Why transparency is the credibility moat.",
     date: "March 11, 2026",
     dateISO: "2026-03-11T00:00:00Z",
     readTime: "12 min",
@@ -480,20 +480,20 @@ const TIER_COLORS: Record<ScoreTier, string> = {
   native:     "#10B981",
   ready:      "#3B82F6",
   developing: "#F59E0B",
-  limited:    "#EF4444",
+  emerging:   "#EF4444",
 };
 const TIER_LABELS: Record<ScoreTier, string> = {
   native:     "Agent-Native",
   ready:      "Agent-Ready",
   developing: "Developing",
-  limited:    "Limited",
+  emerging:   "Emerging",
 };
 
 function getScoreTier(score: number): ScoreTier {
   if (score >= 9.0) return "native";
   if (score >= 7.0) return "ready";
   if (score >= 5.0) return "developing";
-  return "limited";
+  return "emerging";
 }
 
 // Enhanced JSON-LD with per-post type metadata

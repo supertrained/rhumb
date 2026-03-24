@@ -1,7 +1,7 @@
 
 # We Scored Ourselves First — Here's What We Found
 
-**TL;DR:** We built a scoring system for agent-native tools. Before we launched, we scored ourselves. The result: **3.5/10 (L1 Limited)**. This post is what we learned in the process.
+**TL;DR:** We built a scoring system for agent-native tools. Before we launched, we scored ourselves. The result: **3.5/10 (L1 Emerging)**. This post is what we learned in the process.
 
 ---
 
@@ -9,7 +9,7 @@
 
 Most product launches work backwards: build something, launch it, hope it works. Rhumb works differently. We built a framework for measuring whether tools work for agents. Then we applied it to ourselves.
 
-**The score stung.** 3.5/10 is "Limited" tier — the same category as PayPal (4.9) and Square (6.3). We're literally worse than tools we're supposed to be evaluating.
+**The score stung.** 3.5/10 is "Emerging" tier — the same category as PayPal (4.9) and Square (6.3). We're literally worse than tools we're supposed to be evaluating.
 
 But that's the point. If we can't pass our own test, why should anyone trust our scores for others?
 

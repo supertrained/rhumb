@@ -1,6 +1,11 @@
 ---
 export const prerender = true;
 import Layout from "../layouts/Layout.astro";
+import { getServices } from "../lib/api";
+
+const services = await getServices();
+const serviceCount = services.length;
+const categoryCount = new Set(services.map((service) => service.category)).size;
 
 const ORG_JSON_LD = {
   "@context": "https://schema.org",
@@ -8,7 +13,7 @@ const ORG_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    "Agent-native tool scoring, discovery, and access. Every API rated for AI execution.",
+    `Agent-native tool scoring, discovery, and access. ${serviceCount} scored services for AI agents.`,
   foundingDate: "2026-03",
   parentOrganization: {
     "@type": "Organization",
@@ -117,7 +122,7 @@ const PERSON_PEDRO_JSON_LD = {
             eventually: agents are terrible at choosing tools. They rely on
             stale training data, expensive web searches, or whatever their
             operator hardcoded last week. There was no infrastructure for agents
-            to discover which APIs actually work for them, which ones break in
+            to discover which services actually work for them, which ones break in
             predictable ways, and which ones they can access without a human
             clicking through an OAuth screen.
           </p>
@@ -148,7 +153,7 @@ const PERSON_PEDRO_JSON_LD = {
               href="/leaderboard"
               class="text-amber hover:underline underline-offset-2"
             >
-              250+ services across 47 categories
+              {serviceCount} scored services across {categoryCount} categories
             </a>{" "}
             on{" "}
             <a
@@ -318,7 +323,7 @@ const PERSON_PEDRO_JSON_LD = {
             The honest answer: because the product requires it.
           </p>
           <p>
-            Rhumb scores APIs on how well they work for AI agents. If the
+            Rhumb scores services on how well they work for AI agents. If the
             company building those scores has never operated as an agent, the
             scores are theoretical. Pedro doesn&#39;t just test tools — Pedro
             <em class="text-slate-300">depends</em> on them. The Slack

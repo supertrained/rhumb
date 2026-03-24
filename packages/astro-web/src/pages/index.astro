@@ -13,16 +13,6 @@ const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: st
   verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
 };
 
-const HOME_JSON_LD = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Rhumb",
-  url: "https://rhumb.dev",
-  description:
-    "Most APIs weren't built for agents. Rhumb scores 212+ APIs for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability. Neutral scores, real failure mode data, zero-signup access via MCP or REST API.",
-  logo: "https://rhumb.dev/favicon.ico",
-};
-
 function scoreLabel(value: number | null): string {
   return value === null ? "Pending" : value.toFixed(1);
 }
@@ -37,6 +27,17 @@ const [leaderboard, serviceCount] = await Promise.all([
   getLeaderboard("payments", { limit: 3 }),
   getServiceCount(),
 ]);
+
+const HOME_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Rhumb",
+  url: "https://rhumb.dev",
+  description:
+    `Most APIs weren't built for agents. Rhumb scores ${serviceCount} services for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability. Neutral scores, real failure mode data, zero-signup access via MCP or REST API.`,
+  logo: "https://rhumb.dev/favicon.ico",
+};
+
 const previewItems = leaderboard.items.slice(0, 3);
 const stats = [
   { value: String(serviceCount), label: "services scored" },
@@ -48,10 +49,10 @@ const stats = [
 
 <Layout
   title="Rhumb — Most APIs weren't built for agents. Now you know which ones were."
-  description="Rhumb scores 212+ APIs for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability, and more. Neutral scores, real failure mode data, zero-signup access via MCP or REST API."
+  description={`Rhumb scores ${serviceCount} services for AI agent compatibility across 20 dimensions — auth, error handling, rate limits, schema stability, and more. Neutral scores, real failure mode data, zero-signup access via MCP or REST API.`}
   canonical="https://rhumb.dev/"
   ogTitle="Rhumb — Most APIs weren't built for agents"
-  ogDescription="212+ APIs scored for AI agent compatibility. Neutral scores, real failure modes, zero-signup access. Browse, query via REST API, or connect via MCP."
+  ogDescription={`${serviceCount} services scored for AI agent compatibility. Neutral scores, real failure modes, zero-signup access. Browse, query via REST API, or connect via MCP.`}
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
 >
@@ -67,7 +68,7 @@ const stats = [
       <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
         <div class="animate-fade-up flex items-center gap-2 mb-6">
           <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">{serviceCount} APIs scored for agent compatibility</span>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">{serviceCount} scored services for agent compatibility</span>
         </div>
 
         <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.05] tracking-tight max-w-3xl">
@@ -76,7 +77,7 @@ const stats = [
 
         <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">
           Rhumb measures execution reliability and access readiness for every
-          API your agent might call. Neutral scores. Real failure mode data.
+          service your agent might call. Neutral scores. Real failure mode data.
           Zero-signup access via MCP or REST API.
         </p>
 

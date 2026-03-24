@@ -21,7 +21,7 @@ function autonomyReadinessLabel(p1: number | null, g1: number | null, w1: number
   const valid = [p1, g1, w1].filter((s): s is number => s !== null);
   if (valid.length === 0) return "Pending";
   const avg = valid.reduce((a, b) => a + b, 0) / valid.length;
-  return avg >= 6.0 ? "Ready for agent use" : "Limited";
+  return avg >= 6.0 ? "Ready for agent use" : "Emerging";
 }
 
 function avgAutonomyScore(p1: number | null, g1: number | null, w1: number | null): number | null {

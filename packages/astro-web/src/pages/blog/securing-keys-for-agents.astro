@@ -112,7 +112,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
   -d '{"to": "user@example.com", "subject": "Hello"}'
 \`\`\`
 
-**When to use it:** You don't want to manage individual service accounts. You want Rhumb to handle authentication, rate limits, and failover. You want per-execution pricing with pre-call cost estimates.
+**When to use it:** You don't want to manage individual service accounts. You want Rhumb to handle authentication, rate limits, and failover. You want per-call pricing with pre-call cost estimates.
 
 **Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
 

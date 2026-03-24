@@ -19,7 +19,7 @@ export type TierInfo = {
   /** Full label e.g. "L4 Native" */
   label: string;
   /** Tier key */
-  tier: "native" | "ready" | "developing" | "limited" | "pending";
+  tier: "native" | "ready" | "developing" | "emerging" | "pending";
 };
 
 /** Derive tier display info from a numeric AN Score. */
@@ -83,8 +83,8 @@ export function getTierInfo(score: number | null): TierInfo {
     glowClass: "glow-limited",
     hex: "#EF4444",
     letter: "L1",
-    label: "L1 Limited",
-    tier: "limited",
+    label: "L1 Emerging",
+    tier: "emerging",
   };
 }
 
@@ -96,6 +96,8 @@ export function getTierInfoFromString(tier: string | null): TierInfo {
   if (upper.startsWith("L4") || upper === "NATIVE") return getTierInfo(8.5);
   if (upper.startsWith("L3") || upper === "READY") return getTierInfo(7.5);
   if (upper.startsWith("L2") || upper === "DEVELOPING") return getTierInfo(6.5);
-  if (upper.startsWith("L1") || upper === "LIMITED" || upper === "EMERGING") return getTierInfo(5.0);
+  if (upper.startsWith("L1") || upper === "LIMITED" || upper === "EMERGING" || upper === "OPAQUE") {
+    return getTierInfo(5.0);
+  }
   return getTierInfo(null);
 }
