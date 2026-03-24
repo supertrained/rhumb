@@ -10,11 +10,11 @@ import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
 export const metadata: Metadata = {
   title: "Leaderboard | Rhumb",
   description:
-    "Browse agent-native tool rankings across 11 categories: AI, payments, auth, and more.",
+    "Browse agent-native tool rankings across 90+ categories: AI, payments, auth, databases, and more.",
   alternates: { canonical: "/leaderboard" },
   openGraph: {
     title: "Leaderboard | Rhumb",
-    description: "Agent-native tool rankings across 11 categories.",
+    description: "Agent-native tool rankings across 90+ categories.",
     images: [{ url: "/api/og", width: 1200, height: 630 }],
   },
 };

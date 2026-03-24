@@ -241,7 +241,7 @@ export default async function SelfScoreBlog() {
             See how other tools score
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 53 developer tools across 10 categories. Our
+            We&apos;ve scored 600+ developer tools across 90+ categories. Our
             AN Score measures real agent compatibility — not marketing
             claims.
           </p>

@@ -251,7 +251,7 @@ export default async function AAGFramework() {
             See how your tools score
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 55 developer tools across 10 categories using the
+            We&apos;ve scored 600+ developer tools across 90+ categories using the
             AN Score — the quantitative backbone of AAG.
           </p>
           <Link

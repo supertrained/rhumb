@@ -365,7 +365,7 @@ export default function PaymentsForAgents() {
             Want to see how your tools stack up?
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 50+ developer tools across 10 categories.
+            We&apos;ve scored 600+ developer tools across 90+ categories.
           </p>
           <Link
             href="/leaderboard"
