@@ -18,7 +18,8 @@ import {
   CheckCredentialsInputSchema,
   BudgetInputSchema,
   SpendInputSchema,
-  RoutingInputSchema
+  RoutingInputSchema,
+  UsageTelemetryInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindServices } from "./tools/find.js";
@@ -34,6 +35,7 @@ import { handleCheckCredentials } from "./tools/credentials.js";
 import { handleBudget } from "./tools/budget.js";
 import { handleSpend } from "./tools/spend.js";
 import { handleRouting } from "./tools/routing.js";
+import { handleUsageTelemetry } from "./tools/telemetry.js";
 import { handleCheckBalance } from "./tools/check-balance.js";
 import { handleGetPaymentUrl } from "./tools/get-payment-url.js";
 import { handleGetLedger } from "./tools/get-ledger.js";
@@ -266,6 +268,23 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ action, strategy, quality_floor, max_cost_per_call_usd }) => {
       const result = await handleRouting({ action, strategy, quality_floor, max_cost_per_call_usd }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- usage_telemetry ---------------------------------------------------
+  server.tool(
+    "usage_telemetry",
+    "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage.",
+    {
+      days: z.number().min(1).max(90).optional().describe(UsageTelemetryInputSchema.properties.days.description),
+      capability_id: z.string().optional().describe(UsageTelemetryInputSchema.properties.capability_id.description),
+      provider: z.string().optional().describe(UsageTelemetryInputSchema.properties.provider.description)
+    },
+    async ({ days, capability_id, provider }) => {
+      const result = await handleUsageTelemetry({ days, capability_id, provider }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

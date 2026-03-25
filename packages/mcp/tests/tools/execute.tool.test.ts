@@ -45,6 +45,7 @@ function createMockClient(overrides: Partial<RhumbApiClient> = {}): RhumbApiClie
     getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
     getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
     setRoutingStrategy: vi.fn().mockResolvedValue({}),
+    getUsageTelemetry: vi.fn().mockResolvedValue({ agent_id: "", period_days: 7, summary: { total_calls: 0, successful_calls: 0, failed_calls: 0, total_cost_usd: 0, avg_latency_ms: 0, p50_latency_ms: 0, p95_latency_ms: 0 }, by_capability: [], by_provider: [], by_time: [] }),
     getBalance: vi.fn().mockResolvedValue({ balance_usd: 25, balance_usd_cents: 2500, auto_reload_enabled: false }),
     createCheckout: vi.fn().mockResolvedValue({ checkout_url: 'https://checkout.stripe.com/test', session_id: 'cs_test' }),
     getLedger: vi.fn().mockResolvedValue({ entries: [], total_count: 0 }),

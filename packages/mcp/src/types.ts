@@ -447,6 +447,73 @@ export type RoutingOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// usage_telemetry
+// ---------------------------------------------------------------------------
+
+export const UsageTelemetryInputSchema = {
+  type: "object" as const,
+  properties: {
+    days: { type: "number" as const, minimum: 1, maximum: 90, description: "Lookback window in days. Default: 7." },
+    capability_id: { type: "string" as const, description: "Optional capability filter, for example 'search.web_search'." },
+    provider: { type: "string" as const, description: "Optional provider filter, for example 'tavily'." }
+  },
+  required: [] as string[],
+};
+
+export type UsageTelemetryInput = {
+  days?: number;
+  capability_id?: string;
+  provider?: string;
+};
+
+export type UsageTelemetryOutput = {
+  agent_id: string;
+  period_days: number;
+  summary: {
+    total_calls: number;
+    successful_calls: number;
+    failed_calls: number;
+    total_cost_usd: number;
+    avg_latency_ms: number;
+    p50_latency_ms: number;
+    p95_latency_ms: number;
+  };
+  top_capability: string | null;
+  top_provider: string | null;
+  provider_health: Array<{
+    provider: string;
+    status: string;
+    success_rate: number;
+    avg_latency_ms: number;
+    calls: number;
+  }>;
+  by_capability: Array<{
+    capability_id: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost_usd: number;
+    top_provider: string | null;
+  }>;
+  by_provider: Array<{
+    provider: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost_usd: number;
+    error_rate: number;
+    avg_upstream_latency_ms: number;
+  }>;
+  by_time: Array<{
+    period: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+  }>;
+  message: string;
+};
+
+// ---------------------------------------------------------------------------
 // check_balance
 // ---------------------------------------------------------------------------
 
@@ -535,6 +602,7 @@ export const TOOL_SCHEMAS = {
   budget: BudgetInputSchema,
   spend: SpendInputSchema,
   routing: RoutingInputSchema,
+  usage_telemetry: UsageTelemetryInputSchema,
   check_balance: CheckBalanceInputSchema,
   get_payment_url: GetPaymentUrlInputSchema,
   get_ledger: GetLedgerInputSchema

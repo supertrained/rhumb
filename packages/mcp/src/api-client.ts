@@ -68,6 +68,43 @@ export interface LedgerResult {
   total_count: number;
 }
 
+export interface UsageTelemetryResult {
+  agent_id: string;
+  period_days: number;
+  summary: {
+    total_calls: number;
+    successful_calls: number;
+    failed_calls: number;
+    total_cost_usd: number;
+    avg_latency_ms: number;
+    p50_latency_ms: number;
+    p95_latency_ms: number;
+  };
+  by_capability: Array<{
+    capability_id: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost_usd: number;
+    top_provider: string | null;
+  }>;
+  by_provider: Array<{
+    provider: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost_usd: number;
+    error_rate: number;
+    avg_upstream_latency_ms: number;
+  }>;
+  by_time: Array<{
+    period: string;
+    calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+  }>;
+}
+
 // ---------------------------------------------------------------------------
 // Client interface (for dependency injection / testing)
 // ---------------------------------------------------------------------------
@@ -191,6 +228,11 @@ export interface RhumbApiClient {
   getSpend(period?: string): Promise<Record<string, unknown>>;
   getRoutingStrategy(): Promise<Record<string, unknown>>;
   setRoutingStrategy(strategy: string, qualityFloor?: number, maxCost?: number): Promise<Record<string, unknown>>;
+  getUsageTelemetry(opts?: {
+    days?: number;
+    capability_id?: string;
+    provider?: string;
+  }): Promise<UsageTelemetryResult>;
   // Billing
   getBalance(): Promise<BalanceResult>;
   createCheckout(amount_usd: number): Promise<CheckoutResult>;
@@ -657,6 +699,40 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       });
       if (!res.ok) return { error: `Failed to set strategy: ${res.status}` };
       return (await res.json()) as Record<string, unknown>;
+    },
+
+    async getUsageTelemetry(opts?: {
+      days?: number;
+      capability_id?: string;
+      provider?: string;
+    }): Promise<UsageTelemetryResult> {
+      const params = new URLSearchParams();
+      if (opts?.days) params.set("days", String(opts.days));
+      if (opts?.capability_id) params.set("capability_id", opts.capability_id);
+      if (opts?.provider) params.set("provider", opts.provider);
+
+      const qs = params.toString();
+      const url = `${base}/telemetry/usage${qs ? `?${qs}` : ""}`;
+      const apiKey = process.env.RHUMB_API_KEY;
+      if (!apiKey) {
+        throw new Error("RHUMB_API_KEY is required for usage telemetry");
+      }
+
+      const reqHeaders: Record<string, string> = {
+        ...defaultHeaders,
+        "X-Rhumb-Key": apiKey
+      };
+      const res = await fetch(url, { headers: reqHeaders });
+      if (!res.ok) {
+        throw new Error(`Usage telemetry fetch failed: ${res.status}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        throw new Error("Usage telemetry response was malformed");
+      }
+
+      return payload.data as unknown as UsageTelemetryResult;
     },
 
     // -- Billing ----------------------------------------------------------

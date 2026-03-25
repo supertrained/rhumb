@@ -140,6 +140,7 @@ function createMockApiClient(): RhumbApiClient {
     getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
     getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
     setRoutingStrategy: vi.fn().mockResolvedValue({}),
+    getUsageTelemetry: vi.fn().mockResolvedValue({ agent_id: "agent_test", period_days: 7, summary: { total_calls: 3, successful_calls: 3, failed_calls: 0, total_cost_usd: 0.12, avg_latency_ms: 140, p50_latency_ms: 142, p95_latency_ms: 142 }, by_capability: [], by_provider: [], by_time: [] }),
     getBalance: vi.fn().mockResolvedValue({ balance_usd: 25, balance_usd_cents: 2500, auto_reload_enabled: false }),
     createCheckout: vi.fn().mockResolvedValue({ checkout_url: 'https://checkout.stripe.com/test', session_id: 'cs_test' }),
     getLedger: vi.fn().mockResolvedValue({ entries: [], total_count: 0 }),
@@ -174,6 +175,7 @@ function createErrorApiClient(): RhumbApiClient {
     getSpend: vi.fn().mockResolvedValue({ total_spend_usd: 0, total_executions: 0, by_capability: [], by_provider: [] }),
     getRoutingStrategy: vi.fn().mockResolvedValue({ strategy: "balanced", quality_floor: 6.0 }),
     setRoutingStrategy: vi.fn().mockResolvedValue({}),
+    getUsageTelemetry: vi.fn().mockRejectedValue(new Error("API connection refused")),
     getBalance: vi.fn().mockResolvedValue({ balance_usd: 25, balance_usd_cents: 2500, auto_reload_enabled: false }),
     createCheckout: vi.fn().mockResolvedValue({ checkout_url: 'https://checkout.stripe.com/test', session_id: 'cs_test' }),
     getLedger: vi.fn().mockResolvedValue({ entries: [], total_count: 0 }),
@@ -219,7 +221,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 16 registered tools", async () => {
+    it("lists all 17 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -243,8 +245,9 @@ describe("e2e: MCP server integration", () => {
         "resolve_capability",
         "routing",
         "spend",
+        "usage_telemetry",
       ]);
-      expect(tools).toHaveLength(16);
+      expect(tools).toHaveLength(17);
 
       // Each tool has a description and input schema
       for (const tool of tools) {
