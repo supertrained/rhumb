@@ -1,131 +1,162 @@
 # Rhumb
 
-**Agent-native tool intelligence.** Discover, score, and execute external tools — with visible failure modes, cost-aware routing, budget enforcement, and agent-native access paths.
+**Agent-native tool intelligence.** Discover, evaluate, and execute external tools — with trust scores, failure modes, cost-aware routing, and managed credentials.
 
-Most APIs weren't built for agents. Rhumb helps agents and operators see which tools actually work, how they fail, and how to use them.
+🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust)
 
-🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust) · 🔌 [npm: rhumb-mcp](https://www.npmjs.com/package/rhumb-mcp)
-
-## What is Rhumb?
-
-Rhumb is the infrastructure layer agents use to **discover, access, and trust** external tools.
-
-- **212 scored services**
-- **419 capabilities across 80+ domains** (64 executable via managed credentials, 23 providers)
-- **20 scored dimensions** across execution quality and access readiness
-- **3 credential modes** — BYO, Rhumb-managed, and Agent Vault
-- **x402 zero-signup path** for agent-native per-call payment
-- **Cost-aware routing + budget enforcement** before execution, not surprise bills
+---
 
 ## Start in 30 seconds
 
-### Read-only API call
+### MCP (recommended)
+
+```bash
+npx rhumb-mcp@latest
+```
+
+Zero config. Discovery tools work immediately — no signup, no API key.
+
+For execution, pass your Rhumb API key:
+
+```bash
+RHUMB_API_KEY=your_key npx rhumb-mcp@latest
+```
+
+[Get an API key →](https://rhumb.dev/auth/login)
+
+### API (read-only, no auth)
 
 ```bash
 curl "https://api.rhumb.dev/v1/services/stripe/score"
 ```
 
-Read endpoints are public and do not require signup.
+All read endpoints are public.
 
-### MCP
+---
 
-```bash
-npx rhumb-mcp@0.7.0
-```
+## What Rhumb does
 
-### Execute capabilities
+Agents need external tools. Choosing the right one is hard — not because of feature lists, but because of:
 
-Execution paths today:
-- **API key** — sign up, get a key, send `X-Rhumb-Key`
-- **x402 / USDC** — no signup, pay per call, send `X-Payment`
-- **Bring your own key** — pass your own upstream credentials
+- auth and signup friction
+- provisioning reality vs. marketing claims
+- schema instability
+- failure recovery when no human is watching
+- hidden costs and rate limits
+
+Rhumb makes those constraints visible before you commit.
+
+### Rhumb Index — Discover & Evaluate
+
+**695 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+
+- `find_services` — search by capability, domain, or name
+- `an_score` — full score breakdown with dimension-level detail
+- `get_alternatives` — ranked alternatives for any service
+- `get_failure_modes` — known failure patterns before you integrate
+
+### Rhumb Resolve — Execute
+
+**414 capabilities** across 23 providers. Cost-aware routing picks the best provider for each call.
+
+- `execute_capability` — call a capability through Resolve with managed auth
+- `resolve_capability` — see ranked providers before executing
+- `estimate_capability` — get cost estimate before committing
+- Budget enforcement, credential management, and execution telemetry included
+
+### Three credential modes
+
+| Mode | How it works |
+|------|-------------|
+| **BYO** | Bring your own API key — Rhumb routes, you authenticate |
+| **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |
+| **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |
+
+### Payment paths
+
+- **API key** — sign up, get a key, prepaid credits
+- **x402 / USDC** — no signup, pay per call on-chain
+
+---
 
 ## MCP tools
 
-`rhumb-mcp@0.7.0` exposes **16 tools** across discovery, routing, execution, credential management, and billing:
+`rhumb-mcp` exposes **17 tools**:
 
-- `find_tools`
-- `get_score`
-- `get_alternatives`
-- `get_failure_modes`
-- `discover_capabilities`
-- `resolve_capability`
-- `execute_capability`
-- `estimate_capability`
-- `credential_ceremony`
-- `check_credentials`
-- `budget`
-- `spend`
-- `routing`
-- `check_balance`
-- `get_payment_url`
-- `get_ledger`
+**Discovery**
+- `find_services` — search services
+- `an_score` — score breakdown
+- `get_alternatives` — ranked alternatives
+- `get_failure_modes` — failure patterns
+- `discover_capabilities` — browse capability registry
+- `usage_telemetry` — your usage analytics
 
-## Why it exists
+**Execution**
+- `resolve_capability` — ranked providers for a capability
+- `execute_capability` — execute through Resolve
+- `estimate_capability` — cost estimate before execution
+- `credential_ceremony` — set up credentials
+- `check_credentials` — verify credential status
+- `routing` — configure routing strategy
 
-Choosing tools for agents is not the same as choosing tools for human developers.
+**Billing**
+- `budget` — set spend limits
+- `spend` — check current spend
+- `check_balance` — prepaid balance
+- `get_payment_url` — top-up link
+- `get_ledger` — transaction history
 
-The hard part is not feature breadth. It's whether a tool can actually survive agent-style use:
-- auth and signup friction
-- provisioning reality
-- schema instability
-- hidden support burden
-- weak docs or unclear limits
-- failure recovery when no human is watching
+---
 
-Rhumb makes those constraints legible before you commit.
-
-## AN Score
-
-The Agent-Native (AN) Score rates services from 0–10 across two axes:
-
-| Axis | Weight | What it measures |
-|------|--------|------------------|
-| **Execution** | 70% | Reliability, error ergonomics, schema stability, latency, idempotency, autonomy |
-| **Access Readiness** | 30% | Signup friction, credential management, rate limits, documentation quality, sandbox availability |
-
-**Tiers**
-- **L4 Native** (8.0–10.0) — built for agents
-- **L3 Ready** (6.0–7.9) — reliable with minor friction
-- **L2 Developing** (4.0–5.9) — usable with workarounds
-- **L1 Emerging** (0.0–3.9) — significant barriers to agent use
-
-Full methodology: [rhumb.dev/methodology](https://rhumb.dev/methodology)
-
-## Core API surfaces
+## API
 
 Base URL: `https://api.rhumb.dev/v1`
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /services/{slug}/score` | Score breakdown for a service |
-| `GET /services/{slug}` | Service profile, alternatives, and metadata |
-| `GET /services/{slug}/failures` | Known failure modes |
-| `GET /search?q=...` | Search services |
-| `GET /leaderboard/{category}` | Browse ranked category pages |
-| `GET /capabilities` | Browse capability registry |
-| `GET /capabilities/{id}/resolve` | Ranked providers for a capability |
-| `POST /capabilities/{id}/execute` | Execute a capability |
-| `GET /capabilities/{id}/execute/estimate` | Estimate cost before execution |
-| `GET /pricing` | Canonical machine-readable pricing contract |
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `GET /services/{slug}/score` | No | Score breakdown |
+| `GET /services/{slug}` | No | Service profile + metadata |
+| `GET /services/{slug}/failures` | No | Known failure modes |
+| `GET /search?q=...` | No | Search services |
+| `GET /leaderboard/{category}` | No | Category rankings |
+| `GET /capabilities` | No | Capability registry |
+| `GET /capabilities/{id}/resolve` | No | Ranked providers |
+| `POST /capabilities/{id}/execute` | Yes | Execute a capability |
+| `GET /capabilities/{id}/execute/estimate` | Yes | Cost estimate |
+| `GET /telemetry/provider-health` | No | Provider health status |
+| `GET /telemetry/usage` | Yes | Your usage analytics |
+| `GET /pricing` | No | Machine-readable pricing |
+
+---
+
+## Docs
+
+- [Agent Accessibility Guidelines](docs/AGENT-ACCESSIBILITY-GUIDELINES.md) — making web interfaces usable by AI agents
+- [AN Score Methodology](docs/AN-SCORE-V2-SPEC.md) — scoring dimensions, weights, and rubrics
+- [Architecture](docs/ARCHITECTURE.md) — scoring engine design
+- [API Reference](docs/API.md) — endpoint details
+- [Runbooks](docs/runbooks/) — operational procedures
+
+---
 
 ## Repo structure
 
-```text
+```
 rhumb/
 ├── packages/
-│   ├── api/         # Railway-hosted API
-│   ├── astro-web/   # Public website (rhumb.dev)
-│   ├── mcp/         # MCP server (npx rhumb-mcp)
+│   ├── api/         # Python API (Railway)
+│   ├── astro-web/   # Public website (Vercel)
+│   ├── mcp/         # MCP server (npm)
 │   ├── cli/         # CLI tooling
 │   └── shared/      # Shared types/constants
-├── scripts/         # Scoring + verification scripts
-└── artifacts/       # Datasets and score artifacts
+├── docs/            # Public documentation
+├── scripts/         # Scoring + verification
+└── artifacts/       # Score datasets
 ```
 
-## Development
+---
 
-**Node:** use Node 24 for the Astro/Vercel-aligned web surface (`nvm use` from repo root reads `.nvmrc`).
+## Development
 
 ```bash
 # API
@@ -138,23 +169,27 @@ cd packages/mcp && npm ci && npm run dev
 cd packages/astro-web && npm ci && npm run dev
 ```
 
+Node 24+ recommended (`.nvmrc` included).
+
+---
+
 ## Score disputes
 
 Every score is disputable. If you believe a score is inaccurate:
 
-1. Open a [GitHub issue](https://github.com/supertrained/rhumb/issues/new) with evidence
+1. [Open a GitHub issue](https://github.com/supertrained/rhumb/issues/new) with evidence
 2. Or email [providers@supertrained.ai](mailto:providers@supertrained.ai)
 
-Negative findings remain visible. If Rhumb ever becomes pay-to-rank, it stops being useful.
+Negative findings remain visible. Rhumb does not accept payment to change scores.
+
+---
 
 ## Links
 
 - **Website:** [rhumb.dev](https://rhumb.dev)
-- **Quickstart:** [rhumb.dev/quickstart](https://rhumb.dev/quickstart)
-- **Pricing:** [rhumb.dev/pricing](https://rhumb.dev/pricing)
-- **Trust:** [rhumb.dev/trust](https://rhumb.dev/trust)
-- **Blog:** [rhumb.dev/blog](https://rhumb.dev/blog)
-- **X / Twitter:** [@pedrorhumb](https://x.com/pedrorhumb)
+- **npm:** [rhumb-mcp](https://www.npmjs.com/package/rhumb-mcp)
+- **MCP Registry:** [Rhumb on MCP Registry](https://registry.modelcontextprotocol.io)
+- **X:** [@pedrorhumb](https://x.com/pedrorhumb)
 
 ## License
 

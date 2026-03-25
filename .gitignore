@@ -38,4 +38,33 @@ uv.lock
 
 # MCP Registry auth tokens
 packages/mcp/.mcpregistry_*
+
+# Internal operating files — not part of the public product surface
 prompts/
+.compound-beads/
+.claude/
+memory/
+BUILD-PLAN.md
+PRINCIPLES.md
+ASTRO-MIGRATION-SPEC.md
+GAP6-SPEC.md
+AGENTS.md
+
+# Internal docs (planning, process, work-unit specs)
+docs/AUDIT-LIVE-PERSONA-TEST-*.md
+docs/DESIGN-BRIEF.md
+docs/DISCOVER-SURFACE-*.md
+docs/GAP5*.md
+docs/INITIAL-DATASET-*.md
+docs/MCP-SERVER-*.md
+docs/PROXY-CORE-*.md
+docs/SCORE-CONTRACT-CONSUMER-AUDIT.md
+docs/SETTLEMENT-RUNBOOK.md
+docs/TESTER-FLEET-*.md
+docs/VERIFICATION-REPORT-*.md
+docs/WALLET-KEY-MANAGEMENT.md
+docs/WU-*.md
+docs/design-reference.html
+
+# Internal benchmark artifacts
+artifacts/benchmarks/

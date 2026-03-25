@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(pip install:*)",
-      "Bash(pip3 install:*)",
-      "Bash(.venv/bin/pip install:*)"
-    ]
-  }
-}
