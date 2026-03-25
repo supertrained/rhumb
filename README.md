@@ -6,6 +6,8 @@ Most APIs weren't built for agents. Rhumb helps agents and operators see which t
 
 🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust) · 🔌 [npm: rhumb-mcp](https://www.npmjs.com/package/rhumb-mcp)
 
+[![Rhumb MCP server](https://glama.ai/mcp/servers/supertrained/rhumb/badges/card.svg)](https://glama.ai/mcp/servers/supertrained/rhumb)
+
 ## What is Rhumb?
 
 Rhumb is the infrastructure layer agents use to **discover, access, and trust** external tools.
