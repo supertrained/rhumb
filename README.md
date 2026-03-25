@@ -1,8 +1,14 @@
 # Rhumb
 
+[![npm version](https://img.shields.io/npm/v/rhumb-mcp)](https://www.npmjs.com/package/rhumb-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP-Registry-green)](https://registry.modelcontextprotocol.io)
+
 **Agent-native tool intelligence.** Discover, evaluate, and execute external tools — with trust scores, failure modes, cost-aware routing, and managed credentials.
 
 🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust)
+
+> **For agents:** See [`llms.txt`](llms.txt) for machine-readable documentation and [`agent-capabilities.json`](agent-capabilities.json) for structured capability metadata.
 
 ---
 
@@ -129,12 +135,31 @@ Base URL: `https://api.rhumb.dev/v1`
 
 ---
 
+## Examples
+
+See [`examples/`](examples/) for runnable scripts:
+
+| Example | What it shows | Auth needed? |
+|---------|--------------|-------------|
+| [discover-and-evaluate.py](examples/discover-and-evaluate.py) | Search → Score → Failure modes | No |
+| [resolve-and-execute.py](examples/resolve-and-execute.py) | Resolve → Estimate → Execute | Yes |
+| [budget-aware-routing.py](examples/budget-aware-routing.py) | Budget + cost-optimal routing | Yes |
+| [mcp-quickstart.md](examples/mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |
+
+```bash
+# Try discovery right now (no auth needed)
+pip install httpx && python examples/discover-and-evaluate.py
+```
+
+---
+
 ## Docs
 
 - [Agent Accessibility Guidelines](docs/AGENT-ACCESSIBILITY-GUIDELINES.md) — making web interfaces usable by AI agents
 - [AN Score Methodology](docs/AN-SCORE-V2-SPEC.md) — scoring dimensions, weights, and rubrics
 - [Architecture](docs/ARCHITECTURE.md) — scoring engine design
 - [API Reference](docs/API.md) — endpoint details
+- [Security Policy](SECURITY.md) — vulnerability reporting and security architecture
 - [Runbooks](docs/runbooks/) — operational procedures
 
 ---
@@ -149,9 +174,12 @@ rhumb/
 │   ├── mcp/         # MCP server (npm)
 │   ├── cli/         # CLI tooling
 │   └── shared/      # Shared types/constants
+├── examples/        # Runnable examples
 ├── docs/            # Public documentation
 ├── scripts/         # Scoring + verification
-└── artifacts/       # Score datasets
+├── artifacts/       # Score datasets
+├── llms.txt         # Machine-readable docs for agents
+└── agent-capabilities.json  # Structured capability manifest
 ```
 
 ---

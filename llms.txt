@@ -1,0 +1,67 @@
+# Rhumb — Agent-Native Tool Intelligence
+
+## What is Rhumb?
+Rhumb is the infrastructure layer agents use to discover, evaluate, and execute external tools. It provides trust scores, failure mode documentation, cost-aware routing, and managed credential injection for 695+ services across 50+ domains.
+
+## Primary surfaces
+- Website: https://rhumb.dev
+- API: https://api.rhumb.dev/v1
+- MCP: npx rhumb-mcp@latest
+- npm: https://www.npmjs.com/package/rhumb-mcp
+
+## How to use Rhumb (for agents)
+
+### Discovery (no auth, free)
+- GET https://api.rhumb.dev/v1/search?q={query} — search services
+- GET https://api.rhumb.dev/v1/services/{slug}/score — AN Score breakdown
+- GET https://api.rhumb.dev/v1/services/{slug}/failures — known failure modes
+- GET https://api.rhumb.dev/v1/capabilities — browse capability registry
+- GET https://api.rhumb.dev/v1/capabilities/{id}/resolve — ranked providers
+- GET https://api.rhumb.dev/v1/leaderboard/{category} — category rankings
+- GET https://api.rhumb.dev/v1/telemetry/provider-health — provider health status
+- GET https://api.rhumb.dev/v1/pricing — machine-readable pricing
+
+### Execution (requires API key or x402 payment)
+- POST https://api.rhumb.dev/v1/capabilities/{id}/execute — execute a capability
+- GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — cost estimate
+
+### Auth paths
+1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
+2. x402/USDC: no signup, pay per call, send X-Payment header
+3. BYO credentials: pass your own upstream API keys
+
+## MCP tools (17 total)
+Discovery: find_services, an_score, get_alternatives, get_failure_modes, discover_capabilities, usage_telemetry
+Execution: resolve_capability, execute_capability, estimate_capability, credential_ceremony, check_credentials, routing
+Billing: budget, spend, check_balance, get_payment_url, get_ledger
+
+## AN Score
+Services rated 0-10 across 20 dimensions:
+- Execution (45%): reliability, error ergonomics, schema stability, latency, idempotency
+- Access (40%): signup friction, credential management, rate limits, documentation, sandbox
+- Autonomy (15%): payment autonomy, governance readiness, web accessibility
+Tiers: L4 Native (8+), L3 Ready (6-7.9), L2 Developing (4-5.9), L1 Emerging (0-3.9)
+
+## Coverage
+- 695 scored services
+- 414 capabilities across 50+ domains
+- 92 categories
+- 23 providers with execution configs
+- 3 credential modes: BYO, Rhumb-managed, Agent Vault
+
+## Pricing
+- Discovery: free, no auth
+- Execution: prepaid credits or x402 per-call
+- Free tier: 1,000 discovery calls/month
+
+## Score disputes
+Every score is disputable with evidence at https://github.com/supertrained/rhumb/issues
+Rhumb does not accept payment to change scores.
+
+## Links
+- Quickstart: https://rhumb.dev/quickstart
+- Methodology: https://rhumb.dev/methodology
+- Trust: https://rhumb.dev/trust
+- Pricing: https://rhumb.dev/pricing
+- Blog: https://rhumb.dev/blog
+- GitHub: https://github.com/supertrained/rhumb

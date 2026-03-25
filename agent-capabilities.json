@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "name": "Rhumb",
+  "description": "Agent-native tool intelligence — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "homepage": "https://rhumb.dev",
+  "api_base": "https://api.rhumb.dev/v1",
+  "mcp_install": "npx rhumb-mcp@latest",
+  "npm_package": "rhumb-mcp",
+  "auth": {
+    "discovery": "none",
+    "execution": "api_key_or_x402",
+    "signup_url": "https://rhumb.dev/auth/login"
+  },
+  "capabilities": {
+    "discovery": {
+      "description": "Search, score, and evaluate 695+ services across 50+ domains",
+      "auth_required": false,
+      "tools": [
+        {"name": "find_services", "description": "Search services by capability, domain, or name"},
+        {"name": "an_score", "description": "Get AN Score breakdown (0-10) for a service"},
+        {"name": "get_alternatives", "description": "Find ranked alternatives to any service"},
+        {"name": "get_failure_modes", "description": "Get known failure patterns before integrating"},
+        {"name": "discover_capabilities", "description": "Browse the capability registry"},
+        {"name": "usage_telemetry", "description": "Query your own usage analytics"}
+      ]
+    },
+    "execution": {
+      "description": "Execute capabilities through Resolve with managed auth and cost-aware routing",
+      "auth_required": true,
+      "tools": [
+        {"name": "resolve_capability", "description": "Get ranked providers for a capability"},
+        {"name": "execute_capability", "description": "Execute a capability through Resolve"},
+        {"name": "estimate_capability", "description": "Get cost estimate before execution"},
+        {"name": "credential_ceremony", "description": "Set up credentials for a provider"},
+        {"name": "check_credentials", "description": "Verify credential status"},
+        {"name": "routing", "description": "Configure routing strategy"}
+      ]
+    },
+    "billing": {
+      "description": "Budget enforcement and spend tracking",
+      "auth_required": true,
+      "tools": [
+        {"name": "budget", "description": "Set spend limits"},
+        {"name": "spend", "description": "Check current spend"},
+        {"name": "check_balance", "description": "Check prepaid balance"},
+        {"name": "get_payment_url", "description": "Get top-up link"},
+        {"name": "get_ledger", "description": "Transaction history"}
+      ]
+    }
+  },
+  "coverage": {
+    "services": 695,
+    "capabilities": 414,
+    "domains": 50,
+    "categories": 92,
+    "providers_with_execution": 23,
+    "credential_modes": ["byo", "rhumb_managed", "agent_vault"]
+  },
+  "scoring": {
+    "methodology": "https://rhumb.dev/methodology",
+    "dimensions": 20,
+    "axes": {
+      "execution": {"weight": 0.45, "dimensions": 17},
+      "access": {"weight": 0.40, "dimensions": 6},
+      "autonomy": {"weight": 0.15, "dimensions": 3}
+    },
+    "tiers": {
+      "L4_Native": "8.0-10.0",
+      "L3_Ready": "6.0-7.9",
+      "L2_Developing": "4.0-5.9",
+      "L1_Emerging": "0.0-3.9"
+    }
+  },
+  "pricing": {
+    "discovery": "free",
+    "execution": "prepaid_or_x402",
+    "free_tier": "1000_calls_per_month",
+    "details": "https://rhumb.dev/pricing"
+  },
+  "links": {
+    "quickstart": "https://rhumb.dev/quickstart",
+    "trust": "https://rhumb.dev/trust",
+    "methodology": "https://rhumb.dev/methodology",
+    "blog": "https://rhumb.dev/blog",
+    "github": "https://github.com/supertrained/rhumb",
+    "disputes": "https://github.com/supertrained/rhumb/issues"
+  }
+}
