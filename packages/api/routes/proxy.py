@@ -55,6 +55,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["proxy"])
 admin_router = APIRouter(tags=["schema-admin"])
 
+# Slug aliases: maps long/canonical service slugs to their short proxy names.
+# The proxy layer, credential store, and auth injector all use short slugs.
+# The services table and capability_services use canonical (long) slugs.
+SLUG_ALIASES: dict[str, str] = {
+    "people-data-labs": "pdl",
+    "brave-search-api": "brave-search",
+    "google-maps": "google-maps",
+}
+
+
+def normalize_slug(slug: str) -> str:
+    """Resolve a canonical service slug to its proxy-layer equivalent."""
+    return SLUG_ALIASES.get(slug, slug)
+
+
 # Service registry: maps service names to provider domains and auth patterns
 SERVICE_REGISTRY = {
     "stripe": {

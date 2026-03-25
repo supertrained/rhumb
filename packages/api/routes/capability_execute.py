@@ -36,6 +36,7 @@ from routes.proxy import (
     SERVICE_REGISTRY,
     get_breaker_registry,
     get_pool_manager,
+    normalize_slug,
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.auto_reload import check_and_trigger_auto_reload
@@ -1174,15 +1175,17 @@ async def execute_capability(
     fallback_provider: Optional[str] = None
 
     provider_slug = chosen["service_slug"]
+    # Normalize slug for proxy-layer lookups (SERVICE_REGISTRY, AuthInjector, CredentialStore)
+    proxy_slug = normalize_slug(provider_slug)
     auth_method = chosen.get("auth_method")
     cost_per_call = float(chosen["cost_per_call"]) if chosen.get("cost_per_call") is not None else None
 
     api_domain = await _get_service_domain(provider_slug)
-    base_url = _resolve_base_url(provider_slug, api_domain)
+    base_url = _resolve_base_url(proxy_slug, api_domain)
 
     path = request.path if request.path.startswith("/") else f"/{request.path}"
     headers: dict[str, str] = {}
-    headers = _inject_auth_headers(provider_slug, auth_method, headers)
+    headers = _inject_auth_headers(proxy_slug, auth_method, headers)
 
     request_start = time.perf_counter()
     upstream_status: Optional[int] = None
@@ -1191,12 +1194,12 @@ async def execute_capability(
     success = False
     error_message: Optional[str] = None
 
-    use_pool = provider_slug in SERVICE_REGISTRY
+    use_pool = proxy_slug in SERVICE_REGISTRY
 
     try:
         if use_pool:
             pool = get_pool_manager()
-            client = await pool.acquire(provider_slug, agent_id, base_url=base_url)
+            client = await pool.acquire(proxy_slug, agent_id, base_url=base_url)
             try:
                 upstream_start = time.perf_counter()
                 resp = await client.request(
@@ -1208,7 +1211,7 @@ async def execute_capability(
                 )
                 upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
             finally:
-                await pool.release(provider_slug, agent_id)
+                await pool.release(proxy_slug, agent_id)
         else:
             async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
                 upstream_start = time.perf_counter()
@@ -1229,7 +1232,7 @@ async def execute_capability(
 
         success = upstream_status < 500
 
-        breaker = get_breaker_registry().get(provider_slug, agent_id)
+        breaker = get_breaker_registry().get(proxy_slug, agent_id)
         if success:
             breaker.record_success(latency_ms=upstream_latency_ms)
         else:
@@ -1237,7 +1240,7 @@ async def execute_capability(
 
     except httpx.HTTPError as e:
         error_message = str(e)
-        breaker = get_breaker_registry().get(provider_slug, agent_id)
+        breaker = get_breaker_registry().get(proxy_slug, agent_id)
         breaker.record_failure()
 
         await _release_reservations()
@@ -1414,9 +1417,10 @@ async def estimate_capability(
             )
 
     provider_slug = chosen["service_slug"]
+    proxy_slug = normalize_slug(provider_slug)
     cost_per_call = float(chosen["cost_per_call"]) if chosen.get("cost_per_call") is not None else None
 
-    breaker = get_breaker_registry().get(provider_slug, agent_id)
+    breaker = get_breaker_registry().get(proxy_slug, agent_id)
     circuit_state = breaker.state.value
 
     estimate_data: dict[str, Any] = {
