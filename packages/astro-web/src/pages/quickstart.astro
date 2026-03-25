@@ -3,6 +3,13 @@ export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 
 const API = "https://api.rhumb.dev/v1";
+const QUICKSTART_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Quickstart — Rhumb",
+  url: "https://rhumb.dev/quickstart",
+  description: "Make your first Rhumb API call in 30 seconds. Copy-paste examples for curl, JavaScript, Python, and MCP.",
+};
 ---
 
 <Layout
@@ -12,6 +19,7 @@ const API = "https://api.rhumb.dev/v1";
   ogTitle="Rhumb Quickstart"
   ogDescription="Zero to first API response in 30 seconds. No signup required for read endpoints."
   ogUrl="https://rhumb.dev/quickstart"
+  jsonLd={QUICKSTART_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 py-16">

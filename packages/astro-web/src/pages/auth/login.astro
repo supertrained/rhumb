@@ -3,12 +3,20 @@ import Layout from "../../layouts/Layout.astro";
 
 const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 const error = Astro.url.searchParams.get("error");
+const LOGIN_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Sign in | Rhumb",
+  url: "https://rhumb.dev/auth/login",
+  description: "Sign in to Rhumb to get your API key and access the developer dashboard.",
+};
 ---
 
 <Layout
   title="Sign in | Rhumb"
   description="Sign in to Rhumb to get your API key and access the developer dashboard."
   noindex={true}
+  jsonLd={LOGIN_JSON_LD}
 >
   <main class="min-h-screen bg-midnight flex items-center justify-center px-4">
     <div class="w-full max-w-sm">
