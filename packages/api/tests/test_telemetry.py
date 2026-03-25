@@ -45,6 +45,7 @@ def _execution_row(
         "fallback_provider": None,
         "interface": "rest",
         "error_message": None if success else "upstream failure",
+        "executed_at": timestamp,
         "created_at": timestamp,
     }
 

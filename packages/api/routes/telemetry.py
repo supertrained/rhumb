@@ -21,7 +21,7 @@ _SELECT_FIELDS = (
     "id,agent_id,capability_id,provider_used,credential_mode,method,path,"
     "upstream_status,success,cost_estimate_usd,cost_usd_cents,upstream_cost_cents,"
     "margin_cents,total_latency_ms,upstream_latency_ms,billing_status,"
-    "fallback_attempted,fallback_provider,interface,error_message,created_at"
+    "fallback_attempted,fallback_provider,interface,error_message,executed_at"
 )
 
 
@@ -152,6 +152,18 @@ async def _require_agent(
     return agent.agent_id, agent.organization_id
 
 
+def _row_timestamp_value(row: dict[str, Any]) -> str | None:
+    value = row.get("executed_at")
+    if isinstance(value, str) and value:
+        return value
+    legacy_value = row.get("created_at")
+    return legacy_value if isinstance(legacy_value, str) and legacy_value else None
+
+
+def _row_timestamp(row: dict[str, Any]) -> datetime | None:
+    return _parse_timestamp(_row_timestamp_value(row))
+
+
 def _build_usage_query(
     *,
     start_at: datetime | None = None,
@@ -171,8 +183,8 @@ def _build_usage_query(
     if success is not None:
         params.append(f"success=eq.{str(success).lower()}")
     if start_at is not None:
-        params.append(f"created_at=gte.{quote(_to_iso8601(start_at), safe='')}")
-    params.append("order=created_at.desc")
+        params.append(f"executed_at=gte.{quote(_to_iso8601(start_at), safe='')}")
+    params.append("order=executed_at.desc")
     if limit is not None:
         params.append(f"limit={limit}")
     return "capability_executions?" + "&".join(params)
@@ -194,13 +206,13 @@ def _filter_rows(
             continue
         if success is not None and _to_bool(row.get("success")) != success:
             continue
-        created_at = _parse_timestamp(row.get("created_at"))
-        if start_at is not None and (created_at is None or created_at < start_at):
+        timestamp = _row_timestamp(row)
+        if start_at is not None and (timestamp is None or timestamp < start_at):
             continue
         filtered.append(row)
 
     filtered.sort(
-        key=lambda row: _parse_timestamp(row.get("created_at")) or datetime.min.replace(tzinfo=timezone.utc),
+        key=lambda row: _row_timestamp(row) or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,
     )
     return filtered
@@ -292,10 +304,10 @@ def _group_by_time(
 ) -> list[dict[str, Any]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
-        created_at = _parse_timestamp(row.get("created_at"))
-        if created_at is None:
+        timestamp = _row_timestamp(row)
+        if timestamp is None:
             continue
-        bucket = created_at.strftime("%Y-%m-%d") if granularity == "day" else created_at.strftime("%Y-%m-%dT%H:00:00Z")
+        bucket = timestamp.strftime("%Y-%m-%d") if granularity == "day" else timestamp.strftime("%Y-%m-%dT%H:00:00Z")
         grouped[bucket].append(row)
 
     items: list[dict[str, Any]] = []
@@ -320,7 +332,7 @@ def _health_rows_to_payload(provider: str, rows: list[dict[str, Any]]) -> dict[s
     success_rate = _success_rate(rows)
     last_seen_value = None
     if rows:
-        parsed_timestamps = [_parse_timestamp(row.get("created_at")) for row in rows]
+        parsed_timestamps = [_row_timestamp(row) for row in rows]
         timestamps = [timestamp for timestamp in parsed_timestamps if timestamp is not None]
         if timestamps:
             last_seen_value = _to_iso8601(max(timestamps))
@@ -490,7 +502,8 @@ async def get_recent_executions(
             "fallback_provider": row.get("fallback_provider"),
             "interface": row.get("interface"),
             "error_message": row.get("error_message"),
-            "created_at": row.get("created_at"),
+            "executed_at": _row_timestamp_value(row),
+            "created_at": _row_timestamp_value(row),
         }
         for row in filtered_rows
     ]
