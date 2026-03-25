@@ -644,46 +644,46 @@ const BLOG_JSON_LD = {
             role="tab"
             aria-selected="true"
             data-filter="all"
-            class="filter-tab active-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 transition-all duration-150 border-amber text-amber"
+            class="filter-tab active-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 transition-all duration-150 border-amber text-amber-100 bg-slate-900/70"
           >
             All
-            <span class="ml-1.5 opacity-60">{POSTS.length}</span>
+            <span class="ml-1.5 text-slate-300">{POSTS.length}</span>
           </button>
           <button
             role="tab"
             aria-selected="false"
             data-filter="Comparison"
-            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-200 hover:text-white transition-all duration-150"
           >
-            <span class="mr-1.5 opacity-70">⚖</span>Comparisons
-            <span class="ml-1.5 opacity-40">{COUNTS["Comparison"] ?? 0}</span>
+            <span class="mr-1.5 text-slate-300">⚖</span>Comparisons
+            <span class="ml-1.5 text-slate-400">{COUNTS["Comparison"] ?? 0}</span>
           </button>
           <button
             role="tab"
             aria-selected="false"
             data-filter="Autopsy"
-            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-200 hover:text-white transition-all duration-150"
           >
-            <span class="mr-1.5 opacity-70">⚕</span>Autopsies
-            <span class="ml-1.5 opacity-40">{COUNTS["Autopsy"] ?? 0}</span>
+            <span class="mr-1.5 text-slate-300">⚕</span>Autopsies
+            <span class="ml-1.5 text-slate-400">{COUNTS["Autopsy"] ?? 0}</span>
           </button>
           <button
             role="tab"
             aria-selected="false"
             data-filter="Guide"
-            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-200 hover:text-white transition-all duration-150"
           >
-            <span class="mr-1.5 opacity-70">→</span>Guides
-            <span class="ml-1.5 opacity-40">{COUNTS["Guide"] ?? 0}</span>
+            <span class="mr-1.5 text-slate-300">→</span>Guides
+            <span class="ml-1.5 text-slate-400">{COUNTS["Guide"] ?? 0}</span>
           </button>
           <button
             role="tab"
             aria-selected="false"
             data-filter="Article"
-            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-all duration-150"
+            class="filter-tab px-4 py-4 text-xs font-mono whitespace-nowrap border-b-2 border-transparent text-slate-200 hover:text-white transition-all duration-150"
           >
-            <span class="mr-1.5 opacity-70">✦</span>Articles
-            <span class="ml-1.5 opacity-40">{COUNTS["Article"] ?? 0}</span>
+            <span class="mr-1.5 text-slate-300">✦</span>Articles
+            <span class="ml-1.5 text-slate-400">{COUNTS["Article"] ?? 0}</span>
           </button>
         </div>
       </div>
@@ -766,9 +766,9 @@ const BLOG_JSON_LD = {
                   {post.contentType === "Autopsy" && post.score != null && tier && (
                     <span
                       class="inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 rounded-md"
-                      style={`background: ${tierColor}1a; color: ${tierColor}; border: 1px solid ${tierColor}40;`}
+                      style={`background: #0f172a; color: ${tierColor}; border: 1px solid ${tierColor}40;`}
                     >
-                      {post.score.toFixed(1)}<span class="opacity-50">/10</span>
+                      {post.score.toFixed(1)}<span class="ml-0.5 text-slate-100">/10</span>
                     </span>
                   )}
                   {post.contentType === "Guide" && post.difficulty && (
@@ -799,30 +799,30 @@ const BLOG_JSON_LD = {
                 )}
 
                 <!-- Description -->
-                <p class="text-sm text-slate-500 leading-relaxed mb-5">
+                <p class="text-sm text-slate-300 leading-relaxed mb-5">
                   {post.description}
                 </p>
 
                 <!-- Meta row -->
                 <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2.5 text-[11px] font-mono text-slate-700">
+                  <div class="flex items-center gap-2.5 text-[11px] font-mono text-slate-300">
                     <span>{post.date}</span>
                     <span>·</span>
                     <span>{post.readTime} read</span>
                     {post.contentType === "Comparison" && post.scoreRange && (
                       <>
                         <span>·</span>
-                        <span class="text-slate-600">AN {post.scoreRange}</span>
+                        <span class="text-slate-200">AN {post.scoreRange}</span>
                       </>
                     )}
                     {post.contentType === "Guide" && post.timeEstimate && (
                       <>
                         <span>·</span>
-                        <span class="text-emerald-800">{post.timeEstimate}</span>
+                        <span class="text-emerald-300">{post.timeEstimate}</span>
                       </>
                     )}
                   </div>
-                  <span class="text-[11px] font-mono text-slate-700 group-hover:text-amber transition-colors duration-200 flex-shrink-0">
+                  <span class="text-[11px] font-mono text-slate-200 group-hover:text-amber transition-colors duration-200 flex-shrink-0">
                     Read →
                   </span>
                 </div>
