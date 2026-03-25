@@ -144,6 +144,7 @@ See [`examples/`](examples/) for runnable scripts:
 | [discover-and-evaluate.py](examples/discover-and-evaluate.py) | Search → Score → Failure modes | No |
 | [resolve-and-execute.py](examples/resolve-and-execute.py) | Resolve → Estimate → Execute | Yes |
 | [budget-aware-routing.py](examples/budget-aware-routing.py) | Budget + cost-optimal routing | Yes |
+| [dogfood-telemetry-loop.py](examples/dogfood-telemetry-loop.py) | Repeatable Resolve → telemetry verification loop | Yes |
 | [mcp-quickstart.md](examples/mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |
 
 ```bash
@@ -161,6 +162,7 @@ pip install httpx && python examples/discover-and-evaluate.py
 - [API Reference](docs/API.md) — endpoint details
 - [Security Policy](SECURITY.md) — vulnerability reporting and security architecture
 - [Runbooks](docs/runbooks/) — operational procedures
+- [Dogfood Loop](docs/DOGFOOD-LOOP.md) — repeatable Resolve → telemetry validation harness
 
 ---
 

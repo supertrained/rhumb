@@ -15,6 +15,7 @@ pip install httpx  # only dependency for Python examples
 | [discover-and-evaluate.py](discover-and-evaluate.py) | Search → Score → Failure modes | No |
 | [resolve-and-execute.py](resolve-and-execute.py) | Resolve → Estimate → Execute | Yes (for execution) |
 | [budget-aware-routing.py](budget-aware-routing.py) | Budget + cost-optimal routing | Yes |
+| [dogfood-telemetry-loop.py](dogfood-telemetry-loop.py) | Repeatable Resolve → telemetry verification loop | Yes |
 | [mcp-quickstart.md](mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |
 
 ## Run discovery (no API key needed)
@@ -28,6 +29,13 @@ python examples/discover-and-evaluate.py
 ```bash
 export RHUMB_API_KEY=your_key_here
 python examples/resolve-and-execute.py
+```
+
+## Run the dogfood loop (API key required)
+
+```bash
+export RHUMB_API_KEY=your_key_here
+python examples/dogfood-telemetry-loop.py
 ```
 
 Get an API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).
