@@ -686,29 +686,14 @@ async def discover_execute_capability(
     Also captures all incoming headers for x402 interop diagnostics
     when buyers retry with GET + payment proof (as awal does).
     """
-    # Log ALL headers on every GET for x402 interop diagnostics
-    # This is temporary — remove after we understand awal's payment header
-    payment_headers = {
-        k: v[:200] for k, v in raw_request.headers.items()
-        if any(term in k.lower() for term in [
-            "payment", "x-payment", "x402", "authorization", "signature",
-        ])
-    }
-    if payment_headers:
-        logger.info(
-            "x402_get_payment_headers: capability=%s headers=%s",
-            capability_id,
-            payment_headers,
-        )
-    else:
-        # Even log when there are no payment headers — so we can confirm
-        # the new code is running
-        all_header_names = list(raw_request.headers.keys())
-        logger.info(
-            "x402_get_no_payment_headers: capability=%s all_header_names=%s",
-            capability_id,
-            all_header_names,
-        )
+    # TEMPORARY DIAGNOSTIC: print ALL headers for x402 interop debugging
+    # Using print() because Railway may not show logger.info output
+    import sys
+    all_headers = dict(raw_request.headers.items())
+    print(f"[X402-DIAG] GET /execute cap={capability_id} headers={list(all_headers.keys())}", file=sys.stderr, flush=True)
+    for k, v in all_headers.items():
+        if any(term in k.lower() for term in ["payment", "x402", "auth", "signature"]):
+            print(f"[X402-DIAG] PAYMENT-HEADER: {k}={v[:200]}", file=sys.stderr, flush=True)
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
