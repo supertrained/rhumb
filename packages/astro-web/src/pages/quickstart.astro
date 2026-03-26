@@ -142,20 +142,25 @@ print(data["an_score"])  # 8.1`}</code></pre>
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`curl -X POST "${API}/capabilities/email.send/execute" \\
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\
-  -d '{"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}'`}</code></pre>
+  -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
         </div>
 
         <div class="bg-surface border border-amber/20 rounded-lg p-5">
           <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Execute via x402 (zero signup)</p>
-          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# Step 1: Get payment requirements
-curl -X POST "${API}/capabilities/email.send/execute"
-# Returns 402 with payment details (amount, USDC address, network)
-
-# Step 2: Pay on-chain, then include tx proof
+          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# Step 1: Request execution without an API key
 curl -X POST "${API}/capabilities/email.send/execute" \\
-  -H "X-Payment: {tx_hash}" \\
   -H "Content-Type: application/json" \\
-  -d '{"to": "user@example.com", "subject": "Hello"}'`}</code></pre>
+  -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'
+# Returns 402 with the exact asset, amount, address, and network to pay
+
+# Step 2: Pay the exact requirement from your wallet
+# Double-check asset + network + destination address before sending funds
+
+# Step 3: Retry with payment proof from the same wallet
+curl -X POST "${API}/capabilities/email.send/execute" \\
+  -H 'X-Payment: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\
+  -H "Content-Type: application/json" \\
+  -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'`}</code></pre>
         </div>
       </section>
 

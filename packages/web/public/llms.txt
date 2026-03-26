@@ -41,11 +41,11 @@ Key endpoints:
 Rhumb supports three payment methods. No signup is required for agents using x402.
 
 ### x402 Per-Call Payment (zero signup, zero API key)
-Agents with a USDC wallet can pay per call with no account:
-1. Make an API request without auth headers
-2. Receive HTTP 402 with X-Payment-Required header (amount + address)
-3. Submit USDC payment on Base network
-4. Retry request with payment proof in header
+Agents with a funded wallet can pay per call with no account:
+1. Make an execute request without auth headers
+2. Receive HTTP 402 with machine-readable payment requirements in the response body
+3. Send the exact asset + amount to the exact address on the exact network returned in that 402 response
+4. Retry the same request with an `X-Payment` header containing payment proof (for example: tx_hash + network + wallet_address)
 5. Receive API response
 
 ### API Key (for metered billing)

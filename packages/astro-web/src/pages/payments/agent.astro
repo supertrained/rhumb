@@ -31,7 +31,7 @@ const FLOW_STEPS = [
     step: "4",
     title: "Retry with proof",
     description:
-      `Repeat the request with ${x402.execution_auth[0]} so Rhumb can verify payment and execute the capability.`,
+      `Repeat the request with ${x402.execution_auth[0]} using the tx hash, network, and payer wallet so Rhumb can verify payment and execute the capability.`,
   },
 ];
 
@@ -242,14 +242,17 @@ const AGENT_PAYMENTS_JSON_LD = {
         <div class="mt-6 bg-surface border border-slate-800 rounded-2xl p-6">
           <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Execution flow</p>
           <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>{`# Step 1: request execution without an API key
-curl -X POST "${executeEndpoint}"
-
-# Step 2: pay the returned USDC-on-Base requirement
-
-# Step 3: retry with payment proof
 curl -X POST "${executeEndpoint}" \\
-  -H "${x402.execution_auth[0]}: {tx_hash, network: base}" \\
-  -H "Content-Type: application/json"`}</code></pre>
+  -H "Content-Type: application/json" \\
+  -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'
+
+# Step 2: pay the exact asset + amount to the exact address on the exact network returned in the 402 response
+
+# Step 3: retry with payment proof from the same wallet
+curl -X POST "${executeEndpoint}" \\
+  -H '${x402.execution_auth[0]}: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\
+  -H "Content-Type: application/json" \\
+  -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'`}</code></pre>
         </div>
       </section>
 

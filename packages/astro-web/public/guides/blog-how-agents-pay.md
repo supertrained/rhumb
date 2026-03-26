@@ -73,12 +73,11 @@ Purpose-built for AI agents. The agent authenticates via email OTP (no private k
 
 ```bash
 # Create an agentic wallet (agent or developer runs this once)
-npx awal status
-# Follow email OTP prompt → wallet created on Base
+# Follow your wallet provider's setup flow and save the Base address
 
-# Fund the wallet
-npx awal fund
-# Opens Coinbase Onramp → select amount → USDC deposited
+# Fund the wallet with USDC on Base
+# Use Coinbase Onramp, a bridge, or an exchange withdrawal
+# Double-check asset + network + destination address before sending funds
 
 # The wallet now has a Base address and USDC balance
 # Agent can pay for x402-enabled services automatically
@@ -146,10 +145,11 @@ Agent                          Paid API
   |  }                            |
   |<------------------------------|
   |                               |
-  |  [Agent signs USDC transfer]  |
+  |  [Agent signs exact USDC transfer] |
+  |  [asset + amount + address + network from 402] |
   |                               |
   |  GET /v1/premium-data         |
-  |  X-Payment: {tx_hash, proof}  |
+  |  X-Payment: {"tx_hash":"0x...","network":"base","wallet_address":"0x..."} |
   |------------------------------>|
   |                               |
   |  200 OK + data                |

@@ -121,8 +121,8 @@ const failureModes: FailureMode[] = [
     errorCode: "payment_required",
     agentSees: "HTTP 402 with payment instructions in the response body, including: wallet address, exact USDC amount, network (Base), and contract address.",
     blastRadius: "Single execution attempt. No charge occurs — you only pay when payment is confirmed on-chain.",
-    recovery: "Verify: (1) correct USDC amount sent, (2) correct wallet address, (3) transaction confirmed on Base network, (4) payment proof included in X-Payment header on retry. Check transaction on Basescan.",
-    prevention: "Use a wallet with sufficient USDC balance on Base. Ensure gas fees are covered. The /v1/capabilities/{id}/execute/estimate endpoint returns the exact cost before you commit.",
+    recovery: "Verify: (1) the exact asset and amount from the 402 response were sent, (2) the exact destination address and network from the 402 response were used, (3) the transaction is confirmed, and (4) the retry included X-Payment with tx_hash, network, and wallet_address from the payer wallet. Check the transaction on a block explorer.",
+    prevention: "Use a wallet with sufficient balance and gas on the network returned by the 402 response. Double-check asset + amount + address + network before sending funds. Use the /v1/capabilities/{id}/execute/estimate endpoint to preview cost before committing.",
     affects: "Single x402 execution attempt",
   },
   {

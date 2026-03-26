@@ -285,21 +285,23 @@ Headers: X-Rhumb-Key: <your-key>
   "accepts": [
     {
       "scheme": "exact",
-      "network": "base-sepolia",
-      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "network": "<network-from-402>",
+      "asset": "<asset-from-402>",
       "payTo": "<address>",
       "maxAmountRequired": "<amount-in-wei>"
     }
   ]
 }
 
-# 2. Send USDC to the address in the 402 response
+# 2. Send the exact asset + amount to the exact address on the exact network in the 402 response
 
-# 3. Retry the same request with the payment proof:
+# 3. Retry the same request with the payment proof from the same wallet:
 POST /v1/capabilities/{id}/execute
 Headers:
-  X-Rhumb-Key: <your-key>
-  X-Payment: {"tx_hash": "0x...", "network": "base-sepolia"}
+  X-Payment: {"tx_hash": "0x...", "network": "<network-from-402>", "wallet_address": "0x..."}
+Content-Type: application/json
+Body:
+  {"body": {...}}
 
 # 4. Rhumb verifies the on-chain transfer and executes your request`}</code>
               </pre>
