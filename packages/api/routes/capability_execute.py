@@ -678,8 +678,27 @@ def _inject_auth_headers(
 async def discover_execute_capability(
     capability_id: str,
     raw_request: Request,
+    x_payment: Optional[str] = Header(None, alias="X-Payment"),
+    payment_signature: Optional[str] = Header(None, alias="PAYMENT-SIGNATURE"),
 ) -> JSONResponse:
-    """Return x402 payment requirements for execute without executing anything."""
+    """Return x402 payment requirements for execute without executing anything.
+
+    Also captures x402 v2 PAYMENT-SIGNATURE headers for diagnostic purposes
+    when buyers retry with GET + payment proof (as awal does).
+    """
+    # Log any payment headers on the GET path for x402 interop diagnostics
+    effective_payment = payment_signature or x_payment
+    if effective_payment and effective_payment != "required":
+        from services.x402_middleware import inspect_x_payment_header
+        trace = inspect_x_payment_header(effective_payment)
+        logger.info(
+            "x402_get_payment_attempt: capability=%s parse_mode=%s keys=%s first_80=%s",
+            capability_id,
+            trace.get("parse_mode"),
+            trace.get("top_level_keys"),
+            effective_payment[:80] if effective_payment else "",
+        )
+
     capability = await _resolve_capability(capability_id)
     if capability is None:
         return _not_found_response(
