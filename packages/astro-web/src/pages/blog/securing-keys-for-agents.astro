@@ -127,7 +127,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute
 
 # After paying on-chain:
 curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
-  -H "X-Payment: {tx_hash, network: base}"
+  -H 'X-Payment: {"tx_hash":"0x...","network":"base","wallet_address":"0x..."}'
 \`\`\`
 
 **When to use it:** Your agent has a crypto wallet. You want zero-signup, zero-credential execution. You're building autonomous agents that need to operate without human provisioning.

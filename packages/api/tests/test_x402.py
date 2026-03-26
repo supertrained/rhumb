@@ -110,7 +110,7 @@ class TestBuildX402Response:
         assert usdc_opt["amount"] == "150000"
 
     def test_network_testnet_by_default(self):
-        """Non-production env uses evm:84532 (Base Sepolia) and testnet USDC contract."""
+        """Non-production env uses base-sepolia and testnet USDC contract."""
         with patch.dict(
             os.environ,
             {"RHUMB_USDC_WALLET_ADDRESS": "0xAbC123", "RAILWAY_ENVIRONMENT": ""},
@@ -122,11 +122,11 @@ class TestBuildX402Response:
                 resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
             )
         usdc_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
-        assert usdc_opt["network"] == "evm:84532"
+        assert usdc_opt["network"] == "base-sepolia"
         assert usdc_opt["asset"] == USDC_BASE_SEPOLIA
 
     def test_network_production(self):
-        """Production env uses evm:8453 (Base mainnet) and mainnet USDC contract."""
+        """Production env uses base and mainnet USDC contract."""
         with patch.dict(
             os.environ,
             {
@@ -141,7 +141,7 @@ class TestBuildX402Response:
                 resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
             )
         usdc_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
-        assert usdc_opt["network"] == "evm:8453"
+        assert usdc_opt["network"] == "base"
         assert usdc_opt["asset"] == USDC_BASE_MAINNET
 
     def test_custom_error_message(self):

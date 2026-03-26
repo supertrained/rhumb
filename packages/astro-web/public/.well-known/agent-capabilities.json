@@ -1,7 +1,7 @@
 {
   "name": "Rhumb",
   "version": "0.8.2",
-  "description": "Agent-native infrastructure for discovering, evaluating, and executing external tools. 995 services scored for AI agent compatibility (AN Score), 414 capabilities across 92 categories, 16 callable providers.",
+  "description": "Agent-native infrastructure for discovering, evaluating, and executing external tools. 695+ services scored for AI agent compatibility (AN Score), 414 capabilities across 92 categories, 16 callable providers.",
   "url": "https://rhumb.dev",
   "api": {
     "base_url": "https://api.rhumb.dev/v1",
@@ -25,7 +25,7 @@
     }
   },
   "mcp": {
-    "activation": "npx rhumb-mcp@0.8.2",
+    "activation": "npx rhumb-mcp@latest",
     "tools": 17,
     "tool_list": [
       "find_services",
@@ -48,7 +48,7 @@
     ]
   },
   "coverage": {
-    "services_scored": 995,
+    "services_scored": 695,
     "capabilities": 414,
     "categories": 92,
     "domains": 50,

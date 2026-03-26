@@ -239,7 +239,7 @@ class TestNetworkSelection:
 
     @pytest.mark.asyncio
     async def test_mainnet_in_production(self):
-        """Production environment uses base-mainnet."""
+        """Production environment uses base."""
         svc = PaymentRequestService()
         mock_resp = _mock_http_response(201, [{}])
         patcher, mock_client = _patch_httpx(mock_resp)
@@ -259,7 +259,7 @@ class TestNetworkSelection:
 
         call_kwargs = mock_client.post.call_args
         payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
-        assert payload["network"] == "base-mainnet"
+        assert payload["network"] == "base"
         assert payload["asset_address"] == USDC_BASE_MAINNET
 
 

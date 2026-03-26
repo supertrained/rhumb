@@ -27,7 +27,7 @@ def build_x402_response(
     """Build an x402-compliant 402 response body.
 
     Follows the x402 open standard (https://github.com/coinbase/x402):
-    - ``network`` uses ``evm:<chainId>`` format (``evm:8453`` for Base mainnet)
+    - ``network`` uses Coinbase buyer-compatible names (``base`` or ``base-sepolia``)
     - ``amount`` is USDC atomic units (6 decimals)
     - Top-level ``resource`` describes the protected endpoint
     - ``accepts`` contains one entry per payment scheme
@@ -58,9 +58,7 @@ def build_x402_response(
 
     # Option 2: USDC on Base (only if wallet configured)
     if wallet_address:
-        # x402 standard: network = "evm:<chainId>"
-        # Base mainnet = chain 8453, Base Sepolia = chain 84532
-        network = "evm:8453" if is_production else "evm:84532"
+        network = "base" if is_production else "base-sepolia"
         usdc_contract = USDC_BASE_MAINNET if is_production else USDC_BASE_SEPOLIA
         accepts.append(
             {

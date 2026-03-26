@@ -37,7 +37,7 @@ class PaymentRequestService:
         """Return (network, usdc_contract) based on environment."""
         is_production = os.environ.get("RAILWAY_ENVIRONMENT", "") == "production"
         if is_production:
-            return "base-mainnet", USDC_BASE_MAINNET
+            return "base", USDC_BASE_MAINNET
         return "base-sepolia", USDC_BASE_SEPOLIA
 
     async def create_payment_request(

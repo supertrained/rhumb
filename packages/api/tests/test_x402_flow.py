@@ -715,4 +715,6 @@ class TestX402Recording:
 
         # Check that capability_executions was inserted (the normal flow)
         exec_inserts = [c for c in insert_calls if c["table"] == "capability_executions"]
-        assert len(exec_inserts) == 1
+        assert len(exec_inserts) == 2
+        assert exec_inserts[0]["payload"]["billing_status"] == "pending"
+        assert exec_inserts[1]["payload"]["billing_status"] == "billed"

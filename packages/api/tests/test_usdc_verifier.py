@@ -114,7 +114,7 @@ class TestSuccessfulVerification:
                 expected_to=WALLET,
                 expected_from=SENDER,
                 expected_amount_atomic=AMOUNT_ATOMIC,
-                network="base-mainnet",
+                network="base",
             )
 
         assert result["valid"] is True
