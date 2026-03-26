@@ -46,17 +46,7 @@ def build_x402_response(
 
     accepts: list[dict] = []
 
-    # Option 1: Stripe credit purchase (always available)
-    accepts.append(
-        {
-            "scheme": "stripe_checkout",
-            "checkoutUrl": f"{api_base}/v1/billing/checkout",
-            "description": f"Purchase Rhumb credits to execute {capability_id}",
-            "minAmountUsd": max(cost_usd_cents / 100, 5.0),  # Minimum $5 checkout
-        }
-    )
-
-    # Option 2: USDC on Base (only if wallet configured)
+    # Option 1: USDC on Base (first — x402 buyers expect exact scheme first)
     if wallet_address:
         network = "base" if is_production else "base-sepolia"
         usdc_contract = USDC_BASE_MAINNET if is_production else USDC_BASE_SEPOLIA
@@ -76,6 +66,16 @@ def build_x402_response(
                 "extra": {"name": "Rhumb", "version": "1"},
             }
         )
+
+    # Option 2: Stripe credit purchase (fallback for non-crypto users)
+    accepts.append(
+        {
+            "scheme": "stripe_checkout",
+            "checkoutUrl": f"{api_base}/v1/billing/checkout",
+            "description": f"Purchase Rhumb credits to execute {capability_id}",
+            "minAmountUsd": max(cost_usd_cents / 100, 5.0),  # Minimum $5 checkout
+        }
+    )
 
     return {
         "x402Version": 1,
