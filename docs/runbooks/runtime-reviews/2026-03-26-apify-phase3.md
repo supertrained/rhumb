@@ -1,60 +1,91 @@
-# Apify — Phase 3 Runtime Review
+# Apify Phase 3 Runtime Review — 2026-03-26
 
-**Date:** 2026-03-26  
-**Reviewer:** Pedro (automated)  
-**Capability:** `scrape.extract`  
-**Provider:** `apify`  
-**Credential mode:** `rhumb_managed`
+## Why this lane
+Google AI is still missing from the live callable inventory, so the active unblocked lane remains callable-provider Phase 3 reviews. Apify was the next clean read-only candidate on `scrape.extract`.
 
-## Summary
+## Final verdict
+**Passed with caveat.**
 
-Phase 3 runtime verification **PASSED after fix-verify loop**. The original managed execution config pointed to `apify~web-scraper` which requires `pageFunction` — a full JavaScript function body that makes zero-config Resolve execution impossible. Switched to `apify~website-content-crawler` which accepts simple `startUrls` input and returns clean output.
+Apify is now freshly runtime-verified for `scrape.extract` in production via Rhumb-managed execution, and the public trust surface now shows a linked **🟢 Runtime-verified** review. The caveat is that the rolling `/v1/telemetry/provider-health` window still shows `apify` as `unhealthy` because earlier malformed probes produced four 400s before the final successful pass.
 
-## Direct Control Test
+## Working contract
+- **Capability:** `scrape.extract`
+- **Provider:** `apify`
+- **Managed actor:** `apify~website-content-crawler`
+- **Critical input shape:** send a JSON **`body`** with `startUrls`, not an extra top-level `input` field
+- **Rhumb auth header:** `X-Rhumb-Key`
 
-- **Endpoint:** `POST https://api.apify.com/v2/store?limit=3`
-- **Auth:** Bearer token
-- **Result:** 200 OK, returned 3 actors (Google Maps Scraper, TikTok Scraper, Website Content Crawler)
-- **Latency:** 416ms
+Final Rhumb payload:
 
-## Rhumb-Managed Execution — Before Fix
+```json
+{
+  "provider": "apify",
+  "credential_mode": "rhumb_managed",
+  "body": {
+    "startUrls": [{ "url": "https://example.com" }],
+    "maxCrawlDepth": 0,
+    "maxCrawlPages": 1
+  },
+  "interface": "runtime_review"
+}
+```
 
-- **Attempt 1:** `POST /v1/capabilities/scrape.extract/execute` with `params: {url: "https://example.com"}`
-- **Path resolved to:** `/v2/acts/apify~web-scraper/runs`
-- **Result:** Upstream 400 — "Field input.startUrls is required"
-- **Attempt 2:** Added `startUrls` array
-- **Result:** Upstream 400 — "Field input.pageFunction is required"
-- **Root cause:** `apify~web-scraper` requires `pageFunction` (JavaScript code), making it unsuitable for zero-config scrape.extract
+## Direct control
+- **Endpoint:** `POST https://api.apify.com/v2/acts/apify~website-content-crawler/runs?waitForFinish=60`
+- **HTTP:** `201 Created`
+- **Run id:** `bszzORcE8lRhokqfS`
+- **Dataset id:** `veM5xj6Tyk5pQ0E1d`
+- **Status:** `SUCCEEDED`
+- **Output check:** extracted `https://example.com/` with title `Example Domain`
 
-## Fix Applied
+Dataset sample:
+- `url`: `https://example.com/`
+- `metadata.title`: `Example Domain`
+- markdown excerpt:
+  - `# Example Domain`
+  - `This domain is for use in documentation examples without needing permission.`
 
-- Migration 0092: Updated `rhumb_managed_capabilities` to point `scrape.extract` and `scrape.crawl` at `apify~website-content-crawler` instead of `apify~web-scraper`
-- Added `?waitForFinish=60` query parameter so synchronous callers get completed results
-- Applied via Supabase REST PATCH (2 rows updated)
-
-## Rhumb-Managed Execution — After Fix
-
+## Rhumb-managed execution
 - **Endpoint:** `POST /v1/capabilities/scrape.extract/execute`
-- **Provider:** apify, credential_mode: rhumb_managed
-- **Params:** `startUrls: [{url: "https://example.com"}], maxCrawlPages: 1, crawlerType: "cheerio"`
-- **Result:** Upstream 201 (Created + SUCCEEDED), execution_id `exec_a0448964bfb6419785cc4e09328d08fe`
-- **Apify run ID:** `7SEG0FBlBDbbmBOKh`, status: SUCCEEDED
-- **Latency:** 8486ms (includes Apify cold start + crawl + waitForFinish)
-- **Telemetry:** Row logged with success=true
+- **HTTP envelope:** `200 OK`
+- **Upstream:** `201 Created`
+- **Execution id:** `exec_8f7c7af5c5454a208a48b547f7d2b15b`
+- **Run id:** `dgm6DOjZTCorTOMPQ`
+- **Dataset id:** `ml791H1jHIt70FHYL`
+- **Latency:** `20451.4 ms`
+- **Path logged in telemetry:** `/v2/acts/apify~website-content-crawler/runs?waitForFinish=60`
+- **Status:** `SUCCEEDED`
 
-## Provider Health Impact
+Dataset sample matched the direct control:
+- `url`: `https://example.com/`
+- `metadata.title`: `Example Domain`
+- same markdown excerpt for the page body
 
-Apify shows as "unhealthy" in provider-health (16.7% success rate) due to 4 pre-fix 400 errors. These will age out as successful executions accumulate.
+## Telemetry nuance
+`/v1/telemetry/provider-health` after the pass still showed:
+- `provider`: `apify`
+- `status`: `unhealthy`
+- `success_rate`: `0.222`
+- `total_calls`: `9`
+- `error_distribution`: `{ "400": 4 }`
 
-## Operational Notes
+That is a **window-quality issue, not a fresh execution failure**. The successful verification is real; the 24h rollup is lagging because earlier malformed test inputs polluted the denominator.
 
-- Apify's `website-content-crawler` actor is free (no per-event charges)
-- `waitForFinish=60` means synchronous execution — no polling needed
-- Cold-start latency is 8-10s; subsequent runs are faster
-- The `web-scraper` actor remains on browser.scrape/browser.crawl paths (not migrated to production, but migration SQL prepared)
+## Public trust artifacts
+Published live:
+- **Evidence:** `ca8b7705-3211-4467-aeb3-cfb2952b6e04`
+- **Review:** `f40e476c-9e2d-478d-8283-6c9b033edb65`
+- Public read surface now shows:
+  - `Apify: Phase 3 runtime verification passed`
+  - trust label `🟢 Runtime-verified`
 
-## Evidence
+Cleanup performed:
+- Superseded stale duplicate review `83398a70-fb3f-4d9f-92f8-e77d4a822452` so `/v1/services/apify/reviews` shows one clean Phase 3 row instead of a linked runtime-verified row plus an older `❓ Unknown` duplicate.
 
-- Execution ID: `exec_a0448964bfb6419785cc4e09328d08fe`
-- Telemetry: verified via `/v1/telemetry/recent`
-- Provider health: `apify` last seen `2026-03-26T11:38:32Z`
+## Lessons
+1. **For capability execute, provider-native payload belongs in `body` / `params`, not a freeform `input` key.**
+2. **Apify zero-config `scrape.extract` should stay on `website-content-crawler`, not `web-scraper`.** `web-scraper` requires `pageFunction`, which breaks the zero-config Resolve story.
+3. **Runtime review write path needs cleanup discipline.** If a stale review lands before evidence-linking is correct, supersede it immediately so the public trust surface doesn’t show conflicting verdicts.
+
+## Next recommendation
+If Google AI is still absent from live callable inventory, move to the next low-side-effect managed target with thin runtime-backed coverage. **Unstructured** is the cleanest remaining candidate because it is document-only, non-mutating, and deterministic enough for another direct-vs-Rhumb Phase 3 pass.
