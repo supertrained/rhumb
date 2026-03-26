@@ -140,7 +140,7 @@ the specific friction of a tool before integrating.
 - https://rhumb.dev/payments/agent — x402 agent payments: HTTP 402 flow, USDC on Base, wallet setup, and when to use on-chain per-call authorization
 - https://rhumb.dev/blog/getting-started-mcp — MCP install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
 - https://rhumb.dev/blog/securing-keys-for-agents — How to secure API keys for agent use: three credential modes (BYOK, managed, x402), storage hierarchy, honest threat modeling
-- MCP tools reference with examples for all 16 tools
+- MCP tools reference with examples for all 17 tools
 - Three credential modes: BYO, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
 

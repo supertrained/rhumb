@@ -6,99 +6,18 @@ const BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v
 const ENDPOINTS = [
   {
     method: "GET",
-    path: "/v1/services",
-    desc: "List all scored services",
-    curl: `curl ${BASE_URL}/services`,
-    response: `{
-  "data": {
-    "items": [
-      {
-        "slug": "adyen",
-        "name": "Adyen",
-        "category": "payments",
-        "description": "Enterprise payment platform with global reach"
-      }
-    ],
-    "total": 665,
-    "limit": 1,
-    "offset": 0
-  },
-  "error": null
-}`,
-  },
-  {
-    method: "GET",
     path: "/v1/services/{slug}/score",
-    desc: "Full score breakdown for a service",
+    desc: "Full AN Score breakdown for a service.",
     curl: `curl ${BASE_URL}/services/stripe/score`,
-    response: `{
-  "slug": "stripe",
-  "name": "Stripe",
-  "aggregate_recommendation_score": 8.09,
-  "execution_score": 9.0,
-  "access_readiness_score": 6.6,
-  "tier": "L4",
-  "tier_label": "Native",
-  "explanation": "Scores 8.1/10 overall...",
-  "failure_modes": [
-    {
-      "title": "Restricted key scope confusion",
-      "severity": "high",
-      "agent_impact": "...",
-      "workaround": "..."
-    }
-  ],
-  "calculated_at": "2026-03-11T..."
-}`,
-  },
-  {
-    method: "GET",
-    path: "/v1/services/{slug}/failures",
-    desc: "Active failure modes for a service",
-    curl: `curl ${BASE_URL}/services/stripe/failures`,
     response: `{
   "data": {
     "slug": "stripe",
-    "failure_modes": [
-      {
-        "pattern": "Restricted key scope confusion",
-        "description": "Restricted API keys can return empty results outside scope.",
-        "severity": "high",
-        "frequency": "occasional",
-        "impact": "Agent may mistake missing permission for missing data.",
-        "workaround": "Test restricted keys explicitly and check scope indicators.",
-        "category": "auth"
-      }
-    ]
-  },
-  "error": null
-}`,
-  },
-  {
-    method: "GET",
-    path: "/v1/leaderboard/{category}",
-    desc: "Ranked services by category",
-    curl: `curl ${BASE_URL}/leaderboard/payments`,
-    response: `{
-  "data": {
-    "category": "payments",
-    "items": [
-      {
-        "service_slug": "stripe",
-        "name": "Stripe",
-        "score": 8.09,
-        "execution_score": 9.0,
-        "access_score": 6.6,
-        "tier": "L4",
-        "tier_label": "Native"
-      },
-      {
-        "service_slug": "stripe-connect",
-        "name": "Stripe Connect",
-        "score": 8.0,
-        "tier": "L4"
-      }
-    ]
+    "an_score": 8.1,
+    "tier": "L4 Native",
+    "execution_score": 8.4,
+    "access_readiness_score": 7.3,
+    "failure_count": 2,
+    "review_count": 47
   },
   "error": null
 }`,
@@ -106,23 +25,118 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/search?q={query}",
-    desc: "Search services by name, category, or description",
-    curl: `curl "${BASE_URL}/search?q=payment"`,
+    desc: "Search services by need, category, or description.",
+    curl: `curl "${BASE_URL}/search?q=send+email"`,
     response: `{
   "data": {
-    "query": "payment",
-    "limit": 10,
+    "query": "send email",
     "results": [
       {
-        "service_slug": "stripe",
-        "name": "Stripe",
-        "category": "payments",
-        "aggregate_recommendation_score": 8.09,
+        "service_slug": "google-workspace-apis",
+        "name": "Google Workspace APIs",
+        "aggregate_recommendation_score": 8.7,
         "tier": "L4"
       }
     ]
   },
   "error": null
+}`,
+  },
+  {
+    method: "GET",
+    path: "/v1/capabilities/{capability_id}",
+    desc: "Inspect a capability and the providers that can fulfill it.",
+    curl: `curl ${BASE_URL}/capabilities/email.send`,
+    response: `{
+  "data": {
+    "id": "email.send",
+    "provider_count": 8,
+    "providers": [
+      {
+        "service_slug": "resend",
+        "credential_modes": ["byo", "rhumb_managed"],
+        "cost_per_call": 0.001
+      }
+    ]
+  },
+  "error": null
+}`,
+  },
+  {
+    method: "GET",
+    path: "/v1/capabilities/{capability_id}/resolve",
+    desc: "Resolve a capability to ranked providers, with routing hints and fallback chain.",
+    curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
+    response: `{
+  "data": {
+    "capability": "email.send",
+    "providers": [
+      {
+        "service_slug": "resend",
+        "recommendation": "preferred",
+        "cost_per_call": 0.001,
+        "credential_modes": ["byo", "rhumb_managed"]
+      }
+    ],
+    "fallback_chain": ["resend", "sendgrid"]
+  },
+  "error": null
+}`,
+  },
+  {
+    method: "GET",
+    path: "/v1/capabilities/{capability_id}/execute/estimate",
+    desc: "Estimate provider, cost, and circuit state before executing.",
+    curl: `curl ${BASE_URL}/capabilities/email.send/execute/estimate`,
+    response: `{
+  "data": {
+    "capability_id": "email.send",
+    "provider": "resend",
+    "credential_mode": "auto",
+    "cost_estimate_usd": 0.001,
+    "circuit_state": "closed",
+    "endpoint_pattern": "/emails"
+  },
+  "error": null
+}`,
+  },
+  {
+    method: "POST",
+    path: "/v1/capabilities/{capability_id}/execute",
+    desc: "Execute through Rhumb with an API key, BYOK / agent token, or x402 payment.",
+    curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
+  -H "X-Rhumb-Key: rhumb_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`,
+    response: `{
+  "data": {
+    "capability_id": "email.send",
+    "provider": "resend",
+    "upstream_status": 202,
+    "credential_mode": "rhumb_managed"
+  },
+  "error": null
+}`,
+  },
+  {
+    method: "POST",
+    path: "/v1/capabilities/{capability_id}/execute (x402)",
+    desc: "Anonymous execution path. First request returns HTTP 402 with exact payment requirements.",
+    curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
+  -H "Content-Type: application/json" \\
+  -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'`,
+    response: `{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base-mainnet",
+      "payTo": "0x...",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "maxAmountRequired": "10000"
+    }
+  ],
+  "balanceRequiredUsd": 0.01
 }`,
   },
 ];
@@ -132,7 +146,8 @@ const DOCS_JSON_LD = {
   "@type": "TechArticle",
   name: "API Documentation — Rhumb",
   url: "https://rhumb.dev/docs",
-  description: "Rhumb REST API and MCP server documentation. Endpoints for service scores, failure modes, leaderboards, and search. No auth required.",
+  description:
+    "Rhumb REST API and MCP docs for discovery, capability routing, execution, pricing, and x402 payment flow.",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -146,132 +161,49 @@ const DOCS_JSON_LD = {
 };
 
 const MCP_TOOLS = [
-  // Discovery (no auth required)
-  {
-    name: "find_services",
-    desc: "Search for services by use case or need",
-    example: 'find_services("payment processing")',
-    category: "discovery",
-  },
-  {
-    name: "get_score",
-    desc: "Full AN Score breakdown for a specific service",
-    example: 'get_score("stripe")',
-    category: "discovery",
-  },
-  {
-    name: "get_alternatives",
-    desc: "Find scored alternatives in the same category",
-    example: 'get_alternatives("paypal")',
-    category: "discovery",
-  },
-  {
-    name: "get_failure_modes",
-    desc: "Known failure modes and workarounds for a service",
-    example: 'get_failure_modes("stripe")',
-    category: "discovery",
-  },
-  {
-    name: "search_services",
-    desc: "Semantic search across all scored services",
-    example: 'search_services("email sending API")',
-    category: "discovery",
-  },
-  {
-    name: "get_ceremonies",
-    desc: "Signup and onboarding friction for a service",
-    example: 'get_ceremonies("sendgrid")',
-    category: "discovery",
-  },
-  // Resolve (auth required for execution)
-  {
-    name: "resolve_capability",
-    desc: "Find the best provider for a capability based on AN Score",
-    example: 'resolve_capability("email.send")',
-    category: "resolve",
-  },
-  {
-    name: "execute_capability",
-    desc: "Execute a capability through Rhumb's managed proxy",
-    example: 'execute_capability("email.send", {to: "user@example.com", subject: "Hello"})',
-    category: "resolve",
-  },
-  {
-    name: "estimate_cost",
-    desc: "Check pricing before executing a capability",
-    example: 'estimate_cost("email.send")',
-    category: "resolve",
-  },
-  {
-    name: "get_credentials",
-    desc: "Check available credential modes for a capability",
-    example: 'get_credentials("email.send")',
-    category: "resolve",
-  },
-  {
-    name: "get_routing",
-    desc: "See how a capability routes to providers",
-    example: 'get_routing("scrape.extract")',
-    category: "resolve",
-  },
-  // Billing & budget
-  {
-    name: "get_budget_status",
-    desc: "Check remaining prepaid balance and spend",
-    example: "get_budget_status()",
-    category: "billing",
-  },
-  {
-    name: "get_balance",
-    desc: "Current account balance",
-    example: "get_balance()",
-    category: "billing",
-  },
-  {
-    name: "get_spend",
-    desc: "Spend breakdown by service and time period",
-    example: "get_spend()",
-    category: "billing",
-  },
-  {
-    name: "get_ledger",
-    desc: "Transaction history and billing ledger",
-    example: "get_ledger()",
-    category: "billing",
-  },
-  {
-    name: "get_payment_url",
-    desc: "Get URL to add prepaid balance via Stripe",
-    example: "get_payment_url()",
-    category: "billing",
-  },
+  { name: "find_services", desc: "Search services by need.", example: 'find_services("payment processing")' },
+  { name: "get_score", desc: "Get the full AN Score breakdown for a service.", example: 'get_score("stripe")' },
+  { name: "get_alternatives", desc: "Find alternatives ranked by AN Score.", example: 'get_alternatives("paypal")' },
+  { name: "get_failure_modes", desc: "Inspect known breakage patterns before integrating.", example: 'get_failure_modes("stripe")' },
+  { name: "discover_capabilities", desc: "Browse capabilities like email.send or scrape.extract.", example: 'discover_capabilities({ search: "email" })' },
+  { name: "resolve_capability", desc: "Rank providers for a capability.", example: 'resolve_capability("email.send")' },
+  { name: "estimate_capability", desc: "Estimate cost and routing before execution.", example: 'estimate_capability("email.send")' },
+  { name: "execute_capability", desc: "Execute a capability through Rhumb Resolve.", example: 'execute_capability("email.send", { body: { to: "user@example.com" } })' },
+  { name: "credential_ceremony", desc: "Get self-service credential setup instructions.", example: 'credential_ceremony("github")' },
+  { name: "check_credentials", desc: "See which credential modes are available to you.", example: 'check_credentials("email.send")' },
+  { name: "budget", desc: "Check or set spend limits.", example: 'budget()' },
+  { name: "spend", desc: "Review spending by period, capability, and provider.", example: 'spend()' },
+  { name: "routing", desc: "Get or set routing preferences.", example: 'routing()' },
+  { name: "usage_telemetry", desc: "Inspect latency, errors, provider health, and usage trends.", example: 'usage_telemetry({ days: 7 })' },
+  { name: "check_balance", desc: "Check current Rhumb credit balance.", example: 'check_balance()' },
+  { name: "get_payment_url", desc: "Generate a top-up URL for prepaid credits.", example: 'get_payment_url({ amount_usd: 25 })' },
+  { name: "get_ledger", desc: "Review billing history.", example: 'get_ledger()' },
 ];
 ---
 
 <Layout
   title="API Documentation"
-  description="Rhumb REST API and MCP server documentation. Endpoints for service scores, failure modes, leaderboards, and search. No auth required."
+  description="Rhumb REST API and MCP docs for discovery, capability routing, execution, pricing, and x402 payment flow."
   canonical="/docs"
   ogTitle="API Documentation — Rhumb"
-  ogDescription="REST API + MCP server docs. Get AN Scores, failure modes, and leaderboards programmatically."
+  ogDescription="REST API + MCP docs for discovery, routing, execution, billing, and x402 payments."
   ogUrl="https://rhumb.dev/docs"
   jsonLd={DOCS_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">
-      <!-- Header -->
       <header class="mb-16">
         <div class="flex items-center gap-3 mb-4">
-          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
-            Documentation
-          </span>
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">Documentation</span>
         </div>
         <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
           API Documentation
         </h1>
         <p class="text-lg text-slate-400 leading-relaxed mb-6">
-          Access AN Scores, failure modes, and leaderboards
-          programmatically. No authentication required.
+          Use Rhumb for discovery, capability routing, pricing, and execution. Discovery reads are open.
+          Execution requires one of: <code class="font-mono text-amber text-base">X-Rhumb-Key</code>,
+          your own provider credential path, or <code class="font-mono text-amber text-base">X-Payment</code>
+          for x402.
         </p>
         <div class="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
           <span class="text-slate-500">Base URL:</span>{" "}
@@ -279,38 +211,46 @@ const MCP_TOOLS = [
         </div>
       </header>
 
-      <!-- REST API -->
       <section class="mb-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
-          REST API
-        </h2>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Auth paths</h2>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Discovery</p>
+            <p class="text-sm text-slate-300">Read endpoints like scores, search, capabilities, and leaderboards are open.</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Execution</p>
+            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Rhumb-Key</code> for account-based execution and dashboard-backed billing.</p>
+          </div>
+          <div class="bg-surface border border-amber/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-amber uppercase tracking-wider mb-2">x402</p>
+            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Payment</code> for zero-signup, per-call USDC payment on Base.</p>
+          </div>
+        </div>
+      </section>
 
+      <section class="mb-16">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">REST API</h2>
         <div class="space-y-8">
           {ENDPOINTS.map((ep) => (
             <div class="bg-surface border border-slate-800 rounded-xl overflow-hidden">
               <div class="p-5 border-b border-slate-800">
                 <div class="flex items-center gap-3 mb-2">
-                  <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                  <span class={`font-mono text-xs font-bold px-2 py-0.5 rounded ${ep.method === "POST" ? "text-amber bg-amber/10" : "text-emerald-400 bg-emerald-500/10"}`}>
                     {ep.method}
                   </span>
-                  <code class="font-mono text-sm text-slate-200">
-                    {ep.path}
-                  </code>
+                  <code class="font-mono text-sm text-slate-200">{ep.path}</code>
                 </div>
                 <p class="text-slate-400 text-sm">{ep.desc}</p>
               </div>
 
               <div class="p-5 border-b border-slate-800 bg-elevated">
-                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Request
-                </span>
+                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Request</span>
                 <pre class="mt-2 text-sm font-mono text-slate-300 overflow-x-auto"><code>{ep.curl}</code></pre>
               </div>
 
               <div class="p-5 bg-elevated">
-                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                  Response
-                </span>
+                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Response</span>
                 <pre class="mt-2 text-sm font-mono text-slate-300 overflow-x-auto"><code>{ep.response}</code></pre>
               </div>
             </div>
@@ -318,100 +258,61 @@ const MCP_TOOLS = [
         </div>
       </section>
 
-      <!-- MCP -->
       <section class="mb-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
-          MCP Server
-        </h2>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">MCP Server</h2>
         <p class="text-slate-400 leading-relaxed mb-6">
-          Rhumb provides an{" "}
-          <a
-            href="https://modelcontextprotocol.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-amber hover:underline underline-offset-2"
-          >
-            MCP
-          </a>{" "}
-          server that agents can use directly via the Model Context
-          Protocol.
+          Rhumb provides an MCP server for discovery, routing, execution, billing, and telemetry.
+          Current public server surface: <strong class="text-slate-200">17 tools</strong>.
         </p>
 
         <div class="bg-surface border border-slate-800 rounded-xl p-5 mb-6">
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-            Install & run
-          </span>
-          <pre class="mt-3 text-sm font-mono text-slate-300 overflow-x-auto"><code>{`RHUMB_API_BASE_URL="${BASE_URL}" npx rhumb-mcp`}</code></pre>
+          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Install & run</span>
+          <pre class="mt-3 text-sm font-mono text-slate-300 overflow-x-auto"><code>{`RHUMB_API_BASE_URL="${BASE_URL}" npx rhumb-mcp@0.8.2`}</code></pre>
         </div>
 
-        <h3 class="font-display font-semibold text-lg text-slate-200 mb-4">
-          Available tools
-        </h3>
+        <h3 class="font-display font-semibold text-lg text-slate-200 mb-4">Available tools</h3>
         <div class="space-y-3">
           {MCP_TOOLS.map((tool) => (
             <div class="bg-surface border border-slate-800 rounded-lg p-4">
               <div class="flex items-baseline gap-3 mb-1">
-                <code class="font-mono text-sm font-semibold text-amber">
-                  {tool.name}
-                </code>
+                <code class="font-mono text-sm font-semibold text-amber">{tool.name}</code>
               </div>
               <p class="text-slate-400 text-sm mb-2">{tool.desc}</p>
-              <code class="font-mono text-xs text-slate-500 bg-elevated px-2 py-1 rounded">
-                {tool.example}
-              </code>
+              <code class="font-mono text-xs text-slate-500 bg-elevated px-2 py-1 rounded">{tool.example}</code>
             </div>
           ))}
         </div>
       </section>
 
-      <!-- Notes -->
       <section class="bg-elevated border border-slate-800 rounded-xl p-6">
-        <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">
-          Notes
-        </h2>
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">Notes</h2>
         <ul class="space-y-2 text-slate-400 text-sm">
           <li class="flex items-start gap-2">
             <span class="text-amber mt-0.5">&bull;</span>
             <span>
-              <strong class="text-slate-200">
-                No auth required
-              </strong>{" "}
-              — all endpoints are currently open. API keys and rate
-              limiting are coming soon.
+              <strong class="text-slate-200">Execution body shape</strong>{" "}
+              — send nested JSON like <code class="font-mono text-xs bg-surface px-1 rounded text-amber">{"{\"body\": {...}}"}</code>, not flat top-level fields.
             </span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-amber mt-0.5">&bull;</span>
             <span>
-              <strong class="text-slate-200">JSON responses</strong>{" "}
-              — all endpoints return JSON with{" "}
-              <code class="font-mono text-xs bg-surface px-1 rounded text-amber">
-                Content-Type: application/json
-              </code>
-              .
+              <strong class="text-slate-200">Estimate first</strong>{" "}
+              — use <code class="font-mono text-xs bg-surface px-1 rounded text-amber">GET /v1/capabilities/{"{id}"}/execute/estimate</code> before paid execution.
             </span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-amber mt-0.5">&bull;</span>
             <span>
-              <strong class="text-slate-200">
-                Categories
-              </strong>{" "}
-              — payments, email, search, auth, database, ai, cms,
-              analytics, monitoring, communication
+              <strong class="text-slate-200">x402 proof</strong>{" "}
+              — retry execute with <code class="font-mono text-xs bg-surface px-1 rounded text-amber">X-Payment</code> carrying <code class="font-mono text-xs bg-surface px-1 rounded text-amber">tx_hash</code>, <code class="font-mono text-xs bg-surface px-1 rounded text-amber">network</code>, and <code class="font-mono text-xs bg-surface px-1 rounded text-amber">wallet_address</code>.
             </span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-amber mt-0.5">&bull;</span>
             <span>
-              <strong class="text-slate-200">llms.txt</strong> — for
-              agent discovery, see{" "}
-              <a
-                href="https://rhumb.dev/llms.txt"
-                class="text-amber hover:underline underline-offset-2"
-              >
-                rhumb.dev/llms.txt
-              </a>
+              <strong class="text-slate-200">Canonical public pricing contract</strong>{" "}
+              — see <a href="/pricing" class="text-amber hover:underline underline-offset-2">/pricing</a> or <code class="font-mono text-xs bg-surface px-1 rounded text-amber">GET /v1/pricing</code>.
             </span>
           </li>
         </ul>
@@ -420,8 +321,8 @@ const MCP_TOOLS = [
       <section class="mt-10 border-t border-slate-800 pt-8">
         <div class="flex flex-wrap gap-4 text-sm">
           <a href="/quickstart" class="text-slate-400 hover:text-amber transition-colors">Quickstart →</a>
-          <a href="/security" class="text-slate-400 hover:text-amber transition-colors">Security →</a>
-          <a href="/docs/failure-modes" class="text-slate-400 hover:text-amber transition-colors">Failure Modes →</a>
+          <a href="/payments/agent" class="text-slate-400 hover:text-amber transition-colors">Agent Payments →</a>
+          <a href="/pricing" class="text-slate-400 hover:text-amber transition-colors">Pricing →</a>
           <a href="/status" class="text-slate-400 hover:text-amber transition-colors">System Status →</a>
         </div>
       </section>
