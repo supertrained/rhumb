@@ -32,8 +32,14 @@ def fake_supabase(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[dict[str, A
         if path.startswith("service_reviews?"):
             rows = list(tables["service_reviews"])
             if "service_slug" in params:
-                slug = unquote(params["service_slug"][0].removeprefix("eq."))
-                rows = [row for row in rows if row.get("service_slug") == slug]
+                slug_filter = params["service_slug"][0]
+                if slug_filter.startswith("eq."):
+                    slug = unquote(slug_filter.removeprefix("eq."))
+                    rows = [row for row in rows if row.get("service_slug") == slug]
+                elif slug_filter.startswith("in.("):
+                    raw = slug_filter.removeprefix("in.(").removesuffix(")")
+                    slugs = {unquote(value) for value in raw.split(",") if value}
+                    rows = [row for row in rows if row.get("service_slug") in slugs]
             if params.get("review_status") == ["eq.published"]:
                 rows = [row for row in rows if row.get("review_status") == "published"]
             select_fields = params.get("select", [""])[0]
@@ -58,8 +64,14 @@ def fake_supabase(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[dict[str, A
         if path.startswith("evidence_records?"):
             rows = list(tables["evidence_records"])
             if "service_slug" in params:
-                slug = unquote(params["service_slug"][0].removeprefix("eq."))
-                rows = [row for row in rows if row.get("service_slug") == slug]
+                slug_filter = params["service_slug"][0]
+                if slug_filter.startswith("eq."):
+                    slug = unquote(slug_filter.removeprefix("eq."))
+                    rows = [row for row in rows if row.get("service_slug") == slug]
+                elif slug_filter.startswith("in.("):
+                    raw = slug_filter.removeprefix("in.(").removesuffix(")")
+                    slugs = {unquote(value) for value in raw.split(",") if value}
+                    rows = [row for row in rows if row.get("service_slug") in slugs]
             if "evidence_kind" in params:
                 kind = unquote(params["evidence_kind"][0].removeprefix("eq."))
                 rows = [row for row in rows if row.get("evidence_kind") == kind]
@@ -270,6 +282,52 @@ def test_get_service_reviews_resolves_proxy_alias_to_canonical_slug(
     assert payload["service_slug"] == "people-data-labs"
     assert payload["total_reviews"] == 1
     assert payload["reviews"][0]["headline"] == "PDL runtime review"
+    assert payload["reviews"][0]["trust_label"] == "\U0001F7E2 Runtime-verified"
+
+
+def test_get_service_reviews_falls_back_to_proxy_slug_for_canonical_alias(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Canonical Brave slug should surface reviews stored on the proxy slug."""
+    fake_supabase["service_reviews"].append(
+        {
+            "id": "review-brave-runtime",
+            "service_slug": "brave-search",
+            "review_type": "manual",
+            "review_status": "published",
+            "headline": "Brave runtime review",
+            "summary": "Proxy-backed runtime proof",
+            "reviewer_label": "Rhumb editorial team",
+            "reviewed_at": "2026-03-26T11:08:24Z",
+            "confidence": 0.95,
+            "evidence_count": 1,
+        }
+    )
+    fake_supabase["review_evidence_links"].append(
+        {"review_id": "review-brave-runtime", "evidence_record_id": "evidence-brave-runtime"}
+    )
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-runtime",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "Brave runtime evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "facts/brave-runtime",
+        }
+    )
+
+    response = client.get("/v1/services/brave-search-api/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_reviews"] == 1
+    assert payload["reviews"][0]["headline"] == "Brave runtime review"
     assert payload["reviews"][0]["trust_label"] == "\U0001F7E2 Runtime-verified"
 
 

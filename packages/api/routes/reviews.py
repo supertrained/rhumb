@@ -9,7 +9,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
-from services.service_slugs import canonicalize_service_slug
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -106,6 +106,15 @@ def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
 
 
+def _service_slug_candidates(slug: str) -> list[str]:
+    canonical_slug = canonicalize_service_slug(slug)
+    candidates: list[str] = [canonical_slug]
+    proxy_slug = normalize_proxy_slug(canonical_slug)
+    if proxy_slug not in candidates:
+        candidates.append(proxy_slug)
+    return candidates
+
+
 def _quality_floor(
     total_reviews: int,
     source_types_by_review: dict[str, list[str]],
@@ -199,10 +208,11 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 async def get_service_reviews(slug: str) -> dict[str, Any]:
     """Return published reviews for one service."""
     canonical_slug = canonicalize_service_slug(slug)
+    slug_candidates = _service_slug_candidates(slug)
     reviews = await _cached_fetch(
         "service_reviews",
         "service_reviews"
-        f"?service_slug=eq.{quote(canonical_slug)}"
+        f"?service_slug=in.({_postgrest_in(slug_candidates)})"
         "&review_status=eq.published"
         "&order=reviewed_at.desc"
         "&select=id,review_type,review_status,headline,summary,reviewer_label,reviewed_at,"
@@ -275,9 +285,10 @@ async def get_service_evidence(
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
     canonical_slug = canonicalize_service_slug(slug)
+    slug_candidates = _service_slug_candidates(slug)
     path = (
         "evidence_records"
-        f"?service_slug=eq.{quote(canonical_slug)}"
+        f"?service_slug=in.({_postgrest_in(slug_candidates)})"
         "&order=observed_at.desc"
         "&select=id,evidence_kind,source_type,title,summary,observed_at,fresh_until,"
         "confidence,source_ref"
