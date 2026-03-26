@@ -9,6 +9,7 @@ Tests:
 
 from __future__ import annotations
 
+import base64
 from unittest.mock import patch
 
 import pytest
@@ -628,3 +629,106 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
     assert captured["headers"]["x-goog-api-key"] == "gemini_test_secret"
     assert "Authorization" not in captured["headers"]
     assert captured["headers"]["Content-Type"] == "application/json"
+
+
+@pytest.mark.anyio
+async def test_managed_executor_unstructured_translates_json_body_to_multipart(monkeypatch):
+    """Unstructured managed execution should translate JSON-native file descriptors to multipart."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "unstructured_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1111,
+                "capability_id": "documents.partition",
+                "service_slug": "unstructured",
+                "description": "Managed Unstructured partition",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/general/v0/general",
+                "default_headers": {"Content-Type": "application/json"},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.unstructured" in path:
+            return [{"api_domain": "api.unstructuredapp.io"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return [{"type": "Title", "text": "Hello"}]
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+            captured["timeout"] = kwargs.get("timeout")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            captured["data"] = data
+            captured["files"] = files
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="documents.partition",
+            agent_id="agent_unstructured_test",
+            body={
+                "files": {
+                    "filename": "sample.txt",
+                    "content_base64": base64.b64encode(b"hello world").decode(),
+                    "content_type": "text/plain",
+                },
+                "strategy": "hi_res",
+                "languages": ["eng", "deu"],
+                "coordinates": True,
+            },
+            service_slug="unstructured",
+        )
+
+    assert result["provider_used"] == "unstructured"
+    assert captured["base_url"] == "https://api.unstructuredapp.io"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/general/v0/general"
+    assert captured["json"] is None
+    assert not captured["params"]
+    assert captured["headers"]["unstructured-api-key"] == "unstructured_test_secret"
+    assert "Content-Type" not in captured["headers"]
+
+    form_pairs = captured["data"]
+    assert ("strategy", "hi_res") in form_pairs
+    assert ("coordinates", "true") in form_pairs
+    assert ("languages", "eng") in form_pairs
+    assert ("languages", "deu") in form_pairs
+
+    assert len(captured["files"]) == 1
+    field_name, file_tuple = captured["files"][0]
+    assert field_name == "files"
+    assert file_tuple[0] == "sample.txt"
+    assert file_tuple[1] == b"hello world"
+    assert file_tuple[2] == "text/plain"

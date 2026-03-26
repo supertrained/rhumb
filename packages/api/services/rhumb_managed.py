@@ -14,6 +14,7 @@ Security invariants:
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import os
 import time
@@ -240,6 +241,15 @@ class RhumbManagedExecutor:
         else:
             final_body = body
 
+        multipart_data: list[tuple[str, str]] | None = None
+        multipart_files: list[tuple[str, tuple[str, bytes, str]]] | None = None
+        multipart_payload = self._extract_multipart_payload(slug, final_body)
+        if multipart_payload is not None:
+            multipart_data, multipart_files = multipart_payload
+            final_body = None
+            headers.pop("Content-Type", None)
+            headers.pop("content-type", None)
+
         # Execute
         prelogged_execution = execution_id is not None
         execution_id = execution_id or f"exec_{uuid.uuid4().hex}"
@@ -253,13 +263,18 @@ class RhumbManagedExecutor:
         try:
             async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
                 upstream_start = time.perf_counter()
-                resp = await client.request(
-                    method=method,
-                    url=path if path.startswith("/") else f"/{path}",
-                    headers=headers,
-                    json=final_body,
-                    params=params,
-                )
+                request_kwargs: dict[str, Any] = {
+                    "method": method,
+                    "url": path if path.startswith("/") else f"/{path}",
+                    "headers": headers,
+                    "params": params,
+                }
+                if multipart_files is not None:
+                    request_kwargs["data"] = multipart_data
+                    request_kwargs["files"] = multipart_files
+                else:
+                    request_kwargs["json"] = final_body
+                resp = await client.request(**request_kwargs)
                 upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
 
             upstream_status = resp.status_code
@@ -330,6 +345,105 @@ class RhumbManagedExecutor:
         updated = dict(payload)
         updated[target_key] = updated.pop(source_key)
         return updated
+
+    @staticmethod
+    def _stringify_form_value(value: Any) -> str:
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if value is None:
+            return ""
+        if isinstance(value, (int, float, str)):
+            return str(value)
+        return json.dumps(value)
+
+    def _extract_multipart_payload(
+        self,
+        service_slug: str,
+        body: dict | None,
+    ) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, bytes, str]]]] | None:
+        """Convert JSON-native Unstructured inputs into multipart form data.
+
+        Public execute remains JSON-shaped. For Unstructured managed execution,
+        callers can send a ``body`` shaped like:
+
+        {
+          "files": {
+            "filename": "doc.pdf",
+            "content_base64": "...",
+            "content_type": "application/pdf"
+          },
+          "strategy": "hi_res",
+          "languages": ["eng"]
+        }
+
+        which is translated into the multipart payload the upstream API expects.
+        """
+        if service_slug != "unstructured" or not body or "files" not in body:
+            return None
+
+        raw_files = body.get("files")
+        file_descriptors = raw_files if isinstance(raw_files, list) else [raw_files]
+        multipart_files: list[tuple[str, tuple[str, bytes, str]]] = []
+
+        for descriptor in file_descriptors:
+            if not isinstance(descriptor, dict):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Managed multipart files must be objects",
+                )
+
+            field_name = descriptor.get("field") or descriptor.get("field_name") or "files"
+            filename = descriptor.get("filename") or "upload.bin"
+            content_type = (
+                descriptor.get("content_type")
+                or descriptor.get("contentType")
+                or "application/octet-stream"
+            )
+
+            if descriptor.get("content_base64") is not None:
+                try:
+                    file_bytes = base64.b64decode(descriptor["content_base64"], validate=True)
+                except Exception as exc:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Managed multipart file content_base64 is invalid",
+                    ) from exc
+            elif descriptor.get("content") is not None:
+                content = descriptor["content"]
+                if isinstance(content, bytes):
+                    file_bytes = content
+                elif isinstance(content, str):
+                    file_bytes = content.encode("utf-8")
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Managed multipart file content must be bytes or string",
+                    )
+            elif descriptor.get("text") is not None:
+                file_bytes = str(descriptor["text"]).encode("utf-8")
+                if "content_type" not in descriptor and "contentType" not in descriptor:
+                    content_type = "text/plain"
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Managed multipart file descriptor requires content_base64, content, or text"
+                    ),
+                )
+
+            multipart_files.append((field_name, (filename, file_bytes, content_type)))
+
+        multipart_data: list[tuple[str, str]] = []
+        for key, value in body.items():
+            if key == "files" or value is None:
+                continue
+            if isinstance(value, list):
+                for item in value:
+                    multipart_data.append((key, self._stringify_form_value(item)))
+            else:
+                multipart_data.append((key, self._stringify_form_value(value)))
+
+        return multipart_data, multipart_files
 
     def _normalize_capability_inputs(
         self,
