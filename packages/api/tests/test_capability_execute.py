@@ -823,6 +823,40 @@ async def test_execute_requires_auth_header(app):
 
 
 @pytest.mark.anyio
+async def test_execute_get_returns_x402_discovery(app):
+    """GET execute acts as x402 discovery preflight instead of 405."""
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/execute")
+
+    assert resp.status_code == 402
+    assert resp.headers["x-payment"] == "required"
+    body = resp.json()
+    assert body["x402Version"] == 1
+    assert body["balanceRequired"] == 1
+
+
+@pytest.mark.anyio
+async def test_execute_get_unknown_capability_404(app):
+    """GET execute keeps capability-not-found behavior for unknown ids."""
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/nonexistent/execute")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+
+
+@pytest.mark.anyio
 async def test_estimate_auto_select(app):
     """GET estimate without provider auto-selects best."""
     with (

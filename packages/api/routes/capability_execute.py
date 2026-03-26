@@ -188,6 +188,53 @@ def check_wallet_rate_limit(wallet_address: str) -> tuple[bool, int]:
     _wallet_requests[key].append(now)
     return True, remaining - 1
 
+
+async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
+    """Return x402 payment requirements for the execute surface without executing.
+
+    Some x402 clients probe the resource URL with GET before issuing the real
+    POST request. Treat GET /execute as a side-effect-free discovery surface so
+    those clients can learn the payment requirements without triggering a 405.
+    """
+    cap_services_for_402 = await _get_capability_services(capability_id)
+    cost_for_402 = 0.0
+    if cap_services_for_402:
+        costs = [
+            float(m["cost_per_call"])
+            for m in cap_services_for_402
+            if m.get("cost_per_call") is not None
+        ]
+        cost_for_402 = min(costs) if costs else 0.0
+
+    api_base = os.environ.get("API_BASE_URL", "https://api.rhumb.dev")
+    if cost_for_402 <= 0:
+        return JSONResponse(
+            status_code=402,
+            content={
+                "x402Version": 1,
+                "accepts": [],
+                "error": "Cost data unavailable for this capability. Use the estimate endpoint first: "
+                         f"GET {api_base}/v1/capabilities/{capability_id}/execute/estimate",
+                "balanceRequired": None,
+                "balanceRequiredUsd": None,
+            },
+            headers={"X-Payment": "required"},
+        )
+
+    billed_cost_usd = cost_for_402 * 1.15
+    billed_cents_for_402 = max(int(round(billed_cost_usd * 100)), 1)
+    body_402 = build_x402_response(
+        capability_id=capability_id,
+        cost_usd_cents=billed_cents_for_402,
+        resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+    )
+    return JSONResponse(
+        status_code=402,
+        content=body_402,
+        headers={"X-Payment": "required"},
+    )
+
+
 router = APIRouter()
 
 
@@ -571,6 +618,27 @@ def _inject_auth_headers(
 # Route handlers
 # ---------------------------------------------------------------------------
 
+@router.get("/capabilities/{capability_id}/execute")
+async def discover_execute_capability(
+    capability_id: str,
+    raw_request: Request,
+) -> JSONResponse:
+    """Return x402 payment requirements for execute without executing anything."""
+    capability = await _resolve_capability(capability_id)
+    if capability is None:
+        return _not_found_response(
+            raw_request,
+            error="capability_not_found",
+            message=f"No capability found with id '{capability_id}'",
+            resolution=(
+                "Browse capabilities at GET /v1/capabilities or use "
+                "discover_capabilities MCP tool"
+            ),
+        )
+
+    return await _build_execute_discovery_response(capability_id)
+
+
 @router.post("/capabilities/{capability_id}/execute")
 async def execute_capability(
     capability_id: str,
@@ -632,24 +700,9 @@ async def execute_capability(
         payment_data = decode_x_payment_header(x_payment)
         if not payment_data or not payment_data.get("tx_hash"):
             # Header present but invalid/missing tx_hash → treat as
-            # unauthenticated.  Return 402 with payment instructions.
-            cap_services_for_402 = await _get_capability_services(capability_id)
-            cost_for_402 = 0.0
-            if cap_services_for_402:
-                costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
-                cost_for_402 = min(costs) if costs else 0.0
-            billed_cents_for_402 = max(int(round(cost_for_402 * 1.15 * 100)), 1) if cost_for_402 > 0 else 1
-            api_base = os.environ.get("API_BASE_URL", "https://api.rhumb.dev")
-            body_402 = build_x402_response(
-                capability_id=capability_id,
-                cost_usd_cents=billed_cents_for_402,
-                resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
-            )
-            return JSONResponse(
-                status_code=402,
-                content=body_402,
-                headers={"X-Payment": "required"},
-            )
+            # unauthenticated. Return the same discovery envelope clients see
+            # on a GET probe or unauthenticated POST.
+            return await _build_execute_discovery_response(capability_id)
 
         # Replay prevention: reject reused tx_hash
         tx_hash = payment_data["tx_hash"]
@@ -684,47 +737,7 @@ async def execute_capability(
                 )
     else:
         # Path 3: No auth at all — return x402 payment instructions
-        # We need a cost estimate to build the 402 response, so fetch it first
-        cap_services_for_402 = await _get_capability_services(capability_id)
-        cost_for_402 = 0.0
-        if cap_services_for_402:
-            costs = [float(m["cost_per_call"]) for m in cap_services_for_402 if m.get("cost_per_call") is not None]
-            cost_for_402 = min(costs) if costs else 0.0
-        if cost_for_402 <= 0:
-            # No cost data: return 402 with error explaining cost is unknown.
-            # Agent should call the estimate endpoint first.
-            api_base = os.environ.get(
-                "API_BASE_URL", "https://api.rhumb.dev"
-            )
-            return JSONResponse(
-                status_code=402,
-                content={
-                    "x402Version": 1,
-                    "accepts": [],
-                    "error": "Cost data unavailable for this capability. Use the estimate endpoint first: "
-                             f"GET {api_base}/v1/capabilities/{capability_id}/execute/estimate",
-                    "balanceRequired": None,
-                    "balanceRequiredUsd": None,
-                },
-                headers={"X-Payment": "required"},
-            )
-        # Apply 15% x402 margin on upstream cost
-        billed_cost_usd = cost_for_402 * 1.15
-        # Convert to USDC atomic units (6 decimals) for the x402 spec
-        billed_cents_for_402 = max(int(round(billed_cost_usd * 100)), 1)
-        api_base = os.environ.get(
-            "API_BASE_URL", "https://api.rhumb.dev"
-        )
-        body_402 = build_x402_response(
-            capability_id=capability_id,
-            cost_usd_cents=billed_cents_for_402,
-            resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
-        )
-        return JSONResponse(
-            status_code=402,
-            content=body_402,
-            headers={"X-Payment": "required"},
-        )
+        return await _build_execute_discovery_response(capability_id)
 
     # ── Per-agent execution rate limiting ────────────────────────────
     # Applies to all execution modes to prevent flooding.
