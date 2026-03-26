@@ -693,7 +693,10 @@ async def discover_execute_capability(
     print(f"[X402-DIAG] GET /execute cap={capability_id} headers={list(all_headers.keys())}", file=sys.stderr, flush=True)
     for k, v in all_headers.items():
         if any(term in k.lower() for term in ["payment", "x402", "auth", "signature"]):
-            print(f"[X402-DIAG] PAYMENT-HEADER: {k}={v[:200]}", file=sys.stderr, flush=True)
+            # Print full value in chunks to avoid log truncation
+            print(f"[X402-DIAG] PAYMENT-HEADER: {k} len={len(v)}", file=sys.stderr, flush=True)
+            for i in range(0, len(v), 500):
+                print(f"[X402-DIAG] CHUNK[{i}]: {v[i:i+500]}", file=sys.stderr, flush=True)
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
