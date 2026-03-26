@@ -10,10 +10,16 @@ const pricing = {
 };
 
 export const GET: APIRoute = async () => {
-  const [services, categories] = await Promise.all([
+  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
+
+  const [services, categories, capRes] = await Promise.all([
     getServices(),
     getCategories(),
+    fetch(`${apiBase}/capabilities?limit=1&offset=0`, { headers: { "X-Rhumb-Client": "web" } })
+      .then((r) => r.ok ? r.json() : null)
+      .catch(() => null),
   ]);
+  const totalCapabilities = capRes?.data?.total ?? 414;
 
   const categoryList = categories
     .map((c) => `- /leaderboard/${c.slug} (${c.serviceCount} services)`)
@@ -22,8 +28,6 @@ export const GET: APIRoute = async () => {
   const serviceList = services
     .map((s) => `- /service/${s.slug} — ${s.description ?? s.name} [${s.category}]`)
     .join("\n");
-
-  const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
 
   const content = `# Rhumb — Agent-Native Tool Intelligence
 > https://rhumb.dev
@@ -54,8 +58,16 @@ MCP tools available:
 ## API Base URL
 ${apiBase}
 
+## Capabilities
+Browse all ${totalCapabilities} capabilities: https://rhumb.dev/capabilities
+- GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of all capabilities
+- Each capability: { id, domain, action, description, provider_count, top_provider }
+- Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
+- Use discover_capabilities() in MCP to browse, resolve_capability() to find the best provider
+
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract
+- GET ${apiBase}/capabilities?limit=100&offset=0 — browse capabilities
 - GET ${apiBase}/services — list scored services
 - GET ${apiBase}/services/{slug}/score — detailed score breakdown
 - GET ${apiBase}/services/{slug}/failures — active failure modes

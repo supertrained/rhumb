@@ -1,0 +1,440 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// Fetch all capabilities from the API (paginated)
+interface Capability {
+  id: string;
+  domain: string;
+  action: string;
+  description: string;
+  input_hint: string | null;
+  outcome: string | null;
+  provider_count: number;
+  top_provider: { slug: string; an_score: number; tier_label: string } | null;
+}
+
+const API_BASE = "https://api.rhumb.dev/v1";
+const allCapabilities: Capability[] = [];
+let offset = 0;
+const limit = 100;
+
+while (true) {
+  try {
+    const res = await fetch(`${API_BASE}/capabilities?limit=${limit}&offset=${offset}`, {
+      headers: { "X-Rhumb-Client": "web" },
+    });
+    if (!res.ok) break;
+    const json = await res.json();
+    const items = json?.data?.items ?? [];
+    allCapabilities.push(...items);
+    if (items.length < limit || allCapabilities.length >= (json?.data?.total ?? 0)) break;
+    offset += limit;
+  } catch {
+    break;
+  }
+}
+
+// Derive domains and counts
+const domainCounts: Record<string, number> = {};
+for (const cap of allCapabilities) {
+  domainCounts[cap.domain] = (domainCounts[cap.domain] ?? 0) + 1;
+}
+const domains = Object.keys(domainCounts).sort();
+const totalCapabilities = allCapabilities.length;
+const totalDomains = domains.length;
+
+// Sort capabilities alphabetically by id
+allCapabilities.sort((a, b) => a.id.localeCompare(b.id));
+
+const CAPABILITIES_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Capabilities | Rhumb",
+  url: "https://rhumb.dev/capabilities",
+  description: `Browse ${totalCapabilities} executable capabilities across ${totalDomains} domains. Every capability maps to real providers with scored, verified execution paths.`,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: totalCapabilities,
+    itemListElement: allCapabilities.slice(0, 50).map((cap, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Thing",
+        name: cap.id,
+        description: cap.description,
+      },
+    })),
+  },
+};
+
+// Serialize data for client-side JS
+const clientData = allCapabilities.map((c) => ({
+  id: c.id,
+  domain: c.domain,
+  action: c.action,
+  description: c.description,
+  provider_count: c.provider_count,
+  top_provider: c.top_provider,
+}));
+---
+
+<Layout
+  title="Capabilities | Rhumb"
+  description={`Browse ${totalCapabilities} executable capabilities across ${totalDomains} domains. Every capability maps to real providers with scored, verified execution paths.`}
+  canonical="/capabilities"
+  ogTitle="Capabilities | Rhumb"
+  ogDescription={`${totalCapabilities} capabilities across ${totalDomains}+ domains. Every capability maps to real providers with scored, verified execution paths.`}
+  ogUrl="https://rhumb.dev/capabilities"
+  jsonLd={CAPABILITIES_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <!-- Hero -->
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-6xl mx-auto px-6 py-14">
+        <p class="text-xs font-mono text-amber uppercase tracking-widest mb-3">Capabilities</p>
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 tracking-tight">
+          What agents can do
+        </h1>
+        <p class="mt-3 text-slate-400 max-w-xl leading-relaxed">
+          {totalCapabilities} capabilities across {totalDomains} domains. Every capability maps to real
+          providers with scored, verified execution paths.
+        </p>
+        <p class="mt-2 text-sm text-slate-500 leading-relaxed max-w-xl">
+          Capabilities are abstract actions &mdash; like <code class="text-amber/80 text-xs font-mono">search.query</code> or <code class="text-amber/80 text-xs font-mono">email.send</code> &mdash;
+          that map to concrete providers. Agents discover capabilities, then Rhumb resolves the best provider to execute them.
+        </p>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="max-w-6xl mx-auto px-6 pt-8 pb-4">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+        <!-- Search -->
+        <div class="relative flex-1 max-w-md">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="text"
+            id="cap-search"
+            placeholder="Search capabilities..."
+            class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber/40 transition-colors font-mono"
+          />
+        </div>
+
+        <!-- Domain filter -->
+        <div class="relative">
+          <select
+            id="cap-domain-filter"
+            class="appearance-none pl-4 pr-10 py-2.5 rounded-lg bg-surface border border-slate-800 text-sm text-slate-300 focus:outline-none focus:border-amber/40 transition-colors cursor-pointer"
+          >
+            <option value="">All domains ({totalDomains})</option>
+            {domains.map((d) => (
+              <option value={d}>{d.replace(/_/g, " ")} ({domainCounts[d]})</option>
+            ))}
+          </select>
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- Sort -->
+        <div class="relative">
+          <select
+            id="cap-sort"
+            class="appearance-none pl-4 pr-10 py-2.5 rounded-lg bg-surface border border-slate-800 text-sm text-slate-300 focus:outline-none focus:border-amber/40 transition-colors cursor-pointer"
+          >
+            <option value="alpha">A &rarr; Z</option>
+            <option value="providers">Most providers</option>
+            <option value="domain">By domain</option>
+          </select>
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Result count -->
+      <p id="cap-count" class="mt-4 text-xs font-mono text-slate-500">
+        Showing {totalCapabilities} capabilities
+      </p>
+    </section>
+
+    <!-- Domain tags (quick filters) -->
+    <section class="max-w-6xl mx-auto px-6 pb-6">
+      <div id="domain-tags" class="flex flex-wrap gap-2">
+        {domains.map((d) => (
+          <button
+            data-domain={d}
+            class="domain-tag px-2.5 py-1 rounded-full border border-slate-800 text-xs font-mono text-slate-500 hover:border-amber/40 hover:text-amber transition-colors bg-surface cursor-pointer"
+          >
+            {d.replace(/_/g, " ")}
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <!-- Capabilities grid -->
+    <section class="max-w-6xl mx-auto px-6 pb-16">
+      <div id="cap-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {allCapabilities.map((cap, i) => (
+          <article
+            class="cap-card bg-surface border border-slate-800 rounded-xl p-5 card-lift"
+            data-id={cap.id}
+            data-domain={cap.domain}
+            data-desc={cap.description.toLowerCase()}
+            data-providers={cap.provider_count}
+            style={i < 30 ? "" : "display:none"}
+          >
+            <!-- ID -->
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <code class="text-amber font-mono text-sm font-semibold break-all leading-tight">
+                {cap.id}
+              </code>
+              {cap.provider_count > 0 && (
+                <span class="shrink-0 text-xs font-mono text-slate-500 px-2 py-0.5 rounded-full border border-slate-800 bg-navy/40 whitespace-nowrap">
+                  {cap.provider_count} provider{cap.provider_count === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+
+            <!-- Domain badge -->
+            <div class="mb-3">
+              <span class="inline-block text-xs font-mono text-slate-400 px-2 py-0.5 rounded-md bg-navy/60 border border-slate-800/60">
+                {cap.domain.replace(/_/g, " ")}
+              </span>
+            </div>
+
+            <!-- Description -->
+            <p class="text-sm text-slate-400 leading-relaxed line-clamp-2">
+              {cap.description}
+            </p>
+
+            <!-- Top provider -->
+            {cap.top_provider && (
+              <div class="mt-3 pt-3 border-t border-slate-800/60 flex items-center gap-2 text-xs">
+                <span class="text-slate-600">Top:</span>
+                <a
+                  href={`/service/${cap.top_provider.slug}`}
+                  class="text-slate-300 hover:text-amber transition-colors font-mono"
+                >
+                  {cap.top_provider.slug}
+                </a>
+                <span class="text-score-native font-mono font-semibold">
+                  {cap.top_provider.an_score.toFixed(1)}
+                </span>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <!-- Show more button -->
+      <div id="cap-show-more" class="mt-8 text-center">
+        <button
+          id="cap-load-more"
+          class="px-6 py-2.5 rounded-lg bg-surface border border-slate-700 text-slate-300 text-sm font-medium hover:border-amber/40 hover:text-amber transition-colors cursor-pointer"
+        >
+          Show more capabilities
+        </button>
+      </div>
+
+      <!-- No results -->
+      <div id="cap-empty" class="hidden mt-8">
+        <div class="bg-surface border border-slate-800 rounded-xl p-12 text-center">
+          <p class="text-slate-500 text-sm mb-4">No capabilities match your filters.</p>
+          <button
+            id="cap-reset"
+            class="text-sm text-amber hover:underline font-mono cursor-pointer"
+          >
+            Clear filters &rarr;
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="max-w-6xl mx-auto px-6 pb-20">
+      <div class="bg-surface border border-amber/20 rounded-xl p-8 text-center">
+        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+          Execute capabilities via MCP
+        </h2>
+        <p class="text-slate-400 text-sm mb-6 max-w-lg mx-auto">
+          Discover capabilities, resolve providers, and execute &mdash; all through
+          a single MCP server. No API keys to juggle.
+        </p>
+        <div class="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-navy border border-slate-700 font-mono text-sm text-amber mb-4">
+          <code>npx rhumb-mcp@0.8.2</code>
+        </div>
+        <div class="flex justify-center gap-4 mt-4">
+          <a
+            href="/docs"
+            class="text-sm text-slate-400 hover:text-amber transition-colors font-mono"
+          >
+            API docs &rarr;
+          </a>
+          <a
+            href="/methodology"
+            class="text-sm text-slate-400 hover:text-amber transition-colors font-mono"
+          >
+            Methodology &rarr;
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Client-side search/filter/sort -->
+  <script is:inline define:vars={{ clientData }}>
+    (function() {
+      const data = clientData;
+      const cards = document.querySelectorAll('.cap-card');
+      const searchInput = document.getElementById('cap-search');
+      const domainFilter = document.getElementById('cap-domain-filter');
+      const sortSelect = document.getElementById('cap-sort');
+      const countEl = document.getElementById('cap-count');
+      const gridEl = document.getElementById('cap-grid');
+      const showMoreWrap = document.getElementById('cap-show-more');
+      const loadMoreBtn = document.getElementById('cap-load-more');
+      const emptyEl = document.getElementById('cap-empty');
+      const domainTags = document.querySelectorAll('.domain-tag');
+      const resetBtn = document.getElementById('cap-reset');
+
+      let visibleLimit = 30;
+      let activeDomainTag = null;
+
+      function getFilteredSorted() {
+        const query = (searchInput.value || '').toLowerCase().trim();
+        const domain = domainFilter.value;
+        const sort = sortSelect.value;
+
+        let filtered = data.filter(function(cap) {
+          if (domain && cap.domain !== domain) return false;
+          if (query) {
+            return cap.id.toLowerCase().includes(query) ||
+                   cap.description.toLowerCase().includes(query) ||
+                   cap.domain.toLowerCase().includes(query);
+          }
+          return true;
+        });
+
+        if (sort === 'providers') {
+          filtered.sort(function(a, b) { return b.provider_count - a.provider_count; });
+        } else if (sort === 'domain') {
+          filtered.sort(function(a, b) {
+            var d = a.domain.localeCompare(b.domain);
+            return d !== 0 ? d : a.id.localeCompare(b.id);
+          });
+        } else {
+          filtered.sort(function(a, b) { return a.id.localeCompare(b.id); });
+        }
+
+        return filtered;
+      }
+
+      function render() {
+        var filtered = getFilteredSorted();
+        var shown = 0;
+
+        // Build a set of visible IDs
+        var visibleIds = new Set();
+        for (var i = 0; i < Math.min(filtered.length, visibleLimit); i++) {
+          visibleIds.add(filtered[i].id);
+        }
+
+        // Reorder cards in the grid to match sorted order
+        var cardMap = {};
+        cards.forEach(function(card) {
+          cardMap[card.getAttribute('data-id')] = card;
+        });
+
+        // Show/hide and reorder
+        for (var i = 0; i < filtered.length; i++) {
+          var card = cardMap[filtered[i].id];
+          if (!card) continue;
+          if (i < visibleLimit) {
+            card.style.display = '';
+            gridEl.appendChild(card);
+            shown++;
+          } else {
+            card.style.display = 'none';
+          }
+        }
+
+        // Hide cards not in filtered
+        var filteredIds = new Set(filtered.map(function(c) { return c.id; }));
+        cards.forEach(function(card) {
+          if (!filteredIds.has(card.getAttribute('data-id'))) {
+            card.style.display = 'none';
+          }
+        });
+
+        // Update count
+        countEl.textContent = 'Showing ' + Math.min(shown, filtered.length) + ' of ' + filtered.length + ' capabilities';
+
+        // Show/hide load more
+        if (filtered.length > visibleLimit) {
+          showMoreWrap.style.display = '';
+          loadMoreBtn.textContent = 'Show more (' + (filtered.length - visibleLimit) + ' remaining)';
+        } else {
+          showMoreWrap.style.display = 'none';
+        }
+
+        // Show/hide empty state
+        emptyEl.classList.toggle('hidden', filtered.length > 0);
+      }
+
+      function applyFilters() {
+        visibleLimit = 30;
+        render();
+      }
+
+      searchInput.addEventListener('input', applyFilters);
+      domainFilter.addEventListener('change', function() {
+        // Sync domain tags
+        domainTags.forEach(function(tag) {
+          tag.classList.toggle('border-amber/60', tag.getAttribute('data-domain') === domainFilter.value);
+          tag.classList.toggle('text-amber', tag.getAttribute('data-domain') === domainFilter.value);
+          tag.classList.toggle('border-slate-800', tag.getAttribute('data-domain') !== domainFilter.value);
+          tag.classList.toggle('text-slate-500', tag.getAttribute('data-domain') !== domainFilter.value);
+        });
+        applyFilters();
+      });
+      sortSelect.addEventListener('change', applyFilters);
+
+      loadMoreBtn.addEventListener('click', function() {
+        visibleLimit += 60;
+        render();
+      });
+
+      // Domain tag click
+      domainTags.forEach(function(tag) {
+        tag.addEventListener('click', function() {
+          var domain = tag.getAttribute('data-domain');
+          if (domainFilter.value === domain) {
+            domainFilter.value = '';
+          } else {
+            domainFilter.value = domain;
+          }
+          domainFilter.dispatchEvent(new Event('change'));
+        });
+      });
+
+      // Reset
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          searchInput.value = '';
+          domainFilter.value = '';
+          sortSelect.value = 'alpha';
+          domainTags.forEach(function(tag) {
+            tag.classList.remove('border-amber/60', 'text-amber');
+            tag.classList.add('border-slate-800', 'text-slate-500');
+          });
+          applyFilters();
+        });
+      }
+    })();
+  </script>
+</Layout>
