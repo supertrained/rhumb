@@ -25,6 +25,7 @@ import httpx
 from fastapi import HTTPException
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
+from services.service_slugs import normalize_proxy_slug
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class RhumbManagedExecutor:
             f"&enabled=eq.true&select=id&limit=1"
         )
         if service_slug:
-            path += f"&service_slug=eq.{quote(service_slug)}"
+            path += f"&service_slug=eq.{quote(normalize_proxy_slug(service_slug))}"
         rows = await supabase_fetch(path)
         return bool(rows)
 
@@ -84,7 +85,7 @@ class RhumbManagedExecutor:
             f"daily_limit_per_agent"
         )
         if service_slug:
-            path += f"&service_slug=eq.{quote(service_slug)}"
+            path += f"&service_slug=eq.{quote(normalize_proxy_slug(service_slug))}"
         path += "&limit=1"
         rows = await supabase_fetch(path)
         return rows[0] if rows else None

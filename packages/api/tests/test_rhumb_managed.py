@@ -326,6 +326,25 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_get_managed_config_normalizes_canonical_alias():
+    """Canonical/public aliases should resolve to proxy slugs in managed config lookup."""
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path):
+        seen_paths.append(path)
+        return [{"id": 1, "capability_id": "search.query", "service_slug": "brave-search"}]
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.get_managed_config("search.query", "brave-search-api")
+
+    assert result["service_slug"] == "brave-search"
+    assert any("service_slug=eq.brave-search" in path for path in seen_paths)
+
+
+@pytest.mark.anyio
 async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
     """Google AI managed execution should use x-goog-api-key, not Bearer auth."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "gemini_test_secret")

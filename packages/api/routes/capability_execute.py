@@ -50,6 +50,7 @@ from services.usdc_verifier import verify_usdc_payment
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.routing_engine import RoutingEngine
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 _budget_enforcer = BudgetEnforcer()
 _credit_deduction = CreditDeductionService()
@@ -217,6 +218,17 @@ class CapabilityExecuteRequest(BaseModel):
 # Upstream payload helpers
 # ---------------------------------------------------------------------------
 
+def _service_slug_matches(candidate_slug: str | None, requested_slug: str | None) -> bool:
+    """Return True when canonical/proxy aliases refer to the same service."""
+    if not candidate_slug or not requested_slug:
+        return False
+    return (
+        candidate_slug == requested_slug
+        or normalize_proxy_slug(candidate_slug) == normalize_proxy_slug(requested_slug)
+        or canonicalize_service_slug(candidate_slug) == canonicalize_service_slug(requested_slug)
+    )
+
+
 def _prepare_upstream_payload(
     method: str | None,
     body: dict | None,
@@ -354,13 +366,19 @@ async def _select_provider_mapping(
         )
 
     if requested_provider:
-        chosen = next((m for m in mappings if m["service_slug"] == requested_provider), None)
+        chosen = next(
+            (
+                m for m in mappings
+                if _service_slug_matches(m.get("service_slug"), requested_provider)
+            ),
+            None,
+        )
         if chosen is None:
             raise HTTPException(
                 status_code=503,
                 detail=f"Provider '{requested_provider}' not available for capability '{capability_id}'",
             )
-        breaker = get_breaker_registry().get(requested_provider, agent_id)
+        breaker = get_breaker_registry().get(normalize_proxy_slug(chosen["service_slug"]), agent_id)
         if not breaker.allow_request():
             raise HTTPException(
                 status_code=503,
@@ -386,12 +404,21 @@ async def _resolve_managed_provider_mapping(
     from services.rhumb_managed import get_managed_executor
 
     executor = get_managed_executor()
-    managed_config = await executor.get_managed_config(capability_id, requested_provider)
+    managed_config = await executor.get_managed_config(
+        capability_id,
+        normalize_proxy_slug(requested_provider) if requested_provider else None,
+    )
     if managed_config is None:
         return None
 
     managed_slug = managed_config["service_slug"]
-    return next((m for m in mappings if m["service_slug"] == managed_slug), None)
+    return next(
+        (
+            m for m in mappings
+            if _service_slug_matches(m.get("service_slug"), managed_slug)
+        ),
+        None,
+    )
 
 
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
@@ -421,7 +448,8 @@ async def _resolve_auto_credential_mode(
     candidate_mappings = [
         mapping
         for mapping in mappings
-        if requested_provider is None or mapping.get("service_slug") == requested_provider
+        if requested_provider is None
+        or _service_slug_matches(mapping.get("service_slug"), requested_provider)
     ]
     managed_advertised = any(
         "rhumb_managed" in _parse_credential_modes(mapping.get("credential_modes", []))
@@ -769,7 +797,10 @@ async def execute_capability(
         )
     elif request.credential_mode == "agent_vault":
         selected_mapping = next(
-            (m for m in cap_services if m["service_slug"] == request.provider),
+            (
+                m for m in cap_services
+                if _service_slug_matches(m.get("service_slug"), request.provider)
+            ),
             None,
         )
     elif request.credential_mode == "rhumb_managed":

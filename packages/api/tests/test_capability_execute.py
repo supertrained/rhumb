@@ -465,24 +465,24 @@ async def test_execution_logging(app):
 
 @pytest.mark.anyio
 async def test_byo_get_promotes_body_to_query_params(app):
-    """GET executions should promote request body fields into query params."""
+    """GET executions should promote body fields to params and accept canonical aliases."""
     captured: dict = {}
 
     async def _mock_fetch(path: str):
         if path.startswith("capabilities?"):
-            return [{"id": "data.enrich_person", "domain": "data", "action": "enrich_person", "description": "Enrich person"}]
+            return [{"id": "search.query", "domain": "search", "action": "query", "description": "Web search"}]
         if path.startswith("capability_services?"):
             return [{
-                "service_slug": "people-data-labs",
+                "service_slug": "brave-search",
                 "credential_modes": ["byo"],
                 "auth_method": "api_key",
-                "endpoint_pattern": "GET /v5/person/enrich",
+                "endpoint_pattern": "GET /res/v1/web/search",
                 "cost_per_call": "0.10",
                 "cost_currency": "USD",
                 "free_tier_calls": 0,
             }]
         if path.startswith("services?"):
-            return [{"slug": "people-data-labs", "api_domain": "api.peopledatalabs.com"}]
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
         if path.startswith("capability_executions?"):
             return []
         return []
@@ -521,13 +521,13 @@ async def test_byo_get_promotes_body_to_query_params(app):
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
-                "/v1/capabilities/data.enrich_person/execute",
+                "/v1/capabilities/search.query/execute",
                 json={
-                    "provider": "people-data-labs",
+                    "provider": "brave-search-api",
                     "credential_mode": "byo",
                     "method": "GET",
-                    "path": "/v5/person/enrich",
-                    "body": {"profile": "https://www.linkedin.com/in/satyanadella/"},
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
                 },
                 headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
             )
@@ -535,7 +535,7 @@ async def test_byo_get_promotes_body_to_query_params(app):
     assert resp.status_code == 200
     assert captured["method"] == "GET"
     assert captured["json"] is None
-    assert captured["params"] == {"profile": "https://www.linkedin.com/in/satyanadella/"}
+    assert captured["params"] == {"q": "Rhumb API agent infrastructure"}
 
 
 @pytest.mark.anyio
