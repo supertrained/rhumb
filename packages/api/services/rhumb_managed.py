@@ -180,6 +180,13 @@ class RhumbManagedExecutor:
             import re as _re
             path = _re.sub(r"\{[^}]+\}", "", path)
 
+        params, body = self._normalize_capability_inputs(
+            capability_id,
+            slug,
+            params,
+            body,
+        )
+
         # For managed POST/PUT/PATCH flows, treat request.params as logical
         # capability inputs and merge them into the upstream JSON body.
         # Public examples (and the dogfood loop) already send capability inputs
@@ -306,6 +313,31 @@ class RhumbManagedExecutor:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _rename_field(payload: dict | None, source_key: str, target_key: str) -> dict | None:
+        if not payload or source_key not in payload or target_key in payload:
+            return payload
+        updated = dict(payload)
+        updated[target_key] = updated.pop(source_key)
+        return updated
+
+    def _normalize_capability_inputs(
+        self,
+        capability_id: str,
+        service_slug: str,
+        params: dict | None,
+        body: dict | None,
+    ) -> tuple[dict | None, dict | None]:
+        """Map logical capability inputs to provider-native fields."""
+        if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
+            params = self._rename_field(params, "query", "q")
+            body = self._rename_field(body, "query", "q")
+            params = self._rename_field(params, "numResults", "count")
+            body = self._rename_field(body, "numResults", "count")
+            params = self._rename_field(params, "num_results", "count")
+            body = self._rename_field(body, "num_results", "count")
+        return params, body
 
     async def _get_api_domain(self, service_slug: str) -> str | None:
         """Resolve service API domain."""

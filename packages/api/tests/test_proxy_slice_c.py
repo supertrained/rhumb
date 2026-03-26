@@ -300,6 +300,22 @@ class TestAuthInjector:
         headers = auth_injector.inject(req)
         assert headers["Authorization"] == "Bearer SG.sendgrid_key_xyz"
 
+    def test_inject_brave_search_api_key(
+        self,
+        credential_store: CredentialStore,
+        auth_injector: AuthInjector,
+    ) -> None:
+        """Brave Search gets the provider-native X-Subscription-Token header."""
+        credential_store.set_credential("brave-search", "api_key", "brave_test_key_123")
+        req = AuthInjectionRequest(
+            service="brave-search",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["X-Subscription-Token"] == "brave_test_key_123"
+        assert "Authorization" not in headers
+
     def test_inject_unsupported_service(self, auth_injector: AuthInjector) -> None:
         """Unknown service raises ValueError."""
         req = AuthInjectionRequest(
@@ -367,6 +383,7 @@ class TestAuthInjector:
         assert AuthInjector.default_method_for("github") == AuthMethod.API_TOKEN
         assert AuthInjector.default_method_for("twilio") == AuthMethod.BASIC_AUTH
         assert AuthInjector.default_method_for("sendgrid") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("brave-search") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("nonexistent") is None
 
 

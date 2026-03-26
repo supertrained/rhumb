@@ -467,6 +467,89 @@ async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failu
 
 
 @pytest.mark.anyio
+async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
+    """Brave managed executions should translate logical query fields to Brave's q/count params."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "brave_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 654,
+                "capability_id": "search.query",
+                "service_slug": "brave-search",
+                "description": "Managed Brave search",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY"],
+                "default_method": "GET",
+                "default_path": "/res/v1/web/search",
+                "default_headers": {"Accept": "application/json"},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.brave-search" in path:
+            return [{"api_domain": "api.search.brave.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"type": "search", "web": {"results": []}}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="search.query",
+            agent_id="agent_brave_test",
+            params={
+                "query": "best AI agent observability tools",
+                "numResults": 3,
+            },
+            service_slug="brave-search-api",
+        )
+
+    assert result["provider_used"] == "brave-search"
+    assert captured["base_url"] == "https://api.search.brave.com"
+    assert captured["method"] == "GET"
+    assert captured["url"] == "/res/v1/web/search"
+    assert captured["json"] is None
+    assert captured["params"]["q"] == "best AI agent observability tools"
+    assert captured["params"]["count"] == 3
+    assert "query" not in captured["params"]
+    assert "numResults" not in captured["params"]
+    assert captured["headers"]["X-Subscription-Token"] == "brave_test_secret"
+
+
+@pytest.mark.anyio
 async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
     """Google AI managed execution should use x-goog-api-key, not Bearer auth."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "gemini_test_secret")

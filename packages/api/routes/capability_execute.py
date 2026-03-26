@@ -1530,7 +1530,13 @@ async def estimate_capability(
     if requested_credential_mode == "auto" and credential_mode == "rhumb_managed":
         chosen = managed_mapping
     elif provider:
-        chosen = next((m for m in mappings if m["service_slug"] == provider), None)
+        chosen = next(
+            (
+                m for m in mappings
+                if _service_slug_matches(m.get("service_slug"), provider)
+            ),
+            None,
+        )
         if chosen is None:
             raise HTTPException(
                 status_code=503,

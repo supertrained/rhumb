@@ -88,6 +88,11 @@ class AuthInjector:
             "header": "X-Api-Key",
             "format": "{credential}",
         },
+        "brave-search": {
+            "methods": ["api_key"],
+            "header": "X-Subscription-Token",
+            "format": "{credential}",
+        },
     }
 
     def __init__(

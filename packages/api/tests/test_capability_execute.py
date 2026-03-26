@@ -386,6 +386,43 @@ async def test_estimate_endpoint(app):
 
 
 @pytest.mark.anyio
+async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
+    """Estimate should accept canonical aliases like brave-search-api."""
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{"id": "search.query", "domain": "search", "action": "query", "description": "Web search"}]
+        if path.startswith("capability_services?"):
+            return [{
+                "service_slug": "brave-search",
+                "credential_modes": ["byo", "rhumb_managed"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": "0.003",
+                "cost_currency": "USD",
+                "free_tier_calls": 2000,
+            }]
+        return []
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/search.query/execute/estimate",
+                params={"provider": "brave-search-api", "credential_mode": "byo"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "brave-search"
+    assert data["credential_mode"] == "byo"
+    assert data["endpoint_pattern"] == "GET /res/v1/web/search"
+    assert resp.json()["error"] is None
+
+
+@pytest.mark.anyio
 async def test_estimate_auto_resolves_to_managed_when_config_exists(app):
     """GET estimate defaults auto to rhumb_managed when a managed config exists."""
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
