@@ -66,6 +66,7 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "algolia_api_key": ("algolia", "api_key"),
     "e2b_api_key": ("e2b", "api_key"),
     "unstructured_api_key": ("unstructured", "api_key"),
+    "google_gemini_api_key": ("google-ai", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -88,6 +89,7 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "algolia": ("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "api_key"),
     "e2b": ("RHUMB_CREDENTIAL_E2B_API_KEY", "api_key"),
     "unstructured": ("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "api_key"),
+    "google-ai": ("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "api_key"),
     "ipinfo": ("RHUMB_CREDENTIAL_IPINFO_API_TOKEN", "bearer_token"),
     "scraperapi": ("RHUMB_CREDENTIAL_SCRAPERAPI_API_KEY", "api_key"),
     "deepgram": ("RHUMB_CREDENTIAL_DEEPGRAM_API_KEY", "api_key"),
@@ -102,6 +104,7 @@ class CredentialStore:
         "firecrawl", "apify", "apollo", "pdl",
         # Stateless utility APIs (Rhumb-managed, free-tier)
         "tavily", "exa", "brave-search", "replicate", "algolia", "e2b", "unstructured",
+        "google-ai",
         "ipinfo", "scraperapi", "deepgram",
     ]
 

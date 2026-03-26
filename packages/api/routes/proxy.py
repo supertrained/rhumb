@@ -178,6 +178,13 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": 30000,  # Document processing can be slow
     },
+    "google-ai": {
+        "domain": "generativelanguage.googleapis.com",
+        "auth_type": "api_key",
+        "rate_limit": "60/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,  # AI generation can be slow
+    },
     "ipinfo": {
         "domain": "api.ipinfo.io",
         "auth_type": "bearer_token",
