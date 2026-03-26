@@ -133,7 +133,7 @@ def create_app() -> FastAPI:
         ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-        allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "Content-Type", "Authorization"],
+        allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "X-Payment", "Content-Type", "Authorization"],
     )
     application.add_middleware(QueryLoggingMiddleware)
     application.add_middleware(RateLimitMiddleware)

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -173,6 +174,28 @@ def _x_payment_header_b64(
     return base64.b64encode(payload.encode()).decode()
 
 
+def _x_payment_header_standard() -> str:
+    """Build a standard x402 PaymentPayloadV1-style header value."""
+    return json.dumps(
+        {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "base-sepolia",
+            "payload": {
+                "authorization": {
+                    "from": PAYER_WALLET,
+                    "to": WALLET,
+                    "value": "100000",
+                    "validAfter": "1",
+                    "validBefore": "2",
+                    "nonce": "0xdeadbeef",
+                },
+                "signature": "0xsigned",
+            },
+        }
+    )
+
+
 # ---------------------------------------------------------------------------
 # Common patches
 # ---------------------------------------------------------------------------
@@ -329,6 +352,44 @@ class TestX402ValidPayment:
 
         assert resp.status_code == 200
         assert resp.headers.get("x-payment-response") is not None
+
+    @pytest.mark.anyio
+    async def test_standard_x402_payload_logs_interop_trace_and_returns_discovery(self, app, caplog):
+        """Standard x402 payloads should be classified and traced even before compatibility lands."""
+        with patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_default,
+        ):
+            with caplog.at_level(logging.INFO, logger="routes.capability_execute"):
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    resp = await client.post(
+                        "/v1/capabilities/email.send/execute",
+                        json={
+                            "provider": "sendgrid",
+                            "method": "POST",
+                            "path": "/v3/mail/send",
+                            "body": {"to": "test@example.com"},
+                        },
+                        headers={"X-Payment": _x_payment_header_standard()},
+                    )
+
+        assert resp.status_code == 402
+        assert resp.headers.get("x-payment") == "required"
+
+        traces = [
+            getattr(record, "x402_interop", None)
+            for record in caplog.records
+            if getattr(record, "x402_interop", None)
+        ]
+        assert traces, "expected x402 interop trace log"
+        trace = traces[-1]
+        assert trace["x_payment_parse_mode"] == "x402_payload"
+        assert trace["branch_outcome"] == "missing_tx_hash"
+        assert trace["response_status"] == 402
+        assert trace["payment_headers_set"] is True
 
     @pytest.mark.anyio
     async def test_x402_payment_bypasses_billing_health_gate(self, app):
