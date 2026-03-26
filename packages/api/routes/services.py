@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
+from services.service_slugs import canonicalize_service_slug
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -127,10 +128,12 @@ async def list_services(
 @router.get("/services/{slug}")
 async def get_service(slug: str, raw_request: Request):
     """Fetch a service profile by slug, including latest score."""
+    canonical_slug = canonicalize_service_slug(slug)
+
     # Get service info
     services = await _cached_fetch(
         "services",
-        f"services?slug=eq.{quote(slug)}&select=slug,name,category,description&limit=1"
+        f"services?slug=eq.{quote(canonical_slug)}&select=slug,name,category,description&limit=1"
     )
     if not services:
         return _not_found_response(
@@ -145,7 +148,7 @@ async def get_service(slug: str, raw_request: Request):
     # Get latest score
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
+        f"scores?service_slug=eq.{quote(canonical_slug)}&order=calculated_at.desc&limit=1"
     )
     score: dict[str, Any] = {}
     if scores:
@@ -173,7 +176,7 @@ async def get_service(slug: str, raw_request: Request):
     if service.get("category"):
         alt_scores = await _cached_fetch(
             "scores",
-            f"scores?service_slug=neq.{quote(slug)}"
+            f"scores?service_slug=neq.{quote(canonical_slug)}"
             f"&order=aggregate_recommendation_score.desc.nullslast&limit=5"
         )
         if alt_scores:
@@ -181,7 +184,7 @@ async def get_service(slug: str, raw_request: Request):
             alt_services = await _cached_fetch(
                 "services",
                 f"services?category=eq.{quote(service['category'])}"
-                f"&slug=neq.{quote(slug)}&select=slug,name"
+                f"&slug=neq.{quote(canonical_slug)}&select=slug,name"
             )
             if alt_services:
                 alt_slugs = {s["slug"] for s in alt_services}
@@ -211,16 +214,17 @@ async def get_service(slug: str, raw_request: Request):
 @router.get("/services/{slug}/score", response_model=None)
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
+    canonical_slug = canonicalize_service_slug(slug)
     service_rows = await _cached_fetch(
         "services",
-        f"services?slug=eq.{quote(slug)}"
+        f"services?slug=eq.{quote(canonical_slug)}"
         f"&select=slug,official_docs&limit=1"
     )
     if not service_rows:
         from routes import scores as score_routes
 
         try:
-            return await score_routes.get_score(slug)
+            return await score_routes.get_score(canonical_slug)
         except HTTPException:
             return _not_found_response(
                 raw_request,
@@ -232,11 +236,11 @@ async def get_service_score(slug: str, raw_request: Request):
 
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(slug)}&order=calculated_at.desc&limit=1"
+        f"scores?service_slug=eq.{quote(canonical_slug)}&order=calculated_at.desc&limit=1"
     )
     if not scores:
         return {
-            "service_slug": slug,
+            "service_slug": canonical_slug,
             "an_score": None,
             "score": None,
             "execution_score": None,
@@ -282,7 +286,7 @@ async def get_service_score(slug: str, raw_request: Request):
     # Fetch active failure modes
     failures = await _cached_fetch(
         "failure_modes",
-        f"failure_modes?service_slug=eq.{quote(slug)}"
+        f"failure_modes?service_slug=eq.{quote(canonical_slug)}"
         f"&resolved_at=is.null"
         f"&order=severity.asc"
         f"&select=title,description,severity,frequency,agent_impact,workaround"
@@ -329,19 +333,20 @@ async def get_service_score(slug: str, raw_request: Request):
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
+    canonical_slug = canonicalize_service_slug(slug)
     failures = await _cached_fetch(
         "failure_modes",
-        f"failure_modes?service_slug=eq.{quote(slug)}"
+        f"failure_modes?service_slug=eq.{quote(canonical_slug)}"
         f"&resolved_at=is.null"
         f"&order=severity.asc,frequency.asc"
         f"&select=id,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"
     )
     if failures is None:
-        return {"data": {"slug": slug, "failures": []}, "error": "Unable to load failure modes."}
+        return {"data": {"slug": canonical_slug, "failures": []}, "error": "Unable to load failure modes."}
 
     return {
         "data": {
-            "slug": slug,
+            "slug": canonical_slug,
             "failure_modes": [
                 {
                     "pattern": f.get("title", ""),
@@ -364,19 +369,20 @@ async def get_failures(slug: str) -> dict:
 @router.get("/services/{slug}/history")
 async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -> dict:
     """Fetch historical AN score entries for a service."""
+    canonical_slug = canonicalize_service_slug(slug)
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(slug)}"
+        f"scores?service_slug=eq.{quote(canonical_slug)}"
         f"&order=calculated_at.desc&limit={limit}"
         f"&select=aggregate_recommendation_score,execution_score,access_readiness_score,"
         f"confidence,tier,tier_label,calculated_at"
     )
     if scores is None:
-        return {"data": {"slug": slug, "history": []}, "error": "Unable to load history."}
+        return {"data": {"slug": canonical_slug, "history": []}, "error": "Unable to load history."}
 
     return {
         "data": {
-            "slug": slug,
+            "slug": canonical_slug,
             "history": [
                 {
                     "an_score": sc.get("aggregate_recommendation_score"),
@@ -397,10 +403,12 @@ async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -
 @router.get("/services/{slug}/schema")
 async def get_schema(slug: str) -> dict:
     """Fetch the latest schema snapshot for a service."""
-    return {"data": {"slug": slug, "schema": None}, "error": None}
+    canonical_slug = canonicalize_service_slug(slug)
+    return {"data": {"slug": canonical_slug, "schema": None}, "error": None}
 
 
 @router.post("/services/{slug}/report")
 async def report_failure(slug: str) -> dict:
     """Submit a failure report for a service."""
-    return {"data": {"slug": slug, "accepted": True}, "error": None}
+    canonical_slug = canonicalize_service_slug(slug)
+    return {"data": {"slug": canonical_slug, "accepted": True}, "error": None}

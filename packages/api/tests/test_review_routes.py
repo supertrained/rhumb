@@ -227,6 +227,52 @@ def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(
     assert payload["evidence"][1]["is_fresh"] is False
 
 
+def test_get_service_reviews_resolves_proxy_alias_to_canonical_slug(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Proxy aliases like `pdl` should resolve to canonical public review slugs."""
+    fake_supabase["service_reviews"].append(
+        {
+            "id": "review-pdl",
+            "service_slug": "people-data-labs",
+            "review_type": "manual",
+            "review_status": "published",
+            "headline": "PDL runtime review",
+            "summary": "Canonical slug evidence",
+            "reviewer_label": "Rhumb editorial team",
+            "reviewed_at": "2026-03-12T00:00:00Z",
+            "confidence": 0.8,
+            "evidence_count": 1,
+        }
+    )
+    fake_supabase["review_evidence_links"].append(
+        {"review_id": "review-pdl", "evidence_record_id": "evidence-pdl"}
+    )
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-pdl",
+            "service_slug": "people-data-labs",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "PDL runtime evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-12T00:00:00Z",
+            "fresh_until": "2026-04-12T00:00:00Z",
+            "confidence": 0.9,
+            "source_ref": "facts/pdl-runtime",
+        }
+    )
+
+    response = client.get("/v1/services/pdl/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "people-data-labs"
+    assert payload["total_reviews"] == 1
+    assert payload["reviews"][0]["headline"] == "PDL runtime review"
+    assert payload["reviews"][0]["trust_label"] == "\U0001F7E2 Runtime-verified"
+
+
 def test_get_service_reviews_returns_empty_list_for_unknown_service(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:

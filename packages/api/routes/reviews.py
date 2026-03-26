@@ -9,6 +9,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
+from services.service_slugs import canonicalize_service_slug
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -197,10 +198,11 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 @router.get("/services/{slug}/reviews")
 async def get_service_reviews(slug: str) -> dict[str, Any]:
     """Return published reviews for one service."""
+    canonical_slug = canonicalize_service_slug(slug)
     reviews = await _cached_fetch(
         "service_reviews",
         "service_reviews"
-        f"?service_slug=eq.{quote(slug)}"
+        f"?service_slug=eq.{quote(canonical_slug)}"
         "&review_status=eq.published"
         "&order=reviewed_at.desc"
         "&select=id,review_type,review_status,headline,summary,reviewer_label,reviewed_at,"
@@ -256,7 +258,7 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
         )
 
     return {
-        "service_slug": slug,
+        "service_slug": canonical_slug,
         "reviews": response_reviews,
         "total_reviews": len(response_reviews),
         "trust_summary": {
@@ -272,9 +274,10 @@ async def get_service_evidence(
     slug: str, kind: str | None = Query(default=None)
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
+    canonical_slug = canonicalize_service_slug(slug)
     path = (
         "evidence_records"
-        f"?service_slug=eq.{quote(slug)}"
+        f"?service_slug=eq.{quote(canonical_slug)}"
         "&order=observed_at.desc"
         "&select=id,evidence_kind,source_type,title,summary,observed_at,fresh_until,"
         "confidence,source_ref"
@@ -284,7 +287,7 @@ async def get_service_evidence(
 
     evidence_rows = (await _cached_fetch("evidence_records", path)) or []
     return {
-        "service_slug": slug,
+        "service_slug": canonical_slug,
         "evidence": [
             {
                 "id": str(row["id"]),

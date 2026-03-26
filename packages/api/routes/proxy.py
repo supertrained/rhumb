@@ -32,6 +32,7 @@ from services.schema_change_detector import (
     get_schema_change_detector,
 )
 from services.schema_fingerprint import SchemaFingerprint, fingerprint_response
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 from schemas.agent_identity import (
     AgentIdentitySchema,
@@ -55,22 +56,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["proxy"])
 admin_router = APIRouter(tags=["schema-admin"])
 
-# Slug aliases: maps long/canonical service slugs to their short proxy names.
-# The proxy layer, credential store, and auth injector all use short slugs.
-# The services table and capability_services use canonical (long) slugs.
-SLUG_ALIASES: dict[str, str] = {
-    "people-data-labs": "pdl",
-    "brave-search-api": "brave-search",
-    "google-maps": "google-maps",
-}
-
-
+# Back-compat shim for existing imports in capability execution routes.
 def normalize_slug(slug: str) -> str:
-    """Resolve a canonical service slug to its proxy-layer equivalent."""
-    return SLUG_ALIASES.get(slug, slug)
+    """Resolve a canonical/public slug to its proxy-layer equivalent."""
+    return normalize_proxy_slug(slug)
 
 
-# Service registry: maps service names to provider domains and auth patterns
+# Service registry: maps proxy-layer service names to provider domains and auth patterns.
+# Public/catalog surfaces should canonicalize these names before returning them.
 SERVICE_REGISTRY = {
     "stripe": {
         "domain": "api.stripe.com",
@@ -553,17 +546,19 @@ async def proxy_request(
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
 
+        proxy_service = normalize_proxy_slug(request.service)
+
         resolved_context = ResolvedProxyContext(
             agent=agent,
             agent_id=agent.agent_id,
-            service=request.service,
+            service=proxy_service,
         )
         agent_id = resolved_context.agent_id
 
         acl_start = time.perf_counter()
         allowed, deny_reason, access = await _get_acl().resolve_service_access(
             resolved_context.agent,
-            request.service,
+            proxy_service,
         )
         timings["acl_ms"] = (time.perf_counter() - acl_start) * 1000
         if not allowed or access is None:
@@ -574,7 +569,7 @@ async def proxy_request(
         rate_result = await _get_rate_checker().check_rate_limit_with_context(
             resolved_context.agent,
             resolved_context.access,
-            request.service,
+            proxy_service,
         )
         timings["rate_limit_ms"] = (time.perf_counter() - rate_limit_start) * 1000
         resolved_context.effective_limit_qpm = rate_result.effective_limit_qpm
@@ -585,9 +580,9 @@ async def proxy_request(
                 headers={"Retry-After": str(rate_result.retry_after_seconds or 60)},
             )
 
-        service_config = _get_service_config(request.service)
+        service_config = _get_service_config(proxy_service)
         breaker = get_breaker_registry().get(
-            request.service,
+            proxy_service,
             agent_id,
             timeout_threshold_ms=float(
                 service_config.get(
@@ -619,7 +614,7 @@ async def proxy_request(
         path = _build_request_path(request.path)
 
         headers = request.headers or {}
-        auth_method = AuthInjector.default_method_for(request.service)
+        auth_method = AuthInjector.default_method_for(proxy_service)
         if auth_method is None:
             raise HTTPException(
                 status_code=500,
@@ -630,7 +625,7 @@ async def proxy_request(
         try:
             headers = _get_auth_injector().inject(
                 AuthInjectionRequest(
-                    service=request.service,
+                    service=proxy_service,
                     agent_id=agent_id,
                     auth_method=auth_method,
                     existing_headers=headers,
@@ -645,7 +640,7 @@ async def proxy_request(
 
         pool_start = time.perf_counter()
         client = await pool.acquire(
-            request.service,
+            proxy_service,
             agent_id,
             base_url=base_url,
         )
@@ -664,13 +659,13 @@ async def proxy_request(
             finally:
                 timings["upstream_ms"] = (time.perf_counter() - upstream_start) * 1000
         finally:
-            await pool.release(request.service, agent_id)
+            await pool.release(proxy_service, agent_id)
 
         status_code = proxied_response.status_code
         upstream_end = time.perf_counter()
         is_success = proxied_response.status_code < 500
         tracker.record(
-            service=request.service,
+            service=proxy_service,
             agent_id=agent_id,
             latency_ms=timings["upstream_ms"],
             perf_start=upstream_start or request_start,
@@ -701,14 +696,14 @@ async def proxy_request(
         )
         detector = get_schema_detector()
         detection = detector.detect_changes(
-            request.service,
+            proxy_service,
             schema_endpoint,
             fingerprint,
             status_code=proxied_response.status_code,
         )
 
         _append_schema_events(
-            service=request.service,
+            service=proxy_service,
             endpoint=schema_endpoint,
             fingerprint=fingerprint,
             status_code=proxied_response.status_code,
@@ -722,7 +717,7 @@ async def proxy_request(
         ):
             background_tasks.add_task(
                 _dispatch_schema_alert_task,
-                service=request.service,
+                service=proxy_service,
                 endpoint=schema_endpoint,
                 changes=detection.changes,
                 alert_mode=str(service_config.get("schema_alert_mode", "breaking_only")),
@@ -732,7 +727,7 @@ async def proxy_request(
         meter = _get_meter()
         usage_event = meter.build_metered_event(
             agent_id=agent_id,
-            service=request.service,
+            service=proxy_service,
             success=is_success,
             latency_ms=timings["upstream_ms"],
             response_size_bytes=len(proxied_response.content),
@@ -742,7 +737,7 @@ async def proxy_request(
         finalizer_result = await _get_proxy_finalizer().enqueue_or_finalize(
             ProxyFinalizationJob(
                 event=usage_event,
-                service=request.service,
+                service=proxy_service,
                 path=request.path,
                 upstream_latency_ms=timings["upstream_ms"],
                 response_parse_ms=timings["response_parse_ms"],
@@ -841,9 +836,12 @@ async def list_services() -> dict:
 
     services = []
     for service_name, config in SERVICE_REGISTRY.items():
+        canonical_slug = canonicalize_service_slug(service_name)
         services.append(
             {
-                "name": service_name,
+                "name": canonical_slug,
+                "proxy_name": service_name,
+                "canonical_slug": canonical_slug,
                 "domain": config["domain"],
                 "auth_type": config["auth_type"],
                 "rate_limit": config["rate_limit"],

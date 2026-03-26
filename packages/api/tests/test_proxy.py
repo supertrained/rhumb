@@ -122,6 +122,10 @@ class TestProxyRouter:
         assert len(data["data"]["services"]) > 0
         assert "stripe" in [s["name"] for s in data["data"]["services"]]
 
+        pdl_entry = next(s for s in data["data"]["services"] if s["proxy_name"] == "pdl")
+        assert pdl_entry["name"] == "people-data-labs"
+        assert pdl_entry["canonical_slug"] == "people-data-labs"
+
     def test_service_registry_structure(self, client):
         """Test that service registry has correct structure."""
         response = client.get("/proxy/services")
@@ -129,6 +133,8 @@ class TestProxyRouter:
         assert "callable_count" in data["data"]
         for service in data["data"]["services"]:
             assert "name" in service
+            assert "proxy_name" in service
+            assert "canonical_slug" in service
             assert "domain" in service
             assert "auth_type" in service
             assert "rate_limit" in service
@@ -136,6 +142,38 @@ class TestProxyRouter:
             # which services are actually reachable before attempting a call.
             assert "callable" in service
             assert isinstance(service["callable"], bool)
+
+    def test_proxy_accepts_canonical_alias_for_runtime_proxy_slug(self, client, httpx_mock):
+        """Canonical public slugs should route through proxy-layer aliases like `pdl`."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "pdl"))
+        proxy_module._auth_injector_instance.credentials.set_credential("pdl", "api_key", "pdl_test_vault")
+
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.peopledatalabs.com/v5/person/enrich",
+            json={"status": 200, "data": {"name": "Acme"}},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "people-data-labs",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status_code"] == 200
+        assert payload["service"] == "people-data-labs"
+        assert payload["body"]["status"] == 200
 
     def test_proxy_successful_request(self, client, httpx_mock):
         """Test successful proxy request."""
