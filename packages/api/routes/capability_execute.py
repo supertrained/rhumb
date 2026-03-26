@@ -703,14 +703,27 @@ async def execute_capability(
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
     x_agent_token: Optional[str] = Header(None, alias="X-Agent-Token"),
     x_payment: Optional[str] = Header(None, alias="X-Payment"),
+    payment_signature: Optional[str] = Header(None, alias="PAYMENT-SIGNATURE"),
 ) -> dict:
     """Execute a capability through the proxy layer.
 
     Resolves provider, injects auth, proxies the request upstream,
     logs the execution, and returns the upstream response.
 
-    Supports x402 inline payment via the ``X-Payment`` header.
+    Supports x402 inline payment via the ``X-Payment`` header or
+    the standard x402 v2 ``PAYMENT-SIGNATURE`` header.
     """
+    # If we got a PAYMENT-SIGNATURE header (x402 v2 standard) but no X-Payment,
+    # log it for diagnostics and bridge it into the x_payment flow.
+    if payment_signature and (not x_payment or x_payment == "required"):
+        logger.info(
+            "x402_v2_payment_signature received (len=%d, first_50=%s)",
+            len(payment_signature),
+            payment_signature[:50],
+        )
+        # Bridge: treat the PAYMENT-SIGNATURE as our X-Payment for now
+        # This lets the existing trace/decode pipeline capture what the buyer sends
+        x_payment = payment_signature
     # ── Kill Switch: full execution shutdown ───────────────────────
     if os.environ.get("MANAGED_EXECUTION_ENABLED", "").lower() == "false":
         logger.warning("Kill switch active: MANAGED_EXECUTION_ENABLED=false — rejecting execution")
