@@ -108,6 +108,38 @@ async def test_credential_modes_shows_configured_for_byo(app, monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_credential_modes_prefers_hardcoded_twilio_basic_auth(app, monkeypatch):
+    """Twilio should report BASIC_AUTH config even if capability metadata says api_key."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_TWILIO_BASIC_AUTH", "AC123:auth_token")
+
+    import services.proxy_credentials as pc
+    pc._credential_store = None
+
+    async def mock_fetch(path):
+        if "capabilities?" in path and "id=eq." in path:
+            return [{"id": "phone.lookup", "domain": "phone", "action": "lookup", "description": "Lookup"}]
+        if "capability_services?" in path:
+            return [{"service_slug": "twilio", "credential_modes": ["byo"], "auth_method": "api_key"}]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/capabilities/phone.lookup/credential-modes",
+                headers={"X-Rhumb-Key": "test"},
+            )
+
+    assert resp.status_code == 200
+    twilio = resp.json()["data"]["providers"][0]
+    byo_mode = twilio["modes"][0]
+    assert twilio["auth_method"] == "basic_auth"
+    assert byo_mode["configured"] is True
+    assert "TWILIO_BASIC_AUTH" in byo_mode["setup_hint"]
+
+    pc._credential_store = None
+
+
+@pytest.mark.anyio
 async def test_credential_modes_no_providers(app):
     """credential-modes with no providers returns empty list."""
     async def mock_fetch(path):

@@ -12,6 +12,8 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch
+from services.proxy_auth import AuthInjector
+from services.service_slugs import normalize_proxy_slug
 
 
 def _capability_not_found(raw_request: Request, capability_id: str) -> JSONResponse:
@@ -28,6 +30,13 @@ def _capability_not_found(raw_request: Request, capability_id: str) -> JSONRespo
     )
 
 router = APIRouter()
+
+
+def _effective_auth_method(service_slug: str, auth_method: str) -> str:
+    """Prefer hardcoded provider auth defaults over stale capability metadata."""
+    proxy_slug = normalize_proxy_slug(service_slug)
+    default_method = AuthInjector.default_method_for(proxy_slug)
+    return default_method.value if default_method is not None else auth_method
 
 
 @router.get("/capabilities")
@@ -578,7 +587,7 @@ async def get_credential_modes(
     for m in mappings:
         slug = m["service_slug"]
         modes = m.get("credential_modes", ["byo"])
-        auth_method = m.get("auth_method", "api_key")
+        auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
 
         byo_configured = False
         try:

@@ -473,8 +473,32 @@ async def _resolve_auto_credential_mode(
     return resolved_mode, managed_mapping
 
 
-def _resolve_base_url(service_slug: str, api_domain: Optional[str]) -> str:
-    """Build base URL: prefer hardcoded SERVICE_REGISTRY, then dynamic domain."""
+def _resolve_base_url(
+    service_slug: str,
+    api_domain: Optional[str],
+    request_path: Optional[str] = None,
+) -> str:
+    """Build base URL: prefer hardcoded SERVICE_REGISTRY, then dynamic domain.
+
+    Some providers multiplex products across multiple API domains. Twilio is the
+    current concrete case:
+    - core messaging/voice/account APIs live on ``api.twilio.com``
+    - Lookup v2 lives on ``lookups.twilio.com``
+    - Verify v2 lives on ``verify.twilio.com``
+
+    Resolve execution receives an explicit provider-native path, so route to the
+    correct product domain when the request path makes that intent unambiguous.
+    """
+    normalized_path = request_path or ""
+    if normalized_path and not normalized_path.startswith("/"):
+        normalized_path = f"/{normalized_path}"
+
+    if service_slug == "twilio":
+        if normalized_path.startswith("/v2/PhoneNumbers"):
+            return "https://lookups.twilio.com"
+        if normalized_path.startswith("/v2/Services"):
+            return "https://verify.twilio.com"
+
     reg = SERVICE_REGISTRY.get(service_slug)
     if reg:
         return f"https://{reg['domain']}"
@@ -1295,10 +1319,10 @@ async def execute_capability(
     auth_method = chosen.get("auth_method")
     cost_per_call = float(chosen["cost_per_call"]) if chosen.get("cost_per_call") is not None else None
 
-    api_domain = await _get_service_domain(provider_slug)
-    base_url = _resolve_base_url(proxy_slug, api_domain)
-
     path = request.path if request.path.startswith("/") else f"/{request.path}"
+
+    api_domain = await _get_service_domain(provider_slug)
+    base_url = _resolve_base_url(proxy_slug, api_domain, path)
     headers: dict[str, str] = {}
     headers = _inject_auth_headers(proxy_slug, auth_method, headers)
 

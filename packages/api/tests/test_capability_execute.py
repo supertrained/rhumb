@@ -176,6 +176,54 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_twilio_lookup_uses_lookups_domain(app):
+    """Twilio Lookup paths should route to lookups.twilio.com, not api.twilio.com."""
+    _, mock_pool = _build_patches()
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?") and "id=eq.phone.lookup" in path:
+            return [{"id": "phone.lookup", "domain": "phone", "action": "lookup", "description": "Lookup phone metadata"}]
+        if path.startswith("capability_services?") and "capability_id=eq.phone.lookup" in path:
+            return [{
+                "service_slug": "twilio",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /v2/PhoneNumbers/{number}?Fields=carrier",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }]
+        if path.startswith("services?") and "slug=eq.twilio" in path:
+            return [{"slug": "twilio", "api_domain": "api.twilio.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/phone.lookup/execute",
+                json={
+                    "provider": "twilio",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/v2/PhoneNumbers/+14155552671",
+                    "params": {"Fields": "carrier"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    mock_pool.acquire.assert_awaited_once()
+    assert mock_pool.acquire.await_args.kwargs["base_url"] == "https://lookups.twilio.com"
+
+
+@pytest.mark.anyio
 async def test_unknown_capability_returns_404_before_payment_flow(app):
     """Unknown capabilities should return 404 before any x402/payment flow."""
     with patch(
