@@ -683,20 +683,31 @@ async def discover_execute_capability(
 ) -> JSONResponse:
     """Return x402 payment requirements for execute without executing anything.
 
-    Also captures x402 v2 PAYMENT-SIGNATURE headers for diagnostic purposes
+    Also captures all incoming headers for x402 interop diagnostics
     when buyers retry with GET + payment proof (as awal does).
     """
-    # Log any payment headers on the GET path for x402 interop diagnostics
-    effective_payment = payment_signature or x_payment
-    if effective_payment and effective_payment != "required":
-        from services.x402_middleware import inspect_x_payment_header
-        trace = inspect_x_payment_header(effective_payment)
+    # Log ALL headers on every GET for x402 interop diagnostics
+    # This is temporary — remove after we understand awal's payment header
+    payment_headers = {
+        k: v[:200] for k, v in raw_request.headers.items()
+        if any(term in k.lower() for term in [
+            "payment", "x-payment", "x402", "authorization", "signature",
+        ])
+    }
+    if payment_headers:
         logger.info(
-            "x402_get_payment_attempt: capability=%s parse_mode=%s keys=%s first_80=%s",
+            "x402_get_payment_headers: capability=%s headers=%s",
             capability_id,
-            trace.get("parse_mode"),
-            trace.get("top_level_keys"),
-            effective_payment[:80] if effective_payment else "",
+            payment_headers,
+        )
+    else:
+        # Even log when there are no payment headers — so we can confirm
+        # the new code is running
+        all_header_names = list(raw_request.headers.keys())
+        logger.info(
+            "x402_get_no_payment_headers: capability=%s all_header_names=%s",
+            capability_id,
+            all_header_names,
         )
 
     capability = await _resolve_capability(capability_id)
