@@ -345,6 +345,95 @@ async def test_get_managed_config_normalizes_canonical_alias():
 
 
 @pytest.mark.anyio
+async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failure(monkeypatch):
+    """POST managed executions should merge params into body and treat 4xx as failure."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_TAVILY_API_KEY", "tvly_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 321,
+                "capability_id": "search.query",
+                "service_slug": "tavily",
+                "description": "Managed Tavily search",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_TAVILY_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/search",
+                "default_headers": {},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.tavily" in path:
+            return [{"api_domain": "api.tavily.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    patched_payloads: list[dict] = []
+
+    async def mock_patch(path, payload):
+        patched_payloads.append(payload)
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 422
+
+        def json(self):
+            return {"detail": [{"msg": "Field required", "loc": ["body", "query"]}]}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="search.query",
+            agent_id="agent_tavily_test",
+            params={
+                "query": "best AI agent observability tools",
+                "search_depth": "basic",
+                "max_results": 5,
+            },
+            service_slug="tavily",
+        )
+
+    assert result["provider_used"] == "tavily"
+    assert result["upstream_status"] == 422
+    assert captured["base_url"] == "https://api.tavily.com"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/search"
+    assert not captured["params"]
+    assert captured["json"]["api_key"] == "tvly_test_secret"
+    assert captured["json"]["query"] == "best AI agent observability tools"
+    assert captured["json"]["search_depth"] == "basic"
+    assert captured["json"]["max_results"] == 5
+    assert patched_payloads[-1]["success"] is False
+    assert patched_payloads[-1]["upstream_status"] == 422
+
+
+@pytest.mark.anyio
 async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
     """Google AI managed execution should use x-goog-api-key, not Bearer auth."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "gemini_test_secret")

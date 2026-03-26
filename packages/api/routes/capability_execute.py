@@ -1215,7 +1215,7 @@ async def execute_capability(
                 upstream_response = resp.text
 
             total_latency_ms = (time.perf_counter() - request_start) * 1000
-            success = upstream_status < 500
+            success = 200 <= upstream_status < 400
             billing_status = "billed"
             if not success:
                 await _release_reservations()
@@ -1350,7 +1350,7 @@ async def execute_capability(
         except Exception:
             upstream_response = resp.text
 
-        success = upstream_status < 500
+        success = 200 <= upstream_status < 400
 
         breaker = get_breaker_registry().get(proxy_slug, agent_id)
         if success:

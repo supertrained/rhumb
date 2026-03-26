@@ -464,6 +464,46 @@ async def test_execution_logging(app):
 
 
 @pytest.mark.anyio
+async def test_byo_4xx_marks_execution_failed_and_refunded(app):
+    """4xx upstream responses should not be marked as successful executions."""
+    mock_response, mock_pool = _build_patches()
+    mock_response.status_code = 422
+    mock_response.json.return_value = {"detail": "missing required field"}
+    mock_response.text = '{"detail":"missing required field"}'
+
+    patch_calls = []
+
+    async def capture_patch(path: str, payload: dict):
+        patch_calls.append({"path": path, "payload": payload})
+        return [payload]
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=capture_patch),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    payload = patch_calls[-1]["payload"]
+    assert payload["success"] is False
+    assert payload["upstream_status"] == 422
+    assert payload["billing_status"] == "refunded"
+
+
+@pytest.mark.anyio
 async def test_byo_get_promotes_body_to_query_params(app):
     """GET executions should promote body fields to params and accept canonical aliases."""
     captured: dict = {}

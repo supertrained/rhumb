@@ -148,6 +148,17 @@ class RhumbManagedExecutor:
             import re as _re
             path = _re.sub(r"\{[^}]+\}", "", path)
 
+        # For managed POST/PUT/PATCH flows, treat request.params as logical
+        # capability inputs and merge them into the upstream JSON body.
+        # Public examples (and the dogfood loop) already send capability inputs
+        # via `params`, while providers like Tavily expect POST bodies.
+        if method.upper() not in ("GET", "HEAD", "DELETE") and params:
+            merged_body = dict(body) if body else {}
+            for key, value in params.items():
+                merged_body.setdefault(key, value)
+            body = merged_body
+            params = None
+
         # Resolve API domain
         api_domain = await self._get_api_domain(slug)
         if not api_domain:
@@ -209,7 +220,7 @@ class RhumbManagedExecutor:
             except Exception:
                 upstream_response = resp.text
 
-            success = upstream_status < 500
+            success = 200 <= upstream_status < 400
 
         except httpx.HTTPError as e:
             error_message = str(e)
