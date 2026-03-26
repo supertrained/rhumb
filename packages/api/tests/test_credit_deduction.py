@@ -265,8 +265,12 @@ async def test_execute_route_logs_billing_cents_with_markup():
         return []
 
     async def _capture_insert(table: str, payload: dict) -> bool:
-        captured_payloads.append({"table": table, "payload": payload})
+        captured_payloads.append({"kind": "insert", "table": table, "payload": payload})
         return True
+
+    async def _capture_patch(path: str, payload: dict):
+        captured_payloads.append({"kind": "patch", "path": path, "payload": payload})
+        return [payload]
 
     with (
         patch("routes.capability_execute._get_identity_store", return_value=mock_store),
@@ -274,6 +278,7 @@ async def test_execute_route_logs_billing_cents_with_markup():
         patch("routes.capability_execute._credit_deduction") as mock_credit,
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_fetch),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, side_effect=_capture_insert),
+        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=_capture_patch),
         patch("routes.capability_execute._inject_auth_headers", side_effect=lambda s, a, h: h),
         patch("routes.capability_execute.get_credential_store") as mock_cred_store,
         patch("routes.capability_execute.httpx.AsyncClient") as MockHttpxClient,
@@ -321,8 +326,11 @@ async def test_execute_route_logs_billing_cents_with_markup():
 
     assert resp.status_code == 200
     assert captured_payloads, "expected capability execution insert"
-    payload = captured_payloads[0]["payload"]
-    assert payload["upstream_cost_cents"] == 10
-    assert payload["cost_usd_cents"] == 12
-    assert payload["margin_cents"] == 2
-    assert payload["billing_status"] == "billed"
+    placeholder = captured_payloads[0]["payload"]
+    assert placeholder["billing_status"] == "pending"
+
+    final_payload = next(entry["payload"] for entry in captured_payloads if entry["kind"] == "patch")
+    assert final_payload["upstream_cost_cents"] == 10
+    assert final_payload["cost_usd_cents"] == 12
+    assert final_payload["margin_cents"] == 2
+    assert final_payload["billing_status"] == "billed"

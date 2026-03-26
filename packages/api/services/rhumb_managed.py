@@ -24,7 +24,7 @@ from urllib.parse import quote
 import httpx
 from fastapi import HTTPException
 
-from routes._supabase import supabase_fetch, supabase_insert
+from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,7 @@ class RhumbManagedExecutor:
         params: dict | None = None,
         service_slug: str | None = None,
         interface: str = "rest",
+        execution_id: str | None = None,
     ) -> dict:
         """Execute a managed capability using Rhumb's credentials.
 
@@ -116,6 +117,7 @@ class RhumbManagedExecutor:
             params: query parameters
             service_slug: explicit provider (or auto-select)
             interface: client interface type
+            execution_id: optional pre-created execution row to update in-place
 
         Returns:
             Execution result dict with upstream response + metadata.
@@ -179,7 +181,8 @@ class RhumbManagedExecutor:
             final_body = body
 
         # Execute
-        execution_id = f"exec_{uuid.uuid4().hex}"
+        prelogged_execution = execution_id is not None
+        execution_id = execution_id or f"exec_{uuid.uuid4().hex}"
         request_start = time.perf_counter()
         upstream_status: int | None = None
         upstream_response: Any = None
@@ -217,17 +220,13 @@ class RhumbManagedExecutor:
         total_latency_ms = (time.perf_counter() - request_start) * 1000
 
         # Log execution
-        await supabase_insert("capability_executions", {
-            "id": execution_id,
-            "agent_id": agent_id,
-            "capability_id": capability_id,
+        update_payload = {
             "provider_used": slug,
             "credential_mode": "rhumb_managed",
             "method": method,
             "path": path,
             "upstream_status": upstream_status,
             "success": success,
-            "cost_estimate_usd": None,  # managed — Rhumb absorbs cost
             "total_latency_ms": round(total_latency_ms, 1),
             "upstream_latency_ms": round(upstream_latency_ms, 1),
             "fallback_attempted": False,
@@ -235,7 +234,20 @@ class RhumbManagedExecutor:
             "idempotency_key": None,
             "error_message": error_message,
             "interface": interface,
-        })
+        }
+        if not prelogged_execution:
+            update_payload["cost_estimate_usd"] = None  # managed — Rhumb absorbs cost
+        updated = await supabase_patch(
+            f"capability_executions?id=eq.{quote(execution_id)}",
+            update_payload,
+        )
+        if not updated:
+            await supabase_insert("capability_executions", {
+                "id": execution_id,
+                "agent_id": agent_id,
+                "capability_id": capability_id,
+                **update_payload,
+            })
 
         return {
             "capability_id": capability_id,

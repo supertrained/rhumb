@@ -214,6 +214,30 @@ class CapabilityExecuteRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Upstream payload helpers
+# ---------------------------------------------------------------------------
+
+def _prepare_upstream_payload(
+    method: str | None,
+    body: dict | None,
+    params: dict | None,
+) -> tuple[dict | None, dict | None]:
+    """Normalize request payloads before upstream execution.
+
+    GET/HEAD/DELETE requests should not send JSON bodies to providers that
+    expect query-string inputs (for example PDL enrich). Promote body fields
+    into params unless the param key is already set explicitly.
+    """
+    effective_params = dict(params) if params else {}
+    if method and method.upper() in ("GET", "HEAD", "DELETE"):
+        if body:
+            for key, value in body.items():
+                effective_params.setdefault(key, value)
+        return None, effective_params or None
+    return body, effective_params or None
+
+
+# ---------------------------------------------------------------------------
 # Provider resolution helpers
 # ---------------------------------------------------------------------------
 
@@ -924,6 +948,44 @@ async def execute_capability(
         "API_BASE_URL", "https://api.rhumb.dev"
     )
 
+    provider_hint = (
+        request.provider
+        or (selected_mapping.get("service_slug") if selected_mapping else None)
+        or "pending"
+    )
+    inferred_method = request.method
+    inferred_path = request.path
+    endpoint_pattern = selected_mapping.get("endpoint_pattern") if selected_mapping else None
+    if endpoint_pattern and (not inferred_method or not inferred_path):
+        endpoint_parts = endpoint_pattern.split(" ", 1)
+        if len(endpoint_parts) == 2:
+            inferred_method = inferred_method or endpoint_parts[0]
+            inferred_path = inferred_path or endpoint_parts[1]
+
+    await supabase_insert("capability_executions", {
+        "id": execution_id,
+        "agent_id": agent_id,
+        "capability_id": capability_id,
+        "provider_used": provider_hint,
+        "credential_mode": request.credential_mode,
+        "method": inferred_method or "PENDING",
+        "path": inferred_path or "/pending",
+        "upstream_status": None,
+        "success": False,
+        "cost_estimate_usd": cost_estimate,
+        "cost_usd_cents": billed_cost_cents if billed_cost_cents > 0 else None,
+        "upstream_cost_cents": upstream_cost_cents if upstream_cost_cents > 0 else None,
+        "margin_cents": margin_cents if billed_cost_cents > 0 else None,
+        "billing_status": "pending" if billed_cost_cents > 0 else "unbilled",
+        "total_latency_ms": None,
+        "upstream_latency_ms": None,
+        "fallback_attempted": False,
+        "fallback_provider": None,
+        "idempotency_key": request.idempotency_key,
+        "error_message": None,
+        "interface": request.interface,
+    })
+
     if not is_x402_anonymous and not on_chain_payment_authorized:
         budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)
         if not budget_result.allowed:
@@ -1035,6 +1097,7 @@ async def execute_capability(
                 params=request.params,
                 service_slug=request.provider,
                 interface=request.interface,
+                execution_id=execution_id,
             )
         except Exception:
             await _release_reservations()
@@ -1043,6 +1106,14 @@ async def execute_capability(
         # Record successful execution against upstream budget
         if provider_slug:
             record_provider_usage(provider_slug)
+
+        await supabase_patch(
+            f"capability_executions?id=eq.{quote(execution_id)}",
+            {
+                "billing_status": "billed" if billed_cost_cents > 0 else "unbilled",
+            },
+        )
+
         if budget_remaining is not None:
             result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
         if credit_remaining_cents is not None:
@@ -1088,6 +1159,11 @@ async def execute_capability(
 
         request_start = time.perf_counter()
         path = request.path if request.path.startswith("/") else f"/{request.path}"
+        final_body, final_params = _prepare_upstream_payload(
+            request.method,
+            request.body,
+            request.params,
+        )
 
         try:
             async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
@@ -1096,8 +1172,8 @@ async def execute_capability(
                     method=request.method,
                     url=path,
                     headers=vault_headers,
-                    json=request.body,
-                    params=request.params,
+                    json=final_body,
+                    params=final_params,
                 )
                 upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
 
@@ -1114,10 +1190,7 @@ async def execute_capability(
                 await _release_reservations()
                 billing_status = "refunded"
 
-            await supabase_insert("capability_executions", {
-                "id": execution_id,
-                "agent_id": agent_id,
-                "capability_id": capability_id,
+            update_payload = {
                 "provider_used": request.provider,
                 "credential_mode": "agent_vault",
                 "method": request.method,
@@ -1136,7 +1209,18 @@ async def execute_capability(
                 "idempotency_key": request.idempotency_key,
                 "error_message": None,
                 "interface": request.interface,
-            })
+            }
+            updated = await supabase_patch(
+                f"capability_executions?id=eq.{quote(execution_id)}",
+                update_payload,
+            )
+            if not updated:
+                await supabase_insert("capability_executions", {
+                    "id": execution_id,
+                    "agent_id": agent_id,
+                    "capability_id": capability_id,
+                    **update_payload,
+                })
 
             vault_response = {
                 "capability_id": capability_id,
@@ -1195,6 +1279,11 @@ async def execute_capability(
     error_message: Optional[str] = None
 
     use_pool = proxy_slug in SERVICE_REGISTRY
+    final_body, final_params = _prepare_upstream_payload(
+        request.method,
+        request.body,
+        request.params,
+    )
 
     try:
         if use_pool:
@@ -1206,8 +1295,8 @@ async def execute_capability(
                     method=request.method,
                     url=path,
                     headers=headers,
-                    json=request.body,
-                    params=request.params,
+                    json=final_body,
+                    params=final_params,
                 )
                 upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
             finally:
@@ -1219,8 +1308,8 @@ async def execute_capability(
                     method=request.method,
                     url=path,
                     headers=headers,
-                    json=request.body,
-                    params=request.params,
+                    json=final_body,
+                    params=final_params,
                 )
                 upstream_latency_ms = (time.perf_counter() - upstream_start) * 1000
 
@@ -1275,10 +1364,7 @@ async def execute_capability(
         else None
     )
 
-    await supabase_insert("capability_executions", {
-        "id": execution_id,
-        "agent_id": agent_id,
-        "capability_id": capability_id,
+    update_payload = {
         "provider_used": provider_slug,
         "credential_mode": request.credential_mode,
         "method": request.method,
@@ -1297,7 +1383,18 @@ async def execute_capability(
         "idempotency_key": request.idempotency_key,
         "error_message": error_message,
         "interface": request.interface,
-    })
+    }
+    updated = await supabase_patch(
+        f"capability_executions?id=eq.{quote(execution_id)}",
+        update_payload,
+    )
+    if not updated:
+        await supabase_insert("capability_executions", {
+            "id": execution_id,
+            "agent_id": agent_id,
+            "capability_id": capability_id,
+            **update_payload,
+        })
 
     response_data = {
         "capability_id": capability_id,

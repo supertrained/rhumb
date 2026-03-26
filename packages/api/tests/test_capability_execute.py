@@ -413,17 +413,23 @@ async def test_estimate_auto_resolves_to_managed_when_config_exists(app):
 
 @pytest.mark.anyio
 async def test_execution_logging(app):
-    """Execute inserts a row into capability_executions."""
+    """Execute pre-logs then patches the same capability_executions row."""
     _, mock_pool = _build_patches()
     insert_payloads: list[dict] = []
+    patch_calls: list[dict] = []
 
     async def capture_insert(table: str, payload: dict) -> bool:
         insert_payloads.append({"table": table, "payload": payload})
         return True
 
+    async def capture_patch(path: str, payload: dict):
+        patch_calls.append({"path": path, "payload": payload})
+        return [payload]
+
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, side_effect=capture_insert),
+        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=capture_patch),
         patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -442,12 +448,94 @@ async def test_execution_logging(app):
     assert len(insert_payloads) == 1
     entry = insert_payloads[0]
     assert entry["table"] == "capability_executions"
-    payload = entry["payload"]
-    assert payload["capability_id"] == "email.send"
+    placeholder = entry["payload"]
+    assert placeholder["capability_id"] == "email.send"
+    assert placeholder["provider_used"] == "sendgrid"
+    assert placeholder["method"] == "POST"
+    assert placeholder["billing_status"] == "pending"
+
+    assert len(patch_calls) == 1
+    payload = patch_calls[0]["payload"]
     assert payload["provider_used"] == "sendgrid"
     assert payload["method"] == "POST"
     assert payload["success"] is True
     assert payload["upstream_status"] == 202
+    assert payload["billing_status"] == "billed"
+
+
+@pytest.mark.anyio
+async def test_byo_get_promotes_body_to_query_params(app):
+    """GET executions should promote request body fields into query params."""
+    captured: dict = {}
+
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{"id": "data.enrich_person", "domain": "data", "action": "enrich_person", "description": "Enrich person"}]
+        if path.startswith("capability_services?"):
+            return [{
+                "service_slug": "people-data-labs",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /v5/person/enrich",
+                "cost_per_call": "0.10",
+                "cost_currency": "USD",
+                "free_tier_calls": 0,
+            }]
+        if path.startswith("services?"):
+            return [{"slug": "people-data-labs", "api_domain": "api.peopledatalabs.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"status": 200, "ok": True}
+
+        text = '{"status": 200, "ok": true}'
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_fetch),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, return_value=[{}]),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/data.enrich_person/execute",
+                json={
+                    "provider": "people-data-labs",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/v5/person/enrich",
+                    "body": {"profile": "https://www.linkedin.com/in/satyanadella/"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    assert captured["method"] == "GET"
+    assert captured["json"] is None
+    assert captured["params"] == {"profile": "https://www.linkedin.com/in/satyanadella/"}
 
 
 @pytest.mark.anyio
@@ -456,7 +544,7 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
     async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest"):
+                           service_slug=None, interface="rest", execution_id=None):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",

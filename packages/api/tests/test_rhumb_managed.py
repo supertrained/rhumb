@@ -153,7 +153,7 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
 
     # Mock at the executor's execute method to avoid httpx.AsyncClient global patch
     async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest"):
+                           service_slug=None, interface="rest", execution_id=None):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -198,7 +198,7 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
 
     # Mock executor to return a result that we can inspect for leakage
     async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest"):
+                           service_slug=None, interface="rest", execution_id=None):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -296,7 +296,7 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
         return []
 
     async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest"):
+                           service_slug=None, interface="rest", execution_id=None):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -350,6 +350,9 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
     async def mock_insert(table, payload):
         return {"id": payload.get("id")}
 
+    async def mock_patch(path, payload):
+        return [payload]
+
     captured: dict = {}
 
     class DummyResponse:
@@ -379,6 +382,7 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
          patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
          patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
         from services.rhumb_managed import RhumbManagedExecutor
 
