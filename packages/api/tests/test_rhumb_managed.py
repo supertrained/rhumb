@@ -332,7 +332,11 @@ async def test_get_managed_config_normalizes_canonical_alias():
 
     async def mock_fetch(path):
         seen_paths.append(path)
-        return [{"id": 1, "capability_id": "search.query", "service_slug": "brave-search"}]
+        if "service_slug=eq.brave-search-api" in path:
+            return []
+        if "service_slug=eq.brave-search" in path:
+            return [{"id": 1, "capability_id": "search.query", "service_slug": "brave-search"}]
+        return []
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
         from services.rhumb_managed import RhumbManagedExecutor
@@ -341,7 +345,36 @@ async def test_get_managed_config_normalizes_canonical_alias():
         result = await executor.get_managed_config("search.query", "brave-search-api")
 
     assert result["service_slug"] == "brave-search"
+    assert any("service_slug=eq.brave-search-api" in path for path in seen_paths)
     assert any("service_slug=eq.brave-search" in path for path in seen_paths)
+
+
+@pytest.mark.anyio
+async def test_get_managed_config_accepts_proxy_alias_for_canonical_row():
+    """Proxy aliases like ``pdl`` should find canonical managed-config rows."""
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path):
+        seen_paths.append(path)
+        if "service_slug=eq.pdl" in path:
+            return []
+        if "service_slug=eq.people-data-labs" in path:
+            return [{
+                "id": 144,
+                "capability_id": "data.enrich_person",
+                "service_slug": "people-data-labs",
+            }]
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.get_managed_config("data.enrich_person", "pdl")
+
+    assert result["service_slug"] == "people-data-labs"
+    assert any("service_slug=eq.pdl" in path for path in seen_paths)
+    assert any("service_slug=eq.people-data-labs" in path for path in seen_paths)
 
 
 @pytest.mark.anyio

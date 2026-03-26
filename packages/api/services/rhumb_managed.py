@@ -25,7 +25,7 @@ import httpx
 from fastapi import HTTPException
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
-from services.service_slugs import normalize_proxy_slug
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 logger = logging.getLogger(__name__)
 
@@ -62,33 +62,65 @@ class RhumbManagedExecutor:
     Agent-provided body fields are merged with any default template.
     """
 
+    @staticmethod
+    def _service_slug_candidates(service_slug: str) -> list[str]:
+        """Return alias candidates for managed-config lookups.
+
+        Managed capability rows may be stored with canonical/public slugs
+        (for example ``people-data-labs``) while some runtime callers still
+        pass proxy-layer aliases (for example ``pdl``). Try both forms so
+        managed execution works across canonical/proxy surfaces.
+        """
+        candidates: list[str] = []
+        for candidate in (
+            service_slug,
+            canonicalize_service_slug(service_slug),
+            normalize_proxy_slug(service_slug),
+        ):
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+        return candidates
+
     async def is_managed(self, capability_id: str, service_slug: str | None = None) -> bool:
         """Check if a capability has a managed execution path."""
-        path = (
+        base_path = (
             f"rhumb_managed_capabilities?capability_id=eq.{quote(capability_id)}"
             f"&enabled=eq.true&select=id&limit=1"
         )
-        if service_slug:
-            path += f"&service_slug=eq.{quote(normalize_proxy_slug(service_slug))}"
-        rows = await supabase_fetch(path)
-        return bool(rows)
+        if not service_slug:
+            rows = await supabase_fetch(base_path)
+            return bool(rows)
+
+        for candidate in self._service_slug_candidates(service_slug):
+            rows = await supabase_fetch(
+                f"{base_path}&service_slug=eq.{quote(candidate)}"
+            )
+            if rows:
+                return True
+        return False
 
     async def get_managed_config(
         self, capability_id: str, service_slug: str | None = None
     ) -> dict | None:
         """Fetch the managed capability config."""
-        path = (
+        base_path = (
             f"rhumb_managed_capabilities?capability_id=eq.{quote(capability_id)}"
             f"&enabled=eq.true"
             f"&select=id,capability_id,service_slug,description,"
             f"credential_env_keys,default_method,default_path,default_headers,"
-            f"daily_limit_per_agent"
+            f"daily_limit_per_agent&limit=1"
         )
-        if service_slug:
-            path += f"&service_slug=eq.{quote(normalize_proxy_slug(service_slug))}"
-        path += "&limit=1"
-        rows = await supabase_fetch(path)
-        return rows[0] if rows else None
+        if not service_slug:
+            rows = await supabase_fetch(base_path)
+            return rows[0] if rows else None
+
+        for candidate in self._service_slug_candidates(service_slug):
+            rows = await supabase_fetch(
+                f"{base_path}&service_slug=eq.{quote(candidate)}"
+            )
+            if rows:
+                return rows[0]
+        return None
 
     async def list_managed(self) -> list[dict]:
         """List all enabled managed capabilities (public catalog)."""

@@ -406,7 +406,7 @@ async def _resolve_managed_provider_mapping(
     executor = get_managed_executor()
     managed_config = await executor.get_managed_config(
         capability_id,
-        normalize_proxy_slug(requested_provider) if requested_provider else None,
+        requested_provider,
     )
     if managed_config is None:
         return None
