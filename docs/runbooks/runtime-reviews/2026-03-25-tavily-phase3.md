@@ -84,18 +84,33 @@ Shipped on 2026-03-25:
   - managed POST params→body regression coverage
   - 4xx execution classification / refund coverage
 
+## 10:45 PM production rerun confirmation
+
+A fresh production rerun was executed after the fix landed live.
+
+### Production rerun outcome
+- Rhumb Resolve (`rhumb_managed`): **succeeded**
+- HTTP envelope: **200**
+- Upstream status: **200**
+- Output: structured Tavily search results for the same query
+- Execution logging: latest `capability_executions` row recorded `success=true`
+- Provider health: `/v1/telemetry/provider-health` now shows `tavily` as **healthy** with the rerun as the latest sighting
+- Public trust surface: `/v1/services/tavily/reviews` now includes a new **🟢 Runtime-verified** review row linked to the rerun evidence
+
+### What changed in the diagnosis
+The repo-side fix was the real issue. Once deployed, the managed Tavily path behaved correctly end-to-end:
+- logical search inputs were forwarded into the upstream POST body
+- Tavily returned a normal 200 with structured results
+- telemetry / execution classification now matches reality
+
 ## Phase 3 verdict
 
-**Tavily is not Phase-3-verified in production yet.**
+**Tavily is now Phase-3-verified in production.**
 
-The provider itself is healthy, but the production Rhumb Resolve path failed this runtime review. The repo-side fix is shipped; production must be re-run after deploy.
+The managed Rhumb Resolve path is live-clean again, and Tavily can stay in the callable-provider set without caveat.
 
 ## Follow-up
 
-1. Deploy the managed payload + success-classification fix.
-2. Re-run `search.query` via `tavily` with the same payload.
-3. Confirm:
-   - upstream status returns 200
-   - structured search results are returned
-   - `capability_executions.success` is accurate for both success and failure cases
-4. Once confirmed live, publish/update the runtime-backed review entry for Tavily.
+1. Keep Google AI as the next higher-priority verification lane once callable inventory catches up.
+2. If Google AI is still absent from the live inventory, continue the next callable-provider runtime review with the thinnest runtime-backed coverage.
+3. Investigate why live status surfaces show more callable providers than `GET /v1/proxy/services` currently exposes publicly.
