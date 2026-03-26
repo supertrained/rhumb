@@ -837,7 +837,8 @@ async def test_execute_get_returns_x402_discovery(app):
     assert resp.headers["x-payment"] == "required"
     body = resp.json()
     assert body["x402Version"] == 1
-    assert body["balanceRequired"] == 1
+    assert "resource" in body
+    assert "accepts" in body
 
 
 @pytest.mark.anyio

@@ -4,7 +4,7 @@ When a client attaches an ``X-Payment`` header to an execute request it
 contains a JSON payload (base64-encoded or raw JSON) with at minimum:
 
     tx_hash:              On-chain transaction hash
-    network:              ``"base-mainnet"`` | ``"base-sepolia"``
+    network:              ``"evm:8453"`` | ``"evm:84532"`` (also accepts legacy ``"base-mainnet"`` | ``"base-sepolia"``)
     payment_request_id:   (optional) Links back to a prior 402 response
 """
 

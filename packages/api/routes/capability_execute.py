@@ -884,7 +884,7 @@ async def execute_capability(
         payment_data = decode_x_payment_header(x_payment)
         if payment_data and payment_data.get("tx_hash"):
             tx_hash = payment_data["tx_hash"]
-            network = payment_data.get("network", "base-sepolia")
+            network = payment_data.get("network", "evm:84532")
             declared_wallet = payment_data.get("wallet_address") or payment_data.get("from")
 
             # Replay protection: check if tx_hash is already recorded

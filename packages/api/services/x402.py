@@ -26,6 +26,12 @@ def build_x402_response(
 ) -> dict:
     """Build an x402-compliant 402 response body.
 
+    Follows the x402 open standard (https://github.com/coinbase/x402):
+    - ``network`` uses ``evm:<chainId>`` format (``evm:8453`` for Base mainnet)
+    - ``amount`` is USDC atomic units (6 decimals)
+    - Top-level ``resource`` describes the protected endpoint
+    - ``accepts`` contains one entry per payment scheme
+
     Includes both Stripe credit purchase and USDC payment options.
     Wallet address and network come from env vars (with safe defaults for testnet).
     """
@@ -52,16 +58,15 @@ def build_x402_response(
 
     # Option 2: USDC on Base (only if wallet configured)
     if wallet_address:
-        network = "base-mainnet" if is_production else "base-sepolia"
+        # x402 standard: network = "evm:<chainId>"
+        # Base mainnet = chain 8453, Base Sepolia = chain 84532
+        network = "evm:8453" if is_production else "evm:84532"
         usdc_contract = USDC_BASE_MAINNET if is_production else USDC_BASE_SEPOLIA
         accepts.append(
             {
                 "scheme": "exact",
                 "network": network,
-                "maxAmountRequired": usdc_amount,
-                "resource": resource_url,
-                "description": f"Rhumb capability execution: {capability_id}",
-                "mimeType": "application/json",
+                "amount": usdc_amount,
                 "payTo": wallet_address,
                 "maxTimeoutSeconds": 300,
                 "asset": usdc_contract,
@@ -71,10 +76,13 @@ def build_x402_response(
 
     return {
         "x402Version": 1,
-        "accepts": accepts,
         "error": error,
-        "balanceRequired": cost_usd_cents,
-        "balanceRequiredUsd": cost_usd_cents / 100,
+        "resource": {
+            "url": resource_url,
+            "description": f"Rhumb capability execution: {capability_id}",
+            "mimeType": "application/json",
+        },
+        "accepts": accepts,
     }
 
 

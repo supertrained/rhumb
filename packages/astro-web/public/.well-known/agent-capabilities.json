@@ -1,24 +1,23 @@
 {
   "name": "Rhumb",
-  "version": "0.6.0",
-  "description": "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores 212+ APIs for AI agent compatibility (AN Score).",
+  "version": "0.8.2",
+  "description": "Agent-native infrastructure for discovering, evaluating, and executing external tools. 995 services scored for AI agent compatibility (AN Score), 414 capabilities across 92 categories, 16 callable providers.",
   "url": "https://rhumb.dev",
   "api": {
     "base_url": "https://api.rhumb.dev/v1",
-    "fallback_url": "https://rhumb-api-production-f173.up.railway.app/v1",
-    "docs": "https://api.rhumb.dev/docs",
+    "docs": "https://rhumb.dev/docs",
     "authentication": {
       "methods": ["x402", "api_key", "byok"],
       "x402": {
         "description": "Zero-signup per-call payment. No API key or account required.",
         "currency": "USDC",
         "network": "Base",
-        "flow": "Send request → receive 402 with payment details → submit on-chain payment → retry with X-Payment header containing tx proof"
+        "flow": "POST /v1/capabilities/{id}/execute → receive 402 with payment details → submit on-chain USDC payment → retry with X-Payment header containing tx proof (tx_hash, network, wallet_address)"
       },
       "api_key": {
         "description": "Bearer token from signup. Free tier: 1,000 executions/month.",
         "header": "X-Rhumb-Key: rhumb_live_{key}",
-        "signup_url": "https://rhumb.dev/signup"
+        "signup_url": "https://rhumb.dev/auth/login"
       },
       "byok": {
         "description": "Bring your own API keys for external services. Free passthrough."
@@ -26,32 +25,35 @@
     }
   },
   "mcp": {
-    "activation": "npx rhumb-mcp@0.6.0",
-    "tools": 16,
+    "activation": "npx rhumb-mcp@0.8.2",
+    "tools": 17,
     "tool_list": [
-      "find_tools",
+      "find_services",
       "get_score",
       "get_alternatives",
       "get_failure_modes",
-      "execute_capability",
-      "estimate_cost",
-      "get_budget_status",
-      "get_ceremonies",
-      "get_credentials",
-      "get_ledger",
-      "get_routing",
-      "get_balance",
-      "get_payment_url",
-      "get_spend",
+      "discover_capabilities",
       "resolve_capability",
-      "search_services"
+      "execute_capability",
+      "estimate_capability",
+      "credential_ceremony",
+      "check_credentials",
+      "budget",
+      "spend",
+      "routing",
+      "usage_telemetry",
+      "check_balance",
+      "get_payment_url",
+      "get_ledger"
     ]
   },
   "coverage": {
-    "services_scored": 212,
-    "capabilities": 103,
-    "domains": 30,
-    "comparisons": 9,
+    "services_scored": 995,
+    "capabilities": 414,
+    "categories": 92,
+    "domains": 50,
+    "callable_providers": 16,
+    "comparisons": 13,
     "autopsies": 4
   },
   "pricing": {
@@ -77,12 +79,14 @@
   "trust": {
     "neutrality": "Scores are computed, not curated. No pay-to-rank.",
     "methodology": "https://rhumb.dev/methodology",
+    "self_score": "https://rhumb.dev/blog/rhumb-self-score",
     "disputes": "providers@supertrained.ai"
   },
   "discovery": {
     "llms_txt": "https://rhumb.dev/llms.txt",
     "llms_full_txt": "https://rhumb.dev/llms-full.txt",
-    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json"
+    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
+    "capabilities_browse": "https://rhumb.dev/capabilities"
   },
   "contact": {
     "providers": "providers@supertrained.ai",

@@ -47,16 +47,18 @@ async def verify_usdc_payment(
             (6 decimals). ``None`` disables amount validation.
         expected_from: Expected sender wallet address. ``None`` disables sender
             validation.
-        network: ``"base-mainnet"`` or ``"base-sepolia"``.
+        network: ``"evm:8453"`` or ``"evm:84532"`` (also accepts legacy
+            ``"base-mainnet"`` or ``"base-sepolia"``).
 
     Returns:
         ``{"valid": True, "from_address": "0x…", "to_address": "0x…", …}``
         on success, or ``{"valid": False, "error": "reason"}`` on failure.
     """
-    if network == "base-mainnet":
+    # Accept both x402 standard format ("evm:8453") and legacy ("base-mainnet")
+    if network in ("evm:8453", "base-mainnet"):
         rpc_url = BASE_MAINNET_RPC
         usdc_contract = USDC_BASE_MAINNET
-    elif network == "base-sepolia":
+    elif network in ("evm:84532", "base-sepolia"):
         rpc_url = BASE_SEPOLIA_RPC
         usdc_contract = USDC_BASE_SEPOLIA
     else:

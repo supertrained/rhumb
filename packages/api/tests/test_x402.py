@@ -28,7 +28,7 @@ class TestBuildX402Response:
     """Unit tests for the x402 response builder."""
 
     def test_basic_structure(self):
-        """Response includes x402Version, accepts, error, and balance fields."""
+        """Response includes x402Version, accepts, error, and resource fields."""
         resp = build_x402_response(
             capability_id="email.send",
             cost_usd_cents=15,
@@ -38,8 +38,9 @@ class TestBuildX402Response:
         assert isinstance(resp["accepts"], list)
         assert len(resp["accepts"]) >= 1
         assert "error" in resp
-        assert resp["balanceRequired"] == 15
-        assert resp["balanceRequiredUsd"] == 0.15
+        assert "resource" in resp
+        assert resp["resource"]["url"] == "https://api.rhumb.dev/v1/capabilities/email.send/execute"
+        assert resp["resource"]["mimeType"] == "application/json"
 
     def test_stripe_option_always_present(self):
         """Stripe checkout option is always included regardless of env vars."""
@@ -106,10 +107,10 @@ class TestBuildX402Response:
             )
         usdc_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
         # 15 cents × 10000 = 150000
-        assert usdc_opt["maxAmountRequired"] == "150000"
+        assert usdc_opt["amount"] == "150000"
 
     def test_network_testnet_by_default(self):
-        """Non-production env uses base-sepolia and testnet USDC contract."""
+        """Non-production env uses evm:84532 (Base Sepolia) and testnet USDC contract."""
         with patch.dict(
             os.environ,
             {"RHUMB_USDC_WALLET_ADDRESS": "0xAbC123", "RAILWAY_ENVIRONMENT": ""},
@@ -121,11 +122,11 @@ class TestBuildX402Response:
                 resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
             )
         usdc_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
-        assert usdc_opt["network"] == "base-sepolia"
+        assert usdc_opt["network"] == "evm:84532"
         assert usdc_opt["asset"] == USDC_BASE_SEPOLIA
 
     def test_network_production(self):
-        """Production env uses base-mainnet and mainnet USDC contract."""
+        """Production env uses evm:8453 (Base mainnet) and mainnet USDC contract."""
         with patch.dict(
             os.environ,
             {
@@ -140,7 +141,7 @@ class TestBuildX402Response:
                 resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
             )
         usdc_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
-        assert usdc_opt["network"] == "base-mainnet"
+        assert usdc_opt["network"] == "evm:8453"
         assert usdc_opt["asset"] == USDC_BASE_MAINNET
 
     def test_custom_error_message(self):
@@ -153,15 +154,17 @@ class TestBuildX402Response:
         )
         assert resp["error"] == "Budget exceeded. Estimated cost: $0.15."
 
-    def test_backward_compat_fields(self):
-        """Response includes balanceRequired and balanceRequiredUsd for backward compat."""
+    def test_resource_field_present(self):
+        """Response includes x402-standard resource object with url and mimeType."""
         resp = build_x402_response(
             capability_id="email.send",
             cost_usd_cents=250,
             resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
         )
-        assert resp["balanceRequired"] == 250
-        assert resp["balanceRequiredUsd"] == 2.5
+        assert "resource" in resp
+        assert resp["resource"]["url"] == "https://api.rhumb.dev/v1/capabilities/email.send/execute"
+        assert resp["resource"]["mimeType"] == "application/json"
+        assert "email.send" in resp["resource"]["description"]
 
 
 # ---------------------------------------------------------------------------
@@ -320,8 +323,8 @@ async def test_budget_402_has_x402_version(app):
 
 
 @pytest.mark.anyio
-async def test_budget_402_includes_balance_fields(app):
-    """Budget 402 includes balanceRequired and balanceRequiredUsd for backward compat."""
+async def test_budget_402_includes_resource_field(app):
+    """Budget 402 includes x402-standard resource field."""
     mock_enforcer = MagicMock()
     mock_enforcer.check_and_decrement = AsyncMock(return_value=_make_budget_denied())
 
@@ -345,8 +348,8 @@ async def test_budget_402_includes_balance_fields(app):
 
     assert resp.status_code == 402
     body = resp.json()
-    assert "balanceRequired" in body
-    assert "balanceRequiredUsd" in body
+    assert "resource" in body
+    assert "url" in body["resource"]
 
 
 @pytest.mark.anyio
