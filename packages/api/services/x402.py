@@ -64,7 +64,12 @@ def build_x402_response(
             {
                 "scheme": "exact",
                 "network": network,
+                # Coinbase reference uses maxAmountRequired; include both for compat
+                "maxAmountRequired": usdc_amount,
                 "amount": usdc_amount,
+                "resource": resource_url,
+                "description": f"Rhumb capability execution: {capability_id}",
+                "mimeType": "application/json",
                 "payTo": wallet_address,
                 "maxTimeoutSeconds": 300,
                 "asset": usdc_contract,
@@ -75,6 +80,7 @@ def build_x402_response(
     return {
         "x402Version": 1,
         "error": error,
+        # Keep top-level resource for our own consumers
         "resource": {
             "url": resource_url,
             "description": f"Rhumb capability execution: {capability_id}",
