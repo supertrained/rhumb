@@ -6,6 +6,8 @@ interface Props {
 }
 
 const { currentPath } = Astro.props;
+const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
+const dashboardActive = currentPath === "/dashboard" || currentPath.startsWith("/dashboard/");
 
 const NAV_LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
@@ -66,8 +68,20 @@ const NAV_LINKS = [
         </svg>
       </a>
 
-      <!-- Sign in -->
+      <!-- Auth state -->
       <a
+        id="nav-dashboard-link"
+        href="/dashboard"
+        class={`hidden ml-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          dashboardActive
+            ? "text-slate-100 bg-slate-800/60 border border-slate-700/60"
+            : "text-score-native border border-score-native/30 hover:bg-score-native/10"
+        }`}
+      >
+        Dashboard
+      </a>
+      <a
+        id="nav-sign-in-link"
         href="/auth/login"
         class="ml-3 px-3 py-1.5 rounded-md text-sm font-medium text-score-native border border-score-native/30 hover:bg-score-native/10 transition-colors"
       >
@@ -79,3 +93,23 @@ const NAV_LINKS = [
     <MobileNav client:load currentPath={currentPath} />
   </div>
 </nav>
+
+<script define:vars={{ API_URL }}>
+  (async () => {
+    const signInLink = document.getElementById("nav-sign-in-link");
+    const dashboardLink = document.getElementById("nav-dashboard-link");
+
+    try {
+      const resp = await fetch(`${API_URL}/v1/auth/me`, {
+        credentials: "include",
+      });
+
+      if (!resp.ok) return;
+
+      signInLink?.classList.add("hidden");
+      dashboardLink?.classList.remove("hidden");
+    } catch {
+      // Leave the signed-out state in place when auth lookup fails.
+    }
+  })();
+</script>

@@ -61,7 +61,7 @@ and sandbox availability.
 \`\`\`
 npx rhumb-mcp
 \`\`\`
-Tools: find_tools, get_score, get_alternatives, get_failure_modes
+Tools: find_services, get_score, get_alternatives, get_failure_modes
 
 ## API
 - GET /v1/services — all services

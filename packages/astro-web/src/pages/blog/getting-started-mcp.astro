@@ -10,7 +10,7 @@ const ARTICLE_JSON_LD = {
   dateModified: "2026-03-18T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Install Rhumb MCP in 30 seconds and give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services.",
+    "Install Rhumb MCP in 30 seconds and give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 995 services.",
   url: "https://rhumb.dev/blog/getting-started-mcp",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -30,10 +30,10 @@ const workflows: Workflow[] = [
     id: "find-best-tool",
     title: "Find the best tool for a job",
     scenario: "Your agent needs to send an email but doesn't know which provider to use.",
-    tools: ["find_tools", "get_score", "get_alternatives"],
+    tools: ["find_services", "get_score", "get_alternatives"],
     steps: [
       {
-        tool: "find_tools",
+        tool: "find_services",
         input: '"send transactional email"',
         whatHappens: "Returns ranked services: Resend (7.8), SendGrid (5.5), Postmark (7.5), Amazon SES (7.5) — sorted by AN Score.",
       },
@@ -104,7 +104,7 @@ type McpTool = {
 };
 
 const mcpTools: McpTool[] = [
-  { name: "find_tools", description: "Search for services by what you need", category: "discover" },
+  { name: "find_services", description: "Search for services by what you need", category: "discover" },
   { name: "discover_capabilities", description: "Browse capabilities by domain", category: "discover" },
   { name: "resolve_capability", description: "Rank providers for a capability", category: "discover" },
   { name: "get_score", description: "Full AN Score breakdown for a service", category: "score" },
@@ -142,7 +142,7 @@ const frameworks: Framework[] = [
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp@0.7.0"]
+      "args": ["rhumb-mcp@0.8.2"]
     }
   }
 }`,
@@ -154,7 +154,7 @@ const frameworks: Framework[] = [
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp@0.7.0"]
+      "args": ["rhumb-mcp@0.8.2"]
     }
   }
 }`,
@@ -162,7 +162,7 @@ const frameworks: Framework[] = [
   },
   {
     name: "Direct stdio (any framework)",
-    config: `npx rhumb-mcp@0.7.0`,
+    config: `npx rhumb-mcp@0.8.2`,
     note: "The server speaks MCP over stdio. Pipe it into any MCP-compatible client: LangChain MCP Adapters, CrewAI, AutoGen, or custom implementations.",
   },
 ];
@@ -170,14 +170,14 @@ const frameworks: Framework[] = [
 
 <Layout
   title="Getting Started with Rhumb MCP | Rhumb"
-  description="Install Rhumb MCP in 30 seconds. Give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services."
+  description="Install Rhumb MCP in 30 seconds. Give your agent live tool intelligence: scores, failure modes, cost estimates, and capability execution across 995 services."
   canonical="/blog/getting-started-mcp"
   ogTitle="Getting Started with Rhumb MCP"
-  ogDescription="Tool intelligence for AI agents in one command. 16 tools, 200+ services, live scores."
+  ogDescription="Tool intelligence for AI agents in one command. 17 tools, 995 services, live scores."
   ogUrl="https://rhumb.dev/blog/getting-started-mcp"
   ogType="article"
   twitterTitle="Getting Started with Rhumb MCP"
-  twitterDescription="Give your agent tool intelligence in 30 seconds. 16 MCP tools, 200+ scored services."
+  twitterDescription="Give your agent tool intelligence in 30 seconds. 17 MCP tools, 995 scored services."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen overflow-hidden">
@@ -201,7 +201,7 @@ const frameworks: Framework[] = [
             Give your agent tool intelligence
           </h1>
           <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
-            One command. 16 tools. 200+ scored services.
+            One command. 17 tools. 995 scored services.
           </p>
 
           <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
@@ -215,7 +215,7 @@ const frameworks: Framework[] = [
             <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/8 p-5">
               <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Install</div>
               <code class="block text-xl sm:text-2xl font-mono text-emerald-400 font-semibold">
-                npx rhumb-mcp@0.7.0
+                npx rhumb-mcp@0.8.2
               </code>
               <p class="mt-3 text-sm text-slate-400">
                 No API key required for discovery and scoring. Add to any MCP-compatible client.
@@ -232,7 +232,7 @@ const frameworks: Framework[] = [
         <div class="max-w-3xl mb-8">
           <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What your agent gets</h2>
           <p class="text-slate-400 leading-relaxed">
-            16 MCP tools organized into four categories. Your agent can discover tools, check their quality,
+            17 MCP tools organized into four categories. Your agent can discover tools, check their quality,
             execute capabilities through Rhumb's proxy, and manage its budget — all through natural tool calls.
           </p>
         </div>
@@ -333,15 +333,15 @@ const frameworks: Framework[] = [
 
           <div class="grid sm:grid-cols-3 gap-4 mb-8">
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
-              <div class="text-3xl font-display font-bold text-slate-100">212</div>
+              <div class="text-3xl font-display font-bold text-slate-100">995</div>
               <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Services scored</div>
             </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
-              <div class="text-3xl font-display font-bold text-slate-100">103</div>
+              <div class="text-3xl font-display font-bold text-slate-100">414</div>
               <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Capabilities</div>
             </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5 text-center">
-              <div class="text-3xl font-display font-bold text-slate-100">30</div>
+              <div class="text-3xl font-display font-bold text-slate-100">50+</div>
               <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mt-1">Domains</div>
             </div>
           </div>
@@ -372,7 +372,7 @@ const frameworks: Framework[] = [
           <div class="space-y-3">
             <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
               <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/services</pre>
-              <p class="text-xs text-slate-500 mt-1">List all 212 scored services</p>
+              <p class="text-xs text-slate-500 mt-1">List all 995 scored services</p>
             </div>
             <div class="rounded-lg bg-slate-950 border border-slate-800 p-4 overflow-x-auto">
               <pre class="text-sm font-mono text-slate-300"><span class="text-emerald-400">GET</span> {apiBase}/services/stripe/score</pre>
