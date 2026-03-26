@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     auth_frontend_url: str = "https://rhumb.dev"
     auth_api_url: str = "https://api.rhumb.dev"  # Where OAuth callbacks land
 
+    # Billing bootstrap
+    billing_bootstrap_starter_credits_cents: int = 100
+
     anthropic_api_key: str | None = None
     anthropic_base_url: str = "https://api.anthropic.com"
     anthropic_model: str = "claude-3-5-sonnet-latest"

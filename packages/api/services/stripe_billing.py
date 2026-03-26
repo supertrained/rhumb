@@ -13,6 +13,7 @@ import httpx
 import stripe
 
 from config import settings
+from services.billing_bootstrap import ensure_org_billing_bootstrap
 from services.payment_metrics import log_payment_event
 
 logger = logging.getLogger(__name__)
@@ -92,6 +93,13 @@ async def create_checkout_session(
     cancel_url: str,
 ) -> dict[str, str]:
     """Create a Stripe Checkout Session for a one-time credit purchase."""
+    await ensure_org_billing_bootstrap(
+        org_id,
+        email=f"{org_id}@placeholder.rhumb.dev",
+        name=org_id,
+        starter_credits_cents=0,
+    )
+
     # Look up org for email
     orgs = await _sb_get(f"orgs?id=eq.{org_id}&select=email&limit=1")
     email = orgs[0]["email"] if orgs else None

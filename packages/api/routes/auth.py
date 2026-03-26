@@ -31,6 +31,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from config import settings
 from schemas.agent_identity import get_agent_identity_store
 from schemas.user import get_user_store
+from services.billing_bootstrap import ensure_org_billing_bootstrap
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,20 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
         if updates:
             await user_store.update_user(user.user_id, **updates)
 
+    if user.organization_id:
+        try:
+            await ensure_org_billing_bootstrap(
+                user.organization_id,
+                email=user.email,
+                name=user.name or profile.get("name") or profile["email"],
+            )
+        except Exception as exc:
+            logger.warning(
+                "Billing bootstrap ensure failed for org %s during auth callback: %s",
+                user.organization_id,
+                exc,
+            )
+
     # Issue session JWT
     session_token = _issue_jwt({
         "sub": user.user_id,
@@ -290,6 +305,20 @@ async def me(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONRespons
     user = await user_store.get_user(claims["sub"])
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+
+    if user.organization_id:
+        try:
+            await ensure_org_billing_bootstrap(
+                user.organization_id,
+                email=user.email,
+                name=user.name or user.email,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Billing bootstrap ensure failed for org %s during /auth/me: %s",
+                user.organization_id,
+                exc,
+            )
 
     # Get API key prefix
     identity_store = get_agent_identity_store()
@@ -415,6 +444,20 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
     user = await user_store.get_user(claims["sub"])
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+
+    if user.organization_id:
+        try:
+            await ensure_org_billing_bootstrap(
+                user.organization_id,
+                email=user.email,
+                name=user.name or user.email,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Billing bootstrap ensure failed for org %s during /auth/me/billing: %s",
+                user.organization_id,
+                exc,
+            )
 
     org_id = user.organization_id
     if not org_id:
