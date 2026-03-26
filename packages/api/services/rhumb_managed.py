@@ -171,13 +171,22 @@ class RhumbManagedExecutor:
         path = config["default_path"]
         default_headers = config.get("default_headers") or {}
 
-        # Path template interpolation: replace {param} with values from body or params
+        # Path template interpolation: replace {param} with values from body or params.
+        # Keys consumed by the path template are stripped from body/params so they
+        # don't leak into the upstream JSON body or query string (e.g. Algolia
+        # rejects unknown keys like ``indexName`` in the POST body).
         if "{" in path:
+            import re as _re
+            template_keys = set(_re.findall(r"\{(\w+)\}", path))
             sources = {**(params or {}), **(body or {})}
             for key, val in sources.items():
                 path = path.replace(f"{{{key}}}", str(val))
+            # Strip consumed template keys from body and params
+            if body and template_keys:
+                body = {k: v for k, v in body.items() if k not in template_keys}
+            if params and template_keys:
+                params = {k: v for k, v in params.items() if k not in template_keys}
             # If any unresolved templates remain, strip them (e.g. /{ip} → /)
-            import re as _re
             path = _re.sub(r"\{[^}]+\}", "", path)
 
         params, body = self._normalize_capability_inputs(
@@ -362,6 +371,7 @@ class RhumbManagedExecutor:
         "apollo": ("X-Api-Key", None),
         "people-data-labs": ("X-API-Key", None),
         "google-ai": ("x-goog-api-key", None),
+        "e2b": ("X-API-Key", None),
         # Token auth (non-Bearer Authorization header)
         "deepgram": ("Authorization", "Token "),
         # Query parameter auth (handled specially in execute)
