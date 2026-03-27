@@ -29,6 +29,7 @@ from routes import (
     budget,
     capabilities,
     capability_execute,
+    wallet_topup,
     leaderboard,
     launch,
     pricing,
@@ -190,6 +191,7 @@ def create_app() -> FastAPI:
     application.include_router(status.router, prefix="/v1", tags=["status"])
     application.include_router(auth.router, prefix="/v1", tags=["auth"])
     application.include_router(auth_wallet.router, prefix="/v1", tags=["wallet-auth"])
+    application.include_router(wallet_topup.router, prefix="/v1", tags=["wallet-topup"])
     application.include_router(webhooks.router, tags=["webhooks"])
 
     @application.get("/healthz")
