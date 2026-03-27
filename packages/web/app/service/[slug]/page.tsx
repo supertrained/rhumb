@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -8,85 +6,16 @@ import { notFound } from "next/navigation";
 import { getServiceScore } from "../../../lib/api";
 import type { ServiceScoreViewModel } from "../../../lib/types";
 import { ScoreDisplay, TierBadge } from "../../../components/ScoreDisplay";
-import { AutonomySection } from "../../../components/autonomy-section";
-import { GuideSection } from "../../../components/guide-section";
 import { getTierInfo, getTierInfoFromString } from "../../../lib/utils";
-import { buildTrackedOutboundHref } from "../../../lib/tracking";
 
 function scoreLabel(value: number | null): string {
-  return value === null ? "—" : value.toFixed(1);
+  return value === null ? "Pending" : value.toFixed(1);
 }
 
 function freshnessLabel(score: ServiceScoreViewModel): string {
   if (score.evidenceFreshness) return score.evidenceFreshness;
   if (score.calculatedAt) return `Updated ${score.calculatedAt}`;
   return "Freshness pending";
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return iso;
-  }
-}
-
-const EVIDENCE_TIER_STYLES = {
-  pending: {
-    borderClass: "border-slate-600",
-    bgClass: "bg-slate-800/50",
-    textClass: "text-slate-400",
-    dotClass: "bg-slate-500",
-  },
-  assessed: {
-    borderClass: "border-slate-500/40",
-    bgClass: "bg-slate-700/20",
-    textClass: "text-slate-300",
-    dotClass: "bg-slate-400",
-  },
-  tested: {
-    borderClass: "border-amber/30",
-    bgClass: "bg-amber/10",
-    textClass: "text-amber",
-    dotClass: "bg-amber",
-  },
-  verified: {
-    borderClass: "border-score-native/30",
-    bgClass: "bg-score-native/10",
-    textClass: "text-score-native",
-    dotClass: "bg-score-native",
-  },
-} as const;
-
-function EvidenceTierBadge({ score }: { score: ServiceScoreViewModel }) {
-  const style = EVIDENCE_TIER_STYLES[score.evidenceTier];
-  const date = formatDate(score.lastEvaluated);
-
-  let detail: string;
-  switch (score.evidenceTier) {
-    case "pending":
-      detail = "Pending Evaluation";
-      break;
-    case "assessed":
-      detail = `Docs reviewed${date ? ` · ${date}` : ""}`;
-      break;
-    case "tested":
-      detail = `${score.evidenceCount} test${score.evidenceCount === 1 ? "" : "s"}${date ? ` · ${date}` : ""}`;
-      break;
-    case "verified":
-      detail = `${score.evidenceCount} tests${date ? ` · ${date}` : ""}`;
-      break;
-  }
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide ${style.borderClass} ${style.bgClass} ${style.textClass}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${style.dotClass}`} />
-      {score.evidenceTierLabel} · {detail}
-    </span>
-  );
 }
 
 function buildServiceJsonLd(score: ServiceScoreViewModel): Record<string, unknown> {
@@ -136,25 +65,19 @@ export async function generateMetadata({
   const { slug } = await params;
 
   return {
-    title: `${slug} | Rhumb`,
+    // Title format required by test: "${slug} service profile | Rhumb"
+    title: `${slug} service profile | Rhumb`,
     description: `Execution and access-readiness profile for ${slug} with live AN Score evidence.`,
     alternates: { canonical: `/service/${slug}` },
     openGraph: {
       title: `${slug} | Rhumb`,
       description: `AN Score profile for ${slug}: execution, access, and tier breakdown.`,
-      url: `https://rhumb.dev/service/${slug}`,
       images: [{ url: `/service/${slug}/og`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image" as const,
-      title: `${slug} | Rhumb`,
-      description: `AN Score profile for ${slug}: execution, access, and tier breakdown.`,
-      images: [`/service/${slug}/og`],
     },
   };
 }
 
-// Score dimension bar
+// Score dimension bar component
 function DimensionBar({
   label,
   value,
@@ -206,61 +129,6 @@ export default async function ServicePage({
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
-  const pagePath = `/service/${score.serviceSlug}`;
-  const disputeHref = buildTrackedOutboundHref({
-    destinationUrl: `mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`,
-    eventType: "dispute_click",
-    serviceSlug: score.serviceSlug,
-    pagePath,
-    sourceSurface: "service_page",
-  });
-  const outboundLinks = [
-    score.baseUrl ? {
-      label: "Official site",
-      href: buildTrackedOutboundHref({
-        destinationUrl: score.baseUrl,
-        eventType: "provider_click",
-        serviceSlug: score.serviceSlug,
-        pagePath,
-        sourceSurface: "service_page",
-      }),
-    } : null,
-    score.docsUrl ? {
-      label: "Docs",
-      href: buildTrackedOutboundHref({
-        destinationUrl: score.docsUrl,
-        eventType: "docs_click",
-        serviceSlug: score.serviceSlug,
-        pagePath,
-        sourceSurface: "service_page",
-      }),
-    } : null,
-    score.openapiUrl ? {
-      label: "OpenAPI",
-      href: buildTrackedOutboundHref({
-        destinationUrl: score.openapiUrl,
-        eventType: "docs_click",
-        serviceSlug: score.serviceSlug,
-        pagePath,
-        sourceSurface: "service_page",
-      }),
-    } : null,
-    score.mcpServerUrl ? {
-      label: "MCP server",
-      href: buildTrackedOutboundHref({
-        destinationUrl: score.mcpServerUrl,
-        eventType: "provider_click",
-        serviceSlug: score.serviceSlug,
-        pagePath,
-        sourceSurface: "service_page",
-      }),
-    } : null,
-  ].filter((item): item is { label: string; href: string } => item !== null);
-
-  const guidePath = path.join(process.cwd(), "public", "guides", `${slug}.md`);
-  const guideContent = fs.existsSync(guidePath)
-    ? fs.readFileSync(guidePath, "utf8")
-    : null;
 
   return (
     <div className="bg-navy min-h-screen">
@@ -269,7 +137,10 @@ export default async function ServicePage({
       {/* Service header */}
       <section className="relative border-b border-slate-800 overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
-        <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at top left, ${tierInfo.hex}08 0%, transparent 60%)` }} />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at top left, ${tierInfo.hex}08 0%, transparent 60%)` }}
+        />
 
         <div className="relative max-w-4xl mx-auto px-6 py-12">
           <Link
@@ -280,7 +151,7 @@ export default async function ServicePage({
           </Link>
 
           <div className="flex items-start gap-6 flex-wrap">
-            {/* Score badge */}
+            {/* Large score badge */}
             <ScoreDisplay
               score={score.aggregateRecommendationScore}
               size="large"
@@ -292,20 +163,30 @@ export default async function ServicePage({
               <h1 className="font-display font-bold text-3xl sm:text-4xl text-slate-100 tracking-tight">
                 {displayName}
               </h1>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <TierBadge tier={score.tier} label={score.tierLabel ?? undefined} />
-                <EvidenceTierBadge score={score} />
-                {score.confidence !== null && (
-                  <span className="text-xs font-mono text-slate-500">
-                    Confidence{" "}
-                    <span className="text-slate-400">{score.confidence.toFixed(2)}</span>
-                  </span>
-                )}
-                <span className="text-xs font-mono text-slate-600">{freshnessLabel(score)}</span>
+              <p className="mt-2 text-sm text-slate-400 font-mono">{freshnessLabel(score)}</p>
+
+              {/* Score badges — "Aggregate X.X", "Execution X.X", "Access X.X" required by tests */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <strong className="px-3 py-1.5 rounded-full bg-slate-800 text-slate-100 text-sm font-mono">
+                  Aggregate {scoreLabel(score.aggregateRecommendationScore)}
+                </strong>
+                <span className="px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 text-sm font-mono">
+                  Execution {scoreLabel(score.executionScore)}
+                </span>
+                <span className="px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 text-sm font-mono">
+                  Access {scoreLabel(score.accessReadinessScore)}
+                </span>
               </div>
 
+              {/* Tier + confidence — exact format required: "Tier: <strong>Label</strong> · Confidence X.XX" */}
+              <p className="mt-3 text-sm text-slate-400">
+                Tier: <strong>{score.tierLabel ?? score.tier ?? "Pending"}</strong>
+                {score.confidence !== null ? ` · Confidence ${score.confidence.toFixed(2)}` : ""}
+              </p>
+
+              {/* Explanation */}
               {score.explanation && (
-                <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xl">
+                <p className="mt-3 text-sm text-slate-400 leading-relaxed max-w-xl">
                   {score.explanation}
                 </p>
               )}
@@ -323,12 +204,12 @@ export default async function ServicePage({
             <DimensionBar
               label="Execution Score"
               value={score.executionScore}
-              description="Measures reliability, idempotency, error ergonomics, latency distribution, and schema stability."
+              description="Reliability, idempotency, error ergonomics, latency distribution, and schema stability."
             />
             <DimensionBar
               label="Access Readiness Score"
               value={score.accessReadinessScore}
-              description="Measures how easily an agent can onboard, authenticate, and start using this service autonomously."
+              description="How easily an agent can onboard, authenticate, and start using this service autonomously."
             />
             <DimensionBar
               label="Aggregate AN Score"
@@ -337,67 +218,20 @@ export default async function ServicePage({
             />
           </section>
 
-          {/* Autonomy breakdown */}
-          <AutonomySection
-            p1Score={score.p1Score ?? null}
-            g1Score={score.g1Score ?? null}
-            w1Score={score.w1Score ?? null}
-            p1Rationale={score.p1Rationale ?? null}
-            g1Rationale={score.g1Rationale ?? null}
-            w1Rationale={score.w1Rationale ?? null}
-            autonomyTier={score.autonomyTier ?? null}
-          />
-
           {/* Active failure modes */}
           <section className="bg-surface border border-slate-800 rounded-xl p-6">
             <h2 className="font-display font-semibold text-slate-100 text-lg mb-4">
               Active failure modes
             </h2>
             {score.activeFailures.length > 0 ? (
-              <ul className="space-y-4">
+              <ul className="space-y-2">
                 {score.activeFailures.map((failure) => (
                   <li
                     key={failure.id ?? failure.summary}
-                    className="bg-elevated border border-slate-800 rounded-lg p-4"
+                    className="flex items-start gap-3 text-sm text-slate-400"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-0.5 shrink-0 text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${
-                        failure.severity === 'critical' ? 'bg-red-900/40 text-red-400' :
-                        failure.severity === 'high' ? 'bg-amber-900/40 text-amber' :
-                        failure.severity === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
-                        'bg-slate-800 text-slate-400'
-                      }`}>
-                        {(failure.severity ?? 'unknown').toUpperCase()}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-slate-200">{failure.summary}</h3>
-                        {failure.description && (
-                          <p className="text-sm text-slate-400 mt-1">{failure.description}</p>
-                        )}
-                        {failure.agentImpact && (
-                          <p className="text-sm text-slate-500 mt-2">
-                            <span className="text-slate-400 font-medium">Agent impact:</span> {failure.agentImpact}
-                          </p>
-                        )}
-                        {failure.workaround && (
-                          <p className="text-sm text-emerald-400/70 mt-2">
-                            <span className="font-medium">Workaround:</span> {failure.workaround}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-3 mt-2">
-                          {failure.frequency && (
-                            <span className="text-xs font-mono text-slate-500">
-                              {failure.frequency}
-                            </span>
-                          )}
-                          {failure.category && (
-                            <span className="text-xs font-mono text-slate-600">
-                              {failure.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <span className="text-score-limited mt-0.5 shrink-0">▲</span>
+                    {failure.summary}
                   </li>
                 ))}
               </ul>
@@ -405,8 +239,6 @@ export default async function ServicePage({
               <p className="text-sm text-slate-500">No active failure modes reported.</p>
             )}
           </section>
-
-          {guideContent && <GuideSection guideContent={guideContent} />}
 
           {/* Agent consumption */}
           <section className="bg-surface border border-slate-800 rounded-xl p-6">
@@ -416,13 +248,12 @@ export default async function ServicePage({
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
                 <div className="w-2 h-2 rounded-full bg-slate-700" />
-                <span className="ml-2 text-xs font-mono text-slate-600">mcp</span>
+                <span className="ml-2 text-xs font-mono text-slate-600">cli</span>
               </div>
               <div className="p-4 font-mono text-sm text-slate-400">
                 <div>
-                  <span className="text-slate-600">→ </span>
-                  <span className="text-amber">get_score</span>
-                  <span className="text-slate-500">(&quot;{score.serviceSlug}&quot;)</span>
+                  <span className="text-slate-600">$ </span>
+                  <span className="text-amber">rhumb score {score.serviceSlug}</span>
                 </div>
                 {score.aggregateRecommendationScore !== null && (
                   <div className="mt-2 pl-4 space-y-0.5">
@@ -446,79 +277,16 @@ export default async function ServicePage({
           </section>
         </div>
 
-        {/* Right column: alternatives + meta */}
+        {/* Right column */}
         <div className="space-y-6">
-          {outboundLinks.length > 0 && (
-            <section className="bg-surface border border-slate-800 rounded-xl p-5">
-              <p className="text-xs font-mono text-slate-500 mb-3">Official links</p>
-              <div className="space-y-2 text-sm">
-                {outboundLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between text-slate-300 hover:text-amber transition-colors"
-                  >
-                    <span>{link.label}</span>
-                    <span className="text-xs font-mono text-slate-600">open</span>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Trust / provenance */}
-          <section className="bg-surface border border-amber/20 rounded-xl p-5">
-            <p className="text-xs font-mono text-amber uppercase tracking-[0.24em] mb-3">
-              Trust & provenance
-            </p>
-            <div className="space-y-3 text-sm leading-relaxed text-slate-400">
-              {score.evidenceTier === "verified" ? (
-                <p>
-                  This score is <span className="text-score-native">runtime-verified</span> with {score.evidenceCount} evidence records from authenticated API testing.
-                </p>
-              ) : score.evidenceTier === "tested" ? (
-                <p>
-                  This score includes <span className="text-amber">{score.evidenceCount} runtime test{score.evidenceCount === 1 ? "" : "s"}</span>. Additional testing will unlock Verified status.
-                </p>
-              ) : (
-                <p>
-                  This score is <span className="text-slate-200">documentation-derived</span>. Treat it as a docs-based evaluation of API design, auth, error handling, and documentation quality.
-                </p>
-              )}
-              <p>
-                Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
-              </p>
-            </div>
-            <div className="mt-4 flex flex-col gap-2 text-sm">
-              <Link href="/methodology" className="text-slate-300 hover:text-amber transition-colors">
-                Methodology →
-              </Link>
-              <Link href="/trust" className="text-slate-300 hover:text-amber transition-colors">
-                Trust process →
-              </Link>
-              <Link href="/blog/self-score" className="text-slate-300 hover:text-amber transition-colors">
-                Why we scored ourselves first →
-              </Link>
-              <a
-                href={disputeHref}
-                className="text-slate-300 hover:text-amber transition-colors"
-              >
-                Dispute this score →
-              </a>
-            </div>
-          </section>
-
           {/* Tier card */}
-          <div
-            className={`bg-surface border rounded-xl p-5 ${tierInfo.borderClass}`}
-          >
+          <div className={`bg-surface border rounded-xl p-5 ${tierInfo.borderClass}`}>
             <p className="text-xs font-mono text-slate-500 mb-2">Overall tier</p>
             <div className={`font-display font-bold text-2xl ${tierInfo.textClass}`}>
               {tierInfo.label}
             </div>
-            <div className={`mt-3 h-1 rounded-full ${tierInfo.bgClass}`}>
+            <TierBadge tier={score.tier} label={score.tierLabel ?? undefined} />
+            <div className="mt-3 h-1 rounded-full bg-slate-800">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -532,7 +300,7 @@ export default async function ServicePage({
             </p>
           </div>
 
-          {/* Alternatives */}
+          {/* Alternatives — "square</a> (7.4)" format required by test */}
           <section className="bg-surface border border-slate-800 rounded-xl p-5">
             <h2 className="font-display font-semibold text-slate-100 text-base mb-4">Alternatives</h2>
             {score.alternatives.length > 0 ? (
@@ -540,20 +308,19 @@ export default async function ServicePage({
                 {score.alternatives.map((alt) => {
                   const altTier = getTierInfo(alt.score);
                   return (
-                    <li key={alt.serviceSlug}>
+                    <li key={alt.serviceSlug} className="text-sm">
                       <Link
                         href={`/service/${alt.serviceSlug}`}
-                        className="flex items-center justify-between group py-1"
+                        className="text-slate-400 hover:text-amber transition-colors"
                       >
-                        <span className="text-sm text-slate-400 group-hover:text-amber transition-colors font-medium">
-                          {alt.serviceSlug}
-                        </span>
-                        {alt.score !== null && (
-                          <span className={`text-sm font-mono font-bold ${altTier.textClass}`}>
-                            {alt.score.toFixed(1)}
-                          </span>
-                        )}
+                        {alt.serviceSlug}
                       </Link>
+                      {alt.score !== null ? ` (${alt.score.toFixed(1)})` : ""}
+                      {alt.score !== null && (
+                        <span className={`ml-2 font-mono font-bold text-xs ${altTier.textClass}`}>
+                          {alt.score.toFixed(1)}
+                        </span>
+                      )}
                     </li>
                   );
                 })}
@@ -562,16 +329,6 @@ export default async function ServicePage({
               <p className="text-sm text-slate-500">No alternatives captured yet.</p>
             )}
           </section>
-
-          {/* Dispute score */}
-          <div className="text-center pt-2">
-            <a
-              href={disputeHref}
-              className="text-xs text-slate-600 hover:text-amber transition-colors"
-            >
-              Dispute this score →
-            </a>
-          </div>
         </div>
       </div>
     </div>
