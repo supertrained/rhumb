@@ -490,6 +490,74 @@ class TestX402ValidPayment:
         assert resp.status_code == 200
         assert resp.json()["data"]["x402_receipt"]["verified"] is True
 
+    @pytest.mark.anyio
+    async def test_x402_payment_marks_payment_request_verified(self, app):
+        """Legacy tx-hash payments can bind back to a minted payment request."""
+        patches = _build_common_patches(
+            verification_result=_verification_success(),
+            org_credits=[{"balance_usd_cents": 500}],
+        )
+        x_payment = json.dumps(
+            {
+                "tx_hash": TX_HASH,
+                "network": "base-sepolia",
+                "wallet_address": PAYER_WALLET,
+                "payment_request_id": "pr_123",
+            }
+        )
+
+        with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": WALLET}):
+            ctx_managers = [p for p in patches.values()]
+            with (
+                ctx_managers[0],
+                ctx_managers[1],
+                ctx_managers[2],
+                ctx_managers[3],
+                ctx_managers[4],
+                ctx_managers[5],
+                ctx_managers[6],
+                ctx_managers[7],
+                patch(
+                    "routes.capability_execute._payment_requests.get_pending_request",
+                    new_callable=AsyncMock,
+                    return_value={
+                        "id": "pr_123",
+                        "capability_id": "email.send",
+                        "network": "base-sepolia",
+                        "pay_to_address": WALLET,
+                        "amount_usdc_atomic": "100000",
+                    },
+                ) as mock_get_request,
+                patch(
+                    "routes.capability_execute._payment_requests.mark_verified",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ) as mock_mark_verified,
+            ):
+                async with AsyncClient(
+                    transport=ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    resp = await client.post(
+                        "/v1/capabilities/email.send/execute",
+                        json={
+                            "provider": "sendgrid",
+                            "method": "POST",
+                            "path": "/v3/mail/send",
+                            "body": {"to": "test@example.com"},
+                        },
+                        headers={
+                            "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                            "X-Payment": x_payment,
+                        },
+                    )
+
+        assert resp.status_code == 200
+        mock_get_request.assert_awaited_once_with("pr_123")
+        mock_mark_verified.assert_awaited_once_with("pr_123", TX_HASH)
+        payment_resp = json.loads(resp.headers["x-payment-response"])
+        assert payment_resp["paymentRequestId"] == "pr_123"
+        assert resp.json()["data"]["x402_receipt"]["payment_request_id"] == "pr_123"
+
 
 # ---------------------------------------------------------------------------
 # Tests: invalid x402 payment

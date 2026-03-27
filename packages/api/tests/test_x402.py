@@ -166,6 +166,31 @@ class TestBuildX402Response:
         assert resp["resource"]["mimeType"] == "application/json"
         assert "email.send" in resp["resource"]["description"]
 
+    def test_payment_request_metadata_is_embedded(self):
+        """x402 responses surface payment request metadata for settlement tracking."""
+        with patch.dict(
+            os.environ,
+            {"RHUMB_USDC_WALLET_ADDRESS": "0xAbC123", "RAILWAY_ENVIRONMENT": ""},
+            clear=False,
+        ):
+            resp = build_x402_response(
+                capability_id="email.send",
+                cost_usd_cents=15,
+                resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
+                payment_request={
+                    "id": "pr_123",
+                    "network": "base-sepolia",
+                    "asset_address": USDC_BASE_SEPOLIA,
+                    "pay_to_address": "0xAbC123",
+                    "amount_usdc_atomic": "150000",
+                    "expires_at": "2026-03-27T02:00:00Z",
+                },
+            )
+        assert resp["paymentRequestId"] == "pr_123"
+        assert resp["paymentRequest"]["amount"] == "150000"
+        exact_opt = next(a for a in resp["accepts"] if a["scheme"] == "exact")
+        assert exact_opt["extra"]["paymentRequestId"] == "pr_123"
+
 
 # ---------------------------------------------------------------------------
 # Integration tests: execute route 402 responses
@@ -320,6 +345,50 @@ async def test_budget_402_has_x402_version(app):
     assert body["x402Version"] == 1
     assert "accepts" in body
     assert len(body["accepts"]) >= 1
+
+
+@pytest.mark.anyio
+async def test_budget_402_embeds_payment_request_metadata(app):
+    """Budget 402 responses include paymentRequest metadata when one is minted."""
+    mock_enforcer = MagicMock()
+    mock_enforcer.check_and_decrement = AsyncMock(return_value=_make_budget_denied())
+
+    with (
+        patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": "0xAbC123"}, clear=False),
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._budget_enforcer", mock_enforcer),
+        patch(
+            "routes.capability_execute._payment_requests.create_payment_request",
+            new_callable=AsyncMock,
+            return_value={
+                "id": "pr_budget_123",
+                "network": "base-sepolia",
+                "asset_address": USDC_BASE_SEPOLIA,
+                "pay_to_address": "0xAbC123",
+                "amount_usdc_atomic": "100000",
+                "expires_at": "2026-03-27T02:00:00Z",
+            },
+        ),
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 402
+    body = resp.json()
+    assert body["paymentRequestId"] == "pr_budget_123"
+    exact_opt = next(a for a in body["accepts"] if a["scheme"] == "exact")
+    assert exact_opt["extra"]["paymentRequestId"] == "pr_budget_123"
 
 
 @pytest.mark.anyio

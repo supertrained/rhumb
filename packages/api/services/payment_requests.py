@@ -42,7 +42,7 @@ class PaymentRequestService:
 
     async def create_payment_request(
         self,
-        org_id: str,
+        org_id: Optional[str],
         capability_id: str,
         amount_usd_cents: int,
         execution_id: Optional[str] = None,

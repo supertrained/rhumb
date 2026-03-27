@@ -44,6 +44,7 @@ from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
 from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
+from services.payment_requests import PaymentRequestService
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
 from services.usdc_verifier import verify_usdc_payment
@@ -54,6 +55,7 @@ from services.service_slugs import canonicalize_service_slug, normalize_proxy_sl
 
 _budget_enforcer = BudgetEnforcer()
 _credit_deduction = CreditDeductionService()
+_payment_requests = PaymentRequestService()
 _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
 
@@ -99,6 +101,40 @@ def _billing_unavailable_response(raw_request: Request) -> JSONResponse:
             "request_id": request_id,
         },
     )
+
+
+async def _create_payment_request_safe(
+    *,
+    org_id: str | None,
+    capability_id: str,
+    amount_usd_cents: int,
+    execution_id: str | None = None,
+) -> dict | None:
+    """Best-effort payment request creation for x402 discovery / settlement tracking."""
+    if amount_usd_cents <= 0:
+        return None
+    try:
+        return await _payment_requests.create_payment_request(
+            org_id=org_id,
+            capability_id=capability_id,
+            amount_usd_cents=amount_usd_cents,
+            execution_id=execution_id,
+        )
+    except ValueError as exc:
+        logger.info(
+            "x402_payment_request_skipped capability_id=%s execution_id=%s reason=%s",
+            capability_id,
+            execution_id,
+            exc,
+        )
+    except Exception as exc:
+        logger.warning(
+            "x402_payment_request_failed capability_id=%s execution_id=%s error=%s",
+            capability_id,
+            execution_id,
+            exc,
+        )
+    return None
 
 
 def _normalize_x402_payment_header(
@@ -337,10 +373,16 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
 
     billed_cost_usd = cost_for_402 * 1.15
     billed_cents_for_402 = max(int(round(billed_cost_usd * 100)), 1)
+    payment_request = await _create_payment_request_safe(
+        org_id=None,
+        capability_id=capability_id,
+        amount_usd_cents=billed_cents_for_402,
+    )
     body_402 = build_x402_response(
         capability_id=capability_id,
         cost_usd_cents=billed_cents_for_402,
         resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+        payment_request=payment_request,
     )
     return JSONResponse(
         status_code=402,
@@ -1098,7 +1140,29 @@ async def execute_capability(
         payment_data = payment_trace.get("payment_data") or decode_x_payment_header(x_payment)
         if payment_data and payment_data.get("tx_hash"):
             tx_hash = payment_data["tx_hash"]
-            network = payment_data.get("network", "evm:84532")
+            payment_request_id = (
+                payment_data.get("payment_request_id")
+                or payment_data.get("paymentRequestId")
+            )
+            pending_payment_request: dict | None = None
+            if payment_request_id:
+                pending_payment_request = await _payment_requests.get_pending_request(payment_request_id)
+                if not pending_payment_request:
+                    raise HTTPException(
+                        status_code=402,
+                        detail="Payment verification failed: payment request not found or expired",
+                    )
+                if pending_payment_request.get("capability_id") != capability_id:
+                    raise HTTPException(
+                        status_code=402,
+                        detail="Payment verification failed: payment request capability mismatch",
+                    )
+
+            network = (
+                payment_data.get("network")
+                or (pending_payment_request or {}).get("network")
+                or "evm:84532"
+            )
             declared_wallet = payment_data.get("wallet_address") or payment_data.get("from")
 
             # Replay protection: check if tx_hash is already recorded
@@ -1126,7 +1190,10 @@ async def execute_capability(
                 )
 
             # Verify on-chain
-            wallet = os.environ.get("RHUMB_USDC_WALLET_ADDRESS", "")
+            wallet = (
+                (pending_payment_request or {}).get("pay_to_address")
+                or os.environ.get("RHUMB_USDC_WALLET_ADDRESS", "")
+            )
             if not wallet:
                 _log_x402_interop_trace(
                     raw_request,
@@ -1185,7 +1252,10 @@ async def execute_capability(
                     detail="Payment verification failed: cost data unavailable for selected provider",
                 )
 
-            expected_atomic = str(billed_cost_cents * 10000) if billed_cost_cents > 0 else "0"
+            expected_atomic = (
+                (pending_payment_request or {}).get("amount_usdc_atomic")
+                or (str(billed_cost_cents * 10000) if billed_cost_cents > 0 else "0")
+            )
             verification = await verify_usdc_payment(
                 tx_hash=tx_hash,
                 expected_to=wallet,
@@ -1244,6 +1314,7 @@ async def execute_capability(
 
             # Record receipt in usdc_receipts (replay protection via UNIQUE constraint)
             await supabase_insert("usdc_receipts", {
+                "payment_request_id": payment_request_id,
                 "tx_hash": tx_hash,
                 "from_address": verification.get("from_address", ""),
                 "to_address": verification.get("to_address", wallet),
@@ -1255,6 +1326,9 @@ async def execute_capability(
                 "execution_id": execution_id,
                 "status": "confirmed",
             })
+
+            if payment_request_id:
+                await _payment_requests.mark_verified(payment_request_id, tx_hash)
 
             # For registered agents, record the payment on the org ledger when
             # billing storage is available. Execution authorization comes from
@@ -1290,7 +1364,10 @@ async def execute_capability(
                 network=network,
                 amount_usd_cents=billed_cost_cents,
             )
-            x402_receipt = verification
+            x402_receipt = {
+                **verification,
+                "payment_request_id": payment_request_id,
+            }
 
     # ── Budget & credit reservation (registered agents only) ──────
     # x402 anonymous agents pay per-call on-chain; no budget/credit system.
@@ -1352,11 +1429,18 @@ async def execute_capability(
                 execution_id=execution_id,
                 amount_usd_cents=billed_cost_cents,
             )
+            payment_request = await _create_payment_request_safe(
+                org_id=org_id,
+                capability_id=capability_id,
+                amount_usd_cents=billed_cost_cents,
+                execution_id=execution_id,
+            )
             raise PaymentRequiredException(
                 capability_id=capability_id,
                 cost_usd_cents=billed_cost_cents,
                 resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
                 detail=budget_result.reason or "Agent budget exceeded",
+                payment_request=payment_request,
             )
 
         budget_remaining = budget_result.remaining_usd
@@ -1388,11 +1472,18 @@ async def execute_capability(
             if not credit_result.allowed:
                 if cost_estimate > 0:
                     await _budget_enforcer.release(agent_id, cost_estimate)
+                payment_request = await _create_payment_request_safe(
+                    org_id=org_id,
+                    capability_id=capability_id,
+                    amount_usd_cents=billed_cost_cents,
+                    execution_id=execution_id,
+                )
                 raise PaymentRequiredException(
                     capability_id=capability_id,
                     cost_usd_cents=billed_cost_cents,
                     resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
                     detail=credit_result.reason or "Insufficient org credits",
+                    payment_request=payment_request,
                 )
             credit_reserved = billed_cost_cents > 0
             credit_remaining_cents = credit_result.remaining_cents
@@ -1814,10 +1905,14 @@ async def execute_capability(
             "tx_hash": x402_receipt["tx_hash"],
             "verified": True,
         }
-        response_headers["X-Payment-Response"] = json.dumps({
+        payment_response = {
             "verified": True,
             "tx_hash": x402_receipt["tx_hash"],
-        })
+        }
+        if x402_receipt.get("payment_request_id"):
+            response_data["x402_receipt"]["payment_request_id"] = x402_receipt["payment_request_id"]
+            payment_response["paymentRequestId"] = x402_receipt["payment_request_id"]
+        response_headers["X-Payment-Response"] = json.dumps(payment_response)
 
     if response_headers:
         response = JSONResponse(
