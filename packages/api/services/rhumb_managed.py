@@ -270,8 +270,17 @@ class RhumbManagedExecutor:
                     "params": params,
                 }
                 if multipart_files is not None:
-                    request_kwargs["data"] = multipart_data
-                    request_kwargs["files"] = multipart_files
+                    # Merge form-data fields into the files list to avoid
+                    # httpx AsyncClient sync/async multipart encoding conflict.
+                    # Form fields become (field_name, (None, value_bytes)).
+                    combined_files: list[tuple[str, tuple[str | None, bytes, str]]] = []
+                    if multipart_data:
+                        for field_name, field_value in multipart_data:
+                            combined_files.append(
+                                (field_name, (None, field_value.encode("utf-8"), "text/plain"))
+                            )
+                    combined_files.extend(multipart_files)
+                    request_kwargs["files"] = combined_files
                 else:
                     request_kwargs["json"] = final_body
                 resp = await client.request(**request_kwargs)

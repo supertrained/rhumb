@@ -720,14 +720,22 @@ async def test_managed_executor_unstructured_translates_json_body_to_multipart(m
     assert captured["headers"]["unstructured-api-key"] == "unstructured_test_secret"
     assert "Content-Type" not in captured["headers"]
 
-    form_pairs = captured["data"]
-    assert ("strategy", "hi_res") in form_pairs
-    assert ("coordinates", "true") in form_pairs
-    assert ("languages", "eng") in form_pairs
-    assert ("languages", "deu") in form_pairs
+    # Form fields are now merged into the files list as (field, (None, value_bytes, mime))
+    # to avoid httpx AsyncClient sync/async multipart encoding conflict.
+    assert captured["data"] is None
 
-    assert len(captured["files"]) == 1
-    field_name, file_tuple = captured["files"][0]
+    all_files = captured["files"]
+    # Extract form-data entries (None filename = form field)
+    form_entries = [(name, tup[1].decode("utf-8")) for name, tup in all_files if tup[0] is None]
+    assert ("strategy", "hi_res") in form_entries
+    assert ("coordinates", "true") in form_entries
+    assert ("languages", "eng") in form_entries
+    assert ("languages", "deu") in form_entries
+
+    # Extract actual file entries (non-None filename)
+    file_entries = [(name, tup) for name, tup in all_files if tup[0] is not None]
+    assert len(file_entries) == 1
+    field_name, file_tuple = file_entries[0]
     assert field_name == "files"
     assert file_tuple[0] == "sample.txt"
     assert file_tuple[1] == b"hello world"
