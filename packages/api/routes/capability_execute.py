@@ -101,6 +101,61 @@ def _billing_unavailable_response(raw_request: Request) -> JSONResponse:
     )
 
 
+def _normalize_x402_payment_header(
+    x_payment: str | None,
+    payment_signature: str | None,
+) -> str | None:
+    """Bridge PAYMENT-SIGNATURE into the existing X-Payment flow when needed."""
+    if payment_signature and (not x_payment or x_payment == "required"):
+        logger.info("x402_payment_signature_bridged")
+        return payment_signature
+    return x_payment
+
+
+def _build_x402_compatibility_error_response(
+    raw_request: Request,
+    *,
+    payment_trace: dict[str, Any],
+) -> JSONResponse:
+    """Return a structured error for detected-but-unsupported x402 proof formats."""
+    request_id = _request_id(raw_request)
+    network = payment_trace.get("declared_network")
+    resolution = (
+        "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
+        "or use a Rhumb API key / Stripe checkout. Rhumb does not currently support "
+        "settling standard x402 authorization payloads on Base mainnet, and the public "
+        "x402 facilitator is not integrated here."
+    )
+    if network in ("base-sepolia", "evm:84532"):
+        resolution = (
+            "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
+            "or use a Rhumb API key / Stripe checkout. Rhumb does not currently settle "
+            "standard x402 authorization payloads in this execute path."
+        )
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "x402_proof_format_unsupported",
+            "message": (
+                "Detected a standard x402 authorization payload, but this execute endpoint "
+                "currently verifies direct USDC transfer receipts by tx_hash."
+            ),
+            "resolution": resolution,
+            "request_id": request_id,
+            "compatibility": {
+                "detected_format": payment_trace.get("proof_format"),
+                "supported_formats": ["legacy_tx_hash"],
+                "network": network,
+                "scheme": payment_trace.get("declared_scheme"),
+                "payer": payment_trace.get("declared_from"),
+                "pay_to": payment_trace.get("declared_to"),
+                "standard_authorization_supported": False,
+            },
+        },
+    )
+
+
 def _request_id(raw_request: Request) -> str:
     return getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
 
@@ -146,6 +201,9 @@ def _log_x402_interop_trace(
         "x_payment_present": bool(x_payment and x_payment != "required"),
         "x_payment_parse_mode": trace.get("parse_mode", "missing"),
         "x_payment_top_level_keys": trace.get("top_level_keys", []),
+        "x_payment_proof_format": trace.get("proof_format", "unknown"),
+        "x_payment_network": trace.get("declared_network"),
+        "x_payment_scheme": trace.get("declared_scheme"),
         "branch_outcome": outcome,
         "response_status": response_status,
         "payment_headers_set": payment_headers_set,
@@ -686,17 +744,7 @@ async def discover_execute_capability(
     Also captures all incoming headers for x402 interop diagnostics
     when buyers retry with GET + payment proof (as awal does).
     """
-    # TEMPORARY DIAGNOSTIC: print ALL headers for x402 interop debugging
-    # Using print() because Railway may not show logger.info output
-    import sys
-    all_headers = dict(raw_request.headers.items())
-    print(f"[X402-DIAG] GET /execute cap={capability_id} headers={list(all_headers.keys())}", file=sys.stderr, flush=True)
-    for k, v in all_headers.items():
-        if any(term in k.lower() for term in ["payment", "x402", "auth", "signature"]):
-            # Print full value in chunks to avoid log truncation
-            print(f"[X402-DIAG] PAYMENT-HEADER: {k} len={len(v)}", file=sys.stderr, flush=True)
-            for i in range(0, len(v), 500):
-                print(f"[X402-DIAG] CHUNK[{i}]: {v[i:i+500]}", file=sys.stderr, flush=True)
+    x_payment = _normalize_x402_payment_header(x_payment, payment_signature)
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
@@ -709,6 +757,27 @@ async def discover_execute_capability(
                 "discover_capabilities MCP tool"
             ),
         )
+
+    payment_trace = (
+        inspect_x_payment_header(x_payment)
+        if x_payment and x_payment != "required"
+        else inspect_x_payment_header(None)
+    )
+    if payment_trace.get("proof_format") == "standard_authorization_payload":
+        response = _build_x402_compatibility_error_response(
+            raw_request,
+            payment_trace=payment_trace,
+        )
+        _log_x402_interop_trace(
+            raw_request,
+            capability_id=capability_id,
+            x_payment=x_payment,
+            payment_trace=payment_trace,
+            outcome="standard_authorization_unsupported",
+            response_status=response.status_code,
+            payment_headers_set=False,
+        )
+        return response
 
     return await _build_execute_discovery_response(capability_id)
 
@@ -731,17 +800,7 @@ async def execute_capability(
     Supports x402 inline payment via the ``X-Payment`` header or
     the standard x402 v2 ``PAYMENT-SIGNATURE`` header.
     """
-    # If we got a PAYMENT-SIGNATURE header (x402 v2 standard) but no X-Payment,
-    # log it for diagnostics and bridge it into the x_payment flow.
-    if payment_signature and (not x_payment or x_payment == "required"):
-        logger.info(
-            "x402_v2_payment_signature received (len=%d, first_50=%s)",
-            len(payment_signature),
-            payment_signature[:50],
-        )
-        # Bridge: treat the PAYMENT-SIGNATURE as our X-Payment for now
-        # This lets the existing trace/decode pipeline capture what the buyer sends
-        x_payment = payment_signature
+    x_payment = _normalize_x402_payment_header(x_payment, payment_signature)
     # ── Kill Switch: full execution shutdown ───────────────────────
     if os.environ.get("MANAGED_EXECUTION_ENABLED", "").lower() == "false":
         logger.warning("Kill switch active: MANAGED_EXECUTION_ENABLED=false — rejecting execution")
@@ -771,11 +830,11 @@ async def execute_capability(
     is_x402_anonymous = False
     x402_wallet_address: Optional[str] = None
     x402_rate_remaining: Optional[int] = None
-    payment_trace = inspect_x_payment_header(x_payment) if x_payment and x_payment != "required" else {
-        "payment_data": None,
-        "parse_mode": "missing",
-        "top_level_keys": [],
-    }
+    payment_trace = (
+        inspect_x_payment_header(x_payment)
+        if x_payment and x_payment != "required"
+        else inspect_x_payment_header(None)
+    )
 
     if x_rhumb_key:
         # Path 1: Registered agent with API key (existing flow)
@@ -786,10 +845,27 @@ async def execute_capability(
         org_id = agent.organization_id
     elif x_payment and x_payment != "required":
         # Path 2: x402 anonymous — payment header present, no API key.
-        # SECURITY: We only set is_x402_anonymous AFTER validating the header
-        # contains a decodeable payment payload with a tx_hash.  A garbage
-        # header (e.g. "fake", "bypass") must NOT grant anonymous execution.
         payment_data = payment_trace.get("payment_data")
+        if payment_trace.get("proof_format") == "standard_authorization_payload":
+            response = _build_x402_compatibility_error_response(
+                raw_request,
+                payment_trace=payment_trace,
+            )
+            _log_x402_interop_trace(
+                raw_request,
+                capability_id=capability_id,
+                x_payment=x_payment,
+                payment_trace=payment_trace,
+                outcome="standard_authorization_unsupported",
+                response_status=response.status_code,
+                provider=request.provider,
+                payment_headers_set=False,
+            )
+            return response
+
+        # SECURITY: We only set is_x402_anonymous AFTER validating that the
+        # header contains a decodable legacy tx_hash proof. Garbage headers
+        # must not grant anonymous execution.
         if not payment_data or not payment_data.get("tx_hash"):
             # Header present but invalid/missing tx_hash → treat as
             # unauthenticated. Return the same discovery envelope clients see

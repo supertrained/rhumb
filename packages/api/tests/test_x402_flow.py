@@ -196,6 +196,29 @@ def _x_payment_header_standard() -> str:
     )
 
 
+def _x_payment_header_standard_b64(network: str = "base") -> str:
+    """Build a base64-encoded Awal-style x402 authorization payload."""
+    payload = json.dumps(
+        {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": network,
+            "payload": {
+                "authorization": {
+                    "from": PAYER_WALLET,
+                    "to": WALLET,
+                    "value": "100000",
+                    "validAfter": "1",
+                    "validBefore": "2",
+                    "nonce": "0xdeadbeef",
+                },
+                "signature": "0xsigned",
+            },
+        }
+    )
+    return base64.b64encode(payload.encode()).decode()
+
+
 # ---------------------------------------------------------------------------
 # Common patches
 # ---------------------------------------------------------------------------
@@ -354,8 +377,8 @@ class TestX402ValidPayment:
         assert resp.headers.get("x-payment-response") is not None
 
     @pytest.mark.anyio
-    async def test_standard_x402_payload_logs_interop_trace_and_returns_discovery(self, app, caplog):
-        """Standard x402 payloads should be classified and traced even before compatibility lands."""
+    async def test_standard_x402_payload_returns_structured_compatibility_error(self, app, caplog):
+        """Standard x402 authorization payloads should fail with a precise compatibility error."""
         with patch(
             "routes.capability_execute.supabase_fetch",
             new_callable=AsyncMock,
@@ -373,11 +396,19 @@ class TestX402ValidPayment:
                             "path": "/v3/mail/send",
                             "body": {"to": "test@example.com"},
                         },
-                        headers={"X-Payment": _x_payment_header_standard()},
+                        headers={"X-Payment": _x_payment_header_standard_b64()},
                     )
 
-        assert resp.status_code == 402
-        assert resp.headers.get("x-payment") == "required"
+        assert resp.status_code == 422
+        body = resp.json()
+        assert body["error"] == "x402_proof_format_unsupported"
+        assert body["compatibility"]["detected_format"] == "standard_authorization_payload"
+        assert body["compatibility"]["supported_formats"] == ["legacy_tx_hash"]
+        assert body["compatibility"]["network"] == "base"
+        assert body["compatibility"]["payer"] == PAYER_WALLET
+        assert body["compatibility"]["pay_to"] == WALLET
+        assert "tx_hash" in body["message"]
+        assert "Base mainnet" in body["resolution"]
 
         traces = [
             getattr(record, "x402_interop", None)
@@ -387,9 +418,32 @@ class TestX402ValidPayment:
         assert traces, "expected x402 interop trace log"
         trace = traces[-1]
         assert trace["x_payment_parse_mode"] == "x402_payload"
-        assert trace["branch_outcome"] == "missing_tx_hash"
-        assert trace["response_status"] == 402
-        assert trace["payment_headers_set"] is True
+        assert trace["x_payment_proof_format"] == "standard_authorization_payload"
+        assert trace["branch_outcome"] == "standard_authorization_unsupported"
+        assert trace["response_status"] == 422
+        assert trace["payment_headers_set"] is False
+
+    @pytest.mark.anyio
+    async def test_execute_get_payment_signature_returns_structured_compatibility_error(self, app):
+        """GET discovery should also surface unsupported standard proofs instead of a 402 loop."""
+        with patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_default,
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                resp = await client.get(
+                    "/v1/capabilities/email.send/execute",
+                    headers={"PAYMENT-SIGNATURE": _x_payment_header_standard_b64()},
+                )
+
+        assert resp.status_code == 422
+        body = resp.json()
+        assert body["error"] == "x402_proof_format_unsupported"
+        assert body["compatibility"]["detected_format"] == "standard_authorization_payload"
+        assert body["compatibility"]["network"] == "base"
 
     @pytest.mark.anyio
     async def test_x402_payment_bypasses_billing_health_gate(self, app):

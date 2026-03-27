@@ -1,11 +1,28 @@
-"""x402 payment middleware — extracts and validates X-Payment header.
+"""x402 payment middleware — extracts and classifies X-Payment header values.
 
-When a client attaches an ``X-Payment`` header to an execute request it
-contains a JSON payload (base64-encoded or raw JSON) with at minimum:
+Rhumb currently supports a legacy payment proof shape built around an
+on-chain USDC transfer receipt:
 
     tx_hash:              On-chain transaction hash
-    network:              ``"base"`` | ``"base-sepolia"`` (also accepts ``"evm:8453"`` | ``"evm:84532"`` | legacy ``"base-mainnet"``)
+    network:              ``"base"`` | ``"base-sepolia"`` (also accepts
+                          ``"evm:8453"`` | ``"evm:84532"`` | legacy
+                          ``"base-mainnet"``)
     payment_request_id:   (optional) Links back to a prior 402 response
+
+Some buyers now send the standard x402 authorization payload instead:
+
+    {
+      "x402Version": 1,
+      "scheme": "exact",
+      "network": "base",
+      "payload": {
+        "authorization": {"from": "...", "to": "...", ...},
+        "signature": "..."
+      }
+    }
+
+This module decodes both shapes and exposes proof-format metadata so the
+route layer can produce truthful compatibility responses.
 """
 
 from __future__ import annotations
@@ -19,6 +36,49 @@ logger = logging.getLogger(__name__)
 
 
 _STANDARD_X402_TOP_LEVEL_KEYS = {"x402Version", "scheme", "network", "payload"}
+
+
+def describe_x_payment_payload(payment_data: dict[str, Any] | None) -> dict[str, Any]:
+    """Return normalized proof-shape metadata for a decoded payment payload."""
+    if not isinstance(payment_data, dict):
+        return {
+            "proof_format": "unknown",
+            "declared_network": None,
+            "declared_scheme": None,
+            "declared_from": None,
+            "declared_to": None,
+        }
+
+    if payment_data.get("tx_hash"):
+        return {
+            "proof_format": "legacy_tx_hash",
+            "declared_network": payment_data.get("network"),
+            "declared_scheme": None,
+            "declared_from": payment_data.get("wallet_address") or payment_data.get("from"),
+            "declared_to": None,
+        }
+
+    payload = payment_data.get("payload")
+    authorization = payload.get("authorization") if isinstance(payload, dict) else None
+    if (
+        _STANDARD_X402_TOP_LEVEL_KEYS.issubset(payment_data.keys())
+        and isinstance(authorization, dict)
+    ):
+        return {
+            "proof_format": "standard_authorization_payload",
+            "declared_network": payment_data.get("network"),
+            "declared_scheme": payment_data.get("scheme"),
+            "declared_from": authorization.get("from"),
+            "declared_to": authorization.get("to"),
+        }
+
+    return {
+        "proof_format": "unknown",
+        "declared_network": payment_data.get("network"),
+        "declared_scheme": payment_data.get("scheme"),
+        "declared_from": payment_data.get("from") or payment_data.get("wallet_address"),
+        "declared_to": payment_data.get("to"),
+    }
 
 
 def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
@@ -35,6 +95,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
             "payment_data": None,
             "parse_mode": "missing",
             "top_level_keys": [],
+            **describe_x_payment_payload(None),
         }
 
     # Try base64 first.
@@ -48,6 +109,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
             "payment_data": payment_data if isinstance(payment_data, dict) else None,
             "parse_mode": parse_mode,
             "top_level_keys": sorted(payment_data.keys()) if isinstance(payment_data, dict) else [],
+            **describe_x_payment_payload(payment_data if isinstance(payment_data, dict) else None),
         }
     except Exception:
         pass
@@ -62,6 +124,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
             "payment_data": payment_data if isinstance(payment_data, dict) else None,
             "parse_mode": parse_mode,
             "top_level_keys": sorted(payment_data.keys()) if isinstance(payment_data, dict) else [],
+            **describe_x_payment_payload(payment_data if isinstance(payment_data, dict) else None),
         }
     except Exception as e:
         logger.warning("Failed to decode X-Payment header: %s", e)
@@ -69,6 +132,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
             "payment_data": None,
             "parse_mode": "invalid",
             "top_level_keys": [],
+            **describe_x_payment_payload(None),
         }
 
 
