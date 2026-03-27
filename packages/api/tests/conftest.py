@@ -54,6 +54,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     import routes.billing as billing_module
     import routes.capability_execute as cap_execute_module
     import routes.proxy as proxy_module
+    from routes._supabase import reset_supabase_resilience
     from schemas.agent_identity import AgentIdentityStore, hash_api_key, reset_identity_store
     from services.agent_access_control import AgentAccessControl, reset_agent_access_control
     from services.agent_rate_limit import AgentRateLimitChecker, reset_agent_rate_limit_checker
@@ -105,6 +106,10 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     )
     meter = UsageMeterEngine(identity_store=identity_store)
 
+    proxy_module._pool_manager = None
+    proxy_module._breaker_registry = None
+    proxy_module._latency_tracker = None
+    proxy_module._http_client = None
     proxy_module._identity_store = identity_store
     cap_execute_module._identity_store = identity_store
     billing_module._identity_store = identity_store
@@ -113,10 +118,15 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     proxy_module._rate_checker_instance = rate_checker
     proxy_module._auth_injector_instance = auth_injector
     proxy_module._meter_instance = meter
+    reset_supabase_resilience()
     reset_operational_fact_emitter()
 
     yield
 
+    proxy_module._pool_manager = None
+    proxy_module._breaker_registry = None
+    proxy_module._latency_tracker = None
+    proxy_module._http_client = None
     proxy_module._identity_store = None
     cap_execute_module._identity_store = None
     billing_module._identity_store = None
@@ -125,6 +135,7 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     proxy_module._rate_checker_instance = None
     proxy_module._auth_injector_instance = None
     proxy_module._meter_instance = None
+    reset_supabase_resilience()
     reset_identity_store()
     reset_agent_access_control()
     reset_agent_rate_limit_checker()
