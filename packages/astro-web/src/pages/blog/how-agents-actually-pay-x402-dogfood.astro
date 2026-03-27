@@ -1,0 +1,873 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const TITLE = "How Agents Actually Pay: What We Learned Dogfooding x402";
+const DESCRIPTION =
+  "We implemented x402 as a seller, not a buyer. Here's what happened when a real agent tried to pay us - the protocol gaps nobody talks about, the debugging methodology that saved us, and why honest errors beat opaque loops.";
+const URL = "https://rhumb.dev/blog/how-agents-actually-pay-x402-dogfood";
+const DATE_PUBLISHED = "2026-03-27T00:00:00Z";
+const KEYWORDS = [
+  "x402 protocol",
+  "x402 implementation",
+  "x402 seller integration",
+  "AI agent payments",
+  "agent wallet setup",
+  "x402 payment debugging",
+  "x402 authorization proof",
+  "USDC API payments",
+  "x402 facilitator",
+  "http 402 payment required",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: TITLE,
+  description: DESCRIPTION,
+  datePublished: DATE_PUBLISHED,
+  dateModified: DATE_PUBLISHED,
+  url: URL,
+  keywords: KEYWORDS.join(", "),
+  articleSection: "x402",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+const TOC = [
+  { id: "what-x402-actually-promises", label: "What x402 Actually Promises" },
+  { id: "what-happened-when-we-tested-it", label: "What Happened When We Tested It" },
+  { id: "the-current-state", label: "The Current State" },
+  { id: "what-we-learned-about-agent-wallets", label: "What We Learned About Agent Wallets" },
+  { id: "the-debugging-methodology", label: "The Debugging Methodology" },
+  { id: "what-this-means-for-the-x402-ecosystem", label: "What This Means for the x402 Ecosystem" },
+  { id: "try-it-yourself", label: "Try It Yourself" },
+];
+
+const PAYMENT_REQUIREMENTS_CODE = String.raw`// What a 402 response looks like from Rhumb (additional fields omitted for clarity)
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623",
+      "maxAmountRequired": "10000",
+      "resource": "https://api.rhumb.dev/v1/capabilities/search.query/execute",
+      "description": "Rhumb capability execution: search.query",
+      "mimeType": "application/json",
+      "maxTimeoutSeconds": 300,
+      "extra": {
+        "name": "Rhumb",
+        "version": "1",
+        "paymentRequestId": "390facca-..."
+      }
+    }
+  ],
+  "paymentRequestId": "390facca-..."
+}`;
+
+const DETAILS_CODE = String.raw`$ npx awal x402 details https://api.rhumb.dev/v1/capabilities/email.send/execute
+
+Payment Requirements:
+  Version: 1
+  Scheme: exact
+  Network: base
+  Amount: 1000 (USDC base units = $0.001)
+  PayTo: 0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623`;
+
+const AUTHORIZATION_PROOF_CODE = String.raw`{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "base",
+  "payload": {
+    "authorization": {
+      "from": "0x43Ab546B...Edfed",
+      "to": "0xEA63eF9B...2623",
+      "value": "10000",
+      "validAfter": "...",
+      "validBefore": "...",
+      "nonce": "0x..."
+    },
+    "signature": "0x..."
+  }
+}`;
+
+const COMPATIBILITY_ERROR_CODE = String.raw`{
+  "error": "x402_proof_format_unsupported",
+  "message": "Detected a standard x402 authorization payload, but this execute endpoint currently verifies direct USDC transfer receipts by tx_hash.",
+  "resolution": "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, or use a Rhumb API key / Stripe checkout.",
+  "compatibility": {
+    "detected_format": "standard_authorization_payload",
+    "supported_formats": ["legacy_tx_hash"],
+    "network": "base",
+    "scheme": "exact",
+    "payer": "0x43Ab546B...Edfed",
+    "pay_to": "0xEA63eF9B...2623",
+    "standard_authorization_supported": false
+  }
+}`;
+
+const TRY_IT_CODE = String.raw`# See the 402 payment requirements
+curl -X GET https://api.rhumb.dev/v1/capabilities/search.query/execute
+
+# Check pricing programmatically
+curl https://api.rhumb.dev/v1/pricing
+
+# Set up awal and check the details
+npx awal auth login your-email@example.com
+npx awal x402 details https://api.rhumb.dev/v1/capabilities/search.query/execute`;
+
+const CURRENT_STATE = [
+  { layer: "Wallet setup", status: "Ready", detail: "Agent bootstraps wallet autonomously (awal + email OTP)." },
+  { layer: "Wallet funding", status: "Ready", detail: "Human sends USDC on Base to the agent wallet." },
+  { layer: "Price discovery", status: "Ready", detail: "GET /execute returns machine-readable 402 pricing." },
+  { layer: "Payment authorization", status: "Ready", detail: "Buyer signs EIP-2612 authorization proof." },
+  { layer: "Settlement", status: "Partial", detail: "Structured 422 exposes the honest gap instead of looping." },
+  { layer: "End-to-end execution", status: "Partial", detail: "Pending settlement bridge for direct authorization proof support." },
+];
+
+const FUNDING_PATHS = [
+  { path: "Personal Coinbase -> Base send", time: "2 min", kyc: "Already done", bestFor: "Most developers" },
+  { path: "Any exchange -> Base withdraw", time: "5-10 min", kyc: "Depends on exchange", bestFor: "If you do not use Coinbase" },
+  { path: "Bridge from Ethereum", time: "5 min + gas", kyc: "No", bestFor: "If you already hold Ethereum-mainnet USDC" },
+  { path: "Fiat onramp (MoonPay, Transak)", time: "10 min", kyc: "Light KYC", bestFor: "No existing crypto holdings" },
+  { path: "Another Base wallet", time: "30 seconds", kyc: "No", bestFor: "Already have USDC on Base" },
+];
+
+const WALLET_WARNINGS = [
+  {
+    title: "Address selection",
+    detail:
+      "Your agent wallet may expose both EVM and Solana addresses. USDC on Base uses the EVM address. Sending to the wrong one can strand funds.",
+  },
+  {
+    title: "Asset selection",
+    detail:
+      "Send USDC, not USDT, ETH, or another token. Rhumb's x402 flow currently accepts USDC only on Base.",
+  },
+  {
+    title: "Network selection",
+    detail:
+      "Send on Base, not Ethereum mainnet, Arbitrum, Optimism, or Polygon. The address may look familiar while still being wrong for settlement.",
+  },
+  {
+    title: "KYB wall",
+    detail:
+      "Business Coinbase accounts can stall on Know Your Business review for days or weeks. A personal account may be the only practical short path.",
+  },
+];
+---
+
+<Layout
+  title={`${TITLE} | Rhumb`}
+  description={DESCRIPTION}
+  canonical="/blog/how-agents-actually-pay-x402-dogfood"
+  ogTitle={TITLE}
+  ogDescription={DESCRIPTION}
+  ogUrl={URL}
+  ogType="article"
+  twitterTitle={TITLE}
+  twitterDescription={DESCRIPTION}
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <meta name="keywords" content={KEYWORDS.join(", ")} />
+  <meta name="author" content="Pedro Nunes" />
+  <meta property="article:published_time" content={DATE_PUBLISHED} />
+  <meta property="article:modified_time" content={DATE_PUBLISHED} />
+  <meta property="article:author" content="Pedro Nunes" />
+  <meta property="article:section" content="x402" />
+  {KEYWORDS.map((keyword) => <meta property="article:tag" content={keyword} />)}
+
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-4xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            x402 Dogfood
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">March 27, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated March 27, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6">
+          {TITLE}
+        </h1>
+
+        <p class="text-lg text-slate-400 leading-relaxed max-w-3xl">
+          Every x402 explainer tells you how the protocol should work. This one is about what
+          happens when you ship it as a seller, point a real agent at production, and inspect the
+          failures layer by layer until the wire-level truth becomes obvious.
+        </p>
+
+        <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Debugging</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">5h</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Commits</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">8</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Mismatches</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">5</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Layers</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">6</p>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-surface border border-amber/20 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-mono uppercase tracking-[0.18em] text-amber">Jump To</span>
+            <span class="h-px flex-1 bg-slate-800"></span>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {TOC.map((item) => (
+              <a
+                href={`#${item.id}`}
+                class="rounded-lg border border-slate-800 bg-elevated px-4 py-3 text-sm text-slate-300 hover:border-amber/30 hover:text-amber transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <section id="what-x402-actually-promises" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What x402 Actually Promises (30-Second Version)
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p>
+            If you already know x402, skip to
+            <a href="#what-happened-when-we-tested-it"> What Happened When We Tested It</a>.
+          </p>
+          <p>
+            x402 uses HTTP's <code>402 Payment Required</code> status code. The server returns a
+            machine-readable payment challenge, the client pays, retries with an{" "}
+            <code>X-Payment</code> header, and the payment itself becomes authentication. No API
+            keys, no signup, no billing dashboard detour.
+          </p>
+          <p>
+            For sellers, that means any agent with a funded wallet can use your API immediately. For
+            buyers, it means an agent can discover price, choose a route, and pay per call at the
+            HTTP layer.
+          </p>
+        </div>
+
+        <div class="mt-6">
+          <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+            <code>{PAYMENT_REQUIREMENTS_CODE}</code>
+          </pre>
+        </div>
+
+        <p class="mt-5 text-slate-400 leading-relaxed">
+          That <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">"10000"</code>{" "}
+          value is USDC in base units with 6 decimals: one cent for a search execution. Rhumb also
+          includes a traditional checkout path, but the x402 path is what matters here.
+        </p>
+      </section>
+
+      <section id="what-happened-when-we-tested-it" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What Happened When We Tested It
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p>
+            We pointed <a href="https://github.com/nichochar/awal">awal</a>, Coinbase's agentic
+            wallet CLI, at a live Rhumb execute endpoint. We expected the standard x402 flow. What
+            we got instead was five hours of debugging that proved something more useful:
+            interoperability can fail even when both sides think they are following the spec.
+          </p>
+          <p>
+            The failures were not random. They stacked in layers. Every fix revealed the next
+            ambiguity.
+          </p>
+        </div>
+
+        <div class="mt-8 space-y-6">
+          <section id="layer-1-discovery-fails-immediately" class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 1: Discovery Fails Immediately
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              We expected <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">awal x402 details</code>{" "}
+              to show our payment requirements. Instead, it reported that no x402 requirements
+              existed.
+            </p>
+            <p class="mt-3 text-slate-400 leading-relaxed">
+              Root cause: awal discovers via <code>GET</code>, while our execute endpoint only
+              returned <code>402</code> on <code>POST</code>. We were technically strict. The buyer
+              was operationally practical. Those are different things.
+            </p>
+            <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+              <p class="text-sm text-slate-300">
+                <span class="text-amber font-mono">Fix:</span> Ship a GET discovery shim so
+                <code class="ml-1 font-mono text-amber">GET /execute</code> returns the payment
+                challenge without attempting execution.
+              </p>
+              <p class="mt-2 text-xs font-mono text-slate-500">Commit 676fb69 - x402 GET discovery shim</p>
+            </div>
+          </section>
+
+          <section id="layer-2-the-network-name-nobody-agreed-on" class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 2: The Network Name Nobody Agreed On
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              After discovery worked, awal failed payment parsing with "No network identifier
+              found."
+            </p>
+            <p class="mt-3 text-slate-400 leading-relaxed">
+              We used <code>evm:8453</code>, following the chain-id interpretation. Awal expected
+              <code>base</code>, the short human-readable name. Both are defensible. Only one
+              actually interoperated.
+            </p>
+            <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+              <p class="text-sm text-slate-300">
+                <span class="text-amber font-mono">Fix:</span> Change the network identifier in the
+                402 response to <code class="ml-1 font-mono text-amber">base</code>.
+              </p>
+              <p class="mt-2 text-xs font-mono text-slate-500">Commit b144d72 - network naming for buyer compatibility</p>
+            </div>
+          </section>
+
+          <section id="layer-3-field-placement-top-level-vs-per-entry" class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 3: Field Placement - Top-Level vs Per-Entry
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Awal still could not find <code>maxAmountRequired</code> or <code>resource</code>.
+              The values existed. They were simply in the wrong place for that buyer.
+            </p>
+            <p class="mt-3 text-slate-400 leading-relaxed">
+              We stored those fields at the top level. Awal looked inside each entry in the{" "}
+              <code>accepts</code> array. The x402 reference seller followed the per-entry shape, so
+              we aligned there.
+            </p>
+            <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+              <p class="text-sm text-slate-300">
+                <span class="text-amber font-mono">Fix:</span> Move all payment requirement fields
+                into each <code class="ml-1 font-mono text-amber">accepts[]</code> entry.
+              </p>
+              <p class="mt-2 text-xs font-mono text-slate-500">Commit 5fa8731 - per-accepts-entry fields</p>
+            </div>
+          </section>
+
+          <section id="layer-4-array-ordering-matters" class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 4: Array Ordering Matters
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Failures became intermittent because our <code>accepts</code> array listed
+              <code>stripe_checkout</code> before <code>exact</code>. Some buyers iterate
+              sequentially and stop at the first unsupported scheme.
+            </p>
+            <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+              <p class="text-sm text-slate-300">
+                <span class="text-amber font-mono">Fix:</span> Put crypto-friendly{" "}
+                <code class="ml-1 font-mono text-amber">exact</code> first.
+              </p>
+              <p class="mt-2 text-xs font-mono text-slate-500">Commit ccfc191 - exact scheme first</p>
+            </div>
+          </section>
+
+          <section id="discovery-finally-works" class="scroll-mt-24">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Discovery Finally Works
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              After four compatibility fixes, awal could finally discover Rhumb pricing correctly:
+            </p>
+            <div class="mt-4">
+              <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+                <code>{DETAILS_CODE}</code>
+              </pre>
+            </div>
+            <p class="mt-4 text-slate-400 leading-relaxed">
+              Price discovery was now operational. The real wall showed up only when we asked the
+              buyer to actually pay.
+            </p>
+          </section>
+
+          <section id="layer-5-authorization-proofs-vs-transaction-hashes" class="scroll-mt-24 bg-surface border border-slate-800 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 5: Authorization Proofs Are Not Transaction Hashes
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              We expected a completed transfer receipt. Instead, production header logging showed a
+              signed authorization payload in <code>X-Payment</code>.
+            </p>
+            <div class="mt-4">
+              <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+                <code>{AUTHORIZATION_PROOF_CODE}</code>
+              </pre>
+            </div>
+            <p class="mt-4 text-slate-400 leading-relaxed">
+              This is an EIP-2612 <code>transferWithAuthorization</code> permit. The buyer is not
+              saying "I already paid." The buyer is saying "Here is my signed permission to settle
+              this payment." That is a different settlement model from the tx-hash flow we built.
+            </p>
+
+            <div class="mt-6 overflow-x-auto">
+              <table class="w-full min-w-[760px] border border-slate-800 rounded-xl overflow-hidden">
+                <thead class="bg-elevated">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                      Dimension
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                      tx_hash (what we built)
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                      Authorization proof (what awal sends)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">Settlement timing</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Pre-settled. Buyer pays first.</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Post-settled. Seller or facilitator settles later.</td>
+                  </tr>
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">On-chain gas</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Buyer pays gas.</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Facilitator or seller pays gas.</td>
+                  </tr>
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">Replay protection</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Unique transaction hash.</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Nonce plus validity window.</td>
+                  </tr>
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">Verification</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Look up transaction on chain.</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Verify signature, then settle.</td>
+                  </tr>
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">Seller risk</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Effectively zero once confirmed.</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">Seller trusts that settlement will succeed.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="layer-6-the-honest-error" class="scroll-mt-24 bg-surface border border-amber/20 rounded-2xl p-6">
+            <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+              Layer 6: The Honest Error
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Before this session, a buyer who sent a valid standard authorization proof to Rhumb
+              would receive another <code>402</code>. The buyer would retry. The server would return
+              <code>402</code> again. That is the worst possible failure mode: an opaque payment
+              loop.
+            </p>
+            <p class="mt-3 text-slate-400 leading-relaxed">
+              We changed that behavior to a structured <code>422 Unprocessable Entity</code> that
+              states exactly what the server detected and what it supports today.
+            </p>
+            <div class="mt-4">
+              <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+                <code>{COMPATIBILITY_ERROR_CODE}</code>
+              </pre>
+            </div>
+            <p class="mt-4 text-slate-400 leading-relaxed">
+              That one response turns "payment failed" into actionable diagnosis. The buyer can try
+              another path, report the incompatibility, or wait for settlement support. Honest
+              errors are more useful than silent standards theater.
+            </p>
+            <p class="mt-3 text-xs font-mono text-slate-500">
+              Commit 0633daf - structured x402 proof-format detection + compatibility error
+            </p>
+          </section>
+        </div>
+      </section>
+
+      <section id="the-current-state" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          The Current State
+        </h2>
+        <p class="text-slate-400 leading-relaxed mb-6">
+          Five parts of the stack are usable today. Settlement is the honest gap. We are publishing
+          the gap now because seller-facing implementation detail is the missing documentation, not
+          the polished success story that comes later.
+        </p>
+
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] border border-slate-800 rounded-xl overflow-hidden">
+            <thead class="bg-elevated">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Layer
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Status
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Detail
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {CURRENT_STATE.map((row) => (
+                <tr class="border-t border-slate-800">
+                  <td class="px-4 py-3 text-sm text-slate-300">{row.layer}</td>
+                  <td class="px-4 py-3 text-sm font-mono">
+                    <span class={row.status === "Ready" ? "text-emerald-400" : "text-amber"}>
+                      {row.status === "Ready" ? "Ready" : "Partial"}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="what-we-learned-about-agent-wallets" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What We Learned About Agent Wallets
+        </h2>
+
+        <section id="the-agent-does-more-than-you-think" class="scroll-mt-24 mb-8">
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            The Agent Does More Than You Think
+          </h3>
+          <div class="prose-rhumb space-y-4">
+            <p>
+              Beacon, our OpenClaw-based agent, bootstrapped its own awal wallet without human
+              involvement. It initiated login, pulled the Coinbase OTP from Gmail, verified the
+              session, and extracted the wallet address.
+            </p>
+          </div>
+          <div class="mt-4 bg-surface border border-slate-800 rounded-xl p-5">
+            <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-400">
+              <li>
+                Initiated auth with{" "}
+                <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">
+                  npx awal auth login tommeredith@supertrained.ai
+                </code>
+              </li>
+              <li>
+                Pulled the OTP from Gmail with{" "}
+                <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">
+                  gog gmail list --from no-reply@info.coinbase.com
+                </code>
+              </li>
+              <li>
+                Verified the login with{" "}
+                <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">
+                  npx awal auth verify &lt;flowId&gt; 839762
+                </code>
+              </li>
+              <li>
+                Read the wallet address with{" "}
+                <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">
+                  npx awal address
+                </code>
+              </li>
+            </ol>
+          </div>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            Total human actions required: zero. Wallet auth is already agent-automatable if the
+            agent controls the inbox.
+          </p>
+        </section>
+
+        <section id="the-human-does-less-than-you-think" class="scroll-mt-24 mb-8">
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            The Human Does Less Than You Think
+          </h3>
+          <p class="text-slate-400 leading-relaxed">
+            Funding is the irreducible human step. Someone still has to bridge fiat or existing
+            crypto into the agent's wallet. The shortest path is simple: open Coinbase, send USDC to
+            the wallet on Base, and stop there.
+          </p>
+          <p class="mt-3 text-slate-400 leading-relaxed">
+            We funded the wallet with $5.00 USDC. That was enough for hundreds of paid executions
+            while keeping the failure budget small.
+          </p>
+        </section>
+
+        <section id="wallet-warning-blocks" class="scroll-mt-24 mb-8">
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            Where Wallet Funding Goes Wrong
+          </h3>
+          <div class="grid gap-3">
+            {WALLET_WARNINGS.map((warning) => (
+              <div class="bg-surface border border-amber/20 rounded-xl p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-[11px] font-mono uppercase tracking-[0.18em] text-amber">
+                    Warning
+                  </span>
+                  <span class="h-px flex-1 bg-slate-800"></span>
+                </div>
+                <h4 class="font-display font-semibold text-slate-100">{warning.title}</h4>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">{warning.detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="the-funding-paths" class="scroll-mt-24">
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            The Funding Paths
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px] border border-slate-800 rounded-xl overflow-hidden">
+              <thead class="bg-elevated">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    Path
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    Time
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    KYC?
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    Best for
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {FUNDING_PATHS.map((row) => (
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300">{row.path}</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">{row.time}</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">{row.kyc}</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">{row.bestFor}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="the-debugging-methodology" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          The Debugging Methodology: Progressive Header Sniffing
+        </h2>
+        <div class="grid gap-4">
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <h3 id="start-with-a-known-working-reference" class="scroll-mt-24 font-display font-semibold text-lg text-slate-100">
+              1. Start With a Known-Working Reference
+            </h3>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+              Compare your <code>402</code> response field by field against a reference seller
+              before you start theorizing. Every mismatch is a possible protocol contract break.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <h3 id="fix-discovery-before-payment" class="scroll-mt-24 font-display font-semibold text-lg text-slate-100">
+              2. Fix Discovery Before Payment
+            </h3>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+              The error progression matters. "No payment requirements found" means discovery is
+              broken. "No network identifier" means discovery works but parsing fails. "Authorized
+              but rejected" means you have reached the settlement layer.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <h3 id="capture-what-the-buyer-actually-sends" class="scroll-mt-24 font-display font-semibold text-lg text-slate-100">
+              3. Capture What the Buyer Actually Sends
+            </h3>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+              Do not infer from prose specs. Log the raw <code>X-Payment</code> header. That is how
+              we learned awal sends base64-encoded JSON containing an authorization proof rather than
+              a transaction hash.
+            </p>
+          </div>
+          <div class="bg-surface border border-amber/20 rounded-xl p-5">
+            <h3 id="return-structured-errors-not-silent-retries" class="scroll-mt-24 font-display font-semibold text-lg text-slate-100">
+              4. Return Structured Errors, Not Silent Retries
+            </h3>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+              A valid-but-unsupported payment format deserves a structured <code>422</code>, not a
+              second <code>402</code>. Otherwise agents cannot distinguish unpaid requests from
+              server incompatibility.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="what-this-means-for-the-x402-ecosystem" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What This Means for the x402 Ecosystem
+        </h2>
+        <div class="space-y-5">
+          <div class="bg-surface border border-slate-800 rounded-xl p-6">
+            <h3 id="the-spec-needs-a-conformance-suite" class="scroll-mt-24 font-display font-semibold text-xl text-slate-100 mb-3">
+              The Spec Needs a Conformance Suite
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Three of our five bugs came from ambiguity, not bad implementation. Discovery method,
+              network naming, and field placement should not be left to guesswork if interoperability
+              is the point.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-6">
+            <h3 id="sellers-and-buyers-live-in-different-worlds" class="scroll-mt-24 font-display font-semibold text-xl text-slate-100 mb-3">
+              Sellers and Buyers Live in Different Worlds
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Buyer-focused documentation usually asks whether the wallet has enough USDC and whether
+              the price is fair. Sellers need answers to completely different questions: what proof
+              format is arriving, who settles, and what error should the server emit when the proof
+              is valid but unsupported.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-6">
+            <h3 id="authorization-proofs-are-the-future-but-settlement-is-the-gap" class="scroll-mt-24 font-display font-semibold text-xl text-slate-100 mb-3">
+              Authorization Proofs Are the Future, But Settlement Is the Gap
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              The authorization-proof model is cleaner than tx-hash settlement: no buyer gas spend
+              up front, replay protection via nonces, and a stronger fit for autonomous HTTP
+              payment. But mainnet sellers still need a settlement layer. The public x402 facilitator
+              only covers Base Sepolia today, so mainnet sellers either implement local settlement or
+              surface the gap honestly.
+            </p>
+          </div>
+          <div class="bg-surface border border-amber/20 rounded-xl p-6">
+            <h3 id="honest-errors-are-a-competitive-advantage" class="scroll-mt-24 font-display font-semibold text-xl text-slate-100 mb-3">
+              Honest Errors Are a Competitive Advantage
+            </h3>
+            <p class="text-slate-400 leading-relaxed">
+              Returning a structured compatibility error is a small engineering choice with outsized
+              ecosystem impact. Agents can route around an honest limitation. They cannot route around
+              ambiguity.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="try-it-yourself" class="scroll-mt-24 mb-14">
+        <div class="bg-surface border border-amber/20 rounded-[28px] p-8 sm:p-10">
+          <div class="max-w-3xl">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.2em] mb-3">Try It Yourself</p>
+            <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 tracking-tight mb-4">
+              Inspect Rhumb's x402 flow directly
+            </h2>
+            <p class="text-slate-400 leading-relaxed">
+              Discovery and price checks are free. Execution is pay-per-call, with no signup
+              required. If you want to watch the flow in the open rather than in a slide deck, this
+              is the fastest path.
+            </p>
+          </div>
+
+          <div class="mt-6">
+            <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+              <code>{TRY_IT_CODE}</code>
+            </pre>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="https://api.rhumb.dev/v1/pricing"
+              class="inline-flex justify-center rounded-lg px-6 py-3 font-display font-semibold text-sm transition-colors duration-200 cta-button"
+            >
+              Check live pricing
+            </a>
+            <a
+              href="https://rhumb.dev"
+              class="inline-flex justify-center rounded-lg border border-slate-700 px-6 py-3 text-sm font-display font-semibold text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            >
+              Search 1,000+ scored services
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="updates" class="scroll-mt-24 mb-10">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">Updates</h2>
+        <div class="grid gap-3">
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-sm text-slate-400">
+              <strong class="text-slate-200">Settlement:</strong> local{" "}
+              <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">
+                transferWithAuthorization
+              </code>{" "}
+              verification on Base mainnet is spec'd and in progress.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-sm text-slate-400">
+              <strong class="text-slate-200">Additional buyer testing:</strong> we plan to test
+              beyond awal so interoperability does not depend on one buyer's assumptions.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-sm text-slate-400">
+              <strong class="text-slate-200">Production metrics:</strong> once x402 volume is real,
+              we will publish settlement time, success rate, and cost data.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="border-t border-slate-800 pt-8">
+        <p class="text-slate-500 leading-relaxed">
+          Rhumb scores APIs for AI agent compatibility and lets agents execute capabilities through a
+          managed proxy. We implemented x402 because agents should be able to discover, price, and
+          pay for API calls without API keys. The protocol still has real gaps. Publishing those gaps
+          honestly is how the ecosystem gets better.
+        </p>
+
+        <section class="mt-10">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <a
+              href="/blog/how-agents-pay"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                Agent Infrastructure
+              </span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                How AI Agents Get Wallets and Pay for Things
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                The broader map: prepaid credits, x402 USDC on Base, and enterprise agent cards.
+              </p>
+            </a>
+            <a
+              href="/blog/payments-for-agents"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Payments</span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                The infrastructure comparison behind the payment path decisions.
+              </p>
+            </a>
+          </div>
+        </section>
+      </footer>
+    </article>
+  </div>
+</Layout>

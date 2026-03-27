@@ -138,6 +138,7 @@ the specific friction of a tool before integrating.
 ## Getting Started
 - https://rhumb.dev/quickstart — Make your first API call in 30 seconds. Copy-paste examples for curl, JS, Python, MCP. No signup required for read endpoints.
 - https://rhumb.dev/payments/agent — x402 agent payments: HTTP 402 flow, USDC on Base, wallet setup, and when to use on-chain per-call authorization
+- https://rhumb.dev/blog/how-agents-actually-pay-x402-dogfood — x402 seller dogfood report: 5 compatibility mismatches, authorization proof vs tx_hash gap, and why structured 422 errors beat infinite 402 loops
 - https://rhumb.dev/blog/getting-started-mcp — MCP install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
 - https://rhumb.dev/blog/securing-keys-for-agents — How to secure API keys for agent use: three credential modes (BYOK, managed, x402), storage hierarchy, honest threat modeling
 - MCP tools reference with examples for all 17 tools

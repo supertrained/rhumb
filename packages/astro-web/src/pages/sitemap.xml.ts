@@ -52,6 +52,7 @@ const STATIC_PAGES = [
   { path: "/blog/aag-framework", priority: 0.6, changefreq: "monthly" },
   { path: "/blog/payments-for-agents", priority: 0.5, changefreq: "monthly" },
   { path: "/blog/how-agents-pay", priority: 0.5, changefreq: "monthly" },
+  { path: "/blog/how-agents-actually-pay-x402-dogfood", priority: 0.6, changefreq: "monthly" },
   { path: "/blog/firecrawl-vs-scraperapi-vs-apify", priority: 0.7, changefreq: "monthly" },
   { path: "/blog/algolia-vs-typesense-vs-elasticsearch", priority: 0.7, changefreq: "monthly" },
   { path: "/blog/github-actions-vs-gitlab-ci-vs-circleci", priority: 0.7, changefreq: "monthly" },
