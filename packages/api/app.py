@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from cors import ALLOWED_CORS_ORIGINS
 from middleware.error_response import (
     http_exception_handler,
     unhandled_exception_handler,
@@ -18,19 +19,6 @@ from middleware.error_response import (
 from middleware.query_logging import QueryLoggingMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.request_id import RequestIDMiddleware
-
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add standard security headers to all API responses."""
-
-    async def dispatch(self, request: Request, call_next):
-        response: Response = await call_next(request)
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        return response
-from services.x402 import PaymentRequiredException, payment_required_handler
 from routes import (
     admin_agents,
     admin_billing,
@@ -56,6 +44,19 @@ from routes import (
     webhooks,
 )
 from routes.admin_auth import require_admin_key
+from services.x402 import PaymentRequiredException, payment_required_handler
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add standard security headers to all API responses."""
+
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
 
 logger = logging.getLogger(__name__)
 
@@ -126,15 +127,13 @@ def create_app() -> FastAPI:
     )
 
     # ── Middleware ──
+    application.add_middleware(QueryLoggingMiddleware)
+    application.add_middleware(RateLimitMiddleware)
+    application.add_middleware(RequestIDMiddleware)
+    application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "https://rhumb.dev",
-            "https://www.rhumb.dev",
-            "https://rhumb-orcin.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:3001",
-        ],
+        allow_origins=ALLOWED_CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "OPTIONS"],
         allow_headers=[
@@ -145,10 +144,6 @@ def create_app() -> FastAPI:
             "Authorization",
         ],
     )
-    application.add_middleware(QueryLoggingMiddleware)
-    application.add_middleware(RateLimitMiddleware)
-    application.add_middleware(RequestIDMiddleware)
-    application.add_middleware(SecurityHeadersMiddleware)
 
     # ── Exception handlers ──
     # Standardized error envelope: request_id + resolution on every error

@@ -71,3 +71,18 @@ class TestErrorEnvelope:
         body = resp.json()
         assert len(body["resolution"]) > 10  # Not a stub
         assert "not found" in body["resolution"].lower() or "verify" in body["resolution"].lower()
+
+    def test_500_keeps_cors_headers_for_allowlisted_origin(self):
+        """Unhandled errors should still preserve CORS for rhumb.dev."""
+        app = create_app()
+
+        @app.get("/boom")
+        async def boom():
+            raise RuntimeError("boom")
+
+        client = TestClient(app, raise_server_exceptions=False)
+        resp = client.get("/boom", headers={"Origin": "https://rhumb.dev"})
+
+        assert resp.status_code == 500
+        assert resp.headers["access-control-allow-origin"] == "https://rhumb.dev"
+        assert "Origin" in resp.headers["vary"]

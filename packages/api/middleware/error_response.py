@@ -15,6 +15,7 @@ any existing `raise HTTPException(...)` call sites.
 import logging
 import uuid
 
+from cors import build_cors_headers
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -86,11 +87,12 @@ async def http_exception_handler(
     """Handle all HTTPExceptions with standardized error envelope."""
     request_id = getattr(request.state, "request_id", None) or str(uuid.uuid4())
     body = _build_error_body(exc.status_code, exc.detail, request_id)
+    headers = {"X-Request-ID": request_id, **build_cors_headers(request.headers.get("origin"))}
 
     return JSONResponse(
         status_code=exc.status_code,
         content=body,
-        headers={"X-Request-ID": request_id},
+        headers=headers,
     )
 
 
@@ -112,11 +114,12 @@ async def validation_exception_handler(
         for e in errors
     ]
     body["resolution"] = "Fix the validation errors listed above and retry."
+    headers = {"X-Request-ID": request_id, **build_cors_headers(request.headers.get("origin"))}
 
     return JSONResponse(
         status_code=422,
         content=body,
-        headers={"X-Request-ID": request_id},
+        headers=headers,
     )
 
 
@@ -128,9 +131,10 @@ async def unhandled_exception_handler(
     logger.exception("Unhandled exception [request_id=%s]", request_id)
 
     body = _build_error_body(500, "An unexpected error occurred.", request_id)
+    headers = {"X-Request-ID": request_id, **build_cors_headers(request.headers.get("origin"))}
 
     return JSONResponse(
         status_code=500,
         content=body,
-        headers={"X-Request-ID": request_id},
+        headers=headers,
     )

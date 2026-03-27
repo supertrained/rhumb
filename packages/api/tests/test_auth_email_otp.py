@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Generator
 from unittest.mock import AsyncMock, patch
@@ -94,7 +95,10 @@ def test_request_code_returns_generic_success_for_new_email() -> None:
         response = env.client.post(
             "/v1/auth/email/request-code",
             json={"email": "Agent@Example.com"},
-            headers={"x-forwarded-for": "203.0.113.7"},
+            headers={
+                "origin": "https://rhumb.dev",
+                "x-forwarded-for": "203.0.113.7",
+            },
         )
 
     assert response.status_code == 200
@@ -105,6 +109,7 @@ def test_request_code_returns_generic_success_for_new_email() -> None:
         },
         "error": None,
     }
+    assert response.headers["access-control-allow-origin"] == "https://rhumb.dev"
     assert env.sender.calls == [
         {
             "email": "agent@example.com",
@@ -157,7 +162,10 @@ def test_request_code_returns_generic_success_when_otp_storage_fails() -> None:
             response = env.client.post(
                 "/v1/auth/email/request-code",
                 json={"email": "broken@example.com"},
-                headers={"x-forwarded-for": "203.0.113.9"},
+                headers={
+                    "origin": "https://rhumb.dev",
+                    "x-forwarded-for": "203.0.113.9",
+                },
             )
 
     assert response.status_code == 200
@@ -168,6 +176,20 @@ def test_request_code_returns_generic_success_when_otp_storage_fails() -> None:
         },
         "error": None,
     }
+    assert response.headers["access-control-allow-origin"] == "https://rhumb.dev"
+
+
+def test_supabase_migration_track_includes_email_otp_schema() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    migration_path = repo_root / "supabase/migrations/0010_email_otp_user_bootstrap.sql"
+
+    assert migration_path.exists()
+
+    migration_sql = migration_path.read_text()
+    assert "CREATE TABLE IF NOT EXISTS email_verification_codes" in migration_sql
+    assert "ADD COLUMN IF NOT EXISTS signup_method" in migration_sql
+    assert "ADD COLUMN IF NOT EXISTS email_verified_at" in migration_sql
+    assert "ADD COLUMN IF NOT EXISTS credit_policy" in migration_sql
 
 
 @pytest.mark.anyio
