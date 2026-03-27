@@ -1,18 +1,10 @@
 {
   "metadata": {
-<<<<<<< Updated upstream
     "scored_at": "2026-03-23T01:19:26.667Z",
     "total_services": 50,
     "scored": 50,
     "failed": 0,
     "duration_ms": 18,
-=======
-    "scored_at": "2026-03-09T19:27:34.109Z",
-    "total_services": 50,
-    "scored": 50,
-    "failed": 0,
-    "duration_ms": 12,
->>>>>>> Stashed changes
     "an_score_version": "0.2",
     "runner": "score-dataset-v1"
   },
@@ -45,11 +37,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "resend",
@@ -79,11 +67,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "postmark",
@@ -112,11 +96,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "mailgun",
@@ -145,11 +125,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "amazon-ses",
@@ -178,11 +154,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "hubspot",
@@ -212,11 +184,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "salesforce",
@@ -246,11 +214,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "pipedrive",
@@ -279,11 +243,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "copper",
@@ -311,11 +271,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "zoho-crm",
@@ -344,11 +300,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "stripe",
@@ -379,11 +331,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "adyen",
@@ -413,11 +361,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "braintree",
@@ -446,11 +390,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "paypal",
@@ -480,11 +420,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "square",
@@ -514,11 +450,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "lemon-squeezy",
@@ -547,11 +479,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "auth0",
@@ -581,11 +509,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "okta",
@@ -614,11 +538,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "firebase-auth",
@@ -648,11 +568,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "clerk",
@@ -682,11 +598,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "cognito",
@@ -715,11 +627,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "cal-com",
@@ -748,11 +656,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "calendly",
@@ -781,11 +685,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "google-calendar",
@@ -815,11 +715,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "microsoft-outlook",
@@ -848,11 +744,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "when2meet",
@@ -879,11 +771,7 @@
         "docs_unavailable": true,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "mixpanel",
@@ -912,11 +800,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "segment",
@@ -946,11 +830,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "posthog",
@@ -979,11 +859,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.666Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.108Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "amplitude",
@@ -1012,11 +888,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "heap",
@@ -1044,11 +916,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "algolia",
@@ -1078,11 +946,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "meilisearch",
@@ -1111,11 +975,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "elasticsearch",
@@ -1145,11 +1005,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "typesense",
@@ -1178,11 +1034,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "vercel",
@@ -1212,11 +1064,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "netlify",
@@ -1245,11 +1093,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "aws",
@@ -1280,11 +1124,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "digital-ocean",
@@ -1314,11 +1154,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "render",
@@ -1347,11 +1183,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "heroku",
@@ -1380,11 +1212,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "twitter-api",
@@ -1413,11 +1241,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "linkedin-api",
@@ -1446,11 +1270,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "bluesky-api",
@@ -1478,11 +1298,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "openai",
@@ -1513,11 +1329,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "anthropic",
@@ -1548,11 +1360,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "huggingface",
@@ -1581,11 +1389,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "replicate",
@@ -1614,11 +1418,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "cohere",
@@ -1648,11 +1448,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     },
     {
       "service_slug": "together-ai",
@@ -1681,11 +1477,7 @@
         "docs_unavailable": false,
         "runner": "score-dataset-v1"
       },
-<<<<<<< Updated upstream
       "calculated_at": "2026-03-23T01:19:26.667Z"
-=======
-      "calculated_at": "2026-03-09T19:27:34.109Z"
->>>>>>> Stashed changes
     }
   ],
   "errors": []
