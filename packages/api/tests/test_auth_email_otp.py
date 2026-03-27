@@ -139,6 +139,37 @@ def test_request_code_returns_generic_success_for_existing_email() -> None:
     assert env.sender.calls[0]["email"] == "existing@example.com"
 
 
+def test_request_code_returns_generic_success_when_otp_storage_fails() -> None:
+    class BrokenOtpService:
+        @staticmethod
+        def normalize_email(email: str) -> str:
+            return EmailOtpService.normalize_email(email)
+
+        @staticmethod
+        def derive_subnet(ip: str) -> str:
+            return EmailOtpService.derive_subnet(ip)
+
+        async def request_code(self, **_kwargs):
+            raise RuntimeError('relation "email_verification_codes" does not exist')
+
+    with _auth_email_harness() as env:
+        with patch("routes.auth.get_email_otp_service", return_value=BrokenOtpService()):
+            response = env.client.post(
+                "/v1/auth/email/request-code",
+                json={"email": "broken@example.com"},
+                headers={"x-forwarded-for": "203.0.113.9"},
+            )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "data": {
+            "status": "ok",
+            "message": "If the address can receive a sign-in code, it should arrive shortly.",
+        },
+        "error": None,
+    }
+
+
 @pytest.mark.anyio
 async def test_request_code_enforces_email_ip_and_subnet_limits() -> None:
     sender = RecordingEmailSender()

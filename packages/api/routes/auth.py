@@ -40,7 +40,12 @@ from schemas.user import (
     has_verified_email,
 )
 from services.billing_bootstrap import ensure_org_billing_bootstrap
-from services.email_otp import EmailOTPService, derive_request_ip, get_email_otp_service
+from services.email_otp import (
+    EmailOTPService,
+    EmailOtpRequestResult,
+    derive_request_ip,
+    get_email_otp_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -399,12 +404,21 @@ async def email_request_code(request: Request) -> JSONResponse:
     user_store = get_user_store()
     existing_user = await user_store.find_by_email(email)
     service = get_email_otp_service()
-    result = await service.request_code(
-        email=email,
-        request_ip=client_ip,
-        request_subnet=client_subnet,
-        user_id=existing_user.user_id if existing_user is not None else None,
-    )
+    try:
+        result = await service.request_code(
+            email=email,
+            request_ip=client_ip,
+            request_subnet=client_subnet,
+            user_id=existing_user.user_id if existing_user is not None else None,
+        )
+    except Exception:
+        logger.exception(
+            "Email OTP request failed before delivery for %s (ip=%s, subnet=%s)",
+            email,
+            client_ip,
+            client_subnet,
+        )
+        result = EmailOtpRequestResult(accepted=False, reason="storage_error")
 
     if not result.accepted:
         logger.info(
