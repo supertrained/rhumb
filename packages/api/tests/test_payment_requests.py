@@ -156,6 +156,32 @@ class TestCreatePaymentRequest:
         payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
         assert payload["execution_id"] == "exec_42"
 
+    @pytest.mark.asyncio
+    async def test_prefund_request_allows_null_capability_and_sets_purpose(self):
+        """Wallet top-ups mint prefund requests without a capability binding."""
+        svc = PaymentRequestService()
+        mock_resp = _mock_http_response(201, [{"purpose": "prefund"}])
+        patcher, mock_client = _patch_httpx(mock_resp)
+
+        with (
+            patcher,
+            patch.dict(os.environ, {
+                "RHUMB_USDC_WALLET_ADDRESS": "0xTestWallet",
+                "RAILWAY_ENVIRONMENT": "",
+            }),
+        ):
+            await svc.create_payment_request(
+                org_id="org_1",
+                capability_id=None,
+                amount_usd_cents=25,
+                purpose="prefund",
+            )
+
+        call_kwargs = mock_client.post.call_args
+        payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        assert payload["capability_id"] is None
+        assert payload["purpose"] == "prefund"
+
 
 # ---------------------------------------------------------------------------
 # Wallet address

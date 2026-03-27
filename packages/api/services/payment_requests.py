@@ -43,12 +43,15 @@ class PaymentRequestService:
     async def create_payment_request(
         self,
         org_id: Optional[str],
-        capability_id: str,
+        capability_id: Optional[str],
         amount_usd_cents: int,
         execution_id: Optional[str] = None,
+        *,
+        purpose: str = "execution",
     ) -> dict:
         """Create a payment request and persist to DB.
 
+        Supports both execution-bound requests and prefund/top-up requests.
         Returns the created payment_request row as dict.
         """
         wallet_address = self._get_wallet_address()
@@ -64,6 +67,7 @@ class PaymentRequestService:
             "network": network,
             "pay_to_address": wallet_address,
             "asset_address": usdc_contract,
+            "purpose": purpose,
             "status": "pending",
         }
 
