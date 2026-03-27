@@ -89,6 +89,52 @@ const PRICING_JSON_LD = {
         </p>
       </header>
 
+      <section class="mt-12" data-section="path-selection" aria-label="Choose your pricing path">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Choose your path</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Same directory, different execution rails.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              Discovery is always free. Execution depends on how you want authorization and payment to work: Rhumb-managed API key, zero-signup x402, or BYOK passthrough.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-4 sm:grid-cols-2">
+            <a href="/leaderboard" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display text-lg font-semibold text-slate-100">Browse</h3>
+                <span class="text-[11px] font-mono text-amber uppercase tracking-widest">$0</span>
+              </div>
+              <p class="text-sm leading-6 text-slate-400">Scores, comparisons, read endpoints, and MCP discovery. No signup, no key, no wallet.</p>
+            </a>
+
+            <a href={signupHref} class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display text-lg font-semibold text-slate-100">API key</h3>
+                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Managed</span>
+              </div>
+              <p class="text-sm leading-6 text-slate-400">Rhumb handles routing, failover, and billing behind one key. Best default for apps and production agents.</p>
+            </a>
+
+            <a href="/payments/agent" class="group rounded-xl border border-amber/20 bg-navy p-5 hover:border-amber/40 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display text-lg font-semibold text-slate-100">x402</h3>
+                <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Per call</span>
+              </div>
+              <p class="text-sm leading-6 text-slate-400">Use USDC on Base when the agent should pay directly and the payment proof should authorize the request.</p>
+            </a>
+
+            <a href="/blog/securing-keys-for-agents" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display text-lg font-semibold text-slate-100">BYOK</h3>
+                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Zero markup</span>
+              </div>
+              <p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section
         class="mt-12 grid gap-6 lg:grid-cols-3"
         aria-label="Pricing tiers"

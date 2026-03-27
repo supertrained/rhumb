@@ -34,6 +34,52 @@ const QUICKSTART_JSON_LD = {
         </p>
       </div>
 
+      <section class="mb-16">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-2xl mb-6">
+            <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Choose your starting path</p>
+            <h2 class="font-display font-bold text-2xl text-slate-100">Don’t guess the auth model.</h2>
+            <p class="text-slate-400 text-sm mt-2 leading-relaxed">
+              Rhumb has one free discovery path and three execution paths. Pick the one that matches how your agent should get authorized before you start wiring calls.
+            </p>
+          </div>
+
+          <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4">
+            <a href="/leaderboard" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display font-semibold text-slate-100">Browse</h3>
+                <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Free</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when you want scores, comparisons, failure modes, and category discovery without any signup.</p>
+            </a>
+
+            <a href="/auth/login" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display font-semibold text-slate-100">API key</h3>
+                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Managed</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when you want Rhumb-managed routing, failover, and billing behind one stable key.</p>
+            </a>
+
+            <a href="/payments/agent" class="group rounded-xl border border-amber/20 bg-navy p-5 hover:border-amber/40 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display font-semibold text-slate-100">x402</h3>
+                <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Zero signup</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when the agent should pay per call with USDC and the payment proof should authorize execution.</p>
+            </a>
+
+            <a href="/blog/securing-keys-for-agents" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display font-semibold text-slate-100">BYOK</h3>
+                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Provider creds</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when you already have provider accounts and want Rhumb to route calls without taking margin on the credential itself.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Step 1: Try the API -->
       <section class="mb-16">
         <div class="flex items-center gap-3 mb-6">
