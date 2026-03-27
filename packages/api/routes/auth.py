@@ -2,7 +2,8 @@
 
 Implements the full human signup flow:
 1. ``GET /auth/login/{provider}`` — redirect to GitHub/Google consent screen
-2. ``GET /auth/callback/{provider}`` — exchange code for token, create user + agent, redirect to dashboard
+2. ``GET /auth/callback/{provider}`` — exchange code for token,
+   create user + agent, redirect to dashboard
 3. ``GET /auth/me`` — return current user profile + API key (requires session)
 4. ``POST /auth/logout`` — clear session cookie
 
@@ -13,13 +14,10 @@ on every page load.
 
 from __future__ import annotations
 
-import hashlib
-import hmac
-import json
 import logging
 import secrets
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
@@ -29,13 +27,20 @@ from fastapi import APIRouter, Cookie, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from config import settings
-from schemas.agent_identity import get_agent_identity_store
+from schemas.agent_identity import api_key_prefix, get_agent_identity_store
 from schemas.user import (
+    EMAIL_AUTH_PROVIDER,
+    EMAIL_NO_TRIAL_CREDIT_POLICY,
+    EMAIL_OTP_SIGNUP_METHOD,
     OAUTH_SIGNUP_METHOD,
     OAUTH_TRIAL_CREDIT_POLICY,
+    UserSchema,
+    build_email_provider_id,
     get_user_store,
+    has_verified_email,
 )
 from services.billing_bootstrap import ensure_org_billing_bootstrap
+from services.email_otp import EmailOTPService, derive_request_ip, get_email_otp_service
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +116,90 @@ def _get_client_credentials(provider: str) -> tuple[str, str]:
     if not cid or not csecret:
         raise RuntimeError(f"OAuth credentials not configured for {provider}")
     return cid, csecret
+
+
+def _extract_request_ip(request: Request) -> str:
+    """Best-effort client IP extraction for abuse controls."""
+    forwarded = request.headers.get("cf-connecting-ip") or request.headers.get(
+        "x-forwarded-for", ""
+    )
+    if forwarded:
+        return derive_request_ip(forwarded)
+    if request.client and request.client.host:
+        return derive_request_ip(request.client.host)
+    return ""
+
+
+def _session_claims_for_user(user: Any) -> Dict[str, Any]:
+    """Build standard session JWT claims from a hydrated user object."""
+    return {
+        "sub": user.user_id,
+        "email": user.email,
+        "agent_id": user.default_agent_id,
+        "org_id": user.organization_id,
+    }
+
+
+def _set_session_cookie(response: Response, session_token: str) -> None:
+    """Attach the standard Rhumb session cookie to a response."""
+    response.set_cookie(
+        key="rhumb_session",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=_JWT_EXPIRY_HOURS * 3600,
+        path="/",
+        domain=".rhumb.dev",
+    )
+
+
+def _default_agent_name(*, email: str, name_hint: str = "") -> str:
+    """Build a stable default agent name for auth-created users."""
+    base = (name_hint or email.split("@", 1)[0] or "Rhumb").strip()
+    if base.lower().endswith("agent"):
+        return base
+    return f"{base} Agent"
+
+
+async def _ensure_default_identity(
+    user: UserSchema,
+    *,
+    name_hint: str = "",
+) -> tuple[UserSchema, Optional[str]]:
+    """Ensure a user has a default org + agent, creating them when missing."""
+    user_store = get_user_store()
+    identity_store = get_agent_identity_store()
+
+    updates: Dict[str, Any] = {}
+    api_key_plaintext: Optional[str] = None
+    org_id = user.organization_id or f"org_{secrets.token_hex(8)}"
+    if not user.organization_id:
+        updates["organization_id"] = org_id
+
+    agent_id = user.default_agent_id
+    if agent_id:
+        existing_agent = await identity_store.get_agent(agent_id)
+        if existing_agent is None:
+            agent_id = ""
+
+    if not agent_id:
+        agent_id, api_key_plaintext = await identity_store.register_agent(
+            name=_default_agent_name(email=user.email, name_hint=name_hint or user.name),
+            organization_id=org_id,
+            description=f"Default agent for {user.email}",
+        )
+        updates["default_agent_id"] = agent_id
+
+    if updates:
+        updated = await user_store.update_user(user.user_id, **updates)
+        if updated is not None:
+            user = updated
+        else:
+            for key, value in updates.items():
+                setattr(user, key, value)
+
+    return user, api_key_plaintext
 
 
 # ── Routes ───────────────────────────────────────────────────────────
@@ -284,16 +373,193 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
         redirect_url = f"{settings.auth_frontend_url}/dashboard"
 
     response = RedirectResponse(url=redirect_url, status_code=302)
-    response.set_cookie(
-        key="rhumb_session",
-        value=session_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=_JWT_EXPIRY_HOURS * 3600,
-        path="/",
-        domain=".rhumb.dev",
+    _set_session_cookie(response, session_token)
+    return response
+
+
+@router.post("/email/request-code")
+async def email_request_code(request: Request) -> JSONResponse:
+    """Request an email OTP code.
+
+    Always returns a generic success payload for valid-looking email input so the
+    API does not leak account existence or throttling state.
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    try:
+        email = EmailOTPService.normalize_email(str(payload.get("email", "")))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    client_ip = _extract_request_ip(request)
+    client_subnet = EmailOTPService.derive_subnet(client_ip)
+    user_store = get_user_store()
+    existing_user = await user_store.find_by_email(email)
+    service = get_email_otp_service()
+    result = await service.request_code(
+        email=email,
+        request_ip=client_ip,
+        request_subnet=client_subnet,
+        user_id=existing_user.user_id if existing_user is not None else None,
     )
+
+    if not result.accepted:
+        logger.info(
+            "Email OTP request accepted generically but not delivered for %s "
+            "(reason=%s, ip=%s, subnet=%s)",
+            email,
+            result.reason,
+            client_ip,
+            client_subnet,
+        )
+
+    return JSONResponse({
+        "data": {
+            "status": "ok",
+            "message": "If the address can receive a sign-in code, it should arrive shortly.",
+        },
+        "error": None,
+    })
+
+
+@router.post("/email/verify-code")
+async def email_verify_code(request: Request) -> JSONResponse:
+    """Verify an email OTP code and issue a standard Rhumb session."""
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    try:
+        email = EmailOTPService.normalize_email(str(payload.get("email", "")))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    code = str(payload.get("code", "")).strip()
+    device_label = str(payload.get("device_label", "")).strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Email and code are required")
+
+    client_ip = _extract_request_ip(request)
+    client_subnet = EmailOTPService.derive_subnet(client_ip)
+    otp_service = get_email_otp_service()
+    verify_result = await otp_service.verify_code(email=email, code=code)
+    if not verify_result.verified:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code")
+
+    user_store = get_user_store()
+    user = await user_store.find_by_email(email)
+    api_key_plaintext: Optional[str] = None
+    new_user = False
+    now = datetime.now(tz=UTC)
+
+    if user is None:
+        new_user = True
+        identity_store = get_agent_identity_store()
+        org_id = f"org_{secrets.token_hex(8)}"
+        agent_id, api_key_plaintext = await identity_store.register_agent(
+            name=_default_agent_name(email=email, name_hint=device_label or email),
+            organization_id=org_id,
+            description=f"Default agent for {email}",
+        )
+        user = await user_store.create_user(
+            email=email,
+            name=device_label or email.split("@", 1)[0],
+            provider=EMAIL_AUTH_PROVIDER,
+            provider_id=build_email_provider_id(email),
+            organization_id=org_id,
+            default_agent_id=agent_id,
+            signup_method=EMAIL_OTP_SIGNUP_METHOD,
+            email_verified_at=now,
+            signup_ip=client_ip,
+            signup_subnet=client_subnet,
+            credit_policy=EMAIL_NO_TRIAL_CREDIT_POLICY,
+            risk_flags={},
+        )
+    else:
+        updates: Dict[str, Any] = {}
+        if not has_verified_email(user):
+            updates["email_verified_at"] = now
+        if device_label and not user.name:
+            updates["name"] = device_label
+        if user.provider == EMAIL_AUTH_PROVIDER:
+            updates.setdefault("provider_id", build_email_provider_id(email))
+            updates.setdefault("signup_method", EMAIL_OTP_SIGNUP_METHOD)
+            updates.setdefault("credit_policy", EMAIL_NO_TRIAL_CREDIT_POLICY)
+            if client_ip and not getattr(user, "signup_ip", ""):
+                updates["signup_ip"] = client_ip
+            if client_subnet and not getattr(user, "signup_subnet", ""):
+                updates["signup_subnet"] = client_subnet
+        if updates:
+            maybe_updated = await user_store.update_user(user.user_id, **updates)
+            if maybe_updated is not None:
+                user = maybe_updated
+
+        user, maybe_api_key = await _ensure_default_identity(
+            user,
+            name_hint=device_label or user.name or email,
+        )
+        api_key_plaintext = api_key_plaintext or maybe_api_key
+
+    if verify_result.code_id:
+        await otp_service.attach_verified_user(verify_result.code_id, user.user_id)
+
+    if user.organization_id:
+        bootstrap_kwargs = {
+            "email": user.email,
+            "name": user.name or device_label or user.email,
+            "signup_method": getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+            "credit_policy": getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
+        }
+        if (
+            getattr(user, "signup_method", "") == EMAIL_OTP_SIGNUP_METHOD
+            or getattr(user, "credit_policy", "") == EMAIL_NO_TRIAL_CREDIT_POLICY
+        ):
+            bootstrap_kwargs["starter_credits_cents"] = 0
+
+        try:
+            await ensure_org_billing_bootstrap(user.organization_id, **bootstrap_kwargs)
+        except Exception as exc:
+            logger.warning(
+                "Billing bootstrap ensure failed for org %s during email verify: %s",
+                user.organization_id,
+                exc,
+            )
+
+    session_token = _issue_jwt(_session_claims_for_user(user))
+    response = JSONResponse({
+        "data": {
+            "session_token": session_token,
+            "new_user": new_user,
+            "api_key": api_key_plaintext,
+            "api_key_prefix": api_key_prefix(api_key_plaintext) if api_key_plaintext else None,
+            "user": {
+                "user_id": user.user_id,
+                "email": user.email,
+                "name": user.name,
+                "avatar_url": user.avatar_url,
+                "provider": user.provider,
+                "signup_method": getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+                "credit_policy": getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
+                "email_verified_at": (
+                    user.email_verified_at.isoformat()
+                    if getattr(user, "email_verified_at", None)
+                    else None
+                ),
+                "organization_id": user.organization_id,
+                "agent_id": user.default_agent_id,
+                "created_at": (
+                    user.created_at.isoformat()
+                    if isinstance(user.created_at, datetime)
+                    else str(user.created_at)
+                ),
+            },
+        },
+        "error": None,
+    })
+    _set_session_cookie(response, session_token)
     return response
 
 
@@ -338,22 +604,38 @@ async def me(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONRespons
         "name": user.name,
         "avatar_url": user.avatar_url,
         "provider": user.provider,
+        "signup_method": getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+        "credit_policy": getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
+        "email_verified_at": (
+            user.email_verified_at.isoformat()
+            if getattr(user, "email_verified_at", None)
+            else None
+        ),
         "organization_id": user.organization_id,
         "agent_id": user.default_agent_id,
         "api_key_prefix": agent.api_key_prefix if agent else None,
-        "created_at": user.created_at.isoformat() if isinstance(user.created_at, datetime) else str(user.created_at),
+        "created_at": (
+            user.created_at.isoformat()
+            if isinstance(user.created_at, datetime)
+            else str(user.created_at)
+        ),
     })
 
 
 @router.post("/rotate-key")
 async def rotate_key(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONResponse:
     """Rotate the user's API key.  Returns the new key (shown once)."""
-    if not rhumb_session:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    claims = await _require_session(rhumb_session)
 
-    claims = _verify_jwt(rhumb_session)
-    if claims is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    if not has_verified_email(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Verify your email before rotating an API key",
+        )
 
     agent_id = claims.get("agent_id")
     if not agent_id:

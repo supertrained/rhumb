@@ -69,6 +69,7 @@ async def _lifespan(app: FastAPI):
     from schemas.agent_identity import get_agent_identity_store
     from schemas.user import get_user_store
     from services.agent_usage_analytics import get_usage_analytics
+    from services.email_otp import get_email_otp_service
     from services.operational_fact_emitter import get_operational_fact_emitter
     from services.proxy_auth import get_auth_injector
     from services.proxy_finalizer import get_proxy_finalizer
@@ -80,6 +81,9 @@ async def _lifespan(app: FastAPI):
 
     get_user_store(supabase)
     logger.info("User store: Supabase client initialized")
+
+    get_email_otp_service(supabase)
+    logger.info("Email OTP service: Supabase client initialized")
 
     emitter = get_operational_fact_emitter(supabase)
     logger.info("Operational fact emitter: Supabase client initialized")
@@ -133,7 +137,13 @@ def create_app() -> FastAPI:
         ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-        allow_headers=["X-Rhumb-Key", "X-Rhumb-Admin-Key", "X-Payment", "Content-Type", "Authorization"],
+        allow_headers=[
+            "X-Rhumb-Key",
+            "X-Rhumb-Admin-Key",
+            "X-Payment",
+            "Content-Type",
+            "Authorization",
+        ],
     )
     application.add_middleware(QueryLoggingMiddleware)
     application.add_middleware(RateLimitMiddleware)

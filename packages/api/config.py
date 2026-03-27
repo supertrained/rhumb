@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     auth_jwt_secret: str | None = None  # Falls back to rhumb_admin_secret if unset
     auth_frontend_url: str = "https://rhumb.dev"
     auth_api_url: str = "https://api.rhumb.dev"  # Where OAuth callbacks land
+    auth_email_from: str = "Rhumb <no-reply@rhumb.dev>"
+    auth_email_resend_api_key: str | None = None
+    auth_email_resend_base_url: str = "https://api.resend.com"
 
     # Billing bootstrap
     billing_bootstrap_starter_credits_cents: int = 100
