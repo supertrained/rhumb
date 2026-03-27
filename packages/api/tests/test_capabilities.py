@@ -68,6 +68,33 @@ SAMPLE_BUNDLE_CAPS = [
     {"bundle_id": "prospect.enrich_and_verify", "capability_id": "email.verify", "sequence_order": 2},
 ]
 
+INTENT_CAPABILITIES = [
+    {
+        "id": "scrape.extract",
+        "domain": "scrape",
+        "action": "extract",
+        "description": "Extract structured data from a web page URL",
+        "input_hint": "url, schema",
+        "outcome": "Structured website data",
+    },
+    {
+        "id": "ai.generate_image",
+        "domain": "ai",
+        "action": "generate_image",
+        "description": "Generate an image from a text prompt",
+        "input_hint": "prompt",
+        "outcome": "Generated image",
+    },
+    {
+        "id": "data.enrich_person",
+        "domain": "data",
+        "action": "enrich_person",
+        "description": "Enrich a person profile with professional data",
+        "input_hint": "linkedin_url or email",
+        "outcome": "Professional profile enrichment",
+    },
+]
+
 
 def _mock_supabase(path: str):
     """Route supabase_fetch calls to sample data based on table name."""
@@ -93,6 +120,18 @@ def _mock_supabase(path: str):
         return SAMPLE_BUNDLES
     if path.startswith("bundle_capabilities?"):
         return SAMPLE_BUNDLE_CAPS
+    return []
+
+
+def _mock_intent_supabase(path: str):
+    if path.startswith("capabilities?"):
+        return INTENT_CAPABILITIES
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
     return []
 
 
@@ -127,6 +166,35 @@ async def test_list_capabilities_domain_filter(app):
     assert data["total"] == 2
     for item in data["items"]:
         assert item["domain"] == "email"
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_intent_search_matches_spaced_queries(app):
+    """Intent-style searches should match dotted/underscored capability IDs."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?search=generate%20image")
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items
+    assert items[0]["id"] == "ai.generate_image"
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_intent_search_matches_synonyms(app):
+    """Intent-style searches should bridge common agent language like website/LinkedIn."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            scrape_resp = await client.get("/v1/capabilities?search=scrape%20website")
+            person_resp = await client.get("/v1/capabilities?search=search%20person%20linkedin")
+
+    scrape_items = scrape_resp.json()["data"]["items"]
+    person_items = person_resp.json()["data"]["items"]
+
+    assert scrape_items
+    assert scrape_items[0]["id"] == "scrape.extract"
+    assert person_items
+    assert person_items[0]["id"] == "data.enrich_person"
 
 
 @pytest.mark.anyio

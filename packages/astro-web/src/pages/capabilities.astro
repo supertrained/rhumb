@@ -73,6 +73,8 @@ const clientData = allCapabilities.map((c) => ({
   domain: c.domain,
   action: c.action,
   description: c.description,
+  input_hint: c.input_hint,
+  outcome: c.outcome,
   provider_count: c.provider_count,
   top_provider: c.top_provider,
 }));
@@ -119,7 +121,7 @@ const clientData = allCapabilities.map((c) => ({
           <input
             type="text"
             id="cap-search"
-            placeholder="Search capabilities..."
+            placeholder="Search what you want to do (e.g. scrape website, generate image)"
             class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface border border-slate-800 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber/40 transition-colors font-mono"
           />
         </div>
@@ -303,22 +305,138 @@ const clientData = allCapabilities.map((c) => ({
       const resetBtn = document.getElementById('cap-reset');
 
       let visibleLimit = 30;
-      let activeDomainTag = null;
+
+      const TOKEN_ALIASES = {
+        audio: ['speech', 'voice', 'sound', 'video'],
+        company: ['business', 'organization', 'org'],
+        crawl: ['scrape', 'extract', 'website', 'web'],
+        extract: ['scrape', 'crawl', 'parse', 'website', 'webpage', 'url'],
+        find: ['search', 'lookup', 'discover', 'query'],
+        generate: ['create', 'make', 'write'],
+        image: ['images', 'photo', 'picture', 'visual', 'graphic'],
+        linkedin: ['profile', 'professional', 'person', 'contact', 'lead'],
+        person: ['people', 'profile', 'contact', 'lead', 'professional'],
+        scrape: ['extract', 'crawl', 'parse', 'website', 'webpage', 'url'],
+        search: ['find', 'lookup', 'discover', 'query'],
+        speech: ['audio', 'voice', 'sound'],
+        transcribe: ['transcription', 'captions', 'subtitle', 'audio', 'speech', 'voice'],
+        website: ['web', 'webpage', 'page', 'site', 'url', 'html'],
+        webpage: ['web', 'website', 'page', 'site', 'url', 'html'],
+      };
+
+      function normalizeIntentText(value) {
+        return String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function termVariants(term) {
+        const variants = new Set([term]);
+        if (term.length > 3 && term.endsWith('s')) {
+          variants.add(term.slice(0, -1));
+        } else if (term.length > 3) {
+          variants.add(term + 's');
+        }
+        return Array.from(variants);
+      }
+
+      function expandQueryTerms(term) {
+        const expanded = new Set();
+        termVariants(term).forEach(function(variant) {
+          expanded.add(variant);
+          (TOKEN_ALIASES[variant] || []).forEach(function(alias) {
+            expanded.add(alias);
+          });
+        });
+        return Array.from(expanded);
+      }
+
+      function buildSearchBlob(cap) {
+        return normalizeIntentText([
+          cap.id,
+          cap.domain,
+          cap.action,
+          cap.description,
+          cap.input_hint,
+          cap.outcome,
+        ].filter(Boolean).join(' '));
+      }
+
+      function scoreCapabilityIntent(query, cap) {
+        const normalizedQuery = normalizeIntentText(query);
+        if (!normalizedQuery) return 0;
+
+        const blob = buildSearchBlob(cap);
+        if (!blob) return 0;
+
+        const tokens = normalizedQuery.split(' ').filter(Boolean);
+        const blobTokens = new Set(blob.split(' '));
+        const paddedBlob = ' ' + blob + ' ';
+        const idText = normalizeIntentText(cap.id);
+        const domainText = normalizeIntentText(cap.domain);
+        const actionText = normalizeIntentText(cap.action);
+        let score = 0;
+        let matchedGroups = 0;
+
+        if (idText.includes(normalizedQuery)) {
+          score += 40;
+        } else if (blob.includes(normalizedQuery)) {
+          score += 24;
+        }
+
+        tokens.forEach(function(token) {
+          const expansions = expandQueryTerms(token);
+          const directHit = blobTokens.has(token) || paddedBlob.includes(' ' + token + ' ');
+          const aliasHits = expansions.filter(function(alias) {
+            return alias !== token && (blobTokens.has(alias) || paddedBlob.includes(' ' + alias + ' '));
+          });
+
+          if (directHit) {
+            matchedGroups += 1;
+            score += 12;
+            if (idText.includes(token)) score += 10;
+            if (token === domainText || token === actionText) score += 6;
+          } else if (aliasHits.length > 0) {
+            matchedGroups += 1;
+            score += 5;
+            if (aliasHits.some(function(alias) { return idText.includes(alias); })) score += 4;
+          }
+        });
+
+        if (tokens.length && matchedGroups === tokens.length) {
+          score += 24;
+        } else if (tokens.length > 1 && matchedGroups >= tokens.length - 1) {
+          score += 10;
+        }
+
+        if (idText.startsWith(normalizedQuery)) {
+          score += 12;
+        }
+
+        return score;
+      }
 
       function getFilteredSorted() {
-        const query = (searchInput.value || '').toLowerCase().trim();
+        const query = (searchInput.value || '').trim();
         const domain = domainFilter.value;
         const sort = sortSelect.value;
 
         let filtered = data.filter(function(cap) {
           if (domain && cap.domain !== domain) return false;
-          if (query) {
-            return cap.id.toLowerCase().includes(query) ||
-                   cap.description.toLowerCase().includes(query) ||
-                   cap.domain.toLowerCase().includes(query);
-          }
+          if (query) return scoreCapabilityIntent(query, cap) > 0;
           return true;
         });
+
+        if (query) {
+          filtered.sort(function(a, b) {
+            const scoreDiff = scoreCapabilityIntent(query, b) - scoreCapabilityIntent(query, a);
+            if (scoreDiff !== 0) return scoreDiff;
+            return a.id.localeCompare(b.id);
+          });
+          return filtered;
+        }
 
         if (sort === 'providers') {
           filtered.sort(function(a, b) { return b.provider_count - a.provider_count; });

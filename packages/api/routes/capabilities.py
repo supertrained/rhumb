@@ -6,6 +6,7 @@ This module provides discovery, resolution, and bundle endpoints.
 
 from __future__ import annotations
 
+import re
 from urllib.parse import quote
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
@@ -39,6 +40,112 @@ def _effective_auth_method(service_slug: str, auth_method: str) -> str:
     return default_method.value if default_method is not None else auth_method
 
 
+_TOKEN_ALIASES: dict[str, set[str]] = {
+    "audio": {"speech", "voice", "sound", "video"},
+    "company": {"business", "organization", "org"},
+    "crawl": {"scrape", "extract", "website", "web"},
+    "extract": {"scrape", "crawl", "parse", "website", "webpage", "url"},
+    "find": {"search", "lookup", "discover", "query"},
+    "generate": {"create", "make", "write"},
+    "image": {"images", "photo", "picture", "visual", "graphic"},
+    "linkedin": {"profile", "professional", "person", "contact", "lead"},
+    "person": {"people", "profile", "contact", "lead", "professional"},
+    "scrape": {"extract", "crawl", "parse", "website", "webpage", "url"},
+    "search": {"find", "lookup", "discover", "query"},
+    "speech": {"audio", "voice", "sound"},
+    "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
+    "website": {"web", "webpage", "page", "site", "url", "html"},
+    "webpage": {"web", "website", "page", "site", "url", "html"},
+}
+
+
+def _normalize_intent_text(value: str | None) -> str:
+    if not value:
+        return ""
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", value.lower())).strip()
+
+
+def _term_variants(term: str) -> set[str]:
+    variants = {term}
+    if len(term) > 3 and term.endswith("s"):
+        variants.add(term[:-1])
+    elif len(term) > 3:
+        variants.add(f"{term}s")
+    return {variant for variant in variants if variant}
+
+
+def _expanded_query_terms(term: str) -> set[str]:
+    expanded = set()
+    for variant in _term_variants(term):
+        expanded.add(variant)
+        expanded.update(_TOKEN_ALIASES.get(variant, set()))
+    return {token for token in expanded if token}
+
+
+def _build_capability_search_blob(capability: dict) -> str:
+    parts = [
+        capability.get("id"),
+        capability.get("domain"),
+        capability.get("action"),
+        capability.get("description"),
+        capability.get("input_hint"),
+        capability.get("outcome"),
+    ]
+    return _normalize_intent_text(" ".join(part for part in parts if part))
+
+
+def _score_capability_intent(query: str, capability: dict) -> int:
+    normalized_query = _normalize_intent_text(query)
+    if not normalized_query:
+        return 0
+
+    blob = _build_capability_search_blob(capability)
+    if not blob:
+        return 0
+
+    tokens = normalized_query.split()
+    blob_tokens = set(blob.split())
+    id_text = _normalize_intent_text(capability.get("id"))
+    domain_text = _normalize_intent_text(capability.get("domain"))
+    action_text = _normalize_intent_text(capability.get("action"))
+
+    score = 0
+    matched_groups = 0
+
+    if normalized_query in id_text:
+        score += 40
+    elif normalized_query in blob:
+        score += 24
+
+    for token in tokens:
+        expansions = _expanded_query_terms(token)
+        direct_hit = token in blob_tokens or f" {token} " in f" {blob} "
+        alias_hits = [alias for alias in expansions if alias != token and (alias in blob_tokens or f" {alias} " in f" {blob} ")]
+
+        if direct_hit:
+            matched_groups += 1
+            score += 12
+            if token in id_text:
+                score += 10
+            if token == domain_text or token == action_text:
+                score += 6
+        elif alias_hits:
+            matched_groups += 1
+            score += 5
+            if any(alias in id_text for alias in alias_hits):
+                score += 4
+
+    if tokens and matched_groups == len(tokens):
+        score += 24
+    elif len(tokens) > 1 and matched_groups >= len(tokens) - 1:
+        score += 10
+
+    if id_text.startswith(normalized_query):
+        score += 12
+
+    return score
+
+
 @router.get("/capabilities")
 async def list_capabilities(
     domain: str | None = Query(default=None, description="Filter by domain (e.g. 'email', 'payment')"),
@@ -50,22 +157,33 @@ async def list_capabilities(
 
     Returns capabilities enriched with provider count and top provider info.
     """
-    # Build PostgREST query
+    # Pull the lightweight capability registry and rank/filter in Python so
+    # intent-style queries like "generate image" or "scrape website" can
+    # match dotted/underscored IDs and related descriptions.
     path = "capabilities?select=id,domain,action,description,input_hint,outcome&order=domain.asc,action.asc"
-    if domain:
-        path += f"&domain=eq.{quote(domain)}"
-    if search:
-        encoded = quote(f"*{search}*")
-        path += (
-            f"&or=(id.ilike.{encoded},"
-            f"description.ilike.{encoded},"
-            f"domain.ilike.{encoded},"
-            f"action.ilike.{encoded})"
-        )
-
     capabilities = await supabase_fetch(path)
     if capabilities is None:
         return {"data": {"items": [], "total": 0, "limit": limit, "offset": offset}, "error": "Unable to load capabilities."}
+
+    if domain:
+        capabilities = [c for c in capabilities if c.get("domain") == domain]
+
+    if search:
+        ranked: list[tuple[int, dict]] = []
+        for capability in capabilities:
+            intent_score = _score_capability_intent(search, capability)
+            if intent_score > 0:
+                ranked.append((intent_score, capability))
+
+        ranked.sort(
+            key=lambda item: (
+                -item[0],
+                item[1].get("domain") or "",
+                item[1].get("action") or "",
+                item[1].get("id") or "",
+            )
+        )
+        capabilities = [capability for _, capability in ranked]
 
     total = len(capabilities)
     page = capabilities[offset : offset + limit]
