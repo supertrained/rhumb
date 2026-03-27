@@ -71,6 +71,22 @@ Operational conclusion:
 - the slug-normalization fix from `94c8df8` is holding
 - no additional alias/auth/env mapping repair was required during this run
 
+## 8:07 AM follow-up spot-check
+
+A second production spot-check was run later in the morning to make sure the earlier pass was not a one-off.
+
+### Follow-up Resolve result
+- HTTP 200 from Rhumb
+- Upstream status: **200**
+- Execution id: `exec_c13e3ae41e2f461a9d3e452c94980729`
+- Returned `likelihood: 9`
+
+### Follow-up direct result
+- HTTP 200 direct from PDL
+- Returned `likelihood: 9`
+
+The second pass matched the first: no regression, no alias break, and no evidence of a stale deploy.
+
 ## Verdict
 
 **PDL is confirmed healthy in production after the slug-normalization fix.**
