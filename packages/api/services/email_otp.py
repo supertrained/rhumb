@@ -177,6 +177,7 @@ class ResendEmailOtpSender:
                 headers={
                     "Authorization": f"Bearer {self._api_key}",
                     "Content-Type": "application/json",
+                    "User-Agent": "Rhumb/1.0",
                 },
                 json=payload,
             )

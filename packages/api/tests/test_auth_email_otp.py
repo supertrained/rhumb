@@ -23,7 +23,7 @@ from schemas.user import (
     build_email_provider_id,
     reset_user_store,
 )
-from services.email_otp import EmailOtpService, reset_email_otp_service
+from services.email_otp import EmailOtpService, ResendEmailOtpSender, reset_email_otp_service
 
 
 def _run(coro):
@@ -190,6 +190,58 @@ def test_supabase_migration_track_includes_email_otp_schema() -> None:
     assert "ADD COLUMN IF NOT EXISTS signup_method" in migration_sql
     assert "ADD COLUMN IF NOT EXISTS email_verified_at" in migration_sql
     assert "ADD COLUMN IF NOT EXISTS credit_policy" in migration_sql
+
+
+@pytest.mark.anyio
+async def test_resend_sender_sets_user_agent_header() -> None:
+    captured: dict[str, object] = {}
+
+    class DummyResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+    class DummyClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        async def post(self, url: str, *, headers: dict[str, str], json: dict[str, object]):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            return DummyResponse()
+
+    sender = ResendEmailOtpSender(
+        api_key="re_test",
+        from_address="Rhumb <no-reply@rhumb.dev>",
+        base_url="https://api.resend.com",
+    )
+
+    with patch("services.email_otp.httpx.AsyncClient", return_value=DummyClient()):
+        await sender.send_verification_code(
+            email="agent@example.com",
+            code="123456",
+            ttl_minutes=10,
+        )
+
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["headers"] == {
+        "Authorization": "Bearer re_test",
+        "Content-Type": "application/json",
+        "User-Agent": "Rhumb/1.0",
+    }
+    assert captured["json"] == {
+        "from": "Rhumb <no-reply@rhumb.dev>",
+        "to": ["agent@example.com"],
+        "subject": "Your Rhumb sign-in code",
+        "text": (
+            "Your Rhumb sign-in code is 123456.\n\n"
+            "It expires in 10 minutes.\n\n"
+            "If you did not request this, you can ignore this email."
+        ),
+    }
 
 
 @pytest.mark.anyio
