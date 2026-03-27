@@ -1,28 +1,15 @@
 """x402 payment middleware — extracts and classifies X-Payment header values.
 
-Rhumb currently supports a legacy payment proof shape built around an
-on-chain USDC transfer receipt:
+Rhumb supports two x402 proof shapes today:
 
-    tx_hash:              On-chain transaction hash
-    network:              ``"base"`` | ``"base-sepolia"`` (also accepts
-                          ``"evm:8453"`` | ``"evm:84532"`` | legacy
-                          ``"base-mainnet"``)
-    payment_request_id:   (optional) Links back to a prior 402 response
+1. Legacy transfer-receipt proofs built around an already-confirmed on-chain USDC
+   transfer (``tx_hash`` + network + wallet).
+2. Standard x402 authorization payloads carrying a signed
+   ``payload.authorization`` object for facilitator-backed settlement.
 
-Some buyers now send the standard x402 authorization payload instead:
-
-    {
-      "x402Version": 1,
-      "scheme": "exact",
-      "network": "base",
-      "payload": {
-        "authorization": {"from": "...", "to": "...", ...},
-        "signature": "..."
-      }
-    }
-
-This module decodes both shapes and exposes proof-format metadata so the
-route layer can produce truthful compatibility responses.
+This module decodes both shapes and exposes proof-format metadata so the route
+layer can produce truthful compatibility responses and execute the supported
+payment path.
 """
 
 from __future__ import annotations
@@ -35,7 +22,24 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
-_STANDARD_X402_TOP_LEVEL_KEYS = {"x402Version", "scheme", "network", "payload"}
+_STANDARD_X402_FALLBACK_KEYS = {"x402Version", "scheme", "network", "payload"}
+
+
+def _extract_standard_authorization(payment_data: dict[str, Any]) -> dict[str, Any] | None:
+    payload = payment_data.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    authorization = payload.get("authorization")
+    if not isinstance(authorization, dict):
+        return None
+    if not payload.get("signature"):
+        return None
+    return authorization
+
+
+def _extract_standard_accept(payment_data: dict[str, Any]) -> dict[str, Any] | None:
+    accepted = payment_data.get("accepted")
+    return accepted if isinstance(accepted, dict) else None
 
 
 def describe_x_payment_payload(payment_data: dict[str, Any] | None) -> dict[str, Any]:
@@ -58,18 +62,15 @@ def describe_x_payment_payload(payment_data: dict[str, Any] | None) -> dict[str,
             "declared_to": None,
         }
 
-    payload = payment_data.get("payload")
-    authorization = payload.get("authorization") if isinstance(payload, dict) else None
-    if (
-        _STANDARD_X402_TOP_LEVEL_KEYS.issubset(payment_data.keys())
-        and isinstance(authorization, dict)
-    ):
+    authorization = _extract_standard_authorization(payment_data)
+    accepted = _extract_standard_accept(payment_data)
+    if authorization and (accepted or _STANDARD_X402_FALLBACK_KEYS.issubset(payment_data.keys())):
         return {
             "proof_format": "standard_authorization_payload",
-            "declared_network": payment_data.get("network"),
-            "declared_scheme": payment_data.get("scheme"),
+            "declared_network": (accepted or {}).get("network") or payment_data.get("network"),
+            "declared_scheme": (accepted or {}).get("scheme") or payment_data.get("scheme"),
             "declared_from": authorization.get("from"),
-            "declared_to": authorization.get("to"),
+            "declared_to": authorization.get("to") or (accepted or {}).get("payTo"),
         }
 
     return {
@@ -103,7 +104,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
         decoded_bytes = base64.b64decode(header_value, validate=True)
         payment_data = json.loads(decoded_bytes)
         parse_mode = "base64_json"
-        if isinstance(payment_data, dict) and _STANDARD_X402_TOP_LEVEL_KEYS.issubset(payment_data.keys()):
+        if isinstance(payment_data, dict) and describe_x_payment_payload(payment_data)["proof_format"] == "standard_authorization_payload":
             parse_mode = "x402_payload"
         return {
             "payment_data": payment_data if isinstance(payment_data, dict) else None,
@@ -118,7 +119,7 @@ def inspect_x_payment_header(header_value: str | None) -> dict[str, Any]:
     try:
         payment_data = json.loads(header_value)
         parse_mode = "raw_json"
-        if isinstance(payment_data, dict) and _STANDARD_X402_TOP_LEVEL_KEYS.issubset(payment_data.keys()):
+        if isinstance(payment_data, dict) and describe_x_payment_payload(payment_data)["proof_format"] == "standard_authorization_payload":
             parse_mode = "x402_payload"
         return {
             "payment_data": payment_data if isinstance(payment_data, dict) else None,

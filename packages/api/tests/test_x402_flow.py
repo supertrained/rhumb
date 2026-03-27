@@ -219,6 +219,41 @@ def _x_payment_header_standard_b64(network: str = "base") -> str:
     return base64.b64encode(payload.encode()).decode()
 
 
+def _x_payment_header_standard_supported(payment_request_id: str | None = None) -> str:
+    """Build a standard x402 authorization payload with accepted payment requirements."""
+    extra = {"name": "USD Coin", "version": "2", "assetTransferMethod": "eip3009"}
+    if payment_request_id:
+        extra["paymentRequestId"] = payment_request_id
+    return json.dumps(
+        {
+            "x402Version": 2,
+            "accepted": {
+                "scheme": "exact",
+                "network": "base-sepolia",
+                "amount": "100000",
+                "payTo": WALLET,
+                "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                "maxTimeoutSeconds": 300,
+                "resource": "https://api.rhumb.dev/v1/capabilities/email.send/execute",
+                "description": "Rhumb capability execution: email.send",
+                "mimeType": "application/json",
+                "extra": extra,
+            },
+            "payload": {
+                "authorization": {
+                    "from": PAYER_WALLET,
+                    "to": WALLET,
+                    "value": "100000",
+                    "validAfter": "1",
+                    "validBefore": "2",
+                    "nonce": "0xdeadbeef",
+                },
+                "signature": "0xsigned",
+            },
+        }
+    )
+
+
 # ---------------------------------------------------------------------------
 # Common patches
 # ---------------------------------------------------------------------------
@@ -419,7 +454,7 @@ class TestX402ValidPayment:
         trace = traces[-1]
         assert trace["x_payment_parse_mode"] == "x402_payload"
         assert trace["x_payment_proof_format"] == "standard_authorization_payload"
-        assert trace["branch_outcome"] == "standard_authorization_unsupported"
+        assert trace["branch_outcome"] == "standard_authorization_unconfigured"
         assert trace["response_status"] == 422
         assert trace["payment_headers_set"] is False
 
@@ -444,6 +479,104 @@ class TestX402ValidPayment:
         assert body["error"] == "x402_proof_format_unsupported"
         assert body["compatibility"]["detected_format"] == "standard_authorization_payload"
         assert body["compatibility"]["network"] == "base"
+
+    @pytest.mark.anyio
+    async def test_standard_authorization_payload_settles_via_facilitator(self, app):
+        """Configured facilitator path should execute instead of failing at the old 422 boundary."""
+        patches = _build_common_patches(org_credits=[{"balance_usd_cents": 500}])
+
+        with (
+            patch.dict(os.environ, {"X402_FACILITATOR_URL": "https://facilitator.example"}, clear=False),
+            patch(
+                "routes.capability_execute._x402_settlement.verify_and_settle",
+                new_callable=AsyncMock,
+                return_value={
+                    "verify": {"isValid": True, "payer": PAYER_WALLET},
+                    "settle": {
+                        "success": True,
+                        "transaction": TX_HASH,
+                        "network": "base-sepolia",
+                        "payer": PAYER_WALLET,
+                    },
+                    "payer": PAYER_WALLET,
+                    "transaction": TX_HASH,
+                    "network": "base-sepolia",
+                    "payment_response_header": base64.b64encode(
+                        json.dumps(
+                            {
+                                "success": True,
+                                "transaction": TX_HASH,
+                                "network": "base-sepolia",
+                                "payer": PAYER_WALLET,
+                            }
+                        ).encode()
+                    ).decode(),
+                },
+            ) as mock_verify_and_settle,
+            patch(
+                "routes.capability_execute._payment_requests.get_pending_request",
+                new_callable=AsyncMock,
+                return_value={
+                    "id": "pr_std_123",
+                    "capability_id": "email.send",
+                    "network": "base-sepolia",
+                    "pay_to_address": WALLET,
+                    "amount_usdc_atomic": "100000",
+                },
+            ) as mock_get_pending,
+            patch(
+                "routes.capability_execute._payment_requests.mark_verified",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as mock_mark_verified,
+            patches["supabase_fetch"] as mock_supabase_fetch,
+            patches["supabase_insert"] as mock_supabase_insert,
+            patches["supabase_patch"],
+            patches["inject_auth"],
+            patches["pool"],
+            patches["budget"],
+            patches["credit"],
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                resp = await client.post(
+                    "/v1/capabilities/email.send/execute",
+                    json={
+                        "provider": "sendgrid",
+                        "method": "POST",
+                        "path": "/v3/mail/send",
+                        "body": {"to": "test@example.com"},
+                    },
+                    headers={
+                        "PAYMENT-SIGNATURE": _x_payment_header_standard_supported("pr_std_123"),
+                    },
+                )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["x402_receipt"]["verified"] is True
+        assert body["data"]["x402_receipt"]["tx_hash"] == TX_HASH
+        assert body["data"]["x402_receipt"]["payment_request_id"] == "pr_std_123"
+        assert body["data"]["x402_receipt"]["network"] == "base-sepolia"
+        assert resp.headers.get("payment-response") is not None
+        payment_resp = json.loads(resp.headers["x-payment-response"])
+        assert payment_resp["tx_hash"] == TX_HASH
+        assert payment_resp["network"] == "base-sepolia"
+        mock_verify_and_settle.assert_awaited_once()
+        mock_get_pending.assert_awaited_once_with("pr_std_123")
+        mock_mark_verified.assert_awaited_once_with("pr_std_123", TX_HASH)
+        assert mock_supabase_fetch.await_count >= 1
+
+        receipt_writes = [
+            call.args[1]
+            for call in mock_supabase_insert.await_args_list
+            if call.args and call.args[0] == "usdc_receipts"
+        ]
+        assert receipt_writes, "expected usdc_receipts insert"
+        assert receipt_writes[-1]["tx_hash"] == TX_HASH
+        assert receipt_writes[-1]["payment_request_id"] == "pr_std_123"
+        assert receipt_writes[-1]["amount_usdc_atomic"] == "100000"
 
     @pytest.mark.anyio
     async def test_x402_payment_bypasses_billing_health_gate(self, app):

@@ -47,6 +47,12 @@ from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
+from services.x402_settlement import (
+    X402FacilitatorNotConfigured,
+    X402SettlementFailed,
+    X402SettlementService,
+    X402VerificationFailed,
+)
 from services.usdc_verifier import verify_usdc_payment
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
@@ -56,6 +62,7 @@ from services.service_slugs import canonicalize_service_slug, normalize_proxy_sl
 _budget_enforcer = BudgetEnforcer()
 _credit_deduction = CreditDeductionService()
 _payment_requests = PaymentRequestService()
+_x402_settlement = X402SettlementService()
 _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
 
@@ -146,6 +153,76 @@ def _normalize_x402_payment_header(
         logger.info("x402_payment_signature_bridged")
         return payment_signature
     return x_payment
+
+
+def _extract_standard_x402_authorization(payment_data: dict[str, Any] | None) -> dict[str, Any] | None:
+    payload = payment_data.get("payload") if isinstance(payment_data, dict) else None
+    if not isinstance(payload, dict):
+        return None
+    authorization = payload.get("authorization")
+    return authorization if isinstance(authorization, dict) else None
+
+
+def _extract_standard_x402_payment_request_id(payment_data: dict[str, Any] | None) -> str | None:
+    if not isinstance(payment_data, dict):
+        return None
+    accepted = payment_data.get("accepted")
+    accepted_extra = accepted.get("extra") if isinstance(accepted, dict) else None
+    for candidate in (
+        payment_data.get("paymentRequestId"),
+        payment_data.get("payment_request_id"),
+        accepted_extra.get("paymentRequestId") if isinstance(accepted_extra, dict) else None,
+        accepted_extra.get("payment_request_id") if isinstance(accepted_extra, dict) else None,
+    ):
+        if candidate:
+            return str(candidate)
+    return None
+
+
+def _build_standard_x402_payment_requirements(
+    *,
+    capability_id: str,
+    cost_usd_cents: int,
+    payment_request: dict | None,
+) -> dict[str, Any]:
+    api_base = os.environ.get("API_BASE_URL", "https://api.rhumb.dev")
+    response = build_x402_response(
+        capability_id=capability_id,
+        cost_usd_cents=cost_usd_cents,
+        resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
+        payment_request=payment_request,
+    )
+    exact_option = next(
+        (option for option in response.get("accepts", []) if option.get("scheme") == "exact"),
+        None,
+    )
+    if exact_option is not None:
+        return exact_option
+    if payment_request:
+        return {
+            "scheme": "exact",
+            "network": payment_request.get("network"),
+            "maxAmountRequired": payment_request.get("amount_usdc_atomic"),
+            "amount": payment_request.get("amount_usdc_atomic"),
+            "resource": f"{api_base}/v1/capabilities/{capability_id}/execute",
+            "description": f"Rhumb capability execution: {capability_id}",
+            "mimeType": "application/json",
+            "payTo": payment_request.get("pay_to_address"),
+            "maxTimeoutSeconds": 300,
+            "asset": payment_request.get("asset_address"),
+            "extra": {
+                "name": "Rhumb",
+                "version": "1",
+                "paymentRequestId": payment_request.get("id"),
+            },
+        }
+    raise ValueError("No x402 exact payment option available for this capability")
+
+
+def _build_standard_x402_payment_response_header(settle_response: dict[str, Any]) -> str:
+    return base64.b64encode(
+        json.dumps(settle_response, separators=(",", ":")).encode("utf-8")
+    ).decode("utf-8")
 
 
 def _build_x402_compatibility_error_response(
@@ -806,20 +883,21 @@ async def discover_execute_capability(
         else inspect_x_payment_header(None)
     )
     if payment_trace.get("proof_format") == "standard_authorization_payload":
-        response = _build_x402_compatibility_error_response(
-            raw_request,
-            payment_trace=payment_trace,
-        )
-        _log_x402_interop_trace(
-            raw_request,
-            capability_id=capability_id,
-            x_payment=x_payment,
-            payment_trace=payment_trace,
-            outcome="standard_authorization_unsupported",
-            response_status=response.status_code,
-            payment_headers_set=False,
-        )
-        return response
+        if not _x402_settlement.is_configured():
+            response = _build_x402_compatibility_error_response(
+                raw_request,
+                payment_trace=payment_trace,
+            )
+            _log_x402_interop_trace(
+                raw_request,
+                capability_id=capability_id,
+                x_payment=x_payment,
+                payment_trace=payment_trace,
+                outcome="standard_authorization_unsupported",
+                response_status=response.status_code,
+                payment_headers_set=False,
+            )
+            return response
 
     return await _build_execute_discovery_response(capability_id)
 
@@ -889,26 +967,66 @@ async def execute_capability(
         # Path 2: x402 anonymous — payment header present, no API key.
         payment_data = payment_trace.get("payment_data")
         if payment_trace.get("proof_format") == "standard_authorization_payload":
-            response = _build_x402_compatibility_error_response(
-                raw_request,
-                payment_trace=payment_trace,
-            )
-            _log_x402_interop_trace(
-                raw_request,
-                capability_id=capability_id,
-                x_payment=x_payment,
-                payment_trace=payment_trace,
-                outcome="standard_authorization_unsupported",
-                response_status=response.status_code,
-                provider=request.provider,
-                payment_headers_set=False,
-            )
-            return response
+            if not _x402_settlement.is_configured():
+                response = _build_x402_compatibility_error_response(
+                    raw_request,
+                    payment_trace=payment_trace,
+                )
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="standard_authorization_unconfigured",
+                    response_status=response.status_code,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                )
+                return response
 
+            authorization = _extract_standard_x402_authorization(payment_data)
+            payer_wallet = authorization.get("from") if authorization else None
+            if not payer_wallet:
+                response = await _build_execute_discovery_response(capability_id)
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="payer_wallet_missing",
+                    response_status=response.status_code,
+                    provider=request.provider,
+                    payment_headers_set="X-Payment" in response.headers,
+                )
+                return response
+
+            is_x402_anonymous = True
+            x402_wallet_address = payer_wallet
+            agent_id = f"x402_wallet_{payer_wallet.lower()}"
+            org_id = "x402_anonymous"
+
+            allowed, remaining = check_wallet_rate_limit(payer_wallet)
+            x402_rate_remaining = remaining
+            if not allowed:
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="rate_limited",
+                    response_status=429,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    extra={"wallet": payer_wallet},
+                )
+                raise HTTPException(
+                    status_code=429,
+                    detail="Wallet rate limit exceeded. Retry in one minute.",
+                )
         # SECURITY: We only set is_x402_anonymous AFTER validating that the
         # header contains a decodable legacy tx_hash proof. Garbage headers
         # must not grant anonymous execution.
-        if not payment_data or not payment_data.get("tx_hash"):
+        elif not payment_data or not payment_data.get("tx_hash"):
             # Header present but invalid/missing tx_hash → treat as
             # unauthenticated. Return the same discovery envelope clients see
             # on a GET probe or unauthenticated POST.
@@ -925,61 +1043,62 @@ async def execute_capability(
             )
             return response
 
-        # Replay prevention: reject reused tx_hash
-        tx_hash = payment_data["tx_hash"]
-        if check_tx_hash_replay(tx_hash):
-            _log_x402_interop_trace(
-                raw_request,
-                capability_id=capability_id,
-                x_payment=x_payment,
-                payment_trace=payment_trace,
-                outcome="replay",
-                response_status=409,
-                provider=request.provider,
-                payment_headers_set=False,
-                extra={"tx_hash": tx_hash},
-            )
-            raise HTTPException(
-                status_code=409,
-                detail="Transaction hash has already been used. Each payment can only be applied once.",
-            )
-
-        # Valid payment payload — proceed with x402 anonymous flow
-        is_x402_anonymous = True
-        x402_wallet_address = (
-            payment_data.get("wallet_address")
-            or payment_data.get("from")
-        )
-        # Derive deterministic identity from wallet (or use generic fallback)
-        if x402_wallet_address:
-            agent_id = f"x402_wallet_{x402_wallet_address.lower()}"
         else:
-            agent_id = "x402_anonymous"
-        org_id = "x402_anonymous"
-
-        # Rate-limit per wallet to prevent abuse
-        if x402_wallet_address:
-            allowed, remaining = check_wallet_rate_limit(x402_wallet_address)
-            x402_rate_remaining = remaining
-            if not allowed:
+            # Replay prevention: reject reused tx_hash
+            tx_hash = payment_data["tx_hash"]
+            if check_tx_hash_replay(tx_hash):
                 _log_x402_interop_trace(
                     raw_request,
                     capability_id=capability_id,
                     x_payment=x_payment,
                     payment_trace=payment_trace,
-                    outcome="wallet_rate_limited",
-                    response_status=429,
+                    outcome="replay",
+                    response_status=409,
                     provider=request.provider,
                     payment_headers_set=False,
-                    agent_id=agent_id,
-                    org_id=org_id,
-                    extra={"wallet_address": x402_wallet_address},
+                    extra={"tx_hash": tx_hash},
                 )
                 raise HTTPException(
-                    status_code=429,
-                    detail="Rate limit exceeded for this wallet",
-                    headers={"Retry-After": str(_WALLET_RATE_WINDOW)},
+                    status_code=409,
+                    detail="Transaction hash has already been used. Each payment can only be applied once.",
                 )
+
+            # Valid payment payload — proceed with x402 anonymous flow
+            is_x402_anonymous = True
+            x402_wallet_address = (
+                payment_data.get("wallet_address")
+                or payment_data.get("from")
+            )
+            # Derive deterministic identity from wallet (or use generic fallback)
+            if x402_wallet_address:
+                agent_id = f"x402_wallet_{x402_wallet_address.lower()}"
+            else:
+                agent_id = "x402_anonymous"
+            org_id = "x402_anonymous"
+
+            # Rate-limit per wallet to prevent abuse
+            if x402_wallet_address:
+                allowed, remaining = check_wallet_rate_limit(x402_wallet_address)
+                x402_rate_remaining = remaining
+                if not allowed:
+                    _log_x402_interop_trace(
+                        raw_request,
+                        capability_id=capability_id,
+                        x_payment=x_payment,
+                        payment_trace=payment_trace,
+                        outcome="wallet_rate_limited",
+                        response_status=429,
+                        provider=request.provider,
+                        payment_headers_set=False,
+                        agent_id=agent_id,
+                        org_id=org_id,
+                        extra={"wallet_address": x402_wallet_address},
+                    )
+                    raise HTTPException(
+                        status_code=429,
+                        detail="Rate limit exceeded for this wallet",
+                        headers={"Retry-After": str(_WALLET_RATE_WINDOW)},
+                    )
     else:
         # Path 3: No auth at all — return x402 payment instructions
         response = await _build_execute_discovery_response(capability_id)
@@ -1136,9 +1255,199 @@ async def execute_capability(
     #   5. Treat verified on-chain payment as authorization and skip Supabase
     #      billing reservations entirely
     x402_receipt: dict | None = None
+    standard_x402_payment_response_header: str | None = None
     if x_payment and x_payment != "required":
         payment_data = payment_trace.get("payment_data") or decode_x_payment_header(x_payment)
-        if payment_data and payment_data.get("tx_hash"):
+        if payment_trace.get("proof_format") == "standard_authorization_payload":
+            payment_request_id = _extract_standard_x402_payment_request_id(payment_data)
+            pending_payment_request: dict | None = None
+            if payment_request_id:
+                pending_payment_request = await _payment_requests.get_pending_request(payment_request_id)
+                if not pending_payment_request:
+                    raise HTTPException(
+                        status_code=402,
+                        detail="Payment settlement failed: payment request not found or expired",
+                    )
+                if pending_payment_request.get("capability_id") != capability_id:
+                    raise HTTPException(
+                        status_code=402,
+                        detail="Payment settlement failed: payment request capability mismatch",
+                    )
+
+            if selected_mapping is None or selected_mapping.get("cost_per_call") is None:
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="cost_unavailable",
+                    response_status=402,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail="Payment settlement failed: cost data unavailable for selected provider",
+                )
+
+            try:
+                payment_requirements = _build_standard_x402_payment_requirements(
+                    capability_id=capability_id,
+                    cost_usd_cents=billed_cost_cents,
+                    payment_request=pending_payment_request,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=402, detail=f"Payment settlement failed: {exc}") from exc
+
+            authorization = _extract_standard_x402_authorization(payment_data)
+            try:
+                settlement = await _x402_settlement.verify_and_settle(
+                    payment_data,
+                    payment_requirements,
+                )
+            except X402FacilitatorNotConfigured:
+                response = _build_x402_compatibility_error_response(
+                    raw_request,
+                    payment_trace=payment_trace,
+                )
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="standard_authorization_unconfigured",
+                    response_status=response.status_code,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                )
+                return response
+            except X402VerificationFailed as exc:
+                log_payment_event(
+                    "x402_payment_failed",
+                    org_id=org_id,
+                    capability_id=capability_id,
+                    execution_id=execution_id,
+                    network=payment_requirements.get("network"),
+                    success=False,
+                    error=str(exc),
+                )
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="verify_failed",
+                    response_status=402,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                    extra={"verify_error": str(exc)},
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail=f"Payment verification failed: {exc}",
+                ) from exc
+            except X402SettlementFailed as exc:
+                log_payment_event(
+                    "x402_payment_failed",
+                    org_id=org_id,
+                    capability_id=capability_id,
+                    execution_id=execution_id,
+                    network=payment_requirements.get("network"),
+                    success=False,
+                    error=str(exc),
+                )
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="settle_failed",
+                    response_status=402,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                    extra={"settle_error": str(exc)},
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail=f"Payment settlement failed: {exc}",
+                ) from exc
+
+            tx_hash = settlement["transaction"]
+            network = settlement.get("network") or payment_requirements.get("network")
+            payer = settlement.get("payer") or (authorization or {}).get("from") or x402_wallet_address or ""
+            pay_to = payment_requirements.get("payTo")
+            amount_atomic = payment_requirements.get("amount") or payment_requirements.get("maxAmountRequired") or "0"
+
+            await supabase_insert("usdc_receipts", {
+                "payment_request_id": payment_request_id,
+                "tx_hash": tx_hash,
+                "from_address": payer,
+                "to_address": pay_to,
+                "amount_usdc_atomic": amount_atomic,
+                "amount_usd_cents": billed_cost_cents,
+                "network": network,
+                "block_number": None,
+                "org_id": org_id,
+                "execution_id": execution_id,
+                "status": "confirmed",
+            })
+
+            if payment_request_id:
+                await _payment_requests.mark_verified(payment_request_id, tx_hash)
+
+            if not is_x402_anonymous:
+                current_credits = await supabase_fetch(
+                    f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
+                )
+                current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
+                new_balance = current_balance + billed_cost_cents
+
+                await supabase_insert("credit_ledger", {
+                    "org_id": org_id,
+                    "amount_usd_cents": billed_cost_cents,
+                    "balance_after_usd_cents": new_balance,
+                    "event_type": "x402_payment",
+                    "capability_execution_id": execution_id,
+                    "description": f"x402 authorization settlement tx:{tx_hash[:16]}…",
+                })
+
+                if current_credits:
+                    await supabase_patch(
+                        f"org_credits?org_id=eq.{quote(org_id)}",
+                        {"balance_usd_cents": new_balance},
+                    )
+
+            standard_x402_payment_response_header = settlement["payment_response_header"]
+            log_payment_event(
+                "x402_payment_verified",
+                org_id=org_id,
+                capability_id=capability_id,
+                execution_id=execution_id,
+                tx_hash=tx_hash,
+                network=network,
+                amount_usd_cents=billed_cost_cents,
+            )
+            x402_receipt = {
+                "tx_hash": tx_hash,
+                "from_address": payer,
+                "to_address": pay_to,
+                "amount_atomic": amount_atomic,
+                "network": network,
+                "payment_request_id": payment_request_id,
+            }
+        elif payment_data and payment_data.get("tx_hash"):
             tx_hash = payment_data["tx_hash"]
             payment_request_id = (
                 payment_data.get("payment_request_id")
@@ -1899,7 +2208,7 @@ async def execute_capability(
         if x402_rate_remaining is not None:
             response_headers["X-Rhumb-Rate-Remaining"] = str(x402_rate_remaining)
 
-    # x402: attach receipt info and X-Payment-Response header
+    # x402: attach receipt info and payment response headers
     if x402_receipt:
         response_data["x402_receipt"] = {
             "tx_hash": x402_receipt["tx_hash"],
@@ -1912,7 +2221,12 @@ async def execute_capability(
         if x402_receipt.get("payment_request_id"):
             response_data["x402_receipt"]["payment_request_id"] = x402_receipt["payment_request_id"]
             payment_response["paymentRequestId"] = x402_receipt["payment_request_id"]
+        if x402_receipt.get("network"):
+            response_data["x402_receipt"]["network"] = x402_receipt["network"]
+            payment_response["network"] = x402_receipt["network"]
         response_headers["X-Payment-Response"] = json.dumps(payment_response)
+        if standard_x402_payment_response_header:
+            response_headers["PAYMENT-RESPONSE"] = standard_x402_payment_response_header
 
     if response_headers:
         response = JSONResponse(
