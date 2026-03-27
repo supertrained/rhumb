@@ -82,7 +82,7 @@ def _resolve_starter_credits_cents(
 async def ensure_org_billing_bootstrap(
     org_id: str,
     *,
-    email: str,
+    email: str | None = None,
     name: str | None = None,
     starter_credits_cents: int | None = None,
     signup_method: str = OAUTH_SIGNUP_METHOD,
@@ -94,13 +94,19 @@ async def ensure_org_billing_bootstrap(
     - Missing ``orgs`` row -> create it
     - Missing ``org_credits`` row -> create it
     - First wallet creation can seed a starter balance once
+
+    ``email`` may be None for wallet-linked pseudonymous orgs.
     """
     starter_cents = _resolve_starter_credits_cents(
         starter_credits_cents=starter_credits_cents,
         signup_method=signup_method,
         credit_policy=credit_policy,
     )
-    display_name = (name or email.split("@", 1)[0] or org_id).strip() or org_id
+    display_name = (
+        name
+        or (email.split("@", 1)[0] if email else None)
+        or org_id
+    ).strip() or org_id
 
     result = {
         "org_created": False,
@@ -110,14 +116,16 @@ async def ensure_org_billing_bootstrap(
 
     existing_orgs = await _sb_get(f"orgs?id=eq.{org_id}&select=id&limit=1")
     if not existing_orgs:
+        org_payload: dict[str, Any] = {
+            "id": org_id,
+            "name": display_name,
+            "tier": "free",
+        }
+        if email is not None:
+            org_payload["email"] = email
         created = await _sb_post(
             "orgs",
-            {
-                "id": org_id,
-                "name": display_name,
-                "email": email,
-                "tier": "free",
-            },
+            org_payload,
             prefer="return=minimal",
         )
         if created is not None:
