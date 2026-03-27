@@ -12,6 +12,12 @@ from typing import Any
 import httpx
 
 from config import settings
+from schemas.user import (
+    EMAIL_NO_TRIAL_CREDIT_POLICY,
+    EMAIL_OTP_SIGNUP_METHOD,
+    OAUTH_SIGNUP_METHOD,
+    OAUTH_TRIAL_CREDIT_POLICY,
+)
 from services.payment_metrics import log_payment_event
 
 logger = logging.getLogger(__name__)
@@ -48,12 +54,39 @@ async def _sb_post(path: str, payload: dict[str, Any], *, prefer: str = "return=
         return resp.json()
 
 
+def _resolve_starter_credits_cents(
+    *,
+    starter_credits_cents: int | None,
+    signup_method: str,
+    credit_policy: str,
+) -> int:
+    """Return the starter credit amount allowed by auth/signup policy."""
+    requested_cents = (
+        settings.billing_bootstrap_starter_credits_cents
+        if starter_credits_cents is None
+        else starter_credits_cents
+    )
+
+    if (
+        signup_method == EMAIL_OTP_SIGNUP_METHOD
+        or credit_policy == EMAIL_NO_TRIAL_CREDIT_POLICY
+    ):
+        return 0
+
+    if starter_credits_cents is None and credit_policy != OAUTH_TRIAL_CREDIT_POLICY:
+        return 0
+
+    return max(0, requested_cents)
+
+
 async def ensure_org_billing_bootstrap(
     org_id: str,
     *,
     email: str,
     name: str | None = None,
     starter_credits_cents: int | None = None,
+    signup_method: str = OAUTH_SIGNUP_METHOD,
+    credit_policy: str = OAUTH_TRIAL_CREDIT_POLICY,
 ) -> dict[str, Any]:
     """Ensure ``orgs`` + ``org_credits`` rows exist for an org.
 
@@ -62,11 +95,10 @@ async def ensure_org_billing_bootstrap(
     - Missing ``org_credits`` row -> create it
     - First wallet creation can seed a starter balance once
     """
-    starter_cents = max(
-        0,
-        settings.billing_bootstrap_starter_credits_cents
-        if starter_credits_cents is None
-        else starter_credits_cents,
+    starter_cents = _resolve_starter_credits_cents(
+        starter_credits_cents=starter_credits_cents,
+        signup_method=signup_method,
+        credit_policy=credit_policy,
     )
     display_name = (name or email.split("@", 1)[0] or org_id).strip() or org_id
 
@@ -121,6 +153,9 @@ async def ensure_org_billing_bootstrap(
                 "metadata": {
                     "source": "billing_bootstrap",
                     "bootstrap": True,
+                    "signup_method": signup_method,
+                    "credit_policy": credit_policy,
+                    "starter_credits_seeded": True,
                 },
             },
             prefer="return=minimal",
@@ -130,6 +165,14 @@ async def ensure_org_billing_bootstrap(
             org_id=org_id,
             amount_usd_cents=starter_cents,
             provider="internal",
+        )
+    else:
+        logger.info(
+            "Billing bootstrap created wallet without starter credits for org %s "
+            "(signup_method=%s, credit_policy=%s)",
+            org_id,
+            signup_method,
+            credit_policy,
         )
 
     return result

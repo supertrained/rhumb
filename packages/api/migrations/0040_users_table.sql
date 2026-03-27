@@ -1,4 +1,4 @@
--- Users table for OAuth-authenticated human users
+-- Users table for dashboard and agent-facing auth users
 -- Created: 2026-03-19
 -- Part of WU-B1: Signup Flow
 
@@ -8,9 +8,15 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT DEFAULT '',
     avatar_url TEXT DEFAULT '',
 
-    -- OAuth provider info
-    provider TEXT NOT NULL,           -- 'github' | 'google'
-    provider_id TEXT NOT NULL,        -- Provider-specific user ID
+    -- Auth source and verification
+    provider TEXT NOT NULL,           -- 'github' | 'google' | 'email'
+    provider_id TEXT NOT NULL,        -- Provider-specific ID or email sentinel ID
+    signup_method TEXT NOT NULL DEFAULT 'oauth',      -- 'oauth' | 'email_otp'
+    email_verified_at TIMESTAMPTZ,
+    signup_ip TEXT DEFAULT '',
+    signup_subnet TEXT DEFAULT '',
+    credit_policy TEXT NOT NULL DEFAULT 'oauth_trial',
+    risk_flags JSONB NOT NULL DEFAULT '{}'::jsonb,
 
     -- Linked Rhumb resources
     organization_id TEXT DEFAULT '',
@@ -29,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Index for API lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_users_provider ON users (provider, provider_id);
+CREATE INDEX IF NOT EXISTS idx_users_signup_method ON users (signup_method);
 
 -- RLS (Row Level Security) - service role bypasses, anon blocked
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

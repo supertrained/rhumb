@@ -30,7 +30,11 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from config import settings
 from schemas.agent_identity import get_agent_identity_store
-from schemas.user import get_user_store
+from schemas.user import (
+    OAUTH_SIGNUP_METHOD,
+    OAUTH_TRIAL_CREDIT_POLICY,
+    get_user_store,
+)
 from services.billing_bootstrap import ensure_org_billing_bootstrap
 
 logger = logging.getLogger(__name__)
@@ -251,6 +255,8 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
                 user.organization_id,
                 email=user.email,
                 name=user.name or profile.get("name") or profile["email"],
+                signup_method=getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+                credit_policy=getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
             )
         except Exception as exc:
             logger.warning(
@@ -312,6 +318,8 @@ async def me(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONRespons
                 user.organization_id,
                 email=user.email,
                 name=user.name or user.email,
+                signup_method=getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+                credit_policy=getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
             )
         except Exception as exc:
             logger.warning(
@@ -451,6 +459,8 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
                 user.organization_id,
                 email=user.email,
                 name=user.name or user.email,
+                signup_method=getattr(user, "signup_method", OAUTH_SIGNUP_METHOD),
+                credit_policy=getattr(user, "credit_policy", OAUTH_TRIAL_CREDIT_POLICY),
             )
         except Exception as exc:
             logger.warning(
