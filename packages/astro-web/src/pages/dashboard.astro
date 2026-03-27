@@ -45,6 +45,29 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           </button>
         </div>
 
+        <!-- Email OTP credit policy -->
+        <div
+          id="email-credit-policy-card"
+          class="hidden mb-4 rounded-lg border border-amber/20 bg-amber/10 p-5"
+        >
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-amber/15 text-amber">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86l-7.53 13A1 1 0 003.62 18h16.76a1 1 0 00.86-1.5l-7.53-13a1 1 0 00-1.72 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-semibold text-amber mb-2">Email sign-in does not include starter execution credit</h2>
+              <p class="text-sm text-slate-300 mb-3">
+                Your dashboard access and API key are active, but execution starts only when you bring a payment path.
+              </p>
+              <p class="text-xs text-slate-400">
+                Start traffic with x402 pay-per-call, use supported BYOK provider credentials, or add funded balance below.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- New user: show API key -->
         <div id="new-key-banner" class="hidden mb-6 p-4 rounded-lg bg-score-native/10 border border-score-native/20">
           <div class="flex items-center gap-2 mb-2">
@@ -189,6 +212,11 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     const loading = document.getElementById("loading");
     const notAuth = document.getElementById("not-auth");
     const dashboard = document.getElementById("dashboard");
+    const emailCreditPolicyCard = document.getElementById("email-credit-policy-card");
+
+    function isEmailOtpUser(user) {
+      return user?.signup_method === "email_otp" || user?.credit_policy === "email_no_trial";
+    }
 
     async function init() {
       // Check for new signup API key in URL fragment
@@ -214,6 +242,9 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         document.getElementById("welcome-email").textContent = user.email || "";
         document.getElementById("key-prefix").textContent =
           user.api_key_prefix ? `${user.api_key_prefix}••••••••` : "No key";
+        if (isEmailOtpUser(user)) {
+          emailCreditPolicyCard?.classList.remove("hidden");
+        }
 
         // Show new API key if present
         if (isNew && hash && hash.length > 1) {
