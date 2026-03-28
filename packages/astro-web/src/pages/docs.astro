@@ -103,7 +103,7 @@ const ENDPOINTS = [
   {
     method: "POST",
     path: "/v1/capabilities/{capability_id}/execute",
-    desc: "Execute through Rhumb with an API key, BYOK / agent token, or x402 payment.",
+    desc: "Execute through Rhumb with governed API key, wallet-prefunded API key, BYOK / agent token, or x402 payment.",
     curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\
@@ -201,9 +201,8 @@ const MCP_TOOLS = [
         </h1>
         <p class="text-lg text-slate-400 leading-relaxed mb-6">
           Use Rhumb for discovery, capability routing, pricing, and execution. Discovery reads are open.
-          Execution requires one of: <code class="font-mono text-amber text-base">X-Rhumb-Key</code>,
-          your own provider credential path, or <code class="font-mono text-amber text-base">X-Payment</code>
-          for x402.
+          Execution supports governed API keys, wallet-prefunded API keys, BYOK credential passthrough,
+          or <code class="font-mono text-amber text-base">X-Payment</code> for x402 per-call auth.
         </p>
         <div class="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
           <span class="text-slate-500">Base URL:</span>{" "}
@@ -212,20 +211,40 @@ const MCP_TOOLS = [
       </header>
 
       <section class="mb-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Auth paths</h2>
-        <div class="grid gap-4 sm:grid-cols-3">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Auth + payment rails</h2>
+        <div class="grid gap-4 sm:grid-cols-4">
           <div class="bg-surface border border-slate-800 rounded-xl p-5">
             <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Discovery</p>
             <p class="text-sm text-slate-300">Read endpoints like scores, search, capabilities, and leaderboards are open.</p>
           </div>
           <div class="bg-surface border border-slate-800 rounded-xl p-5">
-            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Execution</p>
-            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Rhumb-Key</code> for account-based execution and dashboard-backed billing.</p>
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Governed API key</p>
+            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Rhumb-Key</code> for account-first execution with dashboard-backed billing controls.</p>
+          </div>
+          <div class="bg-surface border border-emerald-500/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-emerald-300 uppercase tracking-wider mb-2">Wallet-prefund</p>
+            <p class="text-sm text-slate-300">Wallet signs once, tops up reusable balance, then executes repeat traffic with <code class="text-emerald-300">X-Rhumb-Key</code>.</p>
           </div>
           <div class="bg-surface border border-amber/20 rounded-xl p-5">
-            <p class="text-xs font-mono text-amber uppercase tracking-wider mb-2">x402</p>
+            <p class="text-xs font-mono text-amber uppercase tracking-wider mb-2">x402 per-call</p>
             <p class="text-sm text-slate-300">Use <code class="text-amber">X-Payment</code> for zero-signup, per-call USDC payment on Base.</p>
           </div>
+        </div>
+      </section>
+
+      <section class="mb-16" data-section="wallet-prefund-flow">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">Wallet-prefund flow (API-first)</h2>
+        <div class="bg-surface border border-slate-800 rounded-xl p-5">
+          <p class="text-sm text-slate-400 leading-relaxed">
+            This is the bridge between wallet-first identity and reusable execution balance. Top-ups settle
+            through x402, then execution runs through the normal <code class="text-emerald-300">X-Rhumb-Key</code> path.
+          </p>
+          <pre class="mt-4 text-sm font-mono text-slate-300 overflow-x-auto"><code>{`POST /v1/auth/wallet/request-challenge
+POST /v1/auth/wallet/verify
+GET  /v1/auth/wallet/me
+POST /v1/billing/x402/topup/request
+POST /v1/billing/x402/topup/verify
+POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre>
         </div>
       </section>
 

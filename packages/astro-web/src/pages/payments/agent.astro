@@ -137,6 +137,7 @@ const AGENT_PAYMENTS_JSON_LD = {
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
           Rhumb&apos;s on-chain payment flow is a separate path from standard API-key pricing. Use it
           when a wallet should authorize each execution and the right UX is zero-signup, per-call payment.
+          If the same wallet needs repeat traffic, switch to wallet-prefund after first proof.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
           <a
@@ -253,6 +254,45 @@ curl -X POST "${executeEndpoint}" \\
   -H '${x402.execution_auth[0]}: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'`}</code></pre>
+        </div>
+      </section>
+
+      <section id="wallet-prefund" class="mt-10" data-section="wallet-prefund-bridge" aria-label="Per-call vs prefund wallet rails">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6">
+          <h2 class="font-display text-2xl font-bold text-slate-100">When to switch from per-call x402 to wallet-prefund</h2>
+          <p class="mt-3 text-slate-400 leading-7">
+            Use pure x402 when you want zero-signup authorization on every request. Use wallet-prefund
+            when you still want wallet-first funding, but repeat traffic should execute via
+            <code class="text-emerald-300 font-mono text-sm">X-Rhumb-Key</code> against reusable balance.
+          </p>
+
+          <div class="mt-6 grid gap-4 lg:grid-cols-2">
+            <div class="rounded-xl border border-amber/30 bg-elevated p-5">
+              <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">x402 per-call</p>
+              <ul class="space-y-2 text-sm text-slate-300 leading-6">
+                <li>• No account or key required before first execution.</li>
+                <li>• Every paid call includes <code class="font-mono text-amber">X-Payment</code>.</li>
+                <li>• Best for ephemeral agents and strict per-request auth.</li>
+              </ul>
+            </div>
+            <div class="rounded-xl border border-emerald-500/30 bg-elevated p-5">
+              <p class="text-xs font-mono uppercase tracking-widest text-emerald-300 mb-2">wallet-prefund</p>
+              <ul class="space-y-2 text-sm text-slate-300 leading-6">
+                <li>• Wallet signs once to create identity + wallet-scoped key.</li>
+                <li>• Top-ups settle on-chain, then credit reusable <code class="font-mono text-emerald-300">org_credits</code>.</li>
+                <li>• Repeat calls run through normal <code class="font-mono text-emerald-300">X-Rhumb-Key</code> execution.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 bg-elevated rounded-xl border border-slate-800 p-5">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Wallet-prefund route map</p>
+            <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>{`POST /v1/auth/wallet/request-challenge
+POST /v1/auth/wallet/verify
+POST /v1/billing/x402/topup/request
+POST /v1/billing/x402/topup/verify
+POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre>
+          </div>
         </div>
       </section>
 

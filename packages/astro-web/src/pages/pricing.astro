@@ -48,6 +48,10 @@ const FAQ = [
     q: "What counts as a call?",
     a: "A call is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider calls are not charged.",
   },
+  {
+    q: "What is the difference between API key, wallet-prefund, and x402?",
+    a: "API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance. x402 is per-call payment-as-auth using X-Payment.",
+  },
 ];
 
 const PRICING_JSON_LD = {
@@ -95,11 +99,11 @@ const PRICING_JSON_LD = {
             <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Choose your path</p>
             <h2 class="font-display text-2xl font-bold text-slate-100">Same directory, different execution rails.</h2>
             <p class="mt-3 text-slate-400 leading-7">
-              Discovery is always free. Execution depends on how you want authorization and payment to work: Rhumb-managed API key, zero-signup x402, or BYOK passthrough.
+              Discovery is always free. Execution depends on how you want authorization and payment to work: account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.
             </p>
           </div>
 
-          <div class="grid gap-4 lg:grid-cols-4 sm:grid-cols-2">
+          <div class="grid gap-4 lg:grid-cols-5 sm:grid-cols-2">
             <a href="/leaderboard" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <h3 class="font-display text-lg font-semibold text-slate-100">Browse</h3>
@@ -121,7 +125,15 @@ const PRICING_JSON_LD = {
                 <h3 class="font-display text-lg font-semibold text-slate-100">x402</h3>
                 <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Per call</span>
               </div>
-              <p class="text-sm leading-6 text-slate-400">Use USDC on Base when the agent should pay directly and the payment proof should authorize the request.</p>
+              <p class="text-sm leading-6 text-slate-400">Use USDC on Base when the agent should pay directly and the payment proof should authorize each request.</p>
+            </a>
+
+            <a href="/payments/agent#wallet-prefund" class="group rounded-xl border border-emerald-500/20 bg-navy p-5 hover:border-emerald-400/40 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display text-lg font-semibold text-slate-100">Wallet prefund</h3>
+                <span class="text-[11px] font-mono text-emerald-300 uppercase tracking-widest">Reusable</span>
+              </div>
+              <p class="text-sm leading-6 text-slate-400">Authenticate wallet once, top up balance via x402, then execute repeat calls with <code class="text-emerald-300 font-mono text-xs">X-Rhumb-Key</code>.</p>
             </a>
 
             <a href="/blog/securing-keys-for-agents" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
@@ -131,6 +143,45 @@ const PRICING_JSON_LD = {
               </div>
               <p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="payment-rails" aria-label="Payment rail definitions">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <h2 class="font-display text-2xl font-bold text-slate-100">Three payment rails, one execution endpoint</h2>
+          <p class="mt-3 text-slate-400 leading-7">
+            Rhumb supports three ways to fund execution traffic: account billing with API keys,
+            wallet-prefunded balance, or x402 per-call settlement. All roads still end at
+            <code class="text-amber font-mono text-sm">POST /v1/capabilities/&#123;capability_id&#125;/execute</code>.
+          </p>
+          <div class="mt-6 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-slate-500">
+                  <th class="py-3 pr-6 font-medium">Rail</th>
+                  <th class="py-3 pr-6 font-medium">Auth</th>
+                  <th class="py-3 font-medium">Best fit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-slate-800/80">
+                  <td class="py-4 pr-6 text-slate-200">Governed API key</td>
+                  <td class="py-4 pr-6 font-mono text-slate-100">X-Rhumb-Key</td>
+                  <td class="py-4 text-slate-400">Apps and teams with dashboard-based billing controls.</td>
+                </tr>
+                <tr class="border-b border-slate-800/80">
+                  <td class="py-4 pr-6 text-slate-200">Wallet-prefunded balance</td>
+                  <td class="py-4 pr-6 font-mono text-slate-100">X-Rhumb-Key</td>
+                  <td class="py-4 text-slate-400">Wallet-first agents that want reusable balance for repeat calls.</td>
+                </tr>
+                <tr>
+                  <td class="py-4 pr-6 text-slate-200">x402 per-call</td>
+                  <td class="py-4 pr-6 font-mono text-slate-100">X-Payment</td>
+                  <td class="py-4 text-slate-400">Zero-signup and strict request-level payment authorization.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -378,11 +429,11 @@ const PRICING_JSON_LD = {
         aria-label="Agent payments link"
       >
         <p class="text-sm text-slate-500">
-          For on-chain agent payments, see our{" "}
+          For wallet-first flows (x402 per-call and wallet-prefunded balance), see our{" "}
           <a href="/payments/agent" class="text-amber hover:underline underline-offset-2">
             Agent Payments
           </a>{" "}
-          page.
+          guide.
         </p>
       </section>
     </div>

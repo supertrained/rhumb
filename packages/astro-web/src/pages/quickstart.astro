@@ -40,11 +40,11 @@ const QUICKSTART_JSON_LD = {
             <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Choose your starting path</p>
             <h2 class="font-display font-bold text-2xl text-slate-100">Don’t guess the auth model.</h2>
             <p class="text-slate-400 text-sm mt-2 leading-relaxed">
-              Rhumb has one free discovery path and three execution paths. Pick the one that matches how your agent should get authorized before you start wiring calls.
+              Rhumb has one free discovery path and four execution paths. Pick the one that matches how your agent should get authorized before you start wiring calls.
             </p>
           </div>
 
-          <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4">
+          <div class="grid lg:grid-cols-5 sm:grid-cols-2 gap-4">
             <a href="/leaderboard" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <h3 class="font-display font-semibold text-slate-100">Browse</h3>
@@ -66,7 +66,15 @@ const QUICKSTART_JSON_LD = {
                 <h3 class="font-display font-semibold text-slate-100">x402</h3>
                 <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Zero signup</span>
               </div>
-              <p class="text-sm text-slate-400 leading-relaxed">Best when the agent should pay per call with USDC and the payment proof should authorize execution.</p>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when the agent should pay per call with USDC and payment proof should authorize each request.</p>
+            </a>
+
+            <a href="/payments/agent#wallet-prefund" class="group rounded-xl border border-emerald-500/20 bg-navy p-5 hover:border-emerald-400/40 transition-colors">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-display font-semibold text-slate-100">Wallet prefund</h3>
+                <span class="text-[11px] font-mono text-emerald-300 uppercase tracking-widest">Reusable</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when a wallet should authenticate once, top up balance, and execute repeat calls via <code class="text-emerald-300 font-mono text-xs">X-Rhumb-Key</code>.</p>
             </a>
 
             <a href="/blog/securing-keys-for-agents" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
@@ -162,10 +170,10 @@ print(data["an_score"])  # 8.1`}</code></pre>
         </div>
 
         <p class="text-slate-400 mb-6">
-          To actually <em>do</em> things through APIs (send emails, create records, charge cards), you need one of:
+          To actually <em>do</em> things through APIs (send emails, create records, charge cards), choose one execution rail:
         </p>
 
-        <div class="grid sm:grid-cols-3 gap-4 mb-8">
+        <div class="grid sm:grid-cols-4 gap-4 mb-8">
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
             <h3 class="font-display font-semibold text-slate-100 mb-2">API Key</h3>
             <p class="text-xs text-slate-400 mb-3">Sign up, get a key, pass it as <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code></p>
@@ -175,6 +183,11 @@ print(data["an_score"])  # 8.1`}</code></pre>
             <h3 class="font-display font-semibold text-slate-100 mb-2">x402 Payment</h3>
             <p class="text-xs text-slate-400 mb-3">No signup. Pay per call with USDC. The payment is the authentication.</p>
             <span class="text-xs font-mono text-amber">Best for: autonomous agents</span>
+          </div>
+          <div class="bg-surface border border-emerald-500/20 rounded-lg p-5" id="wallet-prefund">
+            <h3 class="font-display font-semibold text-slate-100 mb-2">Wallet Prefund</h3>
+            <p class="text-xs text-slate-400 mb-3">Wallet-auth once, top up reusable balance, execute with <code class="text-emerald-300">X-Rhumb-Key</code>.</p>
+            <span class="text-xs font-mono text-emerald-300">Best for: repeat wallet traffic</span>
           </div>
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
             <h3 class="font-display font-semibold text-slate-100 mb-2">Your Own Key</h3>
@@ -189,6 +202,32 @@ print(data["an_score"])  # 8.1`}</code></pre>
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
+        </div>
+
+        <div class="bg-surface border border-emerald-500/20 rounded-lg p-5 mb-4">
+          <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Execute via wallet-prefunded balance</p>
+          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# Step 1: Prove wallet control and create wallet session
+curl -X POST "${API}/auth/wallet/request-challenge" \
+  -H "Content-Type: application/json" \
+  -d '{"chain":"base","address":"0x...","purpose":"access"}'
+
+curl -X POST "${API}/auth/wallet/verify" \
+  -H "Content-Type: application/json" \
+  -d '{"challenge_id":"...","signature":"0x..."}'
+# Returns wallet session + wallet-scoped API key
+
+# Step 2: Top up reusable balance via x402 settlement
+curl -X POST "${API}/billing/x402/topup/request" \
+  -H "Authorization: Bearer <wallet_session_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd": 1.00}'
+# ...settle + verify through /billing/x402/topup/verify...
+
+# Step 3: Execute repeat calls with X-Rhumb-Key (no per-call X-Payment)
+curl -X POST "${API}/capabilities/email.send/execute" \
+  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'`}</code></pre>
         </div>
 
         <div class="bg-surface border border-amber/20 rounded-lg p-5">
@@ -261,7 +300,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
           </a>
           <a href="/blog/securing-keys-for-agents" class="group block bg-surface border border-slate-800 rounded-lg p-5 hover:border-slate-600 transition-colors">
             <span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Credential Security</span>
-            <span class="block text-xs text-slate-500 mt-1">BYOK, managed, x402 — which is right for you</span>
+            <span class="block text-xs text-slate-500 mt-1">BYOK, API key, wallet-prefund, x402 — which rail fits your agent</span>
           </a>
           <a href="/compare" class="group block bg-surface border border-slate-800 rounded-lg p-5 hover:border-slate-600 transition-colors">
             <span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Tool Comparisons</span>
