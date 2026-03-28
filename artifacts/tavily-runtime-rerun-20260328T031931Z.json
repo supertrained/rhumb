@@ -1,0 +1,128 @@
+{
+  "created_agent_status": 200,
+  "agent": {
+    "name": "pedro-keel-tavily-20260328T031931Z",
+    "agent_id": "f07b8dd2-3f4e-4c7c-b61d-f16e14e4e865",
+    "organization_id": "org_runtime_reviews_keel"
+  },
+  "grant_status": 200,
+  "grant": {
+    "status": "success",
+    "access_id": "cc520ca7-2bc9-4e66-b31a-9892c87f9420"
+  },
+  "estimate_status": 200,
+  "estimate": {
+    "data": {
+      "capability_id": "search.query",
+      "provider": "tavily",
+      "credential_mode": "rhumb_managed",
+      "cost_estimate_usd": 0.001,
+      "circuit_state": "closed",
+      "endpoint_pattern": "POST /search"
+    },
+    "error": null
+  },
+  "rhumb_status": 200,
+  "rhumb": {
+    "data": {
+      "capability_id": "search.query",
+      "provider_used": "tavily",
+      "credential_mode": "rhumb_managed",
+      "upstream_status": 200,
+      "upstream_response": {
+        "query": "best AI agent observability tools",
+        "follow_up_questions": null,
+        "answer": null,
+        "images": [],
+        "results": [
+          {
+            "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+            "title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+            "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+            "score": 0.8832463,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.merge.dev/blog/ai-agent-observability-platforms",
+            "title": "3 AI agent observability platforms to consider in 2026 - Merge",
+            "content": "###### Add secure integrations to your products and AI agents with ease via Merge. ###### The 3 best AI agent authentication tools in 2026. # 3 AI agent observability platforms to consider in 2026. To that end, we\u2019ll break down 3 leading agent observability solutions and highlight their pros and cons to help you pinpoint the best option. Merge Agent Handler lets you not only monitor and manage your agents but also connect them to thousands of tools across dozens of MCP connectors. ##### \u201cWith Merge Agent Handler\u2019s searchable logs, we can quickly and reliably verify tool calls and responses. #### Observe your agents effectively with Merge Agent Handler. Merge Agent Handler lets you monitor and manage all your agents with ease through fully-searchable logs, an Evaluation Suite, customizable security rules, and more. Our blog's newsletter provides the best practices you need to build high-performing integrations for your products and agents.",
+            "score": 0.8652358,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.langchain.com/articles/llm-observability-tools",
+            "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+            "content": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. This guide compares eight LLM observability platforms on their tracing, evaluation, and collaboration features. | LangSmith | Observability and Evaluation Platform | Freemium (from $0/seat/mo) | No | Native | Agent debugging, production monitoring, and LLM-as-judge evaluations |. | Langfuse | LLM Engineering Platform | Freemium (from $0/mo) | Yes (MIT) | Native | All-in-one observability, prompts, and evaluations |. LangSmith is a unified agent engineering platform that provides observability, evaluations, and prompt engineering for any LLM application or AI agent. **Q: Do I need the Datadog Agent to use LLM Observability?** No. Datadog supports an agentless mode via environment variables, though running the full agent provides additional capabilities. **Q: How does Datadog LLM Observability compare to dedicated LLM tools?** Community feedback suggests it excels at infrastructure correlation but lacks the depth of evaluation and annotation features found in purpose-built LLM platforms.",
+            "score": 0.80771893,
+            "raw_content": null
+          },
+          {
+            "url": "https://langfuse.com/blog/2024-07-ai-agent-observability-with-langfuse",
+            "title": "AI Agent Observability, Tracing & Evaluation with Langfuse",
+            "content": "# AI Agent Observability, Tracing & Evaluation with Langfuse. Trace, monitor, evaluate, and test AI agents in production. Learn about agent observability strategies, evaluation techniques, and how to use Langfuse with LangGraph, OpenAI Agents, Pydantic AI, CrewAI, n8n, and more. ## What are AI Agents? ## What are Agents Used For? ## What is AI Agent Observability? Using Langfuse observability, teams can identify and resolve issues, streamline workflows, and maintain high-quality outputs by evaluating agent responses in complex, multi-step AI agents. Many agent frameworks \u2014 including Pydantic AI, smolagents, and Strands Agents \u2014 now emit traces via OpenTelemetry, which Langfuse natively supports. ## Tools to build AI Agents. For a step-by-step guide, see our integration notebook: Trace Pydantic AI agents with Langfuse. For setup instructions, see our integration guide: Trace CrewAI agents with Langfuse. If you want to get started with building AI agents and monitoring them with Langfuse, here are the best places to begin:.",
+            "score": 0.8025714,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.reddit.com/r/AI_Agents/comments/1r8a3xw/top_llm_observability_tools_comparison_i_tried/",
+            "title": "Top LLM observability tools comparison I tried for agents in production",
+            "content": "Best LLM tracking tools. Best AI observability tools. Most innovative uses of AI agents today. Best programming languages for AI development.",
+            "score": 0.7971311,
+            "raw_content": null
+          }
+        ],
+        "response_time": 1.07,
+        "request_id": "5c222e9b-0260-4835-aaee-001845c938fd"
+      },
+      "latency_ms": 1346.4,
+      "execution_id": "exec_245965a1dff24bafbc34d9ed26b55ec9"
+    },
+    "error": null
+  },
+  "direct_status": 200,
+  "direct": {
+    "query": "best AI agent observability tools",
+    "response_time": 1.07,
+    "follow_up_questions": null,
+    "answer": null,
+    "images": [],
+    "results": [
+      {
+        "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+        "title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+        "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+        "score": 0.8832463,
+        "raw_content": null
+      },
+      {
+        "url": "https://www.merge.dev/blog/ai-agent-observability-platforms",
+        "title": "3 AI agent observability platforms to consider in 2026 - Merge",
+        "content": "###### Add secure integrations to your products and AI agents with ease via Merge. ###### The 3 best AI agent authentication tools in 2026. # 3 AI agent observability platforms to consider in 2026. To that end, we\u2019ll break down 3 leading agent observability solutions and highlight their pros and cons to help you pinpoint the best option. Merge Agent Handler lets you not only monitor and manage your agents but also connect them to thousands of tools across dozens of MCP connectors. ##### \u201cWith Merge Agent Handler\u2019s searchable logs, we can quickly and reliably verify tool calls and responses. #### Observe your agents effectively with Merge Agent Handler. Merge Agent Handler lets you monitor and manage all your agents with ease through fully-searchable logs, an Evaluation Suite, customizable security rules, and more. Our blog's newsletter provides the best practices you need to build high-performing integrations for your products and agents.",
+        "score": 0.8652358,
+        "raw_content": null
+      },
+      {
+        "url": "https://www.langchain.com/articles/llm-observability-tools",
+        "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+        "content": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. This guide compares eight LLM observability platforms on their tracing, evaluation, and collaboration features. | LangSmith | Observability and Evaluation Platform | Freemium (from $0/seat/mo) | No | Native | Agent debugging, production monitoring, and LLM-as-judge evaluations |. | Langfuse | LLM Engineering Platform | Freemium (from $0/mo) | Yes (MIT) | Native | All-in-one observability, prompts, and evaluations |. LangSmith is a unified agent engineering platform that provides observability, evaluations, and prompt engineering for any LLM application or AI agent. **Q: Do I need the Datadog Agent to use LLM Observability?** No. Datadog supports an agentless mode via environment variables, though running the full agent provides additional capabilities. **Q: How does Datadog LLM Observability compare to dedicated LLM tools?** Community feedback suggests it excels at infrastructure correlation but lacks the depth of evaluation and annotation features found in purpose-built LLM platforms.",
+        "score": 0.80771893,
+        "raw_content": null
+      },
+      {
+        "url": "https://langfuse.com/blog/2024-07-ai-agent-observability-with-langfuse",
+        "title": "AI Agent Observability, Tracing & Evaluation with Langfuse",
+        "content": "# AI Agent Observability, Tracing & Evaluation with Langfuse. Trace, monitor, evaluate, and test AI agents in production. Learn about agent observability strategies, evaluation techniques, and how to use Langfuse with LangGraph, OpenAI Agents, Pydantic AI, CrewAI, n8n, and more. ## What are AI Agents? ## What are Agents Used For? ## What is AI Agent Observability? Using Langfuse observability, teams can identify and resolve issues, streamline workflows, and maintain high-quality outputs by evaluating agent responses in complex, multi-step AI agents. Many agent frameworks \u2014 including Pydantic AI, smolagents, and Strands Agents \u2014 now emit traces via OpenTelemetry, which Langfuse natively supports. ## Tools to build AI Agents. For a step-by-step guide, see our integration notebook: Trace Pydantic AI agents with Langfuse. For setup instructions, see our integration guide: Trace CrewAI agents with Langfuse. If you want to get started with building AI agents and monitoring them with Langfuse, here are the best places to begin:.",
+        "score": 0.8025714,
+        "raw_content": null
+      },
+      {
+        "url": "https://www.reddit.com/r/AI_Agents/comments/1r8a3xw/top_llm_observability_tools_comparison_i_tried/",
+        "title": "Top LLM observability tools comparison I tried for agents in production",
+        "content": "Best LLM tracking tools. Best AI observability tools. Most innovative uses of AI agents today. Best programming languages for AI development.",
+        "score": 0.7971311,
+        "raw_content": null
+      }
+    ],
+    "request_id": "b2e1bf00-01cd-42a8-b26d-b7b615afdd8c"
+  }
+}
