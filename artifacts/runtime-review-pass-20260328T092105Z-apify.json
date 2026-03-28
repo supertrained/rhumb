@@ -1,0 +1,72 @@
+{
+  "timestamp_utc": "2026-03-28T09:21:05.192713+00:00",
+  "provider": "apify",
+  "capability": "scrape.extract",
+  "temp_agent": {
+    "org_id": "org_runtime_review_cd2dc03a6b",
+    "agent_id": "e89fd5ef-eff7-4d3a-b3eb-81b59fae0d1b",
+    "grant": {
+      "status": 200,
+      "body": {
+        "status": "success",
+        "access_id": "4b847dff-c0b9-4fce-98ae-25d53b4af4b3"
+      }
+    }
+  },
+  "coverage_before": {
+    "apify_runtime_backed_reviews": 1,
+    "total_reviews": 6
+  },
+  "estimate": {
+    "status": 200,
+    "body": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider": "apify",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v2/acts/{actorId}/runs"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "execution_id": "exec_6610a4c84dd24f20a14717b905bee9e2",
+    "run_id": "Nw3KClSdBx7xrt0hn",
+    "dataset_id": "5mZ0b8LFX55TsqRf6",
+    "upstream_status": 201,
+    "sample": {
+      "status": 200,
+      "url": "https://example.com/",
+      "title": "Example Domain",
+      "markdown_excerpt": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations."
+    }
+  },
+  "direct": {
+    "status": 201,
+    "run_id": "x6MSdYfIKuiheprGT",
+    "dataset_id": "baE9JPcRfseYQd24i",
+    "run_status": "SUCCEEDED",
+    "sample": {
+      "status": 200,
+      "url": "https://example.com/",
+      "title": "Example Domain",
+      "markdown_excerpt": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations."
+    }
+  },
+  "matched_fields": {
+    "url": true,
+    "title": true
+  },
+  "published": {
+    "evidence_id": "6054b7cb-829a-49f7-8129-ac4bc3d271c4",
+    "review_id": "b26c3afa-b9cd-4b2a-ba4a-548b8541ed9c"
+  },
+  "coverage_after": {
+    "apify_runtime_backed_reviews": 2,
+    "total_reviews": 7,
+    "latest_review_id": "b26c3afa-b9cd-4b2a-ba4a-548b8541ed9c"
+  }
+}
