@@ -1,0 +1,66 @@
+{
+  "timestamp_utc": "2026-03-28T07:25:02.199597+00:00",
+  "provider": "unstructured",
+  "capability": "document.parse",
+  "temp_agent": {
+    "org_id": "org_runtime_review_43e9932641",
+    "agent_id": "c808903a-a3dd-4e51-bfd6-17c5750ba41c",
+    "grant": {
+      "status": 200,
+      "body": {
+        "status": "success",
+        "access_id": "c9376ed6-bbe6-4d2f-add6-38514ddef8d5"
+      }
+    }
+  },
+  "coverage_before": {
+    "unstructured_runtime_backed_reviews": 1,
+    "total_reviews": 6
+  },
+  "estimate": {
+    "status": 200,
+    "body": {
+      "data": {
+        "capability_id": "document.parse",
+        "provider": "unstructured",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /general/v0/general"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "execution_id": "exec_642fa43cb10440818ab9cec0930e0472",
+    "provider_used": "unstructured",
+    "upstream_status": 200,
+    "element_count": 2,
+    "element_types": [
+      "Title",
+      "NarrativeText"
+    ],
+    "credits_remaining": null
+  },
+  "direct": {
+    "status": 200,
+    "element_count": 2,
+    "element_types": [
+      "Title",
+      "NarrativeText"
+    ]
+  },
+  "matched_fields": {
+    "element_types": true,
+    "element_count": true
+  },
+  "published": {
+    "evidence_id": "e04584b2-52a8-4d6d-bc0d-baf501dd067d",
+    "review_id": "781fdf10-58c3-4bd0-978d-ee21d28129c6"
+  },
+  "coverage_after": {
+    "unstructured_runtime_backed_reviews": 2,
+    "total_reviews": 7,
+    "latest_review_id": "781fdf10-58c3-4bd0-978d-ee21d28129c6"
+  }
+}
