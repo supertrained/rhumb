@@ -252,20 +252,19 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
             [str(row["source_type"]) for row in linked_evidence if row.get("source_type") is not None]
         )
 
-    runtime_backed_pct = 0.0
-    if linked_evidence:
-        runtime_backed_pct = round(
-            (
-                sum(
-                    1
-                    for row in linked_evidence
-                    if row.get("source_type") in _RUNTIME_BACKED_SOURCE_TYPES
-                )
-                / len(linked_evidence)
-            )
-            * 100,
-            1,
+    runtime_backed_reviews = sum(
+        1
+        for review_id in review_ids
+        if any(
+            source_type in _RUNTIME_BACKED_SOURCE_TYPES
+            for source_type in source_types_by_review.get(review_id, [])
         )
+    )
+    runtime_backed_pct = (
+        round((runtime_backed_reviews / len(review_ids)) * 100, 1)
+        if review_ids
+        else 0.0
+    )
 
     return {
         "service_slug": canonical_slug,

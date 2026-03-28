@@ -173,6 +173,96 @@ def test_get_service_reviews_returns_published_rows_only(
     }
 
 
+def test_get_service_reviews_runtime_backed_pct_uses_review_level_ratio(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Service trust summary should use runtime-backed reviews / total reviews."""
+    fake_supabase["service_reviews"].extend(
+        [
+            {
+                "id": "review-runtime",
+                "service_slug": "stripe",
+                "review_type": "manual",
+                "review_status": "published",
+                "headline": "Runtime review",
+                "summary": "Observed live",
+                "reviewer_label": "Rhumb editorial team",
+                "reviewed_at": "2026-03-10T10:00:00Z",
+                "confidence": 0.9,
+                "evidence_count": 2,
+            },
+            {
+                "id": "review-docs",
+                "service_slug": "stripe",
+                "review_type": "docs",
+                "review_status": "published",
+                "headline": "Docs review",
+                "summary": "Docs-backed",
+                "reviewer_label": "Rhumb editorial team",
+                "reviewed_at": "2026-03-09T10:00:00Z",
+                "confidence": 0.6,
+                "evidence_count": 1,
+            },
+        ]
+    )
+    fake_supabase["review_evidence_links"].extend(
+        [
+            {"review_id": "review-runtime", "evidence_record_id": "evidence-runtime-1"},
+            {"review_id": "review-runtime", "evidence_record_id": "evidence-runtime-2"},
+            {"review_id": "review-docs", "evidence_record_id": "evidence-docs"},
+        ]
+    )
+    fake_supabase["evidence_records"].extend(
+        [
+            {
+                "id": "evidence-runtime-1",
+                "service_slug": "stripe",
+                "source_type": "runtime_verified",
+                "evidence_kind": "failure_mode",
+                "title": "Runtime evidence 1",
+                "summary": "Observed through runtime",
+                "observed_at": "2026-03-10T10:00:00Z",
+                "fresh_until": "2026-04-10T10:00:00Z",
+                "confidence": 0.95,
+                "source_ref": "facts/runtime-1",
+            },
+            {
+                "id": "evidence-runtime-2",
+                "service_slug": "stripe",
+                "source_type": "runtime_verified",
+                "evidence_kind": "latency_snapshot",
+                "title": "Runtime evidence 2",
+                "summary": "Observed through runtime again",
+                "observed_at": "2026-03-10T10:05:00Z",
+                "fresh_until": "2026-04-10T10:05:00Z",
+                "confidence": 0.92,
+                "source_ref": "facts/runtime-2",
+            },
+            {
+                "id": "evidence-docs",
+                "service_slug": "stripe",
+                "source_type": "docs_derived",
+                "evidence_kind": "failure_mode",
+                "title": "Docs evidence",
+                "summary": "Derived from docs",
+                "observed_at": "2026-03-09T10:00:00Z",
+                "fresh_until": "2026-04-09T10:00:00Z",
+                "confidence": 0.6,
+                "source_ref": "facts/docs",
+            },
+        ]
+    )
+
+    response = client.get("/v1/services/stripe/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_reviews"] == 2
+    assert payload["trust_summary"]["runtime_backed_pct"] == 50.0
+    assert payload["trust_summary"]["highest_source_type"] == "runtime_verified"
+    assert payload["trust_summary"]["freshest_evidence_at"] == "2026-03-10T10:05:00Z"
+
+
 def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(
     client: TestClient,
     fake_supabase: dict[str, list[dict[str, Any]]],
