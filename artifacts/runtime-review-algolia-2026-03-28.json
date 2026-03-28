@@ -1,0 +1,123 @@
+{
+  "timestamp_utc": "2026-03-28T10:51:45.807578+00:00",
+  "mission": "mission1_algolia_runtime_review",
+  "org_id": "org_keel_2026-03-28-algolia-rerun_5a2ea2ca",
+  "agent_id": "f54db560-e532-4fff-ae93-b8c91c0a2305",
+  "capability_id": "search.autocomplete",
+  "provider": "algolia",
+  "input": {
+    "index_name": "rhumb_test",
+    "query": "rhumb"
+  },
+  "rhumb": {
+    "http_status": 200,
+    "headers": {
+      "Connection": "close",
+      "Content-Length": "287",
+      "x-railway-cdn-edge": "fastly/cache-bur-kbur8200141-BUR",
+      "content-type": "application/json",
+      "date": "Sat, 28 Mar 2026 10:51:43 GMT",
+      "permissions-policy": "camera=(), microphone=(), geolocation=()",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "server": "railway-edge",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "x-railway-edge": "railway/us-west2",
+      "x-railway-request-id": "79k5BBRXSX6wQLU92prcFg",
+      "x-ratelimit-limit": "30",
+      "x-ratelimit-remaining": "29",
+      "x-ratelimit-reset": "1774695165",
+      "x-request-id": "ed65e372-4c02-42c7-a2a9-4e481ebd9c37",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-served-by": "cache-bur-kbur8200141-BUR"
+    },
+    "body": {
+      "data": {
+        "capability_id": "search.autocomplete",
+        "provider_used": "algolia",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 400,
+        "upstream_response": {
+          "message": "indexName is not valid",
+          "status": 400
+        },
+        "latency_ms": 455.3,
+        "execution_id": "exec_d7e2784d1761441190ce97e7a63999c9"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "http_status": 200,
+    "headers": {
+      "Server": "nginx",
+      "Date": "Sat, 28 Mar 2026 10:51:45 GMT",
+      "Content-Type": "application/json; charset=UTF-8",
+      "Content-Length": "813",
+      "Connection": "close",
+      "X-Alg-PT": "1",
+      "Accept-Encoding": "deflate, gzip",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Timing-Allow-Origin": "*",
+      "X-Content-Type-Options": "nosniff",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Content-Disposition": "inline; filename=a.txt"
+    },
+    "body": {
+      "hits": [
+        {
+          "name": "Rhumb Runtime Test",
+          "description": "Agent-native tool infrastructure for discovering and accessing APIs.",
+          "category": "test",
+          "objectID": "1",
+          "_highlightResult": {
+            "name": {
+              "value": "<em>Rhumb</em> Runtime Test",
+              "matchLevel": "full",
+              "fullyHighlighted": false,
+              "matchedWords": [
+                "rhumb"
+              ]
+            },
+            "description": {
+              "value": "Agent-native tool infrastructure for discovering and accessing APIs.",
+              "matchLevel": "none",
+              "matchedWords": []
+            },
+            "category": {
+              "value": "test",
+              "matchLevel": "none",
+              "matchedWords": []
+            }
+          }
+        }
+      ],
+      "nbHits": 1,
+      "page": 0,
+      "nbPages": 1,
+      "hitsPerPage": 20,
+      "exhaustiveNbHits": true,
+      "exhaustiveTypo": true,
+      "exhaustive": {
+        "nbHits": true,
+        "typo": true
+      },
+      "query": "rhumb",
+      "params": "query=rhumb",
+      "renderingContent": {},
+      "processingTimeMS": 2,
+      "processingTimingsMS": {
+        "_request": {
+          "roundTrip": 15
+        },
+        "getIdx": {
+          "total": 1
+        },
+        "total": 2
+      },
+      "serverTimeMS": 2
+    }
+  }
+}
