@@ -632,6 +632,181 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_emailable_verify_normalizes_email_and_uses_bearer_auth(monkeypatch):
+    """Emailable single verify should normalize email aliases and use bearer auth."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_EMAILABLE_API_KEY", "ema_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1301,
+                "capability_id": "email.verify",
+                "service_slug": "emailable",
+                "description": "Managed Emailable verify",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
+                "default_method": "GET",
+                "default_path": "/v1/verify",
+                "default_headers": {},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.emailable" in path:
+            return [{"api_domain": "api.emailable.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"email": "john@example.com", "state": "deliverable", "score": 95}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="email.verify",
+            agent_id="agent_emailable_verify_test",
+            params={
+                "email_address": "john@example.com",
+                "smtp_check": False,
+                "accept_all_check": True,
+                "max_wait_seconds": 7,
+            },
+            service_slug="emailable",
+        )
+
+    assert result["provider_used"] == "emailable"
+    assert captured["base_url"] == "https://api.emailable.com"
+    assert captured["method"] == "GET"
+    assert captured["url"] == "/v1/verify"
+    assert captured["json"] is None
+    assert captured["params"] == {
+        "email": "john@example.com",
+        "smtp": False,
+        "accept_all": True,
+        "timeout": 7,
+    }
+    assert captured["headers"]["Authorization"] == "Bearer ema_test_secret"
+
+
+@pytest.mark.anyio
+async def test_managed_executor_emailable_batch_verify_joins_inputs(monkeypatch):
+    """Emailable batch verify should join list inputs and honor callback aliases."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_EMAILABLE_API_KEY", "ema_batch_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1302,
+                "capability_id": "email.batch_verify",
+                "service_slug": "emailable",
+                "description": "Managed Emailable batch verify",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/v1/batch",
+                "default_headers": {"Content-Type": "application/json"},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.emailable" in path:
+            return [{"api_domain": "api.emailable.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"message": "Batch successfully created.", "id": "batch_123"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="email.batch_verify",
+            agent_id="agent_emailable_batch_test",
+            body={
+                "emails": ["tim@example.com", "john@example.com"],
+                "callback_url": "https://rhumb.dev/hooks/emailable",
+                "response_fields": ["email", "state", "score"],
+                "retries": False,
+            },
+            service_slug="emailable",
+        )
+
+    assert result["provider_used"] == "emailable"
+    assert captured["base_url"] == "https://api.emailable.com"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/v1/batch"
+    assert captured["params"] == {}
+    assert captured["json"] == {
+        "emails": "tim@example.com,john@example.com",
+        "url": "https://rhumb.dev/hooks/emailable",
+        "response_fields": "email,state,score",
+        "retries": False,
+    }
+    assert captured["headers"]["Authorization"] == "Bearer ema_batch_secret"
+    assert captured["headers"]["Content-Type"] == "application/json"
+
+
+@pytest.mark.anyio
 async def test_managed_executor_airship_send_to_user_normalizes_and_uses_validate_path(monkeypatch):
     """Airship send_to_user should normalize named users and switch to validate path."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH", "app_key:master_secret")

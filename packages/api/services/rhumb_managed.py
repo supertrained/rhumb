@@ -497,6 +497,43 @@ class RhumbManagedExecutor:
             isinstance(item, dict) and "ios_channel" in item for item in or_audience
         )
 
+    @staticmethod
+    def _coerce_emailable_csv(value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, (list, tuple)):
+            items = [str(item).strip() for item in value if item is not None and str(item).strip()]
+            return ",".join(items) if items else None
+        text = str(value).strip()
+        return text or None
+
+    def _normalize_emailable_inputs(
+        self,
+        capability_id: str,
+        params: dict | None,
+        body: dict | None,
+    ) -> tuple[str | None, dict | None, dict | None]:
+        payload: dict[str, Any] = dict(params) if params else {}
+        if body:
+            payload.update(body)
+
+        payload = self._rename_field(payload, "email_address", "email") or payload
+        payload = self._rename_field(payload, "smtp_check", "smtp") or payload
+        payload = self._rename_field(payload, "accept_all_check", "accept_all") or payload
+        payload = self._rename_field(payload, "max_wait_seconds", "timeout") or payload
+        payload = self._rename_field(payload, "callback_url", "url") or payload
+        payload = self._rename_field(payload, "webhook_url", "url") or payload
+
+        if capability_id == "email.batch_verify":
+            emails_csv = self._coerce_emailable_csv(payload.get("emails"))
+            if emails_csv is not None:
+                payload["emails"] = emails_csv
+            response_fields_csv = self._coerce_emailable_csv(payload.get("response_fields"))
+            if response_fields_csv is not None:
+                payload["response_fields"] = response_fields_csv
+
+        return None, None, payload or None
+
     def _normalize_airship_inputs(
         self,
         capability_id: str,
@@ -577,6 +614,12 @@ class RhumbManagedExecutor:
             "push_topic.publish",
         }:
             return self._normalize_airship_inputs(capability_id, params, body)
+
+        if service_slug == "emailable" and capability_id in {
+            "email.verify",
+            "email.batch_verify",
+        }:
+            return self._normalize_emailable_inputs(capability_id, params, body)
 
         if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
             params = self._rename_field(params, "query", "q")
