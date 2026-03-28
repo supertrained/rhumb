@@ -1,0 +1,736 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const TITLE = "What Nobody Tells You About Building a Multi-Provider MCP Server";
+const DESCRIPTION =
+  "Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server that proxies 1,000+ APIs.";
+const URL = "https://rhumb.dev/blog/what-nobody-tells-you-building-multi-provider-mcp-server";
+const DATE_PUBLISHED = "2026-03-28T00:00:00Z";
+const KEYWORDS = [
+  "build mcp server",
+  "mcp server example",
+  "api proxy",
+  "api integration patterns",
+  "api authentication methods",
+  "mcp server multi-provider",
+  "agent api integration",
+  "api wrapper challenges",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: TITLE,
+  description: DESCRIPTION,
+  datePublished: DATE_PUBLISHED,
+  dateModified: DATE_PUBLISHED,
+  url: URL,
+  keywords: KEYWORDS.join(", "),
+  articleSection: "Guide",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+const TOC = [
+  { id: "slug-aliasing", label: "Bug #1: Slug Aliasing" },
+  { id: "authentication", label: "Bug #2: Authentication Diversity" },
+  { id: "payload-translation", label: "Bug #3: Payload Translation" },
+  { id: "error-messages", label: "Bug #4: Error Messages That Lie" },
+  { id: "rate-limits", label: "Bug #5: Rate Limits Without Information" },
+  { id: "sandbox-illusion", label: "Bug #6: The Sandbox Illusion" },
+  { id: "versioning", label: "Bug #7: The Versioning Time Bomb" },
+  { id: "what-we-learned", label: "What We Learned" },
+  { id: "if-youre-building", label: "If You're Building an MCP Server" },
+];
+
+const AUTH_PATTERNS = [
+  { method: "Bearer token", header: "Authorization: Bearer {key}", share: "~45%" },
+  { method: "Custom header", header: "X-API-Key, X-Subscription-Token, Api-Key", share: "~25%" },
+  { method: "Basic Auth", header: "Base64 encoded credentials", share: "~15%" },
+  { method: "OAuth2 with refresh", header: "Token exchange + refresh cycle", share: "~10%" },
+  { method: "Query parameter", header: "?api_key=...", share: "~5%" },
+];
+
+const SCORE_HIGHLIGHTS = [
+  { service: "Stripe", score: "8.1", note: "Genuinely built for automation" },
+  { service: "Twilio", score: "8.0", note: "What agent-native almost looks like" },
+  { service: "GitHub", score: "7.8", note: "Excellent but sneaky secondary rate limits" },
+  { service: "Resend", score: "7.8", note: "Newer email API that got the details right from day one" },
+  { service: "SendGrid", score: "6.4", note: "Dominant but showing age in error handling" },
+  { service: "PayPal", score: "4.9", note: "CAPTCHA sandbox alone is disqualifying for autonomous use" },
+  { service: "Salesforce", score: "4.8", note: "Powerful but OAuth dance is hostile to agents" },
+];
+
+const GOOD_ERROR_CODE = `{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "parameter_missing",
+    "param": "amount",
+    "message": "Missing required param: amount"
+  }
+}`;
+
+const BAD_ERROR_1 = `{"status": "error", "message": "Bad Request"}`;
+const BAD_ERROR_2 = `<html><body><h1>500 Internal Server Error</h1></body></html>`;
+
+const RATE_LIMIT_HEADERS = `X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 247
+X-RateLimit-Reset: 1616000000
+Retry-After: 30`;
+
+const RATE_LIMIT_SCORES = [
+  { service: "Stripe", score: "8.1", headers: "✅", retryAfter: "✅", burstDocs: "✅" },
+  { service: "GitHub", score: "7.8", headers: "✅", retryAfter: "⚠️", burstDocs: "⚠️ (secondary limits not in headers)" },
+  { service: "PayPal", score: "4.9", headers: "Inconsistent", retryAfter: "❌", burstDocs: "❌" },
+];
+---
+
+<Layout
+  title={`${TITLE} | Rhumb`}
+  description={DESCRIPTION}
+  canonical="/blog/what-nobody-tells-you-building-multi-provider-mcp-server"
+  ogTitle={TITLE}
+  ogDescription={DESCRIPTION}
+  ogUrl={URL}
+  ogType="article"
+  twitterTitle={TITLE}
+  twitterDescription={DESCRIPTION}
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <meta name="keywords" content={KEYWORDS.join(", ")} />
+  <meta name="author" content="Pedro Nunes" />
+  <meta property="article:published_time" content={DATE_PUBLISHED} />
+  <meta property="article:modified_time" content={DATE_PUBLISHED} />
+  <meta property="article:author" content="Pedro Nunes" />
+  <meta property="article:section" content="Guide" />
+  {KEYWORDS.map((keyword) => <meta property="article:tag" content={keyword} />)}
+
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-4xl mx-auto px-6 pt-14 pb-24">
+
+      <!-- Header -->
+      <header class="mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Guide
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated March 28, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6">
+          {TITLE}
+        </h1>
+
+        <p class="text-lg text-slate-400 leading-relaxed max-w-3xl">
+          Every MCP server tutorial follows the same script: install the SDK, define a tool, return
+          a response. That works for a single API. It does not work when you need an agent to
+          reliably choose between, authenticate to, and call 1,000+ different APIs across 92
+          categories &mdash; and handle everything that goes wrong at 3am with no human.
+        </p>
+
+        <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">APIs Scored</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">1,000+</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Categories</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">92</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Dimensions</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">20</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Bugs Covered</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">7</p>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-surface border border-amber/20 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-mono uppercase tracking-[0.18em] text-amber">Jump To</span>
+            <span class="h-px flex-1 bg-slate-800"></span>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-3">
+            {TOC.map((item) => (
+              <a
+                href={`#${item.id}`}
+                class="rounded-lg border border-slate-800 bg-elevated px-4 py-3 text-sm text-slate-300 hover:border-amber/30 hover:text-amber transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <!-- Intro -->
+      <section class="mb-14">
+        <div class="prose-rhumb space-y-4">
+          <p>
+            We built <a href="https://rhumb.dev" class="text-amber hover:underline underline-offset-2">Rhumb</a>,
+            an MCP server that proxies hundreds of real APIs for AI agents. Here&apos;s what
+            actually broke, why the tutorials don&apos;t cover it, and what you need to know if
+            you&apos;re building anything beyond hello-world.
+          </p>
+        </div>
+      </section>
+
+      <!-- Bug #1: Slug Aliasing -->
+      <section id="slug-aliasing" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #1: The Slug Aliasing Problem
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            First surprise: APIs don&apos;t have stable identifiers.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            Brave&apos;s search API appears as both <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">brave-search-api</code>
+            and <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">brave-search</code>
+            depending on which documentation page you read. When an agent asks to &ldquo;search
+            with Brave,&rdquo; your MCP server needs to know these are the same service.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            This isn&apos;t unique to Brave. We found alias collisions in payment providers (same
+            company, multiple API versions with different names), communication platforms (SMS vs
+            messaging vs voice &mdash; same provider, different &ldquo;APIs&rdquo;), and analytics
+            tools (legacy vs v2 naming).
+          </p>
+        </div>
+        <div class="mt-6 bg-surface border border-amber/20 rounded-xl p-5">
+          <p class="text-sm text-slate-300">
+            <span class="text-amber font-mono font-semibold">The fix isn&apos;t a lookup table.</span>{" "}
+            It&apos;s a canonical slug system with alias resolution that treats identity as a
+            first-class problem. Every service in Rhumb has exactly one canonical identifier, with
+            aliases mapped explicitly.
+          </p>
+        </div>
+        <p class="mt-4 text-sm text-slate-500 italic">
+          Why tutorials skip this: they show one API. You never hit naming collisions with one API.
+        </p>
+      </section>
+
+      <!-- Bug #2: Authentication -->
+      <section id="authentication" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #2: Authentication Is Not a Solved Problem
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            The tutorials say: &ldquo;Add your API key to the header.&rdquo; That covers maybe 40%
+            of real APIs.
+          </p>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full min-w-[620px] border border-slate-800 rounded-xl overflow-hidden">
+            <thead class="bg-elevated">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Method
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  How It Works
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Share
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {AUTH_PATTERNS.map((row) => (
+                <tr class="border-t border-slate-800">
+                  <td class="px-4 py-3 text-sm text-slate-300 font-medium">{row.method}</td>
+                  <td class="px-4 py-3 text-sm font-mono text-slate-400">{row.header}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.share}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            The problem isn&apos;t supporting all five patterns. It&apos;s that your MCP server needs
+            to know <em class="text-slate-300">which pattern each API uses</em> before the
+            agent&apos;s first call. If the agent sends a Bearer token to an API expecting
+            X-API-Key, you get a 401 that tells the agent nothing useful.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            Worse: some APIs accept the wrong auth method silently and return empty results instead
+            of errors. The agent thinks it worked. It didn&apos;t.
+          </p>
+        </div>
+        <div class="mt-6 bg-surface border border-amber/20 rounded-xl p-5">
+          <p class="text-sm text-slate-300">
+            <span class="text-amber font-mono font-semibold">What we built:</span> A credential
+            resolution layer that knows the auth pattern for each service. The agent provides a key;
+            Rhumb knows how to present it.
+          </p>
+        </div>
+      </section>
+
+      <!-- Bug #3: Payload Translation -->
+      <section id="payload-translation" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #3: The Payload Translation Trap
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            Your agent constructs a JSON payload. The API expects multipart form data.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            This hits hardest with document processing APIs. An agent wants to send a file for
+            parsing. It constructs a reasonable JSON body with the file content. The API returns 400
+            because it only accepts multipart uploads with specific field names.
+          </p>
+        </div>
+
+        <div class="mt-6 bg-surface border border-slate-800 rounded-xl p-6">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-4">
+            The gap between &ldquo;what the agent sends&rdquo; and &ldquo;what the API wants&rdquo;
+          </p>
+          <ul class="space-y-2 text-sm text-slate-400">
+            <li class="flex gap-2">
+              <span class="text-amber font-mono shrink-0">Parameter naming:</span>
+              <span><code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">query</code> vs <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">q</code> vs <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">search_query</code> vs <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">prompt</code></span>
+            </li>
+            <li class="flex gap-2">
+              <span class="text-amber font-mono shrink-0">Body format:</span>
+              <span>JSON vs form-encoded vs multipart</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="text-amber font-mono shrink-0">Array handling:</span>
+              <span><code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">tags=a,b,c</code> vs <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">tags[]=a&amp;tags[]=b</code> vs <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">{`{"tags":["a","b"]}`}</code></span>
+            </li>
+            <li class="flex gap-2">
+              <span class="text-amber font-mono shrink-0">Date formats:</span>
+              <span>ISO 8601 vs Unix timestamps vs custom strings</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="text-amber font-mono shrink-0">Pagination:</span>
+              <span>cursor vs offset vs page-number vs link-header</span>
+            </li>
+          </ul>
+        </div>
+
+        <p class="mt-6 text-slate-400 leading-relaxed">
+          <strong class="text-slate-200">Why this matters for agents specifically:</strong> A human
+          developer reads the docs and adapts. An agent will retry the same malformed request until
+          it hits rate limits.
+        </p>
+      </section>
+
+      <!-- Bug #4: Error Messages -->
+      <section id="error-messages" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #4: Error Messages That Lie
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            Here&apos;s a real error response from a production API:
+          </p>
+        </div>
+
+        <div class="mt-4">
+          <pre class="bg-elevated border border-slate-800 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+            <code>{`{"error": "An error occurred. Please try again later."}`}</code>
+          </pre>
+        </div>
+
+        <p class="mt-4 text-slate-400 leading-relaxed">
+          An agent receiving this will try again later. The actual problem? Invalid API key format.
+          Retrying will never help.
+        </p>
+
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+          <div class="bg-surface border border-emerald-500/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-emerald-400 uppercase tracking-[0.18em] mb-3">
+              Good (Stripe-class)
+            </p>
+            <pre class="bg-elevated border border-slate-800 rounded-lg p-3 overflow-x-auto text-xs font-mono text-slate-300">
+              <code>{GOOD_ERROR_CODE}</code>
+            </pre>
+          </div>
+          <div class="bg-surface border border-red-500/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-red-400 uppercase tracking-[0.18em] mb-3">
+              Bad (more common than you&apos;d think)
+            </p>
+            <pre class="bg-elevated border border-slate-800 rounded-lg p-3 overflow-x-auto text-xs font-mono text-slate-300 mb-2">
+              <code>{BAD_ERROR_1}</code>
+            </pre>
+            <pre class="bg-elevated border border-slate-800 rounded-lg p-3 overflow-x-auto text-xs font-mono text-slate-300">
+              <code>{BAD_ERROR_2}</code>
+            </pre>
+          </div>
+        </div>
+
+        <p class="mt-6 text-slate-400 leading-relaxed">
+          In our scoring of 1,000+ APIs, structured error responses (with error codes, specific
+          parameters, and actionable messages) are a <em class="text-slate-300">minority</em>. Most
+          APIs return human-readable error strings that agents can&apos;t reliably parse.
+        </p>
+        <div class="mt-4 bg-surface border border-amber/20 rounded-xl p-5">
+          <p class="text-sm text-slate-300">
+            This is why error handling quality is the single highest-weighted dimension in our{" "}
+            <a href="/methodology" class="text-amber hover:underline underline-offset-2">AN Score methodology</a>.
+            An API with great docs but bad errors will fail silently in production.
+          </p>
+        </div>
+      </section>
+
+      <!-- Bug #5: Rate Limits -->
+      <section id="rate-limits" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #5: Rate Limits Without Information
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            Good APIs tell you exactly where you stand:
+          </p>
+        </div>
+
+        <div class="mt-4">
+          <pre class="bg-elevated border border-emerald-500/20 rounded-lg p-4 overflow-x-auto text-sm font-mono text-slate-300">
+            <code>{RATE_LIMIT_HEADERS}</code>
+          </pre>
+        </div>
+
+        <p class="mt-4 text-slate-400 leading-relaxed">
+          Bad APIs return 429 and nothing else. The agent has to guess: wait 1 second? 10 seconds?
+          60 seconds? Back off exponentially?
+        </p>
+        <p class="mt-3 text-slate-400 leading-relaxed">
+          Some APIs have <em class="text-slate-300">undocumented</em> secondary rate limits.
+          GitHub&apos;s REST API has a primary rate limit (5,000/hour for authenticated requests) and
+          a secondary rate limit on &ldquo;content-creating&rdquo; endpoints that&apos;s lower and
+          not reflected in the rate limit headers. An agent creating issues or comments will hit the
+          secondary limit and get a 403 with a message about &ldquo;secondary rate limits&rdquo;
+          that doesn&apos;t appear in any getting-started guide.
+        </p>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full min-w-[680px] border border-slate-800 rounded-xl overflow-hidden">
+            <thead class="bg-elevated">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Service
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  AN Score
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Headers
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Retry-After
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Burst Docs
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {RATE_LIMIT_SCORES.map((row) => (
+                <tr class="border-t border-slate-800">
+                  <td class="px-4 py-3 text-sm text-slate-300 font-medium">{row.service}</td>
+                  <td class="px-4 py-3 text-sm font-mono text-amber">{row.score}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.headers}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.retryAfter}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.burstDocs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Bug #6: Sandbox -->
+      <section id="sandbox-illusion" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #6: The Sandbox Illusion
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            &ldquo;Just use the sandbox.&rdquo; Every API says this. Few deliver.
+          </p>
+        </div>
+
+        <div class="mt-6 grid gap-3">
+          {[
+            { problem: "Sandbox requires production credentials", impact: "Defeats the purpose" },
+            { problem: "Sandbox has different behavior", impact: "You test against a lie" },
+            { problem: "Sandbox has stricter rate limits", impact: "Can't performance test" },
+            { problem: "Sandbox doesn't support all endpoints", impact: "Partial testing only" },
+            { problem: "Sandbox requires CAPTCHA to create", impact: "Agents can't self-provision" },
+            { problem: "\"Sandbox\" is just a flag on production", impact: "One wrong call and you bill a real customer" },
+          ].map((item) => (
+            <div class="bg-surface border border-slate-800 rounded-lg px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+              <span class="text-sm text-slate-300 font-medium">{item.problem}</span>
+              <span class="hidden sm:block text-slate-700">&rarr;</span>
+              <span class="text-sm text-slate-500">{item.impact}</span>
+            </div>
+          ))}
+        </div>
+
+        <div class="mt-6 bg-surface border border-amber/20 rounded-xl p-5">
+          <p class="text-sm text-slate-300">
+            <span class="text-amber font-mono font-semibold">Real example:</span> PayPal&apos;s
+            sandbox requires CAPTCHA verification to create accounts. That one detail drops it from
+            &ldquo;agent-friendly&rdquo; to &ldquo;requires a human for setup.&rdquo; And setup
+            isn&apos;t once &mdash; sandbox credentials expire.
+          </p>
+        </div>
+      </section>
+
+      <!-- Bug #7: Versioning -->
+      <section id="versioning" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Bug #7: The Versioning Time Bomb
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            APIs change. Response fields get renamed, deprecated, or removed. Versioning is supposed
+            to protect you.
+          </p>
+        </div>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+          <div class="bg-surface border border-emerald-500/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-emerald-400 uppercase tracking-[0.18em] mb-3">
+              Gold Standard (Stripe)
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Explicit API version in every request. Your agent pins a version and gets consistent
+              responses. Forever.
+            </p>
+          </div>
+          <div class="bg-surface border border-red-500/20 rounded-xl p-5">
+            <p class="text-xs font-mono text-red-400 uppercase tracking-[0.18em] mb-3">
+              Most APIs
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Unversioned endpoints that change without notice. Your agent&apos;s response parser
+              breaks silently when a field name changes from{" "}
+              <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">email_address</code>{" "}
+              to{" "}
+              <code class="font-mono text-xs bg-elevated px-1 py-0.5 rounded text-slate-300">emailAddress</code>.
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-6 text-slate-400 leading-relaxed">
+          The insidious part: breaking changes often affect edge cases first. Your happy-path tests
+          pass. Your agent in production hits the edge case at 3am, fails silently, and you find
+          out Monday morning.
+        </p>
+      </section>
+
+      <!-- What We Learned -->
+      <section id="what-we-learned" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What We Learned
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            After building through all of this, we distilled the problems into a scoring framework.
+            Every API gets evaluated on 20 dimensions across two axes:
+          </p>
+        </div>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-2">
+          <div class="bg-surface border border-slate-800 rounded-xl p-6">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-2">
+              Execution (70%)
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Can the agent get work done? Error handling, schema stability, idempotency, latency,
+              rate limit transparency.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-6">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-2">
+              Access Readiness (30%)
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Can the agent get started? Signup friction, auth complexity, docs quality, sandbox,
+              rate limits.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-4">
+            Some results that surprised us
+          </p>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[560px] border border-slate-800 rounded-xl overflow-hidden">
+              <thead class="bg-elevated">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    Service
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    AN Score
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                    Takeaway
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {SCORE_HIGHLIGHTS.map((row) => (
+                  <tr class="border-t border-slate-800">
+                    <td class="px-4 py-3 text-sm text-slate-300 font-medium">{row.service}</td>
+                    <td class="px-4 py-3 text-sm font-mono text-amber font-semibold">{row.score}</td>
+                    <td class="px-4 py-3 text-sm text-slate-400">{row.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-4 text-sm text-slate-400">
+            The full leaderboard across 92 categories is at{" "}
+            <a href="/leaderboard" class="text-amber hover:underline underline-offset-2">rhumb.dev/leaderboard</a>.
+            The MCP tools are open source:{" "}
+            <code class="font-mono text-xs bg-elevated px-1.5 py-0.5 rounded text-amber">npx rhumb-mcp</code>{" "}
+            gives your agent access to scores, failure modes, and alternatives at decision time.
+          </p>
+        </div>
+      </section>
+
+      <!-- If You're Building an MCP Server -->
+      <section id="if-youre-building" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          If You&apos;re Building an MCP Server
+        </h2>
+        <div class="grid gap-3">
+          {[
+            { num: "1", rule: "Treat service identity as a first-class problem.", detail: "You will hit naming collisions." },
+            { num: "2", rule: "Build an auth resolution layer.", detail: "Don't make the agent know which header format each API uses." },
+            { num: "3", rule: "Expect payload translation.", detail: "What the agent sends and what the API wants are rarely the same shape." },
+            { num: "4", rule: "Parse errors defensively.", detail: "Most APIs don't return structured errors. Build fallback parsing." },
+            { num: "5", rule: "Implement rate limit tracking per-provider.", detail: "Don't share a single backoff strategy across APIs with different limits." },
+            { num: "6", rule: "Test against production, not just sandboxes.", detail: "Many sandboxes are incomplete or behave differently." },
+            { num: "7", rule: "Pin API versions where possible.", detail: "If the API doesn't support versioning, monitor for breaking changes." },
+          ].map((item) => (
+            <div class="bg-surface border border-slate-800 rounded-xl p-5">
+              <div class="flex items-start gap-4">
+                <span class="shrink-0 w-8 h-8 rounded-lg bg-amber/10 border border-amber/20 flex items-center justify-center text-sm font-mono font-bold text-amber">
+                  {item.num}
+                </span>
+                <div>
+                  <p class="text-sm text-slate-200 font-semibold">{item.rule}</p>
+                  <p class="text-sm text-slate-500 mt-1">{item.detail}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p class="mt-8 text-slate-400 leading-relaxed">
+          The MCP protocol gives you a great transport layer. It tells you nothing about what
+          happens when your tools hit real APIs. That part is on you.
+        </p>
+      </section>
+
+      <!-- CTA -->
+      <section class="mb-14">
+        <div class="bg-surface border border-amber/20 rounded-[28px] p-8 sm:p-10">
+          <div class="max-w-3xl">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.2em] mb-3">Try It</p>
+            <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 tracking-tight mb-4">
+              See how your tools score
+            </h2>
+            <p class="text-slate-400 leading-relaxed">
+              We&apos;ve scored 1,000+ services across 92 categories on 20 dimensions. The methodology
+              is published. The MCP server is open source.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="/leaderboard"
+              class="inline-flex justify-center rounded-lg px-6 py-3 font-display font-semibold text-sm transition-colors duration-200 cta-button"
+            >
+              Browse the leaderboard &rarr;
+            </a>
+            <a
+              href="/methodology"
+              class="inline-flex justify-center rounded-lg border border-slate-700 px-6 py-3 text-sm font-display font-semibold text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            >
+              Read the methodology
+            </a>
+            <a
+              href="https://www.npmjs.com/package/rhumb-mcp"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex justify-center rounded-lg border border-slate-700 px-6 py-3 text-sm font-display font-semibold text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            >
+              Install rhumb-mcp
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="border-t border-slate-800 pt-8">
+        <p class="text-slate-500 leading-relaxed">
+          Rhumb scores 1,000+ APIs across 92 categories on 20 dimensions. The{" "}
+          <a href="/methodology" class="text-amber hover:underline underline-offset-2">methodology is published</a>.
+          The MCP server is open source at{" "}
+          <a href="https://github.com/supertrained/rhumb" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">github.com/supertrained/rhumb</a>.
+        </p>
+
+        <section class="mt-10">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <a
+              href="/blog/how-agents-actually-pay-x402-dogfood"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                x402 Dogfood
+              </span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                How Agents Actually Pay: What We Learned Dogfooding x402
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                We implemented x402 as a seller. Here&apos;s what happened when a real agent tried to pay us.
+              </p>
+            </a>
+            <a
+              href="/blog/getting-started-mcp"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                Getting Started
+              </span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                Getting Started with Rhumb MCP
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                Set up Rhumb&apos;s MCP server in your agent stack and start querying API scores and alternatives.
+              </p>
+            </a>
+          </div>
+        </section>
+      </footer>
+    </article>
+  </div>
+</Layout>
