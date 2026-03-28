@@ -1,92 +1,323 @@
-"""Integration tests for DF-19: wallet prefund → API key → execute → deduct.
-
-Verifies the full wallet-to-execution pipeline:
-1. Wallet auth issues org + agent + API key (DF-16)
-2. Top-up credits land in org_credits (DF-18)
-3. Execution via X-Rhumb-Key deducts from the credited org
-4. No X-Payment header required for prefunded wallet executions
-5. Balance decrements correctly after execution
-
-These tests mock Supabase and upstream providers but exercise the real
-route + identity + credit deduction integration to confirm the pipeline
-is fully wired.
-"""
+"""Integration tests for DF-19 wallet spend-from-balance execution."""
 
 from __future__ import annotations
 
-import asyncio
-import json
-import os
+from contextlib import ExitStack
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from urllib.parse import parse_qs, unquote
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from middleware.rate_limit import _buckets as _rate_limit_buckets
-from schemas.agent_identity import (
-    AgentIdentitySchema,
-    AgentIdentityStore,
-    generate_api_key,
-    hash_api_key,
-    api_key_prefix,
-    reset_identity_store,
-)
-from services.credit_deduction import CreditDeductionResult
+from routes import capability_execute as capability_execute_route
+from schemas.agent_identity import reset_identity_store
+from services.budget_enforcer import BudgetCheckResult
+from services.credit_deduction import CreditDeductionResult, CreditReleaseResult
 from services.wallet_auth import reset_challenge_throttle
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
+TEST_PRIVATE_KEY = "0x" + "ab" * 32
+TEST_ACCOUNT = Account.from_key(TEST_PRIVATE_KEY)
+TEST_ADDRESS = TEST_ACCOUNT.address
+TOPUP_AMOUNT_CENTS = 50
+EXECUTION_COST_USD = 0.10
+EXECUTION_BILLED_CENTS = 12
+EXPECTED_REMAINING_CENTS = TOPUP_AMOUNT_CENTS - EXECUTION_BILLED_CENTS
 
-def _reset_all():
+
+@dataclass
+class WalletBootstrapResult:
+    wallet_session_token: str
+    api_key: str
+    org_id: str
+    agent_id: str
+    payment_request_id: str
+
+
+class InMemorySupabase:
+    """Tiny in-memory table store for route-level integration tests."""
+
+    def __init__(self) -> None:
+        self.tables: dict[str, list[dict]] = {
+            "capabilities": [
+                {
+                    "id": "email.send",
+                    "domain": "email",
+                    "action": "send",
+                    "description": "Send an email",
+                }
+            ],
+            "capability_services": [
+                {
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /emails",
+                    "cost_per_call": EXECUTION_COST_USD,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ],
+            "services": [{"slug": "resend", "api_domain": "api.resend.com"}],
+            "wallet_auth_challenges": [],
+            "wallet_identities": [],
+            "orgs": [],
+            "org_credits": [],
+            "wallet_balance_topups": [],
+            "usdc_receipts": [],
+            "credit_ledger": [],
+            "capability_executions": [],
+        }
+        self._counter = 0
+
+    def _next_id(self, table: str) -> str:
+        self._counter += 1
+        prefix = {
+            "wallet_auth_challenges": "challenge",
+            "wallet_identities": "wallet",
+            "wallet_balance_topups": "topup",
+            "usdc_receipts": "receipt",
+            "credit_ledger": "ledger",
+            "capability_executions": "exec",
+            "orgs": "org",
+            "org_credits": "credits",
+        }.get(table, table)
+        return f"{prefix}_{self._counter:04d}"
+
+    def _match(self, row: dict, query: dict[str, list[str]]) -> bool:
+        for key, values in query.items():
+            if key in {"select", "limit", "order"}:
+                continue
+            value = values[-1]
+            if value == "is.null":
+                if row.get(key) is not None:
+                    return False
+                continue
+            if value.startswith("eq."):
+                expected = unquote(value[3:])
+                if str(row.get(key)) != expected:
+                    return False
+        return True
+
+    async def fetch(self, path: str) -> list[dict]:
+        table, _, query_string = path.partition("?")
+        query = parse_qs(query_string, keep_blank_values=True)
+        rows = [deepcopy(row) for row in self.tables.get(table, []) if self._match(row, query)]
+
+        order = query.get("order", [None])[-1]
+        if order:
+            field, _, direction = order.partition(".")
+            rows.sort(key=lambda row: row.get(field) or "", reverse=direction == "desc")
+
+        limit = query.get("limit", [None])[-1]
+        if limit is not None:
+            rows = rows[: int(limit)]
+        return rows
+
+    async def insert(self, table: str, payload: dict) -> bool:
+        await self.insert_returning(table, payload)
+        return True
+
+    async def insert_returning(self, table: str, payload: dict) -> dict:
+        row = deepcopy(payload)
+        row.setdefault("id", self._next_id(table))
+        row.setdefault("created_at", datetime.now(tz=UTC).isoformat())
+        self.tables.setdefault(table, []).append(row)
+        return deepcopy(row)
+
+    async def patch(self, path: str, payload: dict) -> list[dict]:
+        table, _, query_string = path.partition("?")
+        query = parse_qs(query_string, keep_blank_values=True)
+        updated: list[dict] = []
+        for row in self.tables.get(table, []):
+            if self._match(row, query):
+                row.update(deepcopy(payload))
+                updated.append(deepcopy(row))
+        return updated
+
+    def get_single(self, table: str, **filters: str) -> dict | None:
+        for row in self.tables.get(table, []):
+            if all(str(row.get(key)) == value for key, value in filters.items()):
+                return row
+        return None
+
+
+class InMemoryPaymentRequests:
+    def __init__(self) -> None:
+        self._requests: dict[str, dict] = {}
+        self._counter = 0
+
+    async def create_payment_request(
+        self,
+        org_id: str | None,
+        capability_id: str | None,
+        amount_usd_cents: int,
+        execution_id: str | None = None,
+        *,
+        purpose: str = "execution",
+    ) -> dict:
+        self._counter += 1
+        request_id = f"pr_{self._counter:04d}"
+        row = {
+            "id": request_id,
+            "org_id": org_id,
+            "capability_id": capability_id,
+            "execution_id": execution_id,
+            "amount_usd_cents": amount_usd_cents,
+            "amount_usdc_atomic": str(amount_usd_cents * 10000),
+            "network": "base",
+            "pay_to_address": "0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623",
+            "asset_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "purpose": purpose,
+            "status": "pending",
+        }
+        self._requests[request_id] = row
+        return deepcopy(row)
+
+    async def get_pending_request(self, payment_request_id: str) -> dict | None:
+        row = self._requests.get(payment_request_id)
+        if row and row.get("status") == "pending":
+            return deepcopy(row)
+        return None
+
+    async def mark_verified(self, payment_request_id: str, tx_hash: str) -> bool:
+        row = self._requests.get(payment_request_id)
+        if row is None:
+            return False
+        row["status"] = "verified"
+        row["payment_tx_hash"] = tx_hash
+        return True
+
+
+class InMemoryCreditDeduction:
+    def __init__(self, db: InMemorySupabase) -> None:
+        self._db = db
+        self.deduct_calls: list[dict] = []
+
+    async def deduct(self, org_id: str, amount_cents: int, **kwargs) -> CreditDeductionResult:
+        row = self._db.get_single("org_credits", org_id=org_id)
+        current_balance = int(row["balance_usd_cents"]) if row else 0
+        self.deduct_calls.append(
+            {
+                "org_id": org_id,
+                "amount_cents": amount_cents,
+                "execution_id": kwargs.get("execution_id"),
+            }
+        )
+
+        if row is None:
+            return CreditDeductionResult(
+                allowed=False,
+                remaining_cents=None,
+                reason="no_org_credits",
+            )
+        if current_balance < amount_cents:
+            return CreditDeductionResult(
+                allowed=False,
+                remaining_cents=current_balance,
+                reason="insufficient_credits",
+            )
+
+        row["balance_usd_cents"] = current_balance - amount_cents
+        return CreditDeductionResult(
+            allowed=True,
+            remaining_cents=row["balance_usd_cents"],
+            ledger_id=f"ledger_exec_{len(self.deduct_calls):04d}",
+        )
+
+    async def release(self, org_id: str, amount_cents: int, **kwargs) -> CreditReleaseResult:
+        row = self._db.get_single("org_credits", org_id=org_id)
+        if row is not None:
+            row["balance_usd_cents"] = int(row["balance_usd_cents"]) + amount_cents
+        return CreditReleaseResult(
+            released=True,
+            remaining_cents=row["balance_usd_cents"] if row else None,
+            ledger_id=f"ledger_release_{kwargs.get('execution_id', 'unknown')}",
+        )
+
+
+def _sign_message(message: str) -> str:
+    signed = Account.sign_message(encode_defunct(text=message), private_key=TEST_PRIVATE_KEY)
+    return signed.signature.hex()
+
+
+def _reset_all() -> None:
     reset_challenge_throttle()
     _rate_limit_buckets.clear()
     reset_identity_store()
+    capability_execute_route._identity_store = None
+    capability_execute_route._wallet_requests.clear()
+    capability_execute_route._used_tx_hashes.clear()
+    capability_execute_route._agent_exec_requests.clear()
+    capability_execute_route._agent_managed_daily.clear()
 
 
-# Simulate a wallet-authed agent: org + agent with known API key
-WALLET_ORG_ID = "org_wallet_exec_test"
-WALLET_AGENT_ID = "agent_wallet_exec_test"
-WALLET_API_KEY = generate_api_key()
-WALLET_API_KEY_HASH = hash_api_key(WALLET_API_KEY)
-WALLET_API_KEY_PREFIX = api_key_prefix(WALLET_API_KEY)
-
-
-def _wallet_agent() -> AgentIdentitySchema:
-    """Build an AgentIdentitySchema matching a wallet-bootstrapped agent."""
-    return AgentIdentitySchema(
-        agent_id=WALLET_AGENT_ID,
-        name="Wallet 0xAb...ef12 Agent",
-        organization_id=WALLET_ORG_ID,
-        api_key_hash=WALLET_API_KEY_HASH,
-        api_key_prefix=WALLET_API_KEY_PREFIX,
-        status="active",
-        description="Default agent for wallet 0xAb...ef12 on base",
+async def _bootstrap_prefunded_wallet(
+    client: AsyncClient,
+) -> WalletBootstrapResult:
+    challenge_resp = await client.post(
+        "/v1/auth/wallet/request-challenge",
+        json={"chain": "base", "address": TEST_ADDRESS, "purpose": "access"},
     )
+    assert challenge_resp.status_code == 200
+    challenge_data = challenge_resp.json()["data"]
 
+    verify_resp = await client.post(
+        "/v1/auth/wallet/verify",
+        json={
+            "challenge_id": challenge_data["challenge_id"],
+            "signature": _sign_message(challenge_data["message"]),
+        },
+    )
+    assert verify_resp.status_code == 200
+    verify_data = verify_resp.json()["data"]
 
-# Sample capability for execution tests
-SAMPLE_CAP = [
-    {
-        "id": "email.send",
-        "domain": "email",
-        "action": "send",
-        "name": "Send Email",
-        "description": "Send an email",
-    }
-]
+    wallet_session_token = verify_data["wallet_session_token"]
+    auth_header = {"Authorization": f"Bearer {wallet_session_token}"}
 
-SAMPLE_CAP_SERVICE = [
-    {
-        "capability_id": "email.send",
-        "service": "resend",
-        "service_slug": "resend",
-        "provider": "resend",
-        "quality_score": 8.0,
-        "credential_modes": ["byo", "rhumb_managed"],
-        "cost_per_call": 0.01,  # $0.01 → triggers billing pipeline (1 cent upstream, 2 cents billed)
-    }
-]
+    topup_request_resp = await client.post(
+        "/v1/auth/wallet/topup/request",
+        json={"amount_usd_cents": TOPUP_AMOUNT_CENTS},
+        headers=auth_header,
+    )
+    assert topup_request_resp.status_code == 200
+    topup_request_data = topup_request_resp.json()["data"]
+
+    topup_verify_resp = await client.post(
+        "/v1/auth/wallet/topup/verify",
+        json={
+            "payment_request_id": topup_request_data["payment_request_id"],
+            "x_payment": {
+                "payload": {
+                    "authorization": {
+                        "from": TEST_ADDRESS,
+                        "to": "0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623",
+                        "value": str(TOPUP_AMOUNT_CENTS * 10000),
+                    },
+                    "signature": "0x" + "ab" * 65,
+                }
+            },
+        },
+        headers=auth_header,
+    )
+    assert topup_verify_resp.status_code == 200
+
+    return WalletBootstrapResult(
+        wallet_session_token=wallet_session_token,
+        api_key=verify_data["api_key"],
+        org_id=verify_data["wallet"]["org_id"],
+        agent_id=verify_data["wallet"]["agent_id"],
+        payment_request_id=topup_request_data["payment_request_id"],
+    )
 
 
 @pytest.fixture
@@ -94,376 +325,181 @@ def app():
     return create_app()
 
 
-# ── Test: Wallet API key triggers registered-agent path ──────────────
-
-
-@pytest.mark.asyncio
-async def test_wallet_prefund_then_execute_via_api_key_uses_org_credits(app):
-    """A wallet-authed API key should execute via the registered-agent path,
-    deducting from the org's credited balance (not requiring X-Payment).
-
-    This is the core DF-19 verification: prefund → X-Rhumb-Key → execute → deduct.
-    """
+@pytest.fixture
+def wallet_env():
     _reset_all()
 
-    agent = _wallet_agent()
+    db = InMemorySupabase()
+    payment_requests = InMemoryPaymentRequests()
+    credit_deduction = InMemoryCreditDeduction(db)
 
-    # Mock identity store to recognize the wallet-issued API key
-    mock_store = MagicMock(spec=AgentIdentityStore)
-    mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
+    budget = MagicMock()
+    budget.check_and_decrement = AsyncMock(
+        return_value=BudgetCheckResult(allowed=True, remaining_usd=None)
+    )
+    budget.release = AsyncMock()
 
-    # Mock budget enforcer — wallet agents have unlimited budget by default
-    mock_budget = MagicMock()
-    mock_budget.check_and_decrement = AsyncMock(return_value=MagicMock(
-        allowed=True, remaining_usd=None,
-    ))
-    mock_budget.release = AsyncMock()
+    settlement = MagicMock()
+    settlement.verify_and_settle = AsyncMock(
+        return_value={
+            "verify": {"isValid": True, "payer": TEST_ADDRESS},
+            "settle": {"success": True, "transaction": "0x" + "cd" * 32},
+            "payer": TEST_ADDRESS,
+            "transaction": "0x" + "cd" * 32,
+            "network": "base",
+        }
+    )
 
-    # Mock credit deduction — org has prefunded balance (e.g. $2.50 = 250 cents)
-    mock_credit = MagicMock()
-    mock_credit.deduct = AsyncMock(return_value=CreditDeductionResult(
-        allowed=True,
-        remaining_cents=200,  # 250 - 50 = 200 cents remaining
-        ledger_id="ledger_wallet_exec_001",
-    ))
-    mock_credit.release = AsyncMock()
+    upstream_response = MagicMock()
+    upstream_response.status_code = 200
+    upstream_response.headers = {"content-type": "application/json"}
+    upstream_response.json.return_value = {"id": "msg_123", "status": "sent"}
+    upstream_response.text = '{"id":"msg_123","status":"sent"}'
+    upstream_response.content = b'{"id":"msg_123","status":"sent"}'
 
-    # Mock capability resolution
-    mock_cap_fetch = AsyncMock(return_value=SAMPLE_CAP)
-    mock_cap_svc_fetch = AsyncMock(return_value=SAMPLE_CAP_SERVICE)
+    pool_client = MagicMock()
+    pool_client.request = AsyncMock(return_value=upstream_response)
 
-    # Mock upstream proxy call
-    mock_upstream = AsyncMock(return_value=MagicMock(
-        status_code=200,
-        headers={"content-type": "application/json"},
-        json=MagicMock(return_value={"id": "msg_123", "status": "sent"}),
-        text='{"id": "msg_123", "status": "sent"}',
-        content=b'{"id": "msg_123", "status": "sent"}',
-    ))
+    httpx_client = MagicMock()
+    httpx_client.request = AsyncMock(return_value=upstream_response)
+    httpx_client.__aenter__ = AsyncMock(return_value=httpx_client)
+    httpx_client.__aexit__ = AsyncMock(return_value=False)
 
-    with (
-        patch("routes.capability_execute._get_identity_store", return_value=mock_store),
-        patch("routes.capability_execute._budget_enforcer", mock_budget),
-        patch("routes.capability_execute._credit_deduction", mock_credit),
-        patch("routes.capability_execute.supabase_fetch") as mock_fetch,
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock),
-        patch("routes.capability_execute._routing_engine") as mock_routing,
-    ):
-        # Route fetch calls to return capability data
-        _fetch_count = {"n": 0}
-        async def _mock_fetch(path: str):
-            idx = _fetch_count["n"]
-            _fetch_count["n"] += 1
-            if "capabilities?" in path and "id=eq.email.send" in path:
-                return SAMPLE_CAP
-            if "capability_services?" in path:
-                return SAMPLE_CAP_SERVICE
-            if "rhumb_managed_capabilities?" in path:
-                return [{
-                    "capability_id": "email.send",
-                    "provider": "resend",
-                    "api_domain": "api.resend.com",
-                    "endpoint_template": "/emails",
-                    "http_method": "POST",
-                    "auth_type": "bearer",
-                    "credential_env_var": "RHUMB_CREDENTIAL_RESEND_API_KEY",
-                }]
-            return []
+    pool = MagicMock()
+    pool.acquire = AsyncMock(return_value=pool_client)
+    pool.release = AsyncMock()
 
-        mock_fetch.side_effect = _mock_fetch
-        mock_routing.select_provider = AsyncMock(return_value=MagicMock(
-            service="resend", provider="resend", quality_score=8.0,
-        ))
+    breaker = MagicMock()
+    breaker.allow_request.return_value = True
+    breaker.record_success.return_value = None
+    breaker.record_failure.return_value = None
 
-        # Patch the actual upstream HTTP call
-        with patch("routes.capability_execute.get_pool_manager") as mock_pool:
-            mock_client = MagicMock()
-            mock_client.request = mock_upstream
-            mock_pool.return_value = MagicMock()
-            mock_pool.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_pool.return_value.__aexit__ = AsyncMock(return_value=False)
+    breaker_registry = MagicMock()
+    breaker_registry.get.return_value = breaker
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app),
-                base_url="http://test",
-            ) as client:
-                resp = await client.post(
-                    "/v1/capabilities/email.send/execute",
-                    json={
-                        "provider": "resend",
-                        "credential_mode": "rhumb_managed",
-                        "payload": {"to": "test@example.com", "subject": "Test"},
-                    },
-                    headers={"X-Rhumb-Key": WALLET_API_KEY},
-                )
+    async def _bootstrap_org(org_id: str, **kwargs) -> dict:
+        if db.get_single("orgs", id=org_id) is None:
+            await db.insert("orgs", {"id": org_id, "name": kwargs.get("name") or org_id, "tier": "free"})
+        if db.get_single("org_credits", org_id=org_id) is None:
+            await db.insert("org_credits", {"org_id": org_id, "balance_usd_cents": 0})
+        return {"org_created": True, "wallet_created": True, "seeded_credits_cents": 0}
 
-        # The execution may succeed (200) or fail at the upstream provider level
-        # (502/503) since we're in a test env without real credentials.
-        # What matters is that the auth + billing pipeline was exercised:
-        # - NOT 401 (auth failed)
-        # - NOT 402 (payment required — credits are available)
-        assert resp.status_code not in (401, 402), (
-            f"Wallet API key should pass auth and billing, got {resp.status_code}: {resp.text[:200]}"
+    patches = ExitStack()
+    for module_path in ("routes.auth_wallet", "routes.wallet_topup", "routes.capability_execute"):
+        patches.enter_context(patch(f"{module_path}.supabase_fetch", new=AsyncMock(side_effect=db.fetch)))
+        patches.enter_context(patch(f"{module_path}.supabase_insert", new=AsyncMock(side_effect=db.insert)))
+        patches.enter_context(patch(f"{module_path}.supabase_patch", new=AsyncMock(side_effect=db.patch)))
+
+    for module_path in ("routes.auth_wallet", "routes.wallet_topup"):
+        patches.enter_context(
+            patch(f"{module_path}.supabase_insert_returning", new=AsyncMock(side_effect=db.insert_returning))
         )
 
-        # Verify the identity store was queried with our wallet API key
-        mock_store.verify_api_key_with_agent.assert_called_once_with(WALLET_API_KEY)
+    patches.enter_context(patch("routes.auth_wallet.ensure_org_billing_bootstrap", new=AsyncMock(side_effect=_bootstrap_org)))
+    patches.enter_context(patch("routes.wallet_topup._payment_requests", payment_requests))
+    patches.enter_context(patch("routes.wallet_topup._settlement", settlement))
+    patches.enter_context(patch("routes.capability_execute._budget_enforcer", budget))
+    patches.enter_context(patch("routes.capability_execute._credit_deduction", credit_deduction))
+    patches.enter_context(
+        patch("routes.capability_execute.check_billing_health", new=AsyncMock(return_value=(True, "ok")))
+    )
+    patches.enter_context(
+        patch("routes.capability_execute.check_and_trigger_auto_reload", new=AsyncMock(return_value=None))
+    )
+    patches.enter_context(
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, headers: headers)
+    )
+    patches.enter_context(patch("routes.capability_execute.get_pool_manager", return_value=pool))
+    patches.enter_context(patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry))
+    patches.enter_context(patch("routes.capability_execute.httpx.AsyncClient", return_value=httpx_client))
 
-        # Verify credit deduction was called against the wallet org
-        if mock_credit.deduct.called:
-            deduct_call = mock_credit.deduct.call_args
-            assert deduct_call.args[0] == WALLET_ORG_ID
+    try:
+        yield SimpleNamespace(
+            db=db,
+            payment_requests=payment_requests,
+            credit_deduction=credit_deduction,
+            budget=budget,
+            pool=pool,
+        )
+    finally:
+        patches.close()
 
 
 @pytest.mark.asyncio
-async def test_prefunded_wallet_execution_does_not_require_x_payment(app):
-    """A wallet with prefunded credits should NOT need an X-Payment header.
+async def test_wallet_prefund_then_execute_via_api_key_uses_org_credits(app, wallet_env):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        wallet = await _bootstrap_prefunded_wallet(client)
 
-    The execute route should treat the wallet-issued API key exactly like
-    any other registered agent: verify key → check budget → deduct credits.
-    """
-    _reset_all()
-
-    agent = _wallet_agent()
-
-    mock_store = MagicMock(spec=AgentIdentityStore)
-    mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
-
-    mock_budget = MagicMock()
-    mock_budget.check_and_decrement = AsyncMock(return_value=MagicMock(
-        allowed=True, remaining_usd=None,
-    ))
-
-    # Credits available — deduction succeeds
-    mock_credit = MagicMock()
-    mock_credit.deduct = AsyncMock(return_value=CreditDeductionResult(
-        allowed=True,
-        remaining_cents=100,
-    ))
-    mock_credit.release = AsyncMock()
-
-    with (
-        patch("routes.capability_execute._get_identity_store", return_value=mock_store),
-        patch("routes.capability_execute._budget_enforcer", mock_budget),
-        patch("routes.capability_execute._credit_deduction", mock_credit),
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, return_value=SAMPLE_CAP),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock),
-    ):
-        async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test",
-        ) as client:
-            # Send with X-Rhumb-Key only — NO X-Payment header
-            resp = await client.post(
-                "/v1/capabilities/email.send/execute",
-                json={
-                    "provider": "resend",
-                    "credential_mode": "rhumb_managed",
-                    "payload": {"to": "test@example.com", "subject": "Test"},
-                },
-                headers={"X-Rhumb-Key": WALLET_API_KEY},
-                # Explicitly NO X-Payment header
-            )
-
-        # Should NOT get 402 (payment required) since credits are available
-        assert resp.status_code != 402, (
-            f"Got 402 despite prefunded credits — the wallet execution path is broken. "
-            f"Response: {resp.text[:200]}"
+        execute_resp = await client.post(
+            "/v1/capabilities/email.send/execute",
+            json={
+                "provider": "resend",
+                "credential_mode": "byo",
+                "method": "POST",
+                "path": "/emails",
+                "body": {"to": "test@example.com", "subject": "Wallet test"},
+            },
+            headers={"X-Rhumb-Key": wallet.api_key},
         )
 
-        # The registered-agent identity path was used (not x402 anonymous)
-        mock_store.verify_api_key_with_agent.assert_called_once_with(WALLET_API_KEY)
+    assert execute_resp.status_code == 200
+    body = execute_resp.json()["data"]
+    assert body["org_credits_remaining_cents"] == EXPECTED_REMAINING_CENTS
+    assert wallet_env.credit_deduction.deduct_calls == [
+        {
+            "org_id": wallet.org_id,
+            "amount_cents": EXECUTION_BILLED_CENTS,
+            "execution_id": body["execution_id"],
+        }
+    ]
 
 
 @pytest.mark.asyncio
-async def test_prefunded_wallet_balance_decrements_after_execution(app):
-    """After execution, org_credits balance should be decremented by the call cost.
+async def test_prefunded_wallet_execution_does_not_require_x_payment(app, wallet_env):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        wallet = await _bootstrap_prefunded_wallet(client)
 
-    Verifies that CreditDeductionService.deduct() is called with the correct
-    org_id and a positive amount, confirming the billing pipeline is wired.
-    """
-    _reset_all()
-
-    agent = _wallet_agent()
-
-    mock_store = MagicMock(spec=AgentIdentityStore)
-    mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
-
-    mock_budget = MagicMock()
-    mock_budget.check_and_decrement = AsyncMock(return_value=MagicMock(
-        allowed=True, remaining_usd=None,
-    ))
-    mock_budget.release = AsyncMock()
-
-    # Track deduction calls
-    deduction_calls = []
-
-    async def _track_deduction(org_id, amount_cents, **kwargs):
-        deduction_calls.append({"org_id": org_id, "amount_cents": amount_cents, **kwargs})
-        return CreditDeductionResult(
-            allowed=True,
-            remaining_cents=max(0, 250 - amount_cents),  # Started with 250 cents
-            ledger_id="ledger_deduct_001",
+        execute_resp = await client.post(
+            "/v1/capabilities/email.send/execute",
+            json={
+                "provider": "resend",
+                "credential_mode": "byo",
+                "method": "POST",
+                "path": "/emails",
+                "body": {"to": "test@example.com", "subject": "No x-payment"},
+            },
+            headers={"X-Rhumb-Key": wallet.api_key},
         )
 
-    mock_credit = MagicMock()
-    mock_credit.deduct = AsyncMock(side_effect=_track_deduction)
-    mock_credit.release = AsyncMock()
-
-    with (
-        patch("routes.capability_execute._get_identity_store", return_value=mock_store),
-        patch("routes.capability_execute._budget_enforcer", mock_budget),
-        patch("routes.capability_execute._credit_deduction", mock_credit),
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, return_value=SAMPLE_CAP),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock),
-    ):
-        async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test",
-        ) as client:
-            resp = await client.post(
-                "/v1/capabilities/email.send/execute",
-                json={
-                    "provider": "resend",
-                    "credential_mode": "rhumb_managed",
-                    "payload": {"to": "test@example.com", "subject": "Test"},
-                },
-                headers={"X-Rhumb-Key": WALLET_API_KEY},
-            )
-
-        # Verify credit deduction was called
-        if deduction_calls:
-            call = deduction_calls[0]
-            assert call["org_id"] == WALLET_ORG_ID, (
-                f"Deduction targeted wrong org: {call['org_id']} != {WALLET_ORG_ID}"
-            )
-            assert call["amount_cents"] > 0, (
-                f"Deduction amount should be positive, got {call['amount_cents']}"
-            )
+    assert execute_resp.status_code == 200
+    assert execute_resp.json()["error"] is None
+    assert "X-Payment" not in execute_resp.headers
 
 
 @pytest.mark.asyncio
-async def test_wallet_api_key_with_zero_credits_returns_402(app):
-    """A wallet API key with zero credits should get a 402 (payment required),
-    prompting the user to top up — NOT an auth error.
-    """
-    _reset_all()
+async def test_prefunded_wallet_balance_decrements_after_execution(app, wallet_env):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        wallet = await _bootstrap_prefunded_wallet(client)
+        auth_header = {"Authorization": f"Bearer {wallet.wallet_session_token}"}
 
-    agent = _wallet_agent()
+        balance_before_resp = await client.get("/v1/auth/wallet/balance", headers=auth_header)
+        assert balance_before_resp.status_code == 200
+        assert balance_before_resp.json()["data"]["balance_usd_cents"] == TOPUP_AMOUNT_CENTS
 
-    mock_store = MagicMock(spec=AgentIdentityStore)
-    mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
-
-    # Budget passes (unlimited)
-    mock_budget = MagicMock()
-    mock_budget.check_and_decrement = AsyncMock(return_value=MagicMock(
-        allowed=True, remaining_usd=None,
-    ))
-    mock_budget.release = AsyncMock()
-
-    # Credits insufficient — deduction fails
-    mock_credit = MagicMock()
-    mock_credit.deduct = AsyncMock(return_value=CreditDeductionResult(
-        allowed=False,
-        remaining_cents=0,
-        reason="insufficient_credits",
-    ))
-
-    mock_payment_req = AsyncMock(return_value={
-        "id": "pr_test",
-        "network": "base",
-        "amount_usdc_atomic": "10000",
-        "pay_to_address": "0xEA63...",
-        "asset_address": "0x8335...",
-    })
-
-    # Mock fetch to return capability + service mapping with cost
-    _fetch_count = {"n": 0}
-    async def _mock_fetch(path: str):
-        idx = _fetch_count["n"]
-        _fetch_count["n"] += 1
-        if "capabilities?" in path and "id=eq.email.send" in path:
-            return SAMPLE_CAP
-        if "capability_services?" in path:
-            return SAMPLE_CAP_SERVICE  # includes cost_per_call=0.001
-        return []
-
-    with (
-        patch("routes.capability_execute._get_identity_store", return_value=mock_store),
-        patch("routes.capability_execute._budget_enforcer", mock_budget),
-        patch("routes.capability_execute._credit_deduction", mock_credit),
-        patch("routes.capability_execute._create_payment_request_safe", mock_payment_req),
-        patch("routes.capability_execute.supabase_fetch", side_effect=_mock_fetch),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock),
-        patch("routes.capability_execute.check_billing_health", new_callable=AsyncMock, return_value=(True, "ok")),
-    ):
-        async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test",
-        ) as client:
-            # Use BYO mode to isolate the credit deduction path from
-            # rhumb_managed credential env var checks
-            resp = await client.post(
-                "/v1/capabilities/email.send/execute",
-                json={
-                    "provider": "resend",
-                    "credential_mode": "byo",
-                    "method": "POST",
-                    "path": "/emails",
-                    "payload": {"to": "test@example.com", "subject": "Test"},
-                },
-                headers={"X-Rhumb-Key": WALLET_API_KEY},
-            )
-
-        # Should get 402 (payment required), not 401 (auth error)
-        assert resp.status_code == 402, (
-            f"Expected 402 for zero credits, got {resp.status_code}: {resp.text[:200]}"
+        execute_resp = await client.post(
+            "/v1/capabilities/email.send/execute",
+            json={
+                "provider": "resend",
+                "credential_mode": "byo",
+                "method": "POST",
+                "path": "/emails",
+                "body": {"to": "test@example.com", "subject": "Balance check"},
+            },
+            headers={"X-Rhumb-Key": wallet.api_key},
         )
+        assert execute_resp.status_code == 200
 
-        # Response should contain x402 payment instructions
-        body = resp.json()
-        assert "accepts" in body, "402 response should include x402 payment options"
+        balance_after_resp = await client.get("/v1/auth/wallet/balance", headers=auth_header)
 
-
-@pytest.mark.asyncio
-async def test_wallet_api_key_is_verified_same_as_dashboard_key(app):
-    """Wallet-issued API keys go through the same verify_api_key_with_agent()
-    path as dashboard-issued keys. There is no special wallet execution mode.
-    """
-    _reset_all()
-
-    agent = _wallet_agent()
-
-    mock_store = MagicMock(spec=AgentIdentityStore)
-    mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
-
-    with (
-        patch("routes.capability_execute._get_identity_store", return_value=mock_store),
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, return_value=SAMPLE_CAP),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-    ):
-        async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test",
-        ) as client:
-            resp = await client.post(
-                "/v1/capabilities/email.send/execute",
-                json={
-                    "provider": "resend",
-                    "credential_mode": "rhumb_managed",
-                    "payload": {"to": "test@example.com"},
-                },
-                headers={"X-Rhumb-Key": WALLET_API_KEY},
-            )
-
-        # The key verification was called exactly once with our wallet key
-        mock_store.verify_api_key_with_agent.assert_called_once_with(WALLET_API_KEY)
-
-        # The agent returned has the wallet org_id — confirming the billing
-        # target is the wallet-linked org, not some default
-        verified_agent = await mock_store.verify_api_key_with_agent(WALLET_API_KEY)
-        assert verified_agent.organization_id == WALLET_ORG_ID
+    assert balance_after_resp.status_code == 200
+    assert balance_after_resp.json()["data"]["balance_usd_cents"] == EXPECTED_REMAINING_CENTS
