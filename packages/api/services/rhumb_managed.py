@@ -190,12 +190,14 @@ class RhumbManagedExecutor:
             # If any unresolved templates remain, strip them (e.g. /{ip} → /)
             path = _re.sub(r"\{[^}]+\}", "", path)
 
-        params, body = self._normalize_capability_inputs(
+        path_override, params, body = self._normalize_capability_inputs(
             capability_id,
             slug,
             params,
             body,
         )
+        if path_override is not None:
+            path = path_override
 
         # For managed POST/PUT/PATCH flows, treat request.params as logical
         # capability inputs and merge them into the upstream JSON body.
@@ -454,14 +456,128 @@ class RhumbManagedExecutor:
 
         return multipart_data, multipart_files
 
+    @staticmethod
+    def _is_truthy_flag(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return False
+
+    @staticmethod
+    def _coerce_airship_channel_ids(
+        channel_id: Any,
+        channel_ids: Any,
+    ) -> list[str]:
+        raw_values = channel_ids if channel_ids is not None else channel_id
+        if raw_values is None:
+            return []
+        if isinstance(raw_values, (list, tuple)):
+            return [str(value) for value in raw_values if value is not None]
+        return [str(raw_values)]
+
+    @staticmethod
+    def _build_airship_channel_audience(channel_ids: list[str]) -> dict[str, Any] | None:
+        if not channel_ids:
+            return None
+        if len(channel_ids) == 1:
+            return {"ios_channel": channel_ids[0]}
+        return {"or": [{"ios_channel": channel_id} for channel_id in channel_ids]}
+
+    @staticmethod
+    def _uses_airship_ios_channel_audience(audience: Any) -> bool:
+        if not isinstance(audience, dict):
+            return False
+        if "ios_channel" in audience:
+            return True
+        or_audience = audience.get("or")
+        return isinstance(or_audience, list) and all(
+            isinstance(item, dict) and "ios_channel" in item for item in or_audience
+        )
+
+    def _normalize_airship_inputs(
+        self,
+        capability_id: str,
+        params: dict | None,
+        body: dict | None,
+    ) -> tuple[str | None, dict | None, dict | None]:
+        payload: dict[str, Any] = dict(params) if params else {}
+        if body:
+            payload.update(body)
+
+        validate_only = self._is_truthy_flag(payload.pop("validate_only", False))
+        message = payload.pop("message", None)
+        alert = payload.pop("alert", None)
+        named_user_id = payload.pop("named_user_id", None)
+        channel_id = payload.pop("channel_id", None)
+        channel_ids = payload.pop("channel_ids", None)
+        tag = payload.pop("tag", None)
+        topic = payload.pop("topic", None)
+        tag_group = payload.pop("tag_group", None)
+        group = payload.pop("group", None)
+        topic_group = payload.pop("topic_group", None)
+
+        if payload.get("audience") is None:
+            audience: dict[str, Any] | None = None
+            if capability_id == "push_topic.publish":
+                resolved_tag = tag if tag is not None else topic
+                resolved_group = next(
+                    (
+                        value
+                        for value in (tag_group, group, topic_group)
+                        if value is not None
+                    ),
+                    None,
+                )
+                if resolved_tag is not None:
+                    audience = {"tag": resolved_tag}
+                    if resolved_group is not None:
+                        audience["group"] = resolved_group
+
+            if audience is None and named_user_id is not None:
+                audience = {"named_user": named_user_id}
+
+            if audience is None:
+                audience = self._build_airship_channel_audience(
+                    self._coerce_airship_channel_ids(channel_id, channel_ids)
+                )
+
+            if audience is not None:
+                payload["audience"] = audience
+
+        if payload.get("notification") is None:
+            resolved_alert = message if message is not None else alert
+            if resolved_alert is not None:
+                payload["notification"] = {"alert": resolved_alert}
+
+        if (
+            "device_types" not in payload
+            and self._uses_airship_ios_channel_audience(payload.get("audience"))
+        ):
+            payload["device_types"] = ["ios"]
+
+        path_override = "/api/push/validate" if validate_only else None
+        return path_override, None, payload or None
+
     def _normalize_capability_inputs(
         self,
         capability_id: str,
         service_slug: str,
         params: dict | None,
         body: dict | None,
-    ) -> tuple[dict | None, dict | None]:
+    ) -> tuple[str | None, dict | None, dict | None]:
         """Map logical capability inputs to provider-native fields."""
+        path_override: str | None = None
+
+        if service_slug == "airship" and capability_id in {
+            "push_notification.send",
+            "push_notification.send_to_user",
+            "push_topic.publish",
+        }:
+            return self._normalize_airship_inputs(capability_id, params, body)
+
         if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
             params = self._rename_field(params, "query", "q")
             body = self._rename_field(body, "query", "q")
@@ -469,7 +585,7 @@ class RhumbManagedExecutor:
             body = self._rename_field(body, "numResults", "count")
             params = self._rename_field(params, "num_results", "count")
             body = self._rename_field(body, "num_results", "count")
-        return params, body
+        return path_override, params, body
 
     async def _get_api_domain(self, service_slug: str) -> str | None:
         """Resolve service API domain."""

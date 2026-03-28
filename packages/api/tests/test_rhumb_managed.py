@@ -632,6 +632,270 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_airship_send_to_user_normalizes_and_uses_validate_path(monkeypatch):
+    """Airship send_to_user should normalize named users and switch to validate path."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH", "app_key:master_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1201,
+                "capability_id": "push_notification.send_to_user",
+                "service_slug": "airship",
+                "description": "Managed Airship named-user push",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                "default_method": "POST",
+                "default_path": "/api/push",
+                "default_headers": {
+                    "Accept": "application/vnd.urbanairship+json; version=3",
+                    "Content-Type": "application/json",
+                },
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.airship" in path:
+            return [{"api_domain": "go.urbanairship.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 202
+
+        def json(self):
+            return {"ok": True, "operation_id": "airship_validate_123"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="push_notification.send_to_user",
+            agent_id="agent_airship_user_test",
+            body={
+                "message": "Hello from Rhumb",
+                "named_user_id": "user_123",
+                "device_types": ["ios"],
+                "validate_only": True,
+            },
+            service_slug="airship",
+        )
+
+    assert result["provider_used"] == "airship"
+    assert captured["base_url"] == "https://go.urbanairship.com"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/api/push/validate"
+    assert captured["params"] == {}
+    assert captured["json"] == {
+        "audience": {"named_user": "user_123"},
+        "notification": {"alert": "Hello from Rhumb"},
+        "device_types": ["ios"],
+    }
+    assert "validate_only" not in captured["json"]
+
+
+@pytest.mark.anyio
+async def test_managed_executor_airship_topic_publish_normalizes_tag_group(monkeypatch):
+    """Airship topic publish should map logical topic inputs to tag/group audience."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH", "app_key:master_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1202,
+                "capability_id": "push_topic.publish",
+                "service_slug": "airship",
+                "description": "Managed Airship tag-group push",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                "default_method": "POST",
+                "default_path": "/api/push",
+                "default_headers": {
+                    "Accept": "application/vnd.urbanairship+json; version=3",
+                    "Content-Type": "application/json",
+                },
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.airship" in path:
+            return [{"api_domain": "go.urbanairship.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 202
+
+        def json(self):
+            return {"ok": True, "operation_id": "airship_push_456"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="push_topic.publish",
+            agent_id="agent_airship_topic_test",
+            params={
+                "topic": "trial-expiring",
+                "topic_group": "lifecycle",
+                "alert": "Your trial ends soon",
+                "device_types": ["ios", "android"],
+            },
+            service_slug="airship",
+        )
+
+    assert result["provider_used"] == "airship"
+    assert captured["base_url"] == "https://go.urbanairship.com"
+    assert captured["url"] == "/api/push"
+    assert captured["params"] == {}
+    assert captured["json"] == {
+        "audience": {"tag": "trial-expiring", "group": "lifecycle"},
+        "notification": {"alert": "Your trial ends soon"},
+        "device_types": ["ios", "android"],
+    }
+
+
+@pytest.mark.anyio
+async def test_managed_executor_airship_uses_basic_auth_and_preserves_accept_header(monkeypatch):
+    """Airship managed execution should use basic auth and keep Airship's Accept header."""
+    raw_basic = "app_key:master_secret"
+    monkeypatch.setenv("RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH", raw_basic)
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1203,
+                "capability_id": "push_notification.send",
+                "service_slug": "airship",
+                "description": "Managed Airship push",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                "default_method": "POST",
+                "default_path": "/api/push",
+                "default_headers": {
+                    "Accept": "application/vnd.urbanairship+json; version=3",
+                    "Content-Type": "application/json",
+                },
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.airship" in path:
+            return [{"api_domain": "go.urbanairship.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 202
+
+        def json(self):
+            return {"ok": True, "operation_id": "airship_push_789"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="push_notification.send",
+            agent_id="agent_airship_auth_test",
+            body={
+                "audience": {"named_user": "existing_user"},
+                "notification": {"alert": "Already normalized"},
+                "device_types": ["ios"],
+            },
+            service_slug="airship",
+        )
+
+    assert result["provider_used"] == "airship"
+    assert captured["base_url"] == "https://go.urbanairship.com"
+    assert captured["url"] == "/api/push"
+    assert captured["headers"]["Accept"] == "application/vnd.urbanairship+json; version=3"
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert captured["headers"]["Authorization"] == (
+        f"Basic {base64.b64encode(raw_basic.encode()).decode()}"
+    )
+    assert captured["json"]["audience"] == {"named_user": "existing_user"}
+    assert captured["json"]["notification"] == {"alert": "Already normalized"}
+
+
+@pytest.mark.anyio
 async def test_managed_executor_unstructured_translates_json_body_to_multipart(monkeypatch):
     """Unstructured managed execution should translate JSON-native file descriptors to multipart."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "unstructured_test_secret")
