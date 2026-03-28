@@ -372,27 +372,32 @@ class RhumbManagedExecutor:
         service_slug: str,
         body: dict | None,
     ) -> tuple[list[tuple[str, str]], list[tuple[str, tuple[str, bytes, str]]]] | None:
-        """Convert JSON-native Unstructured inputs into multipart form data.
+        """Convert JSON-native managed inputs into upstream multipart form data.
 
-        Public execute remains JSON-shaped. For Unstructured managed execution,
-        callers can send a ``body`` shaped like:
+        Public execute remains JSON-shaped. Supported multipart providers currently
+        include:
 
-        {
-          "files": {
-            "filename": "doc.pdf",
-            "content_base64": "...",
-            "content_type": "application/pdf"
-          },
-          "strategy": "hi_res",
-          "languages": ["eng"]
-        }
-
-        which is translated into the multipart payload the upstream API expects.
+        - Unstructured: expects one or more ``files`` entries.
+        - Mindee: expects a single ``document`` file on the legacy predict
+          endpoints, but we also accept caller aliases like ``file`` and
+          ``files`` for convenience.
         """
-        if service_slug != "unstructured" or not body or "files" not in body:
+        if not body:
             return None
 
-        raw_files = body.get("files")
+        if service_slug == "unstructured":
+            file_keys = ("files",)
+            default_field_name = "files"
+        elif service_slug == "mindee":
+            file_keys = ("document", "file", "files")
+            default_field_name = "document"
+        else:
+            return None
+
+        raw_files = next((body.get(key) for key in file_keys if key in body), None)
+        if raw_files is None:
+            return None
+
         file_descriptors = raw_files if isinstance(raw_files, list) else [raw_files]
         multipart_files: list[tuple[str, tuple[str, bytes, str]]] = []
 
@@ -403,7 +408,11 @@ class RhumbManagedExecutor:
                     detail="Managed multipart files must be objects",
                 )
 
-            field_name = descriptor.get("field") or descriptor.get("field_name") or "files"
+            field_name = (
+                descriptor.get("field")
+                or descriptor.get("field_name")
+                or default_field_name
+            )
             filename = descriptor.get("filename") or "upload.bin"
             content_type = (
                 descriptor.get("content_type")
@@ -446,7 +455,7 @@ class RhumbManagedExecutor:
 
         multipart_data: list[tuple[str, str]] = []
         for key, value in body.items():
-            if key == "files" or value is None:
+            if key in file_keys or value is None:
                 continue
             if isinstance(value, list):
                 for item in value:
@@ -621,6 +630,17 @@ class RhumbManagedExecutor:
         }:
             return self._normalize_emailable_inputs(capability_id, params, body)
 
+        if service_slug == "mindee" and capability_id in {
+            "document.extract_fields",
+            "invoice.extract",
+        }:
+            payload: dict[str, Any] = dict(params) if params else {}
+            if body:
+                payload.update(body)
+            payload = self._rename_field(payload, "file", "document") or payload
+            payload = self._rename_field(payload, "files", "document") or payload
+            return None, None, payload or None
+
         if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
             params = self._rename_field(params, "query", "q")
             body = self._rename_field(body, "query", "q")
@@ -656,6 +676,7 @@ class RhumbManagedExecutor:
         "e2b": ("X-API-Key", None),
         # Token auth (non-Bearer Authorization header)
         "deepgram": ("Authorization", "Token "),
+        "mindee": ("Authorization", "Token "),
         # Query parameter auth (handled specially in execute)
         "google-maps": ("query:key", None),
         "google-places": ("query:key", None),

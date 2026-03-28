@@ -1071,6 +1071,201 @@ async def test_managed_executor_airship_uses_basic_auth_and_preserves_accept_hea
 
 
 @pytest.mark.anyio
+async def test_managed_executor_mindee_uses_token_auth_and_document_multipart(monkeypatch):
+    """Mindee managed execution should use Token auth and `document` multipart uploads."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_MINDEE_API_KEY", "mindee_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1401,
+                "capability_id": "invoice.extract",
+                "service_slug": "mindee",
+                "description": "Managed Mindee invoice extraction",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/v1/products/mindee/financial_document/v1/predict",
+                "default_headers": {},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.mindee" in path:
+            return [{"api_domain": "api.mindee.net"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"api_request": {"status": "success"}, "document": {"inference": {}}}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            captured["data"] = data
+            captured["files"] = files
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="invoice.extract",
+            agent_id="agent_mindee_invoice_test",
+            body={
+                "file": {
+                    "filename": "invoice.pdf",
+                    "content_base64": base64.b64encode(b"%PDF-invoice").decode(),
+                    "content_type": "application/pdf",
+                },
+                "include_mvision": True,
+            },
+            service_slug="mindee",
+        )
+
+    assert result["provider_used"] == "mindee"
+    assert captured["base_url"] == "https://api.mindee.net"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/v1/products/mindee/financial_document/v1/predict"
+    assert captured["json"] is None
+    assert not captured["params"]
+    assert captured["headers"]["Authorization"] == "Token mindee_test_secret"
+    assert "Content-Type" not in captured["headers"]
+
+    assert captured["data"] is None
+    all_files = captured["files"]
+    form_entries = [(name, tup[1].decode("utf-8")) for name, tup in all_files if tup[0] is None]
+    assert ("include_mvision", "true") in form_entries
+
+    file_entries = [(name, tup) for name, tup in all_files if tup[0] is not None]
+    assert len(file_entries) == 1
+    field_name, file_tuple = file_entries[0]
+    assert field_name == "document"
+    assert file_tuple[0] == "invoice.pdf"
+    assert file_tuple[1] == b"%PDF-invoice"
+    assert file_tuple[2] == "application/pdf"
+
+
+@pytest.mark.anyio
+async def test_managed_executor_mindee_accepts_files_alias_for_document_extract(monkeypatch):
+    """Mindee document.extract_fields should accept `files` and normalize it to `document`."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_MINDEE_API_KEY", "mindee_alias_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1402,
+                "capability_id": "document.extract_fields",
+                "service_slug": "mindee",
+                "description": "Managed Mindee document extraction",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/v1/products/mindee/financial_document/v1/predict",
+                "default_headers": {},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.mindee" in path:
+            return [{"api_domain": "api.mindee.net"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"api_request": {"status": "success"}, "document": {"inference": {}}}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            captured["data"] = data
+            captured["files"] = files
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="document.extract_fields",
+            agent_id="agent_mindee_document_test",
+            body={
+                "files": {
+                    "filename": "financial.txt",
+                    "text": "gross amount: 12.00",
+                },
+                "raw_text": True,
+            },
+            service_slug="mindee",
+        )
+
+    assert result["provider_used"] == "mindee"
+    assert captured["base_url"] == "https://api.mindee.net"
+    assert captured["headers"]["Authorization"] == "Token mindee_alias_secret"
+    assert captured["json"] is None
+
+    assert captured["data"] is None
+    all_files = captured["files"]
+    form_entries = [(name, tup[1].decode("utf-8")) for name, tup in all_files if tup[0] is None]
+    assert ("raw_text", "true") in form_entries
+
+    file_entries = [(name, tup) for name, tup in all_files if tup[0] is not None]
+    assert len(file_entries) == 1
+    field_name, file_tuple = file_entries[0]
+    assert field_name == "document"
+    assert file_tuple[0] == "financial.txt"
+    assert file_tuple[1] == b"gross amount: 12.00"
+    assert file_tuple[2] == "text/plain"
+
+
+@pytest.mark.anyio
 async def test_managed_executor_unstructured_translates_json_body_to_multipart(monkeypatch):
     """Unstructured managed execution should translate JSON-native file descriptors to multipart."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "unstructured_test_secret")
