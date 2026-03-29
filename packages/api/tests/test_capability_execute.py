@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import json
 import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -839,6 +840,66 @@ async def test_execute_get_returns_x402_discovery(app):
     assert body["x402Version"] == 1
     assert "resource" in body
     assert "accepts" in body
+
+
+@pytest.mark.anyio
+async def test_execute_post_raw_json_without_content_type_returns_x402_discovery(app):
+    """POST execute should still return x402 discovery when JSON body lacks Content-Type."""
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                content=json.dumps(
+                    {
+                        "provider": "sendgrid",
+                        "method": "POST",
+                        "path": "/v3/mail/send",
+                        "body": {"to": "test@example.com"},
+                    }
+                ),
+            )
+
+    assert resp.status_code == 402
+    assert resp.headers["x-payment"] == "required"
+    body = resp.json()
+    assert body["x402Version"] == 1
+    assert "resource" in body
+    assert "accepts" in body
+
+
+@pytest.mark.anyio
+async def test_execute_post_raw_json_without_content_type_accepts_authenticated_execute(app):
+    """Authenticated execute should accept raw JSON bodies without Content-Type."""
+    _, mock_pool = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                content=json.dumps(
+                    {
+                        "provider": "sendgrid",
+                        "method": "POST",
+                        "path": "/v3/mail/send",
+                        "body": {"to": "test@example.com"},
+                    }
+                ),
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "sendgrid"
+    assert data["upstream_status"] == 202
 
 
 @pytest.mark.anyio

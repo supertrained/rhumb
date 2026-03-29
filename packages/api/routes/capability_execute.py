@@ -28,8 +28,9 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
 from routes.proxy import (
@@ -494,6 +495,40 @@ class CapabilityExecuteRequest(BaseModel):
     interface: str = Field("rest", description="Client interface (rest, mcp, cli, sdk)")
 
 
+async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteRequest:
+    """Parse execute payloads even when clients omit Content-Type.
+
+    Some x402 buyers POST raw JSON bodies without setting
+    ``Content-Type: application/json`` during discovery/retry. FastAPI's
+    normal body parsing rejects those requests before the route can return a
+    402 discovery envelope or process the paid retry. Parse the raw body
+    ourselves so valid JSON still reaches the execute logic.
+    """
+    raw_body = await raw_request.body()
+    if not raw_body or not raw_body.strip():
+        return CapabilityExecuteRequest()
+
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError as exc:
+        raise RequestValidationError(
+            [
+                {
+                    "type": "value_error.jsondecode",
+                    "loc": ("body",),
+                    "msg": f"JSON decode error: {exc.msg}",
+                    "input": raw_body.decode("utf-8", errors="replace"),
+                    "ctx": {"error": exc.msg},
+                }
+            ]
+        ) from exc
+
+    try:
+        return CapabilityExecuteRequest.model_validate(payload)
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc
+
+
 # ---------------------------------------------------------------------------
 # Upstream payload helpers
 # ---------------------------------------------------------------------------
@@ -905,7 +940,6 @@ async def discover_execute_capability(
 @router.post("/capabilities/{capability_id}/execute")
 async def execute_capability(
     capability_id: str,
-    request: CapabilityExecuteRequest,
     raw_request: Request,
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
     x_agent_token: Optional[str] = Header(None, alias="X-Agent-Token"),
@@ -945,6 +979,8 @@ async def execute_capability(
                 "discover_capabilities MCP tool"
             ),
         )
+
+    request = await _parse_execute_request(raw_request)
 
     # ── Authentication: API key OR x402 payment ────────────────────
     is_x402_anonymous = False
