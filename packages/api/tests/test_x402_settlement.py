@@ -202,6 +202,53 @@ async def test_verification_failure_does_not_fallback():
 
 
 @pytest.mark.anyio
+async def test_unsupported_local_verification_falls_back_to_facilitator():
+    """Unsupported local signature formats should fall back when facilitator is available."""
+    from services.x402_local_settlement import SettlementVerificationFailed
+
+    verify_response = MagicMock()
+    verify_response.status_code = 200
+    verify_response.json.return_value = {"isValid": True, "payer": "0xPayer"}
+
+    settle_payload = {
+        "success": True,
+        "transaction": "0xfacilitator-smart-wallet",
+        "network": "base",
+        "payer": "0xPayer",
+    }
+    settle_response = MagicMock()
+    settle_response.status_code = 200
+    settle_response.json.return_value = settle_payload
+
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(side_effect=[verify_response, settle_response])
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with (
+        patch.dict(os.environ, {
+            "RHUMB_SETTLEMENT_PRIVATE_KEY": TEST_PRIVATE_KEY,
+            "X402_FACILITATOR_URL": "https://facilitator.example",
+        }, clear=False),
+        patch("services.x402_settlement.httpx.AsyncClient", return_value=mock_client),
+    ):
+        service = X402SettlementService()
+        service._local = MagicMock()
+        service._local.is_configured.return_value = True
+        service._local.verify_and_settle = AsyncMock(
+            side_effect=SettlementVerificationFailed(
+                "unsupported wrapped signature",
+                code="unsupported_local_signature_format",
+                retryable_with_facilitator=True,
+            )
+        )
+
+        result = await service.verify_and_settle(PAYMENT_PAYLOAD, PAYMENT_REQUIREMENTS)
+
+    assert result["transaction"] == "0xfacilitator-smart-wallet"
+
+
+@pytest.mark.anyio
 async def test_raises_when_neither_configured():
     """Should raise X402FacilitatorNotConfigured when no path is available."""
     with patch.dict(os.environ, {

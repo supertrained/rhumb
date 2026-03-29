@@ -103,13 +103,18 @@ def _to_uint8(value: int) -> str:
     return format(value, "064x")
 
 
+def _signature_bytes(signature: str) -> bytes:
+    """Return raw signature bytes from a hex string."""
+    return bytes.fromhex(signature.replace("0x", ""))
+
+
 def _split_signature(signature: str) -> tuple[int, bytes, bytes]:
     """Split a hex signature into (v, r, s).
 
     Handles both 65-byte (r + s + v) and 64-byte (r + s) formats.
     For 65-byte signatures, the last byte is v.
     """
-    sig_bytes = bytes.fromhex(signature.replace("0x", ""))
+    sig_bytes = _signature_bytes(signature)
     if len(sig_bytes) == 65:
         r = sig_bytes[:32]
         s = sig_bytes[32:64]
@@ -171,8 +176,12 @@ def verify_authorization_signature(
     2. ``validBefore`` is in the future (not expired)
     3. ``validAfter`` is in the past or now (already valid)
 
-    Returns ``{"valid": True, "recovered_signer": "0x..."}`` on success,
-    or ``{"valid": False, "error": "reason"}`` on failure.
+    Returns ``{"valid": True, "recovered_signer": "0x..."}`` on success.
+
+    For failures, includes ``error`` plus optional structured fields:
+    - ``error_code``: machine-readable reason
+    - ``retryable_with_facilitator``: whether a facilitator may still be able
+      to verify/settle the payload even though local EOA recovery cannot
     """
     from_addr = authorization.get("from", "")
     to_addr = authorization.get("to", "")
@@ -180,6 +189,30 @@ def verify_authorization_signature(
     valid_after = authorization.get("validAfter", "0")
     valid_before = authorization.get("validBefore", "0")
     nonce = authorization.get("nonce", "0x" + "00" * 32)
+
+    try:
+        sig_bytes = _signature_bytes(signature)
+    except ValueError as e:
+        return {
+            "valid": False,
+            "error": f"Invalid signature encoding: {e}",
+            "error_code": "invalid_signature_encoding",
+        }
+
+    sig_len = len(sig_bytes)
+    if sig_len not in (64, 65):
+        return {
+            "valid": False,
+            "error": (
+                "Unsupported local signature format: "
+                f"got {sig_len} bytes, expected raw 64/65-byte ECDSA. "
+                "Wrapped or smart-wallet signatures (for example ERC-1271/EIP-6492) "
+                "require facilitator or RPC-backed verification."
+            ),
+            "error_code": "unsupported_local_signature_format",
+            "retryable_with_facilitator": True,
+            "signature_bytes": sig_len,
+        }
 
     # Convert to integers for time checks
     valid_after_int = int(valid_after, 16) if isinstance(valid_after, str) and valid_after.startswith("0x") else int(valid_after)
@@ -218,8 +251,21 @@ def verify_authorization_signature(
             message_types=TRANSFER_WITH_AUTHORIZATION_TYPES,
             message_data=message_data,
         )
-        recovered = Account.recover_message(signable, signature=bytes.fromhex(signature.replace("0x", "")))
+        recovered = Account.recover_message(signable, signature=sig_bytes)
     except Exception as e:
+        error_text = str(e)
+        if "recoverable signature" in error_text.lower() or "expected 65" in error_text.lower():
+            return {
+                "valid": False,
+                "error": (
+                    "Unsupported local signature verification path: "
+                    f"{error_text}. Local settlement currently supports only raw EOA "
+                    "EIP-3009 signatures; facilitator verification may still succeed."
+                ),
+                "error_code": "unsupported_local_signature_recovery",
+                "retryable_with_facilitator": True,
+                "signature_bytes": sig_len,
+            }
         return {"valid": False, "error": f"Signature recovery failed: {e}"}
 
     if recovered.lower() != from_addr.lower():
@@ -327,7 +373,11 @@ class LocalX402Settlement:
         # ── Step 1: Off-chain verification (no gas spent) ─────────────
         verification = verify_authorization_signature(authorization, signature)
         if not verification.get("valid"):
-            raise SettlementVerificationFailed(verification.get("error", "Signature verification failed"))
+            raise SettlementVerificationFailed(
+                verification.get("error", "Signature verification failed"),
+                code=verification.get("error_code"),
+                retryable_with_facilitator=bool(verification.get("retryable_with_facilitator")),
+            )
 
         payer = authorization["from"]
 
@@ -471,6 +521,17 @@ async def _async_sleep(seconds: float) -> None:
 
 class SettlementVerificationFailed(Exception):
     """Off-chain verification of the authorization signature failed."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        retryable_with_facilitator: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.retryable_with_facilitator = retryable_with_facilitator
 
 
 class SettlementOnChainFailed(Exception):

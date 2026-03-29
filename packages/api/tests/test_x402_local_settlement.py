@@ -209,6 +209,16 @@ class TestVerifyAuthorizationSignature:
         assert result["valid"] is False
         assert "not yet valid" in result["error"].lower()
 
+    def test_wrapped_signature_marked_retryable_with_facilitator(self):
+        """Oversized signatures should be treated as unsupported locally, not invalid."""
+        auth, _, _ = _make_test_authorization_and_signature()
+        wrapped_sig = "0x" + "ab" * 640
+        result = verify_authorization_signature(auth, wrapped_sig)
+        assert result["valid"] is False
+        assert result["retryable_with_facilitator"] is True
+        assert result["error_code"] == "unsupported_local_signature_format"
+        assert "smart-wallet" in result["error"].lower() or "wrapped" in result["error"].lower()
+
 
 # ── Settlement success path (mock RPC) ────────────────────────────────────
 

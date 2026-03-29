@@ -113,8 +113,16 @@ class X402SettlementService:
                 )
                 return result
             except SettlementVerificationFailed as e:
-                # Verification failures are definitive — don't retry with facilitator
-                raise X402VerificationFailed(str(e)) from e
+                # Invalid signatures are definitive, but unsupported local verification
+                # formats (for example smart-wallet / wrapped signatures) may still be
+                # verifiable by a facilitator.
+                if e.retryable_with_facilitator and self.facilitator_url() is not None:
+                    logger.warning(
+                        "Local settlement could not verify signature format (%s); trying facilitator",
+                        e,
+                    )
+                else:
+                    raise X402VerificationFailed(str(e)) from e
             except SettlementOnChainFailed as e:
                 # On-chain failure might be transient; try facilitator if available
                 if self.facilitator_url() is not None:
