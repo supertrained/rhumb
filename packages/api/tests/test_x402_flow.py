@@ -560,9 +560,11 @@ class TestX402ValidPayment:
         assert body["data"]["x402_receipt"]["payment_request_id"] == "pr_std_123"
         assert body["data"]["x402_receipt"]["network"] == "base-sepolia"
         assert resp.headers.get("payment-response") is not None
-        payment_resp = json.loads(resp.headers["x-payment-response"])
-        assert payment_resp["tx_hash"] == TX_HASH
+        assert resp.headers["x-payment-response"] == resp.headers["payment-response"]
+        payment_resp = json.loads(base64.b64decode(resp.headers["x-payment-response"]).decode())
+        assert payment_resp["transaction"] == TX_HASH
         assert payment_resp["network"] == "base-sepolia"
+        assert payment_resp["success"] is True
         mock_verify_and_settle.assert_awaited_once()
         mock_get_pending.assert_awaited_once_with("pr_std_123")
         mock_mark_verified.assert_awaited_once_with("pr_std_123", TX_HASH)

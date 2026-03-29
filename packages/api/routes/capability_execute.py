@@ -2260,9 +2260,11 @@ async def execute_capability(
         if x402_receipt.get("network"):
             response_data["x402_receipt"]["network"] = x402_receipt["network"]
             payment_response["network"] = x402_receipt["network"]
-        response_headers["X-Payment-Response"] = json.dumps(payment_response)
         if standard_x402_payment_response_header:
             response_headers["PAYMENT-RESPONSE"] = standard_x402_payment_response_header
+            response_headers["X-Payment-Response"] = standard_x402_payment_response_header
+        else:
+            response_headers["X-Payment-Response"] = json.dumps(payment_response)
 
     if response_headers:
         response = JSONResponse(

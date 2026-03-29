@@ -86,3 +86,29 @@ class TestErrorEnvelope:
         assert resp.status_code == 500
         assert resp.headers["access-control-allow-origin"] == "https://rhumb.dev"
         assert "Origin" in resp.headers["vary"]
+
+    def test_cors_exposes_x402_and_request_headers_for_allowlisted_origin(self, client):
+        """Browser x402 clients must be able to read settlement headers."""
+        resp = client.get("/healthz", headers={"Origin": "https://rhumb.dev"})
+
+        assert resp.status_code == 200
+        exposed = {value.strip() for value in resp.headers["access-control-expose-headers"].split(",")}
+        assert "PAYMENT-RESPONSE" in exposed
+        assert "X-Payment-Response" in exposed
+        assert "X-Request-ID" in exposed
+
+    def test_preflight_allows_payment_signature_header(self, client):
+        """Browser x402 clients should pass preflight when sending PAYMENT-SIGNATURE."""
+        resp = client.options(
+            "/v1/services",
+            headers={
+                "Origin": "https://rhumb.dev",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "PAYMENT-SIGNATURE, X-Request-ID",
+            },
+        )
+
+        assert resp.status_code == 200
+        allowed = {value.strip() for value in resp.headers["access-control-allow-headers"].split(",")}
+        assert "PAYMENT-SIGNATURE" in allowed
+        assert "X-Request-ID" in allowed

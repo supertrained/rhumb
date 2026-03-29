@@ -142,8 +142,19 @@ def create_app() -> FastAPI:
             "X-Rhumb-Key",
             "X-Rhumb-Admin-Key",
             "X-Payment",
+            "PAYMENT-SIGNATURE",
             "Content-Type",
             "Authorization",
+            "X-Request-ID",
+        ],
+        expose_headers=[
+            "X-Request-ID",
+            "X-Payment",
+            "PAYMENT-RESPONSE",
+            "X-Payment-Response",
+            "X-Rhumb-Auth",
+            "X-Rhumb-Wallet",
+            "X-Rhumb-Rate-Remaining",
         ],
     )
 
