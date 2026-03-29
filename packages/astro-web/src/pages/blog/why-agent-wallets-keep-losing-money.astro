@@ -1,0 +1,634 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const TITLE = "Why Agent Wallets Keep Losing Money";
+const DESCRIPTION =
+  "We funded an agent wallet with $5 USDC and lost access to it within 48 hours. Not because of a hack — because of a re-authentication. Here's the systemic fragility in agent wallet tooling that nobody is talking about.";
+const URL = "https://rhumb.dev/blog/why-agent-wallets-keep-losing-money";
+const DATE_PUBLISHED = "2026-03-29T00:00:00Z";
+const KEYWORDS = [
+  "agent wallet",
+  "ai agent payments",
+  "x402 wallet",
+  "agent wallet security",
+  "awal wallet",
+  "agent wallet recovery",
+  "x402 payment protocol",
+  "agent wallet fragility",
+  "autonomous agent payments",
+  "agent identity persistence",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: TITLE,
+  description: DESCRIPTION,
+  datePublished: DATE_PUBLISHED,
+  dateModified: DATE_PUBLISHED,
+  url: URL,
+  keywords: KEYWORDS.join(", "),
+  articleSection: "Payments",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+const TOC = [
+  { id: "what-happened", label: "What Happened" },
+  { id: "four-fragility-patterns", label: "Four Fragility Patterns" },
+  { id: "silent-identity-orphaning", label: "#1: Silent Identity Orphaning" },
+  { id: "daemon-fragility", label: "#2: Daemon Fragility" },
+  { id: "no-export-import", label: "#3: No Export/Import" },
+  { id: "email-auth-coupling", label: "#4: Email-Auth Coupling" },
+  { id: "who-else-hits-this", label: "Who Else Hits This" },
+  { id: "what-good-looks-like", label: "What Good Looks Like" },
+  { id: "what-this-means-for-scoring", label: "What This Means for Scoring" },
+];
+
+const TIMELINE = [
+  { time: "Day 0", event: "Fund agent wallet with $5 USDC on Base", status: "ok" },
+  { time: "Day 0", event: "Agent executes x402 payment flow successfully", status: "ok" },
+  { time: "Day 2", event: "Re-authenticate wallet CLI with different email flow", status: "warning" },
+  { time: "Day 2", event: "New wallet identity created silently — funded wallet orphaned", status: "error" },
+  { time: "Day 2", event: "Payment daemon wedges, npx awal status times out", status: "error" },
+  { time: "Day 2", event: "No built-in recovery path, no wallet list, no switch command", status: "error" },
+  { time: "Day 3", event: "Manual forensic recovery via LevelDB inspection", status: "warning" },
+  { time: "Day 3", event: "Controlled daemon restart + correct re-auth recovers access", status: "ok" },
+];
+
+const FRAGILITY_COMPARISON = [
+  {
+    dimension: "Wallet persistence",
+    agentWallets: "Tied to auth session. Re-auth can orphan.",
+    humanWallets: "Seed phrase or hardware key. Survives any session.",
+    severity: "Critical",
+  },
+  {
+    dimension: "Multi-identity",
+    agentWallets: "One active wallet. No list/switch.",
+    humanWallets: "Unlimited accounts, easy switching.",
+    severity: "High",
+  },
+  {
+    dimension: "Key export",
+    agentWallets: "Locked in Electron LevelDB. No export.",
+    humanWallets: "Standard seed phrase backup.",
+    severity: "Critical",
+  },
+  {
+    dimension: "Daemon health",
+    agentWallets: "No health check, no auto-restart.",
+    humanWallets: "N/A — user-initiated.",
+    severity: "High",
+  },
+  {
+    dimension: "Recovery path",
+    agentWallets: "Manual LevelDB forensics.",
+    humanWallets: "Import seed phrase anywhere.",
+    severity: "Critical",
+  },
+  {
+    dimension: "Cross-machine portability",
+    agentWallets: "None. Wallet dies with the machine.",
+    humanWallets: "Any device with the seed phrase.",
+    severity: "High",
+  },
+];
+
+const GOOD_WALLET_PROPERTIES = [
+  {
+    property: "Address-first identity",
+    description: "The wallet address is the stable identity, not the auth session. Auth sessions can rotate without affecting wallet access.",
+  },
+  {
+    property: "Exportable keys",
+    description: "The agent (or its operator) can export private keys or seed phrases for backup, migration, or disaster recovery.",
+  },
+  {
+    property: "Multi-wallet management",
+    description: "An agent can hold multiple wallets, list them, switch between them, and label them by purpose.",
+  },
+  {
+    property: "Daemon resilience",
+    description: "The payment process has health checks, auto-restart, and graceful degradation. A wedged daemon doesn't strand funds.",
+  },
+  {
+    property: "Portable state",
+    description: "Wallet state can move between machines. Server migration or hardware failure doesn't destroy access to funds.",
+  },
+  {
+    property: "Programmatic funding verification",
+    description: "The agent can check its own balance, verify incoming deposits, and alert when funds are low — without a browser or dashboard.",
+  },
+];
+---
+
+<Layout
+  title={`${TITLE} | Rhumb`}
+  description={DESCRIPTION}
+  canonical="/blog/why-agent-wallets-keep-losing-money"
+  ogTitle={TITLE}
+  ogDescription={DESCRIPTION}
+  ogUrl={URL}
+  ogType="article"
+  twitterTitle={TITLE}
+  twitterDescription={DESCRIPTION}
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <meta name="keywords" content={KEYWORDS.join(", ")} />
+  <meta name="author" content="Pedro Nunes" />
+  <meta property="article:published_time" content={DATE_PUBLISHED} />
+  <meta property="article:modified_time" content={DATE_PUBLISHED} />
+  <meta property="article:author" content="Pedro Nunes" />
+  <meta property="article:section" content="Payments" />
+  {KEYWORDS.map((keyword) => <meta property="article:tag" content={keyword} />)}
+
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-4xl mx-auto px-6 pt-14 pb-24">
+
+      <!-- Header -->
+      <header class="mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Agent Infrastructure
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">March 29, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated March 29, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6">
+          {TITLE}
+        </h1>
+
+        <p class="text-lg text-slate-400 leading-relaxed max-w-3xl">
+          We funded an agent wallet with $5 USDC on Base. Within 48 hours, a routine
+          re-authentication silently orphaned it. No hack, no bug in our code, no
+          user error &mdash; just a category-level fragility in how agent wallets
+          handle identity, persistence, and recovery.
+        </p>
+
+        <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Funds at Risk</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">$5.00</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Time to Orphan</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">48h</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Recovery Time</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">5h</p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-xl p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Built-in Recovery</p>
+            <p class="mt-2 text-2xl font-display font-bold text-red-400">None</p>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-surface border border-amber/20 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-mono uppercase tracking-[0.18em] text-amber">Jump To</span>
+            <span class="h-px flex-1 bg-slate-800"></span>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-3">
+            {TOC.map((item) => (
+              <a
+                href={`#${item.id}`}
+                class="rounded-lg border border-slate-800 bg-elevated px-4 py-3 text-sm text-slate-300 hover:border-amber/30 hover:text-amber transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <!-- What Happened -->
+      <section id="what-happened" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What Happened
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            We are building <a href="https://rhumb.dev" class="text-amber hover:underline underline-offset-2">Rhumb</a>,
+            an infrastructure layer for AI agents to discover and access external tools. Part of that
+            work is implementing <a href="/blog/how-agents-actually-pay-x402-dogfood" class="text-amber hover:underline underline-offset-2">x402</a> &mdash;
+            HTTP-native payments where agents pay per API call with no signup required.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            To test x402 end to end, we set up <a href="https://github.com/nichochar/awal" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">Awal</a>,
+            Coinbase&apos;s agent wallet CLI. Our agent bootstrapped its own wallet autonomously,
+            we funded it with $5 USDC on Base, and the first payment flows worked.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            Then we re-authenticated. And everything broke.
+          </p>
+        </div>
+
+        <div class="mt-8 space-y-2">
+          {TIMELINE.map((item) => (
+            <div class={`flex items-start gap-4 rounded-xl border p-4 ${
+              item.status === "ok"
+                ? "bg-surface border-emerald-500/20"
+                : item.status === "warning"
+                ? "bg-surface border-amber/20"
+                : "bg-surface border-red-500/20"
+            }`}>
+              <span class={`shrink-0 mt-0.5 w-2 h-2 rounded-full ${
+                item.status === "ok"
+                  ? "bg-emerald-400"
+                  : item.status === "warning"
+                  ? "bg-amber"
+                  : "bg-red-400"
+              }`}></span>
+              <div class="flex-1">
+                <span class="text-xs font-mono text-slate-500 mr-3">{item.time}</span>
+                <span class="text-sm text-slate-300">{item.event}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p class="mt-6 text-slate-400 leading-relaxed">
+          The $5 was never stolen. It was still on-chain at the original address. But the wallet
+          tooling had no concept of &ldquo;you have a funded wallet that you can no longer
+          access&rdquo; &mdash; and no built-in path to recover it. We had to write a custom
+          LevelDB inspector to even confirm the funded wallet identity still existed in the local
+          Electron app data.
+        </p>
+      </section>
+
+      <!-- Four Fragility Patterns -->
+      <section id="four-fragility-patterns" class="scroll-mt-24 mb-6">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Four Fragility Patterns
+        </h2>
+        <p class="text-slate-400 leading-relaxed">
+          This is not an Awal bug report. These are category-level problems that will affect any
+          agent wallet tooling that follows the same architectural patterns.
+        </p>
+      </section>
+
+      <!-- Pattern 1: Silent Identity Orphaning -->
+      <section id="silent-identity-orphaning" class="scroll-mt-24 mb-10">
+        <div class="bg-surface border border-red-500/20 rounded-2xl p-6">
+          <p class="text-xs font-mono text-red-400 uppercase tracking-[0.18em] mb-3">
+            Pattern #1 — Critical
+          </p>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            Silent Identity Orphaning
+          </h3>
+          <p class="text-slate-400 leading-relaxed">
+            Re-authenticating creates a new wallet identity while the funded wallet stays in local
+            storage with no connection to the new session. The agent now has access to a fresh,
+            empty wallet. The funded wallet still exists on-chain and in the local LevelDB &mdash;
+            but there is no command to list wallets, switch between them, or even discover that a
+            second wallet exists.
+          </p>
+          <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+            <p class="text-sm text-slate-300">
+              <span class="text-amber font-mono font-semibold">Why this is systemic:</span> Any
+              agent that re-authenticates &mdash; session expiry, credential rotation, environment
+              migration &mdash; risks silently losing access to funded wallets. The more money at
+              stake, the worse the failure.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pattern 2: Daemon Fragility -->
+      <section id="daemon-fragility" class="scroll-mt-24 mb-10">
+        <div class="bg-surface border border-red-500/20 rounded-2xl p-6">
+          <p class="text-xs font-mono text-red-400 uppercase tracking-[0.18em] mb-3">
+            Pattern #2 — High
+          </p>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            Daemon Fragility
+          </h3>
+          <p class="text-slate-400 leading-relaxed">
+            The payment daemon (<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">payments-mcp-server</code>)
+            wedged after the re-auth. <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">npx awal status</code>
+            timed out. There was no health check endpoint, no auto-restart, no graceful degradation.
+            The process was alive (PID still running) but functionally dead.
+          </p>
+          <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+            <p class="text-sm text-slate-300">
+              <span class="text-amber font-mono font-semibold">Agent impact:</span> An autonomous
+              agent cannot self-diagnose &ldquo;my payment daemon is dead.&rdquo; It sees timeouts
+              and retries forever. With real money at stake, a wedged daemon means the agent is
+              effectively broke despite having funds.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pattern 3: No Export/Import -->
+      <section id="no-export-import" class="scroll-mt-24 mb-10">
+        <div class="bg-surface border border-red-500/20 rounded-2xl p-6">
+          <p class="text-xs font-mono text-red-400 uppercase tracking-[0.18em] mb-3">
+            Pattern #3 — Critical
+          </p>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            No Key Export or Import
+          </h3>
+          <p class="text-slate-400 leading-relaxed">
+            The private key lives in an Electron app&apos;s LevelDB store. There is no
+            <code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">awal export-key</code>,
+            no seed phrase, no portable backup format. If the app data is corrupted, the machine
+            fails, or the Electron app updates its storage format &mdash; the wallet and its funds
+            are permanently inaccessible.
+          </p>
+          <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+            <p class="text-sm text-slate-300">
+              <span class="text-amber font-mono font-semibold">Contrast with human wallets:</span>{" "}
+              Every consumer crypto wallet has seed phrase backup. MetaMask, Phantom, Coinbase
+              Wallet &mdash; all exportable. Agent wallets have regressed below the security floor
+              that human wallets established years ago.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pattern 4: Email-Auth Coupling -->
+      <section id="email-auth-coupling" class="scroll-mt-24 mb-14">
+        <div class="bg-surface border border-amber/20 rounded-2xl p-6">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-3">
+            Pattern #4 — High
+          </p>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3">
+            Identity Tied to Email Auth, Not Wallet Address
+          </h3>
+          <p class="text-slate-400 leading-relaxed">
+            The wallet address should be the stable identity. Instead, identity is tied to the
+            Coinbase email authentication session. When the session dies, wallet access dies &mdash;
+            even though the on-chain funds are perfectly fine. The protocol (x402) assumes stable
+            wallet identity. The tooling doesn&apos;t guarantee it.
+          </p>
+          <div class="mt-4 bg-elevated border border-slate-800 rounded-lg p-4">
+            <p class="text-sm text-slate-300">
+              <span class="text-amber font-mono font-semibold">The mismatch:</span> x402 is
+              designed so that a wallet address <em class="text-slate-200">is</em> the credential.
+              No signup, no API keys &mdash; just a funded wallet. But if the wallet tooling can
+              lose the address on re-auth, the protocol&apos;s fundamental premise breaks.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Comparison Table -->
+      <section class="mb-14">
+        <h3 class="font-display font-semibold text-xl text-slate-100 mb-4">
+          Agent Wallets vs Human Wallets
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] border border-slate-800 rounded-xl overflow-hidden">
+            <thead class="bg-elevated">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Dimension
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Agent Wallets (Today)
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Human Wallets
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+                  Severity
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {FRAGILITY_COMPARISON.map((row) => (
+                <tr class="border-t border-slate-800">
+                  <td class="px-4 py-3 text-sm text-slate-300 font-medium">{row.dimension}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.agentWallets}</td>
+                  <td class="px-4 py-3 text-sm text-slate-400">{row.humanWallets}</td>
+                  <td class="px-4 py-3 text-sm font-mono">
+                    <span class={row.severity === "Critical" ? "text-red-400" : "text-amber"}>
+                      {row.severity}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Who Else Hits This -->
+      <section id="who-else-hits-this" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          Who Else Hits This
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            Any agent framework that adopts x402 with Awal-style wallet tooling inherits these
+            fragility patterns:
+          </p>
+        </div>
+        <div class="mt-6 grid gap-3">
+          {[
+            { framework: "OpenClaw agents", scenario: "Agent re-authenticates during a session restart. Funded wallet orphaned." },
+            { framework: "LangChain agents with payment capabilities", scenario: "Environment migration to new server. Wallet state doesn't transfer." },
+            { framework: "CrewAI agents with budget authority", scenario: "Multi-agent system where Agent A funds Agent B's wallet. Agent B re-auths and loses it." },
+            { framework: "AutoGen agents with tool payment", scenario: "Long-running agent hits session expiry. Re-auth creates new wallet." },
+            { framework: "Any agent on ephemeral infrastructure", scenario: "Container restart, serverless cold start, or VM preemption. Wallet state gone." },
+          ].map((item) => (
+            <div class="bg-surface border border-slate-800 rounded-xl p-5">
+              <p class="text-sm text-slate-200 font-semibold">{item.framework}</p>
+              <p class="text-sm text-slate-500 mt-1">{item.scenario}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- What Good Looks Like -->
+      <section id="what-good-looks-like" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What Good Looks Like
+        </h2>
+        <p class="text-slate-400 leading-relaxed mb-6">
+          Agent wallet tooling doesn&apos;t need to be perfect. It needs to meet the same baseline
+          that human wallets established years ago &mdash; plus the additional requirements that
+          autonomous operation demands.
+        </p>
+        <div class="grid gap-3">
+          {GOOD_WALLET_PROPERTIES.map((item) => (
+            <div class="bg-surface border border-emerald-500/20 rounded-xl p-5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-400">
+                  Required
+                </span>
+                <span class="h-px flex-1 bg-slate-800"></span>
+              </div>
+              <h4 class="font-display font-semibold text-slate-100">{item.property}</h4>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- What This Means for Scoring -->
+      <section id="what-this-means-for-scoring" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          What This Means for API Scoring
+        </h2>
+        <div class="prose-rhumb space-y-4">
+          <p class="text-slate-400 leading-relaxed">
+            We score 1,000+ APIs on 20 dimensions for AI agent compatibility. None of those
+            dimensions currently cover wallet persistence, identity recovery, or daemon resilience.
+            That needs to change.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            When we evaluate payment and wallet services for agents, the questions should include:
+          </p>
+        </div>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          {[
+            "Can the agent recover its wallet after a re-authentication?",
+            "Can the agent export its private key for backup?",
+            "Can the agent detect a wedged payment daemon?",
+            "Can the agent list and switch between wallet identities?",
+            "Does wallet state survive machine migration?",
+            "Can the agent verify its own balance programmatically?",
+          ].map((question) => (
+            <div class="bg-surface border border-slate-800 rounded-lg px-5 py-3">
+              <p class="text-sm text-slate-300">{question}</p>
+            </div>
+          ))}
+        </div>
+        <p class="mt-6 text-slate-400 leading-relaxed">
+          For every &ldquo;no,&rdquo; an agent with real money is one session restart away from
+          losing access to its funds. These are not edge cases &mdash; they are the default
+          operating conditions for autonomous agents.
+        </p>
+      </section>
+
+      <!-- How We Recovered -->
+      <section class="mb-14">
+        <div class="bg-surface border border-amber/20 rounded-2xl p-6">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.18em] mb-3">
+            Our Recovery Path
+          </p>
+          <p class="text-slate-400 leading-relaxed mb-4">
+            We recovered the funded wallet. It took 5 hours and custom tooling that no agent should
+            need to build:
+          </p>
+          <ol class="list-decimal list-outside ml-5 space-y-2 text-sm text-slate-400">
+            <li>
+              Wrote a <strong class="text-slate-200">read-only LevelDB inspector</strong> to scan
+              the Electron app&apos;s local storage and confirm both wallet identities still existed
+              on disk.
+            </li>
+            <li>
+              Wrote a <strong class="text-slate-200">controlled daemon restart script</strong> with
+              dry-run mode, SIGTERM-only (no SIGKILL), and wallet-state preflight checks.
+            </li>
+            <li>
+              Re-authenticated with the <strong class="text-slate-200">original email</strong> to
+              reconnect to the funded wallet identity.
+            </li>
+            <li>
+              Verified the funded address was active and the $5 USDC balance was accessible.
+            </li>
+          </ol>
+          <p class="mt-4 text-sm text-slate-500">
+            This is not a recovery path. This is forensic engineering. The fact that we had to write
+            it proves the tooling gap.
+          </p>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="mb-14">
+        <div class="bg-surface border border-amber/20 rounded-[28px] p-8 sm:p-10">
+          <div class="max-w-3xl">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.2em] mb-3">
+              Building with Agent Payments?
+            </p>
+            <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 tracking-tight mb-4">
+              Check how your payment tools score for agents
+            </h2>
+            <p class="text-slate-400 leading-relaxed">
+              We&apos;ve scored Stripe (8.1), PayPal (4.9), and every major payment API on 20
+              dimensions. See where wallet tooling and payment infrastructure actually stands for
+              autonomous use.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="/blog/payments-for-agents"
+              class="inline-flex justify-center rounded-lg px-6 py-3 font-display font-semibold text-sm transition-colors duration-200 cta-button"
+            >
+              Read the payments comparison &rarr;
+            </a>
+            <a
+              href="/blog/how-agents-actually-pay-x402-dogfood"
+              class="inline-flex justify-center rounded-lg border border-slate-700 px-6 py-3 text-sm font-display font-semibold text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors"
+            >
+              Read the x402 dogfood report
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="border-t border-slate-800 pt-8">
+        <p class="text-slate-500 leading-relaxed">
+          This article is part of a series on agent payments. We implemented x402 as a seller,
+          funded a buyer wallet, and documented every failure along the way. The protocol works.
+          The tooling around it needs to catch up.
+        </p>
+
+        <section class="mt-10">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <a
+              href="/blog/how-agents-actually-pay-x402-dogfood"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                x402 Dogfood
+              </span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                How Agents Actually Pay: What We Learned Dogfooding x402
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                5 hours debugging discovery mismatches and the honest 422 that breaks payment loops.
+              </p>
+            </a>
+            <a
+              href="/blog/payments-for-agents"
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                Payments
+              </span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">
+                Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents
+              </h3>
+              <p class="text-sm text-slate-500 mt-1">
+                AN Scores across 6 payment APIs on 20 dimensions of agent compatibility.
+              </p>
+            </a>
+          </div>
+        </section>
+      </footer>
+    </article>
+  </div>
+</Layout>
