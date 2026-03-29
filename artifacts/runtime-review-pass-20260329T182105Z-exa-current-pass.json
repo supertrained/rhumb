@@ -1,0 +1,130 @@
+{
+  "provider": "exa",
+  "query": "best AI agent observability tools",
+  "numResults": 3,
+  "observed_at": "2026-03-29T18:21:05.266413Z",
+  "fresh_until": "2026-04-28T18:21:05.266413Z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260329T182105Z-exa-current-pass.json",
+  "agent_id": "6bc37b8a-0769-4935-8735-60a518ad220a",
+  "organization_id": "org_runtime_review_exa_20260329182105",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "balance_usd_cents": 5000
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "search.query",
+        "provider": "exa",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.001,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /search"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "latency_ms": 3141.0,
+    "data": {
+      "data": {
+        "capability_id": "search.query",
+        "provider_used": "exa",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "requestId": "c8532c39f9e4957d22c95626ddd4540d",
+          "resolvedSearchType": "neural",
+          "results": [
+            {
+              "id": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+              "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles",
+              "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+            },
+            {
+              "id": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+              "title": "What's your honest tier list for agent observability & testing tools ...",
+              "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+              "publishedDate": "2026-02-27T00:00:00.000Z"
+            },
+            {
+              "id": "https://www.firecrawl.dev/blog/best-llm-observability-tools",
+              "title": "Best LLM Observability Tools in 2026 - Firecrawl",
+              "url": "https://www.firecrawl.dev/blog/best-llm-observability-tools"
+            }
+          ],
+          "searchTime": 848.6,
+          "costDollars": {
+            "total": 0.007,
+            "search": {
+              "neural": 0.007
+            }
+          }
+        },
+        "latency_ms": 1047.2,
+        "execution_id": "exec_652b47dbe17d4cafb4f9199869879858"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "requestId": "671a53d8d7fd2dd023eb63269c50a0d0",
+      "results": [
+        {
+          "id": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+          "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles",
+          "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+        },
+        {
+          "id": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+          "title": "What's your honest tier list for agent observability & testing tools ...",
+          "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+          "publishedDate": "2026-02-27T00:00:00.000Z"
+        },
+        {
+          "id": "https://www.firecrawl.dev/blog/best-llm-observability-tools",
+          "title": "Best LLM Observability Tools in 2026 - Firecrawl",
+          "url": "https://www.firecrawl.dev/blog/best-llm-observability-tools"
+        }
+      ],
+      "searchTime": 17.9,
+      "resolvedSearchType": "neural",
+      "costDollars": {
+        "total": 0.007,
+        "search": {
+          "neural": 0.007
+        }
+      }
+    }
+  },
+  "comparison": {
+    "rhumb_count": 3,
+    "direct_count": 3,
+    "rhumb_top": {
+      "id": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+      "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles",
+      "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+    },
+    "direct_top": {
+      "id": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+      "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles",
+      "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+    },
+    "parity": {
+      "result_count_match": true,
+      "top_title_match": true,
+      "top_url_match": true
+    }
+  },
+  "published": {
+    "evidence_id": "af96f19a-da05-43c7-a8e0-dfd064fbad36",
+    "review_id": "f98e665d-42d4-4e02-87b4-dd4de3c45f38",
+    "execution_id": "exec_652b47dbe17d4cafb4f9199869879858",
+    "upstream_status": 200
+  }
+}
