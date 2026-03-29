@@ -1,0 +1,189 @@
+{
+    "data": {
+        "services": [
+            {
+                "name": "stripe",
+                "proxy_name": "stripe",
+                "canonical_slug": "stripe",
+                "domain": "api.stripe.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "slack",
+                "proxy_name": "slack",
+                "canonical_slug": "slack",
+                "domain": "slack.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "60/min",
+                "callable": true
+            },
+            {
+                "name": "sendgrid",
+                "proxy_name": "sendgrid",
+                "canonical_slug": "sendgrid",
+                "domain": "api.sendgrid.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "300/min",
+                "callable": false
+            },
+            {
+                "name": "github",
+                "proxy_name": "github",
+                "canonical_slug": "github",
+                "domain": "api.github.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "5000/hour",
+                "callable": true
+            },
+            {
+                "name": "twilio",
+                "proxy_name": "twilio",
+                "canonical_slug": "twilio",
+                "domain": "api.twilio.com",
+                "auth_type": "basic_auth",
+                "rate_limit": "1000/min",
+                "callable": true
+            },
+            {
+                "name": "firecrawl",
+                "proxy_name": "firecrawl",
+                "canonical_slug": "firecrawl",
+                "domain": "api.firecrawl.dev",
+                "auth_type": "bearer_token",
+                "rate_limit": "500/min",
+                "callable": true
+            },
+            {
+                "name": "apify",
+                "proxy_name": "apify",
+                "canonical_slug": "apify",
+                "domain": "api.apify.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "250/min",
+                "callable": true
+            },
+            {
+                "name": "apollo",
+                "proxy_name": "apollo",
+                "canonical_slug": "apollo",
+                "domain": "api.apollo.io",
+                "auth_type": "api_key",
+                "rate_limit": "300/min",
+                "callable": true
+            },
+            {
+                "name": "people-data-labs",
+                "proxy_name": "pdl",
+                "canonical_slug": "people-data-labs",
+                "domain": "api.peopledatalabs.com",
+                "auth_type": "api_key",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "tavily",
+                "proxy_name": "tavily",
+                "canonical_slug": "tavily",
+                "domain": "api.tavily.com",
+                "auth_type": "api_key",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "exa",
+                "proxy_name": "exa",
+                "canonical_slug": "exa",
+                "domain": "api.exa.ai",
+                "auth_type": "bearer_token",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "brave-search-api",
+                "proxy_name": "brave-search",
+                "canonical_slug": "brave-search-api",
+                "domain": "api.search.brave.com",
+                "auth_type": "api_key",
+                "rate_limit": "60/min",
+                "callable": true
+            },
+            {
+                "name": "replicate",
+                "proxy_name": "replicate",
+                "canonical_slug": "replicate",
+                "domain": "api.replicate.com",
+                "auth_type": "bearer_token",
+                "rate_limit": "600/min",
+                "callable": true
+            },
+            {
+                "name": "algolia",
+                "proxy_name": "algolia",
+                "canonical_slug": "algolia",
+                "domain": "80LYFTF37Y-dsn.algolia.net",
+                "auth_type": "api_key",
+                "rate_limit": "1000/min",
+                "callable": true
+            },
+            {
+                "name": "e2b",
+                "proxy_name": "e2b",
+                "canonical_slug": "e2b",
+                "domain": "api.e2b.dev",
+                "auth_type": "api_key",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "unstructured",
+                "proxy_name": "unstructured",
+                "canonical_slug": "unstructured",
+                "domain": "api.unstructuredapp.io",
+                "auth_type": "api_key",
+                "rate_limit": "100/min",
+                "callable": true
+            },
+            {
+                "name": "google-ai",
+                "proxy_name": "google-ai",
+                "canonical_slug": "google-ai",
+                "domain": "generativelanguage.googleapis.com",
+                "auth_type": "api_key",
+                "rate_limit": "60/min",
+                "callable": true
+            },
+            {
+                "name": "ipinfo",
+                "proxy_name": "ipinfo",
+                "canonical_slug": "ipinfo",
+                "domain": "api.ipinfo.io",
+                "auth_type": "bearer_token",
+                "rate_limit": "1000/min",
+                "callable": false
+            },
+            {
+                "name": "scraperapi",
+                "proxy_name": "scraperapi",
+                "canonical_slug": "scraperapi",
+                "domain": "api.scraperapi.com",
+                "auth_type": "api_key",
+                "rate_limit": "100/min",
+                "callable": false
+            },
+            {
+                "name": "deepgram",
+                "proxy_name": "deepgram",
+                "canonical_slug": "deepgram",
+                "domain": "api.deepgram.com",
+                "auth_type": "api_key",
+                "rate_limit": "200/min",
+                "callable": false
+            }
+        ],
+        "total": 20,
+        "callable_count": 16
+    },
+    "error": null
+}
