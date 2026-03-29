@@ -1,0 +1,1326 @@
+{
+  "run_started_at": "2026-03-29T07:06:57.270251+00:00",
+  "reviewer_agent_id": "26b215a5-3baf-4e73-850d-e78e4b339512",
+  "mission0_pdl": {
+    "provider": "people-data-labs",
+    "capability_id": "data.enrich_person",
+    "input": {
+      "profile": "https://www.linkedin.com/in/satyanadella/"
+    },
+    "estimate": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "216",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200171-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 07:06:48 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "iW5XMDsdQiuhQs_-n6XIxQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1774768069",
+        "x-request-id": "0d6c5651-01e0-4f01-8b9d-df25430c4245",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200171-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "data.enrich_person",
+          "provider": "people-data-labs",
+          "credential_mode": "rhumb_managed",
+          "cost_estimate_usd": 0.1,
+          "circuit_state": "closed",
+          "endpoint_pattern": "GET /v5/person/enrich"
+        },
+        "error": null
+      }
+    },
+    "rhumb_execute": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "11199",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200074-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 07:06:49 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "bEIkD2XeTDmY6dLBLPU1MQ",
+        "x-ratelimit-limit": "30",
+        "x-ratelimit-remaining": "29",
+        "x-ratelimit-reset": "1774768073",
+        "x-request-id": "e2ca46d2-afc9-46af-bc97-6c5782ba2156",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200074-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "data.enrich_person",
+          "provider_used": "people-data-labs",
+          "credential_mode": "rhumb_managed",
+          "upstream_status": 200,
+          "upstream_response": {
+            "status": 200,
+            "likelihood": 9,
+            "data": {
+              "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+              "full_name": "satya nadella",
+              "first_name": "satya",
+              "middle_initial": null,
+              "middle_name": null,
+              "last_initial": "n",
+              "last_name": "nadella",
+              "sex": null,
+              "birth_year": false,
+              "birth_date": false,
+              "linkedin_url": "linkedin.com/in/satyanadella",
+              "linkedin_username": "satyanadella",
+              "linkedin_id": "19186432",
+              "facebook_url": null,
+              "facebook_username": null,
+              "facebook_id": null,
+              "twitter_url": null,
+              "twitter_username": null,
+              "github_url": null,
+              "github_username": null,
+              "work_email": false,
+              "personal_emails": true,
+              "recommended_personal_email": true,
+              "mobile_phone": true,
+              "industry": "computer software",
+              "job_title": "board member",
+              "job_title_role": "advisory",
+              "job_title_sub_role": "board_member",
+              "job_title_class": "general_and_administrative",
+              "job_title_levels": [
+                "partner"
+              ],
+              "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+              "job_company_name": "starbucks",
+              "job_company_website": "starbucks.com",
+              "job_company_size": "10001+",
+              "job_company_founded": 1971,
+              "job_company_industry": "retail",
+              "job_company_industry_v2": "retail",
+              "job_company_linkedin_url": "linkedin.com/company/starbucks",
+              "job_company_linkedin_id": "2271",
+              "job_company_facebook_url": "facebook.com/starbucks",
+              "job_company_twitter_url": "twitter.com/starbucks",
+              "job_company_location_name": "seattle, washington, united states",
+              "job_company_location_locality": "seattle",
+              "job_company_location_metro": "seattle, washington",
+              "job_company_location_region": "washington",
+              "job_company_location_geo": "47.67,-122.3",
+              "job_company_location_street_address": "2401 utah avenue south",
+              "job_company_location_address_line_2": null,
+              "job_company_location_postal_code": "98134",
+              "job_company_location_country": "united states",
+              "job_company_location_continent": "north america",
+              "job_last_changed": "2019-12-07",
+              "job_last_verified": "2024-04-01",
+              "job_start_date": "2017",
+              "location_name": true,
+              "location_locality": true,
+              "location_metro": true,
+              "location_region": true,
+              "location_country": "united states",
+              "location_continent": "north america",
+              "location_street_address": false,
+              "location_address_line_2": null,
+              "location_postal_code": false,
+              "location_geo": true,
+              "location_last_updated": "2024-04-01",
+              "phone_numbers": true,
+              "emails": true,
+              "interests": [
+                "cricket",
+                "poetry and literature",
+                "spending time with family",
+                "technology"
+              ],
+              "skills": [],
+              "location_names": true,
+              "regions": true,
+              "countries": [
+                "united states"
+              ],
+              "street_addresses": false,
+              "experience": [
+                {
+                  "company": {
+                    "name": "starbucks",
+                    "size": "10001+",
+                    "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+                    "founded": 1971,
+                    "industry": "retail",
+                    "industry_v2": "retail",
+                    "location": {
+                      "name": "seattle, washington, united states",
+                      "locality": "seattle",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "2401 utah avenue south",
+                      "address_line_2": null,
+                      "postal_code": "98134",
+                      "geo": "47.67,-122.3"
+                    },
+                    "linkedin_url": "linkedin.com/company/starbucks",
+                    "linkedin_id": "2271",
+                    "facebook_url": "facebook.com/starbucks",
+                    "twitter_url": "twitter.com/starbucks",
+                    "website": "starbucks.com"
+                  },
+                  "location_names": [],
+                  "end_date": null,
+                  "start_date": "2017",
+                  "title": {
+                    "name": "board member",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": true
+                },
+                {
+                  "company": {
+                    "name": "the business council u.s.",
+                    "size": "1-10",
+                    "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+                    "founded": 1933,
+                    "industry": "non-profit organization management",
+                    "industry_v2": "non-profit organizations",
+                    "location": {
+                      "name": "washington, district of columbia, united states",
+                      "locality": "washington",
+                      "region": "district of columbia",
+                      "metro": "district of columbia",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1901 pennsylvania avenue northwest 307",
+                      "address_line_2": null,
+                      "postal_code": "20006",
+                      "geo": "38.88,-77.01"
+                    },
+                    "linkedin_url": "linkedin.com/company/the-business-council-us",
+                    "linkedin_id": "5301945",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "businesscouncil.com"
+                  },
+                  "location_names": [],
+                  "end_date": "2023",
+                  "start_date": "2021",
+                  "title": {
+                    "name": "chairman",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "university of chicago",
+                    "size": "1-10",
+                    "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+                    "founded": 1890,
+                    "industry": "higher education",
+                    "industry_v2": null,
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "metro": "chicago, illinois",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "5801 south ellis avenue",
+                      "address_line_2": null,
+                      "postal_code": "60637",
+                      "geo": "41.82,-87.66"
+                    },
+                    "linkedin_url": "linkedin.com/company/uchicago",
+                    "linkedin_id": "3881",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "uchicago.edu"
+                  },
+                  "location_names": [],
+                  "end_date": null,
+                  "start_date": "2018",
+                  "title": {
+                    "name": "member board of trustees",
+                    "class": null,
+                    "role": null,
+                    "sub_role": null,
+                    "levels": []
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "fred hutch",
+                    "size": "1001-5000",
+                    "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+                    "founded": 1975,
+                    "industry": "hospital & health care",
+                    "industry_v2": "hospitals and health care",
+                    "location": {
+                      "name": "seattle, washington, united states",
+                      "locality": "seattle",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1100 fairview avenue north",
+                      "address_line_2": null,
+                      "postal_code": "98109",
+                      "geo": "47.67,-122.3"
+                    },
+                    "linkedin_url": "linkedin.com/company/fredhutch",
+                    "linkedin_id": "7158",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "satcomia.com"
+                  },
+                  "location_names": [],
+                  "end_date": "2022",
+                  "start_date": "2016",
+                  "title": {
+                    "name": "board member",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "microsoft",
+                    "size": "10001+",
+                    "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+                    "founded": 1975,
+                    "industry": "computer software",
+                    "industry_v2": "software development",
+                    "location": {
+                      "name": "redmond, washington, united states",
+                      "locality": "redmond",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1 microsoft way",
+                      "address_line_2": null,
+                      "postal_code": "98052",
+                      "geo": "47.65,-122.03"
+                    },
+                    "linkedin_url": "linkedin.com/company/microsoft",
+                    "linkedin_id": "1035",
+                    "facebook_url": "facebook.com/microsoft",
+                    "twitter_url": "twitter.com/microsoft",
+                    "website": "microsoft.com"
+                  },
+                  "location_names": [
+                    "seattle, washington, united states"
+                  ],
+                  "end_date": null,
+                  "start_date": "2014-02",
+                  "title": {
+                    "name": "chairman and chief executive officer",
+                    "class": "general_and_administrative",
+                    "role": "operations",
+                    "sub_role": "executive",
+                    "levels": []
+                  },
+                  "is_primary": false
+                }
+              ],
+              "education": [
+                {
+                  "school": {
+                    "name": "the university of chicago booth school of business",
+                    "type": "post-secondary institution",
+                    "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "linkedin_id": "8398",
+                    "website": "chicagobooth.edu",
+                    "domain": "chicagobooth.edu"
+                  },
+                  "degrees": [],
+                  "start_date": "1994",
+                  "end_date": "1996",
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "mangalore university",
+                    "type": "post-secondary institution",
+                    "id": "99V-CuceB3awRNUxlN1y5w_0",
+                    "location": {
+                      "name": "mangalore, karnataka, india",
+                      "locality": "mangalore",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+                    "facebook_url": "facebook.com/university.mangalore",
+                    "twitter_url": null,
+                    "linkedin_id": "66175955",
+                    "website": "mangaloreuniversity.ac.in",
+                    "domain": "mangaloreuniversity.ac.in"
+                  },
+                  "degrees": [
+                    "bachelors"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "electrical engineering"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "manipal institute of technology",
+                    "type": "post-secondary institution",
+                    "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                    "location": {
+                      "name": "nagar, karnataka, india",
+                      "locality": "nagar",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                    "facebook_url": "facebook.com/mahemanipal",
+                    "twitter_url": "twitter.com/manipaluni",
+                    "linkedin_id": "577550",
+                    "website": "manipal.edu",
+                    "domain": "manipal.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "manipal institute of technology",
+                    "type": "post-secondary institution",
+                    "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                    "location": {
+                      "name": "nagar, karnataka, india",
+                      "locality": "nagar",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                    "facebook_url": "facebook.com/mahemanipal",
+                    "twitter_url": "twitter.com/manipaluni",
+                    "linkedin_id": "577550",
+                    "website": "manipal.edu",
+                    "domain": "manipal.edu"
+                  },
+                  "degrees": [
+                    "bachelors"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "electrical engineering"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "the university of chicago booth school of business",
+                    "type": "post-secondary institution",
+                    "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "linkedin_id": "8398",
+                    "website": "chicagobooth.edu",
+                    "domain": "chicagobooth.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "university of wisconsin - milwaukee",
+                    "type": "post-secondary institution",
+                    "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                    "location": {
+                      "name": "milwaukee, wisconsin, united states",
+                      "locality": "milwaukee",
+                      "region": "wisconsin",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                    "facebook_url": "facebook.com/uwmilwaukee",
+                    "twitter_url": "twitter.com/uwm",
+                    "linkedin_id": "166690",
+                    "website": "uwm.edu",
+                    "domain": "uwm.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "university of wisconsin - milwaukee",
+                    "type": "post-secondary institution",
+                    "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                    "location": {
+                      "name": "milwaukee, wisconsin, united states",
+                      "locality": "milwaukee",
+                      "region": "wisconsin",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                    "facebook_url": "facebook.com/uwmilwaukee",
+                    "twitter_url": "twitter.com/uwm",
+                    "linkedin_id": "166690",
+                    "website": "uwm.edu",
+                    "domain": "uwm.edu"
+                  },
+                  "degrees": [
+                    "masters"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "computer science"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                }
+              ],
+              "profiles": [
+                {
+                  "network": "linkedin",
+                  "id": "19186432",
+                  "url": "linkedin.com/in/satyanadella",
+                  "username": "satyanadella"
+                },
+                {
+                  "network": "linkedin",
+                  "id": "448588505",
+                  "url": "linkedin.com/in/satyanadella",
+                  "username": "satyanadella"
+                },
+                {
+                  "network": "linkedin",
+                  "id": "19186432",
+                  "url": "linkedin.com/in/satya-nadella-3145136",
+                  "username": "satya-nadella-3145136"
+                }
+              ],
+              "dataset_version": "33.2"
+            }
+          },
+          "latency_ms": 896.6,
+          "execution_id": "exec_46952f1741e04a0da2e5d96eca13c33e",
+          "org_credits_remaining_cents": 7952
+        },
+        "error": null
+      }
+    },
+    "direct_control": {
+      "status_code": 200,
+      "headers": {
+        "Date": "Sun, 29 Mar 2026 07:06:53 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "11709",
+        "Connection": "close",
+        "Server": "gunicorn",
+        "Strict-Transport-Security": "max-age=31536000; preload",
+        "X-Lifetime-Used": "263",
+        "X-Call-Credits-Spent": "1",
+        "X-Call-Credits-Type": "enrich",
+        "X-TotalLimit-Remaining": "24",
+        "X-TotalLimit-Purchased-Remaining": "24",
+        "X-TotalLimit-Overages-Remaining": "0",
+        "X-RateLimit-Limit": "{\"minute\": 100}",
+        "X-RateLimit-Reset": "2026-03-29 07:07:53",
+        "X-RateLimit-Remaining": "{\"minute\": 98}",
+        "Vary": "Accept-Encoding",
+        "Access-Control-Allow-Origin": "*"
+      },
+      "body": {
+        "status": 200,
+        "likelihood": 9,
+        "data": {
+          "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+          "full_name": "satya nadella",
+          "first_name": "satya",
+          "middle_initial": null,
+          "middle_name": null,
+          "last_initial": "n",
+          "last_name": "nadella",
+          "sex": null,
+          "birth_year": false,
+          "birth_date": false,
+          "linkedin_url": "linkedin.com/in/satyanadella",
+          "linkedin_username": "satyanadella",
+          "linkedin_id": "19186432",
+          "facebook_url": null,
+          "facebook_username": null,
+          "facebook_id": null,
+          "twitter_url": null,
+          "twitter_username": null,
+          "github_url": null,
+          "github_username": null,
+          "work_email": false,
+          "personal_emails": true,
+          "recommended_personal_email": true,
+          "mobile_phone": true,
+          "industry": "computer software",
+          "job_title": "board member",
+          "job_title_role": "advisory",
+          "job_title_sub_role": "board_member",
+          "job_title_class": "general_and_administrative",
+          "job_title_levels": [
+            "partner"
+          ],
+          "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+          "job_company_name": "starbucks",
+          "job_company_website": "starbucks.com",
+          "job_company_size": "10001+",
+          "job_company_founded": 1971,
+          "job_company_industry": "retail",
+          "job_company_industry_v2": "retail",
+          "job_company_linkedin_url": "linkedin.com/company/starbucks",
+          "job_company_linkedin_id": "2271",
+          "job_company_facebook_url": "facebook.com/starbucks",
+          "job_company_twitter_url": "twitter.com/starbucks",
+          "job_company_location_name": "seattle, washington, united states",
+          "job_company_location_locality": "seattle",
+          "job_company_location_metro": "seattle, washington",
+          "job_company_location_region": "washington",
+          "job_company_location_geo": "47.67,-122.3",
+          "job_company_location_street_address": "2401 utah avenue south",
+          "job_company_location_address_line_2": null,
+          "job_company_location_postal_code": "98134",
+          "job_company_location_country": "united states",
+          "job_company_location_continent": "north america",
+          "job_last_changed": "2019-12-07",
+          "job_last_verified": "2024-04-01",
+          "job_start_date": "2017",
+          "location_name": true,
+          "location_locality": true,
+          "location_metro": true,
+          "location_region": true,
+          "location_country": "united states",
+          "location_continent": "north america",
+          "location_street_address": false,
+          "location_address_line_2": null,
+          "location_postal_code": false,
+          "location_geo": true,
+          "location_last_updated": "2024-04-01",
+          "phone_numbers": true,
+          "emails": true,
+          "interests": [
+            "cricket",
+            "poetry and literature",
+            "spending time with family",
+            "technology"
+          ],
+          "skills": [],
+          "location_names": true,
+          "regions": true,
+          "countries": [
+            "united states"
+          ],
+          "street_addresses": false,
+          "experience": [
+            {
+              "company": {
+                "name": "starbucks",
+                "size": "10001+",
+                "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+                "founded": 1971,
+                "industry": "retail",
+                "industry_v2": "retail",
+                "location": {
+                  "name": "seattle, washington, united states",
+                  "locality": "seattle",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "2401 utah avenue south",
+                  "address_line_2": null,
+                  "postal_code": "98134",
+                  "geo": "47.67,-122.3"
+                },
+                "linkedin_url": "linkedin.com/company/starbucks",
+                "linkedin_id": "2271",
+                "facebook_url": "facebook.com/starbucks",
+                "twitter_url": "twitter.com/starbucks",
+                "website": "starbucks.com"
+              },
+              "location_names": [],
+              "end_date": null,
+              "start_date": "2017",
+              "title": {
+                "name": "board member",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": true
+            },
+            {
+              "company": {
+                "name": "the business council u.s.",
+                "size": "1-10",
+                "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+                "founded": 1933,
+                "industry": "non-profit organization management",
+                "industry_v2": "non-profit organizations",
+                "location": {
+                  "name": "washington, district of columbia, united states",
+                  "locality": "washington",
+                  "region": "district of columbia",
+                  "metro": "district of columbia",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1901 pennsylvania avenue northwest 307",
+                  "address_line_2": null,
+                  "postal_code": "20006",
+                  "geo": "38.88,-77.01"
+                },
+                "linkedin_url": "linkedin.com/company/the-business-council-us",
+                "linkedin_id": "5301945",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "businesscouncil.com"
+              },
+              "location_names": [],
+              "end_date": "2023",
+              "start_date": "2021",
+              "title": {
+                "name": "chairman",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "university of chicago",
+                "size": "1-10",
+                "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+                "founded": 1890,
+                "industry": "higher education",
+                "industry_v2": null,
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "metro": "chicago, illinois",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "5801 south ellis avenue",
+                  "address_line_2": null,
+                  "postal_code": "60637",
+                  "geo": "41.82,-87.66"
+                },
+                "linkedin_url": "linkedin.com/company/uchicago",
+                "linkedin_id": "3881",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "uchicago.edu"
+              },
+              "location_names": [],
+              "end_date": null,
+              "start_date": "2018",
+              "title": {
+                "name": "member board of trustees",
+                "class": null,
+                "role": null,
+                "sub_role": null,
+                "levels": []
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "fred hutch",
+                "size": "1001-5000",
+                "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+                "founded": 1975,
+                "industry": "hospital & health care",
+                "industry_v2": "hospitals and health care",
+                "location": {
+                  "name": "seattle, washington, united states",
+                  "locality": "seattle",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1100 fairview avenue north",
+                  "address_line_2": null,
+                  "postal_code": "98109",
+                  "geo": "47.67,-122.3"
+                },
+                "linkedin_url": "linkedin.com/company/fredhutch",
+                "linkedin_id": "7158",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "satcomia.com"
+              },
+              "location_names": [],
+              "end_date": "2022",
+              "start_date": "2016",
+              "title": {
+                "name": "board member",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "microsoft",
+                "size": "10001+",
+                "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+                "founded": 1975,
+                "industry": "computer software",
+                "industry_v2": "software development",
+                "location": {
+                  "name": "redmond, washington, united states",
+                  "locality": "redmond",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1 microsoft way",
+                  "address_line_2": null,
+                  "postal_code": "98052",
+                  "geo": "47.65,-122.03"
+                },
+                "linkedin_url": "linkedin.com/company/microsoft",
+                "linkedin_id": "1035",
+                "facebook_url": "facebook.com/microsoft",
+                "twitter_url": "twitter.com/microsoft",
+                "website": "microsoft.com"
+              },
+              "location_names": [
+                "seattle, washington, united states"
+              ],
+              "end_date": null,
+              "start_date": "2014-02",
+              "title": {
+                "name": "chairman and chief executive officer",
+                "class": "general_and_administrative",
+                "role": "operations",
+                "sub_role": "executive",
+                "levels": []
+              },
+              "is_primary": false
+            }
+          ],
+          "education": [
+            {
+              "school": {
+                "name": "the university of chicago booth school of business",
+                "type": "post-secondary institution",
+                "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                "facebook_url": null,
+                "twitter_url": null,
+                "linkedin_id": "8398",
+                "website": "chicagobooth.edu",
+                "domain": "chicagobooth.edu"
+              },
+              "degrees": [],
+              "start_date": "1994",
+              "end_date": "1996",
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "mangalore university",
+                "type": "post-secondary institution",
+                "id": "99V-CuceB3awRNUxlN1y5w_0",
+                "location": {
+                  "name": "mangalore, karnataka, india",
+                  "locality": "mangalore",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+                "facebook_url": "facebook.com/university.mangalore",
+                "twitter_url": null,
+                "linkedin_id": "66175955",
+                "website": "mangaloreuniversity.ac.in",
+                "domain": "mangaloreuniversity.ac.in"
+              },
+              "degrees": [
+                "bachelors"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "electrical engineering"
+              ],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "manipal institute of technology",
+                "type": "post-secondary institution",
+                "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                "location": {
+                  "name": "nagar, karnataka, india",
+                  "locality": "nagar",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                "facebook_url": "facebook.com/mahemanipal",
+                "twitter_url": "twitter.com/manipaluni",
+                "linkedin_id": "577550",
+                "website": "manipal.edu",
+                "domain": "manipal.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "manipal institute of technology",
+                "type": "post-secondary institution",
+                "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                "location": {
+                  "name": "nagar, karnataka, india",
+                  "locality": "nagar",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                "facebook_url": "facebook.com/mahemanipal",
+                "twitter_url": "twitter.com/manipaluni",
+                "linkedin_id": "577550",
+                "website": "manipal.edu",
+                "domain": "manipal.edu"
+              },
+              "degrees": [
+                "bachelors"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "electrical engineering"
+              ],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "the university of chicago booth school of business",
+                "type": "post-secondary institution",
+                "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                "facebook_url": null,
+                "twitter_url": null,
+                "linkedin_id": "8398",
+                "website": "chicagobooth.edu",
+                "domain": "chicagobooth.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "university of wisconsin - milwaukee",
+                "type": "post-secondary institution",
+                "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                "location": {
+                  "name": "milwaukee, wisconsin, united states",
+                  "locality": "milwaukee",
+                  "region": "wisconsin",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                "facebook_url": "facebook.com/uwmilwaukee",
+                "twitter_url": "twitter.com/uwm",
+                "linkedin_id": "166690",
+                "website": "uwm.edu",
+                "domain": "uwm.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "university of wisconsin - milwaukee",
+                "type": "post-secondary institution",
+                "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                "location": {
+                  "name": "milwaukee, wisconsin, united states",
+                  "locality": "milwaukee",
+                  "region": "wisconsin",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                "facebook_url": "facebook.com/uwmilwaukee",
+                "twitter_url": "twitter.com/uwm",
+                "linkedin_id": "166690",
+                "website": "uwm.edu",
+                "domain": "uwm.edu"
+              },
+              "degrees": [
+                "masters"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "computer science"
+              ],
+              "minors": [],
+              "gpa": null
+            }
+          ],
+          "profiles": [
+            {
+              "network": "linkedin",
+              "id": "19186432",
+              "url": "linkedin.com/in/satyanadella",
+              "username": "satyanadella"
+            },
+            {
+              "network": "linkedin",
+              "id": "448588505",
+              "url": "linkedin.com/in/satyanadella",
+              "username": "satyanadella"
+            },
+            {
+              "network": "linkedin",
+              "id": "19186432",
+              "url": "linkedin.com/in/satya-nadella-3145136",
+              "username": "satya-nadella-3145136"
+            }
+          ],
+          "dataset_version": "33.2"
+        }
+      }
+    },
+    "field_parity": {
+      "full_name": [
+        "satya nadella",
+        "satya nadella"
+      ],
+      "job_title": [
+        "board member",
+        "board member"
+      ],
+      "job_company_name": [
+        "starbucks",
+        "starbucks"
+      ],
+      "linkedin_url": [
+        "linkedin.com/in/satyanadella",
+        "linkedin.com/in/satyanadella"
+      ]
+    }
+  },
+  "mission1_firecrawl": {
+    "provider": "firecrawl",
+    "capability_id": "scrape.extract",
+    "coverage_before": {
+      "total_reviews": 7,
+      "runtime_backed_reviews": 5
+    },
+    "input": {
+      "url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+      "formats": [
+        "markdown"
+      ]
+    },
+    "estimate": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "200",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200032-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 07:06:53 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "_hwvy0uWSaei4cR8xtoGcA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "118",
+        "x-ratelimit-reset": "1774768074",
+        "x-request-id": "25d24011-b2ea-4efc-8685-f6df0348f927",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200032-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "scrape.extract",
+          "provider": "firecrawl",
+          "credential_mode": "rhumb_managed",
+          "cost_estimate_usd": null,
+          "circuit_state": "closed",
+          "endpoint_pattern": "POST /v1/scrape"
+        },
+        "error": null
+      }
+    },
+    "rhumb_execute": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "11024",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200032-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 07:06:54 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "drusv8zGQ4WAmag6xtoGcA",
+        "x-ratelimit-limit": "30",
+        "x-ratelimit-remaining": "28",
+        "x-ratelimit-reset": "1774768076",
+        "x-request-id": "26465642-6888-4aa9-9226-7b358ef26951",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200032-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "scrape.extract",
+          "provider_used": "firecrawl",
+          "credential_mode": "rhumb_managed",
+          "upstream_status": 200,
+          "upstream_response": {
+            "success": true,
+            "data": {
+              "markdown": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014 whether your site has llms.txt, structured data, or robots.txt rules for GPTBot.\nThat's useful if you're optimizing a marketing page for ChatGPT citations.\n\nBut if you're building an AI agent that needs to _use_ an API \u2014\nsend an email, process a payment, query a database \u2014 website crawlability tells you nothing.\nYour agent doesn't read your landing page. It calls your endpoints.\n\nThe real question isn't \u201cIs this website AI-friendly?\u201d It's:\n**\u201cWill this API actually work when my agent calls it at 3am with no human supervision?\u201d**\n\nThat's a fundamentally different evaluation. It requires measuring execution reliability, authentication\nfriction, error handling quality, and dozens of other dimensions that website scanners don't touch.\n\n## What actually matters: execution vs. access\n\nAfter scoring 665+ developer APIs across 86 categories, we've found that agent compatibility comes down to two axes:\n\n**Execution (70% of what matters)**\n\nCan the agent reliably get work done through this API?\n\n- **Error handling:**\nDoes the API return structured, parseable errors? Or vague 500s that leave the agent guessing?\n\n- **Schema stability:**\nDo response shapes change between versions without warning?\n\n- **Idempotency:**\nCan the agent safely retry a failed request without creating duplicates?\n\n- **Latency consistency:**\nAre response times predictable enough for timeout management?\n\n- **Rate limit transparency:**\nDoes the API tell the agent _how long_ to wait, or just reject requests?\n\n\n**Access Readiness (30% of what matters)**\n\nCan the agent even get started?\n\n- **Signup friction:**\nDoes creating credentials require email verification, phone numbers, or CAPTCHAs?\n\n- **Authentication complexity:**\nAPI key in a header? Or a multi-step OAuth dance requiring a browser?\n\n- **Documentation quality:**\nCan the agent (or the developer configuring it) understand the API from docs alone?\n\n- **Sandbox availability:**\nIs there a test environment that doesn't require production credentials?\n\n- **Rate limits:**\nAre free-tier limits high enough for development and testing?\n\n\nWe weight execution at 70% because access friction is a one-time cost \u2014 you solve it during setup.\nExecution reliability is an ongoing cost that compounds every time the agent makes a call.\n\n## The AN Score: quantifying agent-nativeness\n\nThe Agent-Native (AN) Score is our framework for measuring these dimensions. It evaluates each API across\n20 specific dimensions on these two axes, producing a score from 0 to 10:\n\n| Tier | Score | What it means |\n| --- | --- | --- |\n| L4 Native | 8.0\u201310.0 | Built for agents. Minimal friction, reliable execution, structured everything. |\n| L3 Fluent | 6.0\u20137.9 | Agents can use this reliably with minor configuration. |\n| L2 Developing | 4.0\u20135.9 | Usable with workarounds. Expect friction points. |\n| L1 Emerging | 0.0\u20133.9 | Significant barriers. Not recommended for unsupervised agent use. |\n\n**Real example \u2014 payments:**\n\nStripe scores 8.1 (L4 Native): execution score 9.0, access readiness 6.6. It has idempotency keys, structured errors,\nversioned webhooks, and an official agent toolkit. The access readiness score is lower because restricted API keys can\nsilently scope-limit results \u2014 a documented failure mode that catches agents off guard. (An agent believes no customers\nexist when it simply lacks read permission.)\n\nPayPal scores 4.9 (L2 Developing): execution score 5.9, access readiness 3.7. OAuth2 is the only auth method. Sandbox requires\nCAPTCHA verification. The moment your agent needs to click \u201cI am not a robot,\u201d the automation dies.\n\nThe gap between 8.1 and 4.9 isn't marginal. It's the difference between an agent that processes payments at 3am and one that\npages a human.\n\n## Five questions to ask before your agent calls any API\n\nYou don't need a formal scoring framework to make better tool selections. Start with these five questions:\n\n**1\\. What happens when the request fails?**\nCheck the API's error responses. Do you get a structured JSON error with an error code, message, and suggested fix?\nOr a generic 500 with an HTML error page? Agents need parseable errors to decide whether to retry, fall back, or escalate.\n\n**2\\. Can the agent create credentials without a human?**\nIf signup requires email verification, phone number, or CAPTCHA \u2014 your agent can't self-provision. Look for APIs that offer\nprogrammatic key generation or zero-signup access paths (like x402 pay-per-call).\n\n**3\\. Are rate limits explicit and machine-readable?**\nGood APIs return\n`X-RateLimit-Remaining`\nand\n`Retry-After`\nheaders. Bad APIs just return 429 with no guidance. Your agent needs to know: how long should I wait? How many calls do I have left?\n\n**4\\. Does the API version its responses?**\nBreaking changes in response schemas are the #1 cause of silent agent failures. Look for explicit versioning (Stripe's API\nversion headers, GitHub's API versions) rather than unversioned endpoints.\n\n**5\\. Is there a sandbox that doesn't require production credentials?**\nYour agent needs to test before going live. If the sandbox requires the same onboarding friction as production (business verification,\ncredit card, manual approval), development iteration time explodes.\n\n## The \u201cagent readiness\u201d vs. \u201cAPI agent-nativeness\u201d distinction\n\nThis matters: most tools calling themselves \u201cagent readiness scanners\u201d (AgentReady, Pillar, SiteSpeakAI) evaluate websites for\nAI chatbot crawlability. They check llms.txt, robots.txt, structured data, and content formatting.\n\nThat's a different problem. Website agent-readiness is about making your content discoverable by AI search engines. API\nagent-nativeness is about making your endpoints usable by autonomous AI agents.\n\n| What's measured | Website agent readiness | API agent-nativeness (AN Score) |\n| --- | --- | --- |\n| Target audience | AI search engines (ChatGPT, Perplexity) | AI agents calling APIs |\n| Key metrics | llms.txt, robots.txt, Schema.org | Error handling, auth friction, idempotency |\n| Score meaning | \u201cCan AI find your content?\u201d | \u201cCan AI use your service?\u201d |\n| Evaluation method | Static page scan | API testing + documentation analysis |\n| Examples | AgentReady, Pillar, SiteSpeakAI | [AN Score (Rhumb)](https://rhumb.dev/methodology) |\n\nBoth matter. If you're a developer choosing tools, website readiness tells you whether the vendor takes AI seriously.\nAPI agent-nativeness tells you whether the product actually works in your agent pipeline.\n\n## How to use this in practice\n\n**If you're building an agent that calls external APIs:**\n\n1. Check the [AN Score](https://rhumb.dev/leaderboard) for any service you're considering\n\n2. Read the [failure modes](https://rhumb.dev/search) before integrating \u2014 know where the API breaks for agents\n\n3. Prefer L3+ services for critical paths; use L2 services only with fallback logic\n\n4. Run `npx rhumb-mcp` in your agent to get scores at decision time\n\n\n**If you're evaluating a new API without a score:**\n\nUse the five questions above as a quick filter. If an API fails on questions 1 (error handling) or 2 (credential creation), it's\nlikely L1\u2013L2 regardless of other strengths.\n\n**If you're an API provider wanting to improve:**\n\nRead our [methodology](https://rhumb.dev/methodology). The 20 dimensions are published and transparent.\nThe most impactful improvements are usually: structured errors, API key auth (not just OAuth), and explicit rate limit headers.\n\n## See how your tools score\n\nWe've scored 600+ developer tools across 90+ categories. The AN Score measures real agent compatibility \u2014 not marketing claims.\n\n[Browse the leaderboard \u2192](https://rhumb.dev/leaderboard)\n\n## Related\n\n[Methodology **How we score API agent-nativeness**\\\\\n\\\\\nThe 20 dimensions behind the AN Score, published and transparent.](https://rhumb.dev/methodology) [Quickstart **Get scores inside your agent (MCP)**\\\\\n\\\\\nRun rhumb-mcp to fetch scores at decision time.](https://rhumb.dev/blog/getting-started-mcp) [Payments **Stripe vs Square vs PayPal for AI agents**\\\\\n\\\\\nA payments API comparison using the AN Score.](https://rhumb.dev/blog/stripe-vs-square-vs-paypal)",
+              "metadata": {
+                "language": "en",
+                "twitter:creator": "@pedrorhumb",
+                "twitter:image": "https://rhumb.dev/api/og",
+                "og:image:height": "630",
+                "twitter:card": "summary_large_image",
+                "ogSiteName": "Rhumb",
+                "og:image:width": "1200",
+                "ogDescription": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+                "og:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+                "og:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+                "og:url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+                "og:type": "article",
+                "description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+                "ogImage": "https://rhumb.dev/api/og",
+                "og:image": "https://rhumb.dev/api/og",
+                "og:locale": "en_US",
+                "twitter:site": "@pedrorhumb",
+                "ogLocale": "en_US",
+                "title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+                "ogUrl": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+                "viewport": "width=device-width, initial-scale=1",
+                "twitter:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+                "og:site_name": "Rhumb",
+                "ogTitle": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+                "twitter:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+                "favicon": "https://rhumb.dev/favicon.ico",
+                "scrapeId": "019d386a-caf9-746a-ad13-f0f75fea5ee1",
+                "sourceURL": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+                "url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+                "statusCode": 200,
+                "contentType": "text/html; charset=utf-8",
+                "proxyUsed": "basic",
+                "cacheState": "hit",
+                "cachedAt": "2026-03-29T07:01:34.986Z",
+                "creditsUsed": 1,
+                "concurrencyLimited": false
+              }
+            }
+          },
+          "latency_ms": 563.2,
+          "execution_id": "exec_0a8edcdecd1647448268f0644cc00e0f"
+        },
+        "error": null
+      }
+    },
+    "direct_control": {
+      "status_code": 200,
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Length": "10789",
+        "Content-Type": "application/json; charset=utf-8",
+        "Date": "Sun, 29 Mar 2026 07:06:57 GMT",
+        "Etag": "W/\"2a25-t7ruavDppYREa0+g5hkp21OH0uQ\"",
+        "X-Response-Time": "307.981ms",
+        "Connection": "close"
+      },
+      "body": {
+        "success": true,
+        "data": {
+          "markdown": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014 whether your site has llms.txt, structured data, or robots.txt rules for GPTBot.\nThat's useful if you're optimizing a marketing page for ChatGPT citations.\n\nBut if you're building an AI agent that needs to _use_ an API \u2014\nsend an email, process a payment, query a database \u2014 website crawlability tells you nothing.\nYour agent doesn't read your landing page. It calls your endpoints.\n\nThe real question isn't \u201cIs this website AI-friendly?\u201d It's:\n**\u201cWill this API actually work when my agent calls it at 3am with no human supervision?\u201d**\n\nThat's a fundamentally different evaluation. It requires measuring execution reliability, authentication\nfriction, error handling quality, and dozens of other dimensions that website scanners don't touch.\n\n## What actually matters: execution vs. access\n\nAfter scoring 665+ developer APIs across 86 categories, we've found that agent compatibility comes down to two axes:\n\n**Execution (70% of what matters)**\n\nCan the agent reliably get work done through this API?\n\n- **Error handling:**\nDoes the API return structured, parseable errors? Or vague 500s that leave the agent guessing?\n\n- **Schema stability:**\nDo response shapes change between versions without warning?\n\n- **Idempotency:**\nCan the agent safely retry a failed request without creating duplicates?\n\n- **Latency consistency:**\nAre response times predictable enough for timeout management?\n\n- **Rate limit transparency:**\nDoes the API tell the agent _how long_ to wait, or just reject requests?\n\n\n**Access Readiness (30% of what matters)**\n\nCan the agent even get started?\n\n- **Signup friction:**\nDoes creating credentials require email verification, phone numbers, or CAPTCHAs?\n\n- **Authentication complexity:**\nAPI key in a header? Or a multi-step OAuth dance requiring a browser?\n\n- **Documentation quality:**\nCan the agent (or the developer configuring it) understand the API from docs alone?\n\n- **Sandbox availability:**\nIs there a test environment that doesn't require production credentials?\n\n- **Rate limits:**\nAre free-tier limits high enough for development and testing?\n\n\nWe weight execution at 70% because access friction is a one-time cost \u2014 you solve it during setup.\nExecution reliability is an ongoing cost that compounds every time the agent makes a call.\n\n## The AN Score: quantifying agent-nativeness\n\nThe Agent-Native (AN) Score is our framework for measuring these dimensions. It evaluates each API across\n20 specific dimensions on these two axes, producing a score from 0 to 10:\n\n| Tier | Score | What it means |\n| --- | --- | --- |\n| L4 Native | 8.0\u201310.0 | Built for agents. Minimal friction, reliable execution, structured everything. |\n| L3 Fluent | 6.0\u20137.9 | Agents can use this reliably with minor configuration. |\n| L2 Developing | 4.0\u20135.9 | Usable with workarounds. Expect friction points. |\n| L1 Emerging | 0.0\u20133.9 | Significant barriers. Not recommended for unsupervised agent use. |\n\n**Real example \u2014 payments:**\n\nStripe scores 8.1 (L4 Native): execution score 9.0, access readiness 6.6. It has idempotency keys, structured errors,\nversioned webhooks, and an official agent toolkit. The access readiness score is lower because restricted API keys can\nsilently scope-limit results \u2014 a documented failure mode that catches agents off guard. (An agent believes no customers\nexist when it simply lacks read permission.)\n\nPayPal scores 4.9 (L2 Developing): execution score 5.9, access readiness 3.7. OAuth2 is the only auth method. Sandbox requires\nCAPTCHA verification. The moment your agent needs to click \u201cI am not a robot,\u201d the automation dies.\n\nThe gap between 8.1 and 4.9 isn't marginal. It's the difference between an agent that processes payments at 3am and one that\npages a human.\n\n## Five questions to ask before your agent calls any API\n\nYou don't need a formal scoring framework to make better tool selections. Start with these five questions:\n\n**1\\. What happens when the request fails?**\nCheck the API's error responses. Do you get a structured JSON error with an error code, message, and suggested fix?\nOr a generic 500 with an HTML error page? Agents need parseable errors to decide whether to retry, fall back, or escalate.\n\n**2\\. Can the agent create credentials without a human?**\nIf signup requires email verification, phone number, or CAPTCHA \u2014 your agent can't self-provision. Look for APIs that offer\nprogrammatic key generation or zero-signup access paths (like x402 pay-per-call).\n\n**3\\. Are rate limits explicit and machine-readable?**\nGood APIs return\n`X-RateLimit-Remaining`\nand\n`Retry-After`\nheaders. Bad APIs just return 429 with no guidance. Your agent needs to know: how long should I wait? How many calls do I have left?\n\n**4\\. Does the API version its responses?**\nBreaking changes in response schemas are the #1 cause of silent agent failures. Look for explicit versioning (Stripe's API\nversion headers, GitHub's API versions) rather than unversioned endpoints.\n\n**5\\. Is there a sandbox that doesn't require production credentials?**\nYour agent needs to test before going live. If the sandbox requires the same onboarding friction as production (business verification,\ncredit card, manual approval), development iteration time explodes.\n\n## The \u201cagent readiness\u201d vs. \u201cAPI agent-nativeness\u201d distinction\n\nThis matters: most tools calling themselves \u201cagent readiness scanners\u201d (AgentReady, Pillar, SiteSpeakAI) evaluate websites for\nAI chatbot crawlability. They check llms.txt, robots.txt, structured data, and content formatting.\n\nThat's a different problem. Website agent-readiness is about making your content discoverable by AI search engines. API\nagent-nativeness is about making your endpoints usable by autonomous AI agents.\n\n| What's measured | Website agent readiness | API agent-nativeness (AN Score) |\n| --- | --- | --- |\n| Target audience | AI search engines (ChatGPT, Perplexity) | AI agents calling APIs |\n| Key metrics | llms.txt, robots.txt, Schema.org | Error handling, auth friction, idempotency |\n| Score meaning | \u201cCan AI find your content?\u201d | \u201cCan AI use your service?\u201d |\n| Evaluation method | Static page scan | API testing + documentation analysis |\n| Examples | AgentReady, Pillar, SiteSpeakAI | [AN Score (Rhumb)](https://rhumb.dev/methodology) |\n\nBoth matter. If you're a developer choosing tools, website readiness tells you whether the vendor takes AI seriously.\nAPI agent-nativeness tells you whether the product actually works in your agent pipeline.\n\n## How to use this in practice\n\n**If you're building an agent that calls external APIs:**\n\n1. Check the [AN Score](https://rhumb.dev/leaderboard) for any service you're considering\n\n2. Read the [failure modes](https://rhumb.dev/search) before integrating \u2014 know where the API breaks for agents\n\n3. Prefer L3+ services for critical paths; use L2 services only with fallback logic\n\n4. Run `npx rhumb-mcp` in your agent to get scores at decision time\n\n\n**If you're evaluating a new API without a score:**\n\nUse the five questions above as a quick filter. If an API fails on questions 1 (error handling) or 2 (credential creation), it's\nlikely L1\u2013L2 regardless of other strengths.\n\n**If you're an API provider wanting to improve:**\n\nRead our [methodology](https://rhumb.dev/methodology). The 20 dimensions are published and transparent.\nThe most impactful improvements are usually: structured errors, API key auth (not just OAuth), and explicit rate limit headers.\n\n## See how your tools score\n\nWe've scored 600+ developer tools across 90+ categories. The AN Score measures real agent compatibility \u2014 not marketing claims.\n\n[Browse the leaderboard \u2192](https://rhumb.dev/leaderboard)\n\n## Related\n\n[Methodology **How we score API agent-nativeness**\\\\\n\\\\\nThe 20 dimensions behind the AN Score, published and transparent.](https://rhumb.dev/methodology) [Quickstart **Get scores inside your agent (MCP)**\\\\\n\\\\\nRun rhumb-mcp to fetch scores at decision time.](https://rhumb.dev/blog/getting-started-mcp) [Payments **Stripe vs Square vs PayPal for AI agents**\\\\\n\\\\\nA payments API comparison using the AN Score.](https://rhumb.dev/blog/stripe-vs-square-vs-paypal)",
+          "metadata": {
+            "twitter:creator": "@pedrorhumb",
+            "twitter:card": "summary_large_image",
+            "og:locale": "en_US",
+            "language": "en",
+            "viewport": "width=device-width, initial-scale=1",
+            "og:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+            "twitter:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+            "og:image": "https://rhumb.dev/api/og",
+            "ogLocale": "en_US",
+            "ogTitle": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+            "og:type": "article",
+            "og:url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+            "ogImage": "https://rhumb.dev/api/og",
+            "ogSiteName": "Rhumb",
+            "og:image:width": "1200",
+            "og:image:height": "630",
+            "twitter:site": "@pedrorhumb",
+            "og:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+            "ogDescription": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+            "ogUrl": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+            "description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+            "title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+            "og:site_name": "Rhumb",
+            "twitter:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+            "twitter:image": "https://rhumb.dev/api/og",
+            "favicon": "https://rhumb.dev/favicon.ico",
+            "scrapeId": "019d386a-cec1-76eb-a488-823ab3c170a3",
+            "sourceURL": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+            "url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+            "statusCode": 200,
+            "contentType": "text/html; charset=utf-8",
+            "proxyUsed": "basic",
+            "cacheState": "hit",
+            "cachedAt": "2026-03-29T07:01:34.986Z",
+            "creditsUsed": 1,
+            "concurrencyLimited": false
+          }
+        }
+      }
+    },
+    "parity": {
+      "title": [
+        "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+        "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb"
+      ],
+      "markdown_prefix": [
+        "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014",
+        "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014"
+      ]
+    }
+  }
+}
