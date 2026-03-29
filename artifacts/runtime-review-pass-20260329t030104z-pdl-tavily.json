@@ -1,0 +1,1374 @@
+{
+  "run_started_at": "2026-03-29T03:01:04.514779+00:00",
+  "local_date": "2026-03-28",
+  "org_id": "org_keel_runtime_review_20260329t030104z_c5c2c6",
+  "review_agent_name": "Pedro Keel Runtime Review 20260329T030104Z c5c2c6",
+  "base_run_id": "pedro-keel-runtime-review-20260329t030104z-c5c2c6",
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 8000
+  },
+  "review_agent": {
+    "agent_id": "54f123c0-7541-45b5-b2b2-6b33de9a2ae4",
+    "api_key_prefix": "rhumb_6814d2..."
+  },
+  "grant_results": [
+    {
+      "service": "people-data-labs",
+      "status_code": 200,
+      "body": {
+        "status": "success",
+        "access_id": "435ca486-3193-4a6b-a5e5-8a4461307e18"
+      }
+    },
+    {
+      "service": "pdl",
+      "status_code": 200,
+      "body": {
+        "status": "success",
+        "access_id": "479e1df9-b87d-41cd-8874-6dd204e9a3a4"
+      }
+    },
+    {
+      "service": "tavily",
+      "status_code": 200,
+      "body": {
+        "status": "success",
+        "access_id": "b689d383-2414-43bb-b9b7-569fd4a87cd3"
+      }
+    }
+  ],
+  "mission0_pdl": {
+    "service_slug": "people-data-labs",
+    "capability_id": "data.enrich_person",
+    "run_id": "pedro-keel-runtime-review-20260329t030104z-c5c2c6-pdl",
+    "counts_before": {
+      "published_reviews": 9,
+      "runtime_backed_reviews": 4
+    },
+    "score_row": {
+      "id": "dd61f7af-8299-4d8a-8f06-9e3630f52eec",
+      "aggregate_recommendation_score": 7.0
+    },
+    "input": {
+      "profile": "https://www.linkedin.com/in/satyanadella/"
+    },
+    "rhumb_estimate": {
+      "status_code": 200,
+      "body": {
+        "data": {
+          "capability_id": "data.enrich_person",
+          "provider": "people-data-labs",
+          "credential_mode": "rhumb_managed",
+          "cost_estimate_usd": 0.1,
+          "circuit_state": "closed",
+          "endpoint_pattern": "GET /v5/person/enrich"
+        },
+        "error": null
+      }
+    },
+    "rhumb_execute": {
+      "status_code": 200,
+      "body": {
+        "data": {
+          "capability_id": "data.enrich_person",
+          "provider_used": "people-data-labs",
+          "credential_mode": "rhumb_managed",
+          "upstream_status": 200,
+          "upstream_response": {
+            "status": 200,
+            "likelihood": 9,
+            "data": {
+              "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+              "full_name": "satya nadella",
+              "first_name": "satya",
+              "middle_initial": null,
+              "middle_name": null,
+              "last_initial": "n",
+              "last_name": "nadella",
+              "sex": null,
+              "birth_year": false,
+              "birth_date": false,
+              "linkedin_url": "linkedin.com/in/satyanadella",
+              "linkedin_username": "satyanadella",
+              "linkedin_id": "19186432",
+              "facebook_url": null,
+              "facebook_username": null,
+              "facebook_id": null,
+              "twitter_url": null,
+              "twitter_username": null,
+              "github_url": null,
+              "github_username": null,
+              "work_email": false,
+              "personal_emails": true,
+              "recommended_personal_email": true,
+              "mobile_phone": true,
+              "industry": "computer software",
+              "job_title": "board member",
+              "job_title_role": "advisory",
+              "job_title_sub_role": "board_member",
+              "job_title_class": "general_and_administrative",
+              "job_title_levels": [
+                "partner"
+              ],
+              "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+              "job_company_name": "starbucks",
+              "job_company_website": "starbucks.com",
+              "job_company_size": "10001+",
+              "job_company_founded": 1971,
+              "job_company_industry": "retail",
+              "job_company_industry_v2": "retail",
+              "job_company_linkedin_url": "linkedin.com/company/starbucks",
+              "job_company_linkedin_id": "2271",
+              "job_company_facebook_url": "facebook.com/starbucks",
+              "job_company_twitter_url": "twitter.com/starbucks",
+              "job_company_location_name": "seattle, washington, united states",
+              "job_company_location_locality": "seattle",
+              "job_company_location_metro": "seattle, washington",
+              "job_company_location_region": "washington",
+              "job_company_location_geo": "47.67,-122.3",
+              "job_company_location_street_address": "2401 utah avenue south",
+              "job_company_location_address_line_2": null,
+              "job_company_location_postal_code": "98134",
+              "job_company_location_country": "united states",
+              "job_company_location_continent": "north america",
+              "job_last_changed": "2019-12-07",
+              "job_last_verified": "2024-04-01",
+              "job_start_date": "2017",
+              "location_name": true,
+              "location_locality": true,
+              "location_metro": true,
+              "location_region": true,
+              "location_country": "united states",
+              "location_continent": "north america",
+              "location_street_address": false,
+              "location_address_line_2": null,
+              "location_postal_code": false,
+              "location_geo": true,
+              "location_last_updated": "2024-04-01",
+              "phone_numbers": true,
+              "emails": true,
+              "interests": [
+                "cricket",
+                "poetry and literature",
+                "spending time with family",
+                "technology"
+              ],
+              "skills": [],
+              "location_names": true,
+              "regions": true,
+              "countries": [
+                "united states"
+              ],
+              "street_addresses": false,
+              "experience": [
+                {
+                  "company": {
+                    "name": "starbucks",
+                    "size": "10001+",
+                    "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+                    "founded": 1971,
+                    "industry": "retail",
+                    "industry_v2": "retail",
+                    "location": {
+                      "name": "seattle, washington, united states",
+                      "locality": "seattle",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "2401 utah avenue south",
+                      "address_line_2": null,
+                      "postal_code": "98134",
+                      "geo": "47.67,-122.3"
+                    },
+                    "linkedin_url": "linkedin.com/company/starbucks",
+                    "linkedin_id": "2271",
+                    "facebook_url": "facebook.com/starbucks",
+                    "twitter_url": "twitter.com/starbucks",
+                    "website": "starbucks.com"
+                  },
+                  "location_names": [],
+                  "end_date": null,
+                  "start_date": "2017",
+                  "title": {
+                    "name": "board member",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": true
+                },
+                {
+                  "company": {
+                    "name": "the business council u.s.",
+                    "size": "1-10",
+                    "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+                    "founded": 1933,
+                    "industry": "non-profit organization management",
+                    "industry_v2": "non-profit organizations",
+                    "location": {
+                      "name": "washington, district of columbia, united states",
+                      "locality": "washington",
+                      "region": "district of columbia",
+                      "metro": "district of columbia",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1901 pennsylvania avenue northwest 307",
+                      "address_line_2": null,
+                      "postal_code": "20006",
+                      "geo": "38.88,-77.01"
+                    },
+                    "linkedin_url": "linkedin.com/company/the-business-council-us",
+                    "linkedin_id": "5301945",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "businesscouncil.com"
+                  },
+                  "location_names": [],
+                  "end_date": "2023",
+                  "start_date": "2021",
+                  "title": {
+                    "name": "chairman",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "university of chicago",
+                    "size": "1-10",
+                    "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+                    "founded": 1890,
+                    "industry": "higher education",
+                    "industry_v2": null,
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "metro": "chicago, illinois",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "5801 south ellis avenue",
+                      "address_line_2": null,
+                      "postal_code": "60637",
+                      "geo": "41.82,-87.66"
+                    },
+                    "linkedin_url": "linkedin.com/company/uchicago",
+                    "linkedin_id": "3881",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "uchicago.edu"
+                  },
+                  "location_names": [],
+                  "end_date": null,
+                  "start_date": "2018",
+                  "title": {
+                    "name": "member board of trustees",
+                    "class": null,
+                    "role": null,
+                    "sub_role": null,
+                    "levels": []
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "fred hutch",
+                    "size": "1001-5000",
+                    "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+                    "founded": 1975,
+                    "industry": "hospital & health care",
+                    "industry_v2": "hospitals and health care",
+                    "location": {
+                      "name": "seattle, washington, united states",
+                      "locality": "seattle",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1100 fairview avenue north",
+                      "address_line_2": null,
+                      "postal_code": "98109",
+                      "geo": "47.67,-122.3"
+                    },
+                    "linkedin_url": "linkedin.com/company/fredhutch",
+                    "linkedin_id": "7158",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "website": "satcomia.com"
+                  },
+                  "location_names": [],
+                  "end_date": "2022",
+                  "start_date": "2016",
+                  "title": {
+                    "name": "board member",
+                    "class": "general_and_administrative",
+                    "role": "advisory",
+                    "sub_role": "board_member",
+                    "levels": [
+                      "partner"
+                    ]
+                  },
+                  "is_primary": false
+                },
+                {
+                  "company": {
+                    "name": "microsoft",
+                    "size": "10001+",
+                    "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+                    "founded": 1975,
+                    "industry": "computer software",
+                    "industry_v2": "software development",
+                    "location": {
+                      "name": "redmond, washington, united states",
+                      "locality": "redmond",
+                      "region": "washington",
+                      "metro": "seattle, washington",
+                      "country": "united states",
+                      "continent": "north america",
+                      "street_address": "1 microsoft way",
+                      "address_line_2": null,
+                      "postal_code": "98052",
+                      "geo": "47.65,-122.03"
+                    },
+                    "linkedin_url": "linkedin.com/company/microsoft",
+                    "linkedin_id": "1035",
+                    "facebook_url": "facebook.com/microsoft",
+                    "twitter_url": "twitter.com/microsoft",
+                    "website": "microsoft.com"
+                  },
+                  "location_names": [
+                    "seattle, washington, united states"
+                  ],
+                  "end_date": null,
+                  "start_date": "2014-02",
+                  "title": {
+                    "name": "chairman and chief executive officer",
+                    "class": "general_and_administrative",
+                    "role": "operations",
+                    "sub_role": "executive",
+                    "levels": []
+                  },
+                  "is_primary": false
+                }
+              ],
+              "education": [
+                {
+                  "school": {
+                    "name": "the university of chicago booth school of business",
+                    "type": "post-secondary institution",
+                    "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "linkedin_id": "8398",
+                    "website": "chicagobooth.edu",
+                    "domain": "chicagobooth.edu"
+                  },
+                  "degrees": [],
+                  "start_date": "1994",
+                  "end_date": "1996",
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "mangalore university",
+                    "type": "post-secondary institution",
+                    "id": "99V-CuceB3awRNUxlN1y5w_0",
+                    "location": {
+                      "name": "mangalore, karnataka, india",
+                      "locality": "mangalore",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+                    "facebook_url": "facebook.com/university.mangalore",
+                    "twitter_url": null,
+                    "linkedin_id": "66175955",
+                    "website": "mangaloreuniversity.ac.in",
+                    "domain": "mangaloreuniversity.ac.in"
+                  },
+                  "degrees": [
+                    "bachelors"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "electrical engineering"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "manipal institute of technology",
+                    "type": "post-secondary institution",
+                    "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                    "location": {
+                      "name": "nagar, karnataka, india",
+                      "locality": "nagar",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                    "facebook_url": "facebook.com/mahemanipal",
+                    "twitter_url": "twitter.com/manipaluni",
+                    "linkedin_id": "577550",
+                    "website": "manipal.edu",
+                    "domain": "manipal.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "manipal institute of technology",
+                    "type": "post-secondary institution",
+                    "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                    "location": {
+                      "name": "nagar, karnataka, india",
+                      "locality": "nagar",
+                      "region": "karnataka",
+                      "country": "india",
+                      "continent": "asia"
+                    },
+                    "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                    "facebook_url": "facebook.com/mahemanipal",
+                    "twitter_url": "twitter.com/manipaluni",
+                    "linkedin_id": "577550",
+                    "website": "manipal.edu",
+                    "domain": "manipal.edu"
+                  },
+                  "degrees": [
+                    "bachelors"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "electrical engineering"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "the university of chicago booth school of business",
+                    "type": "post-secondary institution",
+                    "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                    "location": {
+                      "name": "chicago, illinois, united states",
+                      "locality": "chicago",
+                      "region": "illinois",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                    "facebook_url": null,
+                    "twitter_url": null,
+                    "linkedin_id": "8398",
+                    "website": "chicagobooth.edu",
+                    "domain": "chicagobooth.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "university of wisconsin - milwaukee",
+                    "type": "post-secondary institution",
+                    "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                    "location": {
+                      "name": "milwaukee, wisconsin, united states",
+                      "locality": "milwaukee",
+                      "region": "wisconsin",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                    "facebook_url": "facebook.com/uwmilwaukee",
+                    "twitter_url": "twitter.com/uwm",
+                    "linkedin_id": "166690",
+                    "website": "uwm.edu",
+                    "domain": "uwm.edu"
+                  },
+                  "degrees": [],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [],
+                  "minors": [],
+                  "gpa": null
+                },
+                {
+                  "school": {
+                    "name": "university of wisconsin - milwaukee",
+                    "type": "post-secondary institution",
+                    "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                    "location": {
+                      "name": "milwaukee, wisconsin, united states",
+                      "locality": "milwaukee",
+                      "region": "wisconsin",
+                      "country": "united states",
+                      "continent": "north america"
+                    },
+                    "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                    "facebook_url": "facebook.com/uwmilwaukee",
+                    "twitter_url": "twitter.com/uwm",
+                    "linkedin_id": "166690",
+                    "website": "uwm.edu",
+                    "domain": "uwm.edu"
+                  },
+                  "degrees": [
+                    "masters"
+                  ],
+                  "start_date": null,
+                  "end_date": null,
+                  "majors": [
+                    "computer science"
+                  ],
+                  "minors": [],
+                  "gpa": null
+                }
+              ],
+              "profiles": [
+                {
+                  "network": "linkedin",
+                  "id": "19186432",
+                  "url": "linkedin.com/in/satyanadella",
+                  "username": "satyanadella"
+                },
+                {
+                  "network": "linkedin",
+                  "id": "448588505",
+                  "url": "linkedin.com/in/satyanadella",
+                  "username": "satyanadella"
+                },
+                {
+                  "network": "linkedin",
+                  "id": "19186432",
+                  "url": "linkedin.com/in/satya-nadella-3145136",
+                  "username": "satya-nadella-3145136"
+                }
+              ],
+              "dataset_version": "33.2"
+            }
+          },
+          "latency_ms": 814.0,
+          "execution_id": "exec_562bb0fdd3c345a780019ee5f8bded34",
+          "org_credits_remaining_cents": 7988
+        },
+        "error": null
+      },
+      "headers": {
+        "connection": "keep-alive",
+        "content-length": "11199",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200049-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 03:01:08 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "LLZ5_1bsRneeqhLA-_9nXA",
+        "x-ratelimit-limit": "30",
+        "x-ratelimit-remaining": "29",
+        "x-ratelimit-reset": "1774753332",
+        "x-request-id": "673cf5cf-bfda-4a61-ad8a-3ded3e28f439",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200049-BUR"
+      }
+    },
+    "direct": {
+      "status_code": 200,
+      "body": {
+        "status": 200,
+        "likelihood": 9,
+        "data": {
+          "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+          "full_name": "satya nadella",
+          "first_name": "satya",
+          "middle_initial": null,
+          "middle_name": null,
+          "last_initial": "n",
+          "last_name": "nadella",
+          "sex": null,
+          "birth_year": false,
+          "birth_date": false,
+          "linkedin_url": "linkedin.com/in/satyanadella",
+          "linkedin_username": "satyanadella",
+          "linkedin_id": "19186432",
+          "facebook_url": null,
+          "facebook_username": null,
+          "facebook_id": null,
+          "twitter_url": null,
+          "twitter_username": null,
+          "github_url": null,
+          "github_username": null,
+          "work_email": false,
+          "personal_emails": true,
+          "recommended_personal_email": true,
+          "mobile_phone": true,
+          "industry": "computer software",
+          "job_title": "board member",
+          "job_title_role": "advisory",
+          "job_title_sub_role": "board_member",
+          "job_title_class": "general_and_administrative",
+          "job_title_levels": [
+            "partner"
+          ],
+          "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+          "job_company_name": "starbucks",
+          "job_company_website": "starbucks.com",
+          "job_company_size": "10001+",
+          "job_company_founded": 1971,
+          "job_company_industry": "retail",
+          "job_company_industry_v2": "retail",
+          "job_company_linkedin_url": "linkedin.com/company/starbucks",
+          "job_company_linkedin_id": "2271",
+          "job_company_facebook_url": "facebook.com/starbucks",
+          "job_company_twitter_url": "twitter.com/starbucks",
+          "job_company_location_name": "seattle, washington, united states",
+          "job_company_location_locality": "seattle",
+          "job_company_location_metro": "seattle, washington",
+          "job_company_location_region": "washington",
+          "job_company_location_geo": "47.67,-122.3",
+          "job_company_location_street_address": "2401 utah avenue south",
+          "job_company_location_address_line_2": null,
+          "job_company_location_postal_code": "98134",
+          "job_company_location_country": "united states",
+          "job_company_location_continent": "north america",
+          "job_last_changed": "2019-12-07",
+          "job_last_verified": "2024-04-01",
+          "job_start_date": "2017",
+          "location_name": true,
+          "location_locality": true,
+          "location_metro": true,
+          "location_region": true,
+          "location_country": "united states",
+          "location_continent": "north america",
+          "location_street_address": false,
+          "location_address_line_2": null,
+          "location_postal_code": false,
+          "location_geo": true,
+          "location_last_updated": "2024-04-01",
+          "phone_numbers": true,
+          "emails": true,
+          "interests": [
+            "cricket",
+            "poetry and literature",
+            "spending time with family",
+            "technology"
+          ],
+          "skills": [],
+          "location_names": true,
+          "regions": true,
+          "countries": [
+            "united states"
+          ],
+          "street_addresses": false,
+          "experience": [
+            {
+              "company": {
+                "name": "starbucks",
+                "size": "10001+",
+                "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+                "founded": 1971,
+                "industry": "retail",
+                "industry_v2": "retail",
+                "location": {
+                  "name": "seattle, washington, united states",
+                  "locality": "seattle",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "2401 utah avenue south",
+                  "address_line_2": null,
+                  "postal_code": "98134",
+                  "geo": "47.67,-122.3"
+                },
+                "linkedin_url": "linkedin.com/company/starbucks",
+                "linkedin_id": "2271",
+                "facebook_url": "facebook.com/starbucks",
+                "twitter_url": "twitter.com/starbucks",
+                "website": "starbucks.com"
+              },
+              "location_names": [],
+              "end_date": null,
+              "start_date": "2017",
+              "title": {
+                "name": "board member",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": true
+            },
+            {
+              "company": {
+                "name": "the business council u.s.",
+                "size": "1-10",
+                "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+                "founded": 1933,
+                "industry": "non-profit organization management",
+                "industry_v2": "non-profit organizations",
+                "location": {
+                  "name": "washington, district of columbia, united states",
+                  "locality": "washington",
+                  "region": "district of columbia",
+                  "metro": "district of columbia",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1901 pennsylvania avenue northwest 307",
+                  "address_line_2": null,
+                  "postal_code": "20006",
+                  "geo": "38.88,-77.01"
+                },
+                "linkedin_url": "linkedin.com/company/the-business-council-us",
+                "linkedin_id": "5301945",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "businesscouncil.com"
+              },
+              "location_names": [],
+              "end_date": "2023",
+              "start_date": "2021",
+              "title": {
+                "name": "chairman",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "university of chicago",
+                "size": "1-10",
+                "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+                "founded": 1890,
+                "industry": "higher education",
+                "industry_v2": null,
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "metro": "chicago, illinois",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "5801 south ellis avenue",
+                  "address_line_2": null,
+                  "postal_code": "60637",
+                  "geo": "41.82,-87.66"
+                },
+                "linkedin_url": "linkedin.com/company/uchicago",
+                "linkedin_id": "3881",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "uchicago.edu"
+              },
+              "location_names": [],
+              "end_date": null,
+              "start_date": "2018",
+              "title": {
+                "name": "member board of trustees",
+                "class": null,
+                "role": null,
+                "sub_role": null,
+                "levels": []
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "fred hutch",
+                "size": "1001-5000",
+                "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+                "founded": 1975,
+                "industry": "hospital & health care",
+                "industry_v2": "hospitals and health care",
+                "location": {
+                  "name": "seattle, washington, united states",
+                  "locality": "seattle",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1100 fairview avenue north",
+                  "address_line_2": null,
+                  "postal_code": "98109",
+                  "geo": "47.67,-122.3"
+                },
+                "linkedin_url": "linkedin.com/company/fredhutch",
+                "linkedin_id": "7158",
+                "facebook_url": null,
+                "twitter_url": null,
+                "website": "satcomia.com"
+              },
+              "location_names": [],
+              "end_date": "2022",
+              "start_date": "2016",
+              "title": {
+                "name": "board member",
+                "class": "general_and_administrative",
+                "role": "advisory",
+                "sub_role": "board_member",
+                "levels": [
+                  "partner"
+                ]
+              },
+              "is_primary": false
+            },
+            {
+              "company": {
+                "name": "microsoft",
+                "size": "10001+",
+                "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+                "founded": 1975,
+                "industry": "computer software",
+                "industry_v2": "software development",
+                "location": {
+                  "name": "redmond, washington, united states",
+                  "locality": "redmond",
+                  "region": "washington",
+                  "metro": "seattle, washington",
+                  "country": "united states",
+                  "continent": "north america",
+                  "street_address": "1 microsoft way",
+                  "address_line_2": null,
+                  "postal_code": "98052",
+                  "geo": "47.65,-122.03"
+                },
+                "linkedin_url": "linkedin.com/company/microsoft",
+                "linkedin_id": "1035",
+                "facebook_url": "facebook.com/microsoft",
+                "twitter_url": "twitter.com/microsoft",
+                "website": "microsoft.com"
+              },
+              "location_names": [
+                "seattle, washington, united states"
+              ],
+              "end_date": null,
+              "start_date": "2014-02",
+              "title": {
+                "name": "chairman and chief executive officer",
+                "class": "general_and_administrative",
+                "role": "operations",
+                "sub_role": "executive",
+                "levels": []
+              },
+              "is_primary": false
+            }
+          ],
+          "education": [
+            {
+              "school": {
+                "name": "the university of chicago booth school of business",
+                "type": "post-secondary institution",
+                "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                "facebook_url": null,
+                "twitter_url": null,
+                "linkedin_id": "8398",
+                "website": "chicagobooth.edu",
+                "domain": "chicagobooth.edu"
+              },
+              "degrees": [],
+              "start_date": "1994",
+              "end_date": "1996",
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "mangalore university",
+                "type": "post-secondary institution",
+                "id": "99V-CuceB3awRNUxlN1y5w_0",
+                "location": {
+                  "name": "mangalore, karnataka, india",
+                  "locality": "mangalore",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+                "facebook_url": "facebook.com/university.mangalore",
+                "twitter_url": null,
+                "linkedin_id": "66175955",
+                "website": "mangaloreuniversity.ac.in",
+                "domain": "mangaloreuniversity.ac.in"
+              },
+              "degrees": [
+                "bachelors"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "electrical engineering"
+              ],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "manipal institute of technology",
+                "type": "post-secondary institution",
+                "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                "location": {
+                  "name": "nagar, karnataka, india",
+                  "locality": "nagar",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                "facebook_url": "facebook.com/mahemanipal",
+                "twitter_url": "twitter.com/manipaluni",
+                "linkedin_id": "577550",
+                "website": "manipal.edu",
+                "domain": "manipal.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "manipal institute of technology",
+                "type": "post-secondary institution",
+                "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                "location": {
+                  "name": "nagar, karnataka, india",
+                  "locality": "nagar",
+                  "region": "karnataka",
+                  "country": "india",
+                  "continent": "asia"
+                },
+                "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                "facebook_url": "facebook.com/mahemanipal",
+                "twitter_url": "twitter.com/manipaluni",
+                "linkedin_id": "577550",
+                "website": "manipal.edu",
+                "domain": "manipal.edu"
+              },
+              "degrees": [
+                "bachelors"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "electrical engineering"
+              ],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "the university of chicago booth school of business",
+                "type": "post-secondary institution",
+                "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                "location": {
+                  "name": "chicago, illinois, united states",
+                  "locality": "chicago",
+                  "region": "illinois",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                "facebook_url": null,
+                "twitter_url": null,
+                "linkedin_id": "8398",
+                "website": "chicagobooth.edu",
+                "domain": "chicagobooth.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "university of wisconsin - milwaukee",
+                "type": "post-secondary institution",
+                "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                "location": {
+                  "name": "milwaukee, wisconsin, united states",
+                  "locality": "milwaukee",
+                  "region": "wisconsin",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                "facebook_url": "facebook.com/uwmilwaukee",
+                "twitter_url": "twitter.com/uwm",
+                "linkedin_id": "166690",
+                "website": "uwm.edu",
+                "domain": "uwm.edu"
+              },
+              "degrees": [],
+              "start_date": null,
+              "end_date": null,
+              "majors": [],
+              "minors": [],
+              "gpa": null
+            },
+            {
+              "school": {
+                "name": "university of wisconsin - milwaukee",
+                "type": "post-secondary institution",
+                "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                "location": {
+                  "name": "milwaukee, wisconsin, united states",
+                  "locality": "milwaukee",
+                  "region": "wisconsin",
+                  "country": "united states",
+                  "continent": "north america"
+                },
+                "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                "facebook_url": "facebook.com/uwmilwaukee",
+                "twitter_url": "twitter.com/uwm",
+                "linkedin_id": "166690",
+                "website": "uwm.edu",
+                "domain": "uwm.edu"
+              },
+              "degrees": [
+                "masters"
+              ],
+              "start_date": null,
+              "end_date": null,
+              "majors": [
+                "computer science"
+              ],
+              "minors": [],
+              "gpa": null
+            }
+          ],
+          "profiles": [
+            {
+              "network": "linkedin",
+              "id": "19186432",
+              "url": "linkedin.com/in/satyanadella",
+              "username": "satyanadella"
+            },
+            {
+              "network": "linkedin",
+              "id": "448588505",
+              "url": "linkedin.com/in/satyanadella",
+              "username": "satyanadella"
+            },
+            {
+              "network": "linkedin",
+              "id": "19186432",
+              "url": "linkedin.com/in/satya-nadella-3145136",
+              "username": "satya-nadella-3145136"
+            }
+          ],
+          "dataset_version": "33.2"
+        }
+      },
+      "headers": {
+        "date": "Sun, 29 Mar 2026 03:01:13 GMT",
+        "content-type": "application/json",
+        "content-length": "2318",
+        "connection": "keep-alive",
+        "server": "gunicorn",
+        "strict-transport-security": "max-age=31536000; preload",
+        "x-lifetime-used": "258",
+        "x-call-credits-spent": "1",
+        "x-call-credits-type": "enrich",
+        "x-totallimit-remaining": "29",
+        "x-totallimit-purchased-remaining": "29",
+        "x-totallimit-overages-remaining": "0",
+        "x-ratelimit-limit": "{\"minute\": 100}",
+        "x-ratelimit-reset": "2026-03-29 03:02:13",
+        "x-ratelimit-remaining": "{\"minute\": 98}",
+        "vary": "Accept-Encoding",
+        "content-encoding": "gzip",
+        "access-control-allow-origin": "*"
+      }
+    },
+    "parity": {
+      "sampled_keys": [
+        "full_name",
+        "job_title",
+        "job_company_name",
+        "linkedin_url"
+      ],
+      "all_matched": true,
+      "checks": {
+        "full_name": true,
+        "job_title": true,
+        "job_company_name": true,
+        "linkedin_url": true
+      },
+      "rhumb_sample": {
+        "full_name": "satya nadella",
+        "job_title": "board member",
+        "job_company_name": "starbucks",
+        "linkedin_url": "linkedin.com/in/satyanadella"
+      },
+      "direct_sample": {
+        "full_name": "satya nadella",
+        "job_title": "board member",
+        "job_company_name": "starbucks",
+        "linkedin_url": "linkedin.com/in/satyanadella"
+      },
+      "provider_used": "people-data-labs",
+      "execution_id": "exec_562bb0fdd3c345a780019ee5f8bded34",
+      "upstream_status": 200
+    },
+    "evidence_id": "c33a8cb9-b0c8-40a4-90bf-f8e978ebc6c9",
+    "review_id": "e3cd273f-be68-4404-a347-03726abc09b1",
+    "observed_at": "2026-03-29T03:01:13.126252+00:00",
+    "counts_after": {
+      "published_reviews": 10,
+      "runtime_backed_reviews": 5
+    }
+  },
+  "mission1_tavily": {
+    "service_slug": "tavily",
+    "capability_id": "search.query",
+    "run_id": "pedro-keel-runtime-review-20260329t030104z-c5c2c6-tavily",
+    "counts_before": {
+      "published_reviews": 7,
+      "runtime_backed_reviews": 2
+    },
+    "score_row": {
+      "id": "944c2ede-8e80-4dcc-bfdc-fe83f4d87f06",
+      "aggregate_recommendation_score": 7.2
+    },
+    "input": {
+      "query": "best AI agent observability tools",
+      "search_depth": "basic",
+      "max_results": 5
+    },
+    "rhumb_estimate": {
+      "status_code": 200,
+      "body": {
+        "data": {
+          "capability_id": "search.query",
+          "provider": "tavily",
+          "credential_mode": "rhumb_managed",
+          "cost_estimate_usd": 0.001,
+          "circuit_state": "closed",
+          "endpoint_pattern": "POST /search"
+        },
+        "error": null
+      }
+    },
+    "rhumb_execute": {
+      "status_code": 200,
+      "body": {
+        "data": {
+          "capability_id": "search.query",
+          "provider_used": "tavily",
+          "credential_mode": "rhumb_managed",
+          "upstream_status": 200,
+          "upstream_response": {
+            "query": "best AI agent observability tools",
+            "response_time": 0.8,
+            "follow_up_questions": null,
+            "answer": null,
+            "images": [],
+            "results": [
+              {
+                "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+                "title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+                "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+                "score": 0.8832463,
+                "raw_content": null
+              },
+              {
+                "url": "https://www.braintrust.dev/articles/best-ai-observability-tools-2026",
+                "title": "A buyer's guide to monitoring AI agents in production (2026) - Articles",
+                "content": "AI observability tools trace multi-step reasoning chains, evaluate output quality automatically, and track cost per request in real time. Braintrust provides comprehensive AI observability features, including exhaustive tracing, automated evaluation, real-time monitoring, cost analytics, flexible integration options, and more. | Braintrust | Free tier: 1M trace spans/month, Paid: $249/month for unlimited trace spans, and advanced features | Teams that need to catch regressions before they hit production | SDK (13+ frameworks), OpenTelemetry, and AI Proxy |. | Galileo AI | Free: 5K traces/month, paid plans start at $100/month | Production agents requiring real-time safety checks without excessive API costs | SDK-based with Luna-2 evaluators |. Braintrust lets you test prompt changes against production data before deployment, with integrations via SDK, OpenTelemetry, or AI Proxy. Braintrust integrates AI-specific observability with traditional monitoring through SDK, OpenTelemetry, or AI Proxy integration, letting you monitor technical metrics alongside quality scores from automated evaluations.",
+                "score": 0.8810534,
+                "raw_content": null
+              },
+              {
+                "url": "https://www.merge.dev/blog/ai-agent-observability-platforms",
+                "title": "3 AI agent observability platforms to consider in 2026 - Merge",
+                "content": "###### Add secure integrations to your products and AI agents with ease via Merge. ###### The 3 best AI agent authentication tools in 2026. # 3 AI agent observability platforms to consider in 2026. To that end, we\u2019ll break down 3 leading agent observability solutions and highlight their pros and cons to help you pinpoint the best option. Merge Agent Handler lets you not only monitor and manage your agents but also connect them to thousands of tools across dozens of MCP connectors. ##### \u201cWith Merge Agent Handler\u2019s searchable logs, we can quickly and reliably verify tool calls and responses. #### Observe your agents effectively with Merge Agent Handler. Merge Agent Handler lets you monitor and manage all your agents with ease through fully-searchable logs, an Evaluation Suite, customizable security rules, and more. Our blog's newsletter provides the best practices you need to build high-performing integrations for your products and agents.",
+                "score": 0.8652358,
+                "raw_content": null
+              },
+              {
+                "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+                "title": "What's your honest tier list for agent observability & testing tools ...",
+                "content": "Best observability tools for AI agents. Fastest time-to-value observability platforms. Best LLM observability tools. Datadog vs Langchain for",
+                "score": 0.8593928,
+                "raw_content": null
+              },
+              {
+                "url": "https://www.getmaxim.ai/products/agent-observability",
+                "title": "Agent Observability - Maxim AI",
+                "content": "Seamlessly relay/forward application logs to New Relic or any observability platform of your choice that supports OTel. Monitor and evaluate multiple agents simultaneously, ensuring consistent quality even for extremely large workloads. Observability is the practice of monitoring, tracing, and analyzing the internal states, decision-making processes, and outputs of AI agents in real-time. Maxim AI provides end-to-end visibility into your AI agent\u2019s performance by tracing the complete request lifecycle. How does Maxim trace AI Agents in production? Maxim traces AI agents in production using distributed tracing to capture every request and provide granular, end-to-end visibility into the agent's complex workflow. Maxim lets you observe and evaluate multi-turn agent behavior using Sessions, which represent end-to-end task executions. Each session groups together all traces generated across multiple turns, giving you a complete view of how context evolves as the agent plans, reasons, performs actions, and responds over time. On top of sessions, you can attach evaluators such as task success, trajectory quality, or custom agent metrics to measure their real-world performance.",
+                "score": 0.7959917,
+                "raw_content": null
+              }
+            ],
+            "request_id": "9c89145f-03b5-408e-8b13-b4de88a40cb7"
+          },
+          "latency_ms": 272.3,
+          "execution_id": "exec_e48e3d8b3f0142048a2978408a9c6c0f"
+        },
+        "error": null
+      },
+      "headers": {
+        "connection": "keep-alive",
+        "content-length": "5970",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200049-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 03:01:13 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "A9X53_SiTdWDVHquLPU1MQ",
+        "x-ratelimit-limit": "30",
+        "x-ratelimit-remaining": "28",
+        "x-ratelimit-reset": "1774753336",
+        "x-request-id": "0cd1d4cd-24a0-4272-aea7-0a2b517ba505",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200049-BUR"
+      }
+    },
+    "direct": {
+      "status_code": 200,
+      "body": {
+        "query": "best AI agent observability tools",
+        "response_time": 0.8,
+        "follow_up_questions": null,
+        "answer": null,
+        "images": [],
+        "results": [
+          {
+            "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+            "title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+            "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+            "score": 0.8832463,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.braintrust.dev/articles/best-ai-observability-tools-2026",
+            "title": "A buyer's guide to monitoring AI agents in production (2026) - Articles",
+            "content": "AI observability tools trace multi-step reasoning chains, evaluate output quality automatically, and track cost per request in real time. Braintrust provides comprehensive AI observability features, including exhaustive tracing, automated evaluation, real-time monitoring, cost analytics, flexible integration options, and more. | Braintrust | Free tier: 1M trace spans/month, Paid: $249/month for unlimited trace spans, and advanced features | Teams that need to catch regressions before they hit production | SDK (13+ frameworks), OpenTelemetry, and AI Proxy |. | Galileo AI | Free: 5K traces/month, paid plans start at $100/month | Production agents requiring real-time safety checks without excessive API costs | SDK-based with Luna-2 evaluators |. Braintrust lets you test prompt changes against production data before deployment, with integrations via SDK, OpenTelemetry, or AI Proxy. Braintrust integrates AI-specific observability with traditional monitoring through SDK, OpenTelemetry, or AI Proxy integration, letting you monitor technical metrics alongside quality scores from automated evaluations.",
+            "score": 0.8810534,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.merge.dev/blog/ai-agent-observability-platforms",
+            "title": "3 AI agent observability platforms to consider in 2026 - Merge",
+            "content": "###### Add secure integrations to your products and AI agents with ease via Merge. ###### The 3 best AI agent authentication tools in 2026. # 3 AI agent observability platforms to consider in 2026. To that end, we\u2019ll break down 3 leading agent observability solutions and highlight their pros and cons to help you pinpoint the best option. Merge Agent Handler lets you not only monitor and manage your agents but also connect them to thousands of tools across dozens of MCP connectors. ##### \u201cWith Merge Agent Handler\u2019s searchable logs, we can quickly and reliably verify tool calls and responses. #### Observe your agents effectively with Merge Agent Handler. Merge Agent Handler lets you monitor and manage all your agents with ease through fully-searchable logs, an Evaluation Suite, customizable security rules, and more. Our blog's newsletter provides the best practices you need to build high-performing integrations for your products and agents.",
+            "score": 0.8652358,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+            "title": "What's your honest tier list for agent observability & testing tools ...",
+            "content": "Best observability tools for AI agents. Fastest time-to-value observability platforms. Best LLM observability tools. Datadog vs Langchain for",
+            "score": 0.8593928,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.getmaxim.ai/products/agent-observability",
+            "title": "Agent Observability - Maxim AI",
+            "content": "Seamlessly relay/forward application logs to New Relic or any observability platform of your choice that supports OTel. Monitor and evaluate multiple agents simultaneously, ensuring consistent quality even for extremely large workloads. Observability is the practice of monitoring, tracing, and analyzing the internal states, decision-making processes, and outputs of AI agents in real-time. Maxim AI provides end-to-end visibility into your AI agent\u2019s performance by tracing the complete request lifecycle. How does Maxim trace AI Agents in production? Maxim traces AI agents in production using distributed tracing to capture every request and provide granular, end-to-end visibility into the agent's complex workflow. Maxim lets you observe and evaluate multi-turn agent behavior using Sessions, which represent end-to-end task executions. Each session groups together all traces generated across multiple turns, giving you a complete view of how context evolves as the agent plans, reasons, performs actions, and responds over time. On top of sessions, you can attach evaluators such as task success, trajectory quality, or custom agent metrics to measure their real-world performance.",
+            "score": 0.7959917,
+            "raw_content": null
+          }
+        ],
+        "request_id": "29cb9666-fd95-44cc-bbe8-a91fa7ffcb33"
+      },
+      "headers": {
+        "date": "Sun, 29 Mar 2026 03:01:17 GMT",
+        "content-type": "application/json",
+        "content-length": "5740",
+        "connection": "keep-alive",
+        "content-security-policy": "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';base-uri 'self';form-action 'self'; require-trusted-types-for 'script'; upgrade-insecure-requests;"
+      }
+    },
+    "parity": {
+      "all_matched": true,
+      "checks": {
+        "result_count_match": true,
+        "top_title_match": true,
+        "top_url_match": true
+      },
+      "rhumb_sample": {
+        "result_count": 5,
+        "top_title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+        "top_url": "https://metoro.io/blog/best-observability-tools-with-ai"
+      },
+      "direct_sample": {
+        "result_count": 5,
+        "top_title": "Best Observability Tools with AI-Powered Insights (2026) - Metoro",
+        "top_url": "https://metoro.io/blog/best-observability-tools-with-ai"
+      },
+      "provider_used": "tavily",
+      "execution_id": "exec_e48e3d8b3f0142048a2978408a9c6c0f",
+      "upstream_status": 200
+    },
+    "evidence_id": "0352973a-cc2f-4045-9e5b-43dad9ba1447",
+    "review_id": "206fdbe9-2ab7-46a8-8d50-c648d75188cf",
+    "observed_at": "2026-03-29T03:01:17.048617+00:00",
+    "counts_after": {
+      "published_reviews": 8,
+      "runtime_backed_reviews": 3
+    }
+  },
+  "review_agent_disable_status": 200
+}
