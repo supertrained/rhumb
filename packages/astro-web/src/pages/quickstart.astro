@@ -66,7 +66,7 @@ const QUICKSTART_JSON_LD = {
                 <h3 class="font-display font-semibold text-slate-100">x402</h3>
                 <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Zero signup</span>
               </div>
-              <p class="text-sm text-slate-400 leading-relaxed">Best when the agent should pay per call with USDC and payment proof should authorize each request.</p>
+              <p class="text-sm text-slate-400 leading-relaxed">Best when the agent should pay per call with USDC and retry with tx-hash payment proof. If your wallet emits wrapped smart-wallet proofs, use wallet-prefund for the repeatable path today.</p>
             </a>
 
             <a href="/payments/agent#wallet-prefund" class="group rounded-xl border border-emerald-500/20 bg-navy p-5 hover:border-emerald-400/40 transition-colors">
@@ -246,6 +246,15 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
   -H 'X-Payment: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'`}</code></pre>
+          <div class="mt-4 rounded-xl border border-amber/30 bg-amber/5 p-4 text-sm leading-6 text-slate-300">
+            <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">Honest note</p>
+            <p>
+              The repeatable public x402 path today is tx-hash proof. Some smart-wallet or wrapped authorization
+              payloads still hit a production compatibility boundary because the facilitator path is not wired.
+              If your buyer emits wrapped proofs, switch to <a href="#wallet-prefund" class="text-amber hover:underline underline-offset-2">wallet-prefund</a>
+              or use the standard API-key rail.
+            </p>
+          </div>
         </div>
       </section>
 

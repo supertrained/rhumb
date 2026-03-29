@@ -176,6 +176,17 @@ const AGENT_PAYMENTS_JSON_LD = {
             Current public support is intentionally narrow: {x402.token} on {x402.network}. That keeps the
             flow deterministic for agents and clear for operators.
           </p>
+          <div class="mt-5 rounded-xl border border-amber/30 bg-amber/5 p-4">
+            <p class="text-xs font-mono uppercase tracking-widest text-amber">Current compatibility boundary</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">
+              The repeatable public x402 path today is the plain payment-proof flow shown below: request 402,
+              pay the exact requirement, then retry with <code class="font-mono text-amber">X-Payment</code>
+              carrying tx-hash proof. Some smart-wallet or wrapped authorization payloads still depend on a
+              facilitator path that is not wired in current production. If your buyer emits wrapped proofs,
+              use <a href="#wallet-prefund" class="text-amber hover:underline underline-offset-2">wallet-prefund</a>
+              or the standard API-key rail instead of assuming drop-in x402 interoperability.
+            </p>
+          </div>
         </div>
 
         <aside

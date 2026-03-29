@@ -42,6 +42,8 @@ curl -s "https://base.blockscout.com/api/v2/transactions/{tx_hash}" | python3 -m
 
 ## Common Failure Modes
 
+> **2026-03-29 production truth:** `RHUMB_SETTLEMENT_PRIVATE_KEY` is present in Railway, but no `X402_FACILITATOR_URL` is wired in production. That means local settlement is the only live verification path for standard authorization payloads right now. Plain tx-hash proof and wallet-prefund remain the honest repeatable rails; wrapped smart-wallet authorization payloads should be treated as compatibility-bound until facilitator support is actually configured.
+
 ### 1. Multiple transfers in one transaction
 - **Cause**: Agent batched payments or used a router contract
 - **Fix**: Agent must send a clean single-transfer transaction
@@ -63,6 +65,11 @@ curl -s "https://base.blockscout.com/api/v2/transactions/{tx_hash}" | python3 -m
 ### 5. Base network congestion
 - **Cause**: RPC endpoint is slow, transaction not yet confirmed
 - **Fix**: Wait for confirmation, retry verification with same tx hash
+
+### 6. Unsupported smart-wallet / wrapped authorization payload
+- **Cause**: Buyer sends a wrapped or smart-wallet-style authorization payload that local settlement cannot recover directly, and production has no facilitator configured to verify it.
+- **Fix**: Do not keep retrying the same buyer path blindly. Use wallet-prefund or a tx-hash-compatible buyer flow instead. If facilitator support is intended, verify `X402_FACILITATOR_URL` and auth are actually present in the deployed env.
+- **Our stance**: This is a compatibility boundary, not a fake success path. Truth surfaces should say so explicitly until production facilitator support is real.
 
 ## Mitigation
 
