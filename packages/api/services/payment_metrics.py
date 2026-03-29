@@ -1,10 +1,11 @@
 """
 Payment system structured logging and metrics.
 
-Emits structured JSON logs that Railway captures automatically.
+Emits structured payment logs that Railway can surface in plain-text log views.
 All payment events go through here for consistent observability.
 """
 
+import json
 import logging
 import time
 from contextlib import contextmanager
@@ -47,11 +48,12 @@ def log_payment_event(
 
     # Filter None values
     data = {k: v for k, v in data.items() if v is not None}
+    payload = json.dumps(data, sort_keys=True, default=str)
 
     if success:
-        logger.info("payment.%s", event, extra={"payment": data})
+        logger.info("payment.%s %s", event, payload, extra={"payment": data})
     else:
-        logger.warning("payment.%s", event, extra={"payment": data})
+        logger.warning("payment.%s %s", event, payload, extra={"payment": data})
 
 
 @contextmanager

@@ -326,7 +326,11 @@ def _log_x402_interop_trace(
         payload.update(extra)
 
     payload = {k: v for k, v in payload.items() if v is not None}
-    logger.info("x402_interop_trace", extra={"x402_interop": payload})
+    logger.info(
+        "x402_interop_trace %s",
+        json.dumps(payload, sort_keys=True, default=str),
+        extra={"x402_interop": payload},
+    )
 
 
 # ---------------------------------------------------------------------------

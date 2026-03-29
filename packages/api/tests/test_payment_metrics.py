@@ -27,8 +27,9 @@ class TestLogPaymentEvent:
 
             mock_logger.info.assert_called_once()
             args, kwargs = mock_logger.info.call_args
-            assert args[0] == "payment.%s"
+            assert args[0] == "payment.%s %s"
             assert args[1] == "credit_deducted"
+            assert '"event": "credit_deducted"' in args[2]
             payment_data = kwargs["extra"]["payment"]
             assert payment_data["event"] == "credit_deducted"
             assert payment_data["org_id"] == "org_1"
@@ -46,8 +47,9 @@ class TestLogPaymentEvent:
 
             mock_logger.warning.assert_called_once()
             args, kwargs = mock_logger.warning.call_args
-            assert args[0] == "payment.%s"
+            assert args[0] == "payment.%s %s"
             assert args[1] == "credit_insufficient"
+            assert '"event": "credit_insufficient"' in args[2]
             payment_data = kwargs["extra"]["payment"]
             assert payment_data["success"] is False
             assert payment_data["error"] == "insufficient_credits"
@@ -239,3 +241,25 @@ class TestPaymentHealth:
 
         assert healthy is False
         assert reason == "connection_error"
+
+
+def test_log_payment_event_includes_compact_payload_in_message(caplog):
+    with caplog.at_level(logging.INFO, logger="rhumb.payments"):
+        log_payment_event(
+            "x402_payment_failed",
+            org_id="org_123",
+            capability_id="search.query",
+            execution_id="exec_123",
+            network="base",
+            success=False,
+            error="nonce already used",
+        )
+
+    assert caplog.records
+    record = caplog.records[-1]
+    message = record.getMessage()
+    assert message.startswith("payment.x402_payment_failed ")
+    assert '"capability_id": "search.query"' in message
+    assert '"error": "nonce already used"' in message
+    assert '"execution_id": "exec_123"' in message
+    assert '"network": "base"' in message
