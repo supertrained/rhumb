@@ -1,0 +1,1246 @@
+{
+  "timestamp_utc": "20260329T231345Z",
+  "rail": {
+    "mode": "temp_review_agent",
+    "org_id": "org_runtime_review_20260329t231345z",
+    "agent_id": "06b352f9-05f7-4064-9432-c9c8de858276",
+    "org_create_status": 201,
+    "credit_seed_status": 201,
+    "grant_statuses": {
+      "people-data-labs": 200,
+      "replicate": 200
+    },
+    "agent_disable_status": 200
+  },
+  "api_base": "https://api.rhumb.dev/v1",
+  "mission_0_pdl": {
+    "estimate_status": 200,
+    "execute_status": 200,
+    "direct_status": 200,
+    "execute": {
+      "data": {
+        "capability_id": "data.enrich_person",
+        "provider_used": "people-data-labs",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "status": 200,
+          "likelihood": 9,
+          "data": {
+            "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+            "full_name": "satya nadella",
+            "first_name": "satya",
+            "middle_initial": null,
+            "middle_name": null,
+            "last_initial": "n",
+            "last_name": "nadella",
+            "sex": null,
+            "birth_year": false,
+            "birth_date": false,
+            "linkedin_url": "linkedin.com/in/satyanadella",
+            "linkedin_username": "satyanadella",
+            "linkedin_id": "19186432",
+            "facebook_url": null,
+            "facebook_username": null,
+            "facebook_id": null,
+            "twitter_url": null,
+            "twitter_username": null,
+            "github_url": null,
+            "github_username": null,
+            "work_email": false,
+            "personal_emails": true,
+            "recommended_personal_email": true,
+            "mobile_phone": true,
+            "industry": "computer software",
+            "job_title": "board member",
+            "job_title_role": "advisory",
+            "job_title_sub_role": "board_member",
+            "job_title_class": "general_and_administrative",
+            "job_title_levels": [
+              "partner"
+            ],
+            "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+            "job_company_name": "starbucks",
+            "job_company_website": "starbucks.com",
+            "job_company_size": "10001+",
+            "job_company_founded": 1971,
+            "job_company_industry": "retail",
+            "job_company_industry_v2": "retail",
+            "job_company_linkedin_url": "linkedin.com/company/starbucks",
+            "job_company_linkedin_id": "2271",
+            "job_company_facebook_url": "facebook.com/starbucks",
+            "job_company_twitter_url": "twitter.com/starbucks",
+            "job_company_location_name": "seattle, washington, united states",
+            "job_company_location_locality": "seattle",
+            "job_company_location_metro": "seattle, washington",
+            "job_company_location_region": "washington",
+            "job_company_location_geo": "47.67,-122.3",
+            "job_company_location_street_address": "2401 utah avenue south",
+            "job_company_location_address_line_2": null,
+            "job_company_location_postal_code": "98134",
+            "job_company_location_country": "united states",
+            "job_company_location_continent": "north america",
+            "job_last_changed": "2019-12-07",
+            "job_last_verified": "2024-04-01",
+            "job_start_date": "2017",
+            "location_name": true,
+            "location_locality": true,
+            "location_metro": true,
+            "location_region": true,
+            "location_country": "united states",
+            "location_continent": "north america",
+            "location_street_address": false,
+            "location_address_line_2": null,
+            "location_postal_code": false,
+            "location_geo": true,
+            "location_last_updated": "2024-04-01",
+            "phone_numbers": true,
+            "emails": true,
+            "interests": [
+              "cricket",
+              "poetry and literature",
+              "spending time with family",
+              "technology"
+            ],
+            "skills": [],
+            "location_names": true,
+            "regions": true,
+            "countries": [
+              "united states"
+            ],
+            "street_addresses": false,
+            "experience": [
+              {
+                "company": {
+                  "name": "starbucks",
+                  "size": "10001+",
+                  "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+                  "founded": 1971,
+                  "industry": "retail",
+                  "industry_v2": "retail",
+                  "location": {
+                    "name": "seattle, washington, united states",
+                    "locality": "seattle",
+                    "region": "washington",
+                    "metro": "seattle, washington",
+                    "country": "united states",
+                    "continent": "north america",
+                    "street_address": "2401 utah avenue south",
+                    "address_line_2": null,
+                    "postal_code": "98134",
+                    "geo": "47.67,-122.3"
+                  },
+                  "linkedin_url": "linkedin.com/company/starbucks",
+                  "linkedin_id": "2271",
+                  "facebook_url": "facebook.com/starbucks",
+                  "twitter_url": "twitter.com/starbucks",
+                  "website": "starbucks.com"
+                },
+                "location_names": [],
+                "end_date": null,
+                "start_date": "2017",
+                "title": {
+                  "name": "board member",
+                  "class": "general_and_administrative",
+                  "role": "advisory",
+                  "sub_role": "board_member",
+                  "levels": [
+                    "partner"
+                  ]
+                },
+                "is_primary": true
+              },
+              {
+                "company": {
+                  "name": "the business council u.s.",
+                  "size": "1-10",
+                  "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+                  "founded": 1933,
+                  "industry": "non-profit organization management",
+                  "industry_v2": "non-profit organizations",
+                  "location": {
+                    "name": "washington, district of columbia, united states",
+                    "locality": "washington",
+                    "region": "district of columbia",
+                    "metro": "district of columbia",
+                    "country": "united states",
+                    "continent": "north america",
+                    "street_address": "1901 pennsylvania avenue northwest 307",
+                    "address_line_2": null,
+                    "postal_code": "20006",
+                    "geo": "38.88,-77.01"
+                  },
+                  "linkedin_url": "linkedin.com/company/the-business-council-us",
+                  "linkedin_id": "5301945",
+                  "facebook_url": null,
+                  "twitter_url": null,
+                  "website": "businesscouncil.com"
+                },
+                "location_names": [],
+                "end_date": "2023",
+                "start_date": "2021",
+                "title": {
+                  "name": "chairman",
+                  "class": "general_and_administrative",
+                  "role": "advisory",
+                  "sub_role": "board_member",
+                  "levels": [
+                    "partner"
+                  ]
+                },
+                "is_primary": false
+              },
+              {
+                "company": {
+                  "name": "university of chicago",
+                  "size": "1-10",
+                  "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+                  "founded": 1890,
+                  "industry": "higher education",
+                  "industry_v2": null,
+                  "location": {
+                    "name": "chicago, illinois, united states",
+                    "locality": "chicago",
+                    "region": "illinois",
+                    "metro": "chicago, illinois",
+                    "country": "united states",
+                    "continent": "north america",
+                    "street_address": "5801 south ellis avenue",
+                    "address_line_2": null,
+                    "postal_code": "60637",
+                    "geo": "41.82,-87.66"
+                  },
+                  "linkedin_url": "linkedin.com/company/uchicago",
+                  "linkedin_id": "3881",
+                  "facebook_url": null,
+                  "twitter_url": null,
+                  "website": "uchicago.edu"
+                },
+                "location_names": [],
+                "end_date": null,
+                "start_date": "2018",
+                "title": {
+                  "name": "member board of trustees",
+                  "class": null,
+                  "role": null,
+                  "sub_role": null,
+                  "levels": []
+                },
+                "is_primary": false
+              },
+              {
+                "company": {
+                  "name": "fred hutch",
+                  "size": "1001-5000",
+                  "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+                  "founded": 1975,
+                  "industry": "hospital & health care",
+                  "industry_v2": "hospitals and health care",
+                  "location": {
+                    "name": "seattle, washington, united states",
+                    "locality": "seattle",
+                    "region": "washington",
+                    "metro": "seattle, washington",
+                    "country": "united states",
+                    "continent": "north america",
+                    "street_address": "1100 fairview avenue north",
+                    "address_line_2": null,
+                    "postal_code": "98109",
+                    "geo": "47.67,-122.3"
+                  },
+                  "linkedin_url": "linkedin.com/company/fredhutch",
+                  "linkedin_id": "7158",
+                  "facebook_url": null,
+                  "twitter_url": null,
+                  "website": "satcomia.com"
+                },
+                "location_names": [],
+                "end_date": "2022",
+                "start_date": "2016",
+                "title": {
+                  "name": "board member",
+                  "class": "general_and_administrative",
+                  "role": "advisory",
+                  "sub_role": "board_member",
+                  "levels": [
+                    "partner"
+                  ]
+                },
+                "is_primary": false
+              },
+              {
+                "company": {
+                  "name": "microsoft",
+                  "size": "10001+",
+                  "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+                  "founded": 1975,
+                  "industry": "computer software",
+                  "industry_v2": "software development",
+                  "location": {
+                    "name": "redmond, washington, united states",
+                    "locality": "redmond",
+                    "region": "washington",
+                    "metro": "seattle, washington",
+                    "country": "united states",
+                    "continent": "north america",
+                    "street_address": "1 microsoft way",
+                    "address_line_2": null,
+                    "postal_code": "98052",
+                    "geo": "47.65,-122.03"
+                  },
+                  "linkedin_url": "linkedin.com/company/microsoft",
+                  "linkedin_id": "1035",
+                  "facebook_url": "facebook.com/microsoft",
+                  "twitter_url": "twitter.com/microsoft",
+                  "website": "microsoft.com"
+                },
+                "location_names": [
+                  "seattle, washington, united states"
+                ],
+                "end_date": null,
+                "start_date": "2014-02",
+                "title": {
+                  "name": "chairman and chief executive officer",
+                  "class": "general_and_administrative",
+                  "role": "operations",
+                  "sub_role": "executive",
+                  "levels": []
+                },
+                "is_primary": false
+              }
+            ],
+            "education": [
+              {
+                "school": {
+                  "name": "the university of chicago booth school of business",
+                  "type": "post-secondary institution",
+                  "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                  "location": {
+                    "name": "chicago, illinois, united states",
+                    "locality": "chicago",
+                    "region": "illinois",
+                    "country": "united states",
+                    "continent": "north america"
+                  },
+                  "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                  "facebook_url": null,
+                  "twitter_url": null,
+                  "linkedin_id": "8398",
+                  "website": "chicagobooth.edu",
+                  "domain": "chicagobooth.edu"
+                },
+                "degrees": [],
+                "start_date": "1994",
+                "end_date": "1996",
+                "majors": [],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "mangalore university",
+                  "type": "post-secondary institution",
+                  "id": "99V-CuceB3awRNUxlN1y5w_0",
+                  "location": {
+                    "name": "mangalore, karnataka, india",
+                    "locality": "mangalore",
+                    "region": "karnataka",
+                    "country": "india",
+                    "continent": "asia"
+                  },
+                  "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+                  "facebook_url": "facebook.com/university.mangalore",
+                  "twitter_url": null,
+                  "linkedin_id": "66175955",
+                  "website": "mangaloreuniversity.ac.in",
+                  "domain": "mangaloreuniversity.ac.in"
+                },
+                "degrees": [
+                  "bachelors"
+                ],
+                "start_date": null,
+                "end_date": null,
+                "majors": [
+                  "electrical engineering"
+                ],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "manipal institute of technology",
+                  "type": "post-secondary institution",
+                  "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                  "location": {
+                    "name": "nagar, karnataka, india",
+                    "locality": "nagar",
+                    "region": "karnataka",
+                    "country": "india",
+                    "continent": "asia"
+                  },
+                  "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                  "facebook_url": "facebook.com/mahemanipal",
+                  "twitter_url": "twitter.com/manipaluni",
+                  "linkedin_id": "577550",
+                  "website": "manipal.edu",
+                  "domain": "manipal.edu"
+                },
+                "degrees": [],
+                "start_date": null,
+                "end_date": null,
+                "majors": [],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "manipal institute of technology",
+                  "type": "post-secondary institution",
+                  "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+                  "location": {
+                    "name": "nagar, karnataka, india",
+                    "locality": "nagar",
+                    "region": "karnataka",
+                    "country": "india",
+                    "continent": "asia"
+                  },
+                  "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+                  "facebook_url": "facebook.com/mahemanipal",
+                  "twitter_url": "twitter.com/manipaluni",
+                  "linkedin_id": "577550",
+                  "website": "manipal.edu",
+                  "domain": "manipal.edu"
+                },
+                "degrees": [
+                  "bachelors"
+                ],
+                "start_date": null,
+                "end_date": null,
+                "majors": [
+                  "electrical engineering"
+                ],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "the university of chicago booth school of business",
+                  "type": "post-secondary institution",
+                  "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+                  "location": {
+                    "name": "chicago, illinois, united states",
+                    "locality": "chicago",
+                    "region": "illinois",
+                    "country": "united states",
+                    "continent": "north america"
+                  },
+                  "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+                  "facebook_url": null,
+                  "twitter_url": null,
+                  "linkedin_id": "8398",
+                  "website": "chicagobooth.edu",
+                  "domain": "chicagobooth.edu"
+                },
+                "degrees": [],
+                "start_date": null,
+                "end_date": null,
+                "majors": [],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "university of wisconsin - milwaukee",
+                  "type": "post-secondary institution",
+                  "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                  "location": {
+                    "name": "milwaukee, wisconsin, united states",
+                    "locality": "milwaukee",
+                    "region": "wisconsin",
+                    "country": "united states",
+                    "continent": "north america"
+                  },
+                  "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                  "facebook_url": "facebook.com/uwmilwaukee",
+                  "twitter_url": "twitter.com/uwm",
+                  "linkedin_id": "166690",
+                  "website": "uwm.edu",
+                  "domain": "uwm.edu"
+                },
+                "degrees": [],
+                "start_date": null,
+                "end_date": null,
+                "majors": [],
+                "minors": [],
+                "gpa": null
+              },
+              {
+                "school": {
+                  "name": "university of wisconsin - milwaukee",
+                  "type": "post-secondary institution",
+                  "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+                  "location": {
+                    "name": "milwaukee, wisconsin, united states",
+                    "locality": "milwaukee",
+                    "region": "wisconsin",
+                    "country": "united states",
+                    "continent": "north america"
+                  },
+                  "linkedin_url": "linkedin.com/school/uwmilwaukee",
+                  "facebook_url": "facebook.com/uwmilwaukee",
+                  "twitter_url": "twitter.com/uwm",
+                  "linkedin_id": "166690",
+                  "website": "uwm.edu",
+                  "domain": "uwm.edu"
+                },
+                "degrees": [
+                  "masters"
+                ],
+                "start_date": null,
+                "end_date": null,
+                "majors": [
+                  "computer science"
+                ],
+                "minors": [],
+                "gpa": null
+              }
+            ],
+            "profiles": [
+              {
+                "network": "linkedin",
+                "id": "19186432",
+                "url": "linkedin.com/in/satyanadella",
+                "username": "satyanadella"
+              },
+              {
+                "network": "linkedin",
+                "id": "448588505",
+                "url": "linkedin.com/in/satyanadella",
+                "username": "satyanadella"
+              },
+              {
+                "network": "linkedin",
+                "id": "19186432",
+                "url": "linkedin.com/in/satya-nadella-3145136",
+                "username": "satya-nadella-3145136"
+              }
+            ],
+            "dataset_version": "33.2"
+          }
+        },
+        "latency_ms": 817.1,
+        "execution_id": "exec_ef1ebbd65dfc4e20bcdd1633dbafc120",
+        "org_credits_remaining_cents": 4988
+      },
+      "error": null
+    },
+    "direct": {
+      "status": 200,
+      "likelihood": 9,
+      "data": {
+        "id": "BoibQKBm0F1LWT9FfViQMg_0000",
+        "full_name": "satya nadella",
+        "first_name": "satya",
+        "middle_initial": null,
+        "middle_name": null,
+        "last_initial": "n",
+        "last_name": "nadella",
+        "sex": null,
+        "birth_year": false,
+        "birth_date": false,
+        "linkedin_url": "linkedin.com/in/satyanadella",
+        "linkedin_username": "satyanadella",
+        "linkedin_id": "19186432",
+        "facebook_url": null,
+        "facebook_username": null,
+        "facebook_id": null,
+        "twitter_url": null,
+        "twitter_username": null,
+        "github_url": null,
+        "github_username": null,
+        "work_email": false,
+        "personal_emails": true,
+        "recommended_personal_email": true,
+        "mobile_phone": true,
+        "industry": "computer software",
+        "job_title": "board member",
+        "job_title_role": "advisory",
+        "job_title_sub_role": "board_member",
+        "job_title_class": "general_and_administrative",
+        "job_title_levels": [
+          "partner"
+        ],
+        "job_company_id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+        "job_company_name": "starbucks",
+        "job_company_website": "starbucks.com",
+        "job_company_size": "10001+",
+        "job_company_founded": 1971,
+        "job_company_industry": "retail",
+        "job_company_industry_v2": "retail",
+        "job_company_linkedin_url": "linkedin.com/company/starbucks",
+        "job_company_linkedin_id": "2271",
+        "job_company_facebook_url": "facebook.com/starbucks",
+        "job_company_twitter_url": "twitter.com/starbucks",
+        "job_company_location_name": "seattle, washington, united states",
+        "job_company_location_locality": "seattle",
+        "job_company_location_metro": "seattle, washington",
+        "job_company_location_region": "washington",
+        "job_company_location_geo": "47.67,-122.3",
+        "job_company_location_street_address": "2401 utah avenue south",
+        "job_company_location_address_line_2": null,
+        "job_company_location_postal_code": "98134",
+        "job_company_location_country": "united states",
+        "job_company_location_continent": "north america",
+        "job_last_changed": "2019-12-07",
+        "job_last_verified": "2024-04-01",
+        "job_start_date": "2017",
+        "location_name": true,
+        "location_locality": true,
+        "location_metro": true,
+        "location_region": true,
+        "location_country": "united states",
+        "location_continent": "north america",
+        "location_street_address": false,
+        "location_address_line_2": null,
+        "location_postal_code": false,
+        "location_geo": true,
+        "location_last_updated": "2024-04-01",
+        "phone_numbers": true,
+        "emails": true,
+        "interests": [
+          "cricket",
+          "poetry and literature",
+          "spending time with family",
+          "technology"
+        ],
+        "skills": [],
+        "location_names": true,
+        "regions": true,
+        "countries": [
+          "united states"
+        ],
+        "street_addresses": false,
+        "experience": [
+          {
+            "company": {
+              "name": "starbucks",
+              "size": "10001+",
+              "id": "CY9mfehNBgJpBt29E5IRJwWIef53",
+              "founded": 1971,
+              "industry": "retail",
+              "industry_v2": "retail",
+              "location": {
+                "name": "seattle, washington, united states",
+                "locality": "seattle",
+                "region": "washington",
+                "metro": "seattle, washington",
+                "country": "united states",
+                "continent": "north america",
+                "street_address": "2401 utah avenue south",
+                "address_line_2": null,
+                "postal_code": "98134",
+                "geo": "47.67,-122.3"
+              },
+              "linkedin_url": "linkedin.com/company/starbucks",
+              "linkedin_id": "2271",
+              "facebook_url": "facebook.com/starbucks",
+              "twitter_url": "twitter.com/starbucks",
+              "website": "starbucks.com"
+            },
+            "location_names": [],
+            "end_date": null,
+            "start_date": "2017",
+            "title": {
+              "name": "board member",
+              "class": "general_and_administrative",
+              "role": "advisory",
+              "sub_role": "board_member",
+              "levels": [
+                "partner"
+              ]
+            },
+            "is_primary": true
+          },
+          {
+            "company": {
+              "name": "the business council u.s.",
+              "size": "1-10",
+              "id": "1uToZr12zP5IHZNsM9CV5A3lV4P2",
+              "founded": 1933,
+              "industry": "non-profit organization management",
+              "industry_v2": "non-profit organizations",
+              "location": {
+                "name": "washington, district of columbia, united states",
+                "locality": "washington",
+                "region": "district of columbia",
+                "metro": "district of columbia",
+                "country": "united states",
+                "continent": "north america",
+                "street_address": "1901 pennsylvania avenue northwest 307",
+                "address_line_2": null,
+                "postal_code": "20006",
+                "geo": "38.88,-77.01"
+              },
+              "linkedin_url": "linkedin.com/company/the-business-council-us",
+              "linkedin_id": "5301945",
+              "facebook_url": null,
+              "twitter_url": null,
+              "website": "businesscouncil.com"
+            },
+            "location_names": [],
+            "end_date": "2023",
+            "start_date": "2021",
+            "title": {
+              "name": "chairman",
+              "class": "general_and_administrative",
+              "role": "advisory",
+              "sub_role": "board_member",
+              "levels": [
+                "partner"
+              ]
+            },
+            "is_primary": false
+          },
+          {
+            "company": {
+              "name": "university of chicago",
+              "size": "1-10",
+              "id": "BjhCYoDgVUsTXoBZPYdCBQ5cixE0",
+              "founded": 1890,
+              "industry": "higher education",
+              "industry_v2": null,
+              "location": {
+                "name": "chicago, illinois, united states",
+                "locality": "chicago",
+                "region": "illinois",
+                "metro": "chicago, illinois",
+                "country": "united states",
+                "continent": "north america",
+                "street_address": "5801 south ellis avenue",
+                "address_line_2": null,
+                "postal_code": "60637",
+                "geo": "41.82,-87.66"
+              },
+              "linkedin_url": "linkedin.com/company/uchicago",
+              "linkedin_id": "3881",
+              "facebook_url": null,
+              "twitter_url": null,
+              "website": "uchicago.edu"
+            },
+            "location_names": [],
+            "end_date": null,
+            "start_date": "2018",
+            "title": {
+              "name": "member board of trustees",
+              "class": null,
+              "role": null,
+              "sub_role": null,
+              "levels": []
+            },
+            "is_primary": false
+          },
+          {
+            "company": {
+              "name": "fred hutch",
+              "size": "1001-5000",
+              "id": "PhN990tfYBbfGlMKjjYRkAGZ896y",
+              "founded": 1975,
+              "industry": "hospital & health care",
+              "industry_v2": "hospitals and health care",
+              "location": {
+                "name": "seattle, washington, united states",
+                "locality": "seattle",
+                "region": "washington",
+                "metro": "seattle, washington",
+                "country": "united states",
+                "continent": "north america",
+                "street_address": "1100 fairview avenue north",
+                "address_line_2": null,
+                "postal_code": "98109",
+                "geo": "47.67,-122.3"
+              },
+              "linkedin_url": "linkedin.com/company/fredhutch",
+              "linkedin_id": "7158",
+              "facebook_url": null,
+              "twitter_url": null,
+              "website": "satcomia.com"
+            },
+            "location_names": [],
+            "end_date": "2022",
+            "start_date": "2016",
+            "title": {
+              "name": "board member",
+              "class": "general_and_administrative",
+              "role": "advisory",
+              "sub_role": "board_member",
+              "levels": [
+                "partner"
+              ]
+            },
+            "is_primary": false
+          },
+          {
+            "company": {
+              "name": "microsoft",
+              "size": "10001+",
+              "id": "RZOFiRjw26VpLObnwmYXGgRyn3aW",
+              "founded": 1975,
+              "industry": "computer software",
+              "industry_v2": "software development",
+              "location": {
+                "name": "redmond, washington, united states",
+                "locality": "redmond",
+                "region": "washington",
+                "metro": "seattle, washington",
+                "country": "united states",
+                "continent": "north america",
+                "street_address": "1 microsoft way",
+                "address_line_2": null,
+                "postal_code": "98052",
+                "geo": "47.65,-122.03"
+              },
+              "linkedin_url": "linkedin.com/company/microsoft",
+              "linkedin_id": "1035",
+              "facebook_url": "facebook.com/microsoft",
+              "twitter_url": "twitter.com/microsoft",
+              "website": "microsoft.com"
+            },
+            "location_names": [
+              "seattle, washington, united states"
+            ],
+            "end_date": null,
+            "start_date": "2014-02",
+            "title": {
+              "name": "chairman and chief executive officer",
+              "class": "general_and_administrative",
+              "role": "operations",
+              "sub_role": "executive",
+              "levels": []
+            },
+            "is_primary": false
+          }
+        ],
+        "education": [
+          {
+            "school": {
+              "name": "the university of chicago booth school of business",
+              "type": "post-secondary institution",
+              "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+              "location": {
+                "name": "chicago, illinois, united states",
+                "locality": "chicago",
+                "region": "illinois",
+                "country": "united states",
+                "continent": "north america"
+              },
+              "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+              "facebook_url": null,
+              "twitter_url": null,
+              "linkedin_id": "8398",
+              "website": "chicagobooth.edu",
+              "domain": "chicagobooth.edu"
+            },
+            "degrees": [],
+            "start_date": "1994",
+            "end_date": "1996",
+            "majors": [],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "mangalore university",
+              "type": "post-secondary institution",
+              "id": "99V-CuceB3awRNUxlN1y5w_0",
+              "location": {
+                "name": "mangalore, karnataka, india",
+                "locality": "mangalore",
+                "region": "karnataka",
+                "country": "india",
+                "continent": "asia"
+              },
+              "linkedin_url": "linkedin.com/school/mangalore-university-dakshina-kannada",
+              "facebook_url": "facebook.com/university.mangalore",
+              "twitter_url": null,
+              "linkedin_id": "66175955",
+              "website": "mangaloreuniversity.ac.in",
+              "domain": "mangaloreuniversity.ac.in"
+            },
+            "degrees": [
+              "bachelors"
+            ],
+            "start_date": null,
+            "end_date": null,
+            "majors": [
+              "electrical engineering"
+            ],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "manipal institute of technology",
+              "type": "post-secondary institution",
+              "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+              "location": {
+                "name": "nagar, karnataka, india",
+                "locality": "nagar",
+                "region": "karnataka",
+                "country": "india",
+                "continent": "asia"
+              },
+              "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+              "facebook_url": "facebook.com/mahemanipal",
+              "twitter_url": "twitter.com/manipaluni",
+              "linkedin_id": "577550",
+              "website": "manipal.edu",
+              "domain": "manipal.edu"
+            },
+            "degrees": [],
+            "start_date": null,
+            "end_date": null,
+            "majors": [],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "manipal institute of technology",
+              "type": "post-secondary institution",
+              "id": "o-3B5b2fZ-SfmD3ehK3cYg_0",
+              "location": {
+                "name": "nagar, karnataka, india",
+                "locality": "nagar",
+                "region": "karnataka",
+                "country": "india",
+                "continent": "asia"
+              },
+              "linkedin_url": "linkedin.com/school/manipal-institute-of-technology",
+              "facebook_url": "facebook.com/mahemanipal",
+              "twitter_url": "twitter.com/manipaluni",
+              "linkedin_id": "577550",
+              "website": "manipal.edu",
+              "domain": "manipal.edu"
+            },
+            "degrees": [
+              "bachelors"
+            ],
+            "start_date": null,
+            "end_date": null,
+            "majors": [
+              "electrical engineering"
+            ],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "the university of chicago booth school of business",
+              "type": "post-secondary institution",
+              "id": "LmTaC65qdTMCHHYNS6XWIQ_0",
+              "location": {
+                "name": "chicago, illinois, united states",
+                "locality": "chicago",
+                "region": "illinois",
+                "country": "united states",
+                "continent": "north america"
+              },
+              "linkedin_url": "linkedin.com/school/universityofchicagoboothschoolofbusiness",
+              "facebook_url": null,
+              "twitter_url": null,
+              "linkedin_id": "8398",
+              "website": "chicagobooth.edu",
+              "domain": "chicagobooth.edu"
+            },
+            "degrees": [],
+            "start_date": null,
+            "end_date": null,
+            "majors": [],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "university of wisconsin - milwaukee",
+              "type": "post-secondary institution",
+              "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+              "location": {
+                "name": "milwaukee, wisconsin, united states",
+                "locality": "milwaukee",
+                "region": "wisconsin",
+                "country": "united states",
+                "continent": "north america"
+              },
+              "linkedin_url": "linkedin.com/school/uwmilwaukee",
+              "facebook_url": "facebook.com/uwmilwaukee",
+              "twitter_url": "twitter.com/uwm",
+              "linkedin_id": "166690",
+              "website": "uwm.edu",
+              "domain": "uwm.edu"
+            },
+            "degrees": [],
+            "start_date": null,
+            "end_date": null,
+            "majors": [],
+            "minors": [],
+            "gpa": null
+          },
+          {
+            "school": {
+              "name": "university of wisconsin - milwaukee",
+              "type": "post-secondary institution",
+              "id": "u8ngo9JIkYZ38BRvJX91cQ_0",
+              "location": {
+                "name": "milwaukee, wisconsin, united states",
+                "locality": "milwaukee",
+                "region": "wisconsin",
+                "country": "united states",
+                "continent": "north america"
+              },
+              "linkedin_url": "linkedin.com/school/uwmilwaukee",
+              "facebook_url": "facebook.com/uwmilwaukee",
+              "twitter_url": "twitter.com/uwm",
+              "linkedin_id": "166690",
+              "website": "uwm.edu",
+              "domain": "uwm.edu"
+            },
+            "degrees": [
+              "masters"
+            ],
+            "start_date": null,
+            "end_date": null,
+            "majors": [
+              "computer science"
+            ],
+            "minors": [],
+            "gpa": null
+          }
+        ],
+        "profiles": [
+          {
+            "network": "linkedin",
+            "id": "19186432",
+            "url": "linkedin.com/in/satyanadella",
+            "username": "satyanadella"
+          },
+          {
+            "network": "linkedin",
+            "id": "448588505",
+            "url": "linkedin.com/in/satyanadella",
+            "username": "satyanadella"
+          },
+          {
+            "network": "linkedin",
+            "id": "19186432",
+            "url": "linkedin.com/in/satya-nadella-3145136",
+            "username": "satya-nadella-3145136"
+          }
+        ],
+        "dataset_version": "33.2"
+      }
+    },
+    "comparison": {
+      "full_name": {
+        "rhumb": "satya nadella",
+        "direct": "satya nadella",
+        "match": true
+      },
+      "job_title": {
+        "rhumb": "board member",
+        "direct": "board member",
+        "match": true
+      },
+      "job_company_name": {
+        "rhumb": "starbucks",
+        "direct": "starbucks",
+        "match": true
+      },
+      "linkedin_url": {
+        "rhumb": "linkedin.com/in/satyanadella",
+        "direct": "linkedin.com/in/satyanadella",
+        "match": true
+      }
+    },
+    "verdict": "pass"
+  },
+  "mission_1_replicate": {
+    "estimate_status": 200,
+    "execute_status": 200,
+    "direct_create_status": 201,
+    "rhumb_poll_status": 200,
+    "direct_poll_status": 200,
+    "execute": {
+      "data": {
+        "capability_id": "ai.generate_text",
+        "provider_used": "replicate",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 201,
+        "upstream_response": {
+          "id": "nmdsfz0qz1rnc0cx7fg9g0cerw",
+          "model": "meta/meta-llama-3-8b-instruct",
+          "version": "hidden",
+          "input": {
+            "max_new_tokens": 20,
+            "prompt": "Reply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+            "system_prompt": "You are a precise assistant.",
+            "temperature": 0.1
+          },
+          "logs": "",
+          "output": null,
+          "data_removed": false,
+          "error": null,
+          "source": "api",
+          "status": "starting",
+          "created_at": "2026-03-29T23:13:55.192Z",
+          "urls": {
+            "cancel": "https://api.replicate.com/v1/predictions/nmdsfz0qz1rnc0cx7fg9g0cerw/cancel",
+            "get": "https://api.replicate.com/v1/predictions/nmdsfz0qz1rnc0cx7fg9g0cerw",
+            "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/5sbq7yia2l3u4dbjuz75udpanqku3zzpyhjli4tchjjax7x3wdqq",
+            "web": "https://replicate.com/p/nmdsfz0qz1rnc0cx7fg9g0cerw"
+          }
+        },
+        "latency_ms": 228.1,
+        "execution_id": "exec_c512c7fc9e4c4d35a5f2a675eb71e97c"
+      },
+      "error": null
+    },
+    "direct_create": {
+      "id": "txxtxyt269rnc0cx7fgbk0rc5g",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "",
+      "output": null,
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "starting",
+      "created_at": "2026-03-29T23:14:06.002Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/txxtxyt269rnc0cx7fgbk0rc5g/cancel",
+        "get": "https://api.replicate.com/v1/predictions/txxtxyt269rnc0cx7fgbk0rc5g",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/jjrnhdaigvq4qkvsqub7nngrbfxhetyaknsqxagzh3mgxaxsygia",
+        "web": "https://replicate.com/p/txxtxyt269rnc0cx7fgbk0rc5g"
+      }
+    },
+    "rhumb_final": {
+      "id": "nmdsfz0qz1rnc0cx7fg9g0cerw",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "Random seed used: `98870`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`Random seed used: `98870`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`",
+      "output": [
+        "\n\n",
+        "RE",
+        "PLICATE",
+        "_CURRENT",
+        "_PASS",
+        "_OK",
+        "_",
+        "202",
+        "603",
+        "29",
+        "T",
+        "231",
+        "345",
+        "Z"
+      ],
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "succeeded",
+      "created_at": "2026-03-29T23:13:55.192Z",
+      "started_at": "2026-03-29T23:13:55.198848842Z",
+      "completed_at": "2026-03-29T23:13:55.412121752Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/nmdsfz0qz1rnc0cx7fg9g0cerw/cancel",
+        "get": "https://api.replicate.com/v1/predictions/nmdsfz0qz1rnc0cx7fg9g0cerw",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/5sbq7yia2l3u4dbjuz75udpanqku3zzpyhjli4tchjjax7x3wdqq",
+        "web": "https://replicate.com/p/nmdsfz0qz1rnc0cx7fg9g0cerw"
+      },
+      "metrics": {
+        "batch_size": 7.415671567591252,
+        "input_token_count": 36,
+        "output_token_count": 15,
+        "predict_time": 0.213272911,
+        "predict_time_share": 0.02868290458406721,
+        "time_to_first_token": 0.041328112,
+        "tokens_per_second": 87.23729991972597,
+        "total_time": 0.220121752
+      }
+    },
+    "direct_final": {
+      "id": "txxtxyt269rnc0cx7fgbk0rc5g",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "Random seed used: `77648`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`Random seed used: `77648`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`",
+      "output": [
+        "\n\n",
+        "RE",
+        "PLICATE",
+        "_CURRENT",
+        "_PASS",
+        "_OK",
+        "_",
+        "202",
+        "603",
+        "29",
+        "T",
+        "231",
+        "345",
+        "Z"
+      ],
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "succeeded",
+      "created_at": "2026-03-29T23:14:06.002Z",
+      "started_at": "2026-03-29T23:14:06.00883983Z",
+      "completed_at": "2026-03-29T23:14:06.238443659Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/txxtxyt269rnc0cx7fgbk0rc5g/cancel",
+        "get": "https://api.replicate.com/v1/predictions/txxtxyt269rnc0cx7fgbk0rc5g",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/jjrnhdaigvq4qkvsqub7nngrbfxhetyaknsqxagzh3mgxaxsygia",
+        "web": "https://replicate.com/p/txxtxyt269rnc0cx7fgbk0rc5g"
+      },
+      "metrics": {
+        "batch_size": 8.016700133202848,
+        "input_token_count": 36,
+        "output_token_count": 15,
+        "predict_time": 0.22960383,
+        "predict_time_share": 0.028564870357513428,
+        "time_to_first_token": 0.055765739,
+        "tokens_per_second": 86.28718777175251,
+        "total_time": 0.236443659
+      }
+    },
+    "comparison": {
+      "prompt": "Reply with exactly REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+      "rhumb_prediction_id": "nmdsfz0qz1rnc0cx7fg9g0cerw",
+      "direct_prediction_id": "txxtxyt269rnc0cx7fgbk0rc5g",
+      "rhumb_status": "succeeded",
+      "direct_status": "succeeded",
+      "rhumb_output": "REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+      "direct_output": "REPLICATE_CURRENT_PASS_OK_20260329T231345Z",
+      "status_match": true,
+      "output_match": true
+    },
+    "verdict": "pass"
+  }
+}
