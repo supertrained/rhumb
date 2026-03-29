@@ -507,10 +507,39 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
     normal body parsing rejects those requests before the route can return a
     402 discovery envelope or process the paid retry. Parse the raw body
     ourselves so valid JSON still reaches the execute logic.
+
+    Also support two legacy/client-friendly shapes that already appear in the
+    wild:
+    1. envelope fields like ``provider`` / ``credential_mode`` passed via the
+       query string (mirroring ``/execute/estimate`` usage)
+    2. provider-native JSON bodies posted directly without wrapping them under
+       a top-level ``body`` key
     """
+    envelope_fields = {
+        "provider",
+        "method",
+        "path",
+        "body",
+        "params",
+        "credential_mode",
+        "idempotency_key",
+        "interface",
+    }
+
+    query_overrides = {
+        field: value
+        for field in envelope_fields
+        if field not in {"body", "params"}
+        for value in [raw_request.query_params.get(field)]
+        if value is not None and value != ""
+    }
+
     raw_body = await raw_request.body()
     if not raw_body or not raw_body.strip():
-        return CapabilityExecuteRequest()
+        try:
+            return CapabilityExecuteRequest.model_validate(query_overrides)
+        except ValidationError as exc:
+            raise RequestValidationError(exc.errors()) from exc
 
     try:
         payload = json.loads(raw_body)
@@ -526,6 +555,12 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
                 }
             ]
         ) from exc
+
+    if isinstance(payload, dict):
+        if payload and not any(field in payload for field in envelope_fields):
+            payload = {"body": payload}
+        for key, value in query_overrides.items():
+            payload.setdefault(key, value)
 
     try:
         return CapabilityExecuteRequest.model_validate(payload)

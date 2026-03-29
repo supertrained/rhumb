@@ -177,6 +177,40 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_execute_supports_query_envelope_and_top_level_body(app):
+    """POST execute should honor query-string envelope fields and wrap raw JSON as body."""
+    _, mock_pool = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                params={
+                    "provider": "sendgrid",
+                    "credential_mode": "byo",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                },
+                json={"to": "test@example.com"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "sendgrid"
+    assert data["credential_mode"] == "byo"
+    assert data["upstream_status"] == 202
+
+    request_call = mock_pool.acquire.return_value.request.await_args
+    assert request_call.kwargs["json"] == {"to": "test@example.com"}
+
+
+@pytest.mark.anyio
 async def test_twilio_lookup_uses_lookups_domain(app):
     """Twilio Lookup paths should route to lookups.twilio.com, not api.twilio.com."""
     _, mock_pool = _build_patches()
