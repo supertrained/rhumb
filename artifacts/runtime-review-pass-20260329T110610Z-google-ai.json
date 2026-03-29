@@ -1,0 +1,214 @@
+{
+  "run_started_at": "2026-03-29T11:06:10.074674Z",
+  "run_id": "runtime-review-google-ai-20260329T110610Z-ce390b32",
+  "reviewer_agent_id": "54e5eee2-2a02-4b6c-9780-cd871339dc4f",
+  "chosen_from_preloop_audit": {
+    "weakest_bucket": [
+      "algolia",
+      "apify",
+      "apollo",
+      "e2b",
+      "exa",
+      "google-ai",
+      "replicate",
+      "unstructured"
+    ],
+    "weakest_runtime_depth": 2,
+    "picked": "google-ai",
+    "rationale": "deterministic same-prompt control path on a live current model"
+  },
+  "mission1_google_ai": {
+    "provider": "google-ai",
+    "capability_id": "ai.generate_text",
+    "coverage_before": {
+      "auth_type": "api_key",
+      "callable": true,
+      "evidence_review_gap_suspected": false,
+      "freshest_evidence_at": "2026-03-27T15:07:53Z",
+      "highest_source_type": "runtime_verified",
+      "non_runtime_reviews": 5,
+      "proxy_name": "google-ai",
+      "reported_runtime_backed_pct": 100.0,
+      "runtime_backed_evidence_pct": 100.0,
+      "runtime_backed_evidence_records": 11,
+      "runtime_backed_review_pct": 28.6,
+      "runtime_backed_reviews": 2,
+      "service_slug": "google-ai",
+      "total_evidence_records": 11,
+      "total_reviews": 7
+    },
+    "input": {
+      "model": "gemini-2.5-flash",
+      "contents": [
+        {
+          "parts": [
+            {
+              "text": "Reply with exactly: RHUMB_GOOGLE_AI_20260329_LOOP"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "temperature": 0
+      }
+    },
+    "estimate": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "keep-alive",
+        "Content-Length": "231",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200034-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 11:06:10 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "Zh0-XEuwSGeUje67-_9nXA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "118",
+        "x-ratelimit-reset": "1774782432",
+        "x-request-id": "1ed8529f-39ce-498f-8b98-2a4bfb9ee302",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200034-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "ai.generate_text",
+          "provider": "google-ai",
+          "credential_mode": "rhumb_managed",
+          "cost_estimate_usd": 0.001,
+          "circuit_state": "closed",
+          "endpoint_pattern": "POST /v1beta/models/{model}:generateContent"
+        },
+        "error": null
+      }
+    },
+    "rhumb_execute": {
+      "status_code": 200,
+      "headers": {
+        "Connection": "keep-alive",
+        "Content-Length": "609",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200034-BUR",
+        "content-type": "application/json",
+        "date": "Sun, 29 Mar 2026 11:06:11 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "tkLdXAxRSMeXs_jbLPU1MQ",
+        "x-ratelimit-limit": "30",
+        "x-ratelimit-remaining": "28",
+        "x-ratelimit-reset": "1774782435",
+        "x-request-id": "ce7af1e3-0ad8-4cd3-a713-4895a5704ab2",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-bur-kbur8200034-BUR"
+      },
+      "body": {
+        "data": {
+          "capability_id": "ai.generate_text",
+          "provider_used": "google-ai",
+          "credential_mode": "rhumb_managed",
+          "upstream_status": 200,
+          "upstream_response": {
+            "candidates": [
+              {
+                "content": {
+                  "parts": [
+                    {
+                      "text": "RHUMB_GOOGLE_AI_20260329_LOOP"
+                    }
+                  ],
+                  "role": "model"
+                },
+                "finishReason": "STOP",
+                "index": 0
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": 21,
+              "candidatesTokenCount": 17,
+              "totalTokenCount": 60,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 21
+                }
+              ],
+              "thoughtsTokenCount": 22
+            },
+            "modelVersion": "gemini-2.5-flash",
+            "responseId": "pQfJaY3MOvWjvdIPiOyLkAo"
+          },
+          "latency_ms": 834.4,
+          "execution_id": "exec_9f954194ea62432d95b6ed920614e48d"
+        },
+        "error": null
+      }
+    },
+    "direct_control": {
+      "status_code": 200,
+      "headers": {
+        "X-Gemini-Service-Tier": "standard",
+        "Content-Type": "application/json; charset=UTF-8",
+        "Vary": "Origin, X-Origin, Referer",
+        "Content-Encoding": "gzip",
+        "Date": "Sun, 29 Mar 2026 11:06:15 GMT",
+        "Server": "scaffolding on HTTPServer2",
+        "X-XSS-Protection": "0",
+        "X-Frame-Options": "SAMEORIGIN",
+        "X-Content-Type-Options": "nosniff",
+        "Server-Timing": "gfet4t7; dur=580",
+        "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "Transfer-Encoding": "chunked"
+      },
+      "body": {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "RHUMB_GOOGLE_AI_20260329_LOOP"
+                }
+              ],
+              "role": "model"
+            },
+            "finishReason": "STOP",
+            "index": 0
+          }
+        ],
+        "usageMetadata": {
+          "promptTokenCount": 21,
+          "candidatesTokenCount": 17,
+          "totalTokenCount": 60,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 21
+            }
+          ],
+          "thoughtsTokenCount": 22
+        },
+        "modelVersion": "gemini-2.5-flash",
+        "responseId": "pwfJaZqgF9aeqtsP8aaV-QE"
+      }
+    },
+    "parity": {
+      "returned_text": [
+        "RHUMB_GOOGLE_AI_20260329_LOOP",
+        "RHUMB_GOOGLE_AI_20260329_LOOP"
+      ]
+    }
+  },
+  "published": {
+    "evidence_id": "6eb5ab47-23e7-4484-987c-181036231f7f",
+    "review_id": "2e73c81e-2711-4955-9fd2-dac1ff024990",
+    "observed_at": "2026-03-29T11:06:15.857944Z"
+  }
+}
