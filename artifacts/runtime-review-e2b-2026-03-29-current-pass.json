@@ -1,0 +1,171 @@
+{
+  "run_started_at": "2026-03-29T22:24:35.637819+00:00",
+  "service_slug": "e2b",
+  "review_run_id": "pedro-e2b-runtime-review-20260329t222435z-fe2200",
+  "org_id": "org_runtime_review_e2b_20260329t222435z_fe2200",
+  "review_agent_name": "Pedro E2B Runtime Review 20260329T222435Z fe2200",
+  "review_template": {
+    "templateID": "base",
+    "timeout": 300,
+    "metadata": {
+      "source": "rhumb-runtime-review",
+      "service": "e2b",
+      "stamp": "20260329T222435Z"
+    }
+  },
+  "counts_before": {
+    "published_reviews": 7,
+    "runtime_backed_reviews": 7
+  },
+  "score_row": {
+    "id": "d1890174-f789-406f-97a5-437821d62344",
+    "aggregate_recommendation_score": 7.8
+  },
+  "review_agent": {
+    "agent_id": "83b523be-c645-4248-a502-fbaf1618e382",
+    "api_key_prefix": "rhumb_3f6a24..."
+  },
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "granted_services": [
+    "e2b"
+  ],
+  "rhumb_estimate": {
+    "data": {
+      "capability_id": "agent.spawn",
+      "provider": "e2b",
+      "credential_mode": "rhumb_managed",
+      "cost_estimate_usd": null,
+      "circuit_state": "closed",
+      "endpoint_pattern": "POST /sandboxes"
+    },
+    "error": null
+  },
+  "rhumb_create_raw": {
+    "data": {
+      "capability_id": "agent.spawn",
+      "provider_used": "e2b",
+      "credential_mode": "rhumb_managed",
+      "upstream_status": 201,
+      "upstream_response": {
+        "alias": "base",
+        "clientID": "6532622b",
+        "domain": null,
+        "envdVersion": "0.5.4",
+        "sandboxID": "iyodtwbpxn19d0fj425i4",
+        "templateID": "rki5dems9wqfm4r03t7g",
+        "trafficAccessToken": null
+      },
+      "latency_ms": 348.1,
+      "execution_id": "exec_ec3b062b69b544a5b73ad3e0ec1bc45c"
+    },
+    "error": null
+  },
+  "rhumb_create": {
+    "status_code": 200,
+    "capability_id": "agent.spawn",
+    "provider_used": "e2b",
+    "credential_mode": "rhumb_managed",
+    "execution_id": "exec_ec3b062b69b544a5b73ad3e0ec1bc45c",
+    "upstream_status": 201,
+    "sandbox": {
+      "sandboxID": "iyodtwbpxn19d0fj425i4",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "envdVersion": "0.5.4"
+    }
+  },
+  "rhumb_status_raw": {
+    "data": {
+      "capability_id": "agent.get_status",
+      "provider_used": "e2b",
+      "credential_mode": "rhumb_managed",
+      "upstream_status": 200,
+      "upstream_response": {
+        "alias": "base",
+        "allowInternetAccess": null,
+        "clientID": "6532622b",
+        "cpuCount": 2,
+        "diskSizeMB": 23318,
+        "domain": null,
+        "endAt": "2026-03-29T22:29:40.090013021Z",
+        "envdVersion": "0.5.4",
+        "lifecycle": {
+          "autoResume": false,
+          "onTimeout": "kill"
+        },
+        "memoryMB": 512,
+        "metadata": {
+          "service": "e2b",
+          "source": "rhumb-runtime-review",
+          "stamp": "20260329T222435Z"
+        },
+        "sandboxID": "iyodtwbpxn19d0fj425i4",
+        "startedAt": "2026-03-29T22:24:40.090013021Z",
+        "state": "running",
+        "templateID": "rki5dems9wqfm4r03t7g",
+        "volumeMounts": []
+      },
+      "latency_ms": 581.9,
+      "execution_id": "exec_66f189a3ff054210a2e5a7f3351b2269"
+    },
+    "error": null
+  },
+  "rhumb_status": {
+    "status_code": 200,
+    "execution_id": "exec_66f189a3ff054210a2e5a7f3351b2269",
+    "upstream_status": 200,
+    "sandbox": {
+      "sandboxID": "iyodtwbpxn19d0fj425i4",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "state": "running",
+      "envdVersion": "0.5.4",
+      "cpuCount": 2,
+      "memoryMB": 512
+    }
+  },
+  "direct_create": {
+    "status_code": 201,
+    "sandbox": {
+      "sandboxID": "iduuepibn8vk9d6m84f5j",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "envdVersion": "0.5.4"
+    }
+  },
+  "direct_status": {
+    "status_code": 200,
+    "sandbox": {
+      "sandboxID": "iduuepibn8vk9d6m84f5j",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "state": "running",
+      "envdVersion": "0.5.4",
+      "cpuCount": 2,
+      "memoryMB": 512
+    }
+  },
+  "cleanup": {
+    "rhumb_sandbox_delete_status": 204,
+    "direct_sandbox_delete_status": 204
+  },
+  "parity_checks": {
+    "create_template_match": true,
+    "status_template_match": true,
+    "status_state_match": true,
+    "envd_version_present_both": true,
+    "compute_shape_match": true
+  },
+  "verdict": "passed",
+  "evidence_id": "1891ea72-44cb-40cc-8f60-f69872cd3e67",
+  "review_id": "c8fe777d-c98a-477e-9073-38196aaaaec0",
+  "counts_after": {
+    "published_reviews": 8,
+    "runtime_backed_reviews": 8
+  },
+  "review_agent_disabled": true
+}
