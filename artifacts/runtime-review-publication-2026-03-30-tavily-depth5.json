@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "ce507979-3a11-4735-8b17-2049a10619e5",
+    "source_ref": "runtime-review:tavily:20260330T190954Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "ce507979-3a11-4735-8b17-2049a10619e5",
+    "review_id": "706e6eab-c8a0-4328-8726-13dc8394f1e9",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "706e6eab-c8a0-4328-8726-13dc8394f1e9",
+    "source_batch_id": "runtime-review:tavily:20260330T190954Z",
+    "state": "inserted"
+  },
+  "service": "tavily"
+}

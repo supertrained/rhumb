@@ -1,0 +1,179 @@
+{
+  "provider": "tavily",
+  "capability_id": "search.query",
+  "query": "best AI agent observability tools",
+  "search_depth": "basic",
+  "max_results": 5,
+  "review_kind": "current_depth5",
+  "organization_id": "org_runtime_review_tavily_20260330t190954z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260330T190954Z-tavily-current-depth5.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "84b40a50-a28b-489f-b9c3-2fdcbb9e3151",
+    "organization_id": "org_runtime_review_tavily_20260330t190954z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "43533da9-1dba-4835-9ca9-89c4c704d296"
+  },
+  "observed_at": "2026-03-30T19:10:00Z",
+  "fresh_until": "2026-04-29T19:10:00Z",
+  "counts_before": {
+    "published_reviews": 9,
+    "runtime_backed_reviews": 4
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "search.query",
+        "provider": "tavily",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.001,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /search"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "search.query",
+        "provider_used": "tavily",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "query": "best AI agent observability tools",
+          "follow_up_questions": null,
+          "answer": null,
+          "images": [],
+          "results": [
+            {
+              "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+              "title": "5 best AI agent observability tools for agent reliability in 2026",
+              "content": "For teams building agents that handle customer data or business-critical workflows, AI agent observability is what separates profitable AI products that scale reliably from agents that work once in a demo and fail in production. This guide compares the best AI agent observability tools for teams building production AI agents. **Best for:** Teams running high-volume production agents who need real-time, low-cost safety evaluations on every request. | **Braintrust** | Free (Pro: $249/month) | Evaluation-driven agent development with CI/CD and production monitoring | Unified evaluations across development and production, deep multi-step agent tracing, automated regression testing, cost and quality tracked together, no-code iteration |. AI agent observability monitors multi-step agent workflows by capturing traces, logs, metrics, and evaluations to ensure reliability. If your agents run multi-step workflows or make autonomous decisions, you need observability that evaluates quality, not just logs requests. ### What's the best AI agent observability tool for production agents?",
+              "score": 0.9041187,
+              "raw_content": null
+            },
+            {
+              "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+              "title": "Best Observability Tools with AI-Powered Insights (2026)",
+              "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+              "score": 0.8886914,
+              "raw_content": null
+            },
+            {
+              "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+              "title": "What's your honest tier list for agent observability & testing ...",
+              "content": "Best observability tools for AI agents. Fastest time-to-value observability platforms. Best LLM observability tools. Datadog vs Langchain for",
+              "score": 0.85825616,
+              "raw_content": null
+            },
+            {
+              "url": "https://www.langchain.com/articles/llm-observability-tools",
+              "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+              "content": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. This guide compares eight LLM observability platforms on their tracing, evaluation, and collaboration features. | LangSmith | Observability and Evaluation Platform | Freemium (from $0/seat/mo) | No | Native | Agent debugging, production monitoring, and LLM-as-judge evaluations |. | Langfuse | LLM Engineering Platform | Freemium (from $0/mo) | Yes (MIT) | Native | All-in-one observability, prompts, and evaluations |. LangSmith is a unified agent engineering platform that provides observability, evaluations, and prompt engineering for any LLM application or AI agent. **Q: Do I need the Datadog Agent to use LLM Observability?** No. Datadog supports an agentless mode via environment variables, though running the full agent provides additional capabilities. **Q: How does Datadog LLM Observability compare to dedicated LLM tools?** Community feedback suggests it excels at infrastructure correlation but lacks the depth of evaluation and annotation features found in purpose-built LLM platforms.",
+              "score": 0.80771893,
+              "raw_content": null
+            },
+            {
+              "url": "https://azure.microsoft.com/en-us/blog/agent-factory-top-5-agent-observability-best-practices-for-reliable-ai/",
+              "title": "Top 5 agent observability best practices for reliable AI",
+              "content": "## Global. # Agent Factory: Top 5 agent observability best practices for reliable AI. Text reads \"Agent Factory: Observability Best Practices.\". *This blog post is the third out of a six-part blog series called**Agent Factory**which will share best practices, design patterns, and tools to help guide you through adopting and building agentic AI.*. ## Seeing is knowing\u2014the power of agent observability. From model selection to real-time debugging, Foundry Observability capabilities empower teams to ship production-grade AI with confidence and speed. ## Five best practices for agent observability. Agents typically first\u00a0reason through user intents in conversations,\u00a0select the correct tools\u00a0to call and satisfy the user requests, and\u00a0complete various tasks\u00a0according to their instructions. ## Azure AI Foundry. *\\*The views reflected in this publication are the views of the speaker and do not necessarily reflect the views of the global EY organization or its member firms.*. The future of AI starts here.",
+              "score": 0.80014634,
+              "raw_content": null
+            }
+          ],
+          "response_time": 0.79,
+          "request_id": "be8dc861-72c9-4a18-8c68-afd5b9ea8067"
+        },
+        "latency_ms": 1070.5,
+        "execution_id": "exec_07cc638fedfd45afb7f2059f85c8e0aa"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "query": "best AI agent observability tools",
+      "response_time": 0.79,
+      "follow_up_questions": null,
+      "answer": null,
+      "images": [],
+      "results": [
+        {
+          "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026",
+          "title": "5 best AI agent observability tools for agent reliability in 2026",
+          "content": "For teams building agents that handle customer data or business-critical workflows, AI agent observability is what separates profitable AI products that scale reliably from agents that work once in a demo and fail in production. This guide compares the best AI agent observability tools for teams building production AI agents. **Best for:** Teams running high-volume production agents who need real-time, low-cost safety evaluations on every request. | **Braintrust** | Free (Pro: $249/month) | Evaluation-driven agent development with CI/CD and production monitoring | Unified evaluations across development and production, deep multi-step agent tracing, automated regression testing, cost and quality tracked together, no-code iteration |. AI agent observability monitors multi-step agent workflows by capturing traces, logs, metrics, and evaluations to ensure reliability. If your agents run multi-step workflows or make autonomous decisions, you need observability that evaluates quality, not just logs requests. ### What's the best AI agent observability tool for production agents?",
+          "score": 0.9041187,
+          "raw_content": null
+        },
+        {
+          "url": "https://metoro.io/blog/best-observability-tools-with-ai",
+          "title": "Best Observability Tools with AI-Powered Insights (2026)",
+          "content": "AI observability tools combine telemetry collection with machine learning and LLM-based analysis to help teams detect anomalies, investigate incidents, reduce alert noise, and identify likely root causes faster. * **Root cause analysis**: Most AI observability tools trace failures across environments without manual intervention. But AI changes the game in observability tools by automatically identifying root causes without manual intervention. ## What Are The Best AI Observability Tools In 2026? * **AI SRE Agent**: Metoro's core AI engine, **Guardian**, learns patterns that work in your cluster and automatically detects inconsistencies and issues, without requiring any alert configuration or prior observability setup. **Best For**: Teams structured to work with open-source observability tools and want to add AI features without switching platforms. Like other AI observability tools such as Metoro, New Relic A**I** lets engineers query telemetry in natural language. Within the observability cloud, **Autodetect** uses ML to create, deploy, and manage alerting detectors, while the **AI Agent Monitoring** tracks LLM performance, hallucination rates, and costs.",
+          "score": 0.8886914,
+          "raw_content": null
+        },
+        {
+          "url": "https://www.reddit.com/r/AI_Agents/comments/1rfrvcw/whats_your_honest_tier_list_for_agent/",
+          "title": "What's your honest tier list for agent observability & testing ...",
+          "content": "Best observability tools for AI agents. Fastest time-to-value observability platforms. Best LLM observability tools. Datadog vs Langchain for",
+          "score": 0.85825616,
+          "raw_content": null
+        },
+        {
+          "url": "https://www.langchain.com/articles/llm-observability-tools",
+          "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+          "content": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. This guide compares eight LLM observability platforms on their tracing, evaluation, and collaboration features. | LangSmith | Observability and Evaluation Platform | Freemium (from $0/seat/mo) | No | Native | Agent debugging, production monitoring, and LLM-as-judge evaluations |. | Langfuse | LLM Engineering Platform | Freemium (from $0/mo) | Yes (MIT) | Native | All-in-one observability, prompts, and evaluations |. LangSmith is a unified agent engineering platform that provides observability, evaluations, and prompt engineering for any LLM application or AI agent. **Q: Do I need the Datadog Agent to use LLM Observability?** No. Datadog supports an agentless mode via environment variables, though running the full agent provides additional capabilities. **Q: How does Datadog LLM Observability compare to dedicated LLM tools?** Community feedback suggests it excels at infrastructure correlation but lacks the depth of evaluation and annotation features found in purpose-built LLM platforms.",
+          "score": 0.80771893,
+          "raw_content": null
+        },
+        {
+          "url": "https://azure.microsoft.com/en-us/blog/agent-factory-top-5-agent-observability-best-practices-for-reliable-ai/",
+          "title": "Top 5 agent observability best practices for reliable AI",
+          "content": "## Global. # Agent Factory: Top 5 agent observability best practices for reliable AI. Text reads \"Agent Factory: Observability Best Practices.\". *This blog post is the third out of a six-part blog series called**Agent Factory**which will share best practices, design patterns, and tools to help guide you through adopting and building agentic AI.*. ## Seeing is knowing\u2014the power of agent observability. From model selection to real-time debugging, Foundry Observability capabilities empower teams to ship production-grade AI with confidence and speed. ## Five best practices for agent observability. Agents typically first\u00a0reason through user intents in conversations,\u00a0select the correct tools\u00a0to call and satisfy the user requests, and\u00a0complete various tasks\u00a0according to their instructions. ## Azure AI Foundry. *\\*The views reflected in this publication are the views of the speaker and do not necessarily reflect the views of the global EY organization or its member firms.*. The future of AI starts here.",
+          "score": 0.80014634,
+          "raw_content": null
+        }
+      ],
+      "request_id": "e5ecbcab-5c0d-47d9-b359-8ac3fbc5646a"
+    }
+  },
+  "comparison": {
+    "rhumb_provider_used": "tavily",
+    "rhumb_upstream_status": 200,
+    "rhumb_count": 5,
+    "direct_count": 5,
+    "rhumb_top": {
+      "title": "5 best AI agent observability tools for agent reliability in 2026",
+      "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+    },
+    "direct_top": {
+      "title": "5 best AI agent observability tools for agent reliability in 2026",
+      "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+    },
+    "result_count_match": true,
+    "top_title_match": true,
+    "top_url_match": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "tavily",
+    "evidence_id": "ce507979-3a11-4735-8b17-2049a10619e5",
+    "review_id": "706e6eab-c8a0-4328-8726-13dc8394f1e9",
+    "execution_id": "exec_07cc638fedfd45afb7f2059f85c8e0aa"
+  },
+  "counts_after": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 5
+  },
+  "agent_disabled": true
+}
