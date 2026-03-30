@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "cfbf75bf-06c2-4fdd-ae16-45be08651b53",
+    "source_ref": "runtime-review:unstructured:20260330T111043Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "cfbf75bf-06c2-4fdd-ae16-45be08651b53",
+    "review_id": "ef42fd8e-5df5-4530-8a25-245045880000",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "ef42fd8e-5df5-4530-8a25-245045880000",
+    "source_batch_id": "runtime-review:unstructured:20260330T111043Z",
+    "state": "inserted"
+  },
+  "service": "unstructured"
+}

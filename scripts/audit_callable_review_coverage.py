@@ -20,9 +20,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from dataclasses import asdict, dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from urllib.request import Request, urlopen
 
 RUNTIME_TRUST_LABEL = "🟢 Runtime-verified"
@@ -52,6 +54,15 @@ class CoverageRow:
     freshest_evidence_at: str | None
 
 
+def _with_cache_bust(url: str, token: str | None) -> str:
+    if not token:
+        return url
+    parts = urlsplit(url)
+    params = parse_qsl(parts.query, keep_blank_values=True)
+    params.append(("__fresh", token))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
+
+
 def _fetch_json(url: str, timeout: float) -> dict[str, Any]:
     request = Request(
         url,
@@ -69,28 +80,29 @@ def _fetch_json(url: str, timeout: float) -> dict[str, Any]:
         raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
 
 
-def _callable_services(base_url: str, timeout: float) -> list[dict[str, Any]]:
-    payload = _fetch_json(f"{base_url}/proxy/services", timeout)
+def _callable_services(base_url: str, timeout: float, cache_bust_token: str | None = None) -> list[dict[str, Any]]:
+    payload = _fetch_json(_with_cache_bust(f"{base_url}/proxy/services", cache_bust_token), timeout)
     services = payload.get("data", {}).get("services", [])
     return [service for service in services if service.get("callable")]
 
 
-def _service_reviews(base_url: str, service_slug: str, timeout: float) -> dict[str, Any]:
-    return _fetch_json(f"{base_url}/services/{service_slug}/reviews", timeout)
+def _service_reviews(base_url: str, service_slug: str, timeout: float, cache_bust_token: str | None = None) -> dict[str, Any]:
+    return _fetch_json(_with_cache_bust(f"{base_url}/services/{service_slug}/reviews", cache_bust_token), timeout)
 
 
-def _service_evidence(base_url: str, service_slug: str, timeout: float) -> dict[str, Any]:
-    return _fetch_json(f"{base_url}/services/{service_slug}/evidence", timeout)
+def _service_evidence(base_url: str, service_slug: str, timeout: float, cache_bust_token: str | None = None) -> dict[str, Any]:
+    return _fetch_json(_with_cache_bust(f"{base_url}/services/{service_slug}/evidence", cache_bust_token), timeout)
 
 
-def audit(base_url: str, timeout: float) -> dict[str, Any]:
-    services = _callable_services(base_url, timeout)
+def audit(base_url: str, timeout: float, cache_bust: bool = False) -> dict[str, Any]:
+    cache_bust_token = str(int(time.time() * 1000)) if cache_bust else None
+    services = _callable_services(base_url, timeout, cache_bust_token)
     rows: list[CoverageRow] = []
 
     for service in services:
         slug = str(service.get("canonical_slug") or service.get("name") or service.get("proxy_name"))
-        review_payload = _service_reviews(base_url, slug, timeout)
-        evidence_payload = _service_evidence(base_url, slug, timeout)
+        review_payload = _service_reviews(base_url, slug, timeout, cache_bust_token)
+        evidence_payload = _service_evidence(base_url, slug, timeout, cache_bust_token)
         reviews = review_payload.get("reviews", [])
         evidence_records = evidence_payload.get("evidence", [])
         runtime_backed_reviews = sum(
@@ -195,12 +207,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout seconds")
     parser.add_argument("--json", action="store_true", help="Print JSON to stdout")
     parser.add_argument("--json-out", help="Write JSON payload to a file")
+    parser.add_argument(
+        "--cache-bust",
+        action="store_true",
+        help="Append a unique query parameter to public reads so freshly-published review/evidence rows are visible immediately",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    payload = audit(args.base_url.rstrip("/"), args.timeout)
+    payload = audit(args.base_url.rstrip("/"), args.timeout, cache_bust=args.cache_bust)
 
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
