@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "af9da898-871f-4c52-9c10-a14cf4f78fc0",
+    "source_ref": "runtime-review:exa:20260330T230826Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "af9da898-871f-4c52-9c10-a14cf4f78fc0",
+    "review_id": "56572a22-da8b-4cd8-861f-df5b416b4d5a",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "56572a22-da8b-4cd8-861f-df5b416b4d5a",
+    "source_batch_id": "runtime-review:exa:20260330T230826Z",
+    "state": "inserted"
+  },
+  "service": "exa"
+}
