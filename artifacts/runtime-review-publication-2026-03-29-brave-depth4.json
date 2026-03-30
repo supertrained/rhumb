@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "a1ef1aa6-bd13-4e16-999b-28b73b44d115",
+    "source_ref": "runtime-review:brave-search:20260330T022722Z",
+    "state": "reused"
+  },
+  "link": {
+    "evidence_record_id": "a1ef1aa6-bd13-4e16-999b-28b73b44d115",
+    "review_id": "e19e0fe2-813b-4f3a-be3d-c2c8054cff0e",
+    "role": "primary",
+    "state": "reused"
+  },
+  "review": {
+    "id": "e19e0fe2-813b-4f3a-be3d-c2c8054cff0e",
+    "source_batch_id": "runtime-review:brave-search:20260330T022722Z",
+    "state": "reused"
+  },
+  "service": "brave-search"
+}
