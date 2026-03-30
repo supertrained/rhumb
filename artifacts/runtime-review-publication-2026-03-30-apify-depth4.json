@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "09485d09-d57d-4f00-a75b-bf0a52396c18",
+    "source_ref": "runtime-review:apify:20260330T123041Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "09485d09-d57d-4f00-a75b-bf0a52396c18",
+    "review_id": "09c2000b-aa2e-400a-9101-804b010281e0",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "09c2000b-aa2e-400a-9101-804b010281e0",
+    "source_batch_id": "runtime-review:apify:20260330T123041Z",
+    "state": "inserted"
+  },
+  "service": "apify"
+}
