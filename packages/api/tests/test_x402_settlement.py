@@ -249,6 +249,53 @@ async def test_unsupported_local_verification_falls_back_to_facilitator():
 
 
 @pytest.mark.anyio
+async def test_smart_wallet_rpc_verification_failure_falls_back_to_facilitator():
+    """RPC-related smart-wallet verification failures should be retryable via facilitator."""
+    from services.x402_local_settlement import SettlementVerificationFailed
+
+    verify_response = MagicMock()
+    verify_response.status_code = 200
+    verify_response.json.return_value = {"isValid": True, "payer": "0xPayer"}
+
+    settle_payload = {
+        "success": True,
+        "transaction": "0xfacilitator-rpc-retry",
+        "network": "base",
+        "payer": "0xPayer",
+    }
+    settle_response = MagicMock()
+    settle_response.status_code = 200
+    settle_response.json.return_value = settle_payload
+
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(side_effect=[verify_response, settle_response])
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with (
+        patch.dict(os.environ, {
+            "RHUMB_SETTLEMENT_PRIVATE_KEY": TEST_PRIVATE_KEY,
+            "X402_FACILITATOR_URL": "https://facilitator.example",
+        }, clear=False),
+        patch("services.x402_settlement.httpx.AsyncClient", return_value=mock_client),
+    ):
+        service = X402SettlementService()
+        service._local = MagicMock()
+        service._local.is_configured.return_value = True
+        service._local.verify_and_settle = AsyncMock(
+            side_effect=SettlementVerificationFailed(
+                "smart wallet rpc timeout",
+                code="smart_wallet_rpc_error",
+                retryable_with_facilitator=True,
+            )
+        )
+
+        result = await service.verify_and_settle(PAYMENT_PAYLOAD, PAYMENT_REQUIREMENTS)
+
+    assert result["transaction"] == "0xfacilitator-rpc-retry"
+
+
+@pytest.mark.anyio
 async def test_raises_when_neither_configured():
     """Should raise X402FacilitatorNotConfigured when no path is available."""
     with patch.dict(os.environ, {

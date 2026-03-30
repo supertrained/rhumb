@@ -113,13 +113,23 @@ class X402SettlementService:
                 )
                 return result
             except SettlementVerificationFailed as e:
-                # Invalid signatures are definitive, but unsupported local verification
-                # formats (for example smart-wallet / wrapped signatures) may still be
-                # verifiable by a facilitator.
-                if e.retryable_with_facilitator and self.facilitator_url() is not None:
+                # Invalid signatures are definitive, but some local verification
+                # failures are explicitly retryable via facilitator.
+                retryable_codes = {
+                    "unsupported_local_signature_format",
+                    "unsupported_local_signature_recovery",
+                    "smart_wallet_rpc_error",
+                    "smart_wallet_signature_timeout",
+                }
+                retryable_with_facilitator = bool(
+                    e.retryable_with_facilitator or (e.code in retryable_codes)
+                )
+
+                if retryable_with_facilitator and self.facilitator_url() is not None:
                     logger.warning(
-                        "Local settlement could not verify signature format (%s); trying facilitator",
+                        "Local settlement verification failed (%s, code=%s); trying facilitator",
                         e,
+                        e.code,
                     )
                 else:
                     raise X402VerificationFailed(str(e)) from e

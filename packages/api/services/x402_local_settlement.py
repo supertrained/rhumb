@@ -24,6 +24,7 @@ from typing import Any
 import httpx
 from eth_account import Account
 from eth_account.messages import encode_typed_data
+from eth_utils import keccak
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,23 @@ TRANSFER_WITH_AUTHORIZATION_TYPES = {
 # Function selector: keccak256 of the above signature, first 4 bytes
 # Pre-computed: 0xe3ee160e
 TRANSFER_WITH_AUTH_SELECTOR = "e3ee160e"
+
+# transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes)
+# Function selector: keccak256 of the above signature, first 4 bytes
+# Pre-computed: 0xe3e3bdb1
+TRANSFER_WITH_AUTH_BYTES_SELECTOR = "e3e3bdb1"
+
+# ERC-1271 magic value for isValidSignature(bytes32,bytes)
+ERC1271_MAGIC_VALUE = "1626ba7e"
+
+# Smart-wallet verification guards
+MAX_SIGNATURE_BYTES = 2048
+SMART_WALLET_RPC_TIMEOUT_SECONDS = 3.0
+CONTRACT_CODE_CACHE_TTL_SECONDS = 3600
+
+# In-memory cache for eth_getCode(address) results:
+# address.lower() -> (is_contract, expires_at_epoch_seconds)
+_CONTRACT_CODE_CACHE: dict[str, tuple[bool, float]] = {}
 
 # Gas safety margin (20%)
 GAS_SAFETY_MARGIN = 1.2
@@ -165,23 +183,143 @@ def abi_encode_transfer_with_authorization(
 # ── Signature Verification ────────────────────────────────────────────────
 
 
-def verify_authorization_signature(
+def abi_encode_transfer_with_authorization_bytes(
+    from_addr: str,
+    to_addr: str,
+    value: str | int,
+    valid_after: str | int,
+    valid_before: str | int,
+    nonce: str | bytes,
+    signature_bytes: bytes,
+) -> str:
+    """ABI-encode ``transferWithAuthorization(..., bytes signature)`` call."""
+    signature_data_hex = signature_bytes.hex()
+    padded_signature_data_hex = signature_data_hex.ljust(
+        ((len(signature_data_hex) + 63) // 64) * 64,
+        "0",
+    )
+
+    # 7 static slots (from,to,value,validAfter,validBefore,nonce,offset) => 224 bytes
+    dynamic_offset = _to_uint256(7 * 32)
+
+    return (
+        "0x"
+        + TRANSFER_WITH_AUTH_BYTES_SELECTOR
+        + _to_address(from_addr)
+        + _to_address(to_addr)
+        + _to_uint256(value)
+        + _to_uint256(valid_after)
+        + _to_uint256(valid_before)
+        + _to_bytes32(nonce)
+        + dynamic_offset
+        + _to_uint256(len(signature_bytes))
+        + padded_signature_data_hex
+    )
+
+
+def _compute_eip712_digest(signable: Any) -> bytes:
+    """Compute EIP-712 digest (keccak256("\x19\x01" || domainSeparator || hashStruct))."""
+    return keccak(b"\x19" + signable.version + signable.header + signable.body)
+
+
+def _build_is_valid_signature_call_data(digest: bytes, signature_bytes: bytes) -> str:
+    """Build call data for ERC-1271 ``isValidSignature(bytes32,bytes)``."""
+    signature_data_hex = signature_bytes.hex()
+    padded_signature_data_hex = signature_data_hex.ljust(
+        ((len(signature_data_hex) + 63) // 64) * 64,
+        "0",
+    )
+
+    return (
+        "0x"
+        + ERC1271_MAGIC_VALUE
+        + _to_bytes32(digest)
+        + _to_uint256(64)  # offset to dynamic bytes argument from args start
+        + _to_uint256(len(signature_bytes))
+        + padded_signature_data_hex
+    )
+
+
+async def _check_is_contract(
+    address: str,
+    rpc_url: str = BASE_MAINNET_RPC,
+    timeout_seconds: float = SMART_WALLET_RPC_TIMEOUT_SECONDS,
+) -> bool:
+    """Check whether ``address`` has deployed contract code, with 1h cache."""
+    cache_key = address.lower()
+    now = time.time()
+    cached = _CONTRACT_CODE_CACHE.get(cache_key)
+    if cached and cached[1] > now:
+        return cached[0]
+
+    code = await _rpc_call(
+        "eth_getCode",
+        [address, "latest"],
+        rpc_url,
+        timeout_seconds=timeout_seconds,
+    )
+    normalized_code = (code or "").lower().replace("0x", "")
+    is_contract = bool(normalized_code and any(ch != "0" for ch in normalized_code))
+    _CONTRACT_CODE_CACHE[cache_key] = (is_contract, now + CONTRACT_CODE_CACHE_TTL_SECONDS)
+    return is_contract
+
+
+async def _call_is_valid_signature(
+    signer_address: str,
+    digest: bytes,
+    signature_bytes: bytes,
+    rpc_url: str = BASE_MAINNET_RPC,
+    timeout_seconds: float = SMART_WALLET_RPC_TIMEOUT_SECONDS,
+) -> bool:
+    """Call ERC-1271 ``isValidSignature`` and return True when magic value matches."""
+    call_data = _build_is_valid_signature_call_data(digest, signature_bytes)
+    result = await _rpc_call(
+        "eth_call",
+        [{"to": signer_address, "data": call_data}, "latest"],
+        rpc_url,
+        timeout_seconds=timeout_seconds,
+    )
+
+    if not isinstance(result, str):
+        return False
+
+    normalized = result.lower().replace("0x", "")
+    if not normalized:
+        return False
+
+    # Some clients return bytes4 in a 32-byte slot with right-padding,
+    # others may left-pad depending on ABI adapters. Accept either shape.
+    return normalized.startswith(ERC1271_MAGIC_VALUE) or normalized.endswith(ERC1271_MAGIC_VALUE)
+
+
+async def _check_usdc_balance(
+    address: str,
+    rpc_url: str = BASE_MAINNET_RPC,
+    timeout_seconds: float = SMART_WALLET_RPC_TIMEOUT_SECONDS,
+) -> int:
+    """Return USDC ``balanceOf(address)`` (atomic units)."""
+    call_data = "0x70a08231" + _to_address(address)
+    result = await _rpc_call(
+        "eth_call",
+        [{"to": USDC_BASE_MAINNET, "data": call_data}, "latest"],
+        rpc_url,
+        timeout_seconds=timeout_seconds,
+    )
+    if not isinstance(result, str):
+        raise RuntimeError("Invalid balanceOf RPC response")
+    return int(result, 16)
+
+
+async def verify_authorization_signature(
     authorization: dict[str, Any],
     signature: str,
+    rpc_url: str = BASE_MAINNET_RPC,
 ) -> dict[str, Any]:
     """Verify an EIP-3009 TransferWithAuthorization signature off-chain.
 
-    Recovers the signer from the EIP-712 typed data signature and checks:
-    1. The recovered address matches ``authorization["from"]``
-    2. ``validBefore`` is in the future (not expired)
-    3. ``validAfter`` is in the past or now (already valid)
-
-    Returns ``{"valid": True, "recovered_signer": "0x..."}`` on success.
-
-    For failures, includes ``error`` plus optional structured fields:
-    - ``error_code``: machine-readable reason
-    - ``retryable_with_facilitator``: whether a facilitator may still be able
-      to verify/settle the payload even though local EOA recovery cannot
+    Uses a dual-path verifier:
+    - 64/65-byte signatures: local EOA ecrecover path (unchanged)
+    - >65-byte signatures: ERC-1271 smart-wallet path via RPC
     """
     from_addr = authorization.get("from", "")
     to_addr = authorization.get("to", "")
@@ -200,33 +338,46 @@ def verify_authorization_signature(
         }
 
     sig_len = len(sig_bytes)
-    if sig_len not in (64, 65):
+    if sig_len > MAX_SIGNATURE_BYTES:
         return {
             "valid": False,
             "error": (
-                "Unsupported local signature format: "
-                f"got {sig_len} bytes, expected raw 64/65-byte ECDSA. "
-                "Wrapped or smart-wallet signatures (for example ERC-1271/EIP-6492) "
-                "require facilitator or RPC-backed verification."
+                f"Signature too large: got {sig_len} bytes, max {MAX_SIGNATURE_BYTES}"
             ),
-            "error_code": "unsupported_local_signature_format",
-            "retryable_with_facilitator": True,
-            "signature_bytes": sig_len,
+            "error_code": "signature_too_large",
         }
 
     # Convert to integers for time checks
-    valid_after_int = int(valid_after, 16) if isinstance(valid_after, str) and valid_after.startswith("0x") else int(valid_after)
-    valid_before_int = int(valid_before, 16) if isinstance(valid_before, str) and valid_before.startswith("0x") else int(valid_before)
+    valid_after_int = (
+        int(valid_after, 16)
+        if isinstance(valid_after, str) and valid_after.startswith("0x")
+        else int(valid_after)
+    )
+    valid_before_int = (
+        int(valid_before, 16)
+        if isinstance(valid_before, str) and valid_before.startswith("0x")
+        else int(valid_before)
+    )
     now = int(time.time())
 
     if valid_before_int != 0 and now >= valid_before_int:
-        return {"valid": False, "error": f"Authorization expired: validBefore={valid_before_int}, now={now}"}
+        return {
+            "valid": False,
+            "error": f"Authorization expired: validBefore={valid_before_int}, now={now}",
+        }
 
     if valid_after_int != 0 and now < valid_after_int:
-        return {"valid": False, "error": f"Authorization not yet valid: validAfter={valid_after_int}, now={now}"}
+        return {
+            "valid": False,
+            "error": f"Authorization not yet valid: validAfter={valid_after_int}, now={now}",
+        }
 
     # Convert value for EIP-712
-    value_int = int(value, 16) if isinstance(value, str) and value.startswith("0x") else int(value)
+    value_int = (
+        int(value, 16)
+        if isinstance(value, str) and value.startswith("0x")
+        else int(value)
+    )
 
     # Ensure nonce is bytes32
     if isinstance(nonce, str):
@@ -235,7 +386,7 @@ def verify_authorization_signature(
     else:
         nonce_bytes = nonce
 
-    # Build EIP-712 typed data for signature recovery
+    # Build EIP-712 typed data for signature recovery + digest checks
     message_data = {
         "from": from_addr,
         "to": to_addr,
@@ -251,9 +402,42 @@ def verify_authorization_signature(
             message_types=TRANSFER_WITH_AUTHORIZATION_TYPES,
             message_data=message_data,
         )
-        recovered = Account.recover_message(signable, signature=sig_bytes)
     except Exception as e:
-        error_text = str(e)
+        return {"valid": False, "error": f"Failed to build signable message: {e}"}
+
+    # EOA path (unchanged for 65-byte signatures; 64-byte tries both v values)
+    if sig_len in (64, 65):
+        recovered_match: str | None = None
+        recovered_candidate: str | None = None
+        recover_errors: list[str] = []
+
+        signatures_to_try = [sig_bytes]
+        if sig_len == 64:
+            signatures_to_try = [sig_bytes + bytes([27]), sig_bytes + bytes([28])]
+
+        for candidate_signature in signatures_to_try:
+            try:
+                recovered = Account.recover_message(signable, signature=candidate_signature)
+            except Exception as e:
+                recover_errors.append(str(e))
+                continue
+
+            if recovered_candidate is None:
+                recovered_candidate = recovered
+            if recovered.lower() == from_addr.lower():
+                recovered_match = recovered
+                break
+
+        if recovered_match is not None:
+            return {"valid": True, "recovered_signer": recovered_match}
+
+        if recovered_candidate is not None:
+            return {
+                "valid": False,
+                "error": f"Signer mismatch: recovered {recovered_candidate}, expected {from_addr}",
+            }
+
+        error_text = "; ".join(recover_errors)
         if "recoverable signature" in error_text.lower() or "expected 65" in error_text.lower():
             return {
                 "valid": False,
@@ -266,23 +450,115 @@ def verify_authorization_signature(
                 "retryable_with_facilitator": True,
                 "signature_bytes": sig_len,
             }
-        return {"valid": False, "error": f"Signature recovery failed: {e}"}
+        return {"valid": False, "error": f"Signature recovery failed: {error_text}"}
 
-    if recovered.lower() != from_addr.lower():
+    # Smart-wallet path (>65 bytes)
+    try:
+        is_contract = await _check_is_contract(
+            from_addr,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        # Fail-open for contract detection per spec: fallback may still succeed.
+        logger.warning("eth_getCode failed during smart-wallet detection: %s", e)
         return {
             "valid": False,
-            "error": f"Signer mismatch: recovered {recovered}, expected {from_addr}",
+            "error": (
+                "Unsupported local signature format: "
+                f"got {sig_len} bytes and could not confirm contract code for {from_addr}. "
+                "Facilitator verification may still succeed."
+            ),
+            "error_code": "unsupported_local_signature_format",
+            "retryable_with_facilitator": True,
+            "signature_bytes": sig_len,
         }
 
-    return {"valid": True, "recovered_signer": recovered}
+    if not is_contract:
+        return {
+            "valid": False,
+            "error": (
+                f"Smart-wallet signature provided but signer address has no contract code: {from_addr}"
+            ),
+            "error_code": "smart_wallet_not_contract",
+            "signature_bytes": sig_len,
+        }
+
+    digest = _compute_eip712_digest(signable)
+
+    try:
+        signature_valid = await _call_is_valid_signature(
+            from_addr,
+            digest,
+            sig_bytes,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except httpx.TimeoutException:
+        return {
+            "valid": False,
+            "error": "Smart-wallet signature verification timed out",
+            "error_code": "smart_wallet_signature_timeout",
+            "retryable_with_facilitator": True,
+            "signature_bytes": sig_len,
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": f"Smart-wallet signature RPC call failed: {e}",
+            "error_code": "smart_wallet_rpc_error",
+            "retryable_with_facilitator": True,
+            "signature_bytes": sig_len,
+        }
+
+    if not signature_valid:
+        return {
+            "valid": False,
+            "error": "Smart-wallet signature invalid (isValidSignature magic mismatch)",
+            "error_code": "smart_wallet_signature_invalid",
+            "signature_bytes": sig_len,
+        }
+
+    try:
+        usdc_balance = await _check_usdc_balance(
+            from_addr,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": f"Smart-wallet balance check RPC failed: {e}",
+            "error_code": "smart_wallet_rpc_error",
+            "retryable_with_facilitator": True,
+            "signature_bytes": sig_len,
+        }
+
+    if usdc_balance < value_int:
+        return {
+            "valid": False,
+            "error": (
+                f"Smart-wallet USDC balance too low: balance={usdc_balance}, required={value_int}"
+            ),
+            "error_code": "smart_wallet_insufficient_balance",
+            "signature_bytes": sig_len,
+        }
+
+    return {"valid": True, "recovered_signer": from_addr}
 
 
 # ── On-Chain Settlement ───────────────────────────────────────────────────
 
 
-async def _rpc_call(method: str, params: list, rpc_url: str = BASE_MAINNET_RPC) -> Any:
+async def _rpc_call(
+    method: str,
+    params: list,
+    rpc_url: str = BASE_MAINNET_RPC,
+    *,
+    timeout_seconds: float = 15.0,
+) -> Any:
     """Make a JSON-RPC call to the Base node."""
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=timeout_seconds) as client:
         resp = await client.post(
             rpc_url,
             json={"jsonrpc": "2.0", "method": method, "params": params, "id": 1},
@@ -371,7 +647,11 @@ class LocalX402Settlement:
             raise SettlementVerificationFailed("Missing authorization or signature in payment payload")
 
         # ── Step 1: Off-chain verification (no gas spent) ─────────────
-        verification = verify_authorization_signature(authorization, signature)
+        verification = await verify_authorization_signature(
+            authorization,
+            signature,
+            rpc_url=self._rpc_url,
+        )
         if not verification.get("valid"):
             raise SettlementVerificationFailed(
                 verification.get("error", "Signature verification failed"),
@@ -394,19 +674,30 @@ class LocalX402Settlement:
         verify_result = {"isValid": True, "payer": payer}
 
         # ── Step 2: Submit on-chain ───────────────────────────────────
-        v, r, s = _split_signature(signature)
-
-        call_data = abi_encode_transfer_with_authorization(
-            from_addr=authorization["from"],
-            to_addr=authorization["to"],
-            value=authorization.get("value", "0"),
-            valid_after=authorization.get("validAfter", "0"),
-            valid_before=authorization.get("validBefore", "0"),
-            nonce=authorization.get("nonce", "0x" + "00" * 32),
-            v=v,
-            r=r,
-            s=s,
-        )
+        sig_bytes = _signature_bytes(signature)
+        if len(sig_bytes) in (64, 65):
+            v, r, s = _split_signature(signature)
+            call_data = abi_encode_transfer_with_authorization(
+                from_addr=authorization["from"],
+                to_addr=authorization["to"],
+                value=authorization.get("value", "0"),
+                valid_after=authorization.get("validAfter", "0"),
+                valid_before=authorization.get("validBefore", "0"),
+                nonce=authorization.get("nonce", "0x" + "00" * 32),
+                v=v,
+                r=r,
+                s=s,
+            )
+        else:
+            call_data = abi_encode_transfer_with_authorization_bytes(
+                from_addr=authorization["from"],
+                to_addr=authorization["to"],
+                value=authorization.get("value", "0"),
+                valid_after=authorization.get("validAfter", "0"),
+                valid_before=authorization.get("validBefore", "0"),
+                nonce=authorization.get("nonce", "0x" + "00" * 32),
+                signature_bytes=sig_bytes,
+            )
 
         account = self._get_account()
 

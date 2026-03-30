@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 from services.x402_local_settlement import verify_authorization_signature
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "wallet_prefund_dogfood.py"
@@ -15,7 +17,8 @@ wallet_prefund_dogfood = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(wallet_prefund_dogfood)
 
 
-def test_build_signed_authorization_round_trips_with_local_verifier():
+@pytest.mark.anyio
+async def test_build_signed_authorization_round_trips_with_local_verifier():
     private_key = "0x" + "ab" * 32
     authorization, signature = wallet_prefund_dogfood.build_signed_authorization(
         private_key=private_key,
@@ -25,7 +28,7 @@ def test_build_signed_authorization_round_trips_with_local_verifier():
         validity_seconds=3600,
     )
 
-    result = verify_authorization_signature(authorization, signature)
+    result = await verify_authorization_signature(authorization, signature)
 
     assert result["valid"] is True
     assert result["recovered_signer"].lower() == authorization["from"].lower()

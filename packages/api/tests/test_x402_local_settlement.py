@@ -177,47 +177,41 @@ class TestAbiEncoding:
 
 
 class TestVerifyAuthorizationSignature:
-    def test_valid_signature(self):
+    @pytest.mark.anyio
+    async def test_valid_signature(self):
         """A correctly signed authorization should pass verification."""
         auth, sig, addr = _make_test_authorization_and_signature()
-        result = verify_authorization_signature(auth, sig)
+        result = await verify_authorization_signature(auth, sig)
         assert result["valid"] is True
         assert result["recovered_signer"].lower() == addr.lower()
 
-    def test_invalid_signer(self):
+    @pytest.mark.anyio
+    async def test_invalid_signer(self):
         """Signature from a different address should fail."""
         auth, sig, _ = _make_test_authorization_and_signature()
         # Change the 'from' to a different address
         auth["from"] = "0x0000000000000000000000000000000000000001"
-        result = verify_authorization_signature(auth, sig)
+        result = await verify_authorization_signature(auth, sig)
         assert result["valid"] is False
         assert "mismatch" in result["error"].lower()
 
-    def test_expired_authorization(self):
+    @pytest.mark.anyio
+    async def test_expired_authorization(self):
         """Authorization with validBefore in the past should fail."""
         auth, sig, _ = _make_test_authorization_and_signature()
         auth["validBefore"] = "1000"  # Way in the past (Unix timestamp)
-        result = verify_authorization_signature(auth, sig)
+        result = await verify_authorization_signature(auth, sig)
         assert result["valid"] is False
         assert "expired" in result["error"].lower()
 
-    def test_not_yet_valid_authorization(self):
+    @pytest.mark.anyio
+    async def test_not_yet_valid_authorization(self):
         """Authorization with validAfter far in the future should fail."""
         auth, sig, _ = _make_test_authorization_and_signature()
         auth["validAfter"] = str(int(time.time()) + 999999)
-        result = verify_authorization_signature(auth, sig)
+        result = await verify_authorization_signature(auth, sig)
         assert result["valid"] is False
         assert "not yet valid" in result["error"].lower()
-
-    def test_wrapped_signature_marked_retryable_with_facilitator(self):
-        """Oversized signatures should be treated as unsupported locally, not invalid."""
-        auth, _, _ = _make_test_authorization_and_signature()
-        wrapped_sig = "0x" + "ab" * 640
-        result = verify_authorization_signature(auth, wrapped_sig)
-        assert result["valid"] is False
-        assert result["retryable_with_facilitator"] is True
-        assert result["error_code"] == "unsupported_local_signature_format"
-        assert "smart-wallet" in result["error"].lower() or "wrapped" in result["error"].lower()
 
 
 # ── Settlement success path (mock RPC) ────────────────────────────────────
