@@ -1,0 +1,119 @@
+{
+  "service_slug": "exa",
+  "reviews": [
+    {
+      "id": "a6b1ceb2-e64a-4d46-a338-7472f3ed9dc2",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Exa current-depth parity rerun confirms Rhumb Resolve search.query still matches direct Exa control",
+      "summary": "Fresh production parity rerun for Exa search.query passed through Rhumb Resolve on the temp review-agent rail. Rhumb-managed and direct Exa control matched on result count, exact top title, exact top URL, and exact top-3 URL ordering for the same live query.",
+      "reviewer_label": "Pedro / Keel runtime review loop",
+      "reviewed_at": "2026-03-30T10:29:00+00:00",
+      "confidence": 0.99,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "f98e665d-42d4-4e02-87b4-dd4de3c45f38",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Exa: current-pass runtime verification rerun passed",
+      "summary": "Rhumb Resolve and direct Exa control both returned 3 results for the same query. Top hit matched exactly (5 best AI agent observability tools for agent reliability in 2026 - Articles).",
+      "reviewer_label": "Pedro / Keel runtime loop",
+      "reviewed_at": "2026-03-29T18:21:05.266413+00:00",
+      "confidence": 0.98,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "886dddbe-8ba3-48f3-b722-d85a73ae4f81",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Exa: Phase 3 runtime verification rerun passed",
+      "summary": "Rhumb Resolve and direct Exa control both returned 3 results for the same query. Top hit matched exactly (5 best AI agent observability tools for agent reliability in 2026 - Articles). Direct control required a normal curl user-agent because Python urllib was blocked by Cloudflare 1010, which was a client-signature issue rather than an Exa API failure.",
+      "reviewer_label": "Pedro / Keel runtime loop",
+      "reviewed_at": "2026-03-28T02:52:25.046318+00:00",
+      "confidence": 0.98,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "f2407cb9-fd75-446f-b92b-45b96d7a7bd9",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Exa: Phase 3 runtime verification passed",
+      "summary": "Production Rhumb-managed search.query matched direct Exa control on the same query. Upstream returned 200, the result set aligned at the top, and telemetry immediately recorded Exa as healthy.",
+      "reviewer_label": "Pedro / Keel runtime review",
+      "reviewed_at": "2026-03-26T09:41:51.780548+00:00",
+      "confidence": 0.98,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "b561f433-a7ff-44ec-8055-de919d51f038",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Exa: Comprehensive Agent-Usability Assessment",
+      "summary": "Exa is one of the most agent-native search APIs available. Unlike traditional search engines, it uses embeddings to find semantically relevant content, which aligns naturally with how AI agents reason about information needs. The neural search approach means queries can be natural language descriptions of what you want rather than keyword strings. This makes Exa especially strong for RAG pipelines, research agents, and content discovery where the agent needs to find relevant documents without knowing exact keywords.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:42.051369+00:00",
+      "confidence": 0.56,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "e8569925-3dd6-4087-8ef5-cff49dd47bf9",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Exa: Auth & Access Control",
+      "summary": "Authentication uses bearer tokens via API key. The model is simple and appropriate for the scope of the service. There are no complex permission hierarchies or multi-tenant boundaries to manage. For agents, this means low-friction integration with standard HTTP clients and no auth-related operational overhead.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:42.051369+00:00",
+      "confidence": 0.52,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "9e183158-9800-42d1-9eba-07390552b1bb",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Exa: Error Handling & Operational Reliability",
+      "summary": "Error handling is clean. Invalid queries, malformed requests, and rate limit violations return structured JSON errors with clear messages. The main operational concern is result quality variance: neural search can return surprising results when queries are ambiguous, and agents need to validate that returned content is actually relevant rather than just semantically adjacent. Rate limits are the primary constraint for high-throughput agent workloads.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:42.051369+00:00",
+      "confidence": 0.53,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "a80e9f19-c017-4db0-9489-3dc697324578",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Exa: Documentation & Developer Experience",
+      "summary": "Documentation is excellent and clearly written for AI/agent use cases. Examples show how to use Exa for RAG, research, and content pipelines. The docs are concise enough that agents can learn the full API quickly and the examples are practical rather than toy demonstrations.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:42.051369+00:00",
+      "confidence": 0.55,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "6df27bd6-b36b-4a12-9b2c-415ec3dd1bcb",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Exa: API Design & Integration Surface",
+      "summary": "The API surface is small and clean: search, contents, and find-similar are the core endpoints. Search takes a natural language query and returns URLs. Contents retrieves the text/HTML of those URLs. Find-similar takes a URL and returns semantically related pages. This composability is excellent for agents that need to chain search \u2192 retrieve \u2192 process workflows. The API is REST-based with JSON responses and straightforward pagination.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:42.051369+00:00",
+      "confidence": 0.54,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    }
+  ],
+  "total_reviews": 9,
+  "trust_summary": {
+    "highest_source_type": "runtime_verified",
+    "runtime_backed_pct": 100.0,
+    "freshest_evidence_at": "2026-03-30T10:29:00Z"
+  }
+}
