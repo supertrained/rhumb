@@ -51,7 +51,12 @@ async def _sb_post(path: str, payload: dict[str, Any], *, prefer: str = "return=
         if resp.status_code not in (200, 201):
             logger.warning("Supabase POST %s failed: %s %s", path, resp.status_code, resp.text)
             return None
-        return resp.json()
+        if not resp.content:
+            return {}
+        try:
+            return resp.json()
+        except ValueError:
+            return {}
 
 
 def _resolve_starter_credits_cents(
