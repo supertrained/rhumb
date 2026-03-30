@@ -206,6 +206,7 @@ def create_app() -> FastAPI:
     application.include_router(webhooks.router, tags=["webhooks"])
 
     @application.get("/healthz")
+    @application.get("/v1/healthz")
     async def healthz() -> dict[str, str]:
         """Simple liveness endpoint."""
         return {"status": "ok"}

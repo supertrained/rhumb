@@ -174,32 +174,31 @@ async def get_service(slug: str, raw_request: Request):
     # Get alternatives (same category, different slug, ranked by score)
     alternatives: list[dict] = []
     if service.get("category"):
-        alt_scores = await _cached_fetch(
-            "scores",
-            f"scores?service_slug=neq.{quote(canonical_slug)}"
-            f"&order=aggregate_recommendation_score.desc.nullslast&limit=5"
+        # First get same-category services
+        alt_services = await _cached_fetch(
+            "services",
+            f"services?category=eq.{quote(service['category'])}"
+            f"&slug=neq.{quote(canonical_slug)}&select=slug,name"
         )
-        if alt_scores:
-            # Filter to same category by cross-referencing services
-            alt_services = await _cached_fetch(
-                "services",
-                f"services?category=eq.{quote(service['category'])}"
-                f"&slug=neq.{quote(canonical_slug)}&select=slug,name"
+        if alt_services:
+            alt_slugs = {s["slug"] for s in alt_services}
+            alt_names = {s["slug"]: s["name"] for s in alt_services}
+            # Build an IN filter for scores query — fetch only same-category scores
+            slug_filter = ",".join(quote(s) for s in sorted(alt_slugs))
+            alt_scores = await _cached_fetch(
+                "scores",
+                f"scores?service_slug=in.({slug_filter})"
+                f"&order=aggregate_recommendation_score.desc.nullslast&limit=5"
             )
-            if alt_services:
-                alt_slugs = {s["slug"] for s in alt_services}
-                alt_names = {s["slug"]: s["name"] for s in alt_services}
+            if alt_scores:
                 for asc in alt_scores:
-                    if asc.get("service_slug") in alt_slugs:
-                        alternatives.append({
-                            "slug": asc["service_slug"],
-                            "name": alt_names.get(asc["service_slug"], asc["service_slug"]),
-                            "an_score": asc.get("aggregate_recommendation_score"),
-                            "score": asc.get("aggregate_recommendation_score"),
-                            "tier": asc.get("tier"),
-                        })
-                        if len(alternatives) >= 5:
-                            break
+                    alternatives.append({
+                        "slug": asc["service_slug"],
+                        "name": alt_names.get(asc["service_slug"], asc["service_slug"]),
+                        "an_score": asc.get("aggregate_recommendation_score"),
+                        "score": asc.get("aggregate_recommendation_score"),
+                        "tier": asc.get("tier"),
+                    })
 
     return {
         "data": {

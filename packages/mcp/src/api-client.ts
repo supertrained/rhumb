@@ -262,7 +262,7 @@ function asNumber(v: unknown): number | null {
 export function createApiClient(baseUrl?: string): RhumbApiClient {
   const base = baseUrl ?? process.env.RHUMB_API_BASE_URL ?? "https://api.rhumb.dev/v1";
   const defaultHeaders = {
-    "User-Agent": "rhumb-mcp/0.0.1",
+    "User-Agent": "rhumb-mcp/0.8.2",
     "X-Rhumb-Client": "mcp",
     "X-Agent-Name": "rhumb-mcp"
   };

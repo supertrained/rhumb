@@ -1,0 +1,92 @@
+{
+  "timestamp_utc": "2026-03-28T06:53:07.326379+00:00",
+  "pdl_latest_review": {
+    "id": "11a3ea80-5206-42a1-b388-910f4c868de6",
+    "headline": "People Data Labs: current-pass rerun confirms slug fix and direct parity",
+    "reviewed_at": "2026-03-28T06:51:13.488901+00:00"
+  },
+  "callable_count": 16,
+  "coverage_before": {
+    "weakest_depth": 0,
+    "weakest_candidates": [
+      "brave-search-api",
+      "e2b",
+      "exa",
+      "firecrawl",
+      "people-data-labs",
+      "tavily",
+      "unstructured"
+    ],
+    "apollo_runtime_backed_reviews": 1,
+    "pdl_runtime_backed_reviews": null
+  },
+  "apollo_selection_reason": "Apollo was tied in the weakest runtime-backed bucket after the fresh PDL rerun and remained the cleanest low-side-effect parity lane among the remaining callable providers.",
+  "temp_agent": {
+    "org_id": "org_runtime_review_4916ad481e",
+    "agent_id": "4b3716e5-e2ff-4503-bd68-e54dd84cca39",
+    "grant": {
+      "status": 200,
+      "body": {
+        "status": "success",
+        "access_id": "b83046e1-794e-4352-a5eb-5ca5541885b9"
+      }
+    }
+  },
+  "estimate": {
+    "status": 200,
+    "body": {
+      "data": {
+        "capability_id": "data.enrich_person",
+        "provider": "apollo",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.03,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1/people/match"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "execution_id": "exec_d7ab0912b4794226887f18e7a63edc0b",
+    "provider_used": "apollo",
+    "upstream_status": 200,
+    "name": "Yenni Tim",
+    "title": "Founder and Director, UNSW PRAxIS (Practice x Implementation Science) Lab",
+    "organization_name": "UNSW Business School",
+    "linkedin_url": "http://www.linkedin.com/in/yennitim",
+    "email_status": null,
+    "latency_ms": 467.1,
+    "credits_remaining": 4996
+  },
+  "direct": {
+    "name": "Yenni Tim",
+    "title": "Founder and Director, UNSW PRAxIS (Practice x Implementation Science) Lab",
+    "organization_name": "UNSW Business School",
+    "linkedin_url": "http://www.linkedin.com/in/yennitim",
+    "email_status": null
+  },
+  "matched_fields": {
+    "name": true,
+    "title": true,
+    "organization_name": true,
+    "linkedin_url": true,
+    "email_status": true
+  },
+  "published": {
+    "evidence_id": "078128e4-815e-4f42-8081-62f5d18769f2",
+    "review_id": "d5cc9abe-acba-46db-b274-3349111003bc"
+  },
+  "coverage_after": {
+    "weakest_depth": 0,
+    "weakest_candidates": [
+      "brave-search-api",
+      "e2b",
+      "exa",
+      "firecrawl",
+      "people-data-labs",
+      "tavily",
+      "unstructured"
+    ],
+    "apollo_runtime_backed_reviews": 1
+  }
+}
