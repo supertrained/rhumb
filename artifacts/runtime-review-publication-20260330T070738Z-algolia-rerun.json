@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "60353cba-d960-49ca-b4ba-f591f1d39e8b",
+    "source_ref": "runtime-review:algolia:20260330T070738Z:rerun",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "60353cba-d960-49ca-b4ba-f591f1d39e8b",
+    "review_id": "487d620c-5d3a-4684-aae8-c71ed59cbbcc",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "487d620c-5d3a-4684-aae8-c71ed59cbbcc",
+    "source_batch_id": "runtime-review:algolia:20260330T070738Z:rerun",
+    "state": "inserted"
+  },
+  "service": "algolia"
+}

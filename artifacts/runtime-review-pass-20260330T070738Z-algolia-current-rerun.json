@@ -1,0 +1,176 @@
+{
+  "algolia_rerun": {
+    "comparison": {
+      "nbHits": {
+        "direct": 1,
+        "match": true,
+        "rhumb": 1
+      },
+      "top_name": {
+        "direct": "Rhumb Runtime Test",
+        "match": true,
+        "rhumb": "Rhumb Runtime Test"
+      },
+      "top_objectID": {
+        "direct": "1",
+        "match": true,
+        "rhumb": "1"
+      }
+    },
+    "direct": {
+      "exhaustive": {
+        "nbHits": true,
+        "typo": true
+      },
+      "exhaustiveNbHits": true,
+      "exhaustiveTypo": true,
+      "hits": [
+        {
+          "_highlightResult": {
+            "category": {
+              "matchLevel": "none",
+              "matchedWords": [],
+              "value": "test"
+            },
+            "description": {
+              "matchLevel": "none",
+              "matchedWords": [],
+              "value": "Agent-native tool infrastructure for discovering and accessing APIs."
+            },
+            "name": {
+              "fullyHighlighted": false,
+              "matchLevel": "full",
+              "matchedWords": [
+                "rhumb"
+              ],
+              "value": "<em>Rhumb</em> Runtime Test"
+            }
+          },
+          "category": "test",
+          "description": "Agent-native tool infrastructure for discovering and accessing APIs.",
+          "name": "Rhumb Runtime Test",
+          "objectID": "1"
+        }
+      ],
+      "hitsPerPage": 20,
+      "nbHits": 1,
+      "nbPages": 1,
+      "page": 0,
+      "params": "query=rhumb",
+      "processingTimeMS": 2,
+      "processingTimingsMS": {
+        "_request": {
+          "roundTrip": 14
+        },
+        "getIdx": {
+          "load": {
+            "total": 1
+          },
+          "total": 1
+        },
+        "total": 2
+      },
+      "query": "rhumb",
+      "renderingContent": {},
+      "serverTimeMS": 2
+    },
+    "direct_status": 200,
+    "estimate_status": 200,
+    "execute": {
+      "data": {
+        "capability_id": "search.autocomplete",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_d923ea4afe704a5f97ac539313b0976c",
+        "latency_ms": 491.1,
+        "provider_used": "algolia",
+        "upstream_response": {
+          "exhaustive": {
+            "nbHits": true,
+            "typo": true
+          },
+          "exhaustiveNbHits": true,
+          "exhaustiveTypo": true,
+          "hits": [
+            {
+              "_highlightResult": {
+                "category": {
+                  "matchLevel": "none",
+                  "matchedWords": [],
+                  "value": "test"
+                },
+                "description": {
+                  "matchLevel": "none",
+                  "matchedWords": [],
+                  "value": "Agent-native tool infrastructure for discovering and accessing APIs."
+                },
+                "name": {
+                  "fullyHighlighted": false,
+                  "matchLevel": "full",
+                  "matchedWords": [
+                    "rhumb"
+                  ],
+                  "value": "<em>Rhumb</em> Runtime Test"
+                }
+              },
+              "category": "test",
+              "description": "Agent-native tool infrastructure for discovering and accessing APIs.",
+              "name": "Rhumb Runtime Test",
+              "objectID": "1"
+            }
+          ],
+          "hitsPerPage": 20,
+          "nbHits": 1,
+          "nbPages": 1,
+          "page": 0,
+          "params": "query=rhumb",
+          "processingTimeMS": 1,
+          "processingTimingsMS": {
+            "_request": {
+              "roundTrip": 147
+            },
+            "getIdx": {
+              "total": 1
+            },
+            "total": 1
+          },
+          "query": "rhumb",
+          "renderingContent": {},
+          "serverTimeMS": 2
+        },
+        "upstream_status": 200
+      },
+      "error": null
+    },
+    "execute_status": 200,
+    "inputs": {
+      "indexName": "rhumb_test",
+      "query": "rhumb"
+    },
+    "publication": {
+      "evidence": {
+        "id": "60353cba-d960-49ca-b4ba-f591f1d39e8b",
+        "source_ref": "runtime-review:algolia:20260330T070738Z:rerun",
+        "state": "inserted"
+      },
+      "link": {
+        "evidence_record_id": "60353cba-d960-49ca-b4ba-f591f1d39e8b",
+        "review_id": "487d620c-5d3a-4684-aae8-c71ed59cbbcc",
+        "role": "primary",
+        "state": "inserted"
+      },
+      "review": {
+        "id": "487d620c-5d3a-4684-aae8-c71ed59cbbcc",
+        "source_batch_id": "runtime-review:algolia:20260330T070738Z:rerun",
+        "state": "inserted"
+      },
+      "service": "algolia"
+    },
+    "verdict": "pass"
+  },
+  "api_base": "https://api.rhumb.dev/v1",
+  "rail": {
+    "agent_id": "a31f86ac-108d-40d2-842d-672e42fbb392",
+    "org_id": "org_runtime_review_algolia_rerun_20260330t070738z"
+  },
+  "timestamp_utc": "20260330T070738Z"
+}

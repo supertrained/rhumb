@@ -172,24 +172,6 @@ class RhumbManagedExecutor:
         path = config["default_path"]
         default_headers = config.get("default_headers") or {}
 
-        # Path template interpolation: replace {param} with values from body or params.
-        # Keys consumed by the path template are stripped from body/params so they
-        # don't leak into the upstream JSON body or query string (e.g. Algolia
-        # rejects unknown keys like ``indexName`` in the POST body).
-        if "{" in path:
-            import re as _re
-            template_keys = set(_re.findall(r"\{(\w+)\}", path))
-            sources = {**(params or {}), **(body or {})}
-            for key, val in sources.items():
-                path = path.replace(f"{{{key}}}", str(val))
-            # Strip consumed template keys from body and params
-            if body and template_keys:
-                body = {k: v for k, v in body.items() if k not in template_keys}
-            if params and template_keys:
-                params = {k: v for k, v in params.items() if k not in template_keys}
-            # If any unresolved templates remain, strip them (e.g. /{ip} → /)
-            path = _re.sub(r"\{[^}]+\}", "", path)
-
         path_override, params, body = self._normalize_capability_inputs(
             capability_id,
             slug,
@@ -198,6 +180,32 @@ class RhumbManagedExecutor:
         )
         if path_override is not None:
             path = path_override
+
+        # Path template interpolation: replace {param} with values from body or params.
+        # Keys consumed by the path template are stripped from body/params so they
+        # don't leak into the upstream JSON body or query string (e.g. Algolia
+        # rejects unknown keys like ``indexName`` in the POST body).
+        if "{" in path:
+            import re as _re
+            template_keys = set(_re.findall(r"\{(\w+)\}", path))
+            sources = {**(params or {}), **(body or {})}
+            missing_keys = [
+                key for key in sorted(template_keys)
+                if sources.get(key) in (None, "")
+            ]
+            if missing_keys:
+                missing = ", ".join(missing_keys)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required managed path parameter(s): {missing}",
+                )
+            for key in template_keys:
+                path = path.replace(f"{{{key}}}", str(sources[key]))
+            # Strip consumed template keys from body and params
+            if body and template_keys:
+                body = {k: v for k, v in body.items() if k not in template_keys}
+            if params and template_keys:
+                params = {k: v for k, v in params.items() if k not in template_keys}
 
         # For managed POST/PUT/PATCH flows, treat request.params as logical
         # capability inputs and merge them into the upstream JSON body.
@@ -640,6 +648,17 @@ class RhumbManagedExecutor:
             payload = self._rename_field(payload, "file", "document") or payload
             payload = self._rename_field(payload, "files", "document") or payload
             return None, None, payload or None
+
+        if service_slug == "algolia" and capability_id in {
+            "search.index",
+            "search.autocomplete",
+            "ecommerce.search_products",
+            "document.search",
+        }:
+            params = self._rename_field(params, "index", "indexName")
+            body = self._rename_field(body, "index", "indexName")
+            params = self._rename_field(params, "index_name", "indexName")
+            body = self._rename_field(body, "index_name", "indexName")
 
         if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
             params = self._rename_field(params, "query", "q")

@@ -632,6 +632,122 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_param_from_body(monkeypatch):
+    """Algolia managed execution should accept index aliases and keep them out of the POST body."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "algolia_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1701,
+                "capability_id": "search.autocomplete",
+                "service_slug": "algolia",
+                "description": "Managed Algolia autocomplete",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/1/indexes/{indexName}/query",
+                "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
+                "daily_limit_per_agent": None,
+            }]
+        if "services?slug=eq.algolia" in path:
+            return [{"api_domain": "80LYFTF37Y-dsn.algolia.net"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"hits": [{"objectID": "1", "name": "Rhumb Runtime Test"}], "nbHits": 1}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="search.autocomplete",
+            agent_id="agent_algolia_test",
+            body={
+                "index": "rhumb_test",
+                "query": "rhumb",
+            },
+            service_slug="algolia",
+        )
+
+    assert result["provider_used"] == "algolia"
+    assert captured["base_url"] == "https://80LYFTF37Y-dsn.algolia.net"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/1/indexes/rhumb_test/query"
+    assert captured["json"] == {"query": "rhumb"}
+    assert captured["params"] == {}
+    assert captured["headers"]["X-Algolia-Application-Id"] == "80LYFTF37Y"
+    assert captured["headers"]["X-Algolia-API-Key"] == "algolia_test_secret"
+
+
+@pytest.mark.anyio
+async def test_managed_executor_missing_path_template_param_returns_clear_400(monkeypatch):
+    """Managed execution should fail clearly when a templated path input is missing."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "algolia_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1702,
+                "capability_id": "search.autocomplete",
+                "service_slug": "algolia",
+                "description": "Managed Algolia autocomplete",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/1/indexes/{indexName}/query",
+                "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
+                "daily_limit_per_agent": None,
+            }]
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        with pytest.raises(Exception) as exc_info:
+            await executor.execute(
+                capability_id="search.autocomplete",
+                agent_id="agent_algolia_missing_index",
+                body={"query": "rhumb"},
+                service_slug="algolia",
+            )
+
+    assert "Missing required managed path parameter(s): indexName" in str(exc_info.value)
+
+
+@pytest.mark.anyio
 async def test_managed_executor_emailable_verify_normalizes_email_and_uses_bearer_auth(monkeypatch):
     """Emailable single verify should normalize email aliases and use bearer auth."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_EMAILABLE_API_KEY", "ema_test_secret")
