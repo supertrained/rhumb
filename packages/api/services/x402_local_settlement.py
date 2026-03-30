@@ -314,6 +314,112 @@ async def _check_usdc_balance(
     return int(result, 16)
 
 
+async def _verify_contract_signature(
+    *,
+    from_addr: str,
+    value_int: int,
+    sig_bytes: bytes,
+    digest: bytes,
+    rpc_url: str,
+) -> dict[str, Any]:
+    """Verify an ERC-1271 smart-wallet signature and balance.
+
+    This path is used both for oversized wrapped signatures and for 64/65-byte
+    signatures where ecrecover returns the owner EOA but the expected signer is a
+    contract wallet. In the latter case, the contract may still validate the raw
+    owner signature via ``isValidSignature``.
+    """
+    try:
+        is_contract = await _check_is_contract(
+            from_addr,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        # Fail-open for contract detection per spec: facilitator fallback may still succeed.
+        logger.warning("eth_getCode failed during smart-wallet detection: %s", e)
+        return {
+            "valid": False,
+            "error": (
+                f"Unsupported local signature format: could not confirm contract code for {from_addr}. "
+                "Facilitator verification may still succeed."
+            ),
+            "error_code": "unsupported_local_signature_format",
+            "retryable_with_facilitator": True,
+            "signature_bytes": len(sig_bytes),
+        }
+
+    if not is_contract:
+        return {
+            "valid": False,
+            "error": (
+                f"Smart-wallet signature provided but signer address has no contract code: {from_addr}"
+            ),
+            "error_code": "smart_wallet_not_contract",
+            "signature_bytes": len(sig_bytes),
+        }
+
+    try:
+        signature_valid = await _call_is_valid_signature(
+            from_addr,
+            digest,
+            sig_bytes,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except httpx.TimeoutException:
+        return {
+            "valid": False,
+            "error": "Smart-wallet signature verification timed out",
+            "error_code": "smart_wallet_signature_timeout",
+            "retryable_with_facilitator": True,
+            "signature_bytes": len(sig_bytes),
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": f"Smart-wallet signature RPC call failed: {e}",
+            "error_code": "smart_wallet_rpc_error",
+            "retryable_with_facilitator": True,
+            "signature_bytes": len(sig_bytes),
+        }
+
+    if not signature_valid:
+        return {
+            "valid": False,
+            "error": "Smart-wallet signature invalid (isValidSignature magic mismatch)",
+            "error_code": "smart_wallet_signature_invalid",
+            "signature_bytes": len(sig_bytes),
+        }
+
+    try:
+        usdc_balance = await _check_usdc_balance(
+            from_addr,
+            rpc_url=rpc_url,
+            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
+        )
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": f"Smart-wallet balance check RPC failed: {e}",
+            "error_code": "smart_wallet_rpc_error",
+            "retryable_with_facilitator": True,
+            "signature_bytes": len(sig_bytes),
+        }
+
+    if usdc_balance < value_int:
+        return {
+            "valid": False,
+            "error": (
+                f"Smart-wallet USDC balance too low: balance={usdc_balance}, required={value_int}"
+            ),
+            "error_code": "smart_wallet_insufficient_balance",
+            "signature_bytes": len(sig_bytes),
+        }
+
+    return {"valid": True, "recovered_signer": from_addr}
+
+
 async def verify_authorization_signature(
     authorization: dict[str, Any],
     signature: str,
@@ -322,7 +428,7 @@ async def verify_authorization_signature(
     """Verify an EIP-3009 TransferWithAuthorization signature off-chain.
 
     Uses a dual-path verifier:
-    - 64/65-byte signatures: local EOA ecrecover path (unchanged)
+    - 64/65-byte signatures: local EOA ecrecover path first, then ERC-1271 fallback if signer is a contract wallet
     - >65-byte signatures: ERC-1271 smart-wallet path via RPC
     """
     from_addr = authorization.get("from", "")
@@ -409,7 +515,10 @@ async def verify_authorization_signature(
     except Exception as e:
         return {"valid": False, "error": f"Failed to build signable message: {e}"}
 
-    # EOA path (unchanged for 65-byte signatures; 64-byte tries both v values)
+    digest = _compute_eip712_digest(signable)
+
+    # EOA path (64/65-byte signatures). If ecrecover mismatches but the expected
+    # signer is a contract wallet, fall through to ERC-1271 instead of hard-failing.
     if sig_len in (64, 65):
         recovered_match: str | None = None
         recovered_candidate: str | None = None
@@ -436,6 +545,17 @@ async def verify_authorization_signature(
             return {"valid": True, "recovered_signer": recovered_match}
 
         if recovered_candidate is not None:
+            contract_result = await _verify_contract_signature(
+                from_addr=from_addr,
+                value_int=value_int,
+                sig_bytes=sig_bytes,
+                digest=digest,
+                rpc_url=rpc_url,
+            )
+            if contract_result.get("valid"):
+                return contract_result
+            if contract_result.get("error_code") != "smart_wallet_not_contract":
+                return contract_result
             return {
                 "valid": False,
                 "error": f"Signer mismatch: recovered {recovered_candidate}, expected {from_addr}",
@@ -457,98 +577,13 @@ async def verify_authorization_signature(
         return {"valid": False, "error": f"Signature recovery failed: {error_text}"}
 
     # Smart-wallet path (>65 bytes)
-    try:
-        is_contract = await _check_is_contract(
-            from_addr,
-            rpc_url=rpc_url,
-            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
-        )
-    except Exception as e:
-        # Fail-open for contract detection per spec: fallback may still succeed.
-        logger.warning("eth_getCode failed during smart-wallet detection: %s", e)
-        return {
-            "valid": False,
-            "error": (
-                "Unsupported local signature format: "
-                f"got {sig_len} bytes and could not confirm contract code for {from_addr}. "
-                "Facilitator verification may still succeed."
-            ),
-            "error_code": "unsupported_local_signature_format",
-            "retryable_with_facilitator": True,
-            "signature_bytes": sig_len,
-        }
-
-    if not is_contract:
-        return {
-            "valid": False,
-            "error": (
-                f"Smart-wallet signature provided but signer address has no contract code: {from_addr}"
-            ),
-            "error_code": "smart_wallet_not_contract",
-            "signature_bytes": sig_len,
-        }
-
-    digest = _compute_eip712_digest(signable)
-
-    try:
-        signature_valid = await _call_is_valid_signature(
-            from_addr,
-            digest,
-            sig_bytes,
-            rpc_url=rpc_url,
-            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
-        )
-    except httpx.TimeoutException:
-        return {
-            "valid": False,
-            "error": "Smart-wallet signature verification timed out",
-            "error_code": "smart_wallet_signature_timeout",
-            "retryable_with_facilitator": True,
-            "signature_bytes": sig_len,
-        }
-    except Exception as e:
-        return {
-            "valid": False,
-            "error": f"Smart-wallet signature RPC call failed: {e}",
-            "error_code": "smart_wallet_rpc_error",
-            "retryable_with_facilitator": True,
-            "signature_bytes": sig_len,
-        }
-
-    if not signature_valid:
-        return {
-            "valid": False,
-            "error": "Smart-wallet signature invalid (isValidSignature magic mismatch)",
-            "error_code": "smart_wallet_signature_invalid",
-            "signature_bytes": sig_len,
-        }
-
-    try:
-        usdc_balance = await _check_usdc_balance(
-            from_addr,
-            rpc_url=rpc_url,
-            timeout_seconds=SMART_WALLET_RPC_TIMEOUT_SECONDS,
-        )
-    except Exception as e:
-        return {
-            "valid": False,
-            "error": f"Smart-wallet balance check RPC failed: {e}",
-            "error_code": "smart_wallet_rpc_error",
-            "retryable_with_facilitator": True,
-            "signature_bytes": sig_len,
-        }
-
-    if usdc_balance < value_int:
-        return {
-            "valid": False,
-            "error": (
-                f"Smart-wallet USDC balance too low: balance={usdc_balance}, required={value_int}"
-            ),
-            "error_code": "smart_wallet_insufficient_balance",
-            "signature_bytes": sig_len,
-        }
-
-    return {"valid": True, "recovered_signer": from_addr}
+    return await _verify_contract_signature(
+        from_addr=from_addr,
+        value_int=value_int,
+        sig_bytes=sig_bytes,
+        digest=digest,
+        rpc_url=rpc_url,
+    )
 
 
 # ── On-Chain Settlement ───────────────────────────────────────────────────

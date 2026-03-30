@@ -139,6 +139,30 @@ async def test_smart_wallet_signature_passes_when_contract_and_balance_ok():
 
 
 @pytest.mark.anyio
+async def test_65_byte_owner_signature_falls_through_to_erc1271_for_contract_wallet():
+    owner_auth, owner_sig, owner_addr = _make_eoa_authorization_and_signature()
+    auth = {**owner_auth, "from": SMART_WALLET_ADDRESS}
+
+    async def rpc_side_effect(method, params, rpc_url=settlement.BASE_MAINNET_RPC, **kwargs):
+        if method == "eth_getCode":
+            return "0x6001600155"
+        if method == "eth_call":
+            to_addr = params[0]["to"].lower()
+            if to_addr == SMART_WALLET_ADDRESS.lower():
+                return "0x1626ba7e"
+            if to_addr == settlement.USDC_BASE_MAINNET.lower():
+                return hex(1_000_000)
+        raise AssertionError(f"Unexpected RPC call: method={method}, params={params}")
+
+    with patch("services.x402_local_settlement._rpc_call", new=AsyncMock(side_effect=rpc_side_effect)):
+        result = await verify_authorization_signature(auth, owner_sig)
+
+    assert result["valid"] is True
+    assert result["recovered_signer"].lower() == SMART_WALLET_ADDRESS.lower()
+    assert owner_addr.lower() != SMART_WALLET_ADDRESS.lower()
+
+
+@pytest.mark.anyio
 async def test_smart_wallet_signature_fails_when_address_has_no_code():
     auth = _make_smart_wallet_authorization()
     smart_wallet_sig = "0x" + "cd" * 640
