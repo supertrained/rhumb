@@ -1,0 +1,125 @@
+{
+  "provider": "firecrawl",
+  "capability_id": "scrape.extract",
+  "target_url": "https://example.com",
+  "review_kind": "current_depth5",
+  "organization_id": "org_runtime_review_firecrawl_20260330t194856z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260330T194856Z-firecrawl-current-depth5.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "f16d789b-860a-4ce0-bd2d-cf4a4fd62edc",
+    "organization_id": "org_runtime_review_firecrawl_20260330t194856z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "877ee6ae-95e2-4c4b-9920-bc3d13402956"
+  },
+  "observed_at": "2026-03-30T19:49:02Z",
+  "fresh_until": "2026-04-29T19:49:02Z",
+  "counts_before": {
+    "published_reviews": 9,
+    "runtime_backed_reviews": 4
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1/scrape"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider_used": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "success": true,
+          "data": {
+            "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+            "metadata": {
+              "title": "Example Domain",
+              "language": "en",
+              "viewport": "width=device-width, initial-scale=1",
+              "scrapeId": "019d404a-dba7-755f-aae7-6c4d9bc27e60",
+              "sourceURL": "https://example.com",
+              "url": "https://example.com/",
+              "statusCode": 200,
+              "contentType": "text/html",
+              "proxyUsed": "basic",
+              "cacheState": "hit",
+              "cachedAt": "2026-03-30T18:46:10.083Z",
+              "creditsUsed": 1,
+              "concurrencyLimited": false
+            }
+          }
+        },
+        "latency_ms": 805.6,
+        "execution_id": "exec_2a1170d2a30e47018f7a5d2d66057154"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "success": true,
+      "data": {
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+        "metadata": {
+          "viewport": "width=device-width, initial-scale=1",
+          "language": "en",
+          "title": "Example Domain",
+          "scrapeId": "019d404a-dfc3-7423-8c88-df42a454c16b",
+          "sourceURL": "https://example.com",
+          "url": "https://example.com/",
+          "statusCode": 200,
+          "contentType": "text/html",
+          "proxyUsed": "basic",
+          "cacheState": "hit",
+          "cachedAt": "2026-03-30T18:46:10.083Z",
+          "creditsUsed": 1,
+          "concurrencyLimited": false
+        }
+      }
+    }
+  },
+  "comparison": {
+    "rhumb_provider_used": "firecrawl",
+    "rhumb_upstream_status": 200,
+    "rhumb_success": true,
+    "direct_success": true,
+    "rhumb_title": "Example Domain",
+    "direct_title": "Example Domain",
+    "rhumb_has_markdown": true,
+    "direct_has_markdown": true,
+    "success_match": true,
+    "title_match": true,
+    "markdown_match": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "firecrawl",
+    "evidence_id": "3037f541-21a0-4556-8316-c3e6bed1f527",
+    "review_id": "098cc715-3e26-4d8f-b028-9533acb6aca8",
+    "execution_id": "exec_2a1170d2a30e47018f7a5d2d66057154"
+  },
+  "counts_after": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 5
+  },
+  "agent_disabled": true
+}

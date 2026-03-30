@@ -1,0 +1,8 @@
+{
+  "provider": "firecrawl",
+  "capability_id": "scrape.extract",
+  "target_url": "https://example.com",
+  "review_kind": "current_depth5",
+  "organization_id": "org_runtime_review_firecrawl_20260330t194816z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260330T194816Z-firecrawl-current-depth5.json"
+}

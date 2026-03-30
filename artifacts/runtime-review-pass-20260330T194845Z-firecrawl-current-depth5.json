@@ -1,0 +1,21 @@
+{
+  "provider": "firecrawl",
+  "capability_id": "scrape.extract",
+  "target_url": "https://example.com",
+  "review_kind": "current_depth5",
+  "organization_id": "org_runtime_review_firecrawl_20260330t194845z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260330T194845Z-firecrawl-current-depth5.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "0e071d4b-85e7-45ae-a14c-156af6c0ada6",
+    "organization_id": "org_runtime_review_firecrawl_20260330t194845z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "b81361c2-400f-4b6a-8380-b8c225e4e13a"
+  }
+}
