@@ -110,13 +110,13 @@ class TestIsConfigured:
 
 
 @pytest.mark.anyio
-async def test_prefers_local_settlement():
-    """When both paths are configured, local settlement should be tried first."""
-    mock_local_result = {
+async def test_prefers_facilitator_settlement():
+    """When both paths are configured, facilitator should be tried first."""
+    mock_facilitator_result = {
         "verify": {"isValid": True, "payer": "0xPayer"},
-        "settle": {"success": True, "transaction": "0xlocal", "network": "base"},
+        "settle": {"success": True, "transaction": "0xfacilitator", "network": "base", "payer": "0xPayer"},
         "payer": "0xPayer",
-        "transaction": "0xlocal",
+        "transaction": "0xfacilitator",
         "network": "base",
         "payment_response_header": "base64header",
     }
@@ -128,12 +128,14 @@ async def test_prefers_local_settlement():
         service = X402SettlementService()
         service._local = MagicMock()
         service._local.is_configured.return_value = True
-        service._local.verify_and_settle = AsyncMock(return_value=mock_local_result)
+        service._local.verify_and_settle = AsyncMock()
+        service._facilitator_verify_and_settle = AsyncMock(return_value=mock_facilitator_result)
 
         result = await service.verify_and_settle(PAYMENT_PAYLOAD, PAYMENT_REQUIREMENTS)
 
-    assert result["transaction"] == "0xlocal"
-    service._local.verify_and_settle.assert_called_once()
+    assert result["transaction"] == "0xfacilitator"
+    service._facilitator_verify_and_settle.assert_called_once()
+    service._local.verify_and_settle.assert_not_called()
 
 
 @pytest.mark.anyio
@@ -180,10 +182,8 @@ async def test_falls_back_to_facilitator_on_local_chain_failure():
 
 
 @pytest.mark.anyio
-async def test_verification_failure_does_not_fallback():
-    """Verification failures should NOT try the facilitator — they're definitive."""
-    from services.x402_local_settlement import SettlementVerificationFailed
-
+async def test_facilitator_verification_failure_does_not_fallback_to_local():
+    """Facilitator verification failures should NOT try local — they're definitive."""
     with (
         patch.dict(os.environ, {
             "RHUMB_SETTLEMENT_PRIVATE_KEY": TEST_PRIVATE_KEY,
@@ -193,12 +193,15 @@ async def test_verification_failure_does_not_fallback():
         service = X402SettlementService()
         service._local = MagicMock()
         service._local.is_configured.return_value = True
-        service._local.verify_and_settle = AsyncMock(
-            side_effect=SettlementVerificationFailed("bad signature")
+        service._local.verify_and_settle = AsyncMock()
+        service._facilitator_verify_and_settle = AsyncMock(
+            side_effect=X402VerificationFailed("bad signature")
         )
 
         with pytest.raises(X402VerificationFailed, match="bad signature"):
             await service.verify_and_settle(PAYMENT_PAYLOAD, PAYMENT_REQUIREMENTS)
+
+        service._local.verify_and_settle.assert_not_called()
 
 
 @pytest.mark.anyio

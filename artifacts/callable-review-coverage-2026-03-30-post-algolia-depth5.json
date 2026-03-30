@@ -1,0 +1,23 @@
+Base URL: https://api.rhumb.dev/v1
+Callable providers: 16
+Weakest runtime-backed depth: 4 (6 providers)
+Evidence/review mismatches suspected: 0
+
+service              rev_rt reviews  ev_rt evidence      gap            highest  freshest_evidence
+------------------------------------------------------------------------------------------------------------------------
+apify                      4     9     13       14        -   runtime_verified  2026-03-30T12:31:27Z
+apollo                     4     9     13       13        -   runtime_verified  2026-03-30T08:29:02Z
+e2b                        4     9     14       14        -   runtime_verified  2026-03-30T14:33:52Z
+exa                        4     9     13       13        -   runtime_verified  2026-03-30T10:29:00Z
+replicate                  4     9     13       13        -   runtime_verified  2026-03-30T15:05:16Z
+unstructured               4     9     10       10        -   runtime_verified  2026-03-30T11:10:48Z
+algolia                    5    10     14       16        -   runtime_verified  2026-03-30T20:44:08Z
+brave-search-api           5    10     14       14        -   runtime_verified  2026-03-30T16:52:53Z
+firecrawl                  5    10     14       14        -   runtime_verified  2026-03-30T19:49:02Z
+google-ai                  5    10     14       14        -   runtime_verified  2026-03-30T18:48:42Z
+tavily                     5    10     14       14        -   runtime_verified  2026-03-30T19:10:00Z
+github                     6     6     15       18        -   runtime_verified  2026-03-26T15:05:12.470339Z
+slack                      6     6     80       82        -   runtime_verified  2026-03-26T17:48:45.453016Z
+stripe                     6     6     20       23        -   runtime_verified  2026-03-26T15:42:54.647306Z
+twilio                     6     6      6        6        -   runtime_verified  2026-03-26T19:19:00.707391Z
+people-data-labs           8    13     19       19        -   runtime_verified  2026-03-29T19:12:16.464295Z

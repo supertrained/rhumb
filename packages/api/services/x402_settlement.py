@@ -97,10 +97,35 @@ class X402SettlementService:
     ) -> dict[str, Any]:
         """Verify and settle a standard x402 authorization payload.
 
-        Tries local EIP-3009 settlement first, falls back to facilitator.
+        Tries facilitator first (handles all wallet types including smart wallets),
+        falls back to local EIP-3009 settlement for simple EOA signatures.
         Raises ``X402FacilitatorNotConfigured`` if neither path is available.
         """
-        # Try local settlement first
+        # Try facilitator first — it handles all signature types robustly
+        if self.facilitator_url() is not None:
+            try:
+                result = await self._facilitator_verify_and_settle(
+                    payment_payload, payment_requirements
+                )
+                logger.info(
+                    "x402 facilitator settlement succeeded tx=%s payer=%s",
+                    result.get("transaction"),
+                    result.get("payer"),
+                )
+                return result
+            except (X402VerificationFailed, X402SettlementFailed) as e:
+                # Facilitator rejected — definitive failure, don't retry locally
+                raise
+            except X402FacilitatorError as e:
+                # Facilitator infrastructure error — fall back to local if available
+                if self._local.is_configured():
+                    logger.warning(
+                        "Facilitator error (%s); falling back to local settlement", e
+                    )
+                else:
+                    raise X402SettlementFailed(str(e)) from e
+
+        # Local settlement fallback (EOA signatures only)
         if self._local.is_configured():
             try:
                 result = await self._local.verify_and_settle(
@@ -113,44 +138,13 @@ class X402SettlementService:
                 )
                 return result
             except SettlementVerificationFailed as e:
-                # Invalid signatures are definitive, but some local verification
-                # failures are explicitly retryable via facilitator.
-                retryable_codes = {
-                    "unsupported_local_signature_format",
-                    "unsupported_local_signature_recovery",
-                    "smart_wallet_rpc_error",
-                    "smart_wallet_signature_timeout",
-                }
-                retryable_with_facilitator = bool(
-                    e.retryable_with_facilitator or (e.code in retryable_codes)
-                )
-
-                if retryable_with_facilitator and self.facilitator_url() is not None:
-                    logger.warning(
-                        "Local settlement verification failed (%s, code=%s); trying facilitator",
-                        e,
-                        e.code,
-                    )
-                else:
-                    raise X402VerificationFailed(str(e)) from e
+                raise X402VerificationFailed(str(e)) from e
             except SettlementOnChainFailed as e:
-                # On-chain failure might be transient; try facilitator if available
-                if self.facilitator_url() is not None:
-                    logger.warning(
-                        "Local settlement on-chain failed, trying facilitator: %s", e
-                    )
-                else:
-                    raise X402SettlementFailed(str(e)) from e
-
-        # Facilitator path
-        if self.facilitator_url() is not None:
-            return await self._facilitator_verify_and_settle(
-                payment_payload, payment_requirements
-            )
+                raise X402SettlementFailed(str(e)) from e
 
         raise X402FacilitatorNotConfigured(
-            "No x402 settlement path configured (need RHUMB_SETTLEMENT_PRIVATE_KEY "
-            "or X402_FACILITATOR_URL)"
+            "No x402 settlement path configured (need X402_FACILITATOR_URL "
+            "or RHUMB_SETTLEMENT_PRIVATE_KEY)"
         )
 
     # ── Facilitator path (preserved from original) ────────────────────
