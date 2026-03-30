@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "e49fd4e0-6a49-44a2-a2e8-697783bef4ad",
+    "source_ref": "runtime-review:apollo:20260330T225059Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "e49fd4e0-6a49-44a2-a2e8-697783bef4ad",
+    "review_id": "77a22234-986f-48f9-b3fc-dca1e4444b82",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "77a22234-986f-48f9-b3fc-dca1e4444b82",
+    "source_batch_id": "runtime-review:apollo:20260330T225059Z",
+    "state": "inserted"
+  },
+  "service": "apollo"
+}
