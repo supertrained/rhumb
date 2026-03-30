@@ -1,0 +1,198 @@
+{
+  "provider": "firecrawl",
+  "capability_id": "scrape.extract",
+  "target_url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+  "formats": [
+    "markdown"
+  ],
+  "observed_at": "2026-03-30T06:27:35.854775Z",
+  "fresh_until": "2026-04-29T06:27:35.854775Z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260330T062735Z-firecrawl-current-depth4.json",
+  "source_ref": "runtime-review:firecrawl:20260330T062735Z",
+  "source_batch_id": "runtime-review:firecrawl:20260330T062735Z",
+  "organization_id": "org_runtime_review_firecrawl_20260330t062735z",
+  "agent_id": "5d8e8301-412b-47da-9b36-a61fb687fb96",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "estimate": {
+    "status": 200,
+    "headers": {
+      "Connection": "close",
+      "Content-Length": "200",
+      "x-railway-cdn-edge": "fastly/cache-bur-kbur8200095-BUR",
+      "content-type": "application/json",
+      "date": "Mon, 30 Mar 2026 06:27:37 GMT",
+      "permissions-policy": "camera=(), microphone=(), geolocation=()",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "server": "railway-edge",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "x-railway-edge": "railway/us-west2",
+      "x-railway-request-id": "vC2JD3RaRHiNvivA9I3ezw",
+      "x-ratelimit-limit": "120",
+      "x-ratelimit-remaining": "119",
+      "x-ratelimit-reset": "1774852118",
+      "x-request-id": "d19bba3c-da1f-4c7f-bfb1-698b3d0e9abc",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-served-by": "cache-bur-kbur8200095-BUR"
+    },
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1/scrape"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "headers": {
+      "Connection": "close",
+      "Content-Length": "11024",
+      "x-railway-cdn-edge": "fastly/cache-bur-kbur8200147-BUR",
+      "content-type": "application/json",
+      "date": "Mon, 30 Mar 2026 06:27:38 GMT",
+      "permissions-policy": "camera=(), microphone=(), geolocation=()",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "server": "railway-edge",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "x-railway-edge": "railway/us-west2",
+      "x-railway-request-id": "E3MVKUY4RsKymwTbLPU1MQ",
+      "x-ratelimit-limit": "30",
+      "x-ratelimit-remaining": "29",
+      "x-ratelimit-reset": "1774852121",
+      "x-request-id": "737cfe51-88b2-4563-8812-cf6144e96f6c",
+      "x-cache": "MISS",
+      "x-cache-hits": "0",
+      "x-served-by": "cache-bur-kbur8200147-BUR"
+    },
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider_used": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "success": true,
+          "data": {
+            "markdown": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014 whether your site has llms.txt, structured data, or robots.txt rules for GPTBot.\nThat's useful if you're optimizing a marketing page for ChatGPT citations.\n\nBut if you're building an AI agent that needs to _use_ an API \u2014\nsend an email, process a payment, query a database \u2014 website crawlability tells you nothing.\nYour agent doesn't read your landing page. It calls your endpoints.\n\nThe real question isn't \u201cIs this website AI-friendly?\u201d It's:\n**\u201cWill this API actually work when my agent calls it at 3am with no human supervision?\u201d**\n\nThat's a fundamentally different evaluation. It requires measuring execution reliability, authentication\nfriction, error handling quality, and dozens of other dimensions that website scanners don't touch.\n\n## What actually matters: execution vs. access\n\nAfter scoring 665+ developer APIs across 86 categories, we've found that agent compatibility comes down to two axes:\n\n**Execution (70% of what matters)**\n\nCan the agent reliably get work done through this API?\n\n- **Error handling:**\nDoes the API return structured, parseable errors? Or vague 500s that leave the agent guessing?\n\n- **Schema stability:**\nDo response shapes change between versions without warning?\n\n- **Idempotency:**\nCan the agent safely retry a failed request without creating duplicates?\n\n- **Latency consistency:**\nAre response times predictable enough for timeout management?\n\n- **Rate limit transparency:**\nDoes the API tell the agent _how long_ to wait, or just reject requests?\n\n\n**Access Readiness (30% of what matters)**\n\nCan the agent even get started?\n\n- **Signup friction:**\nDoes creating credentials require email verification, phone numbers, or CAPTCHAs?\n\n- **Authentication complexity:**\nAPI key in a header? Or a multi-step OAuth dance requiring a browser?\n\n- **Documentation quality:**\nCan the agent (or the developer configuring it) understand the API from docs alone?\n\n- **Sandbox availability:**\nIs there a test environment that doesn't require production credentials?\n\n- **Rate limits:**\nAre free-tier limits high enough for development and testing?\n\n\nWe weight execution at 70% because access friction is a one-time cost \u2014 you solve it during setup.\nExecution reliability is an ongoing cost that compounds every time the agent makes a call.\n\n## The AN Score: quantifying agent-nativeness\n\nThe Agent-Native (AN) Score is our framework for measuring these dimensions. It evaluates each API across\n20 specific dimensions on these two axes, producing a score from 0 to 10:\n\n| Tier | Score | What it means |\n| --- | --- | --- |\n| L4 Native | 8.0\u201310.0 | Built for agents. Minimal friction, reliable execution, structured everything. |\n| L3 Fluent | 6.0\u20137.9 | Agents can use this reliably with minor configuration. |\n| L2 Developing | 4.0\u20135.9 | Usable with workarounds. Expect friction points. |\n| L1 Emerging | 0.0\u20133.9 | Significant barriers. Not recommended for unsupervised agent use. |\n\n**Real example \u2014 payments:**\n\nStripe scores 8.1 (L4 Native): execution score 9.0, access readiness 6.6. It has idempotency keys, structured errors,\nversioned webhooks, and an official agent toolkit. The access readiness score is lower because restricted API keys can\nsilently scope-limit results \u2014 a documented failure mode that catches agents off guard. (An agent believes no customers\nexist when it simply lacks read permission.)\n\nPayPal scores 4.9 (L2 Developing): execution score 5.9, access readiness 3.7. OAuth2 is the only auth method. Sandbox requires\nCAPTCHA verification. The moment your agent needs to click \u201cI am not a robot,\u201d the automation dies.\n\nThe gap between 8.1 and 4.9 isn't marginal. It's the difference between an agent that processes payments at 3am and one that\npages a human.\n\n## Five questions to ask before your agent calls any API\n\nYou don't need a formal scoring framework to make better tool selections. Start with these five questions:\n\n**1\\. What happens when the request fails?**\nCheck the API's error responses. Do you get a structured JSON error with an error code, message, and suggested fix?\nOr a generic 500 with an HTML error page? Agents need parseable errors to decide whether to retry, fall back, or escalate.\n\n**2\\. Can the agent create credentials without a human?**\nIf signup requires email verification, phone number, or CAPTCHA \u2014 your agent can't self-provision. Look for APIs that offer\nprogrammatic key generation or zero-signup access paths (like x402 pay-per-call).\n\n**3\\. Are rate limits explicit and machine-readable?**\nGood APIs return\n`X-RateLimit-Remaining`\nand\n`Retry-After`\nheaders. Bad APIs just return 429 with no guidance. Your agent needs to know: how long should I wait? How many calls do I have left?\n\n**4\\. Does the API version its responses?**\nBreaking changes in response schemas are the #1 cause of silent agent failures. Look for explicit versioning (Stripe's API\nversion headers, GitHub's API versions) rather than unversioned endpoints.\n\n**5\\. Is there a sandbox that doesn't require production credentials?**\nYour agent needs to test before going live. If the sandbox requires the same onboarding friction as production (business verification,\ncredit card, manual approval), development iteration time explodes.\n\n## The \u201cagent readiness\u201d vs. \u201cAPI agent-nativeness\u201d distinction\n\nThis matters: most tools calling themselves \u201cagent readiness scanners\u201d (AgentReady, Pillar, SiteSpeakAI) evaluate websites for\nAI chatbot crawlability. They check llms.txt, robots.txt, structured data, and content formatting.\n\nThat's a different problem. Website agent-readiness is about making your content discoverable by AI search engines. API\nagent-nativeness is about making your endpoints usable by autonomous AI agents.\n\n| What's measured | Website agent readiness | API agent-nativeness (AN Score) |\n| --- | --- | --- |\n| Target audience | AI search engines (ChatGPT, Perplexity) | AI agents calling APIs |\n| Key metrics | llms.txt, robots.txt, Schema.org | Error handling, auth friction, idempotency |\n| Score meaning | \u201cCan AI find your content?\u201d | \u201cCan AI use your service?\u201d |\n| Evaluation method | Static page scan | API testing + documentation analysis |\n| Examples | AgentReady, Pillar, SiteSpeakAI | [AN Score (Rhumb)](https://rhumb.dev/methodology) |\n\nBoth matter. If you're a developer choosing tools, website readiness tells you whether the vendor takes AI seriously.\nAPI agent-nativeness tells you whether the product actually works in your agent pipeline.\n\n## How to use this in practice\n\n**If you're building an agent that calls external APIs:**\n\n1. Check the [AN Score](https://rhumb.dev/leaderboard) for any service you're considering\n\n2. Read the [failure modes](https://rhumb.dev/search) before integrating \u2014 know where the API breaks for agents\n\n3. Prefer L3+ services for critical paths; use L2 services only with fallback logic\n\n4. Run `npx rhumb-mcp` in your agent to get scores at decision time\n\n\n**If you're evaluating a new API without a score:**\n\nUse the five questions above as a quick filter. If an API fails on questions 1 (error handling) or 2 (credential creation), it's\nlikely L1\u2013L2 regardless of other strengths.\n\n**If you're an API provider wanting to improve:**\n\nRead our [methodology](https://rhumb.dev/methodology). The 20 dimensions are published and transparent.\nThe most impactful improvements are usually: structured errors, API key auth (not just OAuth), and explicit rate limit headers.\n\n## See how your tools score\n\nWe've scored 600+ developer tools across 90+ categories. The AN Score measures real agent compatibility \u2014 not marketing claims.\n\n[Browse the leaderboard \u2192](https://rhumb.dev/leaderboard)\n\n## Related\n\n[Methodology **How we score API agent-nativeness**\\\\\n\\\\\nThe 20 dimensions behind the AN Score, published and transparent.](https://rhumb.dev/methodology) [Quickstart **Get scores inside your agent (MCP)**\\\\\n\\\\\nRun rhumb-mcp to fetch scores at decision time.](https://rhumb.dev/blog/getting-started-mcp) [Payments **Stripe vs Square vs PayPal for AI agents**\\\\\n\\\\\nA payments API comparison using the AN Score.](https://rhumb.dev/blog/stripe-vs-square-vs-paypal)",
+            "metadata": {
+              "title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+              "og:image:height": "630",
+              "og:site_name": "Rhumb",
+              "twitter:card": "summary_large_image",
+              "ogTitle": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+              "og:url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+              "ogSiteName": "Rhumb",
+              "ogUrl": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+              "twitter:site": "@pedrorhumb",
+              "description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+              "twitter:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+              "language": "en",
+              "ogImage": "https://rhumb.dev/api/og",
+              "og:image:width": "1200",
+              "og:type": "article",
+              "og:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+              "og:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+              "og:image": "https://rhumb.dev/api/og",
+              "twitter:creator": "@pedrorhumb",
+              "og:locale": "en_US",
+              "ogDescription": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+              "twitter:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+              "twitter:image": "https://rhumb.dev/api/og",
+              "ogLocale": "en_US",
+              "viewport": "width=device-width, initial-scale=1",
+              "favicon": "https://rhumb.dev/favicon.ico",
+              "scrapeId": "019d3d6d-3620-76b8-8c9f-86edfa8b7815",
+              "sourceURL": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+              "url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+              "statusCode": 200,
+              "contentType": "text/html; charset=utf-8",
+              "proxyUsed": "basic",
+              "cacheState": "hit",
+              "cachedAt": "2026-03-29T07:01:34.986Z",
+              "creditsUsed": 1,
+              "concurrencyLimited": false
+            }
+          }
+        },
+        "latency_ms": 909.0,
+        "execution_id": "exec_bc1f73469b5b46d7ae942a212e6b36e1"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Content-Length": "10789",
+      "Content-Type": "application/json; charset=utf-8",
+      "Date": "Mon, 30 Mar 2026 06:27:42 GMT",
+      "Etag": "W/\"2a25-+jhuD2qtke/1LlpXzxFIEygArpM\"",
+      "X-Response-Time": "253.611ms",
+      "Connection": "close"
+    },
+    "data": {
+      "success": true,
+      "data": {
+        "markdown": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014 whether your site has llms.txt, structured data, or robots.txt rules for GPTBot.\nThat's useful if you're optimizing a marketing page for ChatGPT citations.\n\nBut if you're building an AI agent that needs to _use_ an API \u2014\nsend an email, process a payment, query a database \u2014 website crawlability tells you nothing.\nYour agent doesn't read your landing page. It calls your endpoints.\n\nThe real question isn't \u201cIs this website AI-friendly?\u201d It's:\n**\u201cWill this API actually work when my agent calls it at 3am with no human supervision?\u201d**\n\nThat's a fundamentally different evaluation. It requires measuring execution reliability, authentication\nfriction, error handling quality, and dozens of other dimensions that website scanners don't touch.\n\n## What actually matters: execution vs. access\n\nAfter scoring 665+ developer APIs across 86 categories, we've found that agent compatibility comes down to two axes:\n\n**Execution (70% of what matters)**\n\nCan the agent reliably get work done through this API?\n\n- **Error handling:**\nDoes the API return structured, parseable errors? Or vague 500s that leave the agent guessing?\n\n- **Schema stability:**\nDo response shapes change between versions without warning?\n\n- **Idempotency:**\nCan the agent safely retry a failed request without creating duplicates?\n\n- **Latency consistency:**\nAre response times predictable enough for timeout management?\n\n- **Rate limit transparency:**\nDoes the API tell the agent _how long_ to wait, or just reject requests?\n\n\n**Access Readiness (30% of what matters)**\n\nCan the agent even get started?\n\n- **Signup friction:**\nDoes creating credentials require email verification, phone numbers, or CAPTCHAs?\n\n- **Authentication complexity:**\nAPI key in a header? Or a multi-step OAuth dance requiring a browser?\n\n- **Documentation quality:**\nCan the agent (or the developer configuring it) understand the API from docs alone?\n\n- **Sandbox availability:**\nIs there a test environment that doesn't require production credentials?\n\n- **Rate limits:**\nAre free-tier limits high enough for development and testing?\n\n\nWe weight execution at 70% because access friction is a one-time cost \u2014 you solve it during setup.\nExecution reliability is an ongoing cost that compounds every time the agent makes a call.\n\n## The AN Score: quantifying agent-nativeness\n\nThe Agent-Native (AN) Score is our framework for measuring these dimensions. It evaluates each API across\n20 specific dimensions on these two axes, producing a score from 0 to 10:\n\n| Tier | Score | What it means |\n| --- | --- | --- |\n| L4 Native | 8.0\u201310.0 | Built for agents. Minimal friction, reliable execution, structured everything. |\n| L3 Fluent | 6.0\u20137.9 | Agents can use this reliably with minor configuration. |\n| L2 Developing | 4.0\u20135.9 | Usable with workarounds. Expect friction points. |\n| L1 Emerging | 0.0\u20133.9 | Significant barriers. Not recommended for unsupervised agent use. |\n\n**Real example \u2014 payments:**\n\nStripe scores 8.1 (L4 Native): execution score 9.0, access readiness 6.6. It has idempotency keys, structured errors,\nversioned webhooks, and an official agent toolkit. The access readiness score is lower because restricted API keys can\nsilently scope-limit results \u2014 a documented failure mode that catches agents off guard. (An agent believes no customers\nexist when it simply lacks read permission.)\n\nPayPal scores 4.9 (L2 Developing): execution score 5.9, access readiness 3.7. OAuth2 is the only auth method. Sandbox requires\nCAPTCHA verification. The moment your agent needs to click \u201cI am not a robot,\u201d the automation dies.\n\nThe gap between 8.1 and 4.9 isn't marginal. It's the difference between an agent that processes payments at 3am and one that\npages a human.\n\n## Five questions to ask before your agent calls any API\n\nYou don't need a formal scoring framework to make better tool selections. Start with these five questions:\n\n**1\\. What happens when the request fails?**\nCheck the API's error responses. Do you get a structured JSON error with an error code, message, and suggested fix?\nOr a generic 500 with an HTML error page? Agents need parseable errors to decide whether to retry, fall back, or escalate.\n\n**2\\. Can the agent create credentials without a human?**\nIf signup requires email verification, phone number, or CAPTCHA \u2014 your agent can't self-provision. Look for APIs that offer\nprogrammatic key generation or zero-signup access paths (like x402 pay-per-call).\n\n**3\\. Are rate limits explicit and machine-readable?**\nGood APIs return\n`X-RateLimit-Remaining`\nand\n`Retry-After`\nheaders. Bad APIs just return 429 with no guidance. Your agent needs to know: how long should I wait? How many calls do I have left?\n\n**4\\. Does the API version its responses?**\nBreaking changes in response schemas are the #1 cause of silent agent failures. Look for explicit versioning (Stripe's API\nversion headers, GitHub's API versions) rather than unversioned endpoints.\n\n**5\\. Is there a sandbox that doesn't require production credentials?**\nYour agent needs to test before going live. If the sandbox requires the same onboarding friction as production (business verification,\ncredit card, manual approval), development iteration time explodes.\n\n## The \u201cagent readiness\u201d vs. \u201cAPI agent-nativeness\u201d distinction\n\nThis matters: most tools calling themselves \u201cagent readiness scanners\u201d (AgentReady, Pillar, SiteSpeakAI) evaluate websites for\nAI chatbot crawlability. They check llms.txt, robots.txt, structured data, and content formatting.\n\nThat's a different problem. Website agent-readiness is about making your content discoverable by AI search engines. API\nagent-nativeness is about making your endpoints usable by autonomous AI agents.\n\n| What's measured | Website agent readiness | API agent-nativeness (AN Score) |\n| --- | --- | --- |\n| Target audience | AI search engines (ChatGPT, Perplexity) | AI agents calling APIs |\n| Key metrics | llms.txt, robots.txt, Schema.org | Error handling, auth friction, idempotency |\n| Score meaning | \u201cCan AI find your content?\u201d | \u201cCan AI use your service?\u201d |\n| Evaluation method | Static page scan | API testing + documentation analysis |\n| Examples | AgentReady, Pillar, SiteSpeakAI | [AN Score (Rhumb)](https://rhumb.dev/methodology) |\n\nBoth matter. If you're a developer choosing tools, website readiness tells you whether the vendor takes AI seriously.\nAPI agent-nativeness tells you whether the product actually works in your agent pipeline.\n\n## How to use this in practice\n\n**If you're building an agent that calls external APIs:**\n\n1. Check the [AN Score](https://rhumb.dev/leaderboard) for any service you're considering\n\n2. Read the [failure modes](https://rhumb.dev/search) before integrating \u2014 know where the API breaks for agents\n\n3. Prefer L3+ services for critical paths; use L2 services only with fallback logic\n\n4. Run `npx rhumb-mcp` in your agent to get scores at decision time\n\n\n**If you're evaluating a new API without a score:**\n\nUse the five questions above as a quick filter. If an API fails on questions 1 (error handling) or 2 (credential creation), it's\nlikely L1\u2013L2 regardless of other strengths.\n\n**If you're an API provider wanting to improve:**\n\nRead our [methodology](https://rhumb.dev/methodology). The 20 dimensions are published and transparent.\nThe most impactful improvements are usually: structured errors, API key auth (not just OAuth), and explicit rate limit headers.\n\n## See how your tools score\n\nWe've scored 600+ developer tools across 90+ categories. The AN Score measures real agent compatibility \u2014 not marketing claims.\n\n[Browse the leaderboard \u2192](https://rhumb.dev/leaderboard)\n\n## Related\n\n[Methodology **How we score API agent-nativeness**\\\\\n\\\\\nThe 20 dimensions behind the AN Score, published and transparent.](https://rhumb.dev/methodology) [Quickstart **Get scores inside your agent (MCP)**\\\\\n\\\\\nRun rhumb-mcp to fetch scores at decision time.](https://rhumb.dev/blog/getting-started-mcp) [Payments **Stripe vs Square vs PayPal for AI agents**\\\\\n\\\\\nA payments API comparison using the AN Score.](https://rhumb.dev/blog/stripe-vs-square-vs-paypal)",
+        "metadata": {
+          "title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+          "ogSiteName": "Rhumb",
+          "og:url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+          "ogTitle": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+          "ogLocale": "en_US",
+          "og:type": "article",
+          "og:locale": "en_US",
+          "og:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+          "viewport": "width=device-width, initial-scale=1",
+          "og:image:height": "630",
+          "twitter:title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
+          "og:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+          "og:image": "https://rhumb.dev/api/og",
+          "ogImage": "https://rhumb.dev/api/og",
+          "twitter:site": "@pedrorhumb",
+          "ogUrl": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+          "og:site_name": "Rhumb",
+          "og:image:width": "1200",
+          "twitter:creator": "@pedrorhumb",
+          "twitter:image": "https://rhumb.dev/api/og",
+          "ogDescription": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+          "description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+          "twitter:description": "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents \u2014 with real data from 665+ scored services.",
+          "twitter:card": "summary_large_image",
+          "language": "en",
+          "favicon": "https://rhumb.dev/favicon.ico",
+          "scrapeId": "019d3d6d-3acb-73ca-b267-919c01ea5a31",
+          "sourceURL": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+          "url": "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
+          "statusCode": 200,
+          "contentType": "text/html; charset=utf-8",
+          "proxyUsed": "basic",
+          "cacheState": "hit",
+          "cachedAt": "2026-03-29T07:01:34.986Z",
+          "creditsUsed": 1,
+          "concurrencyLimited": false
+        }
+      }
+    }
+  },
+  "comparison": {
+    "title_match": true,
+    "markdown_prefix_match": true,
+    "rhumb_title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+    "direct_title": "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
+    "rhumb_prefix": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014",
+    "direct_prefix": "[Skip to content](https://rhumb.dev/blog/how-to-evaluate-apis-for-agents#main-content)\n\n## The wrong question everyone's asking\n\nSearch for \u201cagent compatibility scoring\u201d and you'll find a dozen tools that scan websites\nfor AI crawlability \u2014"
+  }
+}

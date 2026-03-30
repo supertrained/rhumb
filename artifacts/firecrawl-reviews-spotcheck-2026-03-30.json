@@ -1,0 +1,119 @@
+{
+  "service_slug": "firecrawl",
+  "reviews": [
+    {
+      "id": "2958cd5e-a85a-4f6a-927b-0b5f81d35583",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Firecrawl: current-depth rerun confirms scrape.extract parity through Rhumb Resolve",
+      "summary": "Fresh current-depth runtime rerun passed for Firecrawl scrape.extract through Rhumb Resolve. Managed and direct executions matched on page title and markdown prefix for the same live Rhumb blog URL.",
+      "reviewer_label": "Pedro / Keel runtime review loop",
+      "reviewed_at": "2026-03-30T06:27:35.854775+00:00",
+      "confidence": 0.99,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "ea89cdcb-96e3-46be-83d2-06848323f345",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Firecrawl: live Rhumb blog scrape still matches direct provider control",
+      "summary": "Fresh production rerun of scrape.extract via Rhumb Resolve matched a direct Firecrawl /v1/scrape control request on the same Rhumb blog URL, including identical page title and markdown prefix.",
+      "reviewer_label": "Pedro / Keel runtime loop",
+      "reviewed_at": "2026-03-29T07:06:57.270251+00:00",
+      "confidence": 0.97,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "a287a457-72c2-49e6-b9ed-bb4d99698028",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Firecrawl: runtime rerun confirms scrape.extract parity through Rhumb Resolve",
+      "summary": "Fresh production rerun of scrape.extract via Rhumb Resolve matched a direct Firecrawl /v1/scrape control request on Example Domain, with identical title and markdown prefix.",
+      "reviewer_label": "Pedro / Keel runtime loop",
+      "reviewed_at": "2026-03-27T11:40:00+00:00",
+      "confidence": 0.95,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "bfcaf8c0-80eb-4112-ac12-0b87e510689d",
+      "review_type": "manual",
+      "review_status": "published",
+      "headline": "Firecrawl: Phase 3 runtime verification passed",
+      "summary": "Production Rhumb-managed scrape.extract matched direct Firecrawl control on the same target URL. Upstream returned 200, structured markdown arrived intact, and the execution was visible in telemetry.",
+      "reviewer_label": "Pedro / Keel runtime review",
+      "reviewed_at": "2026-03-26T07:43:06.878502+00:00",
+      "confidence": 0.98,
+      "evidence_count": 1,
+      "trust_label": "\ud83d\udfe2 Runtime-verified"
+    },
+    {
+      "id": "7b4ff642-4687-4459-a5a6-6a6cd023cad6",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Firecrawl: Auth & Access Control",
+      "summary": "Authentication uses bearer tokens. The model is simple and standard. Credits are consumed per page scraped. For agents, the main access concern is credit consumption on high-volume scraping workflows and ensuring that scraping activity complies with target site terms of service.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:44.686547+00:00",
+      "confidence": 0.52,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "deb4d2d6-feca-4735-80ef-09a985dd2659",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Firecrawl: Comprehensive Agent-Usability Assessment",
+      "summary": "Firecrawl fills a critical gap for agents: converting arbitrary web pages into clean, LLM-ready content. It handles JavaScript rendering, extracts main content, removes boilerplate, and outputs markdown or structured data. For RAG pipelines, research agents, and content processing workflows, this eliminates the need to build and maintain custom scraping infrastructure. The crawl mode can follow links across a site.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:44.686547+00:00",
+      "confidence": 0.56,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "21d1bec5-460e-4ac4-b5ee-19a6694e50e7",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Firecrawl: Documentation & Developer Experience",
+      "summary": "Documentation is clean and developer-friendly, with clear examples for common use cases. The docs are well-suited for agents because they focus on practical extraction patterns rather than infrastructure details. Integration is fast for teams that just need clean content from URLs.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:44.686547+00:00",
+      "confidence": 0.55,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "8a195ecd-6e8a-43e9-9956-5403622e462d",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Firecrawl: API Design & Integration Surface",
+      "summary": "The API surface is focused: scrape (single page), crawl (multi-page), and map (site structure). Scrape is the primary endpoint, accepting a URL and returning clean markdown, HTML, or structured data. Options control content extraction, screenshot capture, and format. Crawl handles multi-page jobs asynchronously. For agents, the single-page scrape endpoint covers most needs with minimal configuration.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:44.686547+00:00",
+      "confidence": 0.54,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    },
+    {
+      "id": "c7cef7c0-d432-4d7d-a377-3c72d36155e0",
+      "review_type": "docs",
+      "review_status": "published",
+      "headline": "Firecrawl: Error Handling & Operational Reliability",
+      "summary": "Error handling covers common scraping failure modes: unreachable URLs, JavaScript rendering failures, timeout issues, and rate limits. The service handles many edge cases that raw scraping would require manual handling for. The main reliability concern is that some sites actively block scraping, and agents need to handle graceful degradation when content extraction fails.",
+      "reviewer_label": "Rhumb editorial team",
+      "reviewed_at": "2026-03-16T06:27:44.686547+00:00",
+      "confidence": 0.53,
+      "evidence_count": 0,
+      "trust_label": "\ud83e\uddea Tester-generated"
+    }
+  ],
+  "total_reviews": 9,
+  "trust_summary": {
+    "highest_source_type": "runtime_verified",
+    "runtime_backed_pct": 100.0,
+    "freshest_evidence_at": "2026-03-30T06:27:35.854775Z"
+  }
+}
