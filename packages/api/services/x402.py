@@ -70,7 +70,7 @@ def build_x402_response(
             "payTo": pay_to,
             "maxTimeoutSeconds": 300,
             "asset": usdc_contract,
-            "extra": {"name": "Rhumb", "version": "1"},
+            "extra": {"name": "USD Coin", "version": "2"},
         }
         if payment_request_id:
             exact_option["extra"]["paymentRequestId"] = payment_request_id

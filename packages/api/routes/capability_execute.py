@@ -212,8 +212,8 @@ def _build_standard_x402_payment_requirements(
             "maxTimeoutSeconds": 300,
             "asset": payment_request.get("asset_address"),
             "extra": {
-                "name": "Rhumb",
-                "version": "1",
+                "name": "USD Coin",
+                "version": "2",
                 "paymentRequestId": payment_request.get("id"),
             },
         }

@@ -273,6 +273,10 @@ async def _call_is_valid_signature(
 ) -> bool:
     """Call ERC-1271 ``isValidSignature`` and return True when magic value matches."""
     call_data = _build_is_valid_signature_call_data(digest, signature_bytes)
+    logger.info(
+        "isValidSignature debug: signer=%s digest=%s sig_len=%d call_data_len=%d call_data_prefix=%s",
+        signer_address, digest.hex(), len(signature_bytes), len(call_data), call_data[:80],
+    )
     result = await _rpc_call(
         "eth_call",
         [{"to": signer_address, "data": call_data}, "latest"],
