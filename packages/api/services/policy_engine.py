@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
 from services.error_envelope import RhumbError
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 
 AutoSelector = Callable[[list[dict[str, Any]], str], Awaitable[dict[str, Any] | None]]
@@ -211,7 +212,9 @@ class PolicyEngine:
         if value is None:
             return None
         slug = str(value).strip().lower()
-        return slug or None
+        if not slug:
+            return None
+        return normalize_proxy_slug(canonicalize_service_slug(slug))
 
     def _normalize_slug_list(self, values: list[Any]) -> list[str]:
         normalized: list[str] = []

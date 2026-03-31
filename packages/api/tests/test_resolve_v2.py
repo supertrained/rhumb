@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetStatus
+from services.policy_engine import PolicyEngine
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
 
@@ -166,6 +167,33 @@ async def test_v2_health(app):
         "compat_mode": "v1-translate",
         "layer": 2,
     }
+
+
+@pytest.mark.anyio
+async def test_policy_engine_matches_provider_preference_aliases():
+    engine = PolicyEngine()
+    auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
+    policy = SimpleNamespace(
+        pin=None,
+        provider_preference=["brave-search-api"],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+    )
+
+    decision = await engine.resolve_provider(
+        mappings=[
+            {"service_slug": "elasticsearch"},
+            {"service_slug": "brave-search"},
+        ],
+        agent_id="agent_v2_test",
+        policy=policy,
+        auto_selector=auto_selector,
+    )
+
+    assert decision.selected_provider == "brave-search"
+    assert decision.selected_reason == "policy_preference_match"
+    auto_selector.assert_not_awaited()
 
 
 @pytest.mark.anyio
