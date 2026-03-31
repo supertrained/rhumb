@@ -71,13 +71,25 @@ def _fetch_json(url: str, timeout: float) -> dict[str, Any]:
             "User-Agent": "rhumb-callable-review-audit/0.1",
         },
     )
-    try:
-        with urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        raise RuntimeError(f"HTTP {exc.code} for {url}") from exc
-    except URLError as exc:
-        raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            last_error = exc
+            if exc.code >= 500 and attempt < 3:
+                time.sleep(float(attempt))
+                continue
+            raise RuntimeError(f"HTTP {exc.code} for {url}") from exc
+        except URLError as exc:
+            last_error = exc
+            if attempt < 3:
+                time.sleep(float(attempt))
+                continue
+            raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
+    assert last_error is not None
+    raise RuntimeError(f"Unable to fetch {url}: {last_error}")
 
 
 def _callable_services(base_url: str, timeout: float, cache_bust_token: str | None = None) -> list[dict[str, Any]]:
