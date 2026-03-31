@@ -532,6 +532,62 @@ async def test_estimate_auto_resolves_to_managed_when_config_exists(app):
 
 
 @pytest.mark.anyio
+async def test_estimate_explicit_rhumb_managed_uses_managed_mapping(app):
+    """Explicit rhumb_managed estimates should only return a managed-capable provider."""
+    managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ) as mock_resolve_managed,
+        patch(
+            "routes.capability_execute._auto_select_provider",
+            new_callable=AsyncMock,
+        ) as mock_auto_select,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "rhumb_managed"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "resend"
+    assert data["credential_mode"] == "rhumb_managed"
+    mock_resolve_managed.assert_awaited_once()
+    mock_auto_select.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
+    """Explicit rhumb_managed estimates should fail fast for non-managed providers."""
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_resolve_managed,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "rhumb_managed", "provider": "sendgrid"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "No managed execution path for 'email.send' via 'sendgrid'"
+    mock_resolve_managed.assert_awaited_once()
+
+
+@pytest.mark.anyio
 async def test_execution_logging(app):
     """Execute pre-logs then patches the same capability_executions row."""
     _, mock_pool = _build_patches()

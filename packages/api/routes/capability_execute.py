@@ -2528,8 +2528,24 @@ async def estimate_capability(
     )
 
     chosen: Optional[dict] = None
-    if requested_credential_mode == "auto" and credential_mode == "rhumb_managed":
-        chosen = managed_mapping
+    if credential_mode == "rhumb_managed":
+        chosen = managed_mapping or await _resolve_managed_provider_mapping(
+            capability_id=capability_id,
+            mappings=mappings,
+            requested_provider=provider,
+        )
+        if chosen is None:
+            if provider:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        f"No managed execution path for '{capability_id}' via '{provider}'"
+                    ),
+                )
+            raise HTTPException(
+                status_code=503,
+                detail=f"No managed providers available for capability '{capability_id}'",
+            )
     elif provider:
         chosen = next(
             (
