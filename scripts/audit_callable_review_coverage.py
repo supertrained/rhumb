@@ -158,7 +158,10 @@ def audit(base_url: str, timeout: float, cache_bust: bool = False) -> dict[str, 
         # A public claim of "N runtime-backed reviews" must be supportable
         # by BOTH the review trust_label surface AND the evidence source_type surface.
         claim_safe = min(runtime_backed_reviews, runtime_backed_evidence_records)
-        label_evidence_mismatch = runtime_backed_reviews != runtime_backed_evidence_records
+        # Mismatch is only concerning when reviews EXCEED evidence (claim
+        # unsupported by ground truth).  Evidence > reviews is normal because
+        # each review can be backed by multiple evidence records (1:N).
+        label_evidence_mismatch = runtime_backed_reviews > runtime_backed_evidence_records
 
         rows.append(
             CoverageRow(
