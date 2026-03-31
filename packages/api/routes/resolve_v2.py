@@ -21,12 +21,14 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from routes import capabilities as v1_capabilities
-from services.error_envelope import RhumbError, error_response, get_request_id
+from routes import capability_execute as v1_execute
+from services.error_envelope import RhumbError
+from services.policy_engine import PolicyProviderDecision, get_policy_engine
 
 router = APIRouter()
 
@@ -55,9 +57,21 @@ class V2CapabilityPolicy(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    pin: str | None = Field(
+        default=None,
+        description="Hard-pin execution to a specific provider.",
+    )
     provider_preference: list[str] = Field(
         default_factory=list,
-        description="Ordered provider preference list. Initial compat slice honors only the first entry.",
+        description="Ordered provider preference list.",
+    )
+    provider_deny: list[str] = Field(
+        default_factory=list,
+        description="Providers that must not be used for this execution.",
+    )
+    allow_only: list[str] = Field(
+        default_factory=list,
+        description="If present, restrict execution to this provider subset.",
     )
     max_cost_usd: float | None = Field(
         default=None,
@@ -155,9 +169,47 @@ def _compat_receipt_id(execution_id: str | None) -> str | None:
 
 
 def _preferred_provider(policy: V2CapabilityPolicy | None) -> str | None:
-    if not policy or not policy.provider_preference:
+    if not policy:
         return None
-    return policy.provider_preference[0]
+    if policy.pin:
+        return policy.pin.strip()
+    if policy.provider_preference:
+        return policy.provider_preference[0]
+    return None
+
+
+async def _resolve_policy_agent_id(raw_request: Request) -> str:
+    x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    if not x_rhumb_key:
+        return raw_request.headers.get("X-Rhumb-Agent-Id") or "x402_anonymous"
+
+    agent = await v1_execute._get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise RhumbError(
+            "CREDENTIAL_INVALID",
+            message="Invalid or expired Rhumb API key.",
+            detail="Provide a valid X-Rhumb-Key header or use an x402 payment flow.",
+        )
+    return agent.agent_id
+
+
+async def _evaluate_provider_policy(
+    capability_id: str,
+    raw_request: Request,
+    policy: V2CapabilityPolicy | None,
+) -> PolicyProviderDecision | None:
+    policy_engine = get_policy_engine()
+    if not policy_engine.has_provider_controls(policy):
+        return None
+
+    mappings = await v1_execute._get_capability_services(capability_id)
+    agent_id = await _resolve_policy_agent_id(raw_request)
+    return await policy_engine.resolve_provider(
+        mappings=mappings,
+        agent_id=agent_id,
+        policy=policy,
+        auto_selector=v1_execute._auto_select_provider,
+    )
 
 
 @router.get("/health")
@@ -235,7 +287,12 @@ async def execute_capability_v2(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
-    preferred_provider = _preferred_provider(payload.policy)
+    provider_decision = await _evaluate_provider_policy(capability_id, raw_request, payload.policy)
+    preferred_provider = (
+        provider_decision.selected_provider
+        if provider_decision and provider_decision.selected_provider
+        else _preferred_provider(payload.policy)
+    )
 
     estimate_response = await _forward_internal(
         raw_request,
@@ -260,6 +317,21 @@ async def execute_capability_v2(
     endpoint_pattern = estimate_data.get("endpoint_pattern")
     estimated_cost = estimate_data.get("cost_estimate_usd")
     method, path = _parse_endpoint_pattern(endpoint_pattern)
+
+    if (
+        provider_decision
+        and provider_decision.candidate_providers
+        and selected_provider not in provider_decision.candidate_providers
+    ):
+        raise RhumbError(
+            "NO_PROVIDER_AVAILABLE",
+            message="Estimated provider does not satisfy the execution policy.",
+            detail="Retry with an explicit preferred provider or relax the provider filters.",
+            extra={
+                "policy": provider_decision.policy_summary,
+                "selected_provider": selected_provider,
+            },
+        )
 
     if payload.policy and payload.policy.max_cost_usd is not None and estimated_cost is not None:
         if float(estimated_cost) > payload.policy.max_cost_usd:
@@ -294,18 +366,24 @@ async def execute_capability_v2(
 
     if execute_response.status_code == 200 and isinstance(body.get("data"), dict):
         execution_data = body["data"]
+        policy_summary = provider_decision.policy_summary if provider_decision else None
         execution_data["_rhumb_v2"] = {
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
             "layer": 2,
-            "receipt_id": _compat_receipt_id(execution_data.get("execution_id")),
+            "receipt_id": execution_data.get("receipt_id") or _compat_receipt_id(execution_data.get("execution_id")),
             "selected_provider": selected_provider,
             "policy_applied": bool(payload.policy),
-            "policy_mode": "provider_preference+max_cost_usd",
+            "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
+            "policy_candidates": provider_decision.candidate_providers if provider_decision else None,
+            "policy_summary": policy_summary,
             "estimated_cost_usd": estimated_cost,
             "translated_from": {
                 "parameters": True,
-                "policy_provider_preference": bool(preferred_provider),
+                "policy_provider_preference": bool(payload.policy and payload.policy.provider_preference),
+                "policy_pin": bool(payload.policy and payload.policy.pin),
+                "policy_provider_deny": bool(payload.policy and payload.policy.provider_deny),
+                "policy_allow_only": bool(payload.policy and payload.policy.allow_only),
                 "idempotency_header_used": bool(x_rhumb_idempotency_key and not payload.idempotency_key),
             },
         }

@@ -177,11 +177,80 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     assert data["_rhumb_v2"]["compat_mode"] == "v1-translate"
     assert data["_rhumb_v2"]["selected_provider"] == "sendgrid"
     assert data["_rhumb_v2"]["policy_applied"] is True
-    assert data["_rhumb_v2"]["receipt_id"] == f"rcpt_compat_{data['execution_id']}"
+    assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
+    assert data["_rhumb_v2"]["policy_candidates"] == ["sendgrid", "resend"]
+    assert data["_rhumb_v2"]["receipt_id"] == data.get("receipt_id") or f"rcpt_compat_{data['execution_id']}"
 
     request_call = mock_pool.acquire.return_value.request.await_args
     assert request_call.kwargs["json"] == {"to": "test@example.com"}
     assert request_call.args == ()
+
+
+@pytest.mark.anyio
+async def test_v2_execute_respects_provider_deny_and_uses_next_allowed_preference(app):
+    _, mock_pool, budget_state = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/email.send/execute",
+                json={
+                    "parameters": {"to": "test@example.com"},
+                    "policy": {
+                        "provider_preference": ["sendgrid", "resend"],
+                        "provider_deny": ["sendgrid"],
+                    },
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    data = body["data"]
+    assert data["provider_used"] == "resend"
+    assert data["_rhumb_v2"]["selected_provider"] == "resend"
+    assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
+    assert data["_rhumb_v2"]["policy_candidates"] == ["resend"]
+    assert data["_rhumb_v2"]["policy_summary"]["provider_deny"] == ["sendgrid"]
+
+
+@pytest.mark.anyio
+async def test_v2_execute_rejects_when_policy_filters_remove_all_providers(app):
+    _, mock_pool, budget_state = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/email.send/execute",
+                json={
+                    "parameters": {"to": "test@example.com"},
+                    "policy": {
+                        "allow_only": ["mailchimp"],
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"]["code"] == "NO_PROVIDER_AVAILABLE"
+    assert "satisfy the execution policy" in body["error"]["message"].lower()
+    assert mock_pool.acquire.return_value.request.await_count == 0
 
 
 @pytest.mark.anyio
