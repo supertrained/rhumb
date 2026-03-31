@@ -339,6 +339,22 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     }
   );
 
+  // -- get_receipt -------------------------------------------------------
+  server.tool(
+    "get_receipt",
+    "Retrieve an execution receipt by ID. Every Resolve v2 execution produces an immutable, chain-hashed receipt containing: provider used, cost breakdown, latency, routing explanation, and integrity hash. Use this to audit, debug, or verify any past execution. The receipt_id is returned in every execute_capability response when v2 policy parameters are used.",
+    {
+      receipt_id: z.string().describe("The receipt ID (starts with rcpt_) from an execution response.")
+    },
+    async ({ receipt_id }) => {
+      const { handleGetReceipt } = await import("./tools/receipts.js");
+      const result = await handleGetReceipt({ receipt_id }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
   return server;
 }
 

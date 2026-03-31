@@ -26,7 +26,7 @@ describe("types.contract", () => {
     }
   });
 
-  it("TOOL_NAMES lists all 17 registered tools", () => {
+  it("TOOL_NAMES lists all 18 registered tools", () => {
     expect(TOOL_NAMES).toEqual([
       "find_services",
       "get_score",
@@ -44,9 +44,10 @@ describe("types.contract", () => {
       "usage_telemetry",
       "check_balance",
       "get_payment_url",
-      "get_ledger"
+      "get_ledger",
+      "get_receipt"
     ]);
-    expect(TOOL_NAMES.length).toBe(17);
+    expect(TOOL_NAMES.length).toBe(18);
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {

@@ -221,7 +221,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 17 registered tools", async () => {
+    it("lists all 18 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -241,13 +241,14 @@ describe("e2e: MCP server integration", () => {
         "get_failure_modes",
         "get_ledger",
         "get_payment_url",
+        "get_receipt",
         "get_score",
         "resolve_capability",
         "routing",
         "spend",
         "usage_telemetry",
       ]);
-      expect(tools).toHaveLength(17);
+      expect(tools).toHaveLength(18);
 
       // Each tool has a description and input schema
       for (const tool of tools) {

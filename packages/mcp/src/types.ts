@@ -585,6 +585,22 @@ export type GetLedgerOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// get_receipt
+// ---------------------------------------------------------------------------
+
+export const GetReceiptInputSchema = {
+  type: "object" as const,
+  properties: {
+    receipt_id: { type: "string" as const, description: "The receipt ID (starts with rcpt_) from an execution response." },
+  },
+  required: ["receipt_id"] as string[],
+};
+
+export type GetReceiptInput = {
+  receipt_id: string;
+};
+
+// ---------------------------------------------------------------------------
 // Schema registry — all tool schemas in one place
 // ---------------------------------------------------------------------------
 
@@ -605,7 +621,8 @@ export const TOOL_SCHEMAS = {
   usage_telemetry: UsageTelemetryInputSchema,
   check_balance: CheckBalanceInputSchema,
   get_payment_url: GetPaymentUrlInputSchema,
-  get_ledger: GetLedgerInputSchema
+  get_ledger: GetLedgerInputSchema,
+  get_receipt: GetReceiptInputSchema,
 } as const;
 
 export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as Array<keyof typeof TOOL_SCHEMAS>;
