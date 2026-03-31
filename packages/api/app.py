@@ -173,6 +173,9 @@ def create_app() -> FastAPI:
     application.add_exception_handler(Exception, unhandled_exception_handler)
     # x402 payment-required has its own handler (returns 402 with payment envelope)
     application.add_exception_handler(PaymentRequiredException, payment_required_handler)
+    # Resolve v2 canonical error envelope handler
+    from services.error_envelope import RhumbError, rhumb_error_handler
+    application.add_exception_handler(RhumbError, rhumb_error_handler)
 
     # ── Routers ──
     application.include_router(capabilities.router, prefix="/v1", tags=["capabilities"])

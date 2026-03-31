@@ -209,8 +209,8 @@ async def test_v2_execute_enforces_max_cost_ceiling_before_execution(app):
                 headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
             )
 
-    assert resp.status_code == 409
+    assert resp.status_code == 402  # BUDGET_EXCEEDED per Resolve spec
     body = resp.json()
-    assert body["error"] == "conflict"
-    assert "exceeds policy ceiling" in body["detail"].lower()
+    assert body["error"]["code"] == "BUDGET_EXCEEDED"
+    assert "exceeds policy ceiling" in body["error"]["message"].lower()
     assert mock_pool.acquire.return_value.request.await_count == 0

@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
+from services.error_envelope import RhumbError
 from services.receipt_service import get_receipt_service
 
 router = APIRouter()
@@ -22,13 +23,10 @@ async def get_receipt(receipt_id: str) -> dict[str, Any]:
     service = get_receipt_service()
     receipt = await service.get_receipt(receipt_id)
     if receipt is None:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "receipt_not_found",
-                "message": f"No receipt found with id '{receipt_id}'",
-                "resolution": "Check the receipt_id from an execution response, or query receipts at GET /v2/receipts",
-            },
+        raise RhumbError(
+            "CAPABILITY_NOT_FOUND",
+            message=f"No receipt found with id '{receipt_id}'",
+            detail="Check the receipt_id from an execution response, or query receipts at GET /v2/receipts",
         )
     return {"data": receipt, "error": None}
 

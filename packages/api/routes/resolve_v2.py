@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from routes import capabilities as v1_capabilities
+from services.error_envelope import RhumbError, error_response, get_request_id
 
 router = APIRouter()
 
@@ -262,15 +263,13 @@ async def execute_capability_v2(
 
     if payload.policy and payload.policy.max_cost_usd is not None and estimated_cost is not None:
         if float(estimated_cost) > payload.policy.max_cost_usd:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "message": (
-                        f"Estimated call cost ${float(estimated_cost):.4f} exceeds policy ceiling "
-                        f"${payload.policy.max_cost_usd:.4f}."
-                    ),
-                    "resolution": "Raise max_cost_usd, choose a cheaper provider, or retry without a hard ceiling.",
-                },
+            raise RhumbError(
+                "BUDGET_EXCEEDED",
+                message=(
+                    f"Estimated call cost ${float(estimated_cost):.4f} exceeds policy ceiling "
+                    f"${payload.policy.max_cost_usd:.4f}."
+                ),
+                detail="Raise max_cost_usd, choose a cheaper provider, or retry without a hard ceiling.",
             )
 
     v1_payload: dict[str, Any] = {
