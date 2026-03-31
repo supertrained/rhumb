@@ -729,22 +729,10 @@ async def execute_capability_v2(
     # ── Route explanation (WU-41.3) ─────────────────────────────────
     explanation_id: str | None = None
     try:
-        # Gather scores for explanation (reuse the policy eval mappings)
-        from routes._supabase import supabase_fetch as _exp_fetch
+        # Gather scores for explanation via read-only score cache (WU-41.4)
+        from services.score_cache import get_score_cache as _get_sc
         _slugs = [m.get("service_slug", "") for m in policy_eval.all_mappings if m.get("service_slug")]
-        _slug_filter = ",".join(f'"{s}"' for s in _slugs) if _slugs else ""
-        _scores_by_slug: dict[str, float] = {}
-        if _slug_filter:
-            _score_rows = await _exp_fetch(
-                f"scores?service_slug=in.({_slug_filter})"
-                f"&select=service_slug,aggregate_recommendation_score"
-            )
-            if _score_rows:
-                for sc in _score_rows:
-                    slug = sc.get("service_slug")
-                    agg = sc.get("aggregate_recommendation_score")
-                    if slug and agg is not None:
-                        _scores_by_slug[slug] = float(agg)
+        _scores_by_slug: dict[str, float] = _get_sc().scores_by_slug(_slugs) if _slugs else {}
 
         _circuit_states: dict[str, str] = {}
         from routes.proxy import get_breaker_registry as _get_br
