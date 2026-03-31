@@ -242,6 +242,75 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
 
 
 @pytest.mark.anyio
+async def test_v2_execute_uses_single_canonical_receipt_id_and_skips_v1_receipt(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 200
+    estimate_resp.json.return_value = {
+        "data": {
+            "provider": "sendgrid",
+            "cost_estimate_usd": 0.01,
+            "endpoint_pattern": "POST /v3/mail/send",
+        }
+    }
+    estimate_resp.headers = {}
+
+    execute_resp = MagicMock(spec=httpx.Response)
+    execute_resp.status_code = 200
+    execute_resp.json.return_value = {
+        "data": {
+            "execution_id": "exec_v2_test",
+            "provider_used": "sendgrid",
+            "credential_mode": "byo",
+            "upstream_status": 202,
+            "result": {"queued": True},
+        },
+        "error": None,
+    }
+    execute_resp.headers = {}
+
+    mock_receipt = MagicMock()
+    mock_receipt.receipt_id = "rcpt_v2_canonical"
+
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {
+        "X-Rhumb-Receipt-Id": "rcpt_v2_canonical",
+        "X-Rhumb-Provider": "sendgrid",
+        "X-Rhumb-Layer": "2",
+    }
+    mock_attribution.to_rhumb_block.return_value = {"receipt_id": "rcpt_v2_canonical"}
+
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=SimpleNamespace(decision=None, all_mappings=[], eligible_mappings=[]))),
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_test")),
+        patch("routes.resolve_v2.store_explanation"),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/email.send/execute",
+                json={
+                    "parameters": {"to": "test@example.com"},
+                    "policy": {"provider_preference": ["sendgrid"]},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["receipt_id"] == "rcpt_v2_canonical"
+    assert data["_rhumb_v2"]["receipt_id"] == "rcpt_v2_canonical"
+    assert data["_rhumb"]["receipt_id"] == "rcpt_v2_canonical"
+
+    execute_call = mock_forward.await_args_list[1]
+    assert execute_call.kwargs["extra_headers"] == {"X-Rhumb-Skip-Receipt": "true"}
+
+
+@pytest.mark.anyio
 async def test_v2_execute_respects_provider_deny_and_uses_next_allowed_preference(app):
     _, mock_pool, budget_state = _build_patches()
 

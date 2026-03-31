@@ -200,7 +200,12 @@ async def _forward_internal(
     path: str,
     params: dict[str, Any] | None = None,
     json_body: dict[str, Any] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> httpx.Response:
+    headers = _forward_request_headers(raw_request)
+    if extra_headers:
+        headers.update(extra_headers)
+
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=raw_request.app),
         base_url="http://rhumb-internal",
@@ -210,7 +215,7 @@ async def _forward_internal(
             path,
             params=params,
             json=json_body,
-            headers=_forward_request_headers(raw_request),
+            headers=headers,
         )
 
 
@@ -673,6 +678,7 @@ async def execute_capability_v2(
         method="POST",
         path=f"/v1/capabilities/{capability_id}/execute",
         json_body=v1_payload,
+        extra_headers={"X-Rhumb-Skip-Receipt": "true"},
     )
     body = execute_response.json()
 
@@ -807,6 +813,8 @@ async def execute_capability_v2(
                 "idempotency_header_used": bool(x_rhumb_idempotency_key and not payload.idempotency_key),
             },
         }
+        if receipt_id:
+            execution_data["receipt_id"] = receipt_id
         execution_data["_rhumb_v2"] = v2_meta
 
         # Inject canonical _rhumb provider identity block

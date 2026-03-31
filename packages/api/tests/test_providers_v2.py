@@ -253,9 +253,14 @@ class TestExecuteOnProvider:
         assert data["_rhumb_v2"]["cost"]["provider_cost_usd"] == 0.005
         assert data["_rhumb_v2"]["cost"]["rhumb_fee_usd"] == 0.0004  # max(0.0002, 0.005*0.08)
         assert data["_rhumb_v2"]["cost"]["total_usd"] == 0.0054
+        assert data["receipt_id"] == "rcpt_test_123"
         assert data["_rhumb_v2"]["receipt_id"] == "rcpt_test_123"
         assert resp.headers.get("X-Rhumb-Provider") == _TEST_PROVIDER_SLUG
         assert resp.headers.get("X-Rhumb-Layer") == "1"
+        assert resp.headers.get("X-Rhumb-Receipt-Id") == "rcpt_test_123"
+
+        execute_call = mock_forward.call_args_list[1]
+        assert execute_call.kwargs["extra_headers"] == {"X-Rhumb-Skip-Receipt": "true"}
 
     def test_execute_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):

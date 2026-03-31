@@ -177,7 +177,12 @@ async def _forward_internal(
     path: str,
     params: dict[str, Any] | None = None,
     json_body: dict[str, Any] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> httpx.Response:
+    headers = _forward_request_headers(raw_request)
+    if extra_headers:
+        headers.update(extra_headers)
+
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=raw_request.app),
         base_url="http://rhumb-internal",
@@ -187,7 +192,7 @@ async def _forward_internal(
             path,
             params=params,
             json=json_body,
-            headers=_forward_request_headers(raw_request),
+            headers=headers,
         )
 
 
@@ -655,6 +660,7 @@ async def execute_on_provider(
         method="POST",
         path=f"/v1/capabilities/{payload.capability}/execute",
         json_body=v1_payload,
+        extra_headers={"X-Rhumb-Skip-Receipt": "true"},
     )
     body = execute_response.json()
 
@@ -738,6 +744,8 @@ async def execute_on_provider(
 
     # ── Annotate response with Layer 1 metadata ──────────────────────
     if is_success and execution_data:
+        if receipt_id:
+            execution_data["receipt_id"] = receipt_id
         execution_data["_rhumb_v2"] = {
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
