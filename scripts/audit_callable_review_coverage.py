@@ -34,6 +34,11 @@ RUNTIME_BACKED_EVIDENCE_SOURCE_TYPES = frozenset(
     {"runtime_verified", "tester_generated", "probe_generated"}
 )
 
+# Claim-safe counting: the minimum of review trust_label count and
+# evidence source_type count. A review is only claim-safe runtime-backed
+# if BOTH the review label and evidence source agree.
+# See: Keel alert 2026-03-31 re: google-ai depth-6 overclaim risk.
+
 
 @dataclass
 class CoverageRow:
@@ -42,16 +47,20 @@ class CoverageRow:
     auth_type: str | None
     callable: bool
     total_reviews: int
-    runtime_backed_reviews: int
+    runtime_backed_reviews: int  # By trust_label on review surface
     non_runtime_reviews: int
     total_evidence_records: int
-    runtime_backed_evidence_records: int
+    runtime_backed_evidence_records: int  # By source_type on evidence surface
     runtime_backed_evidence_pct: float
     evidence_review_gap_suspected: bool
     highest_source_type: str | None
     runtime_backed_review_pct: float
     reported_runtime_backed_pct: float
     freshest_evidence_at: str | None
+    # Claim-safe count: min(review trust_label count, evidence source_type count)
+    # Only this number should be used in public claims.
+    claim_safe_runtime_backed: int = 0
+    label_evidence_mismatch: bool = False
 
 
 def _with_cache_bust(url: str, token: str | None) -> str:
@@ -145,6 +154,12 @@ def audit(base_url: str, timeout: float, cache_bust: bool = False) -> dict[str, 
             and total_reviews > 0
         )
 
+        # Claim-safe: the conservative minimum of both counting methods.
+        # A public claim of "N runtime-backed reviews" must be supportable
+        # by BOTH the review trust_label surface AND the evidence source_type surface.
+        claim_safe = min(runtime_backed_reviews, runtime_backed_evidence_records)
+        label_evidence_mismatch = runtime_backed_reviews != runtime_backed_evidence_records
+
         rows.append(
             CoverageRow(
                 service_slug=slug,
@@ -162,19 +177,25 @@ def audit(base_url: str, timeout: float, cache_bust: bool = False) -> dict[str, 
                 runtime_backed_review_pct=runtime_backed_review_pct,
                 reported_runtime_backed_pct=float(trust_summary.get("runtime_backed_pct") or 0.0),
                 freshest_evidence_at=trust_summary.get("freshest_evidence_at"),
+                claim_safe_runtime_backed=claim_safe,
+                label_evidence_mismatch=label_evidence_mismatch,
             )
         )
 
-    rows.sort(key=lambda row: (row.runtime_backed_reviews, row.total_reviews, row.service_slug))
+    rows.sort(key=lambda row: (row.claim_safe_runtime_backed, row.total_reviews, row.service_slug))
 
-    weakest_depth = rows[0].runtime_backed_reviews if rows else 0
-    weakest_bucket = [row.service_slug for row in rows if row.runtime_backed_reviews == weakest_depth]
+    weakest_depth = rows[0].claim_safe_runtime_backed if rows else 0
+    weakest_bucket = [row.service_slug for row in rows if row.claim_safe_runtime_backed == weakest_depth]
+    mismatched = [row.service_slug for row in rows if row.label_evidence_mismatch]
 
     return {
         "base_url": base_url,
         "callable_provider_count": len(rows),
-        "weakest_runtime_depth": weakest_depth,
+        "weakest_claim_safe_depth": weakest_depth,
         "weakest_bucket": weakest_bucket,
+        # Legacy alias for backward compat with existing artifact consumers
+        "weakest_runtime_depth": weakest_depth,
+        "label_evidence_mismatches": mismatched,
         "providers": [asdict(row) for row in rows],
     }
 
@@ -183,15 +204,17 @@ def _print_human(payload: dict[str, Any]) -> None:
     print(f"Base URL: {payload['base_url']}")
     print(f"Callable providers: {payload['callable_provider_count']}")
     print(
-        "Weakest runtime-backed depth: "
-        f"{payload['weakest_runtime_depth']} ({len(payload['weakest_bucket'])} providers)"
+        "Weakest claim-safe depth: "
+        f"{payload['weakest_claim_safe_depth']} ({len(payload['weakest_bucket'])} providers)"
     )
+    label_ev_mismatches = payload.get("label_evidence_mismatches", [])
+    if label_ev_mismatches:
+        print(f"⚠️  Label/evidence count mismatches: {', '.join(label_ev_mismatches)}")
     mismatch_rows = [
         row["service_slug"] for row in payload["providers"] if row["evidence_review_gap_suspected"]
     ]
-    print(f"Evidence/review mismatches suspected: {len(mismatch_rows)}")
     if mismatch_rows:
-        print(f"Flagged providers: {', '.join(mismatch_rows)}")
+        print(f"Evidence/review gap suspected: {', '.join(mismatch_rows)}")
     print()
     print(
         f"{'service':20} {'rev_rt':>6} {'reviews':>7} {'ev_rt':>6} {'evidence':>8} "
