@@ -102,6 +102,24 @@ def _review_type_bucket(review_type: str | None) -> str:
     return "automated"
 
 
+def _fallback_review_source_type(review_type: str | None) -> str | None:
+    """Conservative fallback when review provenance has not been materialized.
+
+    Important: do NOT infer runtime-backed trust from linked evidence at read time.
+    Public review truth should come from the review row's materialized provenance
+    (`highest_trust_source`) so it can be compared independently against the
+    public evidence surface.
+    """
+    return {
+        "docs": "docs_derived",
+        "manual": "manual_operator",
+        "provider": "manual_operator",
+        "tester": "tester_generated",
+        "crawler": "probe_generated",
+        "synthesized": "docs_derived",
+    }.get(review_type)
+
+
 def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
 
@@ -216,16 +234,21 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
         "&review_status=eq.published"
         "&order=reviewed_at.desc"
         "&select=id,review_type,review_status,headline,summary,reviewer_label,reviewed_at,"
-        "confidence,evidence_count"
+        "confidence,evidence_count,highest_trust_source"
     )
     review_rows = reviews or []
     review_ids = [str(row["id"]) for row in review_rows if row.get("id") is not None]
     source_types_by_review, linked_evidence = await _fetch_review_evidence(review_ids)
 
     response_reviews = []
+    review_source_types: list[str] = []
     for row in review_rows:
         review_id = str(row["id"])
-        highest_source_type = _pick_highest_source_type(source_types_by_review.get(review_id, []))
+        review_source_type = row.get("highest_trust_source") or _fallback_review_source_type(
+            row.get("review_type")
+        )
+        if review_source_type is not None:
+            review_source_types.append(str(review_source_type))
         response_reviews.append(
             {
                 "id": review_id,
@@ -237,28 +260,23 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
                 "reviewed_at": row.get("reviewed_at"),
                 "confidence": row.get("confidence"),
                 "evidence_count": row.get("evidence_count", 0),
-                "trust_label": trust_label(highest_source_type),
+                "trust_label": trust_label(review_source_type),
             }
         )
 
     freshest_evidence_at = None
-    highest_source_type = None
     if linked_evidence:
         freshest_evidence_at = max(
             (_parse_datetime(row.get("observed_at")) for row in linked_evidence),
             default=None,
         )
-        highest_source_type = _pick_highest_source_type(
-            [str(row["source_type"]) for row in linked_evidence if row.get("source_type") is not None]
-        )
+
+    highest_source_type = _pick_highest_source_type(review_source_types)
 
     runtime_backed_reviews = sum(
         1
-        for review_id in review_ids
-        if any(
-            source_type in _RUNTIME_BACKED_SOURCE_TYPES
-            for source_type in source_types_by_review.get(review_id, [])
-        )
+        for source_type in review_source_types
+        if source_type in _RUNTIME_BACKED_SOURCE_TYPES
     )
     runtime_backed_pct = (
         round((runtime_backed_reviews / len(review_ids)) * 100, 1)

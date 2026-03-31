@@ -190,6 +190,7 @@ def test_get_service_reviews_runtime_backed_pct_uses_review_level_ratio(
                 "reviewed_at": "2026-03-10T10:00:00Z",
                 "confidence": 0.9,
                 "evidence_count": 2,
+                "highest_trust_source": "runtime_verified",
             },
             {
                 "id": "review-docs",
@@ -345,6 +346,7 @@ def test_get_service_reviews_resolves_proxy_alias_to_canonical_slug(
             "reviewed_at": "2026-03-12T00:00:00Z",
             "confidence": 0.8,
             "evidence_count": 1,
+            "highest_trust_source": "runtime_verified",
         }
     )
     fake_supabase["review_evidence_links"].append(
@@ -391,6 +393,7 @@ def test_get_service_reviews_falls_back_to_proxy_slug_for_canonical_alias(
             "reviewed_at": "2026-03-26T11:08:24Z",
             "confidence": 0.95,
             "evidence_count": 1,
+            "highest_trust_source": "runtime_verified",
         }
     )
     fake_supabase["review_evidence_links"].append(
