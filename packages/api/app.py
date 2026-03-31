@@ -116,9 +116,16 @@ async def _lifespan(app: FastAPI):
     await proxy_finalizer.start()
     logger.info("Proxy finalizer worker started")
 
+    # Score cache auto-refresh (WU-41.4 structural separation)
+    from services.score_cache import start_score_cache_refresh, stop_score_cache_refresh
+    await start_score_cache_refresh()
+    logger.info("Score cache refresh worker started")
+
     try:
         yield
     finally:
+        await stop_score_cache_refresh()
+        logger.info("Score cache refresh worker stopped")
         await proxy_finalizer.stop(drain=True)
         logger.info("Proxy finalizer worker drained")
 

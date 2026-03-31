@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -338,3 +340,106 @@ class TestScoresV2Endpoints:
         assert "cache_size" in body["data"]
         assert "structural_guarantees" in body["data"]
         assert isinstance(body["data"]["structural_guarantees"], list)
+
+
+# ── Auto-refresh background task ─────────────────────────────────────
+
+
+class TestScoreCacheAutoRefresh:
+    @pytest.mark.asyncio
+    async def test_refresh_loop_populates_cache(self):
+        """The refresh loop should populate the cache from DB results."""
+        from services.score_cache import _refresh_loop, ScoreReadCache
+
+        cache = ScoreReadCache(ttl_seconds=60.0)
+        mock_entries = [
+            _make_score("stripe", 8.5),
+            _make_score("openai", 9.1),
+        ]
+
+        stop = asyncio.Event()
+
+        with patch(
+            "services.score_cache.fetch_scores_from_db",
+            new_callable=AsyncMock,
+            return_value=mock_entries,
+        ):
+            # Start the loop, let it run once, then stop
+            task = asyncio.create_task(_refresh_loop(cache, interval=0.1, stop_event=stop))
+            await asyncio.sleep(0.3)
+            stop.set()
+            await task
+
+        assert cache.size == 2
+        assert cache.get("stripe") is not None
+        assert cache.get("stripe").an_score == 8.5
+
+    @pytest.mark.asyncio
+    async def test_refresh_loop_handles_empty_db(self):
+        """Empty DB result should not crash the loop."""
+        from services.score_cache import _refresh_loop, ScoreReadCache
+
+        cache = ScoreReadCache(ttl_seconds=60.0)
+        stop = asyncio.Event()
+
+        with patch(
+            "services.score_cache.fetch_scores_from_db",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            task = asyncio.create_task(_refresh_loop(cache, interval=0.1, stop_event=stop))
+            await asyncio.sleep(0.2)
+            stop.set()
+            await task
+
+        assert cache.size == 0
+
+    @pytest.mark.asyncio
+    async def test_refresh_loop_handles_exception(self):
+        """Exceptions during refresh should not kill the loop."""
+        from services.score_cache import _refresh_loop, ScoreReadCache
+
+        cache = ScoreReadCache(ttl_seconds=60.0)
+        stop = asyncio.Event()
+
+        call_count = [0]
+        async def flaky_fetch():
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise RuntimeError("Simulated DB failure")
+            return [_make_score("stripe", 8.5)]
+
+        with patch(
+            "services.score_cache.fetch_scores_from_db",
+            side_effect=flaky_fetch,
+        ):
+            task = asyncio.create_task(_refresh_loop(cache, interval=0.1, stop_event=stop))
+            await asyncio.sleep(0.4)
+            stop.set()
+            await task
+
+        # Should have recovered after the first failure
+        assert call_count[0] >= 2
+        assert cache.size >= 1
+
+    @pytest.mark.asyncio
+    async def test_start_stop_lifecycle(self):
+        """start/stop should work without errors."""
+        from services.score_cache import (
+            start_score_cache_refresh,
+            stop_score_cache_refresh,
+        )
+
+        with patch(
+            "services.score_cache.fetch_scores_from_db",
+            new_callable=AsyncMock,
+            return_value=[_make_score("test", 7.0)],
+        ):
+            await start_score_cache_refresh()
+            # Give it a moment to warm up
+            await asyncio.sleep(0.1)
+            await stop_score_cache_refresh()
+
+        # Cache should have been warmed
+        cache = get_score_cache()
+        assert cache.get("test") is not None

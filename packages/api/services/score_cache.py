@@ -373,3 +373,105 @@ def get_audit_chain() -> ScoreAuditChain:
     if _audit_chain is None:
         _audit_chain = ScoreAuditChain()
     return _audit_chain
+
+
+# ── Background auto-refresh task ─────────────────────────────────
+
+import asyncio
+
+_refresh_task: asyncio.Task | None = None
+_refresh_stop_event: asyncio.Event | None = None
+
+REFRESH_INTERVAL_SECONDS = 300.0  # 5 minutes
+
+
+async def _refresh_loop(
+    cache: ScoreReadCache,
+    interval: float = REFRESH_INTERVAL_SECONDS,
+    stop_event: asyncio.Event | None = None,
+) -> None:
+    """Background loop that refreshes the score cache periodically.
+
+    Runs until cancelled or stop_event is set.
+    """
+    logger.info(
+        "score_cache_refresh_loop_started interval=%.0fs",
+        interval,
+    )
+    while True:
+        try:
+            entries = await fetch_scores_from_db()
+            if entries:
+                count = cache._populate(entries)
+                logger.info(
+                    "score_cache_refreshed count=%d age=%.1fs",
+                    count,
+                    cache.last_refresh_age_seconds,
+                )
+            else:
+                logger.warning("score_cache_refresh_empty — DB returned no scores")
+        except Exception:
+            logger.exception("score_cache_refresh_error")
+
+        # Wait for the interval or until stopped
+        if stop_event:
+            try:
+                await asyncio.wait_for(stop_event.wait(), timeout=interval)
+                break  # stop_event was set
+            except asyncio.TimeoutError:
+                continue  # Normal timeout — loop again
+        else:
+            await asyncio.sleep(interval)
+
+
+async def start_score_cache_refresh() -> None:
+    """Start the background score cache refresh task.
+
+    Call once during application startup (lifespan).
+    """
+    global _refresh_task, _refresh_stop_event
+
+    cache = get_score_cache()
+
+    # Initial synchronous warm-up
+    try:
+        entries = await fetch_scores_from_db()
+        if entries:
+            count = cache._populate(entries)
+            logger.info("score_cache_initial_warmup count=%d", count)
+        else:
+            logger.warning("score_cache_initial_warmup_empty")
+    except Exception:
+        logger.exception("score_cache_initial_warmup_failed")
+
+    # Start background loop
+    _refresh_stop_event = asyncio.Event()
+    _refresh_task = asyncio.create_task(
+        _refresh_loop(cache, REFRESH_INTERVAL_SECONDS, _refresh_stop_event),
+        name="score_cache_refresh",
+    )
+
+
+async def stop_score_cache_refresh() -> None:
+    """Stop the background score cache refresh task.
+
+    Call during application shutdown (lifespan).
+    """
+    global _refresh_task, _refresh_stop_event
+
+    if _refresh_stop_event:
+        _refresh_stop_event.set()
+
+    if _refresh_task and not _refresh_task.done():
+        try:
+            await asyncio.wait_for(_refresh_task, timeout=5.0)
+        except asyncio.TimeoutError:
+            _refresh_task.cancel()
+            try:
+                await _refresh_task
+            except asyncio.CancelledError:
+                pass
+        logger.info("score_cache_refresh_loop_stopped")
+
+    _refresh_task = None
+    _refresh_stop_event = None
