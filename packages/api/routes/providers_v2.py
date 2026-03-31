@@ -615,6 +615,34 @@ async def execute_on_provider(
         # Inject canonical _rhumb provider identity block
         execution_data["_rhumb"] = attribution.to_rhumb_block()
 
+    # ── Billing event emission (WU-41.5) ──────────────────────────────
+    try:
+        from services.billing_events import BillingEventType, get_billing_event_stream
+        _billing_org = agent.organization_id if agent else None
+        if _billing_org and is_success:
+            get_billing_event_stream().emit(
+                BillingEventType.EXECUTION_CHARGED,
+                org_id=_billing_org,
+                amount_usd_cents=int(float(layer1_cost.get("total_usd", 0) if isinstance(layer1_cost, dict) else 0) * 100),
+                receipt_id=receipt_id,
+                execution_id=execution_id,
+                capability_id=payload.capability,
+                provider_slug=provider_slug,
+                metadata={"layer": 1, "credential_mode": payload.credential_mode or "auto"},
+            )
+        elif _billing_org and not is_success:
+            get_billing_event_stream().emit(
+                BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+                org_id=_billing_org,
+                amount_usd_cents=0,
+                execution_id=execution_id,
+                capability_id=payload.capability,
+                provider_slug=provider_slug,
+                metadata={"layer": 1, "error": str(body.get("error", ""))[:200]},
+            )
+    except Exception:
+        logger.exception("l1_billing_event_emission_failed execution_id=%s", execution_id)
+
     merged_headers = _merge_response_headers(execute_response)
     merged_headers.update(attribution.to_response_headers())
 

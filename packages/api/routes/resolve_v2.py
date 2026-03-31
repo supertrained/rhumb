@@ -813,6 +813,34 @@ async def execute_capability_v2(
         if attribution is not None:
             execution_data["_rhumb"] = attribution.to_rhumb_block()
 
+    # ── Billing event emission (WU-41.5) ──────────────────────────────
+    try:
+        from services.billing_events import BillingEventType, get_billing_event_stream
+        _billing_org = agent.organization_id if agent else None
+        if _billing_org and is_success:
+            get_billing_event_stream().emit(
+                BillingEventType.EXECUTION_CHARGED,
+                org_id=_billing_org,
+                amount_usd_cents=int(float(estimated_cost or 0) * 100),
+                receipt_id=receipt_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=selected_provider,
+                metadata={"layer": 2, "credential_mode": payload.credential_mode or "auto"},
+            )
+        elif _billing_org and not is_success:
+            get_billing_event_stream().emit(
+                BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+                org_id=_billing_org,
+                amount_usd_cents=0,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=selected_provider,
+                metadata={"layer": 2, "error": str(body.get("error", ""))[:200]},
+            )
+    except Exception:
+        logger.exception("v2_billing_event_emission_failed execution_id=%s", execution_id)
+
     merged_headers = _merge_response_headers(execute_response)
     merged_headers.update(attribution_headers)
 
