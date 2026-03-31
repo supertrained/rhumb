@@ -1,0 +1,140 @@
+{
+  "provider": "google-ai",
+  "model": "gemini-2.5-flash",
+  "sentinel": "RHUMB_GOOGLE_AI_20260331_DEPTH6",
+  "review_kind": "current_depth6",
+  "organization_id": "org_runtime_review_google_ai_20260331t152821z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260331T152821Z-google-ai-current-depth6.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "79f93d02-c8ff-43ca-b9e5-2abc90327ecf",
+    "organization_id": "org_runtime_review_google_ai_20260331t152821z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "b3e50591-7d71-49f1-b6ba-28d262b176ad"
+  },
+  "observed_at": "2026-03-31T15:28:29Z",
+  "fresh_until": "2026-04-30T15:28:29Z",
+  "counts_before": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 5
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "ai.generate_text",
+        "provider": "google-ai",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.001,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1beta/models/{model}:generateContent"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "ai.generate_text",
+        "provider_used": "google-ai",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "RHUMB_GOOGLE_AI_20260331_DEPTH6"
+                  }
+                ],
+                "role": "model"
+              },
+              "finishReason": "STOP",
+              "index": 0
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 22,
+            "candidatesTokenCount": 18,
+            "totalTokenCount": 59,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 22
+              }
+            ],
+            "thoughtsTokenCount": 19
+          },
+          "modelVersion": "gemini-2.5-flash",
+          "responseId": "GujLaaqBFbPsxN8PtNSqsAY"
+        },
+        "latency_ms": 647.8,
+        "execution_id": "exec_842761ebe36745d196b8daaabde3b78e"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "RHUMB_GOOGLE_AI_20260331_DEPTH6"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 22,
+        "candidatesTokenCount": 18,
+        "totalTokenCount": 59,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 22
+          }
+        ],
+        "thoughtsTokenCount": 19
+      },
+      "modelVersion": "gemini-2.5-flash",
+      "responseId": "HOjLaY3XJJrQz7IPmYXFiAQ"
+    }
+  },
+  "comparison": {
+    "rhumb_provider_used": "google-ai",
+    "rhumb_upstream_status": 200,
+    "rhumb_model_version": "gemini-2.5-flash",
+    "direct_model_version": "gemini-2.5-flash",
+    "rhumb_text": "RHUMB_GOOGLE_AI_20260331_DEPTH6",
+    "direct_text": "RHUMB_GOOGLE_AI_20260331_DEPTH6",
+    "text_match": true,
+    "sentinel_match": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "google-ai",
+    "evidence_id": "ebb6d939-b784-488f-baf1-21fd734d398e",
+    "review_id": "3c43ec0b-de6c-4ae0-9d91-009c5213d5e7",
+    "execution_id": "exec_842761ebe36745d196b8daaabde3b78e"
+  },
+  "counts_after": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 5
+  },
+  "agent_disabled": true
+}
