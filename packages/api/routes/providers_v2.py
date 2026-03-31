@@ -225,6 +225,14 @@ def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
     }
 
 
+def _build_in_filter(values: set[str]) -> str:
+    return ",".join(f'"{value}"' for value in sorted(values))
+
+
+def _runtime_provider_slug(provider_id: str) -> str:
+    return normalize_slug(canonicalize_service_slug(provider_id))
+
+
 async def _resolve_provider_services(provider_id: str) -> list[dict]:
     """Fetch all capability mappings for a given provider slug."""
     for candidate in _provider_slug_candidates(provider_id):
@@ -238,18 +246,87 @@ async def _resolve_provider_services(provider_id: str) -> list[dict]:
     return []
 
 
+async def _resolve_provider_score(provider_id: str) -> dict | None:
+    canonical_slugs = {
+        canonicalize_service_slug(candidate)
+        for candidate in _provider_slug_candidates(provider_id)
+        if candidate
+    }
+    if not canonical_slugs:
+        return None
+
+    rows = await supabase_fetch(
+        f"scores?service_slug=in.({_build_in_filter(canonical_slugs)})"
+        f"&select=service_slug,aggregate_recommendation_score,tier,tier_label,calculated_at"
+        f"&order=calculated_at.desc"
+    )
+    if not rows:
+        return None
+
+    for candidate in _provider_slug_candidates(provider_id):
+        canonical_candidate = canonicalize_service_slug(candidate)
+        for row in rows:
+            if row.get("service_slug") == canonical_candidate:
+                return row
+    return None
+
+
+def _merge_provider_detail(
+    *,
+    provider_id: str,
+    service_row: dict[str, Any] | None,
+    score_row: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    slug = None
+    if service_row and service_row.get("slug"):
+        slug = str(service_row["slug"])
+    else:
+        for candidate in _provider_slug_candidates(provider_id):
+            canonical_candidate = canonicalize_service_slug(candidate)
+            if _runtime_provider_slug(canonical_candidate) in SERVICE_REGISTRY:
+                slug = canonical_candidate
+                break
+
+    if not slug:
+        return None
+
+    runtime_slug = _runtime_provider_slug(slug)
+    runtime_meta = SERVICE_REGISTRY.get(runtime_slug, {})
+
+    return {
+        "slug": slug,
+        "runtime_slug": runtime_slug,
+        "name": (service_row or {}).get("name") or slug,
+        "description": (service_row or {}).get("description"),
+        "category": (service_row or {}).get("category"),
+        "official_docs": (service_row or {}).get("official_docs"),
+        "api_domain": runtime_meta.get("domain"),
+        "aggregate_recommendation_score": (score_row or {}).get("aggregate_recommendation_score"),
+        "tier": (score_row or {}).get("tier"),
+        "tier_label": (score_row or {}).get("tier_label"),
+        "callable": runtime_slug in SERVICE_REGISTRY,
+    }
+
+
 async def _resolve_provider_detail(provider_id: str) -> dict | None:
     """Fetch the service detail for a provider slug."""
+    service_row: dict[str, Any] | None = None
     for candidate in _provider_slug_candidates(provider_id):
         rows = await supabase_fetch(
             f"services?slug=eq.{quote(candidate)}"
-            f"&select=slug,name,description,category,api_domain,"
-            f"aggregate_recommendation_score,tier_label"
+            f"&select=slug,name,description,category,official_docs"
             f"&limit=1"
         )
         if rows:
-            return rows[0]
-    return None
+            service_row = rows[0]
+            break
+
+    score_row = await _resolve_provider_score(provider_id)
+    return _merge_provider_detail(
+        provider_id=provider_id,
+        service_row=service_row,
+        score_row=score_row,
+    )
 
 
 async def _resolve_agent_for_budget(raw_request: Request):
@@ -306,54 +383,108 @@ async def list_providers(
 ) -> dict[str, Any]:
     """List available providers with optional filters.
 
-    Providers with at least one capability_services mapping and an active
-    credential are considered 'callable'.
+    Layer 1 should expose the runtime-callable provider surface, not the
+    full scored catalog. Provider metadata lives in ``services`` while AN
+    score/tier lives in ``scores``.
     """
-    # Build the base query
-    query = "services?select=slug,name,description,category,api_domain,aggregate_recommendation_score,tier_label"
+    provider_slugs = {
+        canonicalize_service_slug(slug)
+        for slug in SERVICE_REGISTRY
+    }
 
-    filters: list[str] = []
-    if category:
-        filters.append(f"category=eq.{quote(category)}")
+    mapping_rows = await supabase_fetch("capability_services?select=service_slug") or []
+    provider_slugs.update(
+        canonicalize_service_slug(str(row["service_slug"]))
+        for row in mapping_rows
+        if row.get("service_slug")
+    )
 
-    query += f"&order=aggregate_recommendation_score.desc.nullslast"
-    query += f"&limit={limit}&offset={offset}"
-    for f in filters:
-        query += f"&{f}"
-
-    services = await supabase_fetch(query) or []
-
-    # If capability filter, narrow to providers that have that mapping
     if capability:
-        mappings = await supabase_fetch(
-            f"capability_services?capability_id=eq.{quote(capability)}"
-            f"&select=service_slug"
-        )
-        if mappings:
-            valid_slugs = {m["service_slug"] for m in mappings}
-            services = [s for s in services if s.get("slug") in valid_slugs]
-        else:
-            services = []
+        capability_rows = await supabase_fetch(
+            f"capability_services?capability_id=eq.{quote(capability)}&select=service_slug"
+        ) or []
+        capability_slugs = {
+            canonicalize_service_slug(str(row["service_slug"]))
+            for row in capability_rows
+            if row.get("service_slug")
+        }
+        provider_slugs &= capability_slugs
+
+    if not provider_slugs:
+        return {
+            "error": None,
+            "data": {
+                "providers": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "_rhumb_v2": {
+                    "api_version": "v2-alpha",
+                    "layer": _LAYER,
+                },
+            },
+        }
+
+    slug_filter = _build_in_filter(provider_slugs)
+    service_rows = await supabase_fetch(
+        f"services?slug=in.({slug_filter})&select=slug,name,description,category,official_docs"
+    ) or []
+    services_by_slug = {
+        str(row["slug"]): row
+        for row in service_rows
+        if row.get("slug")
+    }
+
+    score_rows = await supabase_fetch(
+        f"scores?service_slug=in.({slug_filter})"
+        f"&select=service_slug,aggregate_recommendation_score,tier,tier_label,calculated_at"
+        f"&order=calculated_at.desc"
+    ) or []
+    scores_by_slug: dict[str, dict[str, Any]] = {}
+    for row in score_rows:
+        slug = row.get("service_slug")
+        if slug and slug not in scores_by_slug:
+            scores_by_slug[str(slug)] = row
 
     providers = []
-    for svc in services:
-        slug = svc.get("slug", "")
-        is_callable = slug in SERVICE_REGISTRY or bool(svc.get("api_domain"))
+    for slug in provider_slugs:
+        detail = _merge_provider_detail(
+            provider_id=slug,
+            service_row=services_by_slug.get(slug),
+            score_row=scores_by_slug.get(slug),
+        )
+        if detail is None:
+            continue
+        if category and detail.get("category") != category:
+            continue
+        if status_filter == "callable" and not detail.get("callable"):
+            continue
+        if status_filter == "scored" and detail.get("aggregate_recommendation_score") is None:
+            continue
         providers.append({
-            "id": slug,
-            "name": svc.get("name", slug),
-            "description": svc.get("description"),
-            "category": svc.get("category"),
-            "an_score": svc.get("aggregate_recommendation_score"),
-            "tier": svc.get("tier_label"),
-            "callable": is_callable,
+            "id": detail.get("slug", slug),
+            "name": detail.get("name", slug),
+            "description": detail.get("description"),
+            "category": detail.get("category"),
+            "an_score": detail.get("aggregate_recommendation_score"),
+            "tier": detail.get("tier_label"),
+            "callable": bool(detail.get("callable")),
         })
+
+    providers.sort(
+        key=lambda provider: (
+            -(provider.get("an_score") if provider.get("an_score") is not None else -1.0),
+            provider.get("name") or provider.get("id") or "",
+        )
+    )
+    total = len(providers)
+    page = providers[offset : offset + limit]
 
     return {
         "error": None,
         "data": {
-            "providers": providers,
-            "total": len(providers),
+            "providers": page,
+            "total": total,
             "limit": limit,
             "offset": offset,
             "_rhumb_v2": {
@@ -388,7 +519,7 @@ async def get_provider(provider_id: str) -> dict[str, Any]:
     ]
 
     slug = detail.get("slug", provider_id)
-    is_callable = slug in SERVICE_REGISTRY or bool(detail.get("api_domain"))
+    is_callable = bool(detail.get("callable"))
 
     return {
         "error": None,
@@ -438,7 +569,8 @@ async def execute_on_provider(
             detail="Check the provider slug at GET /v2/providers.",
         )
 
-    provider_slug = detail.get("slug", provider_id)
+    provider_public_slug = detail.get("slug", canonicalize_service_slug(provider_id))
+    provider_runtime_slug = detail.get("runtime_slug") or _runtime_provider_slug(provider_public_slug)
 
     # ── Validate the provider supports the requested capability ──────
     mappings = await _resolve_provider_services(provider_id)
@@ -460,7 +592,7 @@ async def execute_on_provider(
         path=f"/v1/capabilities/{payload.capability}/execute/estimate",
         params={
             "credential_mode": payload.credential_mode,
-            "provider": provider_slug,
+            "provider": provider_runtime_slug,
         },
     )
     estimate_body = estimate_response.json()
@@ -507,7 +639,7 @@ async def execute_on_provider(
 
     # ── Execute via v1 compat layer ──────────────────────────────────
     v1_payload: dict[str, Any] = {
-        "provider": provider_slug,
+        "provider": provider_runtime_slug,
         "credential_mode": payload.credential_mode,
         "idempotency_key": payload.idempotency_key or x_rhumb_idempotency_key,
         "interface": f"{payload.interface}-v2-l1",
@@ -540,12 +672,12 @@ async def execute_on_provider(
             capability_id=payload.capability,
             status="success" if is_success else "failure",
             agent_id=execution_data.get("agent_id", agent.agent_id if agent else "unknown"),
-            provider_id=provider_slug,
+            provider_id=provider_public_slug,
             credential_mode=payload.credential_mode,
             layer=_LAYER,
             org_id=execution_data.get("org_id", agent.organization_id if agent else None),
             caller_ip_hash=hash_caller_ip(raw_request.client.host if raw_request.client else None),
-            provider_name=provider_slug,
+            provider_name=provider_public_slug,
             router_version=_COMPAT_VERSION,
             candidates_evaluated=1,
             winner_reason="agent_pinned_layer1",
@@ -567,7 +699,7 @@ async def execute_on_provider(
         receipt_id = receipt.receipt_id
         logger.info(
             "l1_receipt_created receipt_id=%s provider=%s capability=%s status=%s",
-            receipt_id, provider_slug, payload.capability, receipt_input.status,
+            receipt_id, provider_public_slug, payload.capability, receipt_input.status,
         )
     except Exception:
         logger.exception("l1_receipt_creation_failed execution_id=%s", execution_id)
@@ -575,7 +707,7 @@ async def execute_on_provider(
     # ── Provider attribution (WU-41.2) ────────────────────────────────
     provider_latency_ms = execution_data.get("provider_latency_ms")
     attribution = build_attribution_sync(
-        provider_slug=provider_slug,
+        provider_slug=provider_public_slug,
         provider_name=detail.get("name"),
         provider_category=detail.get("category"),
         provider_docs_url=detail.get("official_docs"),
@@ -597,12 +729,12 @@ async def execute_on_provider(
     try:
         l1_explanation = build_layer1_explanation(
             capability_id=payload.capability,
-            provider_id=provider_slug,
+            provider_id=provider_public_slug,
         )
         explanation_id = l1_explanation.explanation_id
         store_explanation(l1_explanation)
     except Exception:
-        logger.exception("l1_explanation_failed provider=%s", provider_slug)
+        logger.exception("l1_explanation_failed provider=%s", provider_public_slug)
 
     # ── Annotate response with Layer 1 metadata ──────────────────────
     if is_success and execution_data:
@@ -613,8 +745,8 @@ async def execute_on_provider(
             "receipt_id": receipt_id,
             "explanation_id": explanation_id,
             "provider": {
-                "id": provider_slug,
-                "display_name": detail.get("name", provider_slug),
+                "id": provider_public_slug,
+                "display_name": detail.get("name", provider_public_slug),
                 "capability_used": payload.capability,
                 "an_score": detail.get("aggregate_recommendation_score"),
             },
@@ -642,7 +774,7 @@ async def execute_on_provider(
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=payload.capability,
-                provider_slug=provider_slug,
+                provider_slug=provider_public_slug,
                 metadata={"layer": 1, "credential_mode": payload.credential_mode or "auto"},
             )
         elif _billing_org and not is_success:
@@ -652,7 +784,7 @@ async def execute_on_provider(
                 amount_usd_cents=0,
                 execution_id=execution_id,
                 capability_id=payload.capability,
-                provider_slug=provider_slug,
+                provider_slug=provider_public_slug,
                 metadata={"layer": 1, "error": str(body.get("error", ""))[:200]},
             )
     except Exception:

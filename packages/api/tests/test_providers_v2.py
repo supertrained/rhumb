@@ -74,12 +74,31 @@ def _mock_supabase_fetch(query: str):
         # Match on service_slug (get provider capabilities)
         if f"service_slug=eq.{_TEST_PROVIDER_SLUG}" in query:
             return [_MOCK_CAPABILITY_MAPPING]
+        # General all-slugs query (used by list_providers to build initial set)
+        if "select=service_slug" in query and "capability_id" not in query and "service_slug=eq." not in query:
+            return [{"service_slug": _TEST_PROVIDER_SLUG}, {"service_slug": "anthropic"}]
         return []
+    if query.startswith("scores?"):
+        # scores lookup by slug set
+        results = []
+        for svc in _MOCK_SERVICES_LIST:
+            if svc["slug"] in query:
+                results.append({
+                    "service_slug": svc["slug"],
+                    "aggregate_recommendation_score": svc.get("aggregate_recommendation_score"),
+                    "tier": svc.get("tier_label"),
+                    "tier_label": svc.get("tier_label"),
+                    "calculated_at": "2026-03-31T00:00:00Z",
+                })
+        return results
     if query.startswith("services?"):
         if f"slug=eq.{_TEST_PROVIDER_SLUG}" in query:
             return [_MOCK_SERVICE_DETAIL]
         if "slug=eq.nonexistent" in query:
             return []
+        # slug=in.(...) filter for list providers
+        if "slug=in." in query:
+            return [s for s in _MOCK_SERVICES_LIST if s["slug"] in query]
         # list query
         return _MOCK_SERVICES_LIST
     return []
