@@ -43,7 +43,7 @@ DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_API_KEY_ENV = "RHUMB_DOGFOOD_API_KEY"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_CAPABILITY = "search.query"
-DEFAULT_PROVIDER = "brave-search-api"
+DEFAULT_PROVIDER = "brave-search"
 DEFAULT_CREDENTIAL_MODE = "rhumb_managed"
 DEFAULT_PARAMETERS = {
     "query": "best AI agent observability tools",
