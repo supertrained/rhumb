@@ -58,6 +58,13 @@ from services.usdc_verifier import verify_usdc_payment
 from services.proxy_auth import AuthInjector, AuthInjectionRequest, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.routing_engine import RoutingEngine
+from services.receipt_service import (
+    ReceiptInput,
+    get_receipt_service,
+    hash_caller_ip,
+    hash_request_payload,
+    hash_response_payload,
+)
 from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 _budget_enforcer = BudgetEnforcer()
@@ -1963,6 +1970,41 @@ async def execute_capability(
                 agent_id=agent_id,
                 org_id=org_id,
             )
+
+        # ── Emit execution receipt (managed) ──
+        try:
+            managed_receipt = await get_receipt_service().create_receipt(ReceiptInput(
+                execution_id=execution_id,
+                capability_id=capability_id,
+                status="success" if result.get("upstream_status", 200) < 400 else "failure",
+                agent_id=agent_id,
+                provider_id=result.get("provider_used") or request.provider or "unknown",
+                credential_mode="rhumb_managed",
+                org_id=org_id,
+                caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
+                total_latency_ms=result.get("total_latency_ms") or result.get("latency_ms"),
+                provider_latency_ms=result.get("upstream_latency_ms"),
+                rhumb_overhead_ms=(
+                    (result.get("total_latency_ms") or 0) - (result.get("upstream_latency_ms") or 0)
+                    if result.get("total_latency_ms") and result.get("upstream_latency_ms")
+                    else None
+                ),
+                provider_cost_usd=cost_estimate if upstream_cost_cents > 0 else None,
+                rhumb_fee_usd=round(margin_cents / 100, 6) if margin_cents > 0 else None,
+                total_cost_usd=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
+                credits_deducted=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
+                request_hash=hash_request_payload(request.body),
+                response_hash=hash_response_payload(result.get("upstream_response")),
+                x402_tx_hash=x402_receipt.get("tx_hash") if x402_receipt else None,
+                x402_network=x402_receipt.get("network") if x402_receipt else None,
+                x402_payer=x402_receipt.get("from_address") if x402_receipt else None,
+                interface=request.interface,
+                idempotency_key=request.idempotency_key,
+            ))
+            result["receipt_id"] = managed_receipt.receipt_id
+        except Exception as receipt_err:
+            logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
+
         return {"data": result, "error": None}
 
     # ── Mode 3: Agent Vault (per-request token) ────────────────────
@@ -2095,6 +2137,39 @@ async def execute_capability(
                     agent_id=agent_id,
                     org_id=org_id,
                 )
+
+            # ── Emit execution receipt (agent_vault) ──
+            try:
+                vault_receipt_obj = await get_receipt_service().create_receipt(ReceiptInput(
+                    execution_id=execution_id,
+                    capability_id=capability_id,
+                    status="success" if success else "failure",
+                    agent_id=agent_id,
+                    provider_id=request.provider or "unknown",
+                    credential_mode="agent_vault",
+                    org_id=org_id,
+                    caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
+                    total_latency_ms=round(total_latency_ms, 1),
+                    provider_latency_ms=round(upstream_latency_ms, 1),
+                    rhumb_overhead_ms=round(total_latency_ms - upstream_latency_ms, 1),
+                    provider_cost_usd=cost_estimate if upstream_cost_cents and upstream_cost_cents > 0 else None,
+                    rhumb_fee_usd=round(margin_cents / 100, 6) if margin_cents and margin_cents > 0 else None,
+                    total_cost_usd=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
+                    credits_deducted=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
+                    request_hash=hash_request_payload(request.body),
+                    response_hash=hash_response_payload(upstream_response),
+                    x402_tx_hash=x402_receipt.get("tx_hash") if x402_receipt else None,
+                    x402_network=x402_receipt.get("network") if x402_receipt else None,
+                    x402_payer=x402_receipt.get("from_address") if x402_receipt else None,
+                    interface=request.interface,
+                    idempotency_key=request.idempotency_key,
+                    error_code=str(upstream_status) if not success else None,
+                    error_message=error_message if not success else None,
+                ))
+                vault_response["receipt_id"] = vault_receipt_obj.receipt_id
+            except Exception as receipt_err:
+                logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
+
             return {"data": vault_response, "error": None}
 
         except httpx.HTTPError as e:
@@ -2304,6 +2379,38 @@ async def execute_capability(
             response_headers["X-Payment-Response"] = standard_x402_payment_response_header
         else:
             response_headers["X-Payment-Response"] = json.dumps(payment_response)
+
+    # ── Emit execution receipt (BYO) ──
+    try:
+        byo_receipt_obj = await get_receipt_service().create_receipt(ReceiptInput(
+            execution_id=execution_id,
+            capability_id=capability_id,
+            status="success" if success else "failure",
+            agent_id=agent_id,
+            provider_id=provider_slug,
+            credential_mode=request.credential_mode,
+            org_id=org_id,
+            caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
+            total_latency_ms=round(total_latency_ms, 1),
+            provider_latency_ms=round(upstream_latency_ms, 1),
+            rhumb_overhead_ms=round(total_latency_ms - upstream_latency_ms, 1),
+            provider_cost_usd=cost_per_call,
+            rhumb_fee_usd=round(actual_margin_cents / 100, 6) if actual_margin_cents and actual_margin_cents > 0 else None,
+            total_cost_usd=round(actual_billed_cents / 100, 6) if actual_billed_cents and actual_billed_cents > 0 else None,
+            credits_deducted=round(actual_billed_cents / 100, 6) if actual_billed_cents and actual_billed_cents > 0 else None,
+            request_hash=hash_request_payload(request.body),
+            response_hash=hash_response_payload(upstream_response),
+            x402_tx_hash=x402_receipt.get("tx_hash") if x402_receipt else None,
+            x402_network=x402_receipt.get("network") if x402_receipt else None,
+            x402_payer=x402_receipt.get("from_address") if x402_receipt else None,
+            interface=request.interface,
+            idempotency_key=request.idempotency_key,
+            error_code=str(upstream_status) if not success else None,
+            error_message=error_message,
+        ))
+        response_data["receipt_id"] = byo_receipt_obj.receipt_id
+    except Exception as receipt_err:
+        logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
 
     if response_headers:
         response = JSONResponse(
