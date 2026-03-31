@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -44,6 +45,7 @@ from services.receipt_service import (
 )
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
+from services.route_explanation import get_explanation_engine
 
 router = APIRouter()
 
@@ -399,22 +401,48 @@ async def _enforce_agent_budget(
     )
 
 
+@dataclass
+class PolicyEvaluationResult:
+    """Result of evaluating provider policy, with mapping context for explanation."""
+
+    decision: PolicyProviderDecision | None
+    all_mappings: list[dict[str, Any]]
+    eligible_mappings: list[dict[str, Any]]
+
+
 async def _evaluate_provider_policy(
     capability_id: str,
     raw_request: Request,
     policy: V2CapabilityPolicy | None,
-) -> PolicyProviderDecision | None:
+) -> PolicyEvaluationResult:
+    all_mappings = await v1_execute._get_capability_services(capability_id)
+
     policy_engine = get_policy_engine()
     if not policy_engine.has_provider_controls(policy):
-        return None
+        return PolicyEvaluationResult(
+            decision=None,
+            all_mappings=all_mappings,
+            eligible_mappings=all_mappings,
+        )
 
-    mappings = await v1_execute._get_capability_services(capability_id)
     agent_id = await _resolve_policy_agent_id(raw_request)
-    return await policy_engine.resolve_provider(
-        mappings=mappings,
+    decision = await policy_engine.resolve_provider(
+        mappings=all_mappings,
         agent_id=agent_id,
         policy=policy,
         auto_selector=v1_execute._auto_select_provider,
+    )
+    # Eligible = the candidates that survived policy filtering
+    eligible_slugs = set(decision.candidate_providers) if decision else set()
+    eligible_mappings = [
+        m for m in all_mappings
+        if m.get("service_slug") in eligible_slugs
+    ] if eligible_slugs else all_mappings
+
+    return PolicyEvaluationResult(
+        decision=decision,
+        all_mappings=all_mappings,
+        eligible_mappings=eligible_mappings,
     )
 
 
@@ -563,7 +591,8 @@ async def execute_capability_v2(
         account_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
 
     effective_policy, policy_source = _merge_effective_policy(account_policy, payload.policy)
-    provider_decision = await _evaluate_provider_policy(capability_id, raw_request, effective_policy)
+    policy_eval = await _evaluate_provider_policy(capability_id, raw_request, effective_policy)
+    provider_decision = policy_eval.decision
     preferred_provider = (
         provider_decision.selected_provider
         if provider_decision and provider_decision.selected_provider
@@ -697,6 +726,46 @@ async def execute_capability_v2(
         # Log and continue — the execution result is still valid.
         logger.exception("v2_receipt_creation_failed execution_id=%s", execution_id)
 
+    # ── Route explanation (WU-41.3) ─────────────────────────────────
+    explanation_id: str | None = None
+    try:
+        explanation_engine = get_explanation_engine()
+        policy_summary_for_explanation = (
+            provider_decision.policy_summary
+            if provider_decision is not None
+            else (_policy_summary(effective_policy) or {})
+        )
+
+        # Fetch provider details for candidates (for scoring context)
+        _provider_details: dict[str, dict[str, Any]] = {}
+        for m in policy_eval.all_mappings:
+            slug = m.get("service_slug", "")
+            if slug:
+                from services.provider_attribution import _fetch_provider_detail
+                detail = await _fetch_provider_detail(slug)
+                if detail:
+                    _provider_details[slug] = detail
+
+        explanation = explanation_engine.build_explanation(
+            receipt_id=receipt_id,
+            capability_id=capability_id,
+            winner_provider_id=selected_provider,
+            winner_reason=(
+                provider_decision.selected_reason if provider_decision else None
+            ),
+            all_mappings=policy_eval.all_mappings,
+            eligible_mappings=policy_eval.eligible_mappings,
+            policy_summary=policy_summary_for_explanation,
+            credential_mode=payload.credential_mode,
+            provider_details=_provider_details,
+        )
+        explanation_id = explanation.explanation_id
+
+        # Persist asynchronously (never blocks response delivery)
+        await explanation_engine.persist_explanation(explanation)
+    except Exception:
+        logger.exception("v2_route_explanation_failed execution_id=%s", execution_id)
+
     # ── Provider attribution (WU-41.2) ─────────────────────────────
     attribution_headers: dict[str, str] = {}
     try:
@@ -724,6 +793,7 @@ async def execute_capability_v2(
             "compat_mode": _COMPAT_MODE,
             "layer": 2,
             "receipt_id": receipt_id or _compat_receipt_id(execution_id),
+            "explanation_id": explanation_id,
             "selected_provider": selected_provider,
             "policy_applied": _effective_policy_active(effective_policy),
             "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,

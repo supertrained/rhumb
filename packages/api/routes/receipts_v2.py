@@ -1,8 +1,9 @@
 """Resolve v2 Receipt endpoints.
 
-GET /v2/receipts/{receipt_id}       — Get a single execution receipt
-GET /v2/receipts                    — Query receipts with filters
-GET /v2/receipts/chain/verify       — Verify chain integrity
+GET /v2/receipts/{receipt_id}                — Get a single execution receipt
+GET /v2/receipts/{receipt_id}/explanation     — Get routing explanation for receipt
+GET /v2/receipts                             — Query receipts with filters
+GET /v2/receipts/chain/verify                — Verify chain integrity
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from services.error_envelope import RhumbError
 from services.receipt_service import get_receipt_service
+from services.route_explanation import get_explanation_engine
 
 router = APIRouter()
 
@@ -29,6 +31,66 @@ async def get_receipt(receipt_id: str) -> dict[str, Any]:
             detail="Check the receipt_id from an execution response, or query receipts at GET /v2/receipts",
         )
     return {"data": receipt, "error": None}
+
+
+@router.get("/receipts/{receipt_id}/explanation")
+async def get_receipt_explanation(receipt_id: str) -> dict[str, Any]:
+    """Get the routing explanation for a Layer 2 execution receipt.
+
+    Layer 1 receipts do not have explanations — the agent chose the provider.
+    """
+    # Verify the receipt exists first
+    service = get_receipt_service()
+    receipt = await service.get_receipt(receipt_id)
+    if receipt is None:
+        raise RhumbError(
+            "CAPABILITY_NOT_FOUND",
+            message=f"No receipt found with id '{receipt_id}'",
+            detail="Check the receipt_id from an execution response.",
+        )
+
+    # Check if this is a Layer 1 receipt (no explanation for L1)
+    if receipt.get("layer") == 1:
+        return {
+            "data": {
+                "receipt_id": receipt_id,
+                "layer": 1,
+                "explanation": None,
+                "message": "Layer 1 executions do not produce routing explanations. The agent explicitly chose the provider.",
+            },
+            "error": None,
+        }
+
+    engine = get_explanation_engine()
+    explanation = await engine.get_explanation_by_receipt(receipt_id)
+    if explanation is None:
+        return {
+            "data": {
+                "receipt_id": receipt_id,
+                "layer": receipt.get("layer", 2),
+                "explanation": None,
+                "message": "No routing explanation is available for this receipt. The execution may predate the explanation engine.",
+            },
+            "error": None,
+        }
+
+    # Reshape the stored row into the spec-defined response shape
+    response_data = {
+        "explanation_id": explanation.get("explanation_id"),
+        "receipt_id": receipt_id,
+        "capability_id": explanation.get("capability_id"),
+        "created_at": explanation.get("created_at"),
+        "winner": {
+            "provider_id": explanation.get("winner_provider_id"),
+            "composite_score": explanation.get("winner_composite_score"),
+            "selection_reason": explanation.get("winner_reason"),
+        } if explanation.get("winner_provider_id") else None,
+        "candidates": explanation.get("candidates", []),
+        "human_summary": explanation.get("human_summary"),
+        "evaluation_ms": explanation.get("evaluation_ms"),
+    }
+
+    return {"data": response_data, "error": None}
 
 
 @router.get("/receipts")
