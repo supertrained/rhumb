@@ -1,0 +1,299 @@
+"""Billing event stream — structured event log for all payment activity (WU-41.5).
+
+All billing-relevant operations (executions, credit purchases, top-ups,
+refunds, budget alerts) are recorded as typed events with full context.
+
+This feeds:
+- Trust dashboard API (WU-41.6)
+- Ledger reconciliation
+- Usage analytics
+- Anomaly detection (future)
+
+Event types follow a consistent schema so consumers can filter, aggregate,
+and build dashboards without parsing heterogeneous ledger entries.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any
+from uuid import uuid4
+
+logger = logging.getLogger(__name__)
+
+
+class BillingEventType(str, Enum):
+    """Canonical billing event types."""
+
+    # Execution billing
+    EXECUTION_CHARGED = "execution.charged"
+    EXECUTION_REFUNDED = "execution.refunded"
+    EXECUTION_FAILED_NO_CHARGE = "execution.failed_no_charge"
+
+    # Credit operations
+    CREDIT_PURCHASED = "credit.purchased"
+    CREDIT_EXPIRED = "credit.expired"
+    CREDIT_ADJUSTED = "credit.adjusted"
+
+    # x402 / wallet operations
+    X402_PAYMENT_RECEIVED = "x402.payment_received"
+    X402_SETTLEMENT_COMPLETED = "x402.settlement_completed"
+    X402_SETTLEMENT_FAILED = "x402.settlement_failed"
+    WALLET_TOPUP_COMPLETED = "wallet.topup_completed"
+    WALLET_TOPUP_FAILED = "wallet.topup_failed"
+
+    # Budget events
+    BUDGET_THRESHOLD_WARNING = "budget.threshold_warning"
+    BUDGET_LIMIT_REACHED = "budget.limit_reached"
+    BUDGET_RESET = "budget.reset"
+
+    # Administrative
+    AUTO_RELOAD_TRIGGERED = "auto_reload.triggered"
+    AUTO_RELOAD_FAILED = "auto_reload.failed"
+
+
+@dataclass(frozen=True, slots=True)
+class BillingEvent:
+    """Immutable billing event record."""
+
+    event_id: str
+    event_type: BillingEventType
+    org_id: str
+    timestamp: datetime
+    amount_usd_cents: int  # positive = charge, negative = credit
+    balance_after_usd_cents: int | None
+    metadata: dict[str, Any]
+    # Linkage
+    receipt_id: str | None = None
+    execution_id: str | None = None
+    capability_id: str | None = None
+    provider_slug: str | None = None
+    # Chain integrity
+    chain_hash: str = ""
+    prev_hash: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class BillingEventSummary:
+    """Aggregated billing summary for a time period."""
+
+    org_id: str
+    period: str  # e.g. "2026-03" or "2026-03-31"
+    total_charged_usd_cents: int
+    total_credited_usd_cents: int
+    execution_count: int
+    x402_payment_count: int
+    credit_purchase_count: int
+    by_provider: dict[str, int]  # provider_slug → charged cents
+    by_capability: dict[str, int]  # capability_id → charged cents
+    events_count: int
+
+
+class BillingEventStream:
+    """Append-only billing event stream with chain hashing.
+
+    All billing operations should emit events through this service.
+    Events are immutable and chain-linked for auditability.
+    """
+
+    GENESIS_HASH = "0" * 64
+
+    def __init__(self) -> None:
+        self._events: list[BillingEvent] = []
+        self._lock = threading.Lock()
+        self._prev_hash: str = self.GENESIS_HASH
+        self._org_index: dict[str, list[int]] = {}  # org_id → event indices
+
+    @staticmethod
+    def _compute_hash(
+        prev_hash: str,
+        event_id: str,
+        event_type: str,
+        org_id: str,
+        amount: int,
+        timestamp: str,
+    ) -> str:
+        payload = f"{prev_hash}|{event_id}|{event_type}|{org_id}|{amount}|{timestamp}"
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def emit(
+        self,
+        event_type: BillingEventType,
+        org_id: str,
+        amount_usd_cents: int,
+        balance_after_usd_cents: int | None = None,
+        metadata: dict[str, Any] | None = None,
+        receipt_id: str | None = None,
+        execution_id: str | None = None,
+        capability_id: str | None = None,
+        provider_slug: str | None = None,
+    ) -> BillingEvent:
+        """Record a billing event. Returns the event for confirmation."""
+        with self._lock:
+            event_id = f"bevt_{uuid4().hex[:16]}"
+            now = datetime.now(timezone.utc)
+            chain_hash = self._compute_hash(
+                self._prev_hash,
+                event_id,
+                event_type.value,
+                org_id,
+                amount_usd_cents,
+                now.isoformat(),
+            )
+
+            event = BillingEvent(
+                event_id=event_id,
+                event_type=event_type,
+                org_id=org_id,
+                timestamp=now,
+                amount_usd_cents=amount_usd_cents,
+                balance_after_usd_cents=balance_after_usd_cents,
+                metadata=metadata or {},
+                receipt_id=receipt_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=provider_slug,
+                chain_hash=chain_hash,
+                prev_hash=self._prev_hash,
+            )
+
+            idx = len(self._events)
+            self._events.append(event)
+            self._prev_hash = chain_hash
+
+            if org_id not in self._org_index:
+                self._org_index[org_id] = []
+            self._org_index[org_id].append(idx)
+
+            return event
+
+    def query(
+        self,
+        org_id: str | None = None,
+        event_type: BillingEventType | None = None,
+        limit: int = 50,
+        since: datetime | None = None,
+    ) -> list[BillingEvent]:
+        """Query events with optional filters. Returns newest first."""
+        with self._lock:
+            if org_id and org_id in self._org_index:
+                indices = self._org_index[org_id]
+                candidates = [self._events[i] for i in indices]
+            else:
+                candidates = list(self._events)
+
+        # Apply filters
+        if event_type:
+            candidates = [e for e in candidates if e.event_type == event_type]
+        if since:
+            candidates = [e for e in candidates if e.timestamp >= since]
+
+        # Newest first, limited
+        candidates.sort(key=lambda e: e.timestamp, reverse=True)
+        return candidates[:limit]
+
+    def summarize(
+        self,
+        org_id: str,
+        period: str | None = None,
+    ) -> BillingEventSummary:
+        """Build an aggregate summary for an org, optionally filtered to a period.
+
+        ``period`` can be "2026-03" (month) or "2026-03-31" (day).
+        """
+        events = self.query(org_id=org_id, limit=100_000)
+
+        if period:
+            events = [e for e in events if e.timestamp.strftime("%Y-%m").startswith(period[:7])
+                       and (len(period) <= 7 or e.timestamp.strftime("%Y-%m-%d") == period)]
+
+        total_charged = 0
+        total_credited = 0
+        execution_count = 0
+        x402_count = 0
+        credit_purchase_count = 0
+        by_provider: dict[str, int] = {}
+        by_capability: dict[str, int] = {}
+
+        for event in events:
+            if event.amount_usd_cents > 0:
+                total_charged += event.amount_usd_cents
+            else:
+                total_credited += abs(event.amount_usd_cents)
+
+            if event.event_type == BillingEventType.EXECUTION_CHARGED:
+                execution_count += 1
+                if event.provider_slug:
+                    by_provider[event.provider_slug] = (
+                        by_provider.get(event.provider_slug, 0) + event.amount_usd_cents
+                    )
+                if event.capability_id:
+                    by_capability[event.capability_id] = (
+                        by_capability.get(event.capability_id, 0) + event.amount_usd_cents
+                    )
+            elif event.event_type in (
+                BillingEventType.X402_PAYMENT_RECEIVED,
+                BillingEventType.X402_SETTLEMENT_COMPLETED,
+            ):
+                x402_count += 1
+            elif event.event_type == BillingEventType.CREDIT_PURCHASED:
+                credit_purchase_count += 1
+
+        return BillingEventSummary(
+            org_id=org_id,
+            period=period or "all",
+            total_charged_usd_cents=total_charged,
+            total_credited_usd_cents=total_credited,
+            execution_count=execution_count,
+            x402_payment_count=x402_count,
+            credit_purchase_count=credit_purchase_count,
+            by_provider=by_provider,
+            by_capability=by_capability,
+            events_count=len(events),
+        )
+
+    def verify_chain(self) -> bool:
+        """Verify integrity of the entire event chain."""
+        with self._lock:
+            prev_hash = self.GENESIS_HASH
+            for event in self._events:
+                expected = self._compute_hash(
+                    prev_hash,
+                    event.event_id,
+                    event.event_type.value,
+                    event.org_id,
+                    event.amount_usd_cents,
+                    event.timestamp.isoformat(),
+                )
+                if event.chain_hash != expected or event.prev_hash != prev_hash:
+                    return False
+                prev_hash = event.chain_hash
+            return True
+
+    @property
+    def length(self) -> int:
+        with self._lock:
+            return len(self._events)
+
+    @property
+    def latest_hash(self) -> str:
+        with self._lock:
+            return self._prev_hash
+
+
+# ── Module-level singleton ────────────────────────────────────────
+
+_billing_stream: BillingEventStream | None = None
+
+
+def get_billing_event_stream() -> BillingEventStream:
+    """Return the module-level billing event stream singleton."""
+    global _billing_stream
+    if _billing_stream is None:
+        _billing_stream = BillingEventStream()
+    return _billing_stream

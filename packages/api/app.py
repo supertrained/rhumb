@@ -26,6 +26,7 @@ from routes import (
     auth,
     auth_wallet,
     billing,
+    billing_v2,
     budget,
     capabilities,
     capability_execute,
@@ -218,6 +219,7 @@ def create_app() -> FastAPI:
     )
     application.include_router(admin_budgets.router, tags=["admin-budgets"])
     application.include_router(billing.router, prefix="/v1", tags=["billing"])
+    application.include_router(billing_v2.router, tags=["billing-v2"])
     application.include_router(status.router, prefix="/v1", tags=["status"])
     application.include_router(auth.router, prefix="/v1", tags=["auth"])
     application.include_router(auth_wallet.router, prefix="/v1", tags=["wallet-auth"])
