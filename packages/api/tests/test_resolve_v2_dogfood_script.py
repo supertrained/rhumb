@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "resolve_v2_dogfood.py"
 
@@ -73,6 +74,19 @@ def test_extract_receipt_id_prefers_top_level_receipt_id():
     }
 
     assert resolve_v2_dogfood.extract_receipt_id(data) == "rcpt_top"
+
+
+def test_get_api_key_uses_env_first():
+    with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True):
+        assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_env_key"
+
+
+def test_get_api_key_falls_back_to_sop_when_env_missing():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
+        patch.object(resolve_v2_dogfood, "_load_api_key_from_sop", return_value="rhumb_sop_key"),
+    ):
+        assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
 
 
 def test_build_summary_mentions_l1_and_l2_receipts():

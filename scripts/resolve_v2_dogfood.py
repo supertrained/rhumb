@@ -24,6 +24,11 @@ Examples:
   python3 scripts/resolve_v2_dogfood.py --json
   python3 scripts/resolve_v2_dogfood.py --policy-provider-preference brave-search-api
   python3 scripts/resolve_v2_dogfood.py --skip-layer1 --json-out /tmp/resolve-v2-dogfood.json
+
+Fallback secret path:
+- If `RHUMB_DOGFOOD_API_KEY` is absent, the script will try to load
+  `Rhumb API Key - pedro-dogfood` from the `OpenClaw Agents` 1Password vault
+  via `sop`.
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 import uuid
@@ -41,6 +47,8 @@ from urllib.request import Request, urlopen
 
 DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_API_KEY_ENV = "RHUMB_DOGFOOD_API_KEY"
+DEFAULT_API_KEY_ITEM = "Rhumb API Key - pedro-dogfood"
+DEFAULT_API_KEY_VAULT = "OpenClaw Agents"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_CAPABILITY = "search.query"
 DEFAULT_PROVIDER = "brave-search"
@@ -67,11 +75,56 @@ def _mask_secret(value: str | None, *, head: int = 12, tail: int = 4) -> str | N
     return f"{value[:head]}…{value[-tail:]}"
 
 
+def _load_api_key_from_sop(
+    item_name: str = DEFAULT_API_KEY_ITEM,
+    vault: str = DEFAULT_API_KEY_VAULT,
+) -> str | None:
+    """Fallback to the dedicated Pedro dogfood credential in 1Password.
+
+    This keeps scheduled/heartbeat dogfood runs honest even when the runtime
+    shell did not inherit `RHUMB_DOGFOOD_API_KEY`.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "sop",
+                "item",
+                "get",
+                item_name,
+                "--vault",
+                vault,
+                "--fields",
+                "credential",
+                "--reveal",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    value = result.stdout.strip()
+    return value or None
+
+
 def _get_api_key(env_name: str) -> str:
     value = os.environ.get(env_name, "").strip()
-    if not value:
-        raise RuntimeError(f"Missing API key. Set the {env_name} environment variable.")
-    return value
+    if value:
+        return value
+
+    value = _load_api_key_from_sop()
+    if value:
+        return value
+
+    raise RuntimeError(
+        f"Missing API key. Set the {env_name} environment variable or store "
+        f"{DEFAULT_API_KEY_ITEM!r} in 1Password."
+    )
 
 
 def _json_or_default(raw: str, fallback: dict[str, Any]) -> dict[str, Any]:
