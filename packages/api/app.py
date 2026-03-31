@@ -42,6 +42,7 @@ from routes import (
     reviews,
     routing,
     scores,
+    scores_v2,
     search,
     services,
     status,
@@ -189,6 +190,7 @@ def create_app() -> FastAPI:
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])
+    application.include_router(scores_v2.router, tags=["scores-v2"])
     application.include_router(search.router, prefix="/v1", tags=["search"])
     application.include_router(leaderboard.router, prefix="/v1", tags=["leaderboard"])
     application.include_router(reviews.router, prefix="/v1", tags=["reviews"])
