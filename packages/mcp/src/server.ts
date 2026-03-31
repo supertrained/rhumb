@@ -160,11 +160,15 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
       params: z.record(z.string(), z.string()).optional().describe(ExecuteCapabilityInputSchema.properties.params.description),
       credential_mode: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.credential_mode.description),
       idempotency_key: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.idempotency_key.description),
-      agent_token: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.agent_token.description)
+      agent_token: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.agent_token.description),
+      // v2 policy parameters — automatically routes through Resolve v2 when set
+      provider_preference: z.array(z.string()).optional().describe("Ordered provider preference list. When set, Resolve v2 policy engine selects the first available match."),
+      provider_deny: z.array(z.string()).optional().describe("Provider deny list. Resolve v2 excludes these providers from routing."),
+      max_cost_usd: z.number().optional().describe("Per-call cost ceiling in USD. Resolve v2 rejects if estimated cost exceeds this.")
     },
-    async ({ capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token }) => {
+    async ({ capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token, provider_preference, provider_deny, max_cost_usd }) => {
       const result = await handleExecuteCapability(
-        { capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token },
+        { capability_id, provider, method, path, body, params, credential_mode, idempotency_key, agent_token, provider_preference, provider_deny, max_cost_usd },
         client
       );
       return {

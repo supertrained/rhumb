@@ -214,6 +214,10 @@ export interface RhumbApiClient {
     idempotencyKey?: string;
     agentToken?: string;
     xPayment?: string;
+    // v2 policy parameters — when any are set, routes through /v2/ for policy enforcement
+    providerPreference?: string[];
+    providerDeny?: string[];
+    maxCostUsd?: number;
   }): Promise<CapabilityExecuteResult>;
   estimateCapability(capabilityId: string, opts?: {
     provider?: string;
@@ -464,8 +468,16 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       idempotencyKey?: string;
       agentToken?: string;
       xPayment?: string;
+      providerPreference?: string[];
+      providerDeny?: string[];
+      maxCostUsd?: number;
     }): Promise<CapabilityExecuteResult> {
-      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute`;
+      // Route through v2 when policy parameters are present
+      const useV2 = !!(opts.providerPreference?.length || opts.providerDeny?.length || opts.maxCostUsd != null);
+      const v2Base = base.replace(/\/v1$/, "/v2");
+      const url = useV2
+        ? `${v2Base}/capabilities/${encodeURIComponent(capabilityId)}/execute`
+        : `${base}/capabilities/${encodeURIComponent(capabilityId)}/execute`;
       const apiKey = process.env.RHUMB_API_KEY;
 
       const reqHeaders: Record<string, string> = {
@@ -487,14 +499,30 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       const reqBody: Record<string, unknown> = {
         interface: "mcp"
       };
-      // method and path are optional for rhumb_managed mode
-      if (opts.method) reqBody.method = opts.method;
-      if (opts.path) reqBody.path = opts.path;
-      if (opts.provider) reqBody.provider = opts.provider;
-      if (opts.body) reqBody.body = opts.body;
-      if (opts.params) reqBody.params = opts.params;
-      if (opts.credentialMode) reqBody.credential_mode = opts.credentialMode;
-      if (opts.idempotencyKey) reqBody.idempotency_key = opts.idempotencyKey;
+
+      if (useV2) {
+        // v2 request envelope
+        if (opts.body) reqBody.parameters = opts.body;
+        else if (opts.params) reqBody.parameters = opts.params;
+        if (opts.credentialMode) reqBody.credential_mode = opts.credentialMode;
+        if (opts.idempotencyKey) reqBody.idempotency_key = opts.idempotencyKey;
+        // v2 policy block
+        const policy: Record<string, unknown> = {};
+        if (opts.provider) policy.pin = opts.provider;
+        if (opts.providerPreference?.length) policy.provider_preference = opts.providerPreference;
+        if (opts.providerDeny?.length) policy.provider_deny = opts.providerDeny;
+        if (opts.maxCostUsd != null) policy.max_cost_usd = opts.maxCostUsd;
+        if (Object.keys(policy).length > 0) reqBody.policy = policy;
+      } else {
+        // v1 request envelope
+        if (opts.method) reqBody.method = opts.method;
+        if (opts.path) reqBody.path = opts.path;
+        if (opts.provider) reqBody.provider = opts.provider;
+        if (opts.body) reqBody.body = opts.body;
+        if (opts.params) reqBody.params = opts.params;
+        if (opts.credentialMode) reqBody.credential_mode = opts.credentialMode;
+        if (opts.idempotencyKey) reqBody.idempotency_key = opts.idempotencyKey;
+      }
 
       const res = await fetch(url, {
         method: "POST",
