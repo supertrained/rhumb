@@ -87,7 +87,7 @@ Rhumb makes those constraints visible before you commit.
 
 ## MCP tools
 
-`rhumb-mcp` exposes **17 tools**:
+`rhumb-mcp` exposes **21 tools**:
 
 **Discovery**
 - `find_services` — search services

@@ -2,7 +2,7 @@
 
 **Agent-native tool intelligence for the Model Context Protocol.**
 
-Discover, compare, route, and execute across 600+ scored API services. Every tool rated for AI agent use with the AN Score.
+Three execution layers: raw provider access (Layer 1), intelligent routing (Layer 2), and deterministic composed recipes (Layer 3). Every provider rated with the AN Score. Every execution produces an immutable receipt.
 
 - Website: https://rhumb.dev
 - Docs: https://rhumb.dev/blog/getting-started-mcp
@@ -11,7 +11,7 @@ Discover, compare, route, and execute across 600+ scored API services. Every too
 
 ## Zero-config quickstart
 
-**No API key needed for discovery.** Install and start finding tools immediately:
+**No API key needed for discovery.** Install and start immediately:
 
 ```bash
 npx rhumb-mcp@latest
@@ -30,28 +30,51 @@ Or add to Claude Desktop / Cursor / any MCP client:
 }
 ```
 
-That's it. Ask your agent:
+Ask your agent:
 - *"Find me the best email API for agents"*
 - *"What's the AN Score for Stripe?"*
-- *"Compare Resend vs SendGrid vs Postmark"*
-- *"What are Twilio's known failure modes?"*
+- *"Execute a recipe that enriches a contact and sends a welcome email"*
 
-All of these work **without an account or API key**.
+## What's new in v2.0.0
 
-## What works without auth (6 tools)
+**Rhumb Resolve** — three execution layers:
+
+| Layer | What | How |
+|-------|------|-----|
+| **Layer 1** | Raw provider access | You pick the provider. Escape hatch + trust anchor. |
+| **Layer 2** | Capability routing | Rhumb picks the best provider. Cost-optimal with quality floor. |
+| **Layer 3** | Deterministic recipes | Compiled DAG workflows. Multi-step, budget-enforced, content-firewalled. |
+
+**New infrastructure:**
+- Execution receipts (chain-hashed, immutable)
+- Route explanations (why this provider was chosen)
+- AN Score structural separation (read-only cache, auditable)
+- Billing event stream (chain-hashed, 15+ event types)
+- Trust dashboard (provider health, costs, reliability)
+- Recipe safety controls (content firewall, idempotency, nesting depth, fan-out rate limiting)
+- Kill switches (per-agent, per-provider, per-recipe, global with two-person auth)
+- Audit trail (append-only, chain-hash verification, export API)
+
+### Migration from 0.x
+
+- All v1 endpoints remain **fully backward compatible** — no breaking changes
+- New v2 endpoints available alongside v1
+- `execute_capability` now returns `_rhumb_v2` metadata with attribution and receipts
+- New tools for recipes, receipts, and telemetry
+- Update: `npx rhumb-mcp@2` (or `npx rhumb-mcp@latest`)
+
+## Discovery tools (no auth, 6 tools)
 
 | Tool | What it does |
 |------|-------------|
-| `find_services` | Search 600+ services by what you need |
+| `find_services` | Search 1,000+ services by what you need |
 | `get_score` | Full AN Score breakdown for any service |
 | `get_alternatives` | Find alternatives ranked by score |
 | `get_failure_modes` | Known failure patterns + workarounds |
 | `discover_capabilities` | Browse capabilities by domain (`email.send`, `payment.charge`) |
 | `resolve_capability` | Get ranked providers with health, cost, and routing data |
 
-## What requires auth (10 tools)
-
-For execution, billing, and credential management, add your API key:
+## Execution tools (auth required, 8 tools)
 
 ```json
 {
@@ -67,24 +90,49 @@ For execution, billing, and credential management, add your API key:
 }
 ```
 
-Get a key at https://rhumb.dev/auth/login (GitHub or Google OAuth, 30 seconds).
+Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).
 
 | Tool | What it does |
 |------|-------------|
-| `execute_capability` | Call a capability through Rhumb Resolve |
+| `execute_capability` | Call a capability through Rhumb Resolve (Layer 2) |
 | `estimate_capability` | Get cost before executing (no charge) |
+| `recipe_execute` | Execute a compiled recipe (Layer 3) |
+| `list_recipes` | Browse available recipes |
+| `get_recipe` | Get recipe details and step definitions |
 | `check_credentials` | See what you can call right now |
 | `credential_ceremony` | Step-by-step guide to get provider credentials |
-| `budget` / `spend` | Set and track spending limits |
-| `check_balance` / `get_ledger` | View credits and transaction history |
-| `get_payment_url` | Get Stripe top-up link |
-| `routing` | Choose strategy: cheapest, fastest, highest quality |
+| `get_receipt` | Retrieve immutable execution receipt with chain hash |
 
-**Alternative: x402 micropayments.** No account needed — pay per call with USDC on Base. Pass `x_payment` instead of an API key.
+## Financial tools (auth required, 5 tools)
+
+| Tool | What it does |
+|------|-------------|
+| `budget` | Set spending limits |
+| `spend` | Track spending |
+| `check_balance` | View credits |
+| `get_payment_url` | Get Stripe top-up link |
+| `get_ledger` | Transaction history |
+
+## Operations tools (auth required, 2 tools)
+
+| Tool | What it does |
+|------|-------------|
+| `routing` | Choose routing strategy (cheapest, fastest, highest quality, balanced) |
+| `usage_telemetry` | Report execution telemetry for L2 learning |
+
+## 21 MCP tools
+
+**Discovery (free):** `find_services`, `get_score`, `get_alternatives`, `get_failure_modes`, `discover_capabilities`, `resolve_capability`
+
+**Execution (auth):** `execute_capability`, `estimate_capability`, `recipe_execute`, `list_recipes`, `get_recipe`, `check_credentials`, `credential_ceremony`, `get_receipt`
+
+**Financial (auth):** `budget`, `spend`, `check_balance`, `get_payment_url`, `get_ledger`
+
+**Operations (auth):** `routing`, `usage_telemetry`
 
 ## Common workflows
 
-### 1) Discover tools (no auth needed)
+### 1) Discover tools (no auth)
 
 > "I need an email provider for agents."
 
@@ -92,39 +140,41 @@ Get a key at https://rhumb.dev/auth/login (GitHub or Google OAuth, 30 seconds).
 - `get_score` → inspect a specific provider
 - `get_failure_modes` → see where it breaks in practice
 
-### 2) Route a capability (no auth needed)
+### 2) Route a capability (no auth)
 
 > "I need `email.send`. What should I use?"
 
 - `discover_capabilities` → find the capability ID
 - `resolve_capability` → get ranked providers with health data
-- `estimate_capability` → preview cost (requires auth)
 
 ### 3) Execute (auth required)
 
 > "Send the email with the cheapest provider above my quality floor."
 
-- `execute_capability` → actually perform the action
-- `budget` / `spend` / `check_balance` → control and audit usage
+- `estimate_capability` → preview cost
+- `execute_capability` → perform the action
+- `get_receipt` → verify the immutable execution record
 
-## 16 MCP tools
+### 4) Run a recipe (auth required)
 
-- `find_services` — search services by need
-- `get_score` — full AN Score breakdown
-- `get_alternatives` — ranked alternatives
-- `get_failure_modes` — failure patterns + workarounds
-- `discover_capabilities` — browse by domain
-- `resolve_capability` — ranked providers with routing data
-- `execute_capability` — call through Rhumb Resolve
-- `estimate_capability` — cost preview (no charge)
-- `credential_ceremony` — provider credential guides
-- `check_credentials` — what modes are available
-- `budget` — set spending limits
-- `spend` — track spending
-- `routing` — choose routing strategy
-- `check_balance` — view credits
-- `get_payment_url` — Stripe top-up link
-- `get_ledger` — transaction history
+> "Enrich this contact, find their company, and draft an intro email."
+
+- `list_recipes` → browse available workflows
+- `recipe_execute` → run the compiled recipe
+- Each step is content-firewalled, budget-enforced, and produces a receipt
+
+## x402 micropayments
+
+No account needed — pay per call with USDC on Base:
+
+```json
+{
+  "env": {
+    "RHUMB_X402_WALLET_ADDRESS": "0x...",
+    "RHUMB_X402_PRIVATE_KEY": "0x..."
+  }
+}
+```
 
 ## Local development
 
@@ -137,14 +187,14 @@ npm run dev
 ## Test and build
 
 ```bash
-npm test          # 78 tests
+npm test          # 84+ tests
 npm run type-check
 npm run build
 ```
 
 ## Related
 
-- API: `https://api.rhumb.dev/v1`
+- API: `https://api.rhumb.dev/v1` (v1 compat) / `https://api.rhumb.dev/v2` (Resolve v2)
 - npm: https://www.npmjs.com/package/rhumb-mcp
 - MCP Registry: https://registry.modelcontextprotocol.io (search "rhumb")
 - GitHub: https://github.com/supertrained/rhumb
