@@ -45,7 +45,7 @@ from services.receipt_service import (
 )
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
-from services.route_explanation import get_explanation_engine
+from services.route_explanation import build_explanation, store_explanation
 
 router = APIRouter()
 
@@ -729,40 +729,47 @@ async def execute_capability_v2(
     # ── Route explanation (WU-41.3) ─────────────────────────────────
     explanation_id: str | None = None
     try:
-        explanation_engine = get_explanation_engine()
-        policy_summary_for_explanation = (
-            provider_decision.policy_summary
-            if provider_decision is not None
-            else (_policy_summary(effective_policy) or {})
-        )
+        # Gather scores for explanation (reuse the policy eval mappings)
+        from routes._supabase import supabase_fetch as _exp_fetch
+        _slugs = [m.get("service_slug", "") for m in policy_eval.all_mappings if m.get("service_slug")]
+        _slug_filter = ",".join(f'"{s}"' for s in _slugs) if _slugs else ""
+        _scores_by_slug: dict[str, float] = {}
+        if _slug_filter:
+            _score_rows = await _exp_fetch(
+                f"scores?service_slug=in.({_slug_filter})"
+                f"&select=service_slug,aggregate_recommendation_score"
+            )
+            if _score_rows:
+                for sc in _score_rows:
+                    slug = sc.get("service_slug")
+                    agg = sc.get("aggregate_recommendation_score")
+                    if slug and agg is not None:
+                        _scores_by_slug[slug] = float(agg)
 
-        # Fetch provider details for candidates (for scoring context)
-        _provider_details: dict[str, dict[str, Any]] = {}
+        _circuit_states: dict[str, str] = {}
+        from routes.proxy import get_breaker_registry as _get_br
+        _br = _get_br()
         for m in policy_eval.all_mappings:
             slug = m.get("service_slug", "")
             if slug:
-                from services.provider_attribution import _fetch_provider_detail
-                detail = await _fetch_provider_detail(slug)
-                if detail:
-                    _provider_details[slug] = detail
+                agent_for_br = agent.agent_id if agent else "anonymous"
+                breaker = _br.get(slug, agent_for_br)
+                _circuit_states[slug] = breaker.state.value if hasattr(breaker.state, 'value') else str(breaker.state)
 
-        explanation = explanation_engine.build_explanation(
-            receipt_id=receipt_id,
+        explanation = build_explanation(
             capability_id=capability_id,
-            winner_provider_id=selected_provider,
-            winner_reason=(
-                provider_decision.selected_reason if provider_decision else None
-            ),
-            all_mappings=policy_eval.all_mappings,
-            eligible_mappings=policy_eval.eligible_mappings,
-            policy_summary=policy_summary_for_explanation,
-            credential_mode=payload.credential_mode,
-            provider_details=_provider_details,
+            mappings=policy_eval.all_mappings,
+            scores_by_slug=_scores_by_slug,
+            circuit_states=_circuit_states,
+            selected_provider=selected_provider,
+            policy_pin=effective_policy.pin if effective_policy else None,
+            policy_deny=list(effective_policy.provider_deny) if effective_policy and effective_policy.provider_deny else None,
+            policy_allow_only=list(effective_policy.allow_only) if effective_policy and effective_policy.allow_only else None,
+            max_cost_usd=effective_policy.max_cost_usd if effective_policy else None,
+            layer=2,
         )
         explanation_id = explanation.explanation_id
-
-        # Persist asynchronously (never blocks response delivery)
-        await explanation_engine.persist_explanation(explanation)
+        store_explanation(explanation)
     except Exception:
         logger.exception("v2_route_explanation_failed execution_id=%s", execution_id)
 

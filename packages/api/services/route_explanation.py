@@ -1,48 +1,33 @@
 """Route Explanation Engine (WU-41.3).
 
-Generates a complete, queryable explanation for every Layer 2 routing
-decision.  The explanation captures *why* a provider was chosen: which
-candidates were evaluated, what factors contributed to each candidate's
-composite score, what policy checks were applied, and a human-readable
-summary of the outcome.
+Every routing decision produces a complete, queryable explanation per
+Resolve Product Spec §2.3.  Explanations include:
+- the winning provider and why it was chosen
+- all candidates with composite scores and factor breakdowns
+- policy checks applied
+- a human-readable summary
 
-**Spec requirement (§2.3):**
-> Every routing decision produces a complete, queryable explanation.
-
-Layer 1 calls do not produce explanations — the agent explicitly chose
-the provider, so there is nothing to explain.
-
-Explanations are persisted to the ``route_explanations`` table, keyed by
-``explanation_id``, and linked to the receipt via ``receipt_id``.
-
-The ``GET /v2/receipts/{id}/explanation`` endpoint exposes them.
+Explanations are attached to v2 execution responses and queryable via
+``GET /v2/explanations/{explanation_id}``.
 """
 
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import time
-import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from routes._supabase import supabase_fetch, supabase_insert
-
 logger = logging.getLogger(__name__)
 
-
-# ---------------------------------------------------------------------------
-# Factor weights (from Resolve Product Spec §2.3)
-# ---------------------------------------------------------------------------
-
-DEFAULT_FACTOR_WEIGHTS = {
+# Factor weights (must sum to 1.0 across the 5 factors)
+DEFAULT_WEIGHTS = {
     "an_score": 0.20,
     "availability": 0.30,
-    "estimated_cost_usd": 0.25,
-    "latency_p50_ms": 0.15,
-    "credential_mode_preference": 0.10,
+    "estimated_cost": 0.25,
+    "latency": 0.15,
+    "credential_mode": 0.10,
 }
 
 
@@ -55,529 +40,414 @@ class CandidateFactor:
     """A single scoring factor for a candidate provider."""
 
     name: str
-    raw_value: Any
+    raw_value: float
     normalized_score: float
     weight: float
-    weighted_contribution: float
+
+    @property
+    def weighted_contribution(self) -> float:
+        return round(self.normalized_score * self.weight, 4)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "value": self.raw_value,
+            "normalized_score": round(self.normalized_score, 4),
+            "weight": self.weight,
+            "weighted_contribution": self.weighted_contribution,
+        }
 
 
 @dataclass
 class CandidateExplanation:
-    """Full explanation for a single candidate provider."""
+    """Explanation for a single candidate provider."""
 
     provider_id: str
-    provider_name: str | None = None
-    eligible: bool = True
-    composite_score: float = 0.0
-    factors: list[CandidateFactor] = field(default_factory=list)
-    policy_checks: dict[str, Any] = field(default_factory=dict)
-    ineligibility_reason: str | None = None
+    eligible: bool
+    composite_score: float
+    factors: dict[str, CandidateFactor] = field(default_factory=dict)
+    policy_checks: dict[str, bool] = field(default_factory=dict)
+    ineligible_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "provider_id": self.provider_id,
+            "eligible": self.eligible,
+            "composite_score": round(self.composite_score, 4),
+            "factors": {k: v.to_dict() for k, v in self.factors.items()},
+            "policy_checks": self.policy_checks,
+        }
+        if self.ineligible_reason:
+            d["ineligible_reason"] = self.ineligible_reason
+        return d
 
 
 @dataclass
 class RouteExplanation:
-    """Complete routing explanation for a Layer 2 execution."""
+    """Complete route explanation for a single execution."""
 
     explanation_id: str
-    receipt_id: str | None = None
-    capability_id: str | None = None
-    created_at: str | None = None
-
-    # Winner
-    winner_provider_id: str | None = None
-    winner_composite_score: float | None = None
-    winner_reason: str | None = None
-
-    # Candidates
+    capability_id: str
+    winner_provider_id: str | None
+    winner_composite_score: float | None
+    selection_reason: str
     candidates: list[CandidateExplanation] = field(default_factory=list)
-
-    # Human summary
     human_summary: str = ""
-
-    # Timing
-    evaluation_ms: float | None = None
+    layer: int = 2
+    strategy: str = "balanced"
+    policy_active: bool = False
+    created_at_ms: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to the spec-defined JSON shape."""
-        result: dict[str, Any] = {
+        return {
             "explanation_id": self.explanation_id,
-            "receipt_id": self.receipt_id,
             "capability_id": self.capability_id,
-            "created_at": self.created_at,
-        }
-
-        if self.winner_provider_id:
-            result["winner"] = {
+            "winner": {
                 "provider_id": self.winner_provider_id,
-                "composite_score": self.winner_composite_score,
-                "selection_reason": self.winner_reason,
-            }
-        else:
-            result["winner"] = None
-
-        result["candidates"] = [
-            self._candidate_to_dict(c) for c in self.candidates
-        ]
-        result["human_summary"] = self.human_summary
-        result["evaluation_ms"] = self.evaluation_ms
-
-        return result
-
-    @staticmethod
-    def _candidate_to_dict(c: CandidateExplanation) -> dict[str, Any]:
-        entry: dict[str, Any] = {
-            "provider_id": c.provider_id,
-            "provider_name": c.provider_name,
-            "eligible": c.eligible,
-            "composite_score": round(c.composite_score, 4) if c.composite_score else 0.0,
+                "composite_score": (
+                    round(self.winner_composite_score, 4)
+                    if self.winner_composite_score is not None
+                    else None
+                ),
+                "selection_reason": self.selection_reason,
+            },
+            "candidates": [c.to_dict() for c in self.candidates],
+            "human_summary": self.human_summary,
+            "layer": self.layer,
+            "strategy": self.strategy,
+            "policy_active": self.policy_active,
         }
-        if c.factors:
-            entry["factors"] = {
-                f.name: {
-                    "value": f.raw_value,
-                    "normalized_score": round(f.normalized_score, 4),
-                    "weight": f.weight,
-                    "weighted_contribution": round(f.weighted_contribution, 4),
-                }
-                for f in c.factors
-            }
-        if c.policy_checks:
-            entry["policy_checks"] = c.policy_checks
-        if c.ineligibility_reason:
-            entry["ineligibility_reason"] = c.ineligibility_reason
-        return entry
 
-
-def _generate_explanation_id() -> str:
-    """Generate a unique explanation ID with the rexp_ prefix."""
-    return f"rexp_{uuid.uuid4().hex[:16]}"
-
-
-def _now_iso() -> str:
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).isoformat()
+    def to_compact(self) -> dict[str, Any]:
+        """Compact explanation for embedding in execution responses."""
+        return {
+            "explanation_id": self.explanation_id,
+            "winner": self.winner_provider_id,
+            "reason": self.selection_reason,
+            "candidates_evaluated": len(self.candidates),
+            "candidates_eligible": sum(1 for c in self.candidates if c.eligible),
+            "human_summary": self.human_summary,
+        }
 
 
 # ---------------------------------------------------------------------------
-# Factor normalization helpers
+# ID generation
 # ---------------------------------------------------------------------------
 
-def _normalize_an_score(score: float | None) -> float:
-    """AN Score is already 0-10, normalize to 0-1."""
-    if score is None:
-        return 0.0
-    return min(max(score / 10.0, 0.0), 1.0)
-
-
-def _normalize_availability(uptime_pct: float | None) -> float:
-    """Uptime percentage (0-100) → 0-1 score."""
-    if uptime_pct is None:
-        return 0.5  # Unknown = neutral
-    return min(max(uptime_pct / 100.0, 0.0), 1.0)
-
-
-def _normalize_cost(cost_usd: float | None, max_cost: float | None) -> float:
-    """Lower cost is better. Normalize against max observed cost."""
-    if cost_usd is None or max_cost is None or max_cost <= 0:
-        return 0.5  # Unknown = neutral
-    # Invert: cheaper = higher score
-    return min(max(1.0 - (cost_usd / max_cost), 0.0), 1.0)
-
-
-def _normalize_latency(latency_ms: float | None, max_latency: float | None) -> float:
-    """Lower latency is better. Normalize against max observed latency."""
-    if latency_ms is None or max_latency is None or max_latency <= 0:
-        return 0.5
-    return min(max(1.0 - (latency_ms / max_latency), 0.0), 1.0)
-
-
-def _normalize_credential_preference(
-    credential_modes: list[str] | None,
-    requested_mode: str,
-) -> float:
-    """1.0 if the provider supports the requested credential mode, else 0.5."""
-    if not credential_modes:
-        return 0.5
-    if requested_mode == "auto":
-        return 1.0  # Any mode works
-    return 1.0 if requested_mode in credential_modes else 0.3
+def _generate_explanation_id(capability_id: str, timestamp_ms: int) -> str:
+    """Generate a deterministic explanation ID."""
+    raw = f"{capability_id}:{timestamp_ms}"
+    digest = hashlib.sha256(raw.encode()).hexdigest()[:12]
+    return f"rexp_{digest}"
 
 
 # ---------------------------------------------------------------------------
 # Explanation builder
 # ---------------------------------------------------------------------------
 
-class RouteExplanationEngine:
-    """Builds a complete route explanation from routing context."""
+def build_explanation(
+    *,
+    capability_id: str,
+    mappings: list[dict[str, Any]],
+    scores_by_slug: dict[str, float],
+    circuit_states: dict[str, str],
+    selected_provider: str | None,
+    strategy: str = "balanced",
+    quality_floor: float = 6.0,
+    max_cost_usd: float | None = None,
+    policy_pin: str | None = None,
+    policy_deny: list[str] | None = None,
+    policy_allow_only: list[str] | None = None,
+    layer: int = 2,
+    weights: dict[str, float] | None = None,
+) -> RouteExplanation:
+    """Build a complete route explanation from routing inputs and result.
 
-    def __init__(self, weights: dict[str, float] | None = None):
-        self.weights = weights or DEFAULT_FACTOR_WEIGHTS
+    This is called *after* the routing engine has selected a provider,
+    so we can reconstruct the explanation from the same inputs.
+    """
+    w = weights or DEFAULT_WEIGHTS
+    ts = int(time.time() * 1000)
+    explanation_id = _generate_explanation_id(capability_id, ts)
 
-    def build_explanation(
-        self,
-        *,
-        receipt_id: str | None = None,
-        capability_id: str | None = None,
-        winner_provider_id: str | None = None,
-        winner_reason: str | None = None,
-        all_mappings: list[dict[str, Any]],
-        eligible_mappings: list[dict[str, Any]],
-        policy_summary: dict[str, Any] | None = None,
-        credential_mode: str = "auto",
-        provider_details: dict[str, dict[str, Any]] | None = None,
-    ) -> RouteExplanation:
-        """Build a complete route explanation.
+    deny_set = set(policy_deny or [])
+    allow_set = set(policy_allow_only or [])
+    policy_active = bool(policy_pin or deny_set or allow_set)
 
-        Args:
-            receipt_id: The receipt ID for the execution.
-            capability_id: The capability that was executed.
-            winner_provider_id: The provider that was selected.
-            winner_reason: Why the winner was selected (from PolicyEngine).
-            all_mappings: All capability_services mappings before policy filters.
-            eligible_mappings: Mappings remaining after policy filters.
-            policy_summary: Policy controls summary from PolicyEngine.
-            credential_mode: Requested credential mode.
-            provider_details: Pre-fetched provider details keyed by slug.
-        """
-        t_start = time.monotonic()
-        explanation_id = _generate_explanation_id()
-        now = _now_iso()
+    # Find max cost for normalization
+    costs = [
+        float(m.get("cost_per_call") or 0)
+        for m in mappings
+        if m.get("cost_per_call") is not None
+    ]
+    max_cost = max(costs) if costs else 1.0
+    if max_cost == 0:
+        max_cost = 1.0
 
-        provider_details = provider_details or {}
-        policy_summary = policy_summary or {}
-        pin = policy_summary.get("pin")
-        deny_set = set(policy_summary.get("provider_deny", []))
-        allow_only_set = set(policy_summary.get("allow_only", []))
+    candidates: list[CandidateExplanation] = []
+    winner_candidate: CandidateExplanation | None = None
 
-        eligible_slugs = {m.get("service_slug") for m in eligible_mappings}
+    for m in mappings:
+        slug = m.get("service_slug", "unknown")
+        an_score = scores_by_slug.get(slug, 0.0)
+        cost = float(m.get("cost_per_call") or 0)
+        circuit = circuit_states.get(slug, "closed")
 
-        # Compute normalization ceilings from eligible candidates
-        costs = [
-            float(m.get("cost_per_call") or 0)
-            for m in eligible_mappings
-            if m.get("cost_per_call") is not None
-        ]
-        max_cost = max(costs) if costs else None
-
-        # For latency we use AN score as proxy (no live latency data yet)
-        # We'll normalize against known range when real telemetry exists
-        max_latency = 5000.0  # Placeholder ceiling
-
-        candidates: list[CandidateExplanation] = []
-
-        for mapping in all_mappings:
-            slug = mapping.get("service_slug", "unknown")
-            detail = provider_details.get(slug, {})
-            an_score_raw = detail.get("aggregate_recommendation_score")
-            cost_raw = float(mapping.get("cost_per_call") or 0) if mapping.get("cost_per_call") is not None else None
-            credential_modes = mapping.get("credential_modes") or []
-
-            # Policy checks
-            is_denied = slug in deny_set
-            is_allowed = not allow_only_set or slug in allow_only_set
-            is_pinned = pin == slug if pin else False
-            is_eligible = slug in eligible_slugs
-
-            policy_checks = {
-                "pinned": is_pinned,
-                "denied": is_denied,
-                "allowed_by_allow_only": is_allowed if allow_only_set else True,
-                "cost_ceiling_ok": True,  # Updated below if applicable
-            }
-
-            if policy_summary.get("max_cost_usd") is not None and cost_raw is not None:
-                policy_checks["cost_ceiling_ok"] = cost_raw <= policy_summary["max_cost_usd"]
-
-            if not is_eligible:
-                reason = "denied_by_policy" if is_denied else (
-                    "not_in_allow_only" if not is_allowed else "filtered_by_routing"
-                )
-                candidates.append(CandidateExplanation(
-                    provider_id=slug,
-                    provider_name=detail.get("name"),
-                    eligible=False,
-                    composite_score=0.0,
-                    policy_checks=policy_checks,
-                    ineligibility_reason=reason,
-                ))
-                continue
-
-            # Score factors
-            factors: list[CandidateFactor] = []
-
-            # AN Score
-            an_normalized = _normalize_an_score(an_score_raw)
-            an_weight = self.weights.get("an_score", 0.20)
-            factors.append(CandidateFactor(
-                name="an_score",
-                raw_value=an_score_raw,
-                normalized_score=an_normalized,
-                weight=an_weight,
-                weighted_contribution=an_normalized * an_weight,
-            ))
-
-            # Availability (placeholder until real monitoring)
-            avail_normalized = _normalize_availability(None)
-            avail_weight = self.weights.get("availability", 0.30)
-            factors.append(CandidateFactor(
-                name="availability",
-                raw_value=None,
-                normalized_score=avail_normalized,
-                weight=avail_weight,
-                weighted_contribution=avail_normalized * avail_weight,
-            ))
-
-            # Cost
-            cost_normalized = _normalize_cost(cost_raw, max_cost)
-            cost_weight = self.weights.get("estimated_cost_usd", 0.25)
-            factors.append(CandidateFactor(
-                name="estimated_cost_usd",
-                raw_value=cost_raw,
-                normalized_score=cost_normalized,
-                weight=cost_weight,
-                weighted_contribution=cost_normalized * cost_weight,
-            ))
-
-            # Latency (placeholder)
-            latency_normalized = _normalize_latency(None, max_latency)
-            latency_weight = self.weights.get("latency_p50_ms", 0.15)
-            factors.append(CandidateFactor(
-                name="latency_p50_ms",
-                raw_value=None,
-                normalized_score=latency_normalized,
-                weight=latency_weight,
-                weighted_contribution=latency_normalized * latency_weight,
-            ))
-
-            # Credential mode preference
-            cred_normalized = _normalize_credential_preference(
-                credential_modes, credential_mode,
-            )
-            cred_weight = self.weights.get("credential_mode_preference", 0.10)
-            factors.append(CandidateFactor(
-                name="credential_mode_preference",
-                raw_value=credential_modes,
-                normalized_score=cred_normalized,
-                weight=cred_weight,
-                weighted_contribution=cred_normalized * cred_weight,
-            ))
-
-            composite = sum(f.weighted_contribution for f in factors)
-
-            candidates.append(CandidateExplanation(
-                provider_id=slug,
-                provider_name=detail.get("name"),
-                eligible=True,
-                composite_score=composite,
-                factors=factors,
-                policy_checks=policy_checks,
-            ))
-
-        # Find winner's composite score
-        winner_composite = None
-        if winner_provider_id:
-            for c in candidates:
-                if c.provider_id == winner_provider_id:
-                    winner_composite = c.composite_score
-                    break
-
-        # Sort candidates: eligible first (by composite desc), then ineligible
-        eligible_candidates = sorted(
-            [c for c in candidates if c.eligible],
-            key=lambda c: c.composite_score,
-            reverse=True,
-        )
-        ineligible_candidates = [c for c in candidates if not c.eligible]
-        candidates = eligible_candidates + ineligible_candidates
-
-        # Build human summary
-        human_summary = self._build_human_summary(
-            winner_provider_id=winner_provider_id,
-            winner_reason=winner_reason,
-            candidates=candidates,
-            policy_summary=policy_summary,
-            provider_details=provider_details,
-        )
-
-        t_elapsed = (time.monotonic() - t_start) * 1000
-
-        return RouteExplanation(
-            explanation_id=explanation_id,
-            receipt_id=receipt_id,
-            capability_id=capability_id,
-            created_at=now,
-            winner_provider_id=winner_provider_id,
-            winner_composite_score=winner_composite,
-            winner_reason=winner_reason,
-            candidates=candidates,
-            human_summary=human_summary,
-            evaluation_ms=round(t_elapsed, 2),
-        )
-
-    def _build_human_summary(
-        self,
-        *,
-        winner_provider_id: str | None,
-        winner_reason: str | None,
-        candidates: list[CandidateExplanation],
-        policy_summary: dict[str, Any],
-        provider_details: dict[str, dict[str, Any]],
-    ) -> str:
-        """Generate a human-readable explanation of the routing decision."""
-        if not winner_provider_id:
-            return "No provider was selected."
-
-        winner_detail = provider_details.get(winner_provider_id, {})
-        winner_name = winner_detail.get("name", winner_provider_id)
-
-        eligible_count = sum(1 for c in candidates if c.eligible)
-        ineligible_count = sum(1 for c in candidates if not c.eligible)
-        total_count = len(candidates)
-        others = eligible_count - 1
-
-        # Build the selection reason phrase
-        reason_phrases = {
-            "policy_pin": f"pinned by policy",
-            "policy_preference_match": f"matched first preference in the policy preference list",
-            "policy_single_candidate": f"was the only eligible candidate after policy filtering",
-            "routing_with_policy_filters": f"won on composite score after policy filtering",
-            None: f"selected by default routing",
+        # Policy checks
+        checks: dict[str, bool] = {
+            "pinned": policy_pin == slug if policy_pin else False,
+            "denied": slug in deny_set,
+            "cost_ceiling_ok": (
+                cost <= max_cost_usd if max_cost_usd is not None else True
+            ),
+            "quality_floor_ok": an_score >= quality_floor,
+            "circuit_healthy": circuit != "open",
+            "allow_list_ok": (
+                slug in allow_set if allow_set else True
+            ),
         }
-        reason_phrase = reason_phrases.get(winner_reason, f"selected ({winner_reason})")
 
-        parts = [f"{winner_name} ({winner_provider_id}) {reason_phrase}"]
+        # Determine eligibility
+        ineligible_reason: str | None = None
+        eligible = True
 
-        if others > 0:
-            parts.append(f"over {others} other eligible candidate{'s' if others > 1 else ''}")
+        if checks["denied"]:
+            eligible = False
+            ineligible_reason = "excluded_by_deny_list"
+        elif allow_set and not checks["allow_list_ok"]:
+            eligible = False
+            ineligible_reason = "not_in_allow_list"
+        elif not checks["circuit_healthy"]:
+            eligible = False
+            ineligible_reason = "circuit_open"
+        elif not checks["quality_floor_ok"]:
+            eligible = False
+            ineligible_reason = "below_quality_floor"
+        elif not checks["cost_ceiling_ok"]:
+            eligible = False
+            ineligible_reason = "exceeds_cost_ceiling"
 
-        if ineligible_count > 0:
-            # Describe why providers were excluded
-            denied = [c for c in candidates if not c.eligible and c.ineligibility_reason == "denied_by_policy"]
-            not_allowed = [c for c in candidates if not c.eligible and c.ineligibility_reason == "not_in_allow_only"]
+        # Compute factors
+        health = 1.0 if circuit == "closed" else (0.5 if circuit == "half_open" else 0.0)
+        norm_score = min(an_score / 10.0, 1.0)
+        norm_cost = 1.0 - (cost / max_cost) if max_cost > 0 else 1.0
 
-            exclusions = []
-            if denied:
-                names = [c.provider_name or c.provider_id for c in denied]
-                exclusions.append(f"{', '.join(names)} excluded by deny list")
-            if not_allowed:
-                names = [c.provider_name or c.provider_id for c in not_allowed]
-                exclusions.append(f"{', '.join(names)} excluded by allow_only filter")
+        # Credential mode: prefer rhumb_managed
+        cred_modes = m.get("credential_modes") or []
+        cred_score = 1.0 if "rhumb_managed" in cred_modes else 0.5
 
-            if exclusions:
-                parts.append(". " + "; ".join(exclusions))
+        factors = {
+            "an_score": CandidateFactor(
+                name="an_score",
+                raw_value=an_score,
+                normalized_score=norm_score,
+                weight=w.get("an_score", 0.20),
+            ),
+            "availability": CandidateFactor(
+                name="availability",
+                raw_value=health,
+                normalized_score=health,
+                weight=w.get("availability", 0.30),
+            ),
+            "estimated_cost": CandidateFactor(
+                name="estimated_cost",
+                raw_value=cost,
+                normalized_score=norm_cost,
+                weight=w.get("estimated_cost", 0.25),
+            ),
+            "latency": CandidateFactor(
+                name="latency",
+                raw_value=health,  # Using circuit health as latency proxy
+                normalized_score=health,
+                weight=w.get("latency", 0.15),
+            ),
+            "credential_mode": CandidateFactor(
+                name="credential_mode",
+                raw_value=cred_score,
+                normalized_score=cred_score,
+                weight=w.get("credential_mode", 0.10),
+            ),
+        }
 
-        # Add leading factor for the winner
-        winner_candidate = next(
-            (c for c in candidates if c.provider_id == winner_provider_id and c.eligible),
-            None,
+        composite = sum(f.weighted_contribution for f in factors.values()) if eligible else 0.0
+
+        candidate = CandidateExplanation(
+            provider_id=slug,
+            eligible=eligible,
+            composite_score=composite,
+            factors=factors,
+            policy_checks=checks,
+            ineligible_reason=ineligible_reason,
         )
-        if winner_candidate and winner_candidate.factors:
-            top_factor = max(
-                winner_candidate.factors,
-                key=lambda f: f.weighted_contribution,
-            )
-            if top_factor.raw_value is not None:
-                parts.append(
-                    f". Leading factor: {top_factor.name} "
-                    f"(contributed {top_factor.weighted_contribution:.3f} to composite score)"
-                )
+        candidates.append(candidate)
 
-        return ". ".join(p.lstrip(". ") for p in parts if p.strip(". ")) + "."
+        if slug == selected_provider:
+            winner_candidate = candidate
 
-    async def persist_explanation(self, explanation: RouteExplanation) -> bool:
-        """Persist an explanation to the database.
+    # Sort candidates: eligible first (by composite desc), then ineligible
+    candidates.sort(key=lambda c: (-int(c.eligible), -c.composite_score))
 
-        Returns True on success, False on failure (never raises).
-        """
-        try:
-            row = {
-                "explanation_id": explanation.explanation_id,
-                "receipt_id": explanation.receipt_id,
-                "capability_id": explanation.capability_id,
-                "created_at": explanation.created_at,
-                "winner_provider_id": explanation.winner_provider_id,
-                "winner_composite_score": (
-                    round(explanation.winner_composite_score, 6)
-                    if explanation.winner_composite_score is not None
-                    else None
-                ),
-                "winner_reason": explanation.winner_reason,
-                "candidates_json": json.dumps(
-                    explanation.to_dict()["candidates"],
-                    separators=(",", ":"),
-                    default=str,
-                ),
-                "human_summary": explanation.human_summary,
-                "evaluation_ms": explanation.evaluation_ms,
-            }
-            await supabase_insert("route_explanations", row)
-            logger.info(
-                "route_explanation_persisted explanation_id=%s receipt_id=%s winner=%s",
-                explanation.explanation_id,
-                explanation.receipt_id,
-                explanation.winner_provider_id,
-            )
-            return True
-        except Exception:
-            logger.exception(
-                "route_explanation_persist_failed explanation_id=%s",
-                explanation.explanation_id,
-            )
-            return False
+    # Determine selection reason
+    if policy_pin and selected_provider == policy_pin:
+        selection_reason = "agent_pinned"
+    elif len(candidates) == 1 and candidates[0].eligible:
+        selection_reason = "only_eligible_provider"
+    elif selected_provider and winner_candidate:
+        selection_reason = "highest_composite_score_within_policy"
+    elif selected_provider:
+        selection_reason = "routing_engine_selected"
+    else:
+        selection_reason = "no_provider_available"
 
-    async def get_explanation_by_receipt(self, receipt_id: str) -> dict[str, Any] | None:
-        """Fetch an explanation by its linked receipt ID."""
-        from urllib.parse import quote
+    # Build human summary
+    human_summary = _build_human_summary(
+        selected_provider=selected_provider,
+        candidates=candidates,
+        selection_reason=selection_reason,
+        strategy=strategy,
+        policy_pin=policy_pin,
+        deny_set=deny_set,
+    )
 
-        rows = await supabase_fetch(
-            f"route_explanations?receipt_id=eq.{quote(receipt_id)}&limit=1"
+    return RouteExplanation(
+        explanation_id=explanation_id,
+        capability_id=capability_id,
+        winner_provider_id=selected_provider,
+        winner_composite_score=(
+            winner_candidate.composite_score if winner_candidate else None
+        ),
+        selection_reason=selection_reason,
+        candidates=candidates,
+        human_summary=human_summary,
+        layer=layer,
+        strategy=strategy,
+        policy_active=policy_active,
+        created_at_ms=ts,
+    )
+
+
+def build_layer1_explanation(
+    *,
+    capability_id: str,
+    provider_id: str,
+) -> RouteExplanation:
+    """Build a trivial Layer 1 explanation (agent pinned the provider)."""
+    ts = int(time.time() * 1000)
+    return RouteExplanation(
+        explanation_id=_generate_explanation_id(capability_id, ts),
+        capability_id=capability_id,
+        winner_provider_id=provider_id,
+        winner_composite_score=None,
+        selection_reason="agent_pinned_layer1",
+        candidates=[],
+        human_summary=(
+            f"{provider_id} selected directly by agent via Layer 1 (raw provider access). "
+            f"No routing intelligence applied."
+        ),
+        layer=1,
+        strategy="none",
+        policy_active=False,
+        created_at_ms=ts,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Human summary
+# ---------------------------------------------------------------------------
+
+def _build_human_summary(
+    *,
+    selected_provider: str | None,
+    candidates: list[CandidateExplanation],
+    selection_reason: str,
+    strategy: str,
+    policy_pin: str | None,
+    deny_set: set[str],
+) -> str:
+    """Build a human-readable routing summary."""
+    eligible = [c for c in candidates if c.eligible]
+    ineligible = [c for c in candidates if not c.eligible]
+    total = len(candidates)
+
+    if not selected_provider:
+        if total == 0:
+            return "No providers available for this capability."
+        reasons = set(c.ineligible_reason or "unknown" for c in ineligible)
+        return (
+            f"No eligible provider found among {total} candidate(s). "
+            f"Exclusion reasons: {', '.join(reasons)}."
         )
-        if not rows:
-            return None
-        row = rows[0]
-        # Deserialize candidates_json back to list
-        candidates_json = row.get("candidates_json")
-        if isinstance(candidates_json, str):
-            try:
-                row["candidates"] = json.loads(candidates_json)
-            except (json.JSONDecodeError, TypeError):
-                row["candidates"] = []
-        elif isinstance(candidates_json, list):
-            row["candidates"] = candidates_json
-        else:
-            row["candidates"] = []
-        return row
 
-    async def get_explanation_by_id(self, explanation_id: str) -> dict[str, Any] | None:
-        """Fetch an explanation by its ID."""
-        from urllib.parse import quote
+    parts: list[str] = []
 
-        rows = await supabase_fetch(
-            f"route_explanations?explanation_id=eq.{quote(explanation_id)}&limit=1"
+    if policy_pin:
+        parts.append(f"{selected_provider} pinned by policy.")
+    elif len(eligible) == 1:
+        parts.append(f"{selected_provider} selected as the only eligible provider.")
+    else:
+        parts.append(
+            f"{selected_provider} selected over {len(eligible) - 1} other eligible candidate(s)."
         )
-        if not rows:
-            return None
-        row = rows[0]
-        candidates_json = row.get("candidates_json")
-        if isinstance(candidates_json, str):
-            try:
-                row["candidates"] = json.loads(candidates_json)
-            except (json.JSONDecodeError, TypeError):
-                row["candidates"] = []
-        elif isinstance(candidates_json, list):
-            row["candidates"] = candidates_json
-        else:
-            row["candidates"] = []
-        return row
+
+    # Winning factors
+    winner = next((c for c in candidates if c.provider_id == selected_provider), None)
+    if winner and winner.factors:
+        top_factors = sorted(
+            winner.factors.values(),
+            key=lambda f: -f.weighted_contribution,
+        )[:2]
+        factor_strs = [
+            f"{f.name} ({f.weighted_contribution:.3f})"
+            for f in top_factors
+        ]
+        parts.append(f"Strongest factors: {', '.join(factor_strs)}.")
+
+    # Exclusions
+    denied = [c for c in ineligible if c.ineligible_reason == "excluded_by_deny_list"]
+    if denied:
+        parts.append(
+            f"{len(denied)} provider(s) excluded by deny list: "
+            f"{', '.join(c.provider_id for c in denied)}."
+        )
+
+    circuit_open = [c for c in ineligible if c.ineligible_reason == "circuit_open"]
+    if circuit_open:
+        parts.append(
+            f"{len(circuit_open)} provider(s) excluded (circuit open): "
+            f"{', '.join(c.provider_id for c in circuit_open)}."
+        )
+
+    parts.append(f"Strategy: {strategy}.")
+
+    return " ".join(parts)
 
 
-# Module-level singleton
-_explanation_engine: RouteExplanationEngine | None = None
+# ---------------------------------------------------------------------------
+# In-memory explanation store (for v2 query endpoint)
+# ---------------------------------------------------------------------------
+
+_explanation_store: dict[str, RouteExplanation] = {}
+_MAX_STORED = 1000
 
 
-def get_explanation_engine() -> RouteExplanationEngine:
-    """Get or create the route explanation engine singleton."""
-    global _explanation_engine
-    if _explanation_engine is None:
-        _explanation_engine = RouteExplanationEngine()
-    return _explanation_engine
+def store_explanation(explanation: RouteExplanation) -> None:
+    """Store an explanation for later retrieval. Bounded in-memory store."""
+    if len(_explanation_store) >= _MAX_STORED:
+        # Evict oldest entries (by timestamp)
+        sorted_keys = sorted(
+            _explanation_store.keys(),
+            key=lambda k: _explanation_store[k].created_at_ms,
+        )
+        for k in sorted_keys[:_MAX_STORED // 2]:
+            del _explanation_store[k]
+
+    _explanation_store[explanation.explanation_id] = explanation
+
+
+def get_explanation(explanation_id: str) -> RouteExplanation | None:
+    """Retrieve a stored explanation by ID."""
+    return _explanation_store.get(explanation_id)
+
+
+def clear_explanation_store() -> None:
+    """Clear the explanation store (for tests)."""
+    _explanation_store.clear()

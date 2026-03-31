@@ -34,6 +34,7 @@ from routes.proxy import SERVICE_REGISTRY, normalize_slug
 from services.budget_enforcer import BudgetStatus
 from services.error_envelope import RhumbError
 from services.provider_attribution import build_attribution_sync
+from services.route_explanation import build_layer1_explanation, store_explanation
 from services.receipt_service import (
     ReceiptInput,
     get_receipt_service,
@@ -576,6 +577,18 @@ async def execute_on_provider(
         credential_mode=payload.credential_mode,
     )
 
+    # ── Route explanation (WU-41.3) — Layer 1 ─────────────────────────
+    explanation_id: str | None = None
+    try:
+        l1_explanation = build_layer1_explanation(
+            capability_id=payload.capability,
+            provider_id=provider_slug,
+        )
+        explanation_id = l1_explanation.explanation_id
+        store_explanation(l1_explanation)
+    except Exception:
+        logger.exception("l1_explanation_failed provider=%s", provider_slug)
+
     # ── Annotate response with Layer 1 metadata ──────────────────────
     if is_success and execution_data:
         execution_data["_rhumb_v2"] = {
@@ -583,6 +596,7 @@ async def execute_on_provider(
             "compat_mode": _COMPAT_MODE,
             "layer": _LAYER,
             "receipt_id": receipt_id,
+            "explanation_id": explanation_id,
             "provider": {
                 "id": provider_slug,
                 "display_name": detail.get("name", provider_slug),
