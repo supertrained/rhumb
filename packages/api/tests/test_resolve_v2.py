@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
+from services.budget_enforcer import BudgetStatus
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
 
@@ -43,6 +44,23 @@ def _mock_policy_store():
     mock_store.put_policy = AsyncMock()
     with patch("routes.resolve_v2.get_resolve_policy_store", return_value=mock_store):
         yield mock_store
+
+
+@pytest.fixture(autouse=True)
+def _mock_v2_budget_enforcer():
+    mock_enforcer = MagicMock()
+    mock_enforcer.get_budget = AsyncMock(return_value=BudgetStatus(
+        allowed=True,
+        remaining_usd=None,
+        budget_usd=None,
+        spent_usd=None,
+        period=None,
+        hard_limit=None,
+        alert_threshold_pct=None,
+        alert_fired=None,
+    ))
+    with patch("routes.resolve_v2._v2_budget_enforcer", mock_enforcer):
+        yield mock_enforcer
 
 
 SAMPLE_CAP = [
@@ -291,6 +309,60 @@ async def test_v2_execute_enforces_max_cost_ceiling_before_execution(app):
     body = resp.json()
     assert body["error"]["code"] == "BUDGET_EXCEEDED"
     assert "exceeds policy ceiling" in body["error"]["message"].lower()
+    assert mock_pool.acquire.return_value.request.await_count == 0
+
+
+@pytest.mark.anyio
+async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(app, _mock_v2_budget_enforcer):
+    _, mock_pool, budget_state = _build_patches()
+    budget_state.remaining_usd = 0.001
+    budget_state.budget_usd = 0.001
+    budget_state.spent_usd = 9.999
+    budget_state.period = "monthly"
+    budget_state.hard_limit = True
+
+    _mock_v2_budget_enforcer.get_budget.return_value = BudgetStatus(
+        allowed=False,
+        remaining_usd=0.001,
+        budget_usd=10.0,
+        spent_usd=9.999,
+        period="monthly",
+        hard_limit=True,
+        alert_threshold_pct=80,
+        alert_fired=True,
+    )
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/email.send/execute",
+                json={
+                    "parameters": {"to": "test@example.com"},
+                    "policy": {"provider_preference": ["sendgrid"]},
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 402
+    body = resp.json()
+    assert body["error"]["code"] == "BUDGET_EXCEEDED"
+    assert "remaining monthly budget" in body["error"]["message"].lower()
+    assert body["error"]["budget"] == {
+        "budget_usd": 10.0,
+        "spent_usd": 9.999,
+        "remaining_usd": 0.001,
+        "period": "monthly",
+        "hard_limit": True,
+        "alert_threshold_pct": 80,
+        "alert_fired": True,
+    }
     assert mock_pool.acquire.return_value.request.await_count == 0
 
 

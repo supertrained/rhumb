@@ -32,6 +32,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from routes import capabilities as v1_capabilities
 from routes import capability_execute as v1_execute
+from services.budget_enforcer import BudgetEnforcer, BudgetStatus
 from services.error_envelope import RhumbError
 from services.policy_engine import PolicyProviderDecision, get_policy_engine
 from services.receipt_service import (
@@ -75,6 +76,8 @@ _RESPONSE_HEADER_NAMES = [
     "X-Rhumb-Wallet",
     "X-Rhumb-Rate-Remaining",
 ]
+
+_v2_budget_enforcer = BudgetEnforcer()
 
 
 class V2CapabilityPolicy(BaseModel):
@@ -350,6 +353,51 @@ def _policy_summary(policy: V2CapabilityPolicy | None) -> dict[str, Any] | None:
     return get_policy_engine().summarize_policy(policy)
 
 
+def _has_inline_x402_payment(raw_request: Request) -> bool:
+    return bool(
+        raw_request.headers.get("X-Payment")
+        or raw_request.headers.get("PAYMENT-SIGNATURE")
+    )
+
+
+def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
+    if status is None or status.budget_usd is None:
+        return None
+    return {
+        "budget_usd": status.budget_usd,
+        "spent_usd": status.spent_usd,
+        "remaining_usd": status.remaining_usd,
+        "period": status.period,
+        "hard_limit": status.hard_limit,
+        "alert_threshold_pct": status.alert_threshold_pct,
+        "alert_fired": status.alert_fired,
+    }
+
+
+async def _enforce_agent_budget(
+    *,
+    agent_id: str,
+    estimated_cost: float | None,
+) -> BudgetStatus:
+    status = await _v2_budget_enforcer.get_budget(agent_id)
+    if estimated_cost is None or float(estimated_cost) <= 0:
+        return status
+    if status.budget_usd is None or status.remaining_usd is None:
+        return status
+    if not status.hard_limit or status.remaining_usd >= float(estimated_cost):
+        return status
+
+    raise RhumbError(
+        "BUDGET_EXCEEDED",
+        message=(
+            f"Estimated call cost ${float(estimated_cost):.4f} exceeds remaining "
+            f"{status.period or 'agent'} budget ${float(status.remaining_usd):.4f}."
+        ),
+        detail="Increase the agent budget, wait for the next budget reset, or lower the expected call cost.",
+        extra={"budget": _budget_summary(status)},
+    )
+
+
 async def _evaluate_provider_policy(
     capability_id: str,
     raw_request: Request,
@@ -507,6 +555,7 @@ async def execute_capability_v2(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
+    agent = None
     account_policy = None
     if raw_request.headers.get("X-Rhumb-Key"):
         agent = await _resolve_policy_agent(raw_request)
@@ -570,6 +619,13 @@ async def execute_capability_v2(
                 detail="Raise max_cost_usd, choose a cheaper provider, or retry without a hard ceiling.",
             )
 
+    budget_status: BudgetStatus | None = None
+    if agent is not None and not _has_inline_x402_payment(raw_request):
+        budget_status = await _enforce_agent_budget(
+            agent_id=agent.agent_id,
+            estimated_cost=float(estimated_cost) if estimated_cost is not None else None,
+        )
+
     v1_payload: dict[str, Any] = {
         "provider": selected_provider,
         "credential_mode": payload.credential_mode,
@@ -591,7 +647,6 @@ async def execute_capability_v2(
     body = execute_response.json()
 
     # ── Receipt creation ─────────────────────────────────────────────
-    execution_end_ms = time.monotonic() * 1000
     execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
     execution_id = execution_data.get("execution_id", "")
     is_success = execute_response.status_code == 200
@@ -659,6 +714,8 @@ async def execute_capability_v2(
             "policy_candidates": provider_decision.candidate_providers if provider_decision else None,
             "policy_summary": policy_summary,
             "policy_source": policy_source,
+            "budget_applied": bool(budget_status and budget_status.budget_usd is not None),
+            "budget_summary": _budget_summary(budget_status),
             "estimated_cost_usd": estimated_cost,
             "translated_from": {
                 "parameters": True,
