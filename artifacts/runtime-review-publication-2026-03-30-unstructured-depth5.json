@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "2a0157f9-9990-406d-9643-72ab77adf576",
+    "source_ref": "runtime-review:unstructured:20260331T004603Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "2a0157f9-9990-406d-9643-72ab77adf576",
+    "review_id": "edf9a6a7-dcc8-40b9-af1a-2582e8b0f635",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "edf9a6a7-dcc8-40b9-af1a-2582e8b0f635",
+    "source_batch_id": "runtime-review:unstructured:20260331T004603Z",
+    "state": "inserted"
+  },
+  "service": "unstructured"
+}
