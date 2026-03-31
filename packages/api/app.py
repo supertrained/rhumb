@@ -35,6 +35,7 @@ from routes import (
     pricing,
     probes,
     proxy,
+    resolve_v2,
     reviews,
     routing,
     scores,
@@ -146,6 +147,10 @@ def create_app() -> FastAPI:
             "Content-Type",
             "Authorization",
             "X-Request-ID",
+            "X-Rhumb-Version",
+            "X-Rhumb-Idempotency-Key",
+            "X-Rhumb-Agent-Id",
+            "X-Rhumb-Budget-Token",
         ],
         expose_headers=[
             "X-Request-ID",
@@ -155,6 +160,8 @@ def create_app() -> FastAPI:
             "X-Rhumb-Auth",
             "X-Rhumb-Wallet",
             "X-Rhumb-Rate-Remaining",
+            "X-Rhumb-Version",
+            "X-Rhumb-Compat",
         ],
     )
 
@@ -169,6 +176,7 @@ def create_app() -> FastAPI:
     # ── Routers ──
     application.include_router(capabilities.router, prefix="/v1", tags=["capabilities"])
     application.include_router(capability_execute.router, prefix="/v1", tags=["capability-execute"])
+    application.include_router(resolve_v2.router, prefix="/v2", tags=["resolve-v2"])
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
     application.include_router(scores.router, prefix="/v1", tags=["scores"])
