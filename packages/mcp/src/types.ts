@@ -585,6 +585,114 @@ export type GetLedgerOutput = {
 };
 
 // ---------------------------------------------------------------------------
+// recipe tools
+// ---------------------------------------------------------------------------
+
+export const ListRecipesInputSchema = {
+  type: "object" as const,
+  properties: {
+    category: { type: "string" as const, description: "Optional recipe category filter, for example 'productivity' or 'support'." },
+    stability: { type: "string" as const, description: "Optional recipe stability filter, for example 'beta' or 'stable'." },
+    limit: { type: "number" as const, minimum: 1, maximum: 100, description: "Max recipes to return (default 20)." }
+  },
+  required: [] as string[],
+};
+
+export type ListRecipesInput = {
+  category?: string;
+  stability?: string;
+  limit?: number;
+};
+
+export type ListRecipesOutput = {
+  recipes: Array<{
+    recipeId: string;
+    name: string;
+    version: string;
+    category: string;
+    stability: string;
+    tier: string;
+    stepCount: number;
+    maxTotalCostUsd: number | null;
+  }>;
+  total: number;
+};
+
+export const GetRecipeInputSchema = {
+  type: "object" as const,
+  properties: {
+    recipe_id: { type: "string" as const, description: "Published recipe ID from rhumb_list_recipes." },
+  },
+  required: ["recipe_id"] as string[],
+};
+
+export type GetRecipeInput = {
+  recipe_id: string;
+};
+
+export type GetRecipeOutput = {
+  recipeId: string;
+  name: string;
+  version: string;
+  category: string;
+  stability: string;
+  tier: string;
+  stepCount: number;
+  maxTotalCostUsd: number | null;
+  definition: Record<string, unknown>;
+  inputsSchema: Record<string, unknown>;
+  outputsSchema: Record<string, unknown>;
+  layer: number;
+};
+
+export const RecipeExecuteInputSchema = {
+  type: "object" as const,
+  properties: {
+    recipe_id: { type: "string" as const, description: "Published recipe ID to execute." },
+    inputs: { type: "object" as const, description: "Recipe inputs object. These become the Layer 3 recipe input bindings." },
+    credential_mode: { type: "string" as const, description: "Credential mode for all underlying step executions. Default: 'rhumb_managed'." },
+    idempotency_key: { type: "string" as const, description: "Optional idempotency key for safe retries." },
+    policy: { type: "object" as const, description: "Optional Layer 2 provider policy forwarded to every step execution." }
+  },
+  required: ["recipe_id"] as string[],
+};
+
+export type RecipeExecuteInput = {
+  recipe_id: string;
+  inputs?: Record<string, unknown>;
+  credential_mode?: string;
+  idempotency_key?: string;
+  policy?: Record<string, unknown>;
+};
+
+export type RecipeExecuteOutput = {
+  executionId: string;
+  recipeId: string;
+  status: string;
+  totalCostUsd: number;
+  totalDurationMs: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  error: string | null;
+  receiptChainHash: string | null;
+  deduplicated: boolean;
+  layer: number;
+  outputs: Record<string, unknown>;
+  stepResults: Array<{
+    stepId: string;
+    capabilityId: string | null;
+    status: string;
+    outputs: Record<string, unknown>;
+    costUsd: number;
+    durationMs: number;
+    receiptId: string | null;
+    error: string | null;
+    retriesUsed: number;
+    providerUsed: string | null;
+  }>;
+};
+
+// ---------------------------------------------------------------------------
 // get_receipt
 // ---------------------------------------------------------------------------
 
@@ -622,6 +730,9 @@ export const TOOL_SCHEMAS = {
   check_balance: CheckBalanceInputSchema,
   get_payment_url: GetPaymentUrlInputSchema,
   get_ledger: GetLedgerInputSchema,
+  rhumb_list_recipes: ListRecipesInputSchema,
+  rhumb_get_recipe: GetRecipeInputSchema,
+  rhumb_recipe_execute: RecipeExecuteInputSchema,
   get_receipt: GetReceiptInputSchema,
 } as const;
 

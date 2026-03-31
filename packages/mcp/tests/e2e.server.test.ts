@@ -17,7 +17,15 @@ import type {
   ServiceSearchItem,
   ServiceScoreItem,
 } from "../src/api-client.js";
-import type { FindServiceOutput, GetScoreOutput, GetAlternativesOutput, GetFailureModesOutput } from "../src/types.js";
+import type {
+  FindServiceOutput,
+  GetScoreOutput,
+  GetAlternativesOutput,
+  GetFailureModesOutput,
+  ListRecipesOutput,
+  GetRecipeOutput,
+  RecipeExecuteOutput,
+} from "../src/types.js";
 
 // ---------------------------------------------------------------------------
 // Mock API client fixtures
@@ -132,6 +140,77 @@ function createMockApiClient(): RhumbApiClient {
       circuitState: "closed",
       endpointPattern: "POST /emails"
     }),
+    listRecipes: vi.fn().mockResolvedValue({
+      items: [
+        {
+          recipeId: "transcribe_and_notify",
+          name: "Transcribe and notify",
+          version: "1.0.0",
+          category: "productivity",
+          stability: "beta",
+          tier: "premium",
+          stepCount: 2,
+          maxTotalCostUsd: 0.5,
+        }
+      ],
+      total: 1,
+      limit: 20,
+      offset: 0,
+    }),
+    getRecipe: vi.fn().mockResolvedValue({
+      recipeId: "transcribe_and_notify",
+      name: "Transcribe and notify",
+      version: "1.0.0",
+      category: "productivity",
+      stability: "beta",
+      tier: "premium",
+      stepCount: 2,
+      maxTotalCostUsd: 0.5,
+      definition: { recipe_id: "transcribe_and_notify", steps: [{ step_id: "transcribe" }, { step_id: "notify" }] },
+      inputsSchema: { type: "object", required: ["audio_url", "to"] },
+      outputsSchema: { type: "object" },
+      layer: 3,
+    }),
+    executeRecipe: vi.fn().mockResolvedValue({
+      executionId: "rexec_123",
+      recipeId: "transcribe_and_notify",
+      status: "completed",
+      totalCostUsd: 0.04,
+      totalDurationMs: 210,
+      startedAt: "2026-03-31T12:00:00Z",
+      completedAt: "2026-03-31T12:00:01Z",
+      error: null,
+      receiptChainHash: "hash123",
+      deduplicated: false,
+      layer: 3,
+      outputs: { notify: { message_id: "msg_123" } },
+      stepResults: [
+        {
+          stepId: "transcribe",
+          capabilityId: "media.transcribe",
+          status: "succeeded",
+          outputs: { transcript_text: "hello world" },
+          costUsd: 0.03,
+          durationMs: 120,
+          receiptId: "rcpt_step_1",
+          error: null,
+          retriesUsed: 0,
+          providerUsed: "assemblyai",
+        },
+        {
+          stepId: "notify",
+          capabilityId: "email.send",
+          status: "succeeded",
+          outputs: { message_id: "msg_123" },
+          costUsd: 0.01,
+          durationMs: 90,
+          receiptId: "rcpt_step_2",
+          error: null,
+          retriesUsed: 0,
+          providerUsed: "resend",
+        }
+      ],
+    }),
     listCeremonies: vi.fn().mockResolvedValue([]),
     getCeremony: vi.fn().mockResolvedValue(null),
     listManagedCapabilities: vi.fn().mockResolvedValue([]),
@@ -165,6 +244,15 @@ function createErrorApiClient(): RhumbApiClient {
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
     estimateCapability: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    listRecipes: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    getRecipe: vi
+      .fn()
+      .mockRejectedValue(new Error("API connection refused")),
+    executeRecipe: vi
       .fn()
       .mockRejectedValue(new Error("API connection refused")),
     listCeremonies: vi.fn().mockResolvedValue([]),
@@ -221,7 +309,7 @@ function extractText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 
 describe("e2e: MCP server integration", () => {
   describe("tool registration", () => {
-    it("lists all 18 registered tools", async () => {
+    it("lists all 21 registered tools", async () => {
       const apiClient = createMockApiClient();
       const { client } = await createConnectedClient(apiClient);
 
@@ -244,11 +332,14 @@ describe("e2e: MCP server integration", () => {
         "get_receipt",
         "get_score",
         "resolve_capability",
+        "rhumb_get_recipe",
+        "rhumb_list_recipes",
+        "rhumb_recipe_execute",
         "routing",
         "spend",
         "usage_telemetry",
       ]);
-      expect(tools).toHaveLength(18);
+      expect(tools).toHaveLength(21);
 
       // Each tool has a description and input schema
       for (const tool of tools) {
@@ -386,6 +477,57 @@ describe("e2e: MCP server integration", () => {
       expect(parsed.failures[0].pattern).toBe(
         "SDK timeout on large batch sends"
       );
+    });
+  });
+
+  describe("recipe tools", () => {
+    it("lists published recipes", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "rhumb_list_recipes",
+        arguments: { category: "productivity", limit: 10 },
+      }, CallToolResultSchema);
+
+      const parsed: ListRecipesOutput = JSON.parse(extractText(result));
+      expect(parsed.total).toBe(1);
+      expect(parsed.recipes[0].recipeId).toBe("transcribe_and_notify");
+    });
+
+    it("gets a recipe definition", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "rhumb_get_recipe",
+        arguments: { recipe_id: "transcribe_and_notify" },
+      }, CallToolResultSchema);
+
+      const parsed: GetRecipeOutput = JSON.parse(extractText(result));
+      expect(parsed.recipeId).toBe("transcribe_and_notify");
+      expect((parsed.definition.steps as unknown[]).length).toBe(2);
+      expect(parsed.layer).toBe(3);
+    });
+
+    it("executes a published recipe", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "rhumb_recipe_execute",
+        arguments: {
+          recipe_id: "transcribe_and_notify",
+          inputs: { audio_url: "https://example.com/audio.mp3", to: "tom@example.com" },
+          credential_mode: "byo",
+        },
+      }, CallToolResultSchema);
+
+      const parsed: RecipeExecuteOutput = JSON.parse(extractText(result));
+      expect(parsed.recipeId).toBe("transcribe_and_notify");
+      expect(parsed.status).toBe("completed");
+      expect(parsed.stepResults).toHaveLength(2);
+      expect(parsed.outputs.notify).toBeDefined();
     });
   });
 

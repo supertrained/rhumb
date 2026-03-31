@@ -19,7 +19,10 @@ import {
   BudgetInputSchema,
   SpendInputSchema,
   RoutingInputSchema,
-  UsageTelemetryInputSchema
+  UsageTelemetryInputSchema,
+  ListRecipesInputSchema,
+  GetRecipeInputSchema,
+  RecipeExecuteInputSchema
 } from "./types.js";
 import { createApiClient, type RhumbApiClient } from "./api-client.js";
 import { handleFindServices } from "./tools/find.js";
@@ -39,6 +42,9 @@ import { handleUsageTelemetry } from "./tools/telemetry.js";
 import { handleCheckBalance } from "./tools/check-balance.js";
 import { handleGetPaymentUrl } from "./tools/get-payment-url.js";
 import { handleGetLedger } from "./tools/get-ledger.js";
+import { handleListRecipes } from "./tools/list-recipes.js";
+import { handleGetRecipe } from "./tools/get-recipe.js";
+import { handleRecipeExecute } from "./tools/recipe-execute.js";
 
 /**
  * Creates and configures the Rhumb MCP server with all tool registrations.
@@ -333,6 +339,57 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
     },
     async ({ limit, event_type }) => {
       const result = await handleGetLedger({ limit, event_type }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- rhumb_list_recipes -------------------------------------------------
+  server.tool(
+    "rhumb_list_recipes",
+    "List published Rhumb Layer 3 recipes. Use this to discover deterministic multi-step workflows you can execute through Rhumb instead of orchestrating raw capabilities yourself.",
+    {
+      category: z.string().optional().describe(ListRecipesInputSchema.properties.category.description),
+      stability: z.string().optional().describe(ListRecipesInputSchema.properties.stability.description),
+      limit: z.number().min(1).max(100).optional().describe(ListRecipesInputSchema.properties.limit.description)
+    },
+    async ({ category, stability, limit }) => {
+      const result = await handleListRecipes({ category, stability, limit }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- rhumb_get_recipe ---------------------------------------------------
+  server.tool(
+    "rhumb_get_recipe",
+    "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology. Call this after rhumb_list_recipes before executing an unfamiliar recipe.",
+    {
+      recipe_id: z.string().describe(GetRecipeInputSchema.properties.recipe_id.description)
+    },
+    async ({ recipe_id }) => {
+      const result = await handleGetRecipe({ recipe_id }, client);
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result) }]
+      };
+    }
+  );
+
+  // -- rhumb_recipe_execute ----------------------------------------------
+  server.tool(
+    "rhumb_recipe_execute",
+    "Execute a published Rhumb Layer 3 recipe. Rhumb runs the multi-step workflow through the existing Layer 2 capability rail, applies recipe safety controls, and returns per-step results plus a recipe-level receipt chain hash.",
+    {
+      recipe_id: z.string().describe(RecipeExecuteInputSchema.properties.recipe_id.description),
+      inputs: z.record(z.string(), z.unknown()).optional().describe(RecipeExecuteInputSchema.properties.inputs.description),
+      credential_mode: z.string().optional().describe(RecipeExecuteInputSchema.properties.credential_mode.description),
+      idempotency_key: z.string().optional().describe(RecipeExecuteInputSchema.properties.idempotency_key.description),
+      policy: z.record(z.string(), z.unknown()).optional().describe(RecipeExecuteInputSchema.properties.policy.description)
+    },
+    async ({ recipe_id, inputs, credential_mode, idempotency_key, policy }) => {
+      const result = await handleRecipeExecute({ recipe_id, inputs, credential_mode, idempotency_key, policy }, client);
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result) }]
       };

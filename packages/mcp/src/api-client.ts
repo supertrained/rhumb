@@ -168,6 +168,51 @@ export interface CapabilityEstimateResult {
   endpointPattern: string | null;
 }
 
+export interface RecipeSummaryItem {
+  recipeId: string;
+  name: string;
+  version: string;
+  category: string;
+  stability: string;
+  tier: string;
+  stepCount: number;
+  maxTotalCostUsd: number | null;
+}
+
+export interface RecipeDetailResult extends RecipeSummaryItem {
+  definition: Record<string, unknown>;
+  inputsSchema: Record<string, unknown>;
+  outputsSchema: Record<string, unknown>;
+  layer: number;
+}
+
+export interface RecipeExecutionResult {
+  executionId: string;
+  recipeId: string;
+  status: string;
+  totalCostUsd: number;
+  totalDurationMs: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  error: string | null;
+  receiptChainHash: string | null;
+  deduplicated: boolean;
+  layer: number;
+  outputs: Record<string, unknown>;
+  stepResults: Array<{
+    stepId: string;
+    capabilityId: string | null;
+    status: string;
+    outputs: Record<string, unknown>;
+    costUsd: number;
+    durationMs: number;
+    receiptId: string | null;
+    error: string | null;
+    retriesUsed: number;
+    providerUsed: string | null;
+  }>;
+}
+
 export interface CeremonySummaryItem {
   service_slug: string;
   display_name: string;
@@ -223,6 +268,19 @@ export interface RhumbApiClient {
     provider?: string;
     credentialMode?: string;
   }): Promise<CapabilityEstimateResult>;
+  listRecipes?(opts?: {
+    category?: string;
+    stability?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: RecipeSummaryItem[]; total: number; limit: number; offset: number }>;
+  getRecipe?(recipeId: string): Promise<RecipeDetailResult | null>;
+  executeRecipe?(recipeId: string, opts: {
+    inputs?: Record<string, unknown>;
+    credentialMode?: string;
+    idempotencyKey?: string;
+    policy?: Record<string, unknown>;
+  }): Promise<RecipeExecutionResult>;
   listCeremonies(): Promise<CeremonySummaryItem[]>;
   getCeremony(serviceSlug: string): Promise<CeremonyDetailItem | null>;
   listManagedCapabilities(): Promise<ManagedCapabilityItem[]>;
@@ -619,6 +677,152 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         costEstimateUsd: asNumber(d.cost_estimate_usd),
         circuitState: asString(d.circuit_state) ?? "unknown",
         endpointPattern: asString(d.endpoint_pattern)
+      };
+    },
+
+    async listRecipes(opts?: {
+      category?: string;
+      stability?: string;
+      limit?: number;
+      offset?: number;
+    }): Promise<{ items: RecipeSummaryItem[]; total: number; limit: number; offset: number }> {
+      const params = new URLSearchParams();
+      if (opts?.category) params.set("category", opts.category);
+      if (opts?.stability) params.set("stability", opts.stability);
+      if (opts?.limit != null) params.set("limit", String(opts.limit));
+      if (opts?.offset != null) params.set("offset", String(opts.offset));
+      const qs = params.toString();
+      const v2Base = base.replace(/\/v1$/, "/v2");
+      const url = `${v2Base}/recipes${qs ? `?${qs}` : ""}`;
+
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) {
+        throw new Error(`List recipes failed (${res.status})`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        return { items: [], total: 0, limit: opts?.limit ?? 50, offset: opts?.offset ?? 0 };
+      }
+
+      const data = payload.data;
+      const rawItems = Array.isArray(data.recipes) ? data.recipes : [];
+      const items: RecipeSummaryItem[] = rawItems
+        .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
+        .map((item) => ({
+          recipeId: asString(item.recipe_id) ?? "unknown",
+          name: asString(item.name) ?? asString(item.recipe_id) ?? "unknown",
+          version: asString(item.version) ?? "1.0.0",
+          category: asString(item.category) ?? "",
+          stability: asString(item.stability) ?? "beta",
+          tier: asString(item.tier) ?? "premium",
+          stepCount: asNumber(item.step_count) ?? 0,
+          maxTotalCostUsd: asNumber(item.max_total_cost_usd),
+        }))
+        .filter((item) => item.recipeId !== "unknown");
+
+      return {
+        items,
+        total: asNumber(data.count) ?? items.length,
+        limit: asNumber(data.limit) ?? (opts?.limit ?? 50),
+        offset: asNumber(data.offset) ?? (opts?.offset ?? 0),
+      };
+    },
+
+    async getRecipe(recipeId: string): Promise<RecipeDetailResult | null> {
+      const v2Base = base.replace(/\/v1$/, "/v2");
+      const url = `${v2Base}/recipes/${encodeURIComponent(recipeId)}`;
+      const res = await fetch(url, { headers: defaultHeaders });
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(`Get recipe failed (${res.status})`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return null;
+      const data = payload.data;
+      return {
+        recipeId: asString(data.recipe_id) ?? recipeId,
+        name: asString(data.name) ?? recipeId,
+        version: asString(data.version) ?? "1.0.0",
+        category: asString(data.category) ?? "",
+        stability: asString(data.stability) ?? "beta",
+        tier: asString(data.tier) ?? "premium",
+        stepCount: asNumber(data.step_count) ?? 0,
+        maxTotalCostUsd: asNumber(data.max_total_cost_usd),
+        definition: isRecord(data.definition) ? data.definition : {},
+        inputsSchema: isRecord(data.inputs_schema) ? data.inputs_schema : {},
+        outputsSchema: isRecord(data.outputs_schema) ? data.outputs_schema : {},
+        layer: asNumber(data.layer) ?? 3,
+      };
+    },
+
+    async executeRecipe(recipeId: string, opts: {
+      inputs?: Record<string, unknown>;
+      credentialMode?: string;
+      idempotencyKey?: string;
+      policy?: Record<string, unknown>;
+    }): Promise<RecipeExecutionResult> {
+      const v2Base = base.replace(/\/v1$/, "/v2");
+      const url = `${v2Base}/recipes/${encodeURIComponent(recipeId)}/execute`;
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = {
+        ...defaultHeaders,
+        "Content-Type": "application/json",
+      };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+
+      const reqBody: Record<string, unknown> = {
+        inputs: opts.inputs ?? {},
+        credential_mode: opts.credentialMode ?? "rhumb_managed",
+        interface: "mcp",
+      };
+      if (opts.idempotencyKey) reqBody.idempotency_key = opts.idempotencyKey;
+      if (opts.policy) reqBody.policy = opts.policy;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: reqHeaders,
+        body: JSON.stringify(reqBody),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Recipe execute failed (${res.status}): ${errBody}`);
+      }
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) {
+        throw new Error("Invalid recipe execute response");
+      }
+      const data = payload.data;
+      const rawSteps = Array.isArray(data.step_results) ? data.step_results : [];
+      return {
+        executionId: asString(data.execution_id) ?? "unknown",
+        recipeId: asString(data.recipe_id) ?? recipeId,
+        status: asString(data.status) ?? "unknown",
+        totalCostUsd: asNumber(data.total_cost_usd) ?? 0,
+        totalDurationMs: asNumber(data.total_duration_ms) ?? 0,
+        startedAt: asString(data.started_at),
+        completedAt: asString(data.completed_at),
+        error: asString(data.error),
+        receiptChainHash: asString(data.receipt_chain_hash),
+        deduplicated: data.deduplicated === true,
+        layer: asNumber(data.layer) ?? 3,
+        outputs: isRecord(data.outputs) ? data.outputs : {},
+        stepResults: rawSteps
+          .filter((step: unknown): step is Record<string, unknown> => isRecord(step))
+          .map((step) => ({
+            stepId: asString(step.step_id) ?? "unknown",
+            capabilityId: asString(step.capability_id),
+            status: asString(step.status) ?? "unknown",
+            outputs: isRecord(step.outputs) ? step.outputs : {},
+            costUsd: asNumber(step.cost_usd) ?? 0,
+            durationMs: asNumber(step.duration_ms) ?? 0,
+            receiptId: asString(step.receipt_id),
+            error: asString(step.error),
+            retriesUsed: asNumber(step.retries_used) ?? 0,
+            providerUsed: asString(step.provider_used),
+          })),
       };
     },
 

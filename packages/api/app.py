@@ -39,6 +39,7 @@ from routes import (
     explanations_v2,
     providers_v2,
     receipts_v2,
+    recipes_v2,
     resolve_v2,
     reviews,
     routing,
@@ -188,6 +189,7 @@ def create_app() -> FastAPI:
     application.include_router(resolve_v2.router, prefix="/v2", tags=["resolve-v2"])
     application.include_router(providers_v2.router, prefix="/v2", tags=["providers-v2"])
     application.include_router(receipts_v2.router, prefix="/v2", tags=["receipts-v2"])
+    application.include_router(recipes_v2.router, prefix="/v2", tags=["recipes-v2"])
     application.include_router(explanations_v2.router, prefix="/v2", tags=["explanations-v2"])
     application.include_router(services.router, prefix="/v1", tags=["services"])
     application.include_router(probes.router, prefix="/v1", tags=["probes"])
