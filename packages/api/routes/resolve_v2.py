@@ -19,9 +19,13 @@ internals land in later R40 slices.
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,6 +34,13 @@ from routes import capabilities as v1_capabilities
 from routes import capability_execute as v1_execute
 from services.error_envelope import RhumbError
 from services.policy_engine import PolicyProviderDecision, get_policy_engine
+from services.receipt_service import (
+    ReceiptInput,
+    get_receipt_service,
+    hash_caller_ip,
+    hash_request_payload,
+    hash_response_payload,
+)
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 
 router = APIRouter()
@@ -579,8 +590,59 @@ async def execute_capability_v2(
     )
     body = execute_response.json()
 
-    if execute_response.status_code == 200 and isinstance(body.get("data"), dict):
-        execution_data = body["data"]
+    # ── Receipt creation ─────────────────────────────────────────────
+    execution_end_ms = time.monotonic() * 1000
+    execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
+    execution_id = execution_data.get("execution_id", "")
+    is_success = execute_response.status_code == 200
+
+    receipt_id: str | None = None
+    try:
+        receipt_input = ReceiptInput(
+            execution_id=execution_id or f"v2-compat-{int(time.time())}",
+            capability_id=capability_id,
+            status="success" if is_success else "failure",
+            agent_id=execution_data.get("agent_id", "unknown"),
+            provider_id=selected_provider or "unknown",
+            credential_mode=payload.credential_mode,
+            layer=2,
+            org_id=execution_data.get("org_id"),
+            caller_ip_hash=hash_caller_ip(raw_request.client.host if raw_request.client else None),
+            provider_name=selected_provider,
+            router_version=_COMPAT_VERSION,
+            candidates_evaluated=(
+                len(provider_decision.candidate_providers)
+                if provider_decision and provider_decision.candidate_providers
+                else None
+            ),
+            winner_reason=(
+                provider_decision.selected_reason if provider_decision else None
+            ),
+            total_latency_ms=execution_data.get("latency_ms"),
+            rhumb_overhead_ms=execution_data.get("overhead_ms"),
+            provider_latency_ms=execution_data.get("provider_latency_ms"),
+            provider_cost_usd=float(estimated_cost) if estimated_cost else None,
+            request_hash=hash_request_payload(payload.parameters),
+            response_hash=hash_response_payload(execution_data.get("result")),
+            interface=f"{payload.interface}-v2",
+            compat_mode=_COMPAT_MODE,
+            idempotency_key=payload.idempotency_key or x_rhumb_idempotency_key,
+            error_code=body.get("error", {}).get("code") if not is_success else None,
+            error_message=body.get("error", {}).get("message") if not is_success else None,
+        )
+        receipt = await get_receipt_service().create_receipt(receipt_input)
+        receipt_id = receipt.receipt_id
+        logger.info(
+            "v2_receipt_created receipt_id=%s execution_id=%s provider=%s status=%s",
+            receipt_id, execution_id, selected_provider, receipt_input.status,
+        )
+    except Exception:
+        # Receipt creation must never block execution delivery.
+        # Log and continue — the execution result is still valid.
+        logger.exception("v2_receipt_creation_failed execution_id=%s", execution_id)
+
+    # ── Annotate response ─────────────────────────────────────────────
+    if is_success and execution_data:
         policy_summary = (
             provider_decision.policy_summary
             if provider_decision is not None
@@ -590,7 +652,7 @@ async def execute_capability_v2(
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
             "layer": 2,
-            "receipt_id": execution_data.get("receipt_id") or _compat_receipt_id(execution_data.get("execution_id")),
+            "receipt_id": receipt_id or _compat_receipt_id(execution_id),
             "selected_provider": selected_provider,
             "policy_applied": _effective_policy_active(effective_policy),
             "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
