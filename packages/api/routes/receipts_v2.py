@@ -14,7 +14,11 @@ from fastapi import APIRouter, HTTPException, Query
 
 from services.error_envelope import RhumbError
 from services.receipt_service import get_receipt_service
-from services.route_explanation import get_explanation
+from services.route_explanation import (
+    get_explanation,
+    get_persisted_explanation,
+    get_persisted_explanation_by_receipt,
+)
 
 router = APIRouter()
 
@@ -61,18 +65,19 @@ async def get_receipt_explanation(receipt_id: str) -> dict[str, Any]:
             "error": None,
         }
 
-    # Look up explanation by scanning the in-memory store for a matching receipt_id.
-    # (Explanations are keyed by explanation_id, but receipts reference them.)
-    from services.route_explanation import _explanation_store
+    # Preferred lookup order:
+    #   1. in-memory cache by explanation_id (hot same-process path)
+    #   2. persisted explanation by explanation_id (if receipt carries it later)
+    #   3. persisted explanation by receipt_id (durable cross-process path)
     explanation = None
-    for exp in _explanation_store.values():
-        # The receipt_id linkage is stored in the v2 execution response metadata.
-        # For now, the best match is via the explanation_id stored in the receipt.
-        # If the receipt contains an explanation_id, use that.
-        exp_id_from_receipt = receipt.get("explanation_id")
-        if exp_id_from_receipt:
-            explanation = get_explanation(exp_id_from_receipt)
-            break
+    exp_id_from_receipt = receipt.get("explanation_id")
+    if exp_id_from_receipt:
+        explanation = get_explanation(exp_id_from_receipt)
+        if explanation is None:
+            explanation = await get_persisted_explanation(str(exp_id_from_receipt))
+
+    if explanation is None:
+        explanation = await get_persisted_explanation_by_receipt(receipt_id)
 
     if explanation is None:
         return {

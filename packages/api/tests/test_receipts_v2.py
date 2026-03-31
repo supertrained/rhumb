@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from services.route_explanation import RouteExplanation
+
 
 @pytest.fixture
 def client():
@@ -68,6 +70,37 @@ def test_query_receipts_with_results(client):
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["count"] == 2
+
+
+def test_get_receipt_explanation_uses_persisted_receipt_link(client):
+    """GET /v2/receipts/{id}/explanation falls back to persisted route_explanations by receipt_id."""
+    receipt_data = {
+        "receipt_id": "rcpt_test123",
+        "execution_id": "exec_001",
+        "status": "success",
+        "chain_sequence": 1,
+        "layer": 2,
+        "receipt_hash": "sha256:abc",
+    }
+    persisted = RouteExplanation(
+        explanation_id="rexp_test123",
+        capability_id="search.query",
+        winner_provider_id="brave-search",
+        winner_composite_score=0.91,
+        selection_reason="best composite score",
+        human_summary="Brave Search won on quality and price.",
+    )
+    with (
+        patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock) as mock_get,
+    ):
+        mock_fetch.return_value = [receipt_data]
+        mock_get.return_value = persisted
+        resp = client.get("/v2/receipts/rcpt_test123/explanation")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["explanation_id"] == "rexp_test123"
+        assert body["data"]["winner"]["provider_id"] == "brave-search"
 
 
 def test_verify_chain_endpoint(client):

@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter
 from services.error_envelope import RhumbError
-from services.route_explanation import get_explanation
+from services.route_explanation import get_explanation, get_persisted_explanation
 
 router = APIRouter()
 
@@ -24,6 +24,8 @@ async def get_route_explanation(explanation_id: str) -> dict[str, Any]:
     and also queryable here.
     """
     explanation = get_explanation(explanation_id)
+    if explanation is None:
+        explanation = await get_persisted_explanation(explanation_id)
     if explanation is None:
         raise RhumbError(
             "CAPABILITY_NOT_FOUND",

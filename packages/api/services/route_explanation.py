@@ -17,7 +17,11 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Optional
+from urllib.parse import quote
+
+from routes._supabase import supabase_fetch, supabase_insert
 
 logger = logging.getLogger(__name__)
 
@@ -444,8 +448,107 @@ def store_explanation(explanation: RouteExplanation) -> None:
 
 
 def get_explanation(explanation_id: str) -> RouteExplanation | None:
-    """Retrieve a stored explanation by ID."""
+    """Retrieve a stored explanation by ID from the hot in-memory cache."""
     return _explanation_store.get(explanation_id)
+
+
+def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
+    """Hydrate a RouteExplanation from a persisted route_explanations row."""
+    created_at_ms = 0
+    created_at = row.get("created_at")
+    if isinstance(created_at, str):
+        try:
+            parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            created_at_ms = int(parsed.timestamp() * 1000)
+        except ValueError:
+            created_at_ms = 0
+
+    candidates_raw = row.get("candidates_json") or []
+    candidates: list[CandidateExplanation] = []
+    if isinstance(candidates_raw, list):
+        for candidate in candidates_raw:
+            if not isinstance(candidate, dict):
+                continue
+            factor_objs: dict[str, CandidateFactor] = {}
+            factors = candidate.get("factors") or {}
+            if isinstance(factors, dict):
+                for name, factor in factors.items():
+                    if not isinstance(factor, dict):
+                        continue
+                    factor_objs[name] = CandidateFactor(
+                        name=name,
+                        raw_value=float(factor.get("value") or 0.0),
+                        normalized_score=float(factor.get("normalized_score") or 0.0),
+                        weight=float(factor.get("weight") or 0.0),
+                    )
+            candidates.append(
+                CandidateExplanation(
+                    provider_id=str(candidate.get("provider_id") or "unknown"),
+                    eligible=bool(candidate.get("eligible", False)),
+                    composite_score=float(candidate.get("composite_score") or 0.0),
+                    factors=factor_objs,
+                    policy_checks=(candidate.get("policy_checks") if isinstance(candidate.get("policy_checks"), dict) else {}),
+                    ineligible_reason=candidate.get("ineligible_reason"),
+                )
+            )
+
+    return RouteExplanation(
+        explanation_id=str(row.get("explanation_id") or ""),
+        capability_id=str(row.get("capability_id") or "unknown"),
+        winner_provider_id=row.get("winner_provider_id"),
+        winner_composite_score=(float(row["winner_composite_score"]) if row.get("winner_composite_score") is not None else None),
+        selection_reason=str(row.get("winner_reason") or "persisted_route_explanation"),
+        candidates=candidates,
+        human_summary=str(row.get("human_summary") or ""),
+        created_at_ms=created_at_ms,
+    )
+
+
+async def persist_explanation(
+    explanation: RouteExplanation,
+    *,
+    receipt_id: str | None = None,
+) -> bool:
+    """Persist a route explanation so receipt/explanation reads survive restarts.
+
+    The hot in-memory cache remains useful for immediate same-process reads, but
+    the durable source of truth for read surfaces should be Supabase.
+    """
+    return await supabase_insert(
+        "route_explanations",
+        {
+            "explanation_id": explanation.explanation_id,
+            "receipt_id": receipt_id,
+            "capability_id": explanation.capability_id,
+            "winner_provider_id": explanation.winner_provider_id,
+            "winner_composite_score": explanation.winner_composite_score,
+            "winner_reason": explanation.selection_reason,
+            "candidates_json": [candidate.to_dict() for candidate in explanation.candidates],
+            "human_summary": explanation.human_summary,
+        },
+    )
+
+
+async def get_persisted_explanation(explanation_id: str) -> RouteExplanation | None:
+    """Retrieve a persisted explanation by explanation_id."""
+    rows = await supabase_fetch(
+        f"route_explanations?explanation_id=eq.{quote(explanation_id)}&limit=1"
+    )
+    if not rows:
+        return None
+    return _row_to_explanation(rows[0])
+
+
+async def get_persisted_explanation_by_receipt(receipt_id: str) -> RouteExplanation | None:
+    """Retrieve the latest persisted explanation linked to a receipt."""
+    rows = await supabase_fetch(
+        f"route_explanations?receipt_id=eq.{quote(receipt_id)}&order=created_at.desc&limit=1"
+    )
+    if not rows:
+        return None
+    return _row_to_explanation(rows[0])
 
 
 def clear_explanation_store() -> None:

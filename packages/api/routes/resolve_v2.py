@@ -45,7 +45,7 @@ from services.receipt_service import (
 )
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
-from services.route_explanation import build_explanation, store_explanation
+from services.route_explanation import build_explanation, persist_explanation, store_explanation
 
 router = APIRouter()
 
@@ -764,6 +764,7 @@ async def execute_capability_v2(
         )
         explanation_id = explanation.explanation_id
         store_explanation(explanation)
+        await persist_explanation(explanation, receipt_id=receipt_id)
     except Exception:
         logger.exception("v2_route_explanation_failed execution_id=%s", execution_id)
 
