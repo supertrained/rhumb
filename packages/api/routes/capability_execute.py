@@ -65,6 +65,7 @@ from services.receipt_service import (
     hash_request_payload,
     hash_response_payload,
 )
+from services.provider_attribution import build_attribution
 from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 _budget_enforcer = BudgetEnforcer()
@@ -2411,6 +2412,31 @@ async def execute_capability(
         response_data["receipt_id"] = byo_receipt_obj.receipt_id
     except Exception as receipt_err:
         logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
+
+    # ── Provider attribution (WU-41.2) ──────────────────────────────
+    try:
+        attribution = await build_attribution(
+            provider_slug=provider_slug,
+            layer=2,
+            receipt_id=response_data.get("receipt_id"),
+            cost_provider_usd=cost_per_call,
+            cost_rhumb_fee_usd=(
+                round(actual_margin_cents / 100, 6)
+                if actual_margin_cents and actual_margin_cents > 0 else None
+            ),
+            cost_total_usd=(
+                round(actual_billed_cents / 100, 6)
+                if actual_billed_cents and actual_billed_cents > 0 else None
+            ),
+            latency_total_ms=round(total_latency_ms, 1),
+            latency_provider_ms=round(upstream_latency_ms, 1),
+            latency_overhead_ms=round(total_latency_ms - upstream_latency_ms, 1),
+            credential_mode=request.credential_mode,
+        )
+        response_data["_rhumb"] = attribution.to_rhumb_block()
+        response_headers.update(attribution.to_response_headers())
+    except Exception:
+        logger.exception("v1_attribution_failed execution_id=%s provider=%s", execution_id, provider_slug)
 
     if response_headers:
         response = JSONResponse(

@@ -33,6 +33,7 @@ from routes._supabase import supabase_fetch
 from routes.proxy import SERVICE_REGISTRY, normalize_slug
 from services.budget_enforcer import BudgetStatus
 from services.error_envelope import RhumbError
+from services.provider_attribution import build_attribution_sync
 from services.receipt_service import (
     ReceiptInput,
     get_receipt_service,
@@ -555,6 +556,26 @@ async def execute_on_provider(
     except Exception:
         logger.exception("l1_receipt_creation_failed execution_id=%s", execution_id)
 
+    # ── Provider attribution (WU-41.2) ────────────────────────────────
+    provider_latency_ms = execution_data.get("provider_latency_ms")
+    attribution = build_attribution_sync(
+        provider_slug=provider_slug,
+        provider_name=detail.get("name"),
+        provider_category=detail.get("category"),
+        provider_docs_url=detail.get("official_docs"),
+        an_score=detail.get("aggregate_recommendation_score"),
+        tier=detail.get("tier_label"),
+        layer=_LAYER,
+        receipt_id=receipt_id,
+        cost_provider_usd=layer1_cost["provider_cost_usd"],
+        cost_rhumb_fee_usd=layer1_cost["rhumb_fee_usd"],
+        cost_total_usd=layer1_cost["total_usd"],
+        latency_total_ms=float(t_total_ms),
+        latency_provider_ms=float(provider_latency_ms) if provider_latency_ms else None,
+        latency_overhead_ms=float(t_total_ms - (provider_latency_ms or t_total_ms)),
+        credential_mode=payload.credential_mode,
+    )
+
     # ── Annotate response with Layer 1 metadata ──────────────────────
     if is_success and execution_data:
         execution_data["_rhumb_v2"] = {
@@ -571,18 +592,20 @@ async def execute_on_provider(
             "cost": layer1_cost,
             "latency": {
                 "total_ms": t_total_ms,
-                "provider_ms": execution_data.get("provider_latency_ms"),
-                "rhumb_overhead_ms": t_total_ms - (execution_data.get("provider_latency_ms") or t_total_ms),
+                "provider_ms": provider_latency_ms,
+                "rhumb_overhead_ms": t_total_ms - (provider_latency_ms or t_total_ms),
             },
             "budget_applied": bool(budget_status and budget_status.budget_usd is not None),
             "budget_summary": _budget_summary(budget_status),
         }
+        # Inject canonical _rhumb provider identity block
+        execution_data["_rhumb"] = attribution.to_rhumb_block()
+
+    merged_headers = _merge_response_headers(execute_response)
+    merged_headers.update(attribution.to_response_headers())
 
     return JSONResponse(
         status_code=execute_response.status_code,
         content=body,
-        headers={
-            **_merge_response_headers(execute_response),
-            "X-Rhumb-Provider": provider_slug,
-        },
+        headers=merged_headers,
     )

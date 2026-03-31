@@ -42,6 +42,7 @@ from services.receipt_service import (
     hash_request_payload,
     hash_response_payload,
 )
+from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 
 router = APIRouter()
@@ -696,6 +697,21 @@ async def execute_capability_v2(
         # Log and continue — the execution result is still valid.
         logger.exception("v2_receipt_creation_failed execution_id=%s", execution_id)
 
+    # ── Provider attribution (WU-41.2) ─────────────────────────────
+    attribution_headers: dict[str, str] = {}
+    try:
+        attribution = await build_attribution(
+            provider_slug=selected_provider or "unknown",
+            layer=2,
+            receipt_id=receipt_id,
+            cost_provider_usd=float(estimated_cost) if estimated_cost else None,
+            credential_mode=payload.credential_mode,
+        )
+        attribution_headers = attribution.to_response_headers()
+    except Exception:
+        logger.exception("v2_attribution_failed execution_id=%s", execution_id)
+        attribution = None
+
     # ── Annotate response ─────────────────────────────────────────────
     if is_success and execution_data:
         policy_summary = (
@@ -703,7 +719,7 @@ async def execute_capability_v2(
             if provider_decision is not None
             else _policy_summary(effective_policy)
         )
-        execution_data["_rhumb_v2"] = {
+        v2_meta: dict[str, Any] = {
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
             "layer": 2,
@@ -726,9 +742,17 @@ async def execute_capability_v2(
                 "idempotency_header_used": bool(x_rhumb_idempotency_key and not payload.idempotency_key),
             },
         }
+        execution_data["_rhumb_v2"] = v2_meta
+
+        # Inject canonical _rhumb provider identity block
+        if attribution is not None:
+            execution_data["_rhumb"] = attribution.to_rhumb_block()
+
+    merged_headers = _merge_response_headers(execute_response)
+    merged_headers.update(attribution_headers)
 
     return JSONResponse(
         status_code=execute_response.status_code,
         content=body,
-        headers=_merge_response_headers(execute_response),
+        headers=merged_headers,
     )
