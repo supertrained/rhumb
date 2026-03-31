@@ -35,6 +35,7 @@ from services.budget_enforcer import BudgetStatus
 from services.error_envelope import RhumbError
 from services.provider_attribution import build_attribution_sync
 from services.route_explanation import build_layer1_explanation, store_explanation
+from services.service_slugs import canonicalize_service_slug
 from services.receipt_service import (
     ReceiptInput,
     get_receipt_service,
@@ -129,6 +130,18 @@ class L1ExecuteRequest(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _provider_slug_candidates(provider_id: str) -> list[str]:
+    candidates: list[str] = []
+    for candidate in (
+        provider_id,
+        normalize_slug(provider_id),
+        canonicalize_service_slug(provider_id),
+    ):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
 def _compat_headers() -> dict[str, str]:
     return {
         "X-Rhumb-Version": _COMPAT_VERSION,
@@ -214,26 +227,28 @@ def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
 
 async def _resolve_provider_services(provider_id: str) -> list[dict]:
     """Fetch all capability mappings for a given provider slug."""
-    normalized = normalize_slug(provider_id)
-    rows = await supabase_fetch(
-        f"capability_services?service_slug=eq.{quote(normalized)}"
-        f"&select=capability_id,service_slug,credential_modes,auth_method,"
-        f"endpoint_pattern,cost_per_call,cost_currency,free_tier_calls"
-    )
-    return rows or []
+    for candidate in _provider_slug_candidates(provider_id):
+        rows = await supabase_fetch(
+            f"capability_services?service_slug=eq.{quote(candidate)}"
+            f"&select=capability_id,service_slug,credential_modes,auth_method,"
+            f"endpoint_pattern,cost_per_call,cost_currency,free_tier_calls"
+        )
+        if rows:
+            return rows
+    return []
 
 
 async def _resolve_provider_detail(provider_id: str) -> dict | None:
     """Fetch the service detail for a provider slug."""
-    normalized = normalize_slug(provider_id)
-    rows = await supabase_fetch(
-        f"services?slug=eq.{quote(normalized)}"
-        f"&select=slug,name,description,category,api_domain,"
-        f"aggregate_recommendation_score,tier_label"
-        f"&limit=1"
-    )
-    if rows:
-        return rows[0]
+    for candidate in _provider_slug_candidates(provider_id):
+        rows = await supabase_fetch(
+            f"services?slug=eq.{quote(candidate)}"
+            f"&select=slug,name,description,category,api_domain,"
+            f"aggregate_recommendation_score,tier_label"
+            f"&limit=1"
+        )
+        if rows:
+            return rows[0]
     return None
 
 

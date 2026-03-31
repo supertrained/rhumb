@@ -128,6 +128,39 @@ class TestGetProvider:
         assert data["pricing"]["markup_rate"] == 0.08
         assert data["pricing"]["markup_floor_usd"] == 0.0002
 
+    def test_get_provider_accepts_alias_when_detail_and_mappings_use_different_slugs(self, client):
+        def mock_fetch(query: str):
+            if query.startswith("services?") and "slug=eq.brave-search-api" in query:
+                return [{
+                    "slug": "brave-search-api",
+                    "name": "Brave Search",
+                    "description": "Brave Search API",
+                    "category": "search",
+                    "api_domain": "api.search.brave.com",
+                    "aggregate_recommendation_score": 8.1,
+                    "tier_label": "L4",
+                }]
+            if query.startswith("capability_services?") and "service_slug=eq.brave-search" in query:
+                return [{
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "credential_modes": "byo,rhumb_managed",
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": 0.003,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 2000,
+                }]
+            return []
+
+        with patch("routes.providers_v2.supabase_fetch", side_effect=mock_fetch):
+            resp = client.get("/v2/providers/brave-search-api")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["id"] == "brave-search-api"
+        assert data["capabilities"][0]["capability_id"] == "search.query"
+
     def test_get_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
             resp = client.get("/v2/providers/nonexistent")
