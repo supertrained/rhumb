@@ -198,6 +198,14 @@ class PolicyEngine:
             policy_summary=self._policy_summary(policy, filtered),
         )
 
+    def summarize_policy(
+        self,
+        policy: Any | None,
+        mappings: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Return a normalized summary of the currently supported policy subset."""
+        return self._policy_summary(policy, mappings or [])
+
     @staticmethod
     def _normalize_slug(value: Any) -> str | None:
         if value is None:

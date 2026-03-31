@@ -6,6 +6,7 @@ compatibility namespace without breaking the existing `/v1/` contract.
 Current scope:
 - `/v2/health`
 - `/v2/capabilities`
+- `/v2/policy`
 - `/v2/capabilities/{capability_id}/execute/estimate`
 - `/v2/capabilities/{capability_id}/execute`
 
@@ -29,11 +30,24 @@ from routes import capabilities as v1_capabilities
 from routes import capability_execute as v1_execute
 from services.error_envelope import RhumbError
 from services.policy_engine import PolicyProviderDecision, get_policy_engine
+from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 
 router = APIRouter()
 
 _COMPAT_VERSION = "2026-03-30"
 _COMPAT_MODE = "v1-translate"
+_SUPPORTED_POLICY_FIELDS = [
+    "pin",
+    "provider_preference",
+    "provider_deny",
+    "allow_only",
+    "max_cost_usd",
+]
+_POLICY_LIST_FIELDS = [
+    "provider_preference",
+    "provider_deny",
+    "allow_only",
+]
 _FORWARD_HEADER_NAMES = [
     "X-Rhumb-Key",
     "X-Agent-Token",
@@ -53,7 +67,7 @@ _RESPONSE_HEADER_NAMES = [
 
 
 class V2CapabilityPolicy(BaseModel):
-    """Subset of the v2 policy envelope supported by the compatibility slice."""
+    """Inline v2 per-call policy overrides for the supported compat subset."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -61,22 +75,50 @@ class V2CapabilityPolicy(BaseModel):
         default=None,
         description="Hard-pin execution to a specific provider.",
     )
-    provider_preference: list[str] = Field(
-        default_factory=list,
-        description="Ordered provider preference list.",
+    provider_preference: list[str] | None = Field(
+        default=None,
+        description="Ordered provider preference list. Set to [] to clear stored account preference for this call.",
     )
-    provider_deny: list[str] = Field(
-        default_factory=list,
+    provider_deny: list[str] | None = Field(
+        default=None,
         description="Providers that must not be used for this execution.",
     )
-    allow_only: list[str] = Field(
-        default_factory=list,
-        description="If present, restrict execution to this provider subset.",
+    allow_only: list[str] | None = Field(
+        default=None,
+        description="If present, restrict execution to this provider subset. Set to [] to clear stored account restriction for this call.",
     )
     max_cost_usd: float | None = Field(
         default=None,
         ge=0,
         description="Hard per-call ceiling enforced before execution using the existing estimate path.",
+    )
+
+
+class V2StoredPolicy(BaseModel):
+    """Persisted organization-level policy subset that v2 supports today."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    pin: str | None = Field(
+        default=None,
+        description="Stored provider pin for this organization.",
+    )
+    provider_preference: list[str] = Field(
+        default_factory=list,
+        description="Stored ordered provider preferences for this organization.",
+    )
+    provider_deny: list[str] = Field(
+        default_factory=list,
+        description="Stored deny-list for this organization.",
+    )
+    allow_only: list[str] = Field(
+        default_factory=list,
+        description="Stored allow-list for this organization.",
+    )
+    max_cost_usd: float | None = Field(
+        default=None,
+        ge=0,
+        description="Stored per-call max-cost ceiling for this organization.",
     )
 
 
@@ -91,7 +133,7 @@ class V2CapabilityExecuteRequest(BaseModel):
     )
     policy: V2CapabilityPolicy | None = Field(
         default=None,
-        description="Optional execution policy subset supported by the compat layer.",
+        description="Optional per-call override subset supported by the compat layer.",
     )
     credential_mode: str = Field(
         default="auto",
@@ -178,6 +220,31 @@ def _preferred_provider(policy: V2CapabilityPolicy | None) -> str | None:
     return None
 
 
+async def _resolve_policy_agent(raw_request: Request):
+    x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    if not x_rhumb_key:
+        raise RhumbError(
+            "CREDENTIAL_INVALID",
+            message="Resolve v2 policy endpoints require a valid Rhumb API key.",
+            detail="Provide a valid X-Rhumb-Key header tied to an organization-backed agent.",
+        )
+
+    agent = await v1_execute._get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise RhumbError(
+            "CREDENTIAL_INVALID",
+            message="Invalid or expired Rhumb API key.",
+            detail="Provide a valid X-Rhumb-Key header or use an x402 payment flow.",
+        )
+    if not agent.organization_id:
+        raise RhumbError(
+            "CREDENTIAL_INVALID",
+            message="Rhumb API key is not attached to an organization.",
+            detail="Rotate or recreate the key after the agent has been attached to an organization.",
+        )
+    return agent
+
+
 async def _resolve_policy_agent_id(raw_request: Request) -> str:
     x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
     if not x_rhumb_key:
@@ -191,6 +258,85 @@ async def _resolve_policy_agent_id(raw_request: Request) -> str:
             detail="Provide a valid X-Rhumb-Key header or use an x402 payment flow.",
         )
     return agent.agent_id
+
+
+def _effective_policy_active(policy: V2CapabilityPolicy | None) -> bool:
+    if policy is None:
+        return False
+    policy_engine = get_policy_engine()
+    return policy_engine.has_provider_controls(policy) or policy.max_cost_usd is not None
+
+
+def _stored_policy_to_response(policy: StoredResolvePolicy | None) -> V2StoredPolicy:
+    if policy is None:
+        return V2StoredPolicy()
+    return V2StoredPolicy(
+        pin=policy.pin,
+        provider_preference=list(policy.provider_preference or []),
+        provider_deny=list(policy.provider_deny or []),
+        allow_only=list(policy.allow_only or []),
+        max_cost_usd=policy.max_cost_usd,
+    )
+
+
+def _stored_policy_to_inline(policy: StoredResolvePolicy | None) -> V2CapabilityPolicy | None:
+    if policy is None:
+        return None
+    return V2CapabilityPolicy(
+        pin=policy.pin,
+        provider_preference=list(policy.provider_preference or []),
+        provider_deny=list(policy.provider_deny or []),
+        allow_only=list(policy.allow_only or []),
+        max_cost_usd=policy.max_cost_usd,
+    )
+
+
+def _merge_effective_policy(
+    account_policy: StoredResolvePolicy | None,
+    inline_policy: V2CapabilityPolicy | None,
+) -> tuple[V2CapabilityPolicy | None, dict[str, Any]]:
+    account_inline = _stored_policy_to_inline(account_policy)
+    values: dict[str, Any] = {}
+    organization_fields: list[str] = []
+    inline_fields: list[str] = []
+
+    for field_name in _SUPPORTED_POLICY_FIELDS:
+        inline_supplied = inline_policy is not None and field_name in inline_policy.model_fields_set
+        if inline_supplied:
+            value = getattr(inline_policy, field_name)
+            inline_fields.append(field_name)
+        elif account_inline is not None:
+            value = getattr(account_inline, field_name)
+            has_value = value is not None and (not isinstance(value, list) or bool(value))
+            if has_value:
+                organization_fields.append(field_name)
+        else:
+            value = None
+
+        if field_name in _POLICY_LIST_FIELDS:
+            if inline_supplied or (value is not None and value):
+                values[field_name] = list(value or [])
+            continue
+
+        if value is not None:
+            values[field_name] = value
+
+    effective_policy = None
+    if values or organization_fields or inline_fields:
+        effective_policy = V2CapabilityPolicy(**values)
+
+    return effective_policy, {
+        "scope": "organization",
+        "has_account_policy": _effective_policy_active(account_inline),
+        "organization_fields": organization_fields,
+        "inline_fields": inline_fields,
+    }
+
+
+def _policy_summary(policy: V2CapabilityPolicy | None) -> dict[str, Any] | None:
+    if policy is None:
+        return None
+    return get_policy_engine().summarize_policy(policy)
 
 
 async def _evaluate_provider_policy(
@@ -248,6 +394,69 @@ async def list_capabilities_v2(
     return body
 
 
+@router.get("/policy")
+async def get_policy_v2(raw_request: Request) -> dict[str, Any]:
+    agent = await _resolve_policy_agent(raw_request)
+    stored_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
+    policy = _stored_policy_to_response(stored_policy)
+    return {
+        "error": None,
+        "data": {
+            "scope": "organization",
+            "organization_id": agent.organization_id,
+            "policy": policy.model_dump(),
+            "has_policy": _effective_policy_active(_stored_policy_to_inline(stored_policy)),
+            "updated_at": stored_policy.updated_at if stored_policy else None,
+            "_rhumb_v2": {
+                "api_version": "v2-alpha",
+                "compat_mode": _COMPAT_MODE,
+                "layer": 2,
+                "supported_policy_fields": _SUPPORTED_POLICY_FIELDS,
+            },
+        },
+    }
+
+
+@router.put("/policy")
+async def put_policy_v2(
+    payload: V2StoredPolicy,
+    raw_request: Request,
+) -> dict[str, Any]:
+    agent = await _resolve_policy_agent(raw_request)
+    stored_policy = await get_resolve_policy_store().put_policy(
+        agent.organization_id,
+        pin=payload.pin,
+        provider_preference=payload.provider_preference,
+        provider_deny=payload.provider_deny,
+        allow_only=payload.allow_only,
+        max_cost_usd=payload.max_cost_usd,
+    )
+    if stored_policy is None:
+        raise RhumbError(
+            "SERVICE_UNAVAILABLE",
+            message="Unable to persist Resolve v2 policy at the moment.",
+            detail="Retry shortly. If the problem persists, check Supabase availability.",
+        )
+
+    response_policy = _stored_policy_to_response(stored_policy)
+    return {
+        "error": None,
+        "data": {
+            "scope": "organization",
+            "organization_id": agent.organization_id,
+            "policy": response_policy.model_dump(),
+            "has_policy": _effective_policy_active(_stored_policy_to_inline(stored_policy)),
+            "updated_at": stored_policy.updated_at,
+            "_rhumb_v2": {
+                "api_version": "v2-alpha",
+                "compat_mode": _COMPAT_MODE,
+                "layer": 2,
+                "supported_policy_fields": _SUPPORTED_POLICY_FIELDS,
+            },
+        },
+    }
+
+
 @router.get("/capabilities/{capability_id}/execute/estimate")
 async def estimate_capability_v2(
     capability_id: str,
@@ -287,11 +496,17 @@ async def execute_capability_v2(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
-    provider_decision = await _evaluate_provider_policy(capability_id, raw_request, payload.policy)
+    account_policy = None
+    if raw_request.headers.get("X-Rhumb-Key"):
+        agent = await _resolve_policy_agent(raw_request)
+        account_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
+
+    effective_policy, policy_source = _merge_effective_policy(account_policy, payload.policy)
+    provider_decision = await _evaluate_provider_policy(capability_id, raw_request, effective_policy)
     preferred_provider = (
         provider_decision.selected_provider
         if provider_decision and provider_decision.selected_provider
-        else _preferred_provider(payload.policy)
+        else _preferred_provider(effective_policy)
     )
 
     estimate_response = await _forward_internal(
@@ -333,13 +548,13 @@ async def execute_capability_v2(
             },
         )
 
-    if payload.policy and payload.policy.max_cost_usd is not None and estimated_cost is not None:
-        if float(estimated_cost) > payload.policy.max_cost_usd:
+    if effective_policy and effective_policy.max_cost_usd is not None and estimated_cost is not None:
+        if float(estimated_cost) > effective_policy.max_cost_usd:
             raise RhumbError(
                 "BUDGET_EXCEEDED",
                 message=(
                     f"Estimated call cost ${float(estimated_cost):.4f} exceeds policy ceiling "
-                    f"${payload.policy.max_cost_usd:.4f}."
+                    f"${effective_policy.max_cost_usd:.4f}."
                 ),
                 detail="Raise max_cost_usd, choose a cheaper provider, or retry without a hard ceiling.",
             )
@@ -366,17 +581,22 @@ async def execute_capability_v2(
 
     if execute_response.status_code == 200 and isinstance(body.get("data"), dict):
         execution_data = body["data"]
-        policy_summary = provider_decision.policy_summary if provider_decision else None
+        policy_summary = (
+            provider_decision.policy_summary
+            if provider_decision is not None
+            else _policy_summary(effective_policy)
+        )
         execution_data["_rhumb_v2"] = {
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
             "layer": 2,
             "receipt_id": execution_data.get("receipt_id") or _compat_receipt_id(execution_data.get("execution_id")),
             "selected_provider": selected_provider,
-            "policy_applied": bool(payload.policy),
+            "policy_applied": _effective_policy_active(effective_policy),
             "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
             "policy_candidates": provider_decision.candidate_providers if provider_decision else None,
             "policy_summary": policy_summary,
+            "policy_source": policy_source,
             "estimated_cost_usd": estimated_cost,
             "translated_from": {
                 "parameters": True,
