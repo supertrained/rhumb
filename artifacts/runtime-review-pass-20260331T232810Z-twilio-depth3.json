@@ -1,0 +1,177 @@
+{
+  "provider": "twilio",
+  "canonical_publish_slug": "twilio",
+  "capability_id": "phone.lookup",
+  "number": "+14155552671",
+  "fields": "line_type_intelligence",
+  "review_kind": "current_depth3",
+  "organization_id": "org_runtime_review_twilio_20260331t232810z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260331T232810Z-twilio-depth3.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "d5e5b660-db48-4009-9cfa-212a97f74925",
+    "organization_id": "org_runtime_review_twilio_20260331t232810z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "f91b3c12-5a88-4a52-95e1-f0d4f702cb65"
+  },
+  "observed_at": "2026-03-31T23:28:16Z",
+  "fresh_until": "2026-04-30T23:28:16Z",
+  "counts_before": {
+    "published_reviews": 6,
+    "runtime_backed_reviews": 2
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "phone.lookup",
+        "provider": "twilio",
+        "credential_mode": "byo",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "GET /v2/PhoneNumbers/{number}?Fields=carrier"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "phone.lookup",
+        "provider_used": "twilio",
+        "credential_mode": "byo",
+        "upstream_status": 200,
+        "upstream_response": {
+          "call_forwarding": null,
+          "caller_name": null,
+          "calling_country_code": "1",
+          "country_code": "US",
+          "identity_match": null,
+          "line_status": null,
+          "line_type_intelligence": {
+            "carrier_name": null,
+            "error_code": 60600,
+            "mobile_country_code": null,
+            "mobile_network_code": null,
+            "type": null
+          },
+          "national_format": "(415) 555-2671",
+          "phone_number": "+14155552671",
+          "phone_number_quality_score": null,
+          "pre_fill": null,
+          "reassigned_number": null,
+          "sim_swap": null,
+          "sms_pumping_risk": null,
+          "url": "https://lookups.twilio.com/v2/PhoneNumbers/+14155552671",
+          "valid": true,
+          "validation_errors": []
+        },
+        "cost_estimate_usd": null,
+        "latency_ms": 228.9,
+        "fallback_attempted": false,
+        "fallback_provider": null,
+        "execution_id": "exec_0579b57421b0404c840fca339e6f444f",
+        "receipt_id": "rcpt_e35b26fdca634ddfae50c71f",
+        "_rhumb": {
+          "provider": {
+            "id": "twilio",
+            "name": "twilio",
+            "category": null,
+            "docs_url": null,
+            "an_score": null,
+            "tier": null
+          },
+          "layer": 2,
+          "receipt_id": "rcpt_e35b26fdca634ddfae50c71f",
+          "latency": {
+            "total_ms": 228.9,
+            "provider_ms": 221.1,
+            "overhead_ms": 7.8
+          },
+          "credential_mode": "byo"
+        }
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "call_forwarding": null,
+      "caller_name": null,
+      "calling_country_code": "1",
+      "country_code": "US",
+      "identity_match": null,
+      "line_status": null,
+      "line_type_intelligence": {
+        "carrier_name": null,
+        "error_code": 60600,
+        "mobile_country_code": null,
+        "mobile_network_code": null,
+        "type": null
+      },
+      "national_format": "(415) 555-2671",
+      "phone_number": "+14155552671",
+      "phone_number_quality_score": null,
+      "pre_fill": null,
+      "reassigned_number": null,
+      "sim_swap": null,
+      "sms_pumping_risk": null,
+      "url": "https://lookups.twilio.com/v2/PhoneNumbers/+14155552671",
+      "valid": true,
+      "validation_errors": []
+    }
+  },
+  "comparison": {
+    "rhumb_fields": {
+      "phone_number": "+14155552671",
+      "valid": true,
+      "country_code": "US",
+      "calling_country_code": "1",
+      "national_format": "(415) 555-2671",
+      "line_type_intelligence": {
+        "type": null,
+        "carrier_name": null,
+        "error_code": 60600
+      }
+    },
+    "direct_fields": {
+      "phone_number": "+14155552671",
+      "valid": true,
+      "country_code": "US",
+      "calling_country_code": "1",
+      "national_format": "(415) 555-2671",
+      "line_type_intelligence": {
+        "type": null,
+        "carrier_name": null,
+        "error_code": 60600
+      }
+    },
+    "parity": true
+  },
+  "catalog_note": {
+    "estimate_endpoint_pattern": "GET /v2/PhoneNumbers/{number}?Fields=carrier",
+    "runtime_field_used": "line_type_intelligence",
+    "observation": "Twilio Lookup v2 accepted Fields=line_type_intelligence; estimate still advertises the deprecated carrier field."
+  },
+  "verdict": "pass",
+  "published": {
+    "canonical_service_slug": "twilio",
+    "public_service_route": "twilio",
+    "evidence_id": "50d097c6-f74f-49fc-bc8a-ccfcad0c9865",
+    "review_id": "ecc41a35-8c41-4804-834b-49b94c987675",
+    "execution_id": "exec_0579b57421b0404c840fca339e6f444f"
+  },
+  "counts_after": {
+    "published_reviews": 7,
+    "runtime_backed_reviews": 3
+  },
+  "agent_disabled": true
+}
