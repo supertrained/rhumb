@@ -18,7 +18,6 @@ Two-person auth for global:
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import threading
 import time
@@ -26,6 +25,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+
+from services.chain_integrity import build_kill_switch_payload, compute_chain_hmac
+from services.principal_auth import PrincipalIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +158,7 @@ class KillSwitchRegistry:
             target=agent_id,
             key=f"agent:{agent_id}",
             reason=reason,
-            principal=principal,
+            principal=self._principal_id(principal),
         )
 
     def kill_provider(self, provider_slug: str, reason: str, principal: str) -> KillSwitchEntry:
@@ -166,7 +168,7 @@ class KillSwitchRegistry:
             target=provider_slug,
             key=f"provider:{provider_slug}",
             reason=reason,
-            principal=principal,
+            principal=self._principal_id(principal),
         )
 
     def kill_recipe(self, recipe_id: str, reason: str, principal: str) -> KillSwitchEntry:
@@ -176,51 +178,53 @@ class KillSwitchRegistry:
             target=recipe_id,
             key=f"recipe:{recipe_id}",
             reason=reason,
-            principal=principal,
+            principal=self._principal_id(principal),
         )
 
-    def request_global_kill(self, reason: str, principal: str) -> dict[str, Any]:
+    def request_global_kill(self, reason: str, principal: PrincipalIdentity) -> dict[str, Any]:
         """Request L4 global kill switch. Requires second approver.
 
         Returns a pending approval object. The switch is NOT active until
         a second principal approves within the time window.
         """
+        requester = self._require_principal(principal)
         with self._lock:
             request_id = f"gkill_{self._entry_counter + 1:08d}"
             self._pending_global[request_id] = _PendingGlobalKill(
                 request_id=request_id,
                 reason=reason,
-                requester=principal,
+                requester=requester,
                 requested_at=time.monotonic(),
                 expires_at=time.monotonic() + self.GLOBAL_APPROVAL_WINDOW_SECONDS,
             )
             self._append_audit(
                 switch_id=request_id,
                 action="request_global_kill",
-                principal=principal,
+                principal=requester.canonical_id,
                 details=f"Global kill requested: {reason}",
             )
 
         logger.critical(
             "GLOBAL_KILL_REQUESTED requester=%s reason=%s request_id=%s",
-            principal, reason, request_id,
+            requester.canonical_id, reason, request_id,
         )
 
         return {
             "request_id": request_id,
             "status": "pending_approval",
-            "requester": principal,
+            "requester": requester.canonical_id,
             "reason": reason,
             "expires_in_seconds": self.GLOBAL_APPROVAL_WINDOW_SECONDS,
             "message": "A second authorized principal must approve this request.",
         }
 
-    def approve_global_kill(self, request_id: str, approver: str) -> KillSwitchEntry | None:
+    def approve_global_kill(self, request_id: str, approver: PrincipalIdentity) -> KillSwitchEntry | None:
         """Approve a pending global kill switch request.
 
         The approver MUST be different from the requester.
         Returns the activated KillSwitchEntry, or None if invalid.
         """
+        approver_identity = self._require_principal(approver)
         with self._lock:
             pending = self._pending_global.get(request_id)
             if pending is None:
@@ -234,10 +238,10 @@ class KillSwitchRegistry:
                 return None
 
             # Same person?
-            if approver == pending.requester:
+            if pending.requester.is_same_principal(approver_identity):
                 logger.warning(
                     "global_kill_approve_failed: %s cannot approve their own request",
-                    approver,
+                    approver_identity.canonical_id,
                 )
                 return None
 
@@ -248,19 +252,23 @@ class KillSwitchRegistry:
                 target="global",
                 key="global",
                 reason=pending.reason,
-                principal=pending.requester,
-                second_approver=approver,
+                principal=pending.requester.canonical_id,
+                second_approver=approver_identity.canonical_id,
             )
             self._append_audit(
                 switch_id=entry.switch_id,
                 action="approve_global_kill",
-                principal=approver,
-                details=f"Global kill approved by {approver} (requested by {pending.requester})",
+                principal=approver_identity.canonical_id,
+                details=(
+                    "Global kill approved by "
+                    f"{approver_identity.canonical_id} "
+                    f"(requested by {pending.requester.canonical_id})"
+                ),
             )
 
         logger.critical(
             "GLOBAL_KILL_ACTIVATED requester=%s approver=%s switch_id=%s",
-            pending.requester, approver, entry.switch_id,
+            pending.requester.canonical_id, approver_identity.canonical_id, entry.switch_id,
         )
 
         return entry
@@ -343,14 +351,23 @@ class KillSwitchRegistry:
         with self._lock:
             prev_hash = self.GENESIS_HASH
             for entry in self._audit:
-                expected = self._compute_hash(
-                    prev_hash, entry.entry_id, entry.action,
-                    entry.principal, entry.timestamp.isoformat(),
-                )
+                expected = self._compute_hash(prev_hash, entry)
                 if entry.chain_hash != expected or entry.prev_hash != prev_hash:
                     return False
                 prev_hash = entry.chain_hash
             return True
+
+    @staticmethod
+    def _principal_id(principal: str | PrincipalIdentity) -> str:
+        if isinstance(principal, PrincipalIdentity):
+            return principal.canonical_id
+        return principal
+
+    @staticmethod
+    def _require_principal(principal: PrincipalIdentity) -> PrincipalIdentity:
+        if not isinstance(principal, PrincipalIdentity):
+            raise TypeError("verified PrincipalIdentity required")
+        return principal
 
     @property
     def active_count(self) -> int:
@@ -410,9 +427,6 @@ class KillSwitchRegistry:
         self._entry_counter += 1
         entry_id = f"ksaud_{self._entry_counter:08d}"
         now = datetime.now(timezone.utc)
-        chain_hash = self._compute_hash(
-            self._prev_hash, entry_id, action, principal, now.isoformat(),
-        )
         entry = KillSwitchAuditEntry(
             entry_id=entry_id,
             switch_id=switch_id,
@@ -420,8 +434,19 @@ class KillSwitchRegistry:
             principal=principal,
             timestamp=now,
             details=details,
-            chain_hash=chain_hash,
+            chain_hash="",
             prev_hash=self._prev_hash,
+        )
+        chain_hash = self._compute_hash(self._prev_hash, entry)
+        entry = KillSwitchAuditEntry(
+            entry_id=entry.entry_id,
+            switch_id=entry.switch_id,
+            action=entry.action,
+            principal=entry.principal,
+            timestamp=entry.timestamp,
+            details=entry.details,
+            chain_hash=chain_hash,
+            prev_hash=entry.prev_hash,
         )
         self._audit.append(entry)
         self._prev_hash = chain_hash
@@ -430,13 +455,10 @@ class KillSwitchRegistry:
     @staticmethod
     def _compute_hash(
         prev_hash: str,
-        entry_id: str,
-        action: str,
-        principal: str,
-        timestamp: str,
+        entry: KillSwitchAuditEntry,
     ) -> str:
-        payload = f"{prev_hash}|{entry_id}|{action}|{principal}|{timestamp}"
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        payload = build_kill_switch_payload(entry)
+        return compute_chain_hmac(prev_hash, payload)
 
 
 @dataclass
@@ -445,7 +467,7 @@ class _PendingGlobalKill:
 
     request_id: str
     reason: str
-    requester: str
+    requester: PrincipalIdentity
     requested_at: float
     expires_at: float
 

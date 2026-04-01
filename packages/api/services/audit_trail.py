@@ -16,16 +16,17 @@ Chain-hash integrity is verifiable by any consumer at any time.
 from __future__ import annotations
 
 import csv
-import hashlib
 import io
 import json
 import logging
 import threading
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 from uuid import uuid4
+
+from services.chain_integrity import build_audit_payload, compute_chain_hmac
 
 logger = logging.getLogger(__name__)
 
@@ -345,10 +346,24 @@ class AuditTrail:
 
             chain_hash = self._compute_hash(
                 self._prev_hash,
-                event_id,
-                event_type.value,
-                str(self._sequence),
-                now.isoformat(),
+                {
+                    "event_id": event_id,
+                    "event_type": event_type,
+                    "severity": severity,
+                    "category": category,
+                    "timestamp": now,
+                    "org_id": org_id,
+                    "agent_id": agent_id,
+                    "principal": principal,
+                    "resource_type": resource_type,
+                    "resource_id": resource_id,
+                    "action": action,
+                    "detail": detail or {},
+                    "receipt_id": receipt_id,
+                    "execution_id": execution_id,
+                    "provider_slug": provider_slug,
+                    "metadata": {},
+                },
             )
 
             event = AuditEvent(
@@ -488,13 +503,7 @@ class AuditTrail:
         with self._lock:
             prev_hash = self.GENESIS_HASH
             for i, event in enumerate(self._events):
-                expected = self._compute_hash(
-                    prev_hash,
-                    event.event_id,
-                    event.event_type.value,
-                    str(event.chain_sequence),
-                    event.timestamp.isoformat(),
-                )
+                expected = self._compute_hash(prev_hash, event)
                 if event.chain_hash != expected:
                     logger.error(
                         "audit_chain_broken at sequence=%d event_id=%s",
@@ -692,13 +701,10 @@ class AuditTrail:
     @staticmethod
     def _compute_hash(
         prev_hash: str,
-        event_id: str,
-        event_type: str,
-        sequence: str,
-        timestamp: str,
+        event: AuditEvent | dict[str, Any],
     ) -> str:
-        payload = f"{prev_hash}|{event_id}|{event_type}|{sequence}|{timestamp}"
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        payload = build_audit_payload(event)
+        return compute_chain_hmac(prev_hash, payload)
 
     def enforce_retention(self) -> dict[str, int]:
         """AUD-7: Purge events that have exceeded their retention period.
@@ -724,8 +730,7 @@ class AuditTrail:
                     surviving.append(event)
 
             if purged:
-                self._events = surviving
-                # Rebuild org index
+                self._events = self._rechain_events(surviving)
                 self._rebuild_indexes()
                 logger.info(
                     "audit_retention_enforced purged=%d types=%s",
@@ -737,8 +742,42 @@ class AuditTrail:
 
     def _rebuild_indexes(self) -> None:
         """Rebuild internal indexes after retention purge (call under lock)."""
-        # Subclasses or future implementations may need org/agent indexes
-        pass
+        self._org_index = {}
+        self._type_index = {}
+        self._severity_index = {}
+        self._category_index = {}
+
+        for idx, event in enumerate(self._events):
+            if event.org_id:
+                self._org_index.setdefault(event.org_id, []).append(idx)
+            self._type_index.setdefault(event.event_type, []).append(idx)
+            self._severity_index.setdefault(event.severity, []).append(idx)
+            self._category_index.setdefault(event.category, []).append(idx)
+
+        self._sequence = self._events[-1].chain_sequence if self._events else 0
+        self._prev_hash = self._events[-1].chain_hash if self._events else self.GENESIS_HASH
+
+    def _rechain_events(self, events: list[AuditEvent]) -> list[AuditEvent]:
+        """Recompute chain linkage after retention purges.
+
+        This preserves a valid, self-consistent chain over the retained segment.
+        """
+        rechained: list[AuditEvent] = []
+        prev_hash = self.GENESIS_HASH
+
+        for sequence, event in enumerate(events, start=1):
+            chain_hash = self._compute_hash(prev_hash, event)
+            rechained.append(
+                replace(
+                    event,
+                    chain_sequence=sequence,
+                    prev_hash=prev_hash,
+                    chain_hash=chain_hash,
+                )
+            )
+            prev_hash = chain_hash
+
+        return rechained
 
     @property
     def length(self) -> int:

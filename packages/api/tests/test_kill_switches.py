@@ -13,6 +13,11 @@ from services.kill_switches import (
     KillSwitchState,
     get_kill_switch_registry,
 )
+from services.principal_auth import extract_principal_from_session
+
+
+def _principal(user_id: str) -> object:
+    return extract_principal_from_session(user_id, email=f"{user_id}@rhumb.dev")
 
 
 # ── Basic kill switch operations ──────────────────────────────────────
@@ -76,14 +81,14 @@ class TestRecipeKillSwitch:
 class TestGlobalKillSwitch:
     def test_request_returns_pending(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Security breach", "tom")
+        result = reg.request_global_kill("Security breach", _principal("tom"))
         assert result["status"] == "pending_approval"
-        assert result["requester"] == "tom"
+        assert result["requester"] == "admin_user:tom"
 
     def test_same_person_cannot_approve(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Breach", "tom")
-        entry = reg.approve_global_kill(result["request_id"], "tom")
+        result = reg.request_global_kill("Breach", _principal("tom"))
+        entry = reg.approve_global_kill(result["request_id"], _principal("tom"))
         assert entry is None
         # Global should NOT be active
         blocked, _ = reg.is_blocked()
@@ -91,12 +96,12 @@ class TestGlobalKillSwitch:
 
     def test_second_person_approves(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Breach", "tom")
-        entry = reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Breach", _principal("tom"))
+        entry = reg.approve_global_kill(result["request_id"], _principal("pedro"))
         assert entry is not None
         assert entry.level == KillSwitchLevel.GLOBAL
         assert entry.state == KillSwitchState.KILLED
-        assert entry.second_approver == "pedro"
+        assert entry.second_approver == "admin_user:pedro"
         # Everything should be blocked
         blocked, reason = reg.is_blocked(agent_id="any")
         assert blocked is True
@@ -104,7 +109,7 @@ class TestGlobalKillSwitch:
 
     def test_expired_request_rejected(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Breach", "tom")
+        result = reg.request_global_kill("Breach", _principal("tom"))
         # Simulate expiry by modifying the pending entry
         with reg._lock:
             pending = reg._pending_global[result["request_id"]]
@@ -115,18 +120,18 @@ class TestGlobalKillSwitch:
                 requested_at=pending.requested_at,
                 expires_at=time.monotonic() - 1,  # Already expired
             )
-        entry = reg.approve_global_kill(result["request_id"], "pedro")
+        entry = reg.approve_global_kill(result["request_id"], _principal("pedro"))
         assert entry is None
 
     def test_nonexistent_request_rejected(self):
         reg = KillSwitchRegistry()
-        entry = reg.approve_global_kill("fake_id", "pedro")
+        entry = reg.approve_global_kill("fake_id", _principal("pedro"))
         assert entry is None
 
     def test_global_blocks_all_levels(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Critical", "tom")
-        reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Critical", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
 
         # All types should be blocked
         assert reg.is_blocked(agent_id="any")[0] is True
@@ -140,8 +145,8 @@ class TestGlobalKillSwitch:
 class TestPhasedRestoration:
     def test_read_only_phase_still_blocks(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Incident", "tom")
-        reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Incident", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
         reg.begin_restoration("global", "read_only", "tom")
 
         blocked, reason = reg.is_blocked()
@@ -150,8 +155,8 @@ class TestPhasedRestoration:
 
     def test_full_phase_allows(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Incident", "tom")
-        reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Incident", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
         reg.begin_restoration("global", "full", "tom")
 
         blocked, _ = reg.is_blocked()
@@ -159,8 +164,8 @@ class TestPhasedRestoration:
 
     def test_lift_after_restoration(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Incident", "tom")
-        reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Incident", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
         reg.begin_restoration("global", "full", "tom")
         reg.lift("global", "pedro")
 
@@ -258,8 +263,8 @@ class TestCombinedScenarios:
 
     def test_global_overrides_everything(self):
         reg = KillSwitchRegistry()
-        result = reg.request_global_kill("Critical", "tom")
-        reg.approve_global_kill(result["request_id"], "pedro")
+        result = reg.request_global_kill("Critical", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
 
         # Even "clean" entities are blocked
         blocked, _ = reg.is_blocked(agent_id="clean", provider_slug="healthy", recipe_id="safe")

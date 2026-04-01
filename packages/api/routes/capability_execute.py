@@ -46,6 +46,7 @@ from services.credit_deduction import CreditDeductionService
 from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
+from services.durable_replay_guard import DurableReplayGuard
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
 from services.x402_settlement import (
@@ -74,6 +75,7 @@ _payment_requests = PaymentRequestService()
 _x402_settlement = X402SettlementService()
 _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
+_durable_replay_guard: DurableReplayGuard | None = None
 
 
 def _get_identity_store() -> AgentIdentityStore:
@@ -82,6 +84,16 @@ def _get_identity_store() -> AgentIdentityStore:
     if _identity_store is None:
         _identity_store = get_agent_identity_store()
     return _identity_store
+
+
+async def _get_replay_guard() -> DurableReplayGuard:
+    global _durable_replay_guard
+    if _durable_replay_guard is None:
+        from db.client import get_supabase_client
+
+        supabase = await get_supabase_client()
+        _durable_replay_guard = DurableReplayGuard(supabase)
+    return _durable_replay_guard
 
 logger = logging.getLogger(__name__)
 
@@ -1137,7 +1149,7 @@ async def execute_capability(
         else:
             # Replay prevention: reject reused tx_hash
             tx_hash = payment_data["tx_hash"]
-            if check_tx_hash_replay(tx_hash):
+            if await (await _get_replay_guard()).check_and_claim(tx_hash):
                 _log_x402_interop_trace(
                     raw_request,
                     capability_id=capability_id,

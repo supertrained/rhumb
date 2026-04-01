@@ -17,6 +17,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from db.client import get_supabase_client
+from services.durable_rate_limit import DurableRateLimiter
+
 # ── Rate Limit Tiers ────────────────────────────────────────────────
 # (max_requests, window_seconds)
 TIER_AUTH = (10, 60)        # Auth endpoints: 10/min (brute-force protection)
@@ -105,6 +108,25 @@ def _maybe_cleanup(now: float):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Sliding-window rate limiter with per-IP, per-tier enforcement."""
 
+    def __init__(self, app):
+        super().__init__(app)
+        self._durable: DurableRateLimiter | None = None
+        self._durable_init_attempted = False
+
+    async def _get_durable(self) -> DurableRateLimiter | None:
+        if self._durable is not None:
+            return self._durable
+        if self._durable_init_attempted:
+            return None
+
+        self._durable_init_attempted = True
+        try:
+            supabase = await get_supabase_client()
+            self._durable = DurableRateLimiter(supabase)
+        except Exception:
+            self._durable = None
+        return self._durable
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip rate limiting for OPTIONS (CORS preflight)
         if request.method == "OPTIONS":
@@ -119,16 +141,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         limit, window = _classify(request.method, path)
         now = time.monotonic()
 
-        _maybe_cleanup(now)
-
-        # Bucket key combines IP + tier parameters for isolation
-        bucket_key = f"{ip}:{limit}:{window}"
-        bucket = _buckets[bucket_key]
-        allowed, remaining = bucket.hit(now, window, limit)
+        durable = await self._get_durable()
+        if durable is not None:
+            bucket_key = f"ip:{ip}:{request.method}:{path}:{limit}:{window}"
+            allowed, remaining = await durable.check_and_increment(bucket_key, limit, window)
+            retry_after = window
+        else:
+            _maybe_cleanup(now)
+            bucket_key = f"{ip}:{limit}:{window}"
+            bucket = _buckets[bucket_key]
+            allowed, remaining = bucket.hit(now, window, limit)
+            retry_after = int(window - (now - bucket.timestamps[0])) + 1 if not allowed else window
 
         if not allowed:
-            # Compute retry-after from oldest timestamp in window
-            retry_after = int(window - (now - bucket.timestamps[0])) + 1
             return JSONResponse(
                 status_code=429,
                 content={

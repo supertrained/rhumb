@@ -155,32 +155,41 @@ def build_billing_payload(event: Any) -> dict[str, Any]:
     }
 
 
+def _field(obj: Any, name: str, default: Any = None) -> Any:
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
 def build_audit_payload(event: Any) -> dict[str, Any]:
     """Build the full semantic payload for an audit event."""
     return {
-        "event_id": event.event_id,
-        "event_type": event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type),
-        "severity": event.severity.value if hasattr(event.severity, "value") else str(event.severity),
-        "category": event.category,
-        "timestamp": event.timestamp.isoformat() if isinstance(event.timestamp, datetime) else str(event.timestamp),
-        "org_id": event.org_id,
-        "agent_id": getattr(event, "agent_id", None),
-        "resource_type": getattr(event, "resource_type", None),
-        "resource_id": getattr(event, "resource_id", None),
-        "action": getattr(event, "action", None),
-        "detail": getattr(event, "detail", None) or {},
-        "metadata": getattr(event, "metadata", None) or {},
+        "event_id": _field(event, "event_id"),
+        "event_type": (_field(event, "event_type").value if hasattr(_field(event, "event_type"), "value") else str(_field(event, "event_type"))),
+        "severity": (_field(event, "severity").value if hasattr(_field(event, "severity"), "value") else str(_field(event, "severity"))),
+        "category": _field(event, "category"),
+        "timestamp": _field(event, "timestamp").isoformat() if isinstance(_field(event, "timestamp"), datetime) else str(_field(event, "timestamp")),
+        "org_id": _field(event, "org_id"),
+        "agent_id": _field(event, "agent_id"),
+        "principal": _field(event, "principal"),
+        "resource_type": _field(event, "resource_type"),
+        "resource_id": _field(event, "resource_id"),
+        "action": _field(event, "action"),
+        "detail": _field(event, "detail") or {},
+        "metadata": _field(event, "metadata") or {},
+        "receipt_id": _field(event, "receipt_id"),
+        "execution_id": _field(event, "execution_id"),
+        "provider_slug": _field(event, "provider_slug"),
     }
 
 
 def build_kill_switch_payload(entry: Any) -> dict[str, Any]:
     """Build the full semantic payload for a kill switch audit entry."""
     return {
-        "action": entry.action,
-        "level": entry.level,
-        "target": entry.target,
-        "principal": entry.principal,
-        "reason": entry.reason,
-        "timestamp": entry.timestamp.isoformat() if isinstance(entry.timestamp, datetime) else str(entry.timestamp),
-        "detail": getattr(entry, "detail", None) or {},
+        "entry_id": _field(entry, "entry_id"),
+        "switch_id": _field(entry, "switch_id"),
+        "action": _field(entry, "action"),
+        "principal": _field(entry, "principal"),
+        "timestamp": _field(entry, "timestamp").isoformat() if isinstance(_field(entry, "timestamp"), datetime) else str(_field(entry, "timestamp")),
+        "details": _field(entry, "details") or _field(entry, "detail") or {},
     }

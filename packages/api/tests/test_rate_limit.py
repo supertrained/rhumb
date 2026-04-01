@@ -1,12 +1,13 @@
 """Tests for the rate-limit middleware."""
 
 import time
-from unittest.mock import patch
 
 import pytest
+from fastapi import FastAPI
 from starlette.testclient import TestClient
 
-from app import create_app
+from middleware.rate_limit import RateLimitMiddleware
+from middleware.request_id import RequestIDMiddleware
 
 
 @pytest.fixture
@@ -16,7 +17,22 @@ def client():
     import middleware.rate_limit as rl
     rl._buckets.clear()
     rl._last_cleanup = time.monotonic()
-    app = create_app()
+    app = FastAPI()
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestIDMiddleware)
+
+    @app.get("/v1/services")
+    async def list_services():
+        return {"services": []}
+
+    @app.get("/v1/auth/providers")
+    async def auth_providers():
+        return {"providers": []}
+
+    @app.get("/healthz")
+    async def healthz():
+        return {"ok": True}
+
     return TestClient(app)
 
 
