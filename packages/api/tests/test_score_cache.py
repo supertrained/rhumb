@@ -448,6 +448,25 @@ class TestScoreCacheAutoRefresh:
 
 class TestFetchScoresFromDb:
     @pytest.mark.asyncio
+    async def test_fetch_scores_from_db_does_not_select_nonexistent_score_column(self):
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = []
+
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch("services.score_cache.httpx.AsyncClient", return_value=mock_client):
+            await fetch_scores_from_db()
+
+        called_url = mock_client.get.call_args.args[0]
+        assert "aggregate_recommendation_score" in called_url
+        assert ",score," not in called_url
+        assert "?select=service_slug,score," not in called_url
+
+    @pytest.mark.asyncio
     async def test_fetch_scores_from_db_parses_live_scores_shape(self):
         row = {
             "service_slug": "stripe",

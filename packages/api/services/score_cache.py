@@ -302,7 +302,7 @@ async def fetch_scores_from_db() -> list[CachedScore]:
     """
     url = (
         f"{settings.supabase_url}/rest/v1/scores"
-        f"?select=service_slug,aggregate_recommendation_score,score,execution_score,access_readiness_score,autonomy_score,confidence,tier,dimension_snapshot,calculated_at"
+        f"?select=service_slug,aggregate_recommendation_score,execution_score,access_readiness_score,autonomy_score,confidence,tier,dimension_snapshot,calculated_at"
         f"&order=calculated_at.desc"
     )
     headers = {
