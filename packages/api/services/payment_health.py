@@ -8,6 +8,7 @@ import os
 import httpx
 
 from config import settings
+from services.durable_event_persistence import get_event_outbox_health
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +112,18 @@ async def _probe_settlement_wallet_balance() -> dict:
 
 async def check_billing_health() -> tuple[bool, str]:
     """Returns billing health for the live Supabase billing backend."""
-    return await _probe_billing_health(
+    billing_healthy, billing_reason = await _probe_billing_health(
         settings.supabase_url,
         settings.supabase_service_role_key,
     )
+    if not billing_healthy:
+        return billing_healthy, billing_reason
+
+    outbox_health = get_event_outbox_health()
+    if not outbox_health.allows_risky_writes:
+        return False, outbox_health.reason or "event_outbox_unavailable"
+
+    return True, "ok"
 
 
 async def get_payment_health(supabase_url: str, supabase_key: str) -> dict:
@@ -126,11 +135,21 @@ async def get_payment_health(supabase_url: str, supabase_key: str) -> dict:
         "billing_table_accessible": billing_healthy,
         "billing_reason": billing_reason,
     }
+    outbox_health = get_event_outbox_health()
+    health.update(
+        {
+            "event_outbox_available": outbox_health.available,
+            "event_outbox_writable": outbox_health.writable,
+            "event_outbox_pending_count": outbox_health.pending_count,
+            "event_outbox_oldest_pending_age_seconds": outbox_health.oldest_pending_age_seconds,
+            "event_outbox_reason": outbox_health.reason,
+        }
+    )
 
     wallet_health = await _probe_settlement_wallet_balance()
     health.update(wallet_health)
 
-    if billing_healthy:
+    if billing_healthy and outbox_health.allows_risky_writes:
         # Degrade if settlement wallet is configured but critically low on ETH
         if wallet_health.get("settlement_wallet_configured") and wallet_health.get("settlement_wallet_eth_critical"):
             health["status"] = "degraded"

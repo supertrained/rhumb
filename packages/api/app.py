@@ -81,6 +81,7 @@ async def _lifespan(app: FastAPI):
     from schemas.agent_identity import get_agent_identity_store
     from schemas.user import get_user_store
     from services.agent_usage_analytics import get_usage_analytics
+    from services.durable_event_persistence import init_event_outbox, shutdown_event_outbox
     from services.email_otp import get_email_otp_service
     from services.kill_switches import init_kill_switch_registry
     from services.operational_fact_emitter import get_operational_fact_emitter
@@ -113,6 +114,13 @@ async def _lifespan(app: FastAPI):
     get_usage_analytics(supabase_client=supabase)
     logger.info("Agent usage analytics: Supabase client initialized")
 
+    event_outbox = await init_event_outbox(supabase)
+    if event_outbox is not None:
+        await event_outbox.start()
+        logger.info("Durable billing/audit outbox initialized")
+    else:
+        logger.warning("Durable billing/audit outbox unavailable")
+
     await init_kill_switch_registry(supabase)
     logger.info("Kill switch registry: durable persistence initialized")
 
@@ -132,6 +140,8 @@ async def _lifespan(app: FastAPI):
         logger.info("Score cache refresh worker stopped")
         await proxy_finalizer.stop(drain=True)
         logger.info("Proxy finalizer worker drained")
+        await shutdown_event_outbox(drain=True)
+        logger.info("Durable billing/audit outbox stopped")
 
 
 def create_app() -> FastAPI:

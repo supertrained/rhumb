@@ -104,6 +104,26 @@ class TestRecordEvent:
         assert event.resource_type == "provider"
         assert event.resource_id == "stripe"
 
+    def test_record_writes_to_durable_outbox_before_memory(self):
+        class _Outbox:
+            def __init__(self) -> None:
+                self.events: list[AuditEvent] = []
+
+            def append_audit_event(self, event: AuditEvent) -> None:
+                self.events.append(event)
+
+        outbox = _Outbox()
+        trail = AuditTrail(outbox=outbox)
+
+        event = trail.record(
+            AuditEventType.EXECUTION_STARTED,
+            "Capability execution initiated",
+            org_id="org_1",
+        )
+
+        assert trail.length == 1
+        assert outbox.events == [event]
+
 
 # ── All 23 event types ──────────────────────────────────────────────
 

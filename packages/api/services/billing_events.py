@@ -103,11 +103,12 @@ class BillingEventStream:
 
     GENESIS_HASH = "0" * 64
 
-    def __init__(self) -> None:
+    def __init__(self, *, outbox: Any | None = None) -> None:
         self._events: list[BillingEvent] = []
         self._lock = threading.Lock()
         self._prev_hash: str = self.GENESIS_HASH
         self._org_index: dict[str, list[int]] = {}  # org_id → event indices
+        self._outbox = outbox
 
     @staticmethod
     def _compute_hash(
@@ -192,6 +193,9 @@ class BillingEventStream:
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,
             )
+
+            if self._outbox is not None:
+                self._outbox.append_billing_event(event)
 
             idx = len(self._events)
             self._events.append(event)
@@ -320,10 +324,60 @@ class BillingEventStream:
         with self._lock:
             return self._prev_hash
 
+    def configure_outbox(self, outbox: Any | None) -> None:
+        """Attach or replace the durable outbox."""
+        with self._lock:
+            self._outbox = outbox
+
+    def load_replay_payloads(self, payloads: list[dict[str, Any]]) -> None:
+        """Rebuild in-memory state from durable outbox payloads."""
+        with self._lock:
+            self._events = [self._event_from_payload(payload) for payload in payloads]
+            self._org_index = {}
+            self._prev_hash = self.GENESIS_HASH
+            for idx, event in enumerate(self._events):
+                self._org_index.setdefault(event.org_id, []).append(idx)
+                self._prev_hash = event.chain_hash
+
+    @staticmethod
+    def _event_from_payload(payload: dict[str, Any]) -> BillingEvent:
+        return BillingEvent(
+            event_id=str(payload["event_id"]),
+            event_type=BillingEventType(str(payload["event_type"])),
+            org_id=str(payload["org_id"]),
+            timestamp=datetime.fromisoformat(str(payload["timestamp"])),
+            amount_usd_cents=int(payload["amount_usd_cents"]),
+            balance_after_usd_cents=(
+                int(payload["balance_after_usd_cents"])
+                if payload.get("balance_after_usd_cents") is not None
+                else None
+            ),
+            metadata=dict(payload.get("metadata") or {}),
+            receipt_id=payload.get("receipt_id"),
+            execution_id=payload.get("execution_id"),
+            capability_id=payload.get("capability_id"),
+            provider_slug=payload.get("provider_slug"),
+            chain_hash=str(payload.get("chain_hash", "")),
+            prev_hash=str(payload.get("prev_hash", "")),
+        )
+
 
 # ── Module-level singleton ────────────────────────────────────────
 
 _billing_stream: BillingEventStream | None = None
+
+
+def init_billing_event_stream(
+    *,
+    outbox: Any | None = None,
+    replay_payloads: list[dict[str, Any]] | None = None,
+) -> BillingEventStream:
+    """Initialize the module-level stream with durable replay."""
+    global _billing_stream
+    _billing_stream = BillingEventStream(outbox=outbox)
+    if replay_payloads:
+        _billing_stream.load_replay_payloads(replay_payloads)
+    return _billing_stream
 
 
 def get_billing_event_stream() -> BillingEventStream:

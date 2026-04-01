@@ -303,11 +303,12 @@ class AuditTrail:
 
     GENESIS_HASH = "0" * 64
 
-    def __init__(self) -> None:
+    def __init__(self, *, outbox: Any | None = None) -> None:
         self._events: list[AuditEvent] = []
         self._lock = threading.Lock()
         self._prev_hash: str = self.GENESIS_HASH
         self._sequence: int = 0
+        self._outbox = outbox
         # Indexes for efficient querying
         self._org_index: dict[str, list[int]] = {}
         self._type_index: dict[AuditEventType, list[int]] = {}
@@ -386,6 +387,9 @@ class AuditTrail:
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,
             )
+
+            if self._outbox is not None:
+                self._outbox.append_audit_event(event)
 
             idx = len(self._events)
             self._events.append(event)
@@ -794,10 +798,57 @@ class AuditTrail:
         with self._lock:
             return self._sequence
 
+    def configure_outbox(self, outbox: Any | None) -> None:
+        """Attach or replace the durable outbox."""
+        with self._lock:
+            self._outbox = outbox
+
+    def load_replay_payloads(self, payloads: list[dict[str, Any]]) -> None:
+        """Rebuild in-memory state from durable outbox payloads."""
+        with self._lock:
+            self._events = [self._event_from_payload(payload) for payload in payloads]
+            self._rebuild_indexes()
+
+    @staticmethod
+    def _event_from_payload(payload: dict[str, Any]) -> AuditEvent:
+        return AuditEvent(
+            event_id=str(payload["event_id"]),
+            event_type=AuditEventType(str(payload["event_type"])),
+            severity=AuditSeverity(str(payload["severity"])),
+            category=str(payload["category"]),
+            timestamp=datetime.fromisoformat(str(payload["timestamp"])),
+            org_id=payload.get("org_id"),
+            agent_id=payload.get("agent_id"),
+            principal=payload.get("principal"),
+            resource_type=payload.get("resource_type"),
+            resource_id=payload.get("resource_id"),
+            action=str(payload["action"]),
+            detail=dict(payload.get("detail") or {}),
+            receipt_id=payload.get("receipt_id"),
+            execution_id=payload.get("execution_id"),
+            provider_slug=payload.get("provider_slug"),
+            chain_sequence=int(payload.get("chain_sequence", 0)),
+            chain_hash=str(payload.get("chain_hash", "")),
+            prev_hash=str(payload.get("prev_hash", "")),
+        )
+
 
 # ── Module-level singleton ───────────────────────────────────────────
 
 _audit_trail: AuditTrail | None = None
+
+
+def init_audit_trail(
+    *,
+    outbox: Any | None = None,
+    replay_payloads: list[dict[str, Any]] | None = None,
+) -> AuditTrail:
+    """Initialize the module-level audit trail with durable replay."""
+    global _audit_trail
+    _audit_trail = AuditTrail(outbox=outbox)
+    if replay_payloads:
+        _audit_trail.load_replay_payloads(replay_payloads)
+    return _audit_trail
 
 
 def get_audit_trail() -> AuditTrail:

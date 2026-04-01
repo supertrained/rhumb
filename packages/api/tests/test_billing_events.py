@@ -132,6 +132,22 @@ class TestBillingEventStream:
         assert event.provider_slug == "brave-search"
         assert event.metadata["layer"] == 2
 
+    def test_emit_writes_to_durable_outbox_before_memory(self):
+        class _Outbox:
+            def __init__(self) -> None:
+                self.events: list[BillingEvent] = []
+
+            def append_billing_event(self, event: BillingEvent) -> None:
+                self.events.append(event)
+
+        outbox = _Outbox()
+        stream = BillingEventStream(outbox=outbox)
+
+        event = stream.emit(BillingEventType.EXECUTION_CHARGED, "org_a", 100)
+
+        assert stream.length == 1
+        assert outbox.events == [event]
+
 
 # ── BillingEventStream.summarize ─────────────────────────────────────
 

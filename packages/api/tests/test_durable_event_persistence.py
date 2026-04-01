@@ -9,6 +9,7 @@ import pytest
 from services.durable_event_persistence import (
     DurableAuditPersistence,
     DurableBillingPersistence,
+    DurableEventOutbox,
     DurableKillSwitchPersistence,
 )
 from services.principal_auth import extract_principal_from_session
@@ -22,6 +23,8 @@ class MockQueryResult:
 class MockQueryBuilder:
     def __init__(self, data=None):
         self._data = data
+        self.inserted: list[dict] = []
+        self.upserted: list[dict] = []
 
     def select(self, *args):
         return self
@@ -39,9 +42,11 @@ class MockQueryBuilder:
         return self
 
     def insert(self, data):
+        self.inserted.append(data)
         return self
 
     def upsert(self, data):
+        self.upserted.append(data)
         return self
 
     def delete(self):
@@ -254,3 +259,49 @@ class TestDurableKillSwitchPersistence:
         kp = DurableKillSwitchPersistence(mock_db)
         result = await kp.remove_pending_global("gkill_00000001")
         assert result is True
+
+
+class TestDurableEventOutbox:
+    @pytest.mark.asyncio
+    async def test_flushes_and_replays_across_restart(self, mock_db, tmp_path):
+        billing_table = MockQueryBuilder()
+        audit_table = MockQueryBuilder()
+        mock_db.set_table("billing_events", billing_table)
+        mock_db.set_table("audit_events", audit_table)
+
+        sqlite_path = tmp_path / "event-outbox.sqlite3"
+        outbox = DurableEventOutbox(
+            billing_persistence=DurableBillingPersistence(mock_db),
+            audit_persistence=DurableAuditPersistence(mock_db),
+            sqlite_path=str(sqlite_path),
+            max_pending_count=10,
+        )
+        outbox.append_billing_event(MockBillingEvent())
+        outbox.append_audit_event(MockAuditEvent())
+
+        replayed = DurableEventOutbox(sqlite_path=str(sqlite_path), max_pending_count=10)
+        assert len(replayed.load_billing_payloads()) == 1
+        assert len(replayed.load_audit_payloads()) == 1
+        replayed.close()
+
+        flushed = await outbox.flush_once()
+        assert flushed == 2
+        assert len(billing_table.inserted) == 1
+        assert len(audit_table.inserted) == 1
+        assert outbox.health().pending_count == 0
+        outbox.close()
+
+    def test_health_fails_closed_when_backlog_exceeds_threshold(self, tmp_path):
+        sqlite_path = tmp_path / "event-outbox.sqlite3"
+        outbox = DurableEventOutbox(sqlite_path=str(sqlite_path), max_pending_count=1)
+        first = type("BillingEventOne", (), dict(MockBillingEvent.__dict__, event_id="bevt_1"))()
+        second = type("BillingEventTwo", (), dict(MockBillingEvent.__dict__, event_id="bevt_2"))()
+
+        outbox.append_billing_event(first)
+        outbox.append_billing_event(second)
+
+        health = outbox.health()
+        assert health.pending_count == 2
+        assert health.allows_risky_writes is False
+        assert "threshold" in health.reason.lower()
+        outbox.close()
