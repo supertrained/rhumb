@@ -1,0 +1,1499 @@
+{
+  "audit": {
+    "events": {
+      "data": {
+        "events": [],
+        "pagination": {
+          "has_more": false,
+          "limit": 10,
+          "offset": 0,
+          "total": 0
+        }
+      }
+    },
+    "status": {
+      "data": {
+        "chain_verified": true,
+        "earliest_event": null,
+        "events_by_category": {},
+        "events_by_severity": {},
+        "events_by_type": {},
+        "latest_event": null,
+        "latest_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "latest_sequence": 0,
+        "total_events": 0
+      }
+    }
+  },
+  "billing": {
+    "events": {
+      "data": {
+        "count": 2,
+        "events": [
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "cdf9193790a09c514f47f6a6794f6c4adba162d1d0a854486f5138f82e6e146e",
+            "event_id": "bevt_d045eec73bff451c",
+            "event_type": "execution.charged",
+            "execution_id": "exec_2740ba7240a24247ba6b15bc2eda8d0d",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_rhumb_internal",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_52d5f7c8f60e49abb349aea9",
+            "timestamp": "2026-03-31T22:12:19.567366+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "f36320f155ccf41f37360fa243b7f31cfbbf33945ae2546edb54b9c531dbbdf6",
+            "event_id": "bevt_cd15cec6abd74662",
+            "event_type": "execution.charged",
+            "execution_id": "exec_49cbcc63a4b041c1bf9619ca5cd8f0c7",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_rhumb_internal",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d",
+            "timestamp": "2026-03-31T22:12:12.542340+00:00"
+          }
+        ],
+        "org_id": "org_rhumb_internal"
+      }
+    },
+    "stream_status": {
+      "data": {
+        "chain_verified": true,
+        "event_types": [
+          "execution.charged",
+          "execution.refunded",
+          "execution.failed_no_charge",
+          "credit.purchased",
+          "credit.expired",
+          "credit.adjusted",
+          "x402.payment_received",
+          "x402.settlement_completed",
+          "x402.settlement_failed",
+          "wallet.topup_completed",
+          "wallet.topup_failed",
+          "budget.threshold_warning",
+          "budget.limit_reached",
+          "budget.reset",
+          "auto_reload.triggered",
+          "auto_reload.failed"
+        ],
+        "latest_chain_hash": "cdf9193790a09c514f47f6a6794f6c4adba162d1d0a854486f5138f82e6e146e",
+        "stream_length": 2,
+        "structural_guarantees": [
+          "All billing events are immutable and chain-hashed",
+          "Event stream is append-only with SHA-256 chain integrity",
+          "Events capture full execution context (provider, capability, receipt)",
+          "Summaries aggregate across providers and capabilities"
+        ]
+      }
+    },
+    "summary": {
+      "data": {
+        "by_capability": {
+          "search.query": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "by_provider": {
+          "brave-search": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "credit_purchase_count": 0,
+        "events_count": 2,
+        "execution_count": 2,
+        "net_usd": 0.0,
+        "org_id": "org_rhumb_internal",
+        "period": "all",
+        "total_charged_usd": 0.0,
+        "total_charged_usd_cents": 0,
+        "total_credited_usd": 0.0,
+        "total_credited_usd_cents": 0,
+        "x402_payment_count": 0
+      }
+    }
+  },
+  "capabilities": {
+    "_rhumb_v2": {
+      "api_version": "v2-alpha",
+      "compat_mode": "v1-translate",
+      "layer": 2
+    },
+    "items": [
+      {
+        "action": "report",
+        "description": "Generate a formatted accessibility audit report for a URL",
+        "domain": "accessibility",
+        "id": "accessibility.report",
+        "input_hint": "optional: parameters, filters",
+        "outcome": "Generated report",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "scan",
+        "description": "Run an automated accessibility audit against a URL or HTML snippet",
+        "domain": "accessibility",
+        "id": "accessibility.scan",
+        "input_hint": "target URL or content",
+        "outcome": "Scan results with findings",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "autocomplete",
+        "description": "Suggest address completions as a user types",
+        "domain": "address_verification",
+        "id": "address_verification.autocomplete",
+        "input_hint": "partial input text",
+        "outcome": "Completion suggestions",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.0,
+          "slug": "google-places",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "verify",
+        "description": "Validate and standardize a postal address",
+        "domain": "address_verification",
+        "id": "address_verification.verify",
+        "input_hint": "data or identity to verify",
+        "outcome": "Verification result (verified/not)",
+        "provider_count": 4,
+        "top_provider": {
+          "an_score": 8.1,
+          "slug": "lob",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "create_link",
+        "description": "Generate a trackable affiliate referral link for a partner",
+        "domain": "affiliate",
+        "id": "affiliate.create_link",
+        "input_hint": "target URL, optional: campaign",
+        "outcome": "Tracking link URL",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "get_commissions",
+        "description": "List pending or paid commission payouts for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_commissions",
+        "input_hint": "optional: date_range",
+        "outcome": "Commission records",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_stats",
+        "description": "Retrieve clicks, conversions, and revenue attribution for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_stats",
+        "input_hint": "optional: date_range, filters",
+        "outcome": "Statistics and metrics",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_status",
+        "description": "Check the status or output of a running agent",
+        "domain": "agent",
+        "id": "agent.get_status",
+        "input_hint": "sandbox_id",
+        "outcome": "Sandbox status including running state, resource usage, uptime",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "send_message",
+        "description": "Send a message or instruction to an active agent",
+        "domain": "agent",
+        "id": "agent.send_message",
+        "input_hint": "agent parameters",
+        "outcome": "Send a message or instruction to an active agent",
+        "provider_count": 2,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "spawn",
+        "description": "Create and start a new autonomous agent run",
+        "domain": "agent",
+        "id": "agent.spawn",
+        "input_hint": "template?, timeout_seconds?",
+        "outcome": "Sandbox ID with connection URL and status",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      }
+    ],
+    "limit": 10,
+    "offset": 0,
+    "total": 415
+  },
+  "config": {
+    "api_key_env": "RHUMB_DOGFOOD_API_KEY",
+    "api_key_preview": "rhumb_3534a7\u2026db2a",
+    "base_url": "https://api.rhumb.dev",
+    "capability": "search.query",
+    "credential_mode": "rhumb_managed",
+    "interface": "dogfood",
+    "policy_max_cost_usd": null,
+    "policy_provider_preference": null,
+    "provider": "brave-search",
+    "skip_layer1": false,
+    "v2_root": "https://api.rhumb.dev/v2"
+  },
+  "health": {
+    "compat_mode": "v1-translate",
+    "layer": 2,
+    "status": "ok",
+    "version": "2026-03-30"
+  },
+  "layer1": {
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "cost": {
+            "provider_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "credential_mode": "rhumb_managed",
+          "latency": {
+            "overhead_ms": 0.0,
+            "provider_ms": null,
+            "total_ms": 3951.0
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "category": "search",
+            "docs_url": "https://api.search.brave.com/app/#/documentation",
+            "id": "brave-search",
+            "name": "Brave Search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_52d5f7c8f60e49abb349aea9"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "cost": {
+            "markup_floor_usd": 0.0002,
+            "markup_rate": 0.08,
+            "provider_cost_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "explanation_id": "rexp_2bfb7bafa79a",
+          "latency": {
+            "provider_ms": null,
+            "rhumb_overhead_ms": 0,
+            "total_ms": 3951
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "capability_used": "search.query",
+            "display_name": "Brave Search",
+            "id": "brave-search"
+          },
+          "receipt_id": "rcpt_52d5f7c8f60e49abb349aea9"
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_2740ba7240a24247ba6b15bc2eda8d0d",
+        "latency_ms": 462.5,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_52d5f7c8f60e49abb349aea9",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "best AI agent observability tools",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "3 weeks ago",
+                "description": "Dash0 CEO Mirko Novakovic breaks down what actually works (and what catastrophically fails) when you try to scale AI observability from demo to production. T...",
+                "fetched_content_timestamp": 1773160755,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-03-09T14:01:06",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/hsiF0OXN0_U/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/oOqInZHHohWWKHwR7nRKpoT7Q94pyaRXrCe3KmvkqJ4/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9o/c2lGME9YTjBfVS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The Observability Tool That Lets AI Hunt Bugs For You",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=hsiF0OXN0_U",
+                "video": {
+                  "creator": "AI Native Dev",
+                  "duration": "12:28",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 17, 2026",
+                "description": "- You don't know what your agents will do until you actually run them \u2014 which means agent observability is different and more important than software observa...",
+                "fetched_content_timestamp": 1774789745,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-17T16:30:06",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/FDVdLrloFOw/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/JnTuUaxGzW8bN9jsPv69-nvmms8veviSsngRcXIEXoU/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9G/RFZkTHJsb0ZPdy9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Observability and Evals for AI Agents: A Simple Breakdown - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=FDVdLrloFOw",
+                "video": {
+                  "creator": "LangChain",
+                  "duration": "14:45",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 9, 2026",
+                "description": "AI agents don't fail like traditional software. When an agent takes hundreds of steps, repeatedly calls tools, updates state, and still produces the wrong re...",
+                "fetched_content_timestamp": 1774483008,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-09T20:44:02",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/reISMhbZ2XE/maxresdefault.jpg?sqp=-oaymwEmCIAKENAF8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGGsgayhrMA8=&amp;rs=AOn4CLCrwUYWIErptAVa_EdKPWKOuIwscg",
+                  "src": "https://imgs.search.brave.com/Ce1c_2KRfOxezVPT-exlvJEdNmW7yvN8hEIMkWW1Pyk/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9y/ZUlTTWhiWjJYRS9t/YXhyZXNkZWZhdWx0/LmpwZz9zcXA9LW9h/eW13RW1DSUFLRU5B/RjhxdUtxUU1hOEFF/Qi1BSC1DWUFDMEFX/S0Fnd0lBQkFCR0dz/Z2F5aHJNQTg9JmFt/cDtycz1BT240Q0xD/cndVWVdJRXJwdEFW/YV9FZEtQV0tPdUl3/c2Nn"
+                },
+                "title": "Building Better AI Agents: Observability and Evaluation - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=reISMhbZ2XE",
+                "video": {
+                  "creator": "LangChain",
+                  "duration": "47:12",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "July 31, 2025",
+                "description": "Agents SDK integrates with OpenAI's built-in Traces dashboard found within the OpenAI Platform for out-of-the-box observability and telemetry of our AI agent...",
+                "fetched_content_timestamp": 1774565226,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-07-31T13:00:58",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/T2ytN20H-BQ/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/_5eFXJ-yHqerk3wwhUYmQGYD0zKr-pduNeOw1eYetC0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9U/Mnl0TjIwSC1CUS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "AI Observability with OpenAI Agents SDK - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=T2ytN20H-BQ",
+                "video": {
+                  "creator": "James Briggs",
+                  "duration": "13:16",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "May 22, 2025",
+                "description": "Monitor, trace, and optimize your AI agents with ease. This video walks through how to use Opik to add observability to your LLM workflows\u2014giving you visibil...",
+                "fetched_content_timestamp": 1748435041,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-05-22T21:21:55",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/gDEVcuQ9egE/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/76BLyJdBiFhBEQofwayT6x2scPs7PFTk5IFJH5Xf8FQ/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9n/REVWY3VROWVnRS9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "AI Agent Observability with Opik - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=gDEVcuQ9egE",
+                "video": {
+                  "creator": "Comet",
+                  "duration": "02:11",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "April 23, 2025",
+                "description": "Claire Longo, Lead AI Researcher, CometAbout the Speaker:Claire Longo is an AI Leader and Researcher at Comet with over a decade of experience in Data Scienc...",
+                "fetched_content_timestamp": 1774496826,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-04-23T20:32:09",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/6fV05E3E78A/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/J0jBhv8Wj8_2VoEmg5j2S89stAuZR3J8f_3xOJfYnLY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS82/ZlYwNUUzRTc4QS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "AI Agent Observability - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=6fV05E3E78A",
+                "video": {
+                  "creator": "Toronto Machine Learning Society (TMLS)",
+                  "duration": "33:55",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "description": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. ... Error logs tell you what broke. They don&#x27;t flag hallucinations or when the model drifts from its intended behavior. Basic monitoring catches obvious failures. The harder problem to solve is building workflows where subject matter experts can review specific runs, rate output quality, and add context that engineering teams can act on. The best observability tools turn this feedback into a structured process, not scattered Slack alerts and spreadsheets.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+                  "hostname": "www.langchain.com",
+                  "netloc": "langchain.com",
+                  "path": "\u203a articles  \u203a llm-observability-tools",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+                  "long_name": "langchain.com",
+                  "name": "LangChain",
+                  "url": "https://www.langchain.com/articles/llm-observability-tools"
+                },
+                "subtype": "generic",
+                "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+                "type": "search_result",
+                "url": "https://www.langchain.com/articles/llm-observability-tools"
+              },
+              {
+                "age": "February 2, 2026",
+                "description": "Compare the top AI agent observability platforms: <strong>Braintrust, Vellum, Fiddler, Helicone, and Galileo</strong> for production agent monitoring and evaluation.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/bEWlMK36svza6idFxuBCo6yUAihIxOL2fgY2tADyMDA/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzdjMTQ3Zjdj/MDQ0N2U2ODY5NDFm/MmNkOGQ3OGNjZTc2/MGZhNDdmNzAyOWIw/MTMxMjM1OTk3Nzc3/ZjM0NDRkYy93d3cu/YnJhaW50cnVzdC5k/ZXYv",
+                  "hostname": "www.braintrust.dev",
+                  "netloc": "braintrust.dev",
+                  "path": "  \u203a home  \u203a articles  \u203a 5 best ai agent observability tools for agent reliability in 2026",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-02T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/bEWlMK36svza6idFxuBCo6yUAihIxOL2fgY2tADyMDA/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzdjMTQ3Zjdj/MDQ0N2U2ODY5NDFm/MmNkOGQ3OGNjZTc2/MGZhNDdmNzAyOWIw/MTMxMjM1OTk3Nzc3/ZjM0NDRkYy93d3cu/YnJhaW50cnVzdC5k/ZXYv",
+                  "long_name": "braintrust.dev",
+                  "name": "Braintrust",
+                  "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": true,
+                  "original": "https://braintrust.dev/braintrust-logo.png",
+                  "src": "https://imgs.search.brave.com/OSDEdSg7jkvhIMIkN6O12_9pRlwaam9XMhGup1zyR8w/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9icmFp/bnRydXN0LmRldi9i/cmFpbnRydXN0LWxv/Z28ucG5n"
+                },
+                "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles - Braintrust",
+                "type": "search_result",
+                "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+              },
+              {
+                "age": "March 6, 2025",
+                "description": "In the case of an AI agent, given its non-deterministic nature, telemetry is also used as a feedback loop to continuously learn from and improve the quality of the agent by using it as input for evaluation tools. Given that observability and evaluation tools for GenAI come from various vendors, it is important to establish standards around the shape of the telemetry generated by agent apps to avoid lock-in caused by vendor or framework specific formats.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/cABUVcYRxdXfwk_YOSR_7Mo-p4gymF7XXDQgQ3uUVbI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjBhYmYxMjk1/NDMzYWY4ZjY4NzFh/MTAyZDEzOGM4NzE2/ZmQ4N2NlNDk0ZGUx/ZjE1MGUzY2VmZGE5/ODc1YjU2Zi9vcGVu/dGVsZW1ldHJ5Lmlv/Lw",
+                  "hostname": "opentelemetry.io",
+                  "netloc": "opentelemetry.io",
+                  "path": "\u203a blog  \u203a 2025  \u203a ai-agent-observability",
+                  "scheme": "https"
+                },
+                "page_age": "2025-03-06T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/cABUVcYRxdXfwk_YOSR_7Mo-p4gymF7XXDQgQ3uUVbI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjBhYmYxMjk1/NDMzYWY4ZjY4NzFh/MTAyZDEzOGM4NzE2/ZmQ4N2NlNDk0ZGUx/ZjE1MGUzY2VmZGE5/ODc1YjU2Zi9vcGVu/dGVsZW1ldHJ5Lmlv/Lw",
+                  "long_name": "opentelemetry.io",
+                  "name": "OpenTelemetry",
+                  "url": "https://opentelemetry.io/blog/2025/ai-agent-observability/"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": true,
+                  "original": "https://opentelemetry.io/img/social/logo-wordmark-001.png",
+                  "src": "https://imgs.search.brave.com/nIyJuix_VuFGyDrKGhwucY0UhsUYXYaMDPmwGWDBwH0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vcGVu/dGVsZW1ldHJ5Lmlv/L2ltZy9zb2NpYWwv/bG9nby13b3JkbWFy/ay0wMDEucG5n"
+                },
+                "title": "AI Agent Observability - Evolving Standards and Best Practices | OpenTelemetry",
+                "type": "search_result",
+                "url": "https://opentelemetry.io/blog/2025/ai-agent-observability/"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "14779",
+        "content-type": "application/json",
+        "date": "Tue, 31 Mar 2026 22:12:14 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200162-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "km5d3xpOSKy6GIEOn6XIxQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "111",
+        "x-ratelimit-reset": "1774995199",
+        "x-request-id": "461378d9-daa0-4f0b-980a-8c0bebc94fd5",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-cost-usd": "0.003240",
+        "x-rhumb-layer": "1",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_52d5f7c8f60e49abb349aea9",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200162-BUR"
+      },
+      "request": {
+        "capability": "search.query",
+        "credential_mode": "rhumb_managed",
+        "idempotency_key": "dogfood-219919d3ec2244948e49b207a713fcc2",
+        "interface": "dogfood",
+        "parameters": {
+          "numResults": 3,
+          "query": "best AI agent observability tools"
+        },
+        "policy": {
+          "max_cost_usd": 0.05
+        }
+      }
+    },
+    "provider": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "layer": 1
+      },
+      "an_score": null,
+      "callable": true,
+      "capabilities": [
+        {
+          "capability_id": "search.query",
+          "cost_currency": "USD",
+          "cost_per_call": 0.003,
+          "credential_modes": [
+            "byo",
+            "rhumb_managed"
+          ],
+          "free_tier_calls": 2000
+        }
+      ],
+      "category": "search",
+      "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+      "id": "brave-search",
+      "name": "Brave Search",
+      "pricing": {
+        "description": "provider_cost + max($0.0002, provider_cost \u00d7 0.08)",
+        "markup_floor_usd": 0.0002,
+        "markup_rate": 0.08,
+        "model": "passthrough_plus_markup"
+      },
+      "tier": null
+    },
+    "receipt": {
+      "agent_id": "b6e53ecc-3862-4189-84dd-eaff63818d96",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:99e68e6fb6f98ae9",
+      "candidates_evaluated": 1,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 30,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-03-31T22:12:18.803231+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_2740ba7240a24247ba6b15bc2eda8d0d",
+      "idempotency_key": "dogfood-219919d3ec2244948e49b207a713fcc2",
+      "interface": "dogfood-v2-l1",
+      "layer": 1,
+      "org_id": "org_rhumb_internal",
+      "previous_receipt_hash": "sha256:64ee0869e927046f769d6b1932c9dfef6f7ea5d1ee3c4f214c1db8f112c5b715",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:0f190339edc70a85563c12f8ac1dd81d7715110d717281a8094a842bde092798",
+      "receipt_id": "rcpt_52d5f7c8f60e49abb349aea9",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:c0de72268352cedddf3fe76efccaca00197547596b5d38fd7908192ef5c042e2",
+      "response_hash": null,
+      "rhumb_fee_usd": 0.00024,
+      "rhumb_overhead_ms": 0,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": 0.00324,
+      "total_latency_ms": 3951,
+      "winner_reason": "agent_pinned_layer1",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "layer2": {
+    "estimate": {
+      "data": {
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "compat_mode": "v1-translate",
+          "layer": 2
+        },
+        "capability_id": "search.query",
+        "circuit_state": "closed",
+        "cost_estimate_usd": 0.003,
+        "credential_mode": "rhumb_managed",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "provider": "brave-search"
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "287",
+        "content-type": "application/json",
+        "date": "Tue, 31 Mar 2026 22:12:06 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200030-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "2lDTnsBXQrSCrnUx-_9nXA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "116",
+        "x-ratelimit-reset": "1774995187",
+        "x-request-id": "7a3d2b1d-3f6d-41fe-bf38-1fd8b93fecaf",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200030-BUR"
+      }
+    },
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "credential_mode": "rhumb_managed",
+          "layer": 2,
+          "provider": {
+            "an_score": null,
+            "category": null,
+            "docs_url": null,
+            "id": "brave-search",
+            "name": "brave-search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "estimated_cost_usd": 0.003,
+          "explanation_id": "rexp_31b660e59808",
+          "layer": 2,
+          "policy_applied": true,
+          "policy_candidates": [
+            "algolia",
+            "elasticsearch",
+            "typesense",
+            "meilisearch",
+            "exa",
+            "brave-search",
+            "tavily"
+          ],
+          "policy_selected_reason": "policy_preference_match",
+          "policy_source": {
+            "has_account_policy": false,
+            "inline_fields": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "organization_fields": [],
+            "scope": "organization"
+          },
+          "policy_summary": {
+            "allow_only": [],
+            "candidate_providers": [
+              "algolia",
+              "elasticsearch",
+              "typesense",
+              "meilisearch",
+              "exa",
+              "brave-search",
+              "tavily"
+            ],
+            "controls": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "max_cost_usd": 0.05,
+            "pin": null,
+            "provider_deny": [],
+            "provider_preference": [
+              "brave-search"
+            ]
+          },
+          "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d",
+          "selected_provider": "brave-search",
+          "translated_from": {
+            "idempotency_header_used": false,
+            "parameters": true,
+            "policy_allow_only": false,
+            "policy_pin": false,
+            "policy_provider_deny": false,
+            "policy_provider_preference": true
+          }
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_49cbcc63a4b041c1bf9619ca5cd8f0c7",
+        "latency_ms": 519.7,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "best AI agent observability tools",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "3 weeks ago",
+                "description": "Dash0 CEO Mirko Novakovic breaks down what actually works (and what catastrophically fails) when you try to scale AI observability from demo to production. T...",
+                "fetched_content_timestamp": 1773160755,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-03-09T14:01:06",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/hsiF0OXN0_U/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/oOqInZHHohWWKHwR7nRKpoT7Q94pyaRXrCe3KmvkqJ4/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9o/c2lGME9YTjBfVS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The Observability Tool That Lets AI Hunt Bugs For You",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=hsiF0OXN0_U",
+                "video": {
+                  "creator": "AI Native Dev",
+                  "duration": "12:28",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 17, 2026",
+                "description": "- You don't know what your agents will do until you actually run them \u2014 which means agent observability is different and more important than software observa...",
+                "fetched_content_timestamp": 1774789745,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-17T16:30:06",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/FDVdLrloFOw/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/JnTuUaxGzW8bN9jsPv69-nvmms8veviSsngRcXIEXoU/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9G/RFZkTHJsb0ZPdy9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Observability and Evals for AI Agents: A Simple Breakdown - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=FDVdLrloFOw",
+                "video": {
+                  "creator": "LangChain",
+                  "duration": "14:45",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 9, 2026",
+                "description": "AI agents don't fail like traditional software. When an agent takes hundreds of steps, repeatedly calls tools, updates state, and still produces the wrong re...",
+                "fetched_content_timestamp": 1774483008,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-09T20:44:02",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/reISMhbZ2XE/maxresdefault.jpg?sqp=-oaymwEmCIAKENAF8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGGsgayhrMA8=&amp;rs=AOn4CLCrwUYWIErptAVa_EdKPWKOuIwscg",
+                  "src": "https://imgs.search.brave.com/Ce1c_2KRfOxezVPT-exlvJEdNmW7yvN8hEIMkWW1Pyk/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9y/ZUlTTWhiWjJYRS9t/YXhyZXNkZWZhdWx0/LmpwZz9zcXA9LW9h/eW13RW1DSUFLRU5B/RjhxdUtxUU1hOEFF/Qi1BSC1DWUFDMEFX/S0Fnd0lBQkFCR0dz/Z2F5aHJNQTg9JmFt/cDtycz1BT240Q0xD/cndVWVdJRXJwdEFW/YV9FZEtQV0tPdUl3/c2Nn"
+                },
+                "title": "Building Better AI Agents: Observability and Evaluation - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=reISMhbZ2XE",
+                "video": {
+                  "creator": "LangChain",
+                  "duration": "47:12",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "July 31, 2025",
+                "description": "Agents SDK integrates with OpenAI's built-in Traces dashboard found within the OpenAI Platform for out-of-the-box observability and telemetry of our AI agent...",
+                "fetched_content_timestamp": 1774565226,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-07-31T13:00:58",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/T2ytN20H-BQ/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/_5eFXJ-yHqerk3wwhUYmQGYD0zKr-pduNeOw1eYetC0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9U/Mnl0TjIwSC1CUS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "AI Observability with OpenAI Agents SDK - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=T2ytN20H-BQ",
+                "video": {
+                  "creator": "James Briggs",
+                  "duration": "13:16",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "May 22, 2025",
+                "description": "Monitor, trace, and optimize your AI agents with ease. This video walks through how to use Opik to add observability to your LLM workflows\u2014giving you visibil...",
+                "fetched_content_timestamp": 1748435041,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-05-22T21:21:55",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/gDEVcuQ9egE/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/76BLyJdBiFhBEQofwayT6x2scPs7PFTk5IFJH5Xf8FQ/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9n/REVWY3VROWVnRS9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "AI Agent Observability with Opik - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=gDEVcuQ9egE",
+                "video": {
+                  "creator": "Comet",
+                  "duration": "02:11",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "April 23, 2025",
+                "description": "Claire Longo, Lead AI Researcher, CometAbout the Speaker:Claire Longo is an AI Leader and Researcher at Comet with over a decade of experience in Data Scienc...",
+                "fetched_content_timestamp": 1774496826,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-04-23T20:32:09",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/6fV05E3E78A/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/J0jBhv8Wj8_2VoEmg5j2S89stAuZR3J8f_3xOJfYnLY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS82/ZlYwNUUzRTc4QS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "AI Agent Observability - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=6fV05E3E78A",
+                "video": {
+                  "creator": "Toronto Machine Learning Society (TMLS)",
+                  "duration": "33:55",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "description": "A breakdown of the leading 8 LLM observability platforms for agent debugging, tracing, and evaluation. ... Error logs tell you what broke. They don&#x27;t flag hallucinations or when the model drifts from its intended behavior. Basic monitoring catches obvious failures. The harder problem to solve is building workflows where subject matter experts can review specific runs, rate output quality, and add context that engineering teams can act on. The best observability tools turn this feedback into a structured process, not scattered Slack alerts and spreadsheets.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+                  "hostname": "www.langchain.com",
+                  "netloc": "langchain.com",
+                  "path": "\u203a articles  \u203a llm-observability-tools",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+                  "long_name": "langchain.com",
+                  "name": "LangChain",
+                  "url": "https://www.langchain.com/articles/llm-observability-tools"
+                },
+                "subtype": "generic",
+                "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+                "type": "search_result",
+                "url": "https://www.langchain.com/articles/llm-observability-tools"
+              },
+              {
+                "age": "February 2, 2026",
+                "description": "Compare the top AI agent observability platforms: <strong>Braintrust, Vellum, Fiddler, Helicone, and Galileo</strong> for production agent monitoring and evaluation.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/bEWlMK36svza6idFxuBCo6yUAihIxOL2fgY2tADyMDA/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzdjMTQ3Zjdj/MDQ0N2U2ODY5NDFm/MmNkOGQ3OGNjZTc2/MGZhNDdmNzAyOWIw/MTMxMjM1OTk3Nzc3/ZjM0NDRkYy93d3cu/YnJhaW50cnVzdC5k/ZXYv",
+                  "hostname": "www.braintrust.dev",
+                  "netloc": "braintrust.dev",
+                  "path": "  \u203a home  \u203a articles  \u203a 5 best ai agent observability tools for agent reliability in 2026",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-02T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/bEWlMK36svza6idFxuBCo6yUAihIxOL2fgY2tADyMDA/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNzdjMTQ3Zjdj/MDQ0N2U2ODY5NDFm/MmNkOGQ3OGNjZTc2/MGZhNDdmNzAyOWIw/MTMxMjM1OTk3Nzc3/ZjM0NDRkYy93d3cu/YnJhaW50cnVzdC5k/ZXYv",
+                  "long_name": "braintrust.dev",
+                  "name": "Braintrust",
+                  "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": true,
+                  "original": "https://braintrust.dev/braintrust-logo.png",
+                  "src": "https://imgs.search.brave.com/OSDEdSg7jkvhIMIkN6O12_9pRlwaam9XMhGup1zyR8w/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9icmFp/bnRydXN0LmRldi9i/cmFpbnRydXN0LWxv/Z28ucG5n"
+                },
+                "title": "5 best AI agent observability tools for agent reliability in 2026 - Articles - Braintrust",
+                "type": "search_result",
+                "url": "https://www.braintrust.dev/articles/best-ai-agent-observability-tools-2026"
+              },
+              {
+                "age": "March 6, 2025",
+                "description": "In the case of an AI agent, given its non-deterministic nature, telemetry is also used as a feedback loop to continuously learn from and improve the quality of the agent by using it as input for evaluation tools. Given that observability and evaluation tools for GenAI come from various vendors, it is important to establish standards around the shape of the telemetry generated by agent apps to avoid lock-in caused by vendor or framework specific formats.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/cABUVcYRxdXfwk_YOSR_7Mo-p4gymF7XXDQgQ3uUVbI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjBhYmYxMjk1/NDMzYWY4ZjY4NzFh/MTAyZDEzOGM4NzE2/ZmQ4N2NlNDk0ZGUx/ZjE1MGUzY2VmZGE5/ODc1YjU2Zi9vcGVu/dGVsZW1ldHJ5Lmlv/Lw",
+                  "hostname": "opentelemetry.io",
+                  "netloc": "opentelemetry.io",
+                  "path": "\u203a blog  \u203a 2025  \u203a ai-agent-observability",
+                  "scheme": "https"
+                },
+                "page_age": "2025-03-06T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/cABUVcYRxdXfwk_YOSR_7Mo-p4gymF7XXDQgQ3uUVbI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjBhYmYxMjk1/NDMzYWY4ZjY4NzFh/MTAyZDEzOGM4NzE2/ZmQ4N2NlNDk0ZGUx/ZjE1MGUzY2VmZGE5/ODc1YjU2Zi9vcGVu/dGVsZW1ldHJ5Lmlv/Lw",
+                  "long_name": "opentelemetry.io",
+                  "name": "OpenTelemetry",
+                  "url": "https://opentelemetry.io/blog/2025/ai-agent-observability/"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": true,
+                  "original": "https://opentelemetry.io/img/social/logo-wordmark-001.png",
+                  "src": "https://imgs.search.brave.com/nIyJuix_VuFGyDrKGhwucY0UhsUYXYaMDPmwGWDBwH0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vcGVu/dGVsZW1ldHJ5Lmlv/L2ltZy9zb2NpYWwv/bG9nby13b3JkbWFy/ay0wMDEucG5n"
+                },
+                "title": "AI Agent Observability - Evolving Standards and Best Practices | OpenTelemetry",
+                "type": "search_result",
+                "url": "https://opentelemetry.io/blog/2025/ai-agent-observability/"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "15128",
+        "content-type": "application/json",
+        "date": "Tue, 31 Mar 2026 22:12:07 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200028-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "TQNzfSzsQIy_0gEG9I3ezw",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "115",
+        "x-ratelimit-reset": "1774995192",
+        "x-request-id": "6d6a2fa2-2abb-40d4-9a20-df5ad7d2b88c",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-layer": "2",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_a831edb0fcb14adda62e5d8d",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200028-BUR"
+      },
+      "request": {
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood",
+        "parameters": {
+          "numResults": 3,
+          "query": "best AI agent observability tools"
+        },
+        "policy": {
+          "max_cost_usd": 0.05,
+          "provider_preference": [
+            "brave-search"
+          ]
+        }
+      }
+    },
+    "explanation": {
+      "explanation": null,
+      "layer": 2,
+      "message": "No routing explanation is available for this receipt. The execution may predate the explanation engine.",
+      "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d"
+    },
+    "receipt": {
+      "agent_id": "unknown",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:decbf1969a83b7c2",
+      "candidates_evaluated": 7,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 29,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-03-31T22:12:11.597906+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_49cbcc63a4b041c1bf9619ca5cd8f0c7",
+      "idempotency_key": null,
+      "interface": "dogfood-v2",
+      "layer": 2,
+      "org_id": null,
+      "previous_receipt_hash": "sha256:c0ec7d2d4defb3e9fbdb207f3fbb54f2ad43906d27fc7dab12b76046514c56dd",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:64ee0869e927046f769d6b1932c9dfef6f7ea5d1ee3c4f214c1db8f112c5b715",
+      "receipt_id": "rcpt_a831edb0fcb14adda62e5d8d",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:c0de72268352cedddf3fe76efccaca00197547596b5d38fd7908192ef5c042e2",
+      "response_hash": null,
+      "rhumb_fee_usd": null,
+      "rhumb_overhead_ms": null,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": null,
+      "total_latency_ms": 519.7,
+      "winner_reason": "policy_preference_match",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "ok": true,
+  "policy": {
+    "before": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+        "supported_policy_fields": [
+          "pin",
+          "provider_preference",
+          "provider_deny",
+          "allow_only",
+          "max_cost_usd"
+        ]
+      },
+      "has_policy": false,
+      "organization_id": "org_rhumb_internal",
+      "policy": {
+        "allow_only": [],
+        "max_cost_usd": null,
+        "pin": null,
+        "provider_deny": [],
+        "provider_preference": []
+      },
+      "scope": "organization",
+      "updated_at": null
+    }
+  },
+  "receipt_chain": {
+    "broken_links": [],
+    "chain_intact": true,
+    "range": {
+      "end": 20,
+      "start": 1
+    },
+    "total_checked": 20,
+    "verified": 20
+  },
+  "started_at": 1774995124,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_49cbcc63a4b041c1bf9619ca5cd8f0c7 receipt=rcpt_a831edb0fcb14adda62e5d8d; L1 provider=brave-search exec=exec_2740ba7240a24247ba6b15bc2eda8d0d receipt=rcpt_52d5f7c8f60e49abb349aea9; billing_events=2; audit_events=0",
+  "trust": {
+    "providers": {
+      "data": {
+        "org_id": "org_rhumb_internal",
+        "period": "all",
+        "providers": [
+          {
+            "an_score": null,
+            "execution_count": 2,
+            "failure_count": 0,
+            "provider_slug": "brave-search",
+            "success_count": 2,
+            "success_rate_pct": 100.0,
+            "tier": null,
+            "total_charged_usd": 0.0,
+            "total_charged_usd_cents": 0
+          }
+        ],
+        "total_providers": 1
+      }
+    },
+    "summary": {
+      "data": {
+        "credit_purchase_count": 0,
+        "failed_executions": 0,
+        "org_id": "org_rhumb_internal",
+        "period": "all",
+        "success_rate_pct": 100.0,
+        "successful_executions": 2,
+        "total_executions": 2,
+        "total_spend_usd": 0.0,
+        "total_spend_usd_cents": 0,
+        "trust_posture": {
+          "description": "Strong execution reliability with room for provider diversity.",
+          "label": "Good",
+          "level": "good"
+        },
+        "unique_capabilities_used": 1,
+        "unique_providers_used": 1,
+        "x402_payment_count": 0
+      }
+    }
+  }
+}

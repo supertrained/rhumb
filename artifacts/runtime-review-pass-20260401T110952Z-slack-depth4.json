@@ -1,0 +1,28 @@
+{
+  "pass_id": "slack-depth4-20260401T110952Z",
+  "provider": "slack",
+  "capability": "team.info (safe read)",
+  "timestamp": "20260401T110952Z",
+  "managed": {
+    "status": 403,
+    "team": {
+      "ok": null,
+      "team_id": null,
+      "team_name": null,
+      "team_domain": null
+    },
+    "execution_id": "unknown"
+  },
+  "direct": {
+    "status": 200,
+    "team": {
+      "ok": false,
+      "team_id": null,
+      "team_name": null,
+      "team_domain": null
+    }
+  },
+  "parity": false,
+  "agent_id": "ff3ccc77-7288-4f49-9c1d-5680baecd7d6",
+  "org_id": "org_rhumb_internal"
+}

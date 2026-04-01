@@ -1,0 +1,48 @@
+{
+  "pass_id": "slack-depth4-20260401T111246Z",
+  "provider": "slack",
+  "capability": "auth.test (expanded parity surface)",
+  "timestamp": "20260401T111246Z",
+  "managed": {
+    "http_status": 200,
+    "fields": {
+      "ok": true,
+      "url": "https://team-super-ai.slack.com/",
+      "team": "TeamSuper",
+      "team_id": "T08HGQD6FGW",
+      "user": "cordelia",
+      "user_id": "U0AECQMK5FG",
+      "bot_id": "B0AEESDJ1CJ",
+      "is_enterprise_install": false
+    },
+    "execution_id": "unknown",
+    "latency_ms": 344.20464211143553,
+    "upstream_latency_ms": 152.25337189622223
+  },
+  "direct": {
+    "http_status": 200,
+    "fields": {
+      "ok": true,
+      "url": "https://team-super-ai.slack.com/",
+      "team": "TeamSuper",
+      "team_id": "T08HGQD6FGW",
+      "user": "cordelia",
+      "user_id": "U0AECQMK5FG",
+      "bot_id": "B0AEESDJ1CJ",
+      "is_enterprise_install": false
+    }
+  },
+  "parity": true,
+  "parity_fields_checked": [
+    "ok",
+    "url",
+    "team",
+    "team_id",
+    "user",
+    "user_id",
+    "bot_id",
+    "is_enterprise_install"
+  ],
+  "agent_id": "74e3ec81-7b56-467a-9987-e9d36eaca34b",
+  "org_id": "org_rhumb_internal"
+}

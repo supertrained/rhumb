@@ -1,0 +1,229 @@
+{
+  "capabilities": {
+    "_rhumb_v2": {
+      "api_version": "v2-alpha",
+      "compat_mode": "v1-translate",
+      "layer": 2
+    },
+    "items": [
+      {
+        "action": "report",
+        "description": "Generate a formatted accessibility audit report for a URL",
+        "domain": "accessibility",
+        "id": "accessibility.report",
+        "input_hint": "optional: parameters, filters",
+        "outcome": "Generated report",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "scan",
+        "description": "Run an automated accessibility audit against a URL or HTML snippet",
+        "domain": "accessibility",
+        "id": "accessibility.scan",
+        "input_hint": "target URL or content",
+        "outcome": "Scan results with findings",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "autocomplete",
+        "description": "Suggest address completions as a user types",
+        "domain": "address_verification",
+        "id": "address_verification.autocomplete",
+        "input_hint": "partial input text",
+        "outcome": "Completion suggestions",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.0,
+          "slug": "google-places",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "verify",
+        "description": "Validate and standardize a postal address",
+        "domain": "address_verification",
+        "id": "address_verification.verify",
+        "input_hint": "data or identity to verify",
+        "outcome": "Verification result (verified/not)",
+        "provider_count": 4,
+        "top_provider": {
+          "an_score": 8.1,
+          "slug": "lob",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "create_link",
+        "description": "Generate a trackable affiliate referral link for a partner",
+        "domain": "affiliate",
+        "id": "affiliate.create_link",
+        "input_hint": "target URL, optional: campaign",
+        "outcome": "Tracking link URL",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "get_commissions",
+        "description": "List pending or paid commission payouts for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_commissions",
+        "input_hint": "optional: date_range",
+        "outcome": "Commission records",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_stats",
+        "description": "Retrieve clicks, conversions, and revenue attribution for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_stats",
+        "input_hint": "optional: date_range, filters",
+        "outcome": "Statistics and metrics",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_status",
+        "description": "Check the status or output of a running agent",
+        "domain": "agent",
+        "id": "agent.get_status",
+        "input_hint": "sandbox_id",
+        "outcome": "Sandbox status including running state, resource usage, uptime",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "send_message",
+        "description": "Send a message or instruction to an active agent",
+        "domain": "agent",
+        "id": "agent.send_message",
+        "input_hint": "agent parameters",
+        "outcome": "Send a message or instruction to an active agent",
+        "provider_count": 2,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "spawn",
+        "description": "Create and start a new autonomous agent run",
+        "domain": "agent",
+        "id": "agent.spawn",
+        "input_hint": "template?, timeout_seconds?",
+        "outcome": "Sandbox ID with connection URL and status",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      }
+    ],
+    "limit": 10,
+    "offset": 0,
+    "total": 415
+  },
+  "config": {
+    "api_key_env": "RHUMB_DOGFOOD_API_KEY",
+    "api_key_preview": "rhumb_00efe8\u2026f74f",
+    "base_url": "https://api.rhumb.dev",
+    "capability": "search.query",
+    "credential_mode": "rhumb_managed",
+    "interface": "dogfood",
+    "policy_max_cost_usd": null,
+    "policy_provider_preference": null,
+    "provider": "brave-search-api",
+    "skip_layer1": false,
+    "v2_root": "https://api.rhumb.dev/v2"
+  },
+  "health": {
+    "compat_mode": "v1-translate",
+    "layer": 2,
+    "status": "ok",
+    "version": "2026-03-30"
+  },
+  "last_error_response": {
+    "detail": "No managed execution path for 'search.query' via 'elasticsearch'",
+    "label": "v2 layer2 execute",
+    "status": 503,
+    "url": "https://api.rhumb.dev/v2/capabilities/search.query/execute"
+  },
+  "layer2": {
+    "estimate": {
+      "data": {
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "compat_mode": "v1-translate",
+          "layer": 2
+        },
+        "capability_id": "search.query",
+        "circuit_state": "closed",
+        "cost_estimate_usd": 0.003,
+        "credential_mode": "rhumb_managed",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "provider": "brave-search"
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "287",
+        "content-type": "application/json",
+        "date": "Tue, 31 Mar 2026 17:13:59 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200111-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "8JJON1z1SmSbVkK-2prcFg",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "116",
+        "x-ratelimit-reset": "1774977301",
+        "x-request-id": "41b3c2ca-cadd-40a1-a754-03c2b091c2f9",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200111-BUR"
+      }
+    }
+  },
+  "ok": false,
+  "policy": {
+    "before": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+        "supported_policy_fields": [
+          "pin",
+          "provider_preference",
+          "provider_deny",
+          "allow_only",
+          "max_cost_usd"
+        ]
+      },
+      "has_policy": false,
+      "organization_id": "org_b1595f08ea0c1a8e",
+      "policy": {
+        "allow_only": [],
+        "max_cost_usd": null,
+        "pin": null,
+        "provider_deny": [],
+        "provider_preference": []
+      },
+      "scope": "organization",
+      "updated_at": null
+    }
+  },
+  "started_at": 1774977237,
+  "summary": "v2 layer2 execute failed: No managed execution path for 'search.query' via 'elasticsearch'"
+}
