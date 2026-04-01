@@ -339,6 +339,8 @@ class TestScoresV2Endpoints:
         assert resp.status_code == 200
         body = resp.json()
         assert "cache_size" in body["data"]
+        assert "last_refresh_status" in body["data"]
+        assert "last_refresh_error" in body["data"]
         assert "structural_guarantees" in body["data"]
         assert isinstance(body["data"]["structural_guarantees"], list)
 
@@ -394,6 +396,8 @@ class TestScoreCacheAutoRefresh:
             await task
 
         assert cache.size == 0
+        assert cache.last_refresh_status == "empty"
+        assert cache.last_refresh_error is None
 
     @pytest.mark.asyncio
     async def test_refresh_loop_handles_exception(self):
@@ -422,6 +426,28 @@ class TestScoreCacheAutoRefresh:
         # Should have recovered after the first failure
         assert call_count[0] >= 2
         assert cache.size >= 1
+        assert cache.last_refresh_status == "success"
+
+    @pytest.mark.asyncio
+    async def test_refresh_loop_records_error_state(self):
+        """Refresh errors should be reflected in cache diagnostics."""
+        from services.score_cache import _refresh_loop, ScoreReadCache
+
+        cache = ScoreReadCache(ttl_seconds=60.0)
+        stop = asyncio.Event()
+
+        async def always_fail():
+            raise RuntimeError("db unavailable")
+
+        with patch("services.score_cache.fetch_scores_from_db", side_effect=always_fail):
+            task = asyncio.create_task(_refresh_loop(cache, interval=0.1, stop_event=stop))
+            await asyncio.sleep(0.15)
+            stop.set()
+            await task
+
+        assert cache.last_refresh_status == "error"
+        assert cache.last_refresh_error is not None
+        assert "db unavailable" in cache.last_refresh_error
 
     @pytest.mark.asyncio
     async def test_start_stop_lifecycle(self):

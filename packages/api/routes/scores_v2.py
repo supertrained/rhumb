@@ -11,6 +11,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import math
 from datetime import timezone
 from typing import Any
 
@@ -116,10 +117,20 @@ async def cache_status() -> dict[str, Any]:
     cache = get_score_cache()
     chain = get_audit_chain()
 
+    refresh_age = cache.last_refresh_age_seconds
+    refresh_attempt_age = cache.last_refresh_attempt_age_seconds
+
     return {
         "data": {
             "cache_size": cache.size,
-            "last_refresh_age_seconds": round(cache.last_refresh_age_seconds, 1),
+            "last_refresh_age_seconds": (
+                None if math.isinf(refresh_age) else round(refresh_age, 1)
+            ),
+            "last_refresh_attempt_age_seconds": (
+                None if math.isinf(refresh_attempt_age) else round(refresh_attempt_age, 1)
+            ),
+            "last_refresh_status": cache.last_refresh_status,
+            "last_refresh_error": cache.last_refresh_error,
             "audit_chain_length": chain.length,
             "audit_chain_verified": chain.verify_chain(),
             "latest_chain_hash": chain.latest_hash,

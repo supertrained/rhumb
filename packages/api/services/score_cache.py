@@ -78,6 +78,9 @@ class ScoreReadCache:
         self._store: dict[str, CachedScore] = {}
         self._lock = threading.RLock()
         self._last_full_refresh: float = 0.0
+        self._last_refresh_attempt: float = 0.0
+        self._last_refresh_status: str = "never"
+        self._last_refresh_error: str | None = None
         self._clock = time.monotonic
 
     # ── Public read-only API ──────────────────────────────────────
@@ -135,6 +138,23 @@ class ScoreReadCache:
         return self._clock() - self._last_full_refresh
 
     @property
+    def last_refresh_attempt_age_seconds(self) -> float:
+        """Seconds since the last refresh attempt, or infinity if never attempted."""
+        if self._last_refresh_attempt == 0.0:
+            return float("inf")
+        return self._clock() - self._last_refresh_attempt
+
+    @property
+    def last_refresh_status(self) -> str:
+        with self._lock:
+            return self._last_refresh_status
+
+    @property
+    def last_refresh_error(self) -> str | None:
+        with self._lock:
+            return self._last_refresh_error
+
+    @property
     def size(self) -> int:
         with self._lock:
             return len(self._store)
@@ -162,7 +182,24 @@ class ScoreReadCache:
         with self._lock:
             self._store = new_store
             self._last_full_refresh = now
+            self._last_refresh_attempt = now
+            self._last_refresh_status = "success"
+            self._last_refresh_error = None
         return len(new_store)
+
+    def _record_refresh_empty(self) -> None:
+        now = self._clock()
+        with self._lock:
+            self._last_refresh_attempt = now
+            self._last_refresh_status = "empty"
+            self._last_refresh_error = None
+
+    def _record_refresh_error(self, error: Exception) -> None:
+        now = self._clock()
+        with self._lock:
+            self._last_refresh_attempt = now
+            self._last_refresh_status = "error"
+            self._last_refresh_error = f"{type(error).__name__}: {error}"
 
     def _upsert(self, entry: CachedScore) -> None:
         """Internal: update a single entry (after a score recomputation)."""
@@ -427,8 +464,10 @@ async def _refresh_loop(
                     cache.last_refresh_age_seconds,
                 )
             else:
+                cache._record_refresh_empty()
                 logger.warning("score_cache_refresh_empty — DB returned no scores")
-        except Exception:
+        except Exception as exc:
+            cache._record_refresh_error(exc)
             logger.exception("score_cache_refresh_error")
 
         # Wait for the interval or until stopped
@@ -458,8 +497,10 @@ async def start_score_cache_refresh() -> None:
             count = cache._populate(entries)
             logger.info("score_cache_initial_warmup count=%d", count)
         else:
+            cache._record_refresh_empty()
             logger.warning("score_cache_initial_warmup_empty")
-    except Exception:
+    except Exception as exc:
+        cache._record_refresh_error(exc)
         logger.exception("score_cache_initial_warmup_failed")
 
     # Start background loop
