@@ -199,9 +199,22 @@ class TestPhasedRestoration:
         reg.approve_global_kill(result["request_id"], _principal("pedro"))
         reg.begin_restoration("global", "read_only", "tom")
 
-        blocked, reason = reg.is_blocked()
+        blocked, reason = reg.is_blocked(operation_class="non_financial")
         assert blocked is True
         assert "read-only" in reason
+
+    def test_non_financial_phase_blocks_financial_only(self):
+        reg = KillSwitchRegistry()
+        result = reg.request_global_kill("Incident", _principal("tom"))
+        reg.approve_global_kill(result["request_id"], _principal("pedro"))
+        reg.begin_restoration("global", "non_financial", "tom")
+
+        blocked_financial, reason = reg.is_blocked(operation_class="financial")
+        blocked_non_financial, _ = reg.is_blocked(operation_class="non_financial")
+
+        assert blocked_financial is True
+        assert "financial execution still suspended" in reason
+        assert blocked_non_financial is False
 
     def test_full_phase_allows(self):
         reg = KillSwitchRegistry()
@@ -209,7 +222,7 @@ class TestPhasedRestoration:
         reg.approve_global_kill(result["request_id"], _principal("pedro"))
         reg.begin_restoration("global", "full", "tom")
 
-        blocked, _ = reg.is_blocked()
+        blocked, _ = reg.is_blocked(operation_class="financial")
         assert blocked is False
 
     def test_lift_after_restoration(self):
@@ -358,8 +371,21 @@ class TestCombinedScenarios:
         blocked, _ = reg.is_blocked(agent_id="clean", provider_slug="healthy", recipe_id="safe")
         assert blocked is True
 
-    def test_no_kills_means_no_blocks(self):
+    def test_non_authoritative_registry_blocks_risky_requests(self):
         reg = KillSwitchRegistry()
+        blocked, reason = reg.is_blocked(
+            agent_id="a",
+            provider_slug="p",
+            recipe_id="r",
+            operation_class="financial",
+            require_authoritative=True,
+        )
+        assert blocked is True
+        assert "authority unavailable" in reason.lower()
+
+    def test_no_kills_means_no_blocks(self):
+        persistence = AsyncInMemoryKillSwitchPersistence()
+        reg = KillSwitchRegistry(persistence=persistence)
         blocked, reason = reg.is_blocked(
             agent_id="a", provider_slug="p", recipe_id="r"
         )

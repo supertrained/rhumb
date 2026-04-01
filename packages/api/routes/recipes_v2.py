@@ -507,6 +507,8 @@ async def execute_recipe(
     blocked, kill_reason = kill_switch_registry.is_blocked(
         agent_id=agent.agent_id,
         recipe_id=recipe.recipe_id,
+        operation_class="financial",
+        require_authoritative=True,
     )
     if blocked:
         raise RhumbError(

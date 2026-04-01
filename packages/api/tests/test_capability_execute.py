@@ -210,6 +210,8 @@ async def test_execute_blocks_when_kill_switch_active(app):
     mock_registry.is_blocked.assert_called_once_with(
         agent_id="agent_cap_exec_test",
         provider_slug="sendgrid",
+        operation_class="financial",
+        require_authoritative=True,
     )
     mock_pool.assert_not_called()
 

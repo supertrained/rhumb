@@ -250,4 +250,6 @@ async def test_execute_recipe_blocks_when_kill_switch_active(app, mock_agent):
     mock_registry.is_blocked.assert_called_once_with(
         agent_id=mock_agent.agent_id,
         recipe_id="transcribe_and_notify",
+        operation_class="financial",
+        require_authoritative=True,
     )

@@ -101,6 +101,10 @@ class KillSwitchRegistry:
         self._lock = threading.RLock()
         self._prev_hash = self.GENESIS_HASH
         self._entry_counter = 0
+        self._authoritative = persistence is not None
+        self._authority_reason = "" if persistence is not None else (
+            "Kill-switch authority unavailable: durable persistence is not active."
+        )
         self._restore_from_persistence()
 
     # ── Check methods (hot path — must be fast) ───────────────────
@@ -111,12 +115,22 @@ class KillSwitchRegistry:
         agent_id: str | None = None,
         provider_slug: str | None = None,
         recipe_id: str | None = None,
+        operation_class: str = "non_financial",
+        require_authoritative: bool = False,
     ) -> tuple[bool, str]:
         """Check if any kill switch blocks this execution.
 
         Returns (blocked, reason). Hot path — O(1) lookups.
+
+        operation_class:
+          - ``read_only``: safe introspection
+          - ``non_financial``: execution without direct monetary settlement semantics
+          - ``financial``: paid/managed/risky execution that must fail closed
         """
         with self._lock:
+            if require_authoritative and not self._authoritative:
+                return True, self._authority_reason
+
             # L4: Global kill
             global_switch = self._switches.get("global")
             if global_switch and global_switch.state == KillSwitchState.KILLED:
@@ -125,9 +139,11 @@ class KillSwitchRegistry:
             # Check restoration phase
             if global_switch and global_switch.state == KillSwitchState.RESTORING:
                 phase = global_switch.restoration_phase
-                if phase == "read_only":
+                if phase == "read_only" and operation_class != "read_only":
                     return True, "Global restoration in progress: read-only mode"
-                # "non_financial" and "full" allow execution
+                if phase == "non_financial" and operation_class == "financial":
+                    return True, "Global restoration in progress: financial execution still suspended"
+                # "full" allows all execution, and "non_financial" allows non-financial work
 
             # L1: Per-agent
             if agent_id:
@@ -390,6 +406,16 @@ class KillSwitchRegistry:
                 if e.state in (KillSwitchState.KILLED, KillSwitchState.RESTORING)
             )
 
+    @property
+    def authoritative(self) -> bool:
+        with self._lock:
+            return self._authoritative
+
+    @property
+    def authority_reason(self) -> str:
+        with self._lock:
+            return self._authority_reason
+
     # ── Internal ──────────────────────────────────────────────────
 
     def _activate(
@@ -539,18 +565,36 @@ class KillSwitchRegistry:
 
     def _call_persistence(self, method_name: str, *args: Any) -> Any:
         if self._persistence is None:
+            self._mark_authority_unavailable(
+                "Kill-switch authority unavailable: durable persistence is not active."
+            )
             return None
         method = getattr(self._persistence, method_name, None)
         if method is None:
+            self._mark_authority_unavailable(
+                f"Kill-switch authority unavailable: persistence method {method_name} is missing."
+            )
             return None
         try:
             result = method(*args)
             if inspect.isawaitable(result):
-                return self._run_awaitable(result)
+                result = self._run_awaitable(result)
+            if result is False:
+                self._mark_authority_unavailable(
+                    f"Kill-switch authority unavailable: durable persistence {method_name} failed."
+                )
             return result
         except Exception:
+            self._mark_authority_unavailable(
+                f"Kill-switch authority unavailable: durable persistence {method_name} raised."
+            )
             logger.warning("kill_switch_persistence_call_failed method=%s", method_name, exc_info=True)
             return None
+
+    def _mark_authority_unavailable(self, reason: str) -> None:
+        with self._lock:
+            self._authoritative = False
+            self._authority_reason = reason
 
     @staticmethod
     def _run_awaitable(awaitable: Any) -> Any:

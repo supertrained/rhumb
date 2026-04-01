@@ -1364,38 +1364,46 @@ async def execute_capability(
             requested_provider=request.provider,
         )
 
+    # 0. Pre-execution budget/credit reservation estimate
+    cost_estimate = _extract_cost_usd(selected_mapping)
+    upstream_cost_cents, billed_cost_cents, margin_cents = _calculate_billing_amounts(cost_estimate)
+
     kill_switch_registry = await init_kill_switch_registry()
     kill_switch_provider = (
         selected_mapping.get("service_slug")
         if isinstance(selected_mapping, dict)
         else request.provider
     )
+    operation_class = "financial" if (
+        request.credential_mode == "rhumb_managed"
+        or billed_cost_cents > 0
+        or bool(x_payment and x_payment != "required")
+    ) else "non_financial"
     blocked, kill_reason = kill_switch_registry.is_blocked(
         agent_id=agent_id,
         provider_slug=kill_switch_provider,
+        operation_class=operation_class,
+        require_authoritative=True,
     )
     if blocked:
         logger.warning(
-            "execution_blocked_by_kill_switch agent_id=%s capability_id=%s provider=%s reason=%s",
+            "execution_blocked_by_kill_switch agent_id=%s capability_id=%s provider=%s operation_class=%s reason=%s",
             agent_id,
             capability_id,
             kill_switch_provider,
+            operation_class,
             kill_reason,
         )
         return JSONResponse(
             status_code=503,
             content={
                 "error": "kill_switch_active",
-                "message": "Execution is temporarily blocked by a kill switch.",
+                "message": "Execution is temporarily blocked by a kill switch or control-plane safety gate.",
                 "resolution": "Retry later or contact Rhumb support if the block appears unexpected.",
                 "detail": kill_reason,
                 "request_id": getattr(raw_request.state, "request_id", None) or f"req_{uuid.uuid4().hex[:12]}",
             },
         )
-
-    # 0. Pre-execution budget/credit reservation estimate
-    cost_estimate = _extract_cost_usd(selected_mapping)
-    upstream_cost_cents, billed_cost_cents, margin_cents = _calculate_billing_amounts(cost_estimate)
 
     execution_id = f"exec_{uuid.uuid4().hex}"
     has_inline_x402_payment = bool(x_payment and x_payment != "required")
