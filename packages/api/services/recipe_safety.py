@@ -13,11 +13,13 @@ tune down. Track blocked-but-legitimate content."
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import logging
 import re
 import threading
 import time
+import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -39,6 +41,9 @@ class ContentViolationType(str, Enum):
     EXCESSIVE_LENGTH = "excessive_length"
     SUSPICIOUS_ENCODING = "suspicious_encoding"
     DISALLOWED_PATTERN = "disallowed_pattern"
+    CONTROL_CHARACTER = "control_character"
+    ENCODED_PAYLOAD = "encoded_payload"
+    NESTING_DEPTH_EXCEEDED = "nesting_depth_exceeded"
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +190,216 @@ class ContentFirewall:
             return sum(self._count_fields(item) for item in data)
         return 1
 
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Normalize text for pattern matching (AUD-2 hardening).
+
+        1. NFKC normalization — collapses Unicode confusables
+           (e.g., fullwidth 'ｉｇｎｏｒｅ' → 'ignore')
+        2. Strip zero-width characters — defeats invisible insertion
+           (U+200B, U+200C, U+200D, U+FEFF, U+2060, etc.)
+        3. Strip combining marks used as visual noise
+        """
+        # NFKC normalizes compatibility decomposition + canonical composition
+        normalized = unicodedata.normalize("NFKC", text)
+
+        # Strip zero-width and invisible formatting characters
+        _INVISIBLE_CHARS = frozenset([
+            "\u200b",  # zero-width space
+            "\u200c",  # zero-width non-joiner
+            "\u200d",  # zero-width joiner
+            "\u200e",  # left-to-right mark
+            "\u200f",  # right-to-left mark
+            "\u2060",  # word joiner
+            "\u2061",  # function application
+            "\u2062",  # invisible times
+            "\u2063",  # invisible separator
+            "\u2064",  # invisible plus
+            "\ufeff",  # byte order mark / zero-width no-break space
+            "\u00ad",  # soft hyphen
+            "\u034f",  # combining grapheme joiner
+            "\u061c",  # arabic letter mark
+            "\u180e",  # mongolian vowel separator
+        ])
+        normalized = "".join(c for c in normalized if c not in _INVISIBLE_CHARS)
+
+        return normalized
+
+    @staticmethod
+    def _detect_control_chars(text: str) -> list[str]:
+        """Detect dangerous control characters beyond null bytes (AUD-2).
+
+        Returns list of descriptions of found control chars.
+        """
+        found = []
+        for i, ch in enumerate(text):
+            cp = ord(ch)
+            # C0 control chars (except \t, \n, \r which are normal)
+            if cp < 0x20 and ch not in ("\t", "\n", "\r"):
+                found.append(f"C0 control U+{cp:04X} at position {i}")
+            # C1 control chars (0x80-0x9F)
+            elif 0x80 <= cp <= 0x9F:
+                found.append(f"C1 control U+{cp:04X} at position {i}")
+            # Bidirectional override/embedding characters (text spoofing)
+            elif cp in (0x202A, 0x202B, 0x202C, 0x202D, 0x202E, 0x2066, 0x2067, 0x2068, 0x2069):
+                found.append(f"bidi override U+{cp:04X} at position {i}")
+        return found
+
+    @staticmethod
+    def _try_decode_base64(text: str) -> str | None:
+        """Try to decode a base64-encoded string (AUD-2).
+
+        Returns the decoded text if it looks like valid base64 with
+        decodable UTF-8 content, else None.
+        Only inspects strings that look like base64 (length >=20,
+        valid charset, no spaces in the middle).
+        """
+        stripped = text.strip()
+        if len(stripped) < 20:
+            return None
+        # Quick heuristic: base64 is [A-Za-z0-9+/=] with optional padding
+        if not re.match(r'^[A-Za-z0-9+/=\n\r]+$', stripped):
+            return None
+        # Must have reasonable padding
+        try:
+            decoded = base64.b64decode(stripped, validate=True)
+            # Only inspect if it decodes to valid UTF-8 text
+            decoded_text = decoded.decode("utf-8")
+            # Heuristic: real base64 payloads are usually >50% printable
+            printable_ratio = sum(1 for c in decoded_text if c.isprintable() or c in ("\n", "\r", "\t")) / max(len(decoded_text), 1)
+            if printable_ratio > 0.5:
+                return decoded_text
+        except Exception:
+            pass
+        return None
+
+    def _inspect_string(
+        self,
+        data: str,
+        path: str,
+        violations: list[ContentViolation],
+        warnings: list[ContentViolation],
+        total_length_ref: list[int],
+    ) -> None:
+        """Inspect a single string field with full AUD-2 hardening."""
+        total_length_ref[0] += len(data)
+
+        # Length checks
+        if len(data) > self._max_field_length:
+            violations.append(ContentViolation(
+                violation_type=ContentViolationType.EXCESSIVE_LENGTH,
+                field_path=path,
+                description=f"Field exceeds max length ({len(data)} > {self._max_field_length})",
+                severity="block",
+            ))
+        if total_length_ref[0] > self._max_total_length:
+            violations.append(ContentViolation(
+                violation_type=ContentViolationType.EXCESSIVE_LENGTH,
+                field_path=path,
+                description=f"Total content exceeds max ({total_length_ref[0]} > {self._max_total_length})",
+                severity="block",
+            ))
+
+        # Control character detection (AUD-2: beyond just null bytes)
+        if "\x00" in data:
+            violations.append(ContentViolation(
+                violation_type=ContentViolationType.SUSPICIOUS_ENCODING,
+                field_path=path,
+                description="Null byte detected in string field",
+                severity="block",
+            ))
+
+        control_chars = self._detect_control_chars(data)
+        if control_chars:
+            violations.append(ContentViolation(
+                violation_type=ContentViolationType.CONTROL_CHARACTER,
+                field_path=path,
+                description=f"Dangerous control characters detected: {'; '.join(control_chars[:5])}",
+                severity="block",
+                matched_pattern="control_characters",
+            ))
+
+        # Normalize before pattern matching (AUD-2: NFKC + zero-width stripping)
+        normalized = self._normalize_text(data)
+
+        # Prompt injection (on normalized text)
+        for pattern, label in _PROMPT_INJECTION_PATTERNS:
+            if pattern.search(normalized):
+                severity = "block" if self._block_on_injection else "warn"
+                violations.append(ContentViolation(
+                    violation_type=ContentViolationType.PROMPT_INJECTION,
+                    field_path=path,
+                    description=f"Prompt injection pattern detected: {label}",
+                    severity=severity,
+                    matched_pattern=label,
+                ))
+
+        # Shell injection (on normalized text)
+        for pattern, label in _SHELL_INJECTION_PATTERNS:
+            if pattern.search(normalized):
+                violations.append(ContentViolation(
+                    violation_type=ContentViolationType.SHELL_INJECTION,
+                    field_path=path,
+                    description=f"Shell injection pattern: {label}",
+                    severity="block",
+                    matched_pattern=label,
+                ))
+
+        # Path traversal (on normalized text)
+        for pattern, label in _PATH_TRAVERSAL_PATTERNS:
+            if pattern.search(normalized):
+                violations.append(ContentViolation(
+                    violation_type=ContentViolationType.PATH_TRAVERSAL,
+                    field_path=path,
+                    description=f"Path traversal pattern: {label}",
+                    severity="block",
+                    matched_pattern=label,
+                ))
+
+        # Base64 payload inspection (AUD-2: decode and inspect encoded content)
+        decoded_text = self._try_decode_base64(data)
+        if decoded_text is not None:
+            # Run the same pattern checks on decoded content
+            decoded_normalized = self._normalize_text(decoded_text)
+            for pattern, label in _PROMPT_INJECTION_PATTERNS:
+                if pattern.search(decoded_normalized):
+                    violations.append(ContentViolation(
+                        violation_type=ContentViolationType.ENCODED_PAYLOAD,
+                        field_path=path,
+                        description=f"Prompt injection in base64-encoded content: {label}",
+                        severity="block",
+                        matched_pattern=f"base64:{label}",
+                    ))
+            for pattern, label in _SHELL_INJECTION_PATTERNS:
+                if pattern.search(decoded_normalized):
+                    violations.append(ContentViolation(
+                        violation_type=ContentViolationType.ENCODED_PAYLOAD,
+                        field_path=path,
+                        description=f"Shell injection in base64-encoded content: {label}",
+                        severity="block",
+                        matched_pattern=f"base64:{label}",
+                    ))
+            for pattern, label in _PATH_TRAVERSAL_PATTERNS:
+                if pattern.search(decoded_normalized):
+                    violations.append(ContentViolation(
+                        violation_type=ContentViolationType.ENCODED_PAYLOAD,
+                        field_path=path,
+                        description=f"Path traversal in base64-encoded content: {label}",
+                        severity="block",
+                        matched_pattern=f"base64:{label}",
+                    ))
+
+        # Custom disallowed patterns (on normalized text)
+        for pattern, label in self._custom_disallowed:
+            if pattern.search(normalized):
+                violations.append(ContentViolation(
+                    violation_type=ContentViolationType.DISALLOWED_PATTERN,
+                    field_path=path,
+                    description=f"Disallowed pattern: {label}",
+                    severity="block",
+                    matched_pattern=label,
+                ))
+
     def _inspect_recursive(
         self,
         data: Any,
@@ -196,87 +411,31 @@ class ContentFirewall:
         total_length_ref: list[int],
         depth: int = 0,
     ) -> None:
-        """Walk data structure, checking each string field."""
+        """Walk data structure, checking each string field.
+
+        AUD-2 hardening: block on depth exceeded (instead of silent return),
+        inspect dict keys (not just values).
+        """
         if depth > 20:
-            # Prevent infinite recursion on pathological nesting
+            # AUD-2: block instead of silently stopping inspection
+            violations.append(ContentViolation(
+                violation_type=ContentViolationType.NESTING_DEPTH_EXCEEDED,
+                field_path=path,
+                description=f"Data nesting depth {depth} exceeds inspection limit of 20",
+                severity="block",
+                matched_pattern="max_inspection_depth",
+            ))
             return
 
         if isinstance(data, str):
-            total_length_ref[0] += len(data)
-
-            # Length checks
-            if len(data) > self._max_field_length:
-                violations.append(ContentViolation(
-                    violation_type=ContentViolationType.EXCESSIVE_LENGTH,
-                    field_path=path,
-                    description=f"Field exceeds max length ({len(data)} > {self._max_field_length})",
-                    severity="block",
-                ))
-            if total_length_ref[0] > self._max_total_length:
-                violations.append(ContentViolation(
-                    violation_type=ContentViolationType.EXCESSIVE_LENGTH,
-                    field_path=path,
-                    description=f"Total content exceeds max ({total_length_ref[0]} > {self._max_total_length})",
-                    severity="block",
-                ))
-
-            # Prompt injection
-            for pattern, label in _PROMPT_INJECTION_PATTERNS:
-                if pattern.search(data):
-                    severity = "block" if self._block_on_injection else "warn"
-                    violations.append(ContentViolation(
-                        violation_type=ContentViolationType.PROMPT_INJECTION,
-                        field_path=path,
-                        description=f"Prompt injection pattern detected: {label}",
-                        severity=severity,
-                        matched_pattern=label,
-                    ))
-
-            # Shell injection
-            for pattern, label in _SHELL_INJECTION_PATTERNS:
-                if pattern.search(data):
-                    violations.append(ContentViolation(
-                        violation_type=ContentViolationType.SHELL_INJECTION,
-                        field_path=path,
-                        description=f"Shell injection pattern: {label}",
-                        severity="block",
-                        matched_pattern=label,
-                    ))
-
-            # Path traversal
-            for pattern, label in _PATH_TRAVERSAL_PATTERNS:
-                if pattern.search(data):
-                    violations.append(ContentViolation(
-                        violation_type=ContentViolationType.PATH_TRAVERSAL,
-                        field_path=path,
-                        description=f"Path traversal pattern: {label}",
-                        severity="block",
-                        matched_pattern=label,
-                    ))
-
-            # Suspicious encoding (null bytes, control chars)
-            if "\x00" in data:
-                violations.append(ContentViolation(
-                    violation_type=ContentViolationType.SUSPICIOUS_ENCODING,
-                    field_path=path,
-                    description="Null byte detected in string field",
-                    severity="block",
-                ))
-
-            # Custom disallowed patterns
-            for pattern, label in self._custom_disallowed:
-                if pattern.search(data):
-                    violations.append(ContentViolation(
-                        violation_type=ContentViolationType.DISALLOWED_PATTERN,
-                        field_path=path,
-                        description=f"Disallowed pattern: {label}",
-                        severity="block",
-                        matched_pattern=label,
-                    ))
+            self._inspect_string(data, path, violations, warnings, total_length_ref)
 
         elif isinstance(data, dict):
             for key, value in data.items():
                 child_path = f"{path}.{key}" if path else key
+                # AUD-2: inspect dict keys too (attackers can hide payloads in keys)
+                if isinstance(key, str):
+                    self._inspect_string(key, f"{path}[key:{key}]", violations, warnings, total_length_ref)
                 self._inspect_recursive(
                     value, child_path, violations, warnings,
                     field_count=field_count, total_length_ref=total_length_ref,
