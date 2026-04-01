@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import json
 import httpx
@@ -752,6 +752,113 @@ async def test_byo_get_promotes_body_to_query_params(app):
     assert captured["method"] == "GET"
     assert captured["json"] is None
     assert captured["params"] == {"q": "Rhumb API agent infrastructure"}
+
+
+@pytest.mark.anyio
+async def test_execute_agent_rate_limit_uses_durable_limiter(app):
+    """Per-agent execute throttles should use the durable limiter, not in-memory dicts."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(False, 0))
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 429
+    assert resp.json()["detail"] == "Execution rate limit exceeded (30/min). Slow down."
+    mock_limiter.check_and_increment.assert_awaited_once_with(
+        "agent_exec:agent_cap_exec_test",
+        30,
+        60,
+    )
+
+
+@pytest.mark.anyio
+async def test_execute_x402_wallet_rate_limit_uses_durable_limiter(app):
+    """x402 wallet throttles should use the durable limiter before execution proceeds."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(False, 0))
+    mock_replay_guard = MagicMock()
+    mock_replay_guard.check_and_claim = AsyncMock(return_value=False)
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
+        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={
+                    "X-Payment": json.dumps({
+                        "tx_hash": "0xabc123",
+                        "wallet_address": "0xFEE123",
+                        "network": "base",
+                    }),
+                },
+            )
+
+    assert resp.status_code == 429
+    assert resp.json()["detail"] == "Rate limit exceeded for this wallet"
+    mock_limiter.check_and_increment.assert_awaited_once_with(
+        "wallet:0xfee123",
+        60,
+        60,
+    )
+    mock_replay_guard.check_and_claim.assert_awaited_once_with("0xabc123")
+
+
+@pytest.mark.anyio
+async def test_execute_managed_daily_limit_uses_durable_limiter(app):
+    """Managed daily throttles should use durable storage so limits survive restarts."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(side_effect=[(True, 29), (False, 0)])
+    managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "resend",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 429
+    assert "Daily managed execution limit exceeded" in resp.json()["detail"]
+    assert mock_limiter.check_and_increment.await_args_list == [
+        call("agent_exec:agent_cap_exec_test", 30, 60),
+        call("managed_daily:agent_cap_exec_test", 200, 86400),
+    ]
 
 
 @pytest.mark.anyio

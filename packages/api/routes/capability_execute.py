@@ -22,7 +22,6 @@ import logging
 import os
 import time
 import uuid
-from collections import defaultdict
 from typing import Any, Optional
 from urllib.parse import quote
 
@@ -46,6 +45,7 @@ from services.credit_deduction import CreditDeductionService
 from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
+from services.durable_rate_limit import DurableRateLimiter
 from services.durable_replay_guard import DurableReplayGuard
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
@@ -76,6 +76,7 @@ _x402_settlement = X402SettlementService()
 _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
 _durable_replay_guard: DurableReplayGuard | None = None
+_durable_rate_limiter: DurableRateLimiter | None = None
 
 
 def _get_identity_store() -> AgentIdentityStore:
@@ -94,6 +95,16 @@ async def _get_replay_guard() -> DurableReplayGuard:
         supabase = await get_supabase_client()
         _durable_replay_guard = DurableReplayGuard(supabase)
     return _durable_replay_guard
+
+
+async def _get_rate_limiter() -> DurableRateLimiter:
+    global _durable_rate_limiter
+    if _durable_rate_limiter is None:
+        from db.client import get_supabase_client
+
+        supabase = await get_supabase_client()
+        _durable_rate_limiter = DurableRateLimiter(supabase)
+    return _durable_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -354,10 +365,9 @@ def _log_x402_interop_trace(
 
 
 # ---------------------------------------------------------------------------
-# x402 anonymous wallet rate limiter (in-memory, per-process)
+# x402 anonymous wallet rate limiter (durable, cross-worker)
 # ---------------------------------------------------------------------------
 
-_wallet_requests: dict[str, list[float]] = defaultdict(list)
 _WALLET_RATE_LIMIT = 60   # requests per minute per wallet
 _WALLET_RATE_WINDOW = 60  # seconds
 
@@ -392,53 +402,57 @@ def check_tx_hash_replay(tx_hash: str) -> bool:
     return False  # First use, allowed
 
 # ---------------------------------------------------------------------------
-# Per-agent execution rate limiter (in-memory, per-process)
+# Per-agent execution rate limiter (durable, cross-worker)
 # Prevents abuse of managed credentials and general execution flooding.
 # ---------------------------------------------------------------------------
 
-_agent_exec_requests: dict[str, list[float]] = defaultdict(list)
 _AGENT_EXEC_RATE_LIMIT = 30   # requests per minute per agent (all modes)
 _AGENT_EXEC_RATE_WINDOW = 60  # seconds
 
-_agent_managed_daily: dict[str, list[float]] = defaultdict(list)
 _MANAGED_DAILY_LIMIT = 200    # managed executions per day per agent
 _MANAGED_DAILY_WINDOW = 86400  # 24 hours
 
 
-def check_agent_exec_rate_limit(agent_id: str) -> tuple[bool, int]:
+async def _check_rate_limit(
+    namespace: str,
+    subject: str,
+    limit: int,
+    window_seconds: int,
+) -> tuple[bool, int]:
+    limiter = await _get_rate_limiter()
+    normalized = subject.lower().strip()
+    key = f"{namespace}:{normalized}"
+    return await limiter.check_and_increment(key, limit, window_seconds)
+
+
+async def check_agent_exec_rate_limit(agent_id: str) -> tuple[bool, int]:
     """Check per-agent per-minute execution rate limit. Returns (allowed, remaining)."""
-    now = time.time()
-    key = agent_id.lower()
-    _agent_exec_requests[key] = [t for t in _agent_exec_requests[key] if now - t < _AGENT_EXEC_RATE_WINDOW]
-    remaining = _AGENT_EXEC_RATE_LIMIT - len(_agent_exec_requests[key])
-    if remaining <= 0:
-        return False, 0
-    _agent_exec_requests[key].append(now)
-    return True, remaining - 1
+    return await _check_rate_limit(
+        "agent_exec",
+        agent_id,
+        _AGENT_EXEC_RATE_LIMIT,
+        _AGENT_EXEC_RATE_WINDOW,
+    )
 
 
-def check_managed_daily_limit(agent_id: str) -> tuple[bool, int]:
+async def check_managed_daily_limit(agent_id: str) -> tuple[bool, int]:
     """Check per-agent daily managed execution cap. Returns (allowed, remaining)."""
-    now = time.time()
-    key = agent_id.lower()
-    _agent_managed_daily[key] = [t for t in _agent_managed_daily[key] if now - t < _MANAGED_DAILY_WINDOW]
-    remaining = _MANAGED_DAILY_LIMIT - len(_agent_managed_daily[key])
-    if remaining <= 0:
-        return False, 0
-    _agent_managed_daily[key].append(now)
-    return True, remaining - 1
+    return await _check_rate_limit(
+        "managed_daily",
+        agent_id,
+        _MANAGED_DAILY_LIMIT,
+        _MANAGED_DAILY_WINDOW,
+    )
 
 
-def check_wallet_rate_limit(wallet_address: str) -> tuple[bool, int]:
+async def check_wallet_rate_limit(wallet_address: str) -> tuple[bool, int]:
     """Check per-wallet rate limit. Returns (allowed, remaining_requests)."""
-    now = time.time()
-    key = wallet_address.lower()
-    _wallet_requests[key] = [t for t in _wallet_requests[key] if now - t < _WALLET_RATE_WINDOW]
-    remaining = _WALLET_RATE_LIMIT - len(_wallet_requests[key])
-    if remaining <= 0:
-        return False, 0
-    _wallet_requests[key].append(now)
-    return True, remaining - 1
+    return await _check_rate_limit(
+        "wallet",
+        wallet_address,
+        _WALLET_RATE_LIMIT,
+        _WALLET_RATE_WINDOW,
+    )
 
 
 async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
@@ -1108,7 +1122,7 @@ async def execute_capability(
             agent_id = f"x402_wallet_{payer_wallet.lower()}"
             org_id = "x402_anonymous"
 
-            allowed, remaining = check_wallet_rate_limit(payer_wallet)
+            allowed, remaining = await check_wallet_rate_limit(payer_wallet)
             x402_rate_remaining = remaining
             if not allowed:
                 _log_x402_interop_trace(
@@ -1181,7 +1195,7 @@ async def execute_capability(
 
             # Rate-limit per wallet to prevent abuse
             if x402_wallet_address:
-                allowed, remaining = check_wallet_rate_limit(x402_wallet_address)
+                allowed, remaining = await check_wallet_rate_limit(x402_wallet_address)
                 x402_rate_remaining = remaining
                 if not allowed:
                     _log_x402_interop_trace(
@@ -1219,7 +1233,7 @@ async def execute_capability(
 
     # ── Per-agent execution rate limiting ────────────────────────────
     # Applies to all execution modes to prevent flooding.
-    exec_allowed, exec_remaining = check_agent_exec_rate_limit(agent_id)
+    exec_allowed, exec_remaining = await check_agent_exec_rate_limit(agent_id)
     if not exec_allowed:
         raise HTTPException(
             status_code=429,
@@ -1268,7 +1282,7 @@ async def execute_capability(
 
     # Stricter daily cap for managed credentials (Rhumb's own keys)
     if request.credential_mode == "rhumb_managed":
-        managed_allowed, managed_remaining = check_managed_daily_limit(agent_id)
+        managed_allowed, managed_remaining = await check_managed_daily_limit(agent_id)
         if not managed_allowed:
             raise HTTPException(
                 status_code=429,
