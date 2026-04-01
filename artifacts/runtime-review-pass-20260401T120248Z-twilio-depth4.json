@@ -1,0 +1,36 @@
+{
+  "pass_id": "twilio-depth4-20260401T120248Z",
+  "provider": "twilio",
+  "capability": "phone.lookup",
+  "credential_mode": "byo",
+  "number": "+12025551234",
+  "fields": "line_type_intelligence",
+  "timestamp": "20260401T120248Z",
+  "managed": {
+    "fields": {
+      "phone_number": "+12025551234",
+      "valid": true,
+      "country_code": "US",
+      "national_format": "(202) 555-1234"
+    },
+    "execution_id": "exec_49ef5ab56d1a4d8ca9d4cd2fbcbf007a",
+    "http_status": 200
+  },
+  "direct": {
+    "fields": {
+      "phone_number": "+12025551234",
+      "valid": true,
+      "country_code": "US",
+      "national_format": "(202) 555-1234"
+    },
+    "http_status": 200
+  },
+  "parity": true,
+  "parity_fields_checked": [
+    "phone_number",
+    "valid",
+    "country_code",
+    "national_format"
+  ],
+  "agent_id": "4c86db17-a42e-4001-afc3-d3f621a3f4f5"
+}
