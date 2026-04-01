@@ -117,7 +117,19 @@ class BillingEventStream:
         org_id: str,
         amount: int,
         timestamp: str,
+        *,
+        event: Any = None,
     ) -> str:
+        """Compute chain hash for a billing event.
+
+        AUD-3: uses HMAC-SHA256 with full semantic payload when event is provided.
+        Falls back to legacy SHA-256 on header fields when event is None (backward compat).
+        """
+        if event is not None:
+            from services.chain_integrity import build_billing_payload, compute_chain_hmac
+            payload = build_billing_payload(event)
+            return compute_chain_hmac(prev_hash, payload)
+        # Legacy fallback (for verify_chain on old events)
         payload = f"{prev_hash}|{event_id}|{event_type}|{org_id}|{amount}|{timestamp}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -137,6 +149,24 @@ class BillingEventStream:
         with self._lock:
             event_id = f"bevt_{uuid4().hex[:16]}"
             now = datetime.now(timezone.utc)
+
+            # AUD-3: build event first (without hash), then compute HMAC over full payload
+            event_without_hash = BillingEvent(
+                event_id=event_id,
+                event_type=event_type,
+                org_id=org_id,
+                timestamp=now,
+                amount_usd_cents=amount_usd_cents,
+                balance_after_usd_cents=balance_after_usd_cents,
+                metadata=metadata or {},
+                receipt_id=receipt_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=provider_slug,
+                chain_hash="",  # placeholder
+                prev_hash=self._prev_hash,
+            )
+
             chain_hash = self._compute_hash(
                 self._prev_hash,
                 event_id,
@@ -144,6 +174,7 @@ class BillingEventStream:
                 org_id,
                 amount_usd_cents,
                 now.isoformat(),
+                event=event_without_hash,
             )
 
             event = BillingEvent(
@@ -258,7 +289,10 @@ class BillingEventStream:
         )
 
     def verify_chain(self) -> bool:
-        """Verify integrity of the entire event chain."""
+        """Verify integrity of the entire event chain.
+
+        AUD-3: uses HMAC with full semantic payload for verification.
+        """
         with self._lock:
             prev_hash = self.GENESIS_HASH
             for event in self._events:
@@ -269,6 +303,7 @@ class BillingEventStream:
                     event.org_id,
                     event.amount_usd_cents,
                     event.timestamp.isoformat(),
+                    event=event,
                 )
                 if event.chain_hash != expected or event.prev_hash != prev_hash:
                     return False

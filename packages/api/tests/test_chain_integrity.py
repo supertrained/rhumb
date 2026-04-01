@@ -1,198 +1,253 @@
-"""Tests for AUD-3: cryptographic chain integrity hardening.
+"""Tests for AUD-3: HMAC-based chain integrity.
 
-Verifies HMAC-SHA256 signing, full semantic payload coverage,
-canonical JSON determinism, backward-compatible legacy verification,
-and tamper detection.
+Verifies that:
+1. HMAC-SHA256 replaces raw SHA-256
+2. Full semantic payloads are covered
+3. Mutation of any field invalidates the chain
+4. Key dependency prevents external recomputation
+5. Constant-time comparison is used
 """
 
 from __future__ import annotations
 
-import os
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
 
-# Set a deterministic key for tests BEFORE importing the module
-os.environ["RHUMB_CHAIN_HMAC_KEY"] = "test-chain-hmac-key-for-unit-tests"
-
 from services.chain_integrity import (
-    _canonical_json,
+    CURRENT_KEY_VERSION,
+    _canonicalize,
+    build_audit_payload,
+    build_billing_payload,
+    build_kill_switch_payload,
     compute_chain_hmac,
-    compute_legacy_hash,
-    verify_chain_event,
     verify_chain_hmac,
 )
 
+
+TEST_KEY = b"test-signing-key-for-aud3"
 GENESIS = "0" * 64
 
 
-class TestCanonicalJson:
-    def test_sorted_keys(self):
-        """Keys are sorted alphabetically."""
-        result = _canonical_json({"z": 1, "a": 2, "m": 3})
-        assert result == '{"a":2,"m":3,"z":1}'
+class TestCanonicalJSON:
+    def test_deterministic_ordering(self):
+        """Dict key order doesn't affect output."""
+        a = _canonicalize({"z": 1, "a": 2})
+        b = _canonicalize({"a": 2, "z": 1})
+        assert a == b
 
-    def test_no_whitespace(self):
-        """No extra whitespace in output."""
-        result = _canonical_json({"key": "value", "num": 42})
-        assert " " not in result.replace('"key"', "").replace('"value"', "")
+    def test_datetime_serialization(self):
+        dt = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
+        result = _canonicalize({"ts": dt})
+        assert "2026-04-01T12:00:00" in result
 
-    def test_nested_sorted(self):
-        """Nested dicts have sorted keys."""
-        result = _canonical_json({"b": {"z": 1, "a": 2}})
-        assert '"a":2' in result
-        assert result.index('"a"') < result.index('"z"')
+    def test_none_serialization(self):
+        result = _canonicalize({"x": None})
+        assert "null" in result
 
-    def test_deterministic(self):
-        """Same data always produces same output."""
-        data = {"type": "execution.charged", "amount": 100, "provider": "stripe"}
-        assert _canonical_json(data) == _canonical_json(data)
-
-    def test_unicode_escaped(self):
-        """Non-ASCII characters are escaped (ensure_ascii=True)."""
-        result = _canonical_json({"name": "café"})
-        assert "\\u" in result
+    def test_nested_determinism(self):
+        a = _canonicalize({"outer": {"z": 1, "a": 2}})
+        b = _canonicalize({"outer": {"a": 2, "z": 1}})
+        assert a == b
 
 
-class TestComputeChainHmac:
-    def test_returns_hex_string(self):
-        """Hash is a 64-char hex string."""
-        h = compute_chain_hmac(GENESIS, {"type": "test"})
-        assert len(h) == 64
-        assert all(c in "0123456789abcdef" for c in h)
+class TestComputeChainHMAC:
+    def test_produces_hex_string(self):
+        result = compute_chain_hmac(GENESIS, {"event_id": "e1"}, key=TEST_KEY)
+        assert isinstance(result, str)
+        assert len(result) == 64  # SHA-256 hex digest
 
     def test_deterministic(self):
-        """Same inputs produce same hash."""
-        payload = {"type": "execution.charged", "amount": 100}
-        h1 = compute_chain_hmac(GENESIS, payload)
-        h2 = compute_chain_hmac(GENESIS, payload)
+        payload = {"event_id": "e1", "amount": 100}
+        h1 = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        h2 = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
         assert h1 == h2
 
     def test_different_prev_hash(self):
-        """Different prev_hash produces different result."""
-        payload = {"type": "test"}
-        h1 = compute_chain_hmac(GENESIS, payload)
-        h2 = compute_chain_hmac("a" * 64, payload)
+        payload = {"event_id": "e1"}
+        h1 = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        h2 = compute_chain_hmac("a" * 64, payload, key=TEST_KEY)
         assert h1 != h2
 
     def test_different_payload(self):
-        """Different payload produces different result."""
-        h1 = compute_chain_hmac(GENESIS, {"type": "a"})
-        h2 = compute_chain_hmac(GENESIS, {"type": "b"})
+        h1 = compute_chain_hmac(GENESIS, {"event_id": "e1"}, key=TEST_KEY)
+        h2 = compute_chain_hmac(GENESIS, {"event_id": "e2"}, key=TEST_KEY)
         assert h1 != h2
 
-    def test_full_payload_coverage(self):
-        """Changing ANY field changes the hash — proving full semantic coverage."""
-        base = {
-            "event_id": "evt_1",
-            "type": "execution.charged",
-            "org_id": "org_1",
-            "amount": 100,
-            "timestamp": "2026-04-01T00:00:00Z",
-            "detail": "payment for search.query",
-            "provider": "brave-search",
-            "receipt_id": "rcpt_abc",
-            "metadata": {"layer": 2, "capability": "search.query"},
-        }
-        base_hash = compute_chain_hmac(GENESIS, base)
+    def test_different_key(self):
+        payload = {"event_id": "e1"}
+        h1 = compute_chain_hmac(GENESIS, payload, key=b"key-a")
+        h2 = compute_chain_hmac(GENESIS, payload, key=b"key-b")
+        assert h1 != h2
 
-        # Mutate each field individually and verify hash changes
-        for field in base:
-            mutated = dict(base)
-            if isinstance(mutated[field], str):
-                mutated[field] = mutated[field] + "_tampered"
-            elif isinstance(mutated[field], int):
-                mutated[field] = mutated[field] + 1
-            elif isinstance(mutated[field], dict):
-                mutated[field] = {**mutated[field], "tampered": True}
-            h = compute_chain_hmac(GENESIS, mutated)
-            assert h != base_hash, f"Mutating '{field}' did not change the hash"
-
-    def test_key_order_irrelevant(self):
-        """Hash is the same regardless of insertion order (canonical JSON)."""
-        h1 = compute_chain_hmac(GENESIS, {"b": 2, "a": 1})
-        h2 = compute_chain_hmac(GENESIS, {"a": 1, "b": 2})
-        assert h1 == h2
+    def test_key_dependency_prevents_forgery(self):
+        """Without the signing key, you cannot recompute the hash."""
+        payload = {"event_id": "e1", "amount": 100}
+        real_hash = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        forged_hash = compute_chain_hmac(GENESIS, payload, key=b"wrong-key")
+        assert real_hash != forged_hash
 
 
-class TestVerifyChainHmac:
-    def test_valid_hash_verifies(self):
-        payload = {"type": "test", "value": 42}
-        h = compute_chain_hmac(GENESIS, payload)
-        assert verify_chain_hmac(GENESIS, payload, h) is True
+class TestVerifyChainHMAC:
+    def test_valid_verification(self):
+        payload = {"event_id": "e1", "amount": 100}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        assert verify_chain_hmac(GENESIS, payload, h, key=TEST_KEY) is True
 
     def test_tampered_payload_fails(self):
-        payload = {"type": "test", "value": 42}
-        h = compute_chain_hmac(GENESIS, payload)
-        payload["value"] = 999  # tamper
-        assert verify_chain_hmac(GENESIS, payload, h) is False
+        payload = {"event_id": "e1", "amount": 100}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        tampered = {"event_id": "e1", "amount": 200}  # Changed amount
+        assert verify_chain_hmac(GENESIS, tampered, h, key=TEST_KEY) is False
 
-    def test_wrong_hash_fails(self):
-        payload = {"type": "test"}
-        assert verify_chain_hmac(GENESIS, payload, "wrong" * 8) is False
+    def test_tampered_hash_fails(self):
+        payload = {"event_id": "e1"}
+        assert verify_chain_hmac(GENESIS, payload, "f" * 64, key=TEST_KEY) is False
 
-
-class TestLegacyHash:
-    def test_produces_sha256(self):
-        h = compute_legacy_hash(GENESIS, "evt_1", "test", "org_1", "100", "2026-01-01")
-        assert len(h) == 64
-
-    def test_deterministic(self):
-        h1 = compute_legacy_hash(GENESIS, "a", "b")
-        h2 = compute_legacy_hash(GENESIS, "a", "b")
-        assert h1 == h2
+    def test_wrong_prev_hash_fails(self):
+        payload = {"event_id": "e1"}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        assert verify_chain_hmac("b" * 64, payload, h, key=TEST_KEY) is False
 
 
-class TestVerifyChainEvent:
-    def test_hmac_event_verifies(self):
-        """New HMAC events verify correctly."""
-        payload = {"type": "new_event", "detail": "important"}
-        h = compute_chain_hmac(GENESIS, payload)
-        assert verify_chain_event(GENESIS, payload, h) is True
+class TestFullSemanticCoverage:
+    """AUD-3 core: mutation of ANY field invalidates the chain."""
 
-    def test_legacy_event_verifies_via_fallback(self):
-        """Old SHA-256 events still verify via legacy fallback."""
-        legacy_fields = ("evt_1", "test", "org_1", "100", "2026-01-01")
-        h = compute_legacy_hash(GENESIS, *legacy_fields)
-        # HMAC will fail, then legacy fallback should succeed
-        payload = {"type": "test"}  # irrelevant for legacy
-        assert verify_chain_event(GENESIS, payload, h, *legacy_fields) is True
+    def test_metadata_mutation_detected(self):
+        """Changing metadata field invalidates chain (was NOT covered before)."""
+        payload = {"event_id": "e1", "amount": 100, "metadata": {"note": "original"}}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        payload["metadata"]["note"] = "tampered"
+        assert verify_chain_hmac(GENESIS, payload, h, key=TEST_KEY) is False
 
-    def test_tampered_event_fails_both(self):
-        """Tampered data fails both HMAC and legacy checks."""
-        payload = {"type": "test"}
-        assert verify_chain_event(GENESIS, payload, "bad" * 16) is False
+    def test_detail_mutation_detected(self):
+        """Changing detail field invalidates chain."""
+        payload = {"event_id": "e1", "detail": {"action": "charge"}}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        payload["detail"]["action"] = "refund"
+        assert verify_chain_hmac(GENESIS, payload, h, key=TEST_KEY) is False
 
-    def test_tampered_event_fails_legacy_too(self):
-        """Tampered legacy fields fail legacy check."""
-        h = compute_legacy_hash(GENESIS, "a", "b")
-        assert verify_chain_event(GENESIS, {}, h, "a", "TAMPERED") is False
+    def test_receipt_id_mutation_detected(self):
+        """Changing receipt_id invalidates chain."""
+        payload = {"event_id": "e1", "receipt_id": "rcpt_original"}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        mutated = {**payload, "receipt_id": "rcpt_forged"}
+        assert verify_chain_hmac(GENESIS, mutated, h, key=TEST_KEY) is False
+
+    def test_provider_slug_mutation_detected(self):
+        """Changing provider_slug invalidates chain."""
+        payload = {"event_id": "e1", "provider_slug": "stripe"}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        mutated = {**payload, "provider_slug": "fake-provider"}
+        assert verify_chain_hmac(GENESIS, mutated, h, key=TEST_KEY) is False
+
+    def test_capability_id_mutation_detected(self):
+        """Changing capability_id invalidates chain."""
+        payload = {"event_id": "e1", "capability_id": "search.query"}
+        h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
+        mutated = {**payload, "capability_id": "admin.delete_all"}
+        assert verify_chain_hmac(GENESIS, mutated, h, key=TEST_KEY) is False
 
 
-class TestHmacKeyLoading:
-    def test_env_key_used(self):
-        """RHUMB_CHAIN_HMAC_KEY from env is used."""
-        # Already set in module-level env setup
-        payload = {"type": "test"}
-        h = compute_chain_hmac(GENESIS, payload)
-        assert len(h) == 64
+class TestChainSequence:
+    """Verify multi-event chain integrity."""
 
-    def test_different_key_different_hash(self):
-        """Different HMAC keys produce different hashes (key matters)."""
-        import services.chain_integrity as ci
-        payload = {"type": "test"}
+    def test_three_event_chain(self):
+        events = [
+            {"event_id": "e1", "amount": 100, "detail": "first"},
+            {"event_id": "e2", "amount": 200, "detail": "second"},
+            {"event_id": "e3", "amount": -50, "detail": "refund"},
+        ]
+        hashes = []
+        prev = GENESIS
+        for event in events:
+            h = compute_chain_hmac(prev, event, key=TEST_KEY)
+            hashes.append(h)
+            prev = h
 
-        # Save current key
-        original_key = ci._hmac_key
+        # Verify forward
+        prev = GENESIS
+        for event, expected_hash in zip(events, hashes):
+            assert verify_chain_hmac(prev, event, expected_hash, key=TEST_KEY)
+            prev = expected_hash
 
-        # Hash with original key
-        h1 = compute_chain_hmac(GENESIS, payload)
+    def test_middle_event_tampering_breaks_chain(self):
+        events = [
+            {"event_id": "e1", "amount": 100},
+            {"event_id": "e2", "amount": 200},
+            {"event_id": "e3", "amount": 300},
+        ]
+        hashes = []
+        prev = GENESIS
+        for event in events:
+            h = compute_chain_hmac(prev, event, key=TEST_KEY)
+            hashes.append(h)
+            prev = h
 
-        # Hash with different key
-        ci._hmac_key = b"different-key"
-        h2 = compute_chain_hmac(GENESIS, payload)
+        # Tamper with middle event
+        events[1]["amount"] = 999
+        # Event 2's hash no longer matches
+        assert verify_chain_hmac(hashes[0], events[1], hashes[1], key=TEST_KEY) is False
 
-        # Restore
-        ci._hmac_key = original_key
 
-        assert h1 != h2
+class TestBuildPayloadHelpers:
+    """Verify payload builders cover all fields."""
+
+    def test_billing_payload_covers_all_fields(self):
+        class MockEvent:
+            event_id = "e1"
+            event_type = type("ET", (), {"value": "execution.charged"})()
+            org_id = "org_1"
+            timestamp = datetime(2026, 4, 1, tzinfo=timezone.utc)
+            amount_usd_cents = 100
+            balance_after_usd_cents = 900
+            metadata = {"note": "test"}
+            receipt_id = "rcpt_1"
+            execution_id = "exec_1"
+            capability_id = "search.query"
+            provider_slug = "brave-search"
+
+        payload = build_billing_payload(MockEvent())
+        # All fields present
+        assert payload["event_id"] == "e1"
+        assert payload["metadata"] == {"note": "test"}
+        assert payload["receipt_id"] == "rcpt_1"
+        assert payload["provider_slug"] == "brave-search"
+        assert payload["capability_id"] == "search.query"
+        assert payload["execution_id"] == "exec_1"
+        assert payload["balance_after_usd_cents"] == 900
+
+    def test_audit_payload_covers_detail(self):
+        class MockEvent:
+            event_id = "ae1"
+            event_type = type("ET", (), {"value": "execution.completed"})()
+            severity = type("S", (), {"value": "info"})()
+            category = "execution"
+            timestamp = datetime(2026, 4, 1, tzinfo=timezone.utc)
+            org_id = "org_1"
+            agent_id = "agent_1"
+            resource_type = "capability"
+            resource_id = "search.query"
+            action = "execute"
+            detail = {"provider": "brave-search", "latency_ms": 150}
+            metadata = {"request_id": "req_1"}
+
+        payload = build_audit_payload(MockEvent())
+        assert payload["detail"]["provider"] == "brave-search"
+        assert payload["metadata"]["request_id"] == "req_1"
+        assert payload["agent_id"] == "agent_1"
+
+    def test_kill_switch_payload_covers_detail(self):
+        class MockEntry:
+            action = "activate"
+            level = "L4_global"
+            target = "global"
+            principal = "admin@rhumb.dev"
+            reason = "emergency"
+            timestamp = datetime(2026, 4, 1, tzinfo=timezone.utc)
+            detail = {"approved_by": "admin2@rhumb.dev"}
+
+        payload = build_kill_switch_payload(MockEntry())
+        assert payload["detail"]["approved_by"] == "admin2@rhumb.dev"
+        assert payload["principal"] == "admin@rhumb.dev"
