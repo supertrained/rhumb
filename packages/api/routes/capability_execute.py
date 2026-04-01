@@ -46,7 +46,7 @@ from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
 from services.durable_rate_limit import DurableRateLimiter
-from services.durable_replay_guard import DurableReplayGuard
+from services.durable_replay_guard import DurableReplayGuard, ReplayGuardUnavailable
 from services.kill_switches import init_kill_switch_registry
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
@@ -1162,9 +1162,33 @@ async def execute_capability(
             return response
 
         else:
-            # Replay prevention: reject reused tx_hash
+            # Replay prevention: reject reused tx_hash. Financial replay
+            # protection must fail closed rather than degrading to
+            # per-process memory during control-plane outage.
             tx_hash = payment_data["tx_hash"]
-            if await (await _get_replay_guard()).check_and_claim(tx_hash):
+            try:
+                is_replay = await (await _get_replay_guard()).check_and_claim(
+                    tx_hash,
+                    allow_fallback=False,
+                )
+            except ReplayGuardUnavailable as exc:
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="payment_protection_unavailable",
+                    response_status=503,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    extra={"tx_hash": tx_hash},
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail="Payment protection temporarily unavailable. Retry shortly.",
+                ) from exc
+
+            if is_replay:
                 _log_x402_interop_trace(
                     raw_request,
                     capability_id=capability_id,
@@ -1621,30 +1645,6 @@ async def execute_capability(
             )
             declared_wallet = payment_data.get("wallet_address") or payment_data.get("from")
 
-            # Replay protection: check if tx_hash is already recorded
-            existing_receipt = await supabase_fetch(
-                f"usdc_receipts?tx_hash=eq.{quote(tx_hash)}&select=id&limit=1"
-            )
-            if existing_receipt:
-                _log_x402_interop_trace(
-                    raw_request,
-                    capability_id=capability_id,
-                    x_payment=x_payment,
-                    payment_trace=payment_trace,
-                    outcome="replay",
-                    response_status=402,
-                    provider=request.provider,
-                    payment_headers_set=False,
-                    execution_id=execution_id,
-                    agent_id=agent_id,
-                    org_id=org_id,
-                    extra={"tx_hash": tx_hash},
-                )
-                raise HTTPException(
-                    status_code=402,
-                    detail="Transaction already used",
-                )
-
             # Verify on-chain
             wallet = (
                 (pending_payment_request or {}).get("pay_to_address")
@@ -1768,7 +1768,52 @@ async def execute_capability(
                     selected_mapping["service_slug"],
                 )
 
-            # Record receipt in usdc_receipts (replay protection via UNIQUE constraint)
+            try:
+                is_replay = await (await _get_replay_guard()).check_and_claim(
+                    tx_hash,
+                    allow_fallback=False,
+                )
+            except ReplayGuardUnavailable as exc:
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="payment_protection_unavailable",
+                    response_status=503,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                    extra={"tx_hash": tx_hash, "network": network},
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail="Payment protection temporarily unavailable. Retry shortly.",
+                ) from exc
+
+            if is_replay:
+                _log_x402_interop_trace(
+                    raw_request,
+                    capability_id=capability_id,
+                    x_payment=x_payment,
+                    payment_trace=payment_trace,
+                    outcome="replay",
+                    response_status=402,
+                    provider=request.provider,
+                    payment_headers_set=False,
+                    execution_id=execution_id,
+                    agent_id=agent_id,
+                    org_id=org_id,
+                    extra={"tx_hash": tx_hash},
+                )
+                raise HTTPException(
+                    status_code=402,
+                    detail="Transaction already used",
+                )
+
+            # Record receipt in usdc_receipts (durable replay claim already held)
             await supabase_insert("usdc_receipts", {
                 "payment_request_id": payment_request_id,
                 "tx_hash": tx_hash,

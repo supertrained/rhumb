@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
+from services.durable_replay_guard import ReplayGuardUnavailable
 
 FAKE_RHUMB_KEY = "rhumb_test_key_cap_exec"
 
@@ -860,7 +861,46 @@ async def test_execute_x402_wallet_rate_limit_uses_durable_limiter(app):
         60,
         60,
     )
-    mock_replay_guard.check_and_claim.assert_awaited_once_with("0xabc123")
+    mock_replay_guard.check_and_claim.assert_awaited_once_with(
+        "0xabc123",
+        allow_fallback=False,
+    )
+
+
+@pytest.mark.anyio
+async def test_execute_x402_replay_guard_failure_fails_closed(app):
+    """Paid execution should fail closed if durable replay protection is unavailable."""
+    mock_replay_guard = MagicMock()
+    mock_replay_guard.check_and_claim = AsyncMock(side_effect=ReplayGuardUnavailable("DB down"))
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={
+                    "X-Payment": json.dumps({
+                        "tx_hash": "0xdeadbeef",
+                        "wallet_address": "0xFEE123",
+                        "network": "base",
+                    }),
+                },
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Payment protection temporarily unavailable. Retry shortly."
+    mock_replay_guard.check_and_claim.assert_awaited_once_with(
+        "0xdeadbeef",
+        allow_fallback=False,
+    )
 
 
 @pytest.mark.anyio

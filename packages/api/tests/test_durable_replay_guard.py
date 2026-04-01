@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from services.durable_replay_guard import DurableReplayGuard
+from services.durable_replay_guard import DurableReplayGuard, ReplayGuardUnavailable
 
 
 class MockQueryResult:
@@ -105,7 +105,7 @@ class TestCheckAndClaim:
 
     @pytest.mark.asyncio
     async def test_db_failure_falls_back(self, guard, mock_db):
-        """DB failure falls back to in-memory."""
+        """DB failure falls back to in-memory when explicitly allowed."""
         class FailingBuilder(MockQueryBuilder):
             def select(self, *args):
                 return self
@@ -124,6 +124,25 @@ class TestCheckAndClaim:
         # Second use (in-memory replay)
         is_replay = await guard.check_and_claim("0xfallback")
         assert is_replay is True
+
+    @pytest.mark.asyncio
+    async def test_db_failure_can_fail_closed(self, guard, mock_db):
+        """Financial paths can require durable replay protection and fail closed."""
+        class FailingBuilder(MockQueryBuilder):
+            def select(self, *args):
+                return self
+            def eq(self, *args):
+                return self
+            def maybe_single(self):
+                return self
+            async def execute(self):
+                raise ConnectionError("DB down")
+
+        mock_db.set_table("usdc_receipts", FailingBuilder())
+        mock_db.set_table("tx_replay_guard", FailingBuilder())
+
+        with pytest.raises(ReplayGuardUnavailable):
+            await guard.check_and_claim("0xfailclosed", allow_fallback=False)
 
 
 class TestIsKnown:

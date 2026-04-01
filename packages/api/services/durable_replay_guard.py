@@ -24,6 +24,10 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+class ReplayGuardUnavailable(RuntimeError):
+    """Raised when durable replay protection is unavailable and fallback is disallowed."""
+
+
 class DurableReplayGuard:
     """Database-backed transaction replay prevention.
 
@@ -45,10 +49,14 @@ class DurableReplayGuard:
         # In-memory fallback
         self._fallback: dict[str, float] = {}
 
-    async def check_and_claim(self, tx_hash: str) -> bool:
+    async def check_and_claim(self, tx_hash: str, *, allow_fallback: bool = True) -> bool:
         """Check if a tx_hash has been used. Returns True if it's a REPLAY (reject).
 
         Atomically claims the hash if it hasn't been used.
+
+        If ``allow_fallback`` is False, database failures raise
+        ``ReplayGuardUnavailable`` instead of silently degrading to
+        per-process memory.
         """
         key = tx_hash.lower().strip()
         if not key:
@@ -56,7 +64,14 @@ class DurableReplayGuard:
 
         try:
             return await self._db_check_and_claim(key)
-        except Exception:
+        except Exception as exc:
+            if not allow_fallback:
+                logger.error(
+                    "durable_replay_guard_unavailable tx=%s fail_closed=true",
+                    key[:16],
+                    exc_info=True,
+                )
+                raise ReplayGuardUnavailable("Durable replay protection unavailable") from exc
             logger.warning(
                 "durable_replay_guard_db_failed tx=%s, falling back to in-memory",
                 key[:16], exc_info=True,
