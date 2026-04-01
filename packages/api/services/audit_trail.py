@@ -65,6 +65,16 @@ class AuditEventType(str, Enum):
     # Agent lifecycle
     AGENT_LIFECYCLE = "agent.lifecycle"
 
+    # AUD-7: Auth/credential/config events
+    AUTH_LOGIN = "auth.login"
+    AUTH_FAILED = "auth.failed"
+    AUTH_LOGOUT = "auth.logout"
+    CREDENTIAL_ACCESSED = "credential.accessed"
+    CREDENTIAL_ROTATED = "credential.rotated"
+    CREDENTIAL_REVOKED = "credential.revoked"
+    CONFIG_CHANGED = "config.changed"
+    ADMIN_ACTION = "admin.action"
+
 
 class AuditSeverity(str, Enum):
     """Severity levels for audit events."""
@@ -165,6 +175,55 @@ _EVENT_METADATA: dict[AuditEventType, dict[str, Any]] = {
         "severity": AuditSeverity.INFO,
         "category": "identity",
         "description": "Agent created, disabled, or re-enabled",
+        "retention_days": 365,
+    },
+    # AUD-7: Auth/credential/config event metadata
+    AuditEventType.AUTH_LOGIN: {
+        "severity": AuditSeverity.INFO,
+        "category": "auth",
+        "description": "Successful authentication",
+        "retention_days": 90,
+    },
+    AuditEventType.AUTH_FAILED: {
+        "severity": AuditSeverity.WARNING,
+        "category": "auth",
+        "description": "Failed authentication attempt",
+        "retention_days": 180,
+    },
+    AuditEventType.AUTH_LOGOUT: {
+        "severity": AuditSeverity.INFO,
+        "category": "auth",
+        "description": "Session terminated",
+        "retention_days": 90,
+    },
+    AuditEventType.CREDENTIAL_ACCESSED: {
+        "severity": AuditSeverity.INFO,
+        "category": "credential",
+        "description": "Credential accessed for execution",
+        "retention_days": 180,
+    },
+    AuditEventType.CREDENTIAL_ROTATED: {
+        "severity": AuditSeverity.WARNING,
+        "category": "credential",
+        "description": "Credential rotated or updated",
+        "retention_days": 365,
+    },
+    AuditEventType.CREDENTIAL_REVOKED: {
+        "severity": AuditSeverity.WARNING,
+        "category": "credential",
+        "description": "Credential revoked or deleted",
+        "retention_days": 365,
+    },
+    AuditEventType.CONFIG_CHANGED: {
+        "severity": AuditSeverity.WARNING,
+        "category": "config",
+        "description": "System or org configuration changed",
+        "retention_days": 365,
+    },
+    AuditEventType.ADMIN_ACTION: {
+        "severity": AuditSeverity.WARNING,
+        "category": "admin",
+        "description": "Administrative action performed",
         "retention_days": 365,
     },
 }
@@ -640,6 +699,46 @@ class AuditTrail:
     ) -> str:
         payload = f"{prev_hash}|{event_id}|{event_type}|{sequence}|{timestamp}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def enforce_retention(self) -> dict[str, int]:
+        """AUD-7: Purge events that have exceeded their retention period.
+
+        Each event type has a configured retention_days in _EVENT_METADATA.
+        Events older than their retention period are removed from the in-memory store.
+
+        Returns a summary of purged events by type.
+        """
+        now = datetime.now(timezone.utc)
+        purged: dict[str, int] = {}
+
+        with self._lock:
+            surviving = []
+            for event in self._events:
+                meta = _EVENT_METADATA.get(event.event_type, {})
+                retention_days = meta.get("retention_days", 365)
+                age_days = (now - event.timestamp).days
+                if age_days > retention_days:
+                    type_key = event.event_type.value
+                    purged[type_key] = purged.get(type_key, 0) + 1
+                else:
+                    surviving.append(event)
+
+            if purged:
+                self._events = surviving
+                # Rebuild org index
+                self._rebuild_indexes()
+                logger.info(
+                    "audit_retention_enforced purged=%d types=%s",
+                    sum(purged.values()),
+                    purged,
+                )
+
+        return purged
+
+    def _rebuild_indexes(self) -> None:
+        """Rebuild internal indexes after retention purge (call under lock)."""
+        # Subclasses or future implementations may need org/agent indexes
+        pass
 
     @property
     def length(self) -> int:

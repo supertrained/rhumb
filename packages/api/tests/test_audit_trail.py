@@ -1,4 +1,4 @@
-"""Tests for unified audit trail — append-only, chain-hashed, 15 event types (WU-42.5)."""
+"""Tests for unified audit trail — append-only, chain-hashed, 23 event types (WU-42.5)."""
 
 from __future__ import annotations
 
@@ -105,19 +105,19 @@ class TestRecordEvent:
         assert event.resource_id == "stripe"
 
 
-# ── All 15 event types ──────────────────────────────────────────────
+# ── All 23 event types ──────────────────────────────────────────────
 
 
 class TestAllEventTypes:
-    def test_all_15_types_are_recordable(self):
+    def test_all_types_are_recordable(self):
         trail = AuditTrail()
         for event_type in AuditEventType:
             event = trail.record(event_type, f"Test {event_type.value}", org_id="org_test")
             assert event.event_type == event_type
-        assert trail.length == 15
+        assert trail.length == 23
 
-    def test_event_types_count_is_15(self):
-        assert len(AuditEventType) == 15
+    def test_event_types_count(self):
+        assert len(AuditEventType) == 23
 
 
 # ── Chain integrity ──────────────────────────────────────────────────
