@@ -312,10 +312,11 @@ class TestRecipeSafetyGate:
         assert result.firewall_result is not None
         assert result.firewall_result.passed is True
 
-    def test_idempotency_hit_blocks(self):
-        gate = RecipeSafetyGate()
+    def test_idempotency_hit_blocks_when_legacy_store_is_explicitly_injected(self):
+        store = IdempotencyStore()
+        gate = RecipeSafetyGate(idempotency=store)
         # First: store an existing result
-        gate.idempotency.store("idem_test", "exec_old", "recipe_1", "completed", "hash")
+        store.store("idem_test", "exec_old", "recipe_1", "completed", "hash")
         result = gate.check_pre_execution(
             recipe_id="recipe_1",
             inputs={"q": "test"},
@@ -361,8 +362,9 @@ class TestRecipeSafetyGate:
         )
         assert result.passed is False
 
-    def test_finalize_stores_idempotency(self):
-        gate = RecipeSafetyGate()
+    def test_finalize_stores_idempotency_only_when_legacy_store_is_explicitly_injected(self):
+        store = IdempotencyStore()
+        gate = RecipeSafetyGate(idempotency=store)
         gate.finalize_execution(
             chain_id="chain_1",
             execution_id="exec_1",
@@ -371,7 +373,7 @@ class TestRecipeSafetyGate:
             status="completed",
             result_hash="abc123",
         )
-        record = gate.idempotency.check("idem_final")
+        record = store.check("idem_final")
         assert record is not None
         assert record.execution_id == "exec_1"
 
@@ -388,6 +390,21 @@ class TestRecipeSafetyGate:
         )
         assert result.passed is False
         assert result.rate_limited is True
+
+    def test_default_gate_does_not_offer_in_memory_idempotency(self):
+        gate = RecipeSafetyGate()
+        assert gate.idempotency is None
+
+        result = gate.check_pre_execution(
+            recipe_id="recipe_1",
+            inputs={"q": "test"},
+            chain_id="chain_1",
+            execution_id="exec_new",
+            idempotency_key="idem_test",
+        )
+
+        assert result.passed is True
+        assert result.idempotency_hit is None
 
 
 # ── Module singleton ─────────────────────────────────────────────────

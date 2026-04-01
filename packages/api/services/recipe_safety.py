@@ -739,7 +739,7 @@ class RecipeSafetyGate:
 
     Integrates:
     1. Content firewall (step transitions)
-    2. Idempotency key check
+    2. Optional legacy in-memory idempotency check (disabled by default)
     3. Nesting depth enforcement
     4. Fan-out rate limiting
 
@@ -755,7 +755,7 @@ class RecipeSafetyGate:
         rate_limiter: FanOutRateLimiter | None = None,
     ) -> None:
         self.firewall = firewall or ContentFirewall()
-        self.idempotency = idempotency or IdempotencyStore()
+        self.idempotency = idempotency
         self.nesting = nesting or NestingTracker()
         self.rate_limiter = rate_limiter or FanOutRateLimiter()
 
@@ -772,8 +772,10 @@ class RecipeSafetyGate:
 
         Returns a SafetyCheckResult. If passed=False, execution must not proceed.
         """
-        # 1. Idempotency check
-        if idempotency_key:
+        # 1. Optional legacy in-memory idempotency check.
+        # Live recipe execution now relies on route-level durable idempotency;
+        # keep this only when a caller explicitly injects an in-memory store.
+        if idempotency_key and self.idempotency is not None:
             existing = self.idempotency.check(idempotency_key)
             if existing is not None:
                 return SafetyCheckResult(
@@ -840,7 +842,7 @@ class RecipeSafetyGate:
         self.nesting.exit(chain_id)
         self.rate_limiter.release(execution_id)
 
-        if idempotency_key:
+        if idempotency_key and self.idempotency is not None:
             self.idempotency.store(
                 key=idempotency_key,
                 execution_id=execution_id,
