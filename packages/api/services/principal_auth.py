@@ -1,158 +1,140 @@
-"""AUD-5: Authenticated principal verification for kill switch operations.
+"""AUD-5: Authenticated principal verification for kill switches.
 
-Replaces caller-supplied principal strings with verified identities.
+Problem: The two-person kill switch accepts caller-provided string identities.
+An attacker with admin access can fabricate two different principal strings
+to approve their own global kill request.
+
+Solution: Principals must be verified authenticated identities extracted from
+the request context — never from the request body.
 
 Design:
-- Principals are registered admin identities (not just strings)
-- Each principal has a unique ID and must authenticate via admin key + principal_id
-- The kill switch registry now requires VerifiedPrincipal objects, not strings
-- Two-person auth is enforced on verified identity, not self-reported name
-- Principal registry can be backed by DB or config (starts with config)
-
-Production principal registration:
-- Set RHUMB_ADMIN_PRINCIPALS as JSON: [{"id": "pedro", "name": "Pedro", "role": "operator"}, ...]
-- Or store in 1Password / Supabase for dynamic management
+- PrincipalIdentity is a frozen dataclass representing a verified principal
+- extract_principal() extracts identity from the authenticated admin session
+- The kill switch registry accepts PrincipalIdentity objects, not raw strings
+- Identity comparison uses unique identifiers (user_id, agent_id), not display names
 """
 
 from __future__ import annotations
 
 import hashlib
-import hmac
-import json
 import logging
-import os
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True, slots=True)
-class VerifiedPrincipal:
-    """A verified admin principal identity.
+class PrincipalType(str, Enum):
+    """Type of authenticated principal."""
 
-    This is NOT a caller-supplied string. It is derived from:
-    1. A valid admin key authentication
-    2. A registered principal_id that exists in the principal registry
-    3. Timestamp of verification (for freshness checks)
-    """
-    principal_id: str
-    name: str
-    role: str  # "operator", "admin", "security"
-    verified_at: float  # monotonic timestamp
-    verification_method: str  # "admin_key", "oauth", "hardware_key"
-
-    def is_fresh(self, max_age_seconds: float = 300.0) -> bool:
-        """Check if this verification is still fresh (default 5 min)."""
-        return (time.monotonic() - self.verified_at) < max_age_seconds
+    ADMIN_USER = "admin_user"      # Human admin via OAuth/email session
+    ADMIN_AGENT = "admin_agent"    # Agent with admin privileges
+    SERVICE_KEY = "service_key"    # Service-level admin API key
 
 
 @dataclass(frozen=True, slots=True)
-class PrincipalRegistration:
-    """A registered admin principal."""
-    principal_id: str
-    name: str
-    role: str
-    # In production, this would be a hashed secret or linked to an auth provider
-    secret_hash: str = ""  # SHA-256 of principal-specific secret
+class PrincipalIdentity:
+    """A verified, authenticated principal identity.
 
-
-class PrincipalRegistry:
-    """Registry of authorized admin principals.
-
-    Loads from environment or configuration. In production, this should
-    be backed by a durable store with proper access controls.
+    Must be extracted from the request's authentication context,
+    never from the request body.
     """
 
-    def __init__(self, principals: list[PrincipalRegistration] | None = None) -> None:
-        self._principals: dict[str, PrincipalRegistration] = {}
-        if principals:
-            for p in principals:
-                self._principals[p.principal_id] = p
-        else:
-            self._load_from_env()
-
-    def _load_from_env(self) -> None:
-        """Load principals from RHUMB_ADMIN_PRINCIPALS env var."""
-        raw = os.environ.get("RHUMB_ADMIN_PRINCIPALS", "")
-        if not raw:
-            # Default: single operator principal for bootstrap
-            self._principals["operator"] = PrincipalRegistration(
-                principal_id="operator",
-                name="Default Operator",
-                role="operator",
-            )
-            logger.info("principal_registry: using default operator principal")
-            return
-
-        try:
-            entries = json.loads(raw)
-            for entry in entries:
-                pid = entry["id"]
-                self._principals[pid] = PrincipalRegistration(
-                    principal_id=pid,
-                    name=entry.get("name", pid),
-                    role=entry.get("role", "operator"),
-                    secret_hash=entry.get("secret_hash", ""),
-                )
-            logger.info("principal_registry: loaded %d principals", len(self._principals))
-        except Exception:
-            logger.warning("principal_registry: failed to parse RHUMB_ADMIN_PRINCIPALS", exc_info=True)
-
-    def verify(
-        self,
-        principal_id: str,
-        *,
-        principal_secret: str | None = None,
-    ) -> VerifiedPrincipal | None:
-        """Verify a principal identity.
-
-        Returns a VerifiedPrincipal if the principal_id exists in the registry
-        and (if configured) the principal_secret matches. Returns None if
-        verification fails.
-        """
-        registration = self._principals.get(principal_id)
-        if registration is None:
-            logger.warning("principal_verify_failed: unknown principal_id=%s", principal_id)
-            return None
-
-        # If a secret_hash is configured, verify the secret
-        if registration.secret_hash:
-            if not principal_secret:
-                logger.warning("principal_verify_failed: secret required for %s", principal_id)
-                return None
-            provided_hash = hashlib.sha256(principal_secret.encode()).hexdigest()
-            if not hmac.compare_digest(provided_hash, registration.secret_hash):
-                logger.warning("principal_verify_failed: bad secret for %s", principal_id)
-                return None
-
-        return VerifiedPrincipal(
-            principal_id=registration.principal_id,
-            name=registration.name,
-            role=registration.role,
-            verified_at=time.monotonic(),
-            verification_method="admin_key",
-        )
-
-    def get(self, principal_id: str) -> PrincipalRegistration | None:
-        """Look up a registered principal."""
-        return self._principals.get(principal_id)
+    principal_type: PrincipalType
+    # Unique identifier that cannot be forged:
+    # - For admin users: user ID from the auth session (e.g., "usr_abc123")
+    # - For admin agents: agent ID from the API key lookup (e.g., "agt_xyz789")
+    # - For service keys: SHA-256 hash of the key prefix (e.g., "skey_a1b2c3")
+    unique_id: str
+    # Human-readable label for audit logs (NOT used for identity comparison)
+    display_name: str
+    # When the identity was verified
+    verified_at: datetime
 
     @property
-    def count(self) -> int:
-        return len(self._principals)
+    def canonical_id(self) -> str:
+        """The canonical identity string used for same-person comparison.
 
-    def list_ids(self) -> list[str]:
-        return list(self._principals.keys())
+        This is what determines whether two principals are the same person.
+        Uses unique_id, NOT display_name.
+        """
+        return f"{self.principal_type.value}:{self.unique_id}"
+
+    def is_same_principal(self, other: PrincipalIdentity) -> bool:
+        """Check if two principals are the same authenticated entity.
+
+        Uses canonical_id for comparison, not display names.
+        Two different display names with the same underlying identity
+        are correctly identified as the same person.
+        """
+        return self.canonical_id == other.canonical_id
 
 
-# Module singleton
-_registry: PrincipalRegistry | None = None
+def extract_principal_from_admin_key(admin_key: str) -> PrincipalIdentity:
+    """Extract a verified principal from an admin API key.
+
+    The key itself is the proof of identity. We hash a prefix
+    to create a stable, non-secret identifier.
+    """
+    # Use first 16 chars of SHA-256 of the full key as stable ID
+    key_hash = hashlib.sha256(admin_key.encode()).hexdigest()[:16]
+    return PrincipalIdentity(
+        principal_type=PrincipalType.SERVICE_KEY,
+        unique_id=f"skey_{key_hash}",
+        display_name=f"admin_key_{key_hash[:8]}",
+        verified_at=datetime.now(timezone.utc),
+    )
 
 
-def get_principal_registry() -> PrincipalRegistry:
-    global _registry
-    if _registry is None:
-        _registry = PrincipalRegistry()
-    return _registry
+def extract_principal_from_session(
+    user_id: str,
+    email: str | None = None,
+    name: str | None = None,
+) -> PrincipalIdentity:
+    """Extract a verified principal from an authenticated user session."""
+    return PrincipalIdentity(
+        principal_type=PrincipalType.ADMIN_USER,
+        unique_id=user_id,
+        display_name=email or name or user_id,
+        verified_at=datetime.now(timezone.utc),
+    )
+
+
+def extract_principal_from_agent(
+    agent_id: str,
+    label: str | None = None,
+) -> PrincipalIdentity:
+    """Extract a verified principal from an authenticated agent."""
+    return PrincipalIdentity(
+        principal_type=PrincipalType.ADMIN_AGENT,
+        unique_id=agent_id,
+        display_name=label or agent_id,
+        verified_at=datetime.now(timezone.utc),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class PendingApproval:
+    """A pending two-person approval with verified requester identity."""
+
+    request_id: str
+    requester: PrincipalIdentity
+    reason: str
+    requested_at: datetime
+    expires_at: float  # monotonic time
+    # Additional context for audit
+    metadata: dict[str, Any] = None  # type: ignore[assignment]
+
+    def can_approve(self, approver: PrincipalIdentity) -> tuple[bool, str]:
+        """Check if this approver can approve this request.
+
+        Returns (allowed, reason).
+        """
+        if self.requester.is_same_principal(approver):
+            return False, (
+                f"Same principal cannot request and approve: "
+                f"{self.requester.canonical_id} == {approver.canonical_id}"
+            )
+        return True, "approved"
