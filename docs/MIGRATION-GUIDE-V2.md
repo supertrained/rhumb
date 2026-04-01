@@ -72,7 +72,7 @@ PUT /v2/policy
 
 ### Execution receipts
 
-Every execution produces an immutable, chain-hashed receipt:
+Every execution produces a chain-hashed, HMAC-signed receipt:
 
 ```
 GET /v2/receipts/{receipt_id}
@@ -162,7 +162,7 @@ Administrative safety controls:
 | `recipe_execute` | L3 | Execute a compiled recipe |
 | `list_recipes` | L3 | Browse available recipes |
 | `get_recipe` | L3 | Get recipe details |
-| `get_receipt` | All | Retrieve immutable execution receipt |
+| `get_receipt` | All | Retrieve HMAC-signed execution receipt |
 | `usage_telemetry` | L2 | Report execution telemetry |
 
 ### Updated tools

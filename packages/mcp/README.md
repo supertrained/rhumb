@@ -2,7 +2,7 @@
 
 **Agent-native tool intelligence for the Model Context Protocol.**
 
-Three execution layers: raw provider access (Layer 1), intelligent routing (Layer 2), and deterministic composed recipes (Layer 3). Every provider rated with the AN Score. Every execution produces an immutable receipt.
+Three execution layers: raw provider access (Layer 1), intelligent routing (Layer 2), and deterministic composed recipes (Layer 3, beta). Every provider rated with the AN Score. Every execution produces a chain-hashed receipt.
 
 - Website: https://rhumb.dev
 - Docs: https://rhumb.dev/blog/getting-started-mcp
@@ -43,16 +43,16 @@ Ask your agent:
 |-------|------|-----|
 | **Layer 1** | Raw provider access | You pick the provider. Escape hatch + trust anchor. |
 | **Layer 2** | Capability routing | Rhumb picks the best provider. Cost-optimal with quality floor. |
-| **Layer 3** | Deterministic recipes | Compiled DAG workflows. Multi-step, budget-enforced, content-firewalled. |
+| **Layer 3** | Deterministic recipes (beta) | Compiled DAG workflows. Multi-step, budget-enforced, content-firewalled. No published recipes yet. |
 
 **New infrastructure:**
-- Execution receipts (chain-hashed, immutable)
+- Execution receipts (chain-hashed, HMAC-signed)
 - Route explanations (why this provider was chosen)
 - AN Score structural separation (read-only cache, auditable)
 - Billing event stream (chain-hashed, 15+ event types)
 - Trust dashboard (provider health, costs, reliability)
 - Recipe safety controls (content firewall, idempotency, nesting depth, fan-out rate limiting)
-- Kill switches (per-agent, per-provider, per-recipe, global with two-person auth)
+- Kill switches (per-agent, per-provider, per-recipe, global with authenticated two-person auth)
 - Audit trail (append-only, chain-hash verification, export API)
 
 ### Migration from 0.x
@@ -101,7 +101,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 | `get_recipe` | Get recipe details and step definitions |
 | `check_credentials` | See what you can call right now |
 | `credential_ceremony` | Step-by-step guide to get provider credentials |
-| `get_receipt` | Retrieve immutable execution receipt with chain hash |
+| `get_receipt` | Retrieve HMAC-signed execution receipt with chain hash |
 
 ## Financial tools (auth required, 5 tools)
 
@@ -153,7 +153,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 
 - `estimate_capability` → preview cost
 - `execute_capability` → perform the action
-- `get_receipt` → verify the immutable execution record
+- `get_receipt` → verify the HMAC-signed execution record
 
 ### 4) Run a recipe (auth required)
 
