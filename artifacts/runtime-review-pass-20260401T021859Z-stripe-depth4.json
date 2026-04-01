@@ -1,0 +1,244 @@
+{
+  "provider": "stripe",
+  "capability_mode": "proxy_safe_read",
+  "path": "/v1/account",
+  "review_kind": "current_depth4",
+  "organization_id": "org_runtime_review_stripe_20260401t021859z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260401T021859Z-stripe-depth4.json",
+  "direct_credential_source": "environment",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "6886ca56-7d7a-4711-a2fe-61b457683251",
+    "organization_id": "org_runtime_review_stripe_20260401t021859z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "c7fdd792-3f1b-4b0a-92b8-3b985b30efb6"
+  },
+  "observed_at": "2026-04-01T02:19:03Z",
+  "fresh_until": "2026-05-01T02:19:03Z",
+  "counts_before": {
+    "published_reviews": 6,
+    "runtime_backed_reviews": 3
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "status_code": 200,
+      "headers": {
+        "server": "nginx",
+        "date": "Wed, 01 Apr 2026 02:19:02 GMT",
+        "content-type": "application/json",
+        "content-length": "1895",
+        "connection": "keep-alive",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-methods": "GET, HEAD, PUT, PATCH, POST, DELETE",
+        "access-control-allow-origin": "*",
+        "access-control-expose-headers": "Request-Id, Stripe-Manage-Version, Stripe-Should-Retry, X-Stripe-External-Auth-Required, X-Stripe-Privileged-Session-Required",
+        "access-control-max-age": "300",
+        "cache-control": "no-cache, no-store",
+        "content-security-policy": "base-uri 'none'; default-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self'; script-src 'self' 'report-sample'; style-src 'self'; worker-src 'none'; upgrade-insecure-requests; report-uri https://q.stripe.com/csp-violation?q=AxR1ZXRsmqSCXzN211OdTnMa5GxpuultED1mK-FZ94EknSpes3-4t7-7Hg4vSxVznBoDRFiCHH7H49M4",
+        "request-id": "req_JycRTudIB9crEu",
+        "stripe-version": "2025-12-15.clover",
+        "vary": "Origin",
+        "x-stripe-priority-routing-enabled": "true",
+        "x-stripe-routing-context-priority-tier": "api-testmode",
+        "x-wc": "3c3",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+      },
+      "body": {
+        "id": "acct_1Sikl52H0xSyjdgP",
+        "object": "account",
+        "business_type": "company",
+        "capabilities": {
+          "acss_debit_payments": "active",
+          "affirm_payments": "inactive",
+          "afterpay_clearpay_payments": "active",
+          "amazon_pay_payments": "active",
+          "bancontact_payments": "active",
+          "card_payments": "active",
+          "cartes_bancaires_payments": "pending",
+          "cashapp_payments": "active",
+          "crypto_payments": "active",
+          "eps_payments": "active",
+          "klarna_payments": "active",
+          "link_payments": "active",
+          "pix_payments": "active",
+          "transfers": "active",
+          "us_bank_account_ach_payments": "active"
+        },
+        "charges_enabled": true,
+        "country": "US",
+        "default_currency": "usd",
+        "details_submitted": true,
+        "payouts_enabled": true,
+        "settings": {
+          "bacs_debit_payments": {
+            "display_name": null,
+            "service_user_number": null
+          },
+          "branding": {
+            "icon": null,
+            "logo": null,
+            "primary_color": null,
+            "secondary_color": null
+          },
+          "card_issuing": {
+            "tos_acceptance": {
+              "date": null,
+              "ip": null
+            }
+          },
+          "card_payments": {
+            "statement_descriptor_prefix": null,
+            "statement_descriptor_prefix_kana": null,
+            "statement_descriptor_prefix_kanji": null
+          },
+          "dashboard": {
+            "display_name": "Supertrained Inc.",
+            "timezone": "America/Los_Angeles"
+          },
+          "invoices": {
+            "default_account_tax_ids": null,
+            "hosted_payment_method_save": "offer"
+          },
+          "payments": {
+            "statement_descriptor": "SUPERTRAINED INC",
+            "statement_descriptor_kana": null,
+            "statement_descriptor_kanji": null
+          },
+          "payouts": {
+            "debit_negative_balances": true,
+            "schedule": {
+              "delay_days": 2,
+              "interval": "manual"
+            },
+            "statement_descriptor": null
+          },
+          "sepa_debit_payments": {}
+        },
+        "type": "standard"
+      },
+      "latency_ms": 816.4772791787982,
+      "upstream_latency_ms": 407.65364840626717,
+      "service": "stripe",
+      "path": "/v1/account",
+      "timestamp": 1775009942.5739405,
+      "fail_open": false
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "id": "acct_1Sikl52H0xSyjdgP",
+      "object": "account",
+      "business_type": "company",
+      "capabilities": {
+        "acss_debit_payments": "active",
+        "affirm_payments": "inactive",
+        "afterpay_clearpay_payments": "active",
+        "amazon_pay_payments": "active",
+        "bancontact_payments": "active",
+        "card_payments": "active",
+        "cartes_bancaires_payments": "pending",
+        "cashapp_payments": "active",
+        "crypto_payments": "active",
+        "eps_payments": "active",
+        "klarna_payments": "active",
+        "link_payments": "active",
+        "pix_payments": "active",
+        "transfers": "active",
+        "us_bank_account_ach_payments": "active"
+      },
+      "charges_enabled": true,
+      "country": "US",
+      "default_currency": "usd",
+      "details_submitted": true,
+      "payouts_enabled": true,
+      "settings": {
+        "bacs_debit_payments": {
+          "display_name": null,
+          "service_user_number": null
+        },
+        "branding": {
+          "icon": null,
+          "logo": null,
+          "primary_color": null,
+          "secondary_color": null
+        },
+        "card_issuing": {
+          "tos_acceptance": {
+            "date": null,
+            "ip": null
+          }
+        },
+        "card_payments": {
+          "statement_descriptor_prefix": null,
+          "statement_descriptor_prefix_kana": null,
+          "statement_descriptor_prefix_kanji": null
+        },
+        "dashboard": {
+          "display_name": "Supertrained Inc.",
+          "timezone": "America/Los_Angeles"
+        },
+        "invoices": {
+          "default_account_tax_ids": null,
+          "hosted_payment_method_save": "offer"
+        },
+        "payments": {
+          "statement_descriptor": "SUPERTRAINED INC",
+          "statement_descriptor_kana": null,
+          "statement_descriptor_kanji": null
+        },
+        "payouts": {
+          "debit_negative_balances": true,
+          "schedule": {
+            "delay_days": 2,
+            "interval": "manual"
+          },
+          "statement_descriptor": null
+        },
+        "sepa_debit_payments": {}
+      },
+      "type": "standard"
+    }
+  },
+  "comparison": {
+    "rhumb_fields": {
+      "id": "acct_1Sikl52H0xSyjdgP",
+      "country": "US",
+      "default_currency": "usd",
+      "charges_enabled": true,
+      "payouts_enabled": true,
+      "details_submitted": true,
+      "business_type": "company",
+      "branding_icon": null
+    },
+    "direct_fields": {
+      "id": "acct_1Sikl52H0xSyjdgP",
+      "country": "US",
+      "default_currency": "usd",
+      "charges_enabled": true,
+      "payouts_enabled": true,
+      "details_submitted": true,
+      "business_type": "company",
+      "branding_icon": null
+    },
+    "parity": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "stripe",
+    "evidence_id": "3ec6db1e-1266-4e58-a0f1-7a5f5966bde8",
+    "review_id": "19aae77f-49c3-420b-9491-8a4be7c3ab5d"
+  },
+  "counts_after": {
+    "published_reviews": 7,
+    "runtime_backed_reviews": 4
+  },
+  "agent_disabled": true
+}

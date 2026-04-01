@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "3ec6db1e-1266-4e58-a0f1-7a5f5966bde8",
+    "source_ref": "runtime-review:stripe:20260401T021859Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "3ec6db1e-1266-4e58-a0f1-7a5f5966bde8",
+    "review_id": "19aae77f-49c3-420b-9491-8a4be7c3ab5d",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "19aae77f-49c3-420b-9491-8a4be7c3ab5d",
+    "source_batch_id": "runtime-review:stripe:20260401T021859Z",
+    "state": "inserted"
+  },
+  "service": "stripe"
+}
