@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
+from routes._supabase import SupabaseWriteUnavailable
 from services.durable_idempotency import IdempotencyUnavailable
 from services.durable_replay_guard import ReplayGuardUnavailable
 
@@ -38,6 +39,46 @@ def _mock_identity_store():
     mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
     with patch("routes.capability_execute._get_identity_store", return_value=mock_store):
         yield mock_store
+
+
+@pytest.fixture(autouse=True)
+def _mock_rate_limiter():
+    """Keep execute-route tests off the real Supabase-backed limiter path."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    with patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter):
+        yield mock_limiter
+
+
+@pytest.fixture(autouse=True)
+def _mock_kill_switch_registry():
+    """Default execute-route tests to an authoritative non-blocking kill-switch registry."""
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with patch(
+        "routes.capability_execute.init_kill_switch_registry",
+        new_callable=AsyncMock,
+        return_value=mock_registry,
+    ):
+        yield mock_registry
+
+
+@pytest.fixture(autouse=True)
+def _mock_billing_health():
+    """Default billable execute-route tests to a healthy billing/outbox control plane."""
+    with patch(
+        "routes.capability_execute.check_billing_health",
+        new_callable=AsyncMock,
+        return_value=(True, "ok"),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_insert():
+    """Default required execution-record insert to success for focused route tests."""
+    with patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, return_value=None):
+        yield
 
 
 # ── Sample data ─────────────────────────────────────────────
@@ -635,9 +676,9 @@ async def test_execution_logging(app):
     insert_payloads: list[dict] = []
     patch_calls: list[dict] = []
 
-    async def capture_insert(table: str, payload: dict) -> bool:
+    async def capture_insert(table: str, payload: dict) -> None:
         insert_payloads.append({"table": table, "payload": payload})
-        return True
+        return None
 
     async def capture_patch(path: str, payload: dict):
         patch_calls.append({"path": path, "payload": payload})
@@ -645,7 +686,7 @@ async def test_execution_logging(app):
 
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, side_effect=capture_insert),
+        patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, side_effect=capture_insert),
         patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=capture_patch),
         patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
@@ -1113,6 +1154,32 @@ async def test_idempotency_unavailable_fails_closed(app):
 
     assert resp.status_code == 503
     assert resp.json()["detail"] == "Idempotency protection temporarily unavailable. Retry shortly."
+
+
+@pytest.mark.anyio
+async def test_execute_fails_when_execution_record_unavailable(app):
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            side_effect=SupabaseWriteUnavailable("down"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Execution control plane temporarily unavailable. Retry shortly."
 
 
 @pytest.mark.anyio

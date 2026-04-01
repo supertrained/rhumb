@@ -31,7 +31,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
-from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
+from routes._supabase import (
+    SupabaseWriteUnavailable,
+    supabase_fetch,
+    supabase_insert,
+    supabase_insert_required,
+    supabase_patch,
+)
 from routes.proxy import (
     SERVICE_REGISTRY,
     get_breaker_registry,
@@ -105,7 +111,23 @@ async def _get_rate_limiter() -> DurableRateLimiter:
     if _durable_rate_limiter is None:
         from db.client import get_supabase_client
 
-        supabase = await get_supabase_client()
+        try:
+            supabase = await get_supabase_client()
+        except Exception:
+            logger.warning(
+                "durable_rate_limiter_init_failed falling back to local emergency limiter",
+                exc_info=True,
+            )
+
+            class _UnavailableSupabaseClient:
+                def rpc(self, *_args, **_kwargs):
+                    raise RuntimeError("supabase_unavailable")
+
+                def table(self, *_args, **_kwargs):
+                    raise RuntimeError("supabase_unavailable")
+
+            supabase = _UnavailableSupabaseClient()
+
         _durable_rate_limiter = DurableRateLimiter(supabase)
     return _durable_rate_limiter
 
@@ -142,17 +164,21 @@ def _not_found_response(
     )
 
 
-def _billing_unavailable_response(raw_request: Request) -> JSONResponse:
+def _billing_unavailable_response(
+    raw_request: Request,
+    *,
+    detail: str | None = None,
+) -> JSONResponse:
     request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
-    return JSONResponse(
-        status_code=503,
-        content={
-            "error": "billing_unavailable",
-            "message": "Billing system temporarily unavailable. Execution blocked for safety.",
-            "resolution": "Retry in 30 seconds. If persistent, check https://rhumb.dev/status",
-            "request_id": request_id,
-        },
-    )
+    content: dict[str, Any] = {
+        "error": "billing_unavailable",
+        "message": "Billing system temporarily unavailable. Execution blocked for safety.",
+        "resolution": "Retry in 30 seconds. If persistent, check https://rhumb.dev/status",
+        "request_id": request_id,
+    }
+    if detail:
+        content["detail"] = detail
+    return JSONResponse(status_code=503, content=content)
 
 
 async def _create_payment_request_safe(
@@ -1438,7 +1464,10 @@ async def execute_capability(
                 capability_id,
                 billing_reason,
             )
-            return _billing_unavailable_response(raw_request)
+            return _billing_unavailable_response(
+                raw_request,
+                detail=None if billing_reason in {"timeout", "connection_error"} else billing_reason,
+            )
 
     # ── x402 inline payment handling ─────────────────────────────────
     # If the client sends an X-Payment header with a USDC tx_hash, we:
@@ -1947,29 +1976,36 @@ async def execute_capability(
             }
         idempotency_claimed = True
 
-    await supabase_insert("capability_executions", {
-        "id": execution_id,
-        "agent_id": agent_id,
-        "capability_id": capability_id,
-        "provider_used": provider_hint,
-        "credential_mode": request.credential_mode,
-        "method": inferred_method or "PENDING",
-        "path": inferred_path or "/pending",
-        "upstream_status": None,
-        "success": False,
-        "cost_estimate_usd": cost_estimate,
-        "cost_usd_cents": billed_cost_cents if billed_cost_cents > 0 else None,
-        "upstream_cost_cents": upstream_cost_cents if upstream_cost_cents > 0 else None,
-        "margin_cents": margin_cents if billed_cost_cents > 0 else None,
-        "billing_status": "pending" if billed_cost_cents > 0 else "unbilled",
-        "total_latency_ms": None,
-        "upstream_latency_ms": None,
-        "fallback_attempted": False,
-        "fallback_provider": None,
-        "idempotency_key": request.idempotency_key,
-        "error_message": None,
-        "interface": request.interface,
-    })
+    try:
+        await supabase_insert_required("capability_executions", {
+            "id": execution_id,
+            "agent_id": agent_id,
+            "capability_id": capability_id,
+            "provider_used": provider_hint,
+            "credential_mode": request.credential_mode,
+            "method": inferred_method or "PENDING",
+            "path": inferred_path or "/pending",
+            "upstream_status": None,
+            "success": False,
+            "cost_estimate_usd": cost_estimate,
+            "cost_usd_cents": billed_cost_cents if billed_cost_cents > 0 else None,
+            "upstream_cost_cents": upstream_cost_cents if upstream_cost_cents > 0 else None,
+            "margin_cents": margin_cents if billed_cost_cents > 0 else None,
+            "billing_status": "pending" if billed_cost_cents > 0 else "unbilled",
+            "total_latency_ms": None,
+            "upstream_latency_ms": None,
+            "fallback_attempted": False,
+            "fallback_provider": None,
+            "idempotency_key": request.idempotency_key,
+            "error_message": None,
+            "interface": request.interface,
+        })
+    except SupabaseWriteUnavailable as exc:
+        await _release_idempotency_claim()
+        raise HTTPException(
+            status_code=503,
+            detail="Execution control plane temporarily unavailable. Retry shortly.",
+        ) from exc
 
     if not is_x402_anonymous and not on_chain_payment_authorized:
         budget_result = await _budget_enforcer.check_and_decrement(agent_id, cost_estimate)

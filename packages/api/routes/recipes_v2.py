@@ -15,8 +15,15 @@ from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from routes._supabase import supabase_fetch, supabase_insert
+from routes._supabase import (
+    SupabaseWriteUnavailable,
+    supabase_fetch,
+    supabase_insert,
+    supabase_insert_required,
+    supabase_patch_required,
+)
 from routes.resolve_v2 import _forward_internal, _resolve_policy_agent
+from services.durable_event_persistence import get_event_outbox_health
 from services.durable_idempotency import DurableIdempotencyStore, IdempotencyUnavailable
 from services.error_envelope import RhumbError
 from services.kill_switches import init_kill_switch_registry
@@ -386,6 +393,36 @@ def _capture_outputs(root_outputs: dict[str, Any], mapping: dict[str, str]) -> d
     return captured
 
 
+async def _create_execution_placeholder(
+    recipe: RecipeDefinition,
+    *,
+    execution_id: str,
+    inputs: dict[str, Any],
+    agent_id: str | None,
+    org_id: str | None,
+    credential_mode: str,
+) -> None:
+    await supabase_insert_required(
+        "recipe_executions",
+        {
+            "execution_id": execution_id,
+            "recipe_id": recipe.recipe_id,
+            "status": "pending",
+            "inputs": inputs,
+            "total_cost_usd": 0.0,
+            "total_duration_ms": 0,
+            "step_count": len(recipe.steps),
+            "steps_completed": 0,
+            "error": None,
+            "started_at": None,
+            "completed_at": None,
+            "org_id": org_id,
+            "agent_id": agent_id,
+            "credential_mode": credential_mode,
+        },
+    )
+
+
 async def _persist_execution(
     recipe: RecipeDefinition,
     execution: RecipeExecution,
@@ -395,10 +432,9 @@ async def _persist_execution(
     org_id: str | None,
     credential_mode: str,
 ) -> None:
-    await supabase_insert(
-        "recipe_executions",
+    await supabase_patch_required(
+        f"recipe_executions?execution_id=eq.{quote(execution.execution_id)}",
         {
-            "execution_id": execution.execution_id,
             "recipe_id": recipe.recipe_id,
             "status": execution.status.value if hasattr(execution.status, "value") else str(execution.status),
             "inputs": inputs,
@@ -418,7 +454,7 @@ async def _persist_execution(
     steps_by_id = {step.step_id: step for step in recipe.steps}
     for step_id, result in execution.step_results.items():
         step = steps_by_id.get(step_id)
-        await supabase_insert(
+        await supabase_insert_required(
             "recipe_step_executions",
             {
                 "execution_id": execution.execution_id,
@@ -541,6 +577,14 @@ async def execute_recipe(
             detail=kill_reason,
         )
 
+    outbox_health = get_event_outbox_health()
+    if not outbox_health.allows_risky_writes:
+        raise RhumbError(
+            "EXECUTION_DISABLED",
+            message="Recipe execution is temporarily blocked because billing/audit durability is unavailable.",
+            detail=outbox_health.reason or "Retry after the durable event outbox recovers.",
+        )
+
     effective_idempotency_key = payload.idempotency_key or x_rhumb_idempotency_key
     execution_id = f"rexec_{uuid.uuid4().hex[:24]}"
     safety_gate = get_safety_gate()
@@ -607,6 +651,22 @@ async def execute_recipe(
                 }
             return _json_response(200, {"data": replay_payload, "error": None})
 
+    try:
+        await _create_execution_placeholder(
+            recipe,
+            execution_id=execution_id,
+            inputs=payload.inputs,
+            agent_id=agent.agent_id,
+            org_id=agent.organization_id,
+            credential_mode=payload.credential_mode,
+        )
+    except SupabaseWriteUnavailable as exc:
+        raise RhumbError(
+            "EXECUTION_DISABLED",
+            message="Recipe execution control plane is temporarily unavailable.",
+            detail="Retry shortly after durable execution recording recovers.",
+        ) from exc
+
     engine = RecipeEngine(
         step_executor=_InternalRecipeStepExecutor(
             raw_request=raw_request,
@@ -634,14 +694,21 @@ async def execute_recipe(
     elif execution.status == RecipeStatus.FAILED:
         execution.error = execution.error or "One or more recipe steps failed"
 
-    await _persist_execution(
-        recipe,
-        execution,
-        inputs=payload.inputs,
-        agent_id=agent.agent_id,
-        org_id=agent.organization_id,
-        credential_mode=payload.credential_mode,
-    )
+    try:
+        await _persist_execution(
+            recipe,
+            execution,
+            inputs=payload.inputs,
+            agent_id=agent.agent_id,
+            org_id=agent.organization_id,
+            credential_mode=payload.credential_mode,
+        )
+    except SupabaseWriteUnavailable as exc:
+        raise RhumbError(
+            "EXECUTION_DISABLED",
+            message="Recipe execution could not be durably recorded.",
+            detail="Execution may have run, but persistence is unavailable; do not assume replay safety until control-plane durability recovers.",
+        ) from exc
 
     safety_gate.finalize_execution(
         chain_id=execution_id,

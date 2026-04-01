@@ -32,6 +32,10 @@ class _SupabaseRequestError(RuntimeError):
         super().__init__(f"Supabase request failed with status={status_code}")
 
 
+class SupabaseWriteUnavailable(RuntimeError):
+    """Raised when a required Supabase write cannot be durably recorded."""
+
+
 def _build_url(path: str) -> str:
     return f"{settings.supabase_url}/rest/v1/{path}"
 
@@ -228,6 +232,20 @@ async def supabase_insert(table: str, payload: dict[str, Any]) -> bool:
         return True
     except (httpx.HTTPError, _SupabaseRequestError, ValueError):
         return False
+
+
+async def supabase_insert_required(table: str, payload: dict[str, Any]) -> None:
+    """Insert a row and raise if the durable write cannot be recorded."""
+    if not await supabase_insert(table, payload):
+        raise SupabaseWriteUnavailable(f"Required insert failed for table={table}")
+
+
+async def supabase_patch_required(path: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Patch rows and raise if the durable write cannot be recorded."""
+    result = await supabase_patch(path, payload)
+    if result is None:
+        raise SupabaseWriteUnavailable(f"Required patch failed for path={path}")
+    return result
 
 
 async def supabase_insert_returning(

@@ -8,6 +8,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
+from routes._supabase import SupabaseWriteUnavailable
 from schemas.agent_identity import AgentIdentitySchema
 from services.durable_idempotency import IdempotencyUnavailable
 from services.recipe_safety import RecipeSafetyGate
@@ -95,6 +96,45 @@ def mock_agent() -> AgentIdentitySchema:
     )
 
 
+@pytest.fixture(autouse=True)
+def _mock_required_recipe_writes():
+    with (
+        patch("routes.recipes_v2.supabase_insert_required", new_callable=AsyncMock, return_value=None),
+        patch("routes.recipes_v2.supabase_patch_required", new_callable=AsyncMock, return_value=[]),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_event_outbox_health():
+    """Recipe-route tests assume the durable event outbox is healthy unless overridden."""
+    with patch(
+        "routes.recipes_v2.get_event_outbox_health",
+        return_value=type(
+            "OutboxHealth",
+            (),
+            {
+                "allows_risky_writes": True,
+                "reason": "",
+            },
+        )(),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_kill_switch_registry():
+    """Default recipe-route tests to an authoritative non-blocking kill-switch registry."""
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with patch(
+        "routes.recipes_v2.init_kill_switch_registry",
+        new_callable=AsyncMock,
+        return_value=mock_registry,
+    ):
+        yield mock_registry
+
+
 def _mock_supabase_fetch(path: str):
     if path.startswith("recipes?") and "recipe_id=eq.transcribe_and_notify" in path:
         return [RECIPE_ROW]
@@ -176,7 +216,8 @@ async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(a
 
     with (
         patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
-        patch("routes.recipes_v2.supabase_insert", new_callable=AsyncMock, return_value=True) as mock_insert,
+        patch("routes.recipes_v2.supabase_insert_required", new_callable=AsyncMock, return_value=None) as mock_insert_required,
+        patch("routes.recipes_v2.supabase_patch_required", new_callable=AsyncMock, return_value=[]) as mock_patch_required,
         patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
         patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
         patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
@@ -214,7 +255,8 @@ async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(a
         "/v2/capabilities/email.send/execute",
     ]
     assert forward_calls[1][1]["parameters"]["body"] == "hello world"
-    assert mock_insert.await_count == 3  # recipe_executions + 2 recipe_step_executions rows
+    assert mock_insert_required.await_count == 3  # placeholder + 2 step rows
+    assert mock_patch_required.await_count == 1   # final recipe execution patch
 
 
 @pytest.mark.anyio
@@ -336,6 +378,36 @@ async def test_execute_recipe_idempotency_unavailable_fails_closed(app, mock_age
 
 
 @pytest.mark.anyio
+async def test_execute_recipe_fails_when_placeholder_write_unavailable(app, mock_agent):
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch(
+            "routes.recipes_v2.supabase_insert_required",
+            new_callable=AsyncMock,
+            side_effect=SupabaseWriteUnavailable("down"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["error"]["code"] == "EXECUTION_DISABLED"
+    assert "control plane" in body["error"]["message"].lower()
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_blocks_when_kill_switch_active(app, mock_agent):
     mock_registry = MagicMock()
     mock_registry.is_blocked.return_value = (
@@ -372,3 +444,40 @@ async def test_execute_recipe_blocks_when_kill_switch_active(app, mock_agent):
         operation_class="financial",
         require_authoritative=True,
     )
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_blocks_when_event_outbox_unhealthy(app, mock_agent):
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch(
+            "routes.recipes_v2.get_event_outbox_health",
+            return_value=type(
+                "OutboxHealth",
+                (),
+                {
+                    "allows_risky_writes": False,
+                    "reason": "Durable event backlog exceeded safe threshold (1200>1000).",
+                },
+            )(),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["error"]["code"] == "EXECUTION_DISABLED"
+    assert "durability" in body["error"]["message"].lower()
+    assert "threshold" in body["error"]["detail"].lower()
