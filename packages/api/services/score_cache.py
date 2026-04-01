@@ -302,7 +302,7 @@ async def fetch_scores_from_db() -> list[CachedScore]:
     """
     url = (
         f"{settings.supabase_url}/rest/v1/scores"
-        f"?select=service_slug,score,dimension_snapshot"
+        f"?select=service_slug,aggregate_recommendation_score,score,execution_score,access_readiness_score,autonomy_score,confidence,tier,dimension_snapshot,calculated_at"
         f"&order=calculated_at.desc"
     )
     headers = {
@@ -330,19 +330,37 @@ async def fetch_scores_from_db() -> list[CachedScore]:
 
         snapshot = row.get("dimension_snapshot") or {}
         breakdown = snapshot.get("score_breakdown", {})
+        aggregate_score = row.get("aggregate_recommendation_score")
+        base_score = row.get("score")
+
+        resolved_an_score = aggregate_score if aggregate_score is not None else base_score
+        if resolved_an_score is None:
+            continue
+
+        resolved_execution_score = row.get("execution_score")
+        if resolved_execution_score is None:
+            resolved_execution_score = breakdown.get("execution", resolved_an_score)
+
+        resolved_access_readiness = row.get("access_readiness_score")
+        if resolved_access_readiness is None:
+            resolved_access_readiness = breakdown.get("access_readiness")
+
+        resolved_autonomy = row.get("autonomy_score")
+        if resolved_autonomy is None:
+            resolved_autonomy = breakdown.get("autonomy")
 
         entries.append(CachedScore(
             service_slug=slug,
-            an_score=float(row.get("score", 0.0)),
-            execution_score=float(breakdown.get("execution", row.get("score", 0.0))),
+            an_score=float(resolved_an_score),
+            execution_score=float(resolved_execution_score),
             access_readiness_score=(
-                float(breakdown["access_readiness"])
-                if breakdown.get("access_readiness") is not None
+                float(resolved_access_readiness)
+                if resolved_access_readiness is not None
                 else None
             ),
             autonomy_score=(
-                float(breakdown["autonomy"])
-                if breakdown.get("autonomy") is not None
+                float(resolved_autonomy)
+                if resolved_autonomy is not None
                 else None
             ),
             confidence=float(row.get("confidence", 0.5)) if "confidence" in row else 0.5,

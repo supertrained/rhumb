@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -14,6 +14,7 @@ from services.score_cache import (
     ScoreAuditChain,
     ScoreAuditEntry,
     ScoreReadCache,
+    fetch_scores_from_db,
     get_audit_chain,
     get_score_cache,
 )
@@ -443,3 +444,75 @@ class TestScoreCacheAutoRefresh:
         # Cache should have been warmed
         cache = get_score_cache()
         assert cache.get("test") is not None
+
+
+class TestFetchScoresFromDb:
+    @pytest.mark.asyncio
+    async def test_fetch_scores_from_db_parses_live_scores_shape(self):
+        row = {
+            "service_slug": "stripe",
+            "aggregate_recommendation_score": 8.9,
+            "execution_score": 9.1,
+            "access_readiness_score": 8.4,
+            "autonomy_score": 7.2,
+            "confidence": 0.98,
+            "tier": "L4",
+            "dimension_snapshot": {"score_breakdown": {"execution": 9.1}},
+            "calculated_at": "2026-04-01T22:00:00Z",
+        }
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = [row]
+
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch("services.score_cache.httpx.AsyncClient", return_value=mock_client):
+            entries = await fetch_scores_from_db()
+
+        assert len(entries) == 1
+        entry = entries[0]
+        assert entry.service_slug == "stripe"
+        assert entry.an_score == 8.9
+        assert entry.execution_score == 9.1
+        assert entry.access_readiness_score == 8.4
+        assert entry.autonomy_score == 7.2
+        assert entry.confidence == 0.98
+        assert entry.tier == "L4"
+
+    @pytest.mark.asyncio
+    async def test_fetch_scores_from_db_falls_back_to_legacy_score_field(self):
+        row = {
+            "service_slug": "legacy-svc",
+            "score": 7.5,
+            "dimension_snapshot": {
+                "score_breakdown": {
+                    "execution": 7.0,
+                    "access_readiness": 6.8,
+                    "autonomy": 5.9,
+                }
+            },
+        }
+
+        mock_response = Mock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = [row]
+
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch("services.score_cache.httpx.AsyncClient", return_value=mock_client):
+            entries = await fetch_scores_from_db()
+
+        assert len(entries) == 1
+        entry = entries[0]
+        assert entry.service_slug == "legacy-svc"
+        assert entry.an_score == 7.5
+        assert entry.execution_score == 7.0
+        assert entry.access_readiness_score == 6.8
+        assert entry.autonomy_score == 5.9
