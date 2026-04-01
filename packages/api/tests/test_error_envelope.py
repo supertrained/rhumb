@@ -77,7 +77,7 @@ def test_build_error_envelope_basic():
     assert error["message"] == "Something broke"
     assert error["retryable"] is True
     assert error["retry_after_ms"] == 2000
-    assert error["docs_url"].endswith("/PROVIDER_ERROR")
+    assert error["docs_url"] == "https://rhumb.dev/docs/failure-modes#provider-down"
     assert "request_id" in error
     assert "timestamp" in error
 
@@ -125,6 +125,7 @@ def test_build_error_envelope_unknown_code():
     """Unknown codes fall back to INTERNAL_ERROR."""
     env = build_error_envelope("TOTALLY_MADE_UP_CODE")
     assert env["error"]["code"] == "INTERNAL_ERROR"
+    assert env["error"]["docs_url"] == "https://rhumb.dev/docs/failure-modes"
 
 
 def test_build_error_envelope_with_detail():

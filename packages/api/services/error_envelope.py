@@ -244,7 +244,28 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
     ),
 }
 
-_DOCS_BASE_URL = "https://docs.rhumb.dev/errors"
+_DOCS_BASE_URL = "https://rhumb.dev/docs/failure-modes"
+
+_ERROR_CODE_DOC_FRAGMENTS: dict[str, str] = {
+    "BILLING_UNAVAILABLE": "billing-unavailable",
+    "CREDENTIAL_INVALID": "credential-invalid",
+    "EXECUTION_DISABLED": "managed-execution-disabled",
+    "NO_PROVIDER_AVAILABLE": "provider-selection-fails",
+    "PAYMENT_REQUIRED": "x402-settlement-failure",
+    "PAYMENT_VERIFICATION_FAILED": "x402-settlement-failure",
+    "PROVIDER_ERROR": "provider-down",
+    "PROVIDER_RATE_LIMITED": "quota-exceeded",
+    "PROVIDER_TIMEOUT": "provider-down",
+    "PROVIDER_UNAVAILABLE": "provider-down",
+    "RATE_LIMITED": "quota-exceeded",
+}
+
+
+def _docs_url_for_code(code: str) -> str:
+    fragment = _ERROR_CODE_DOC_FRAGMENTS.get(code)
+    if fragment:
+        return f"{_DOCS_BASE_URL}#{fragment}"
+    return _DOCS_BASE_URL
 
 
 # ── Error Envelope Construction ──
@@ -312,7 +333,7 @@ def build_error_envelope(
         "message": message or code_def.description,
         "retryable": code_def.retryable,
         "request_id": request_id or f"req_{uuid.uuid4().hex[:24]}",
-        "docs_url": f"{_DOCS_BASE_URL}/{code_def.code}",
+        "docs_url": _docs_url_for_code(code_def.code),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
