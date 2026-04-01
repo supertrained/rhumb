@@ -25,7 +25,12 @@ from urllib.parse import quote
 import httpx
 from fastapi import HTTPException
 
-from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
+from routes._supabase import (
+    supabase_fetch,
+    supabase_insert,
+    supabase_patch,
+    supabase_patch_required,
+)
 from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 logger = logging.getLogger(__name__)
@@ -331,17 +336,23 @@ class RhumbManagedExecutor:
         }
         if not prelogged_execution:
             update_payload["cost_estimate_usd"] = None  # managed — Rhumb absorbs cost
-        updated = await supabase_patch(
-            f"capability_executions?id=eq.{quote(execution_id)}",
-            update_payload,
-        )
-        if not updated:
-            await supabase_insert("capability_executions", {
-                "id": execution_id,
-                "agent_id": agent_id,
-                "capability_id": capability_id,
-                **update_payload,
-            })
+        if prelogged_execution:
+            await supabase_patch_required(
+                f"capability_executions?id=eq.{quote(execution_id)}",
+                update_payload,
+            )
+        else:
+            updated = await supabase_patch(
+                f"capability_executions?id=eq.{quote(execution_id)}",
+                update_payload,
+            )
+            if not updated:
+                await supabase_insert("capability_executions", {
+                    "id": execution_id,
+                    "agent_id": agent_id,
+                    "capability_id": capability_id,
+                    **update_payload,
+                })
 
         return {
             "capability_id": capability_id,

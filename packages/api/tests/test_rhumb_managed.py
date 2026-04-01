@@ -10,7 +10,7 @@ Tests:
 from __future__ import annotations
 
 import base64
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -25,6 +25,48 @@ _BYPASS_KEY = "rhumb_test_bypass_key_0000"
 @pytest.fixture
 def app():
     return create_app()
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_insert():
+    with patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, return_value=None):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_patch():
+    with patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, return_value=[{}]):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_rate_limiter():
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    with patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter):
+        yield mock_limiter
+
+
+@pytest.fixture(autouse=True)
+def _mock_kill_switch_registry():
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with patch(
+        "routes.capability_execute.init_kill_switch_registry",
+        new_callable=AsyncMock,
+        return_value=mock_registry,
+    ):
+        yield mock_registry
+
+
+@pytest.fixture(autouse=True)
+def _mock_billing_health():
+    with patch(
+        "routes.capability_execute.check_billing_health",
+        new_callable=AsyncMock,
+        return_value=(True, "ok"),
+    ):
+        yield
 
 
 # ── RhumbManagedExecutor unit tests ────────────────────────────
@@ -72,6 +114,83 @@ async def test_managed_executor_list(monkeypatch):
         managed = await executor.list_managed()
         assert len(managed) == 1
         assert managed[0]["capability_id"] == "email.send"
+
+
+@pytest.mark.anyio
+async def test_managed_executor_prelogged_execution_uses_required_patch(monkeypatch):
+    """Precreated execution rows should be updated in place, not silently fall back to insert."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_RESEND_API_KEY", "re_test_managed")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [{
+                "id": 1,
+                "capability_id": "email.send",
+                "service_slug": "resend",
+                "description": "Managed email send",
+                "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                "default_method": "POST",
+                "default_path": "/emails",
+                "default_headers": {},
+                "daily_limit_per_agent": 100,
+            }]
+        if "services?slug=eq.resend" in path:
+            return [{"api_domain": "api.resend.com"}]
+        return []
+
+    required_patch_calls: list[tuple[str, dict]] = []
+    insert_calls: list[tuple[str, dict]] = []
+
+    async def mock_patch_required(path, payload):
+        required_patch_calls.append((path, payload))
+        return [payload]
+
+    async def mock_insert(table, payload):
+        insert_calls.append((table, payload))
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        raise AssertionError("prelogged managed execution should not use best-effort patch")
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"id": "msg_prelogged", "object": "email"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            self.base_url = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            return DummyResponse()
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
+         patch("services.rhumb_managed.supabase_patch_required", side_effect=mock_patch_required), \
+         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
+         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
+         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="email.send",
+            agent_id="agent_prelogged",
+            body={"to": "user@example.com"},
+            service_slug="resend",
+            execution_id="exec_prelogged_123",
+        )
+
+    assert result["execution_id"] == "exec_prelogged_123"
+    assert len(required_patch_calls) == 1
+    assert required_patch_calls[0][0] == "capability_executions?id=eq.exec_prelogged_123"
+    assert insert_calls == []
 
 
 # ── Catalog endpoint ──────────────────────────────────────────

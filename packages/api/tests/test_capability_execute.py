@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import json
+import os
 import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -78,6 +79,13 @@ def _mock_billing_health():
 def _mock_required_execution_insert():
     """Default required execution-record insert to success for focused route tests."""
     with patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, return_value=None):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_patch():
+    """Default required execution-record patch to success for focused route tests."""
+    with patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, return_value=[{}]):
         yield
 
 
@@ -687,7 +695,7 @@ async def test_execution_logging(app):
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, side_effect=capture_insert),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=capture_patch),
+        patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, side_effect=capture_patch),
         patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -737,8 +745,7 @@ async def test_byo_4xx_marks_execution_failed_and_refunded(app):
 
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=capture_patch),
+        patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, side_effect=capture_patch),
         patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -943,6 +950,63 @@ async def test_execute_x402_replay_guard_failure_fails_closed(app):
     assert resp.json()["detail"] == "Payment protection temporarily unavailable. Retry shortly."
     mock_replay_guard.check_and_claim.assert_awaited_once_with(
         "0xdeadbeef",
+        allow_fallback=False,
+    )
+
+
+@pytest.mark.anyio
+async def test_execute_x402_receipt_write_failure_fails_closed(app):
+    """Paid execution should stop if the verified payment cannot be durably recorded."""
+    mock_replay_guard = MagicMock()
+    mock_replay_guard.check_and_claim = AsyncMock(return_value=False)
+
+    with (
+        patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": "0xRHUMB"}, clear=False),
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+        patch(
+            "routes.capability_execute.verify_usdc_payment",
+            new_callable=AsyncMock,
+            return_value={
+                "valid": True,
+                "tx_hash": "0xfeedface",
+                "amount_atomic": "100",
+                "from_address": "0xFEE123",
+                "to_address": "0xRHUMB",
+                "block_number": 123,
+            },
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            side_effect=SupabaseWriteUnavailable("down"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={
+                    "X-Payment": json.dumps({
+                        "tx_hash": "0xfeedface",
+                        "wallet_address": "0xFEE123",
+                        "network": "base",
+                    }),
+                },
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == (
+        "Payment may have been accepted, but durable recording is unavailable. "
+        "Do not retry blindly; verify settlement first."
+    )
+    assert mock_replay_guard.check_and_claim.await_args_list[-1] == call(
+        "0xfeedface",
         allow_fallback=False,
     )
 
@@ -1180,6 +1244,40 @@ async def test_execute_fails_when_execution_record_unavailable(app):
 
     assert resp.status_code == 503
     assert resp.json()["detail"] == "Execution control plane temporarily unavailable. Retry shortly."
+
+
+@pytest.mark.anyio
+async def test_execute_fails_when_final_execution_record_patch_unavailable(app):
+    _, mock_pool = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            side_effect=SupabaseWriteUnavailable("down"),
+        ),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == (
+        "Execution may have completed, but durable recording failed. "
+        "Do not retry blindly; verify side effects before retrying."
+    )
+    mock_pool.acquire.assert_awaited_once()
 
 
 @pytest.mark.anyio

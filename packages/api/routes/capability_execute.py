@@ -37,6 +37,7 @@ from routes._supabase import (
     supabase_insert,
     supabase_insert_required,
     supabase_patch,
+    supabase_patch_required,
 )
 from routes.proxy import (
     SERVICE_REGISTRY,
@@ -1447,6 +1448,24 @@ async def execute_capability(
                 result_hash,
             )
 
+    def _payment_recording_unavailable(exc: SupabaseWriteUnavailable) -> HTTPException:
+        return HTTPException(
+            status_code=503,
+            detail=(
+                "Payment may have been accepted, but durable recording is unavailable. "
+                "Do not retry blindly; verify settlement first."
+            ),
+        )
+
+    def _execution_recording_unavailable(exc: SupabaseWriteUnavailable) -> HTTPException:
+        return HTTPException(
+            status_code=503,
+            detail=(
+                "Execution may have completed, but durable recording failed. "
+                "Do not retry blindly; verify side effects before retrying."
+            ),
+        )
+
     has_inline_x402_payment = bool(x_payment and x_payment != "required")
 
     # Free calls do not depend on org-credit balance. Billable non-x402 calls must
@@ -1473,8 +1492,8 @@ async def execute_capability(
     # If the client sends an X-Payment header with a USDC tx_hash, we:
     #   1. Verify the tx hasn't been used before (replay protection)
     #   2. Verify the on-chain USDC transfer matches expected amount/recipient
-    #   3. Record the receipt in usdc_receipts
-    #   4. Best-effort record the payment on the org ledger for registered agents
+    #   3. Durably record the receipt in usdc_receipts
+    #   4. Durably record the payment on the org ledger for registered agents
     #   5. Treat verified on-chain payment as authorization and skip Supabase
     #      billing reservations entirely
     x402_receipt: dict | None = None
@@ -1613,44 +1632,47 @@ async def execute_capability(
             pay_to = payment_requirements.get("payTo")
             amount_atomic = payment_requirements.get("amount") or payment_requirements.get("maxAmountRequired") or "0"
 
-            await supabase_insert("usdc_receipts", {
-                "payment_request_id": payment_request_id,
-                "tx_hash": tx_hash,
-                "from_address": payer,
-                "to_address": pay_to,
-                "amount_usdc_atomic": amount_atomic,
-                "amount_usd_cents": billed_cost_cents,
-                "network": network,
-                "block_number": None,
-                "org_id": org_id,
-                "execution_id": execution_id,
-                "status": "confirmed",
-            })
-
-            if payment_request_id:
-                await _payment_requests.mark_verified(payment_request_id, tx_hash)
-
-            if not is_x402_anonymous:
-                current_credits = await supabase_fetch(
-                    f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
-                )
-                current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
-                new_balance = current_balance + billed_cost_cents
-
-                await supabase_insert("credit_ledger", {
-                    "org_id": org_id,
+            try:
+                await supabase_insert_required("usdc_receipts", {
+                    "payment_request_id": payment_request_id,
+                    "tx_hash": tx_hash,
+                    "from_address": payer,
+                    "to_address": pay_to,
+                    "amount_usdc_atomic": amount_atomic,
                     "amount_usd_cents": billed_cost_cents,
-                    "balance_after_usd_cents": new_balance,
-                    "event_type": "x402_payment",
-                    "capability_execution_id": execution_id,
-                    "description": f"x402 authorization settlement tx:{tx_hash[:16]}…",
+                    "network": network,
+                    "block_number": None,
+                    "org_id": org_id,
+                    "execution_id": execution_id,
+                    "status": "confirmed",
                 })
 
-                if current_credits:
-                    await supabase_patch(
-                        f"org_credits?org_id=eq.{quote(org_id)}",
-                        {"balance_usd_cents": new_balance},
+                if payment_request_id:
+                    await _payment_requests.mark_verified(payment_request_id, tx_hash)
+
+                if not is_x402_anonymous:
+                    current_credits = await supabase_fetch(
+                        f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
                     )
+                    current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
+                    new_balance = current_balance + billed_cost_cents
+
+                    await supabase_insert_required("credit_ledger", {
+                        "org_id": org_id,
+                        "amount_usd_cents": billed_cost_cents,
+                        "balance_after_usd_cents": new_balance,
+                        "event_type": "x402_payment",
+                        "capability_execution_id": execution_id,
+                        "description": f"x402 authorization settlement tx:{tx_hash[:16]}…",
+                    })
+
+                    if current_credits:
+                        await supabase_patch_required(
+                            f"org_credits?org_id=eq.{quote(org_id)}",
+                            {"balance_usd_cents": new_balance},
+                        )
+            except SupabaseWriteUnavailable as exc:
+                raise _payment_recording_unavailable(exc) from exc
 
             standard_x402_payment_response_header = settlement["payment_response_header"]
             log_payment_event(
@@ -1865,48 +1887,48 @@ async def execute_capability(
                     detail="Transaction already used",
                 )
 
-            # Record receipt in usdc_receipts (durable replay claim already held)
-            await supabase_insert("usdc_receipts", {
-                "payment_request_id": payment_request_id,
-                "tx_hash": tx_hash,
-                "from_address": verification.get("from_address", ""),
-                "to_address": verification.get("to_address", wallet),
-                "amount_usdc_atomic": verification.get("amount_atomic", expected_atomic),
-                "amount_usd_cents": billed_cost_cents,
-                "network": network,
-                "block_number": verification.get("block_number"),
-                "org_id": org_id,
-                "execution_id": execution_id,
-                "status": "confirmed",
-            })
-
-            if payment_request_id:
-                await _payment_requests.mark_verified(payment_request_id, tx_hash)
-
-            # For registered agents, record the payment on the org ledger when
-            # billing storage is available. Execution authorization comes from
-            # the verified on-chain payment itself.
-            if not is_x402_anonymous:
-                current_credits = await supabase_fetch(
-                    f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
-                )
-                current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
-                new_balance = current_balance + billed_cost_cents
-
-                await supabase_insert("credit_ledger", {
-                    "org_id": org_id,
+            try:
+                # Record receipt in usdc_receipts (durable replay claim already held)
+                await supabase_insert_required("usdc_receipts", {
+                    "payment_request_id": payment_request_id,
+                    "tx_hash": tx_hash,
+                    "from_address": verification.get("from_address", ""),
+                    "to_address": verification.get("to_address", wallet),
+                    "amount_usdc_atomic": verification.get("amount_atomic", expected_atomic),
                     "amount_usd_cents": billed_cost_cents,
-                    "balance_after_usd_cents": new_balance,
-                    "event_type": "x402_payment",
-                    "capability_execution_id": execution_id,
-                    "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
+                    "network": network,
+                    "block_number": verification.get("block_number"),
+                    "org_id": org_id,
+                    "execution_id": execution_id,
+                    "status": "confirmed",
                 })
 
-                if current_credits:
-                    await supabase_patch(
-                        f"org_credits?org_id=eq.{quote(org_id)}",
-                        {"balance_usd_cents": new_balance},
+                if payment_request_id:
+                    await _payment_requests.mark_verified(payment_request_id, tx_hash)
+
+                if not is_x402_anonymous:
+                    current_credits = await supabase_fetch(
+                        f"org_credits?org_id=eq.{quote(org_id)}&select=balance_usd_cents&limit=1"
                     )
+                    current_balance = int(current_credits[0].get("balance_usd_cents", 0)) if current_credits else 0
+                    new_balance = current_balance + billed_cost_cents
+
+                    await supabase_insert_required("credit_ledger", {
+                        "org_id": org_id,
+                        "amount_usd_cents": billed_cost_cents,
+                        "balance_after_usd_cents": new_balance,
+                        "event_type": "x402_payment",
+                        "capability_execution_id": execution_id,
+                        "description": f"x402 USDC payment tx:{tx_hash[:16]}…",
+                    })
+
+                    if current_credits:
+                        await supabase_patch_required(
+                            f"org_credits?org_id=eq.{quote(org_id)}",
+                            {"balance_usd_cents": new_balance},
+                        )
+            except SupabaseWriteUnavailable as exc:
+                raise _payment_recording_unavailable(exc) from exc
 
             log_payment_event(
                 "x402_payment_verified",
@@ -2137,6 +2159,9 @@ async def execute_capability(
                 interface=request.interface,
                 execution_id=execution_id,
             )
+        except SupabaseWriteUnavailable as exc:
+            await _release_reservations()
+            raise _execution_recording_unavailable(exc) from exc
         except Exception:
             await _release_reservations()
             raise
@@ -2145,12 +2170,15 @@ async def execute_capability(
         if provider_slug:
             record_provider_usage(provider_slug)
 
-        await supabase_patch(
-            f"capability_executions?id=eq.{quote(execution_id)}",
-            {
-                "billing_status": "billed" if billed_cost_cents > 0 else "unbilled",
-            },
-        )
+        try:
+            await supabase_patch_required(
+                f"capability_executions?id=eq.{quote(execution_id)}",
+                {
+                    "billing_status": "billed" if billed_cost_cents > 0 else "unbilled",
+                },
+            )
+        except SupabaseWriteUnavailable as exc:
+            raise _execution_recording_unavailable(exc) from exc
 
         if budget_remaining is not None:
             result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
@@ -2302,17 +2330,13 @@ async def execute_capability(
                 "error_message": None,
                 "interface": request.interface,
             }
-            updated = await supabase_patch(
-                f"capability_executions?id=eq.{quote(execution_id)}",
-                update_payload,
-            )
-            if not updated:
-                await supabase_insert("capability_executions", {
-                    "id": execution_id,
-                    "agent_id": agent_id,
-                    "capability_id": capability_id,
-                    **update_payload,
-                })
+            try:
+                await supabase_patch_required(
+                    f"capability_executions?id=eq.{quote(execution_id)}",
+                    update_payload,
+                )
+            except SupabaseWriteUnavailable as exc:
+                raise _execution_recording_unavailable(exc) from exc
 
             vault_response = {
                 "capability_id": capability_id,
@@ -2528,17 +2552,13 @@ async def execute_capability(
         "error_message": error_message,
         "interface": request.interface,
     }
-    updated = await supabase_patch(
-        f"capability_executions?id=eq.{quote(execution_id)}",
-        update_payload,
-    )
-    if not updated:
-        await supabase_insert("capability_executions", {
-            "id": execution_id,
-            "agent_id": agent_id,
-            "capability_id": capability_id,
-            **update_payload,
-        })
+    try:
+        await supabase_patch_required(
+            f"capability_executions?id=eq.{quote(execution_id)}",
+            update_payload,
+        )
+    except SupabaseWriteUnavailable as exc:
+        raise _execution_recording_unavailable(exc) from exc
 
     response_data = {
         "capability_id": capability_id,
