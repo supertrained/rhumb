@@ -47,6 +47,7 @@ from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
 from services.durable_rate_limit import DurableRateLimiter
 from services.durable_replay_guard import DurableReplayGuard
+from services.kill_switches import init_kill_switch_registry
 from services.x402 import PaymentRequiredException, build_x402_response
 from services.x402_middleware import decode_x_payment_header, inspect_x_payment_header
 from services.x402_settlement import (
@@ -1337,6 +1338,35 @@ async def execute_capability(
             capability_id=capability_id,
             mappings=cap_services,
             requested_provider=request.provider,
+        )
+
+    kill_switch_registry = await init_kill_switch_registry()
+    kill_switch_provider = (
+        selected_mapping.get("service_slug")
+        if isinstance(selected_mapping, dict)
+        else request.provider
+    )
+    blocked, kill_reason = kill_switch_registry.is_blocked(
+        agent_id=agent_id,
+        provider_slug=kill_switch_provider,
+    )
+    if blocked:
+        logger.warning(
+            "execution_blocked_by_kill_switch agent_id=%s capability_id=%s provider=%s reason=%s",
+            agent_id,
+            capability_id,
+            kill_switch_provider,
+            kill_reason,
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "kill_switch_active",
+                "message": "Execution is temporarily blocked by a kill switch.",
+                "resolution": "Retry later or contact Rhumb support if the block appears unexpected.",
+                "detail": kill_reason,
+                "request_id": getattr(raw_request.state, "request_id", None) or f"req_{uuid.uuid4().hex[:12]}",
+            },
         )
 
     # 0. Pre-execution budget/credit reservation estimate

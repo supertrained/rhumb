@@ -177,6 +177,43 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_execute_blocks_when_kill_switch_active(app):
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (
+        True,
+        "Global kill switch active: security incident",
+    )
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute.init_kill_switch_registry", new_callable=AsyncMock, return_value=mock_registry),
+        patch("routes.capability_execute.get_pool_manager") as mock_pool,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"] == "kill_switch_active"
+    assert "kill switch" in body["message"].lower()
+    assert "security incident" in body["detail"].lower()
+    mock_registry.is_blocked.assert_called_once_with(
+        agent_id="agent_cap_exec_test",
+        provider_slug="sendgrid",
+    )
+    mock_pool.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_execute_supports_query_envelope_and_top_level_body(app):
     """POST execute should honor query-string envelope fields and wrap raw JSON as body."""
     _, mock_pool = _build_patches()

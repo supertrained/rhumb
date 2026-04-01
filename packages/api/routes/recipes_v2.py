@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from routes._supabase import supabase_fetch, supabase_insert
 from routes.resolve_v2 import _forward_internal, _resolve_policy_agent
 from services.error_envelope import RhumbError
+from services.kill_switches import init_kill_switch_registry
 from services.recipe_engine import (
     RecipeDefinition,
     RecipeEngine,
@@ -123,10 +124,12 @@ def _hash_payload(payload: Any) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
 
-def _status_code_for_recipe(status: str) -> int:
-    if status == RecipeStatus.BUDGET_EXCEEDED.value:
+def _status_code_for_recipe(recipe_status: str) -> int:
+    if recipe_status == RecipeStatus.BUDGET_EXCEEDED.value:
         return 402
-    if status in {RecipeStatus.FAILED.value, RecipeStatus.HALTED.value}:
+    if recipe_status == RecipeStatus.TIMED_OUT.value:
+        return 504
+    if recipe_status == RecipeStatus.FAILED.value:
         return 422
     return 200
 
@@ -500,6 +503,18 @@ async def execute_recipe(
             detail=str(exc),
         ) from exc
 
+    kill_switch_registry = await init_kill_switch_registry()
+    blocked, kill_reason = kill_switch_registry.is_blocked(
+        agent_id=agent.agent_id,
+        recipe_id=recipe.recipe_id,
+    )
+    if blocked:
+        raise RhumbError(
+            "PROVIDER_UNAVAILABLE",
+            message="Recipe execution is temporarily blocked by a kill switch.",
+            detail=kill_reason,
+        )
+
     effective_idempotency_key = payload.idempotency_key or x_rhumb_idempotency_key
     execution_id = f"rexec_{uuid.uuid4().hex[:24]}"
     safety_gate = get_safety_gate()
@@ -567,7 +582,9 @@ async def execute_recipe(
 
     if execution.status == RecipeStatus.BUDGET_EXCEEDED:
         execution.error = execution.error or "Recipe budget exceeded during execution"
-    elif execution.status in {RecipeStatus.FAILED, RecipeStatus.HALTED}:
+    elif execution.status == RecipeStatus.TIMED_OUT:
+        execution.error = execution.error or "Recipe execution timed out"
+    elif execution.status == RecipeStatus.FAILED:
         execution.error = execution.error or "One or more recipe steps failed"
 
     await _persist_execution(

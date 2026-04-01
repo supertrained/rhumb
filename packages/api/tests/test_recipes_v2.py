@@ -214,3 +214,40 @@ async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(a
     ]
     assert forward_calls[1][1]["parameters"]["body"] == "hello world"
     assert mock_insert.await_count == 3  # recipe_executions + 2 recipe_step_executions rows
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_blocks_when_kill_switch_active(app, mock_agent):
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (
+        True,
+        "Recipe kill switch active: runaway spend",
+    )
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.init_kill_switch_registry", new_callable=AsyncMock, return_value=mock_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["error"]["code"] == "PROVIDER_UNAVAILABLE"
+    assert "kill switch" in body["error"]["message"].lower()
+    assert "runaway spend" in body["error"]["detail"].lower()
+    mock_registry.is_blocked.assert_called_once_with(
+        agent_id=mock_agent.agent_id,
+        recipe_id="transcribe_and_notify",
+    )

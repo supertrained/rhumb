@@ -82,6 +82,7 @@ async def _lifespan(app: FastAPI):
     from schemas.user import get_user_store
     from services.agent_usage_analytics import get_usage_analytics
     from services.email_otp import get_email_otp_service
+    from services.kill_switches import init_kill_switch_registry
     from services.operational_fact_emitter import get_operational_fact_emitter
     from services.proxy_auth import get_auth_injector
     from services.proxy_finalizer import get_proxy_finalizer
@@ -111,6 +112,9 @@ async def _lifespan(app: FastAPI):
 
     get_usage_analytics(supabase_client=supabase)
     logger.info("Agent usage analytics: Supabase client initialized")
+
+    await init_kill_switch_registry(supabase)
+    logger.info("Kill switch registry: durable persistence initialized")
 
     proxy_finalizer = get_proxy_finalizer(meter)
     await proxy_finalizer.start()

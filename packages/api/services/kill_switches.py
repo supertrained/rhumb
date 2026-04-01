@@ -596,6 +596,39 @@ class _PendingGlobalKill:
 _registry: KillSwitchRegistry | None = None
 
 
+async def init_kill_switch_registry(supabase_client: Any | None = None) -> KillSwitchRegistry:
+    """Initialize the module-level kill switch registry with durable persistence.
+
+    Falls back to the in-memory registry if Supabase is unavailable so the
+    control plane stays readable, but the preferred production path is the
+    durable adapter.
+    """
+    global _registry
+    if _registry is not None and getattr(_registry, "_persistence", None) is not None:
+        return _registry
+
+    try:
+        if supabase_client is None:
+            from db.client import get_supabase_client
+
+            supabase_client = await get_supabase_client()
+
+        from services.durable_event_persistence import DurableKillSwitchPersistence
+
+        _registry = KillSwitchRegistry(
+            persistence=DurableKillSwitchPersistence(supabase_client)
+        )
+    except Exception:
+        logger.warning(
+            "kill_switch_registry_init_failed; using in-memory fallback",
+            exc_info=True,
+        )
+        if _registry is None:
+            _registry = KillSwitchRegistry()
+
+    return _registry
+
+
 def get_kill_switch_registry() -> KillSwitchRegistry:
     """Return the module-level kill switch registry singleton."""
     global _registry
