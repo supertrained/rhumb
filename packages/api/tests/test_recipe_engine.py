@@ -604,3 +604,139 @@ class TestCompileRecipe:
                 "recipe_id": "test",
                 "steps": [{"step_id": "a"}],
             })
+
+
+# ── AUD-6: Recipe Execution Hardening ─────────────────────────────────
+
+
+class TestRecipeTimeout:
+    """AUD-6: Total recipe timeout is enforced."""
+
+    @pytest.mark.asyncio
+    async def test_timeout_marks_remaining_steps(self):
+        """When total timeout is exceeded, remaining steps are TIMED_OUT."""
+        import time as time_mod
+
+        class SlowExecutor(StepExecutor):
+            async def execute_step(self, step, params, cred_mode):
+                # Simulate slow step
+                time_mod.sleep(0.05)
+                return StepResult(
+                    step_id=step.step_id,
+                    status=StepStatus.SUCCEEDED,
+                    outputs={"result": "ok"},
+                    cost_usd=0.01,
+                    duration_ms=50,
+                )
+
+        engine = RecipeEngine(step_executor=SlowExecutor())
+        recipe = RecipeDefinition(
+            recipe_id="timeout_test",
+            name="Timeout Test",
+            version="1.0.0",
+            total_timeout_ms=1,  # Extremely tight timeout (1ms)
+            steps=[
+                StepDefinition(step_id="s1", capability_id="search.query"),
+                StepDefinition(step_id="s2", capability_id="search.query", depends_on=["s1"]),
+                StepDefinition(step_id="s3", capability_id="search.query", depends_on=["s2"]),
+            ],
+            dag_edges=[("s1", "s2"), ("s2", "s3")],
+        )
+
+        result = await engine.execute(recipe, {"q": "test"})
+        assert result.status == RecipeStatus.TIMED_OUT
+        # At least the later steps should be timed out
+        timed_out_steps = [
+            sid for sid, r in result.step_results.items()
+            if r.status == StepStatus.TIMED_OUT
+        ]
+        assert len(timed_out_steps) >= 1
+
+
+class TestFinancialOperationClassification:
+    """AUD-6: Financial operations are classified at compile time."""
+
+    def test_payment_capability_classified_as_financial(self):
+        recipe = compile_recipe({
+            "recipe_id": "financial_test",
+            "steps": [
+                {"step_id": "charge", "capability_id": "payment.charge"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "financial"
+
+    def test_billing_capability_classified_as_financial(self):
+        recipe = compile_recipe({
+            "recipe_id": "billing_test",
+            "steps": [
+                {"step_id": "invoice", "capability_id": "billing.create_invoice"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "financial"
+
+    def test_transfer_capability_classified_as_financial(self):
+        recipe = compile_recipe({
+            "recipe_id": "transfer_test",
+            "steps": [
+                {"step_id": "send", "capability_id": "transfer.send"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "financial"
+
+    def test_search_capability_not_financial(self):
+        recipe = compile_recipe({
+            "recipe_id": "search_test",
+            "steps": [
+                {"step_id": "search", "capability_id": "search.query"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "unknown"
+
+    def test_explicit_operation_type_override(self):
+        recipe = compile_recipe({
+            "recipe_id": "override_test",
+            "steps": [
+                {"step_id": "s1", "capability_id": "custom.action", "operation_type": "financial"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "financial"
+
+    def test_explicit_read_operation_type(self):
+        recipe = compile_recipe({
+            "recipe_id": "read_test",
+            "steps": [
+                {"step_id": "s1", "capability_id": "data.fetch", "operation_type": "read"},
+            ],
+        })
+        assert recipe.steps[0].operation_type == "read"
+
+    @pytest.mark.asyncio
+    async def test_financial_tracking_in_execution(self):
+        """Financial step tracking is reflected in execution result."""
+
+        class MockExecutor(StepExecutor):
+            async def execute_step(self, step, params, cred_mode):
+                return StepResult(
+                    step_id=step.step_id,
+                    status=StepStatus.SUCCEEDED,
+                    outputs={"result": "ok"},
+                    cost_usd=0.50,
+                )
+
+        engine = RecipeEngine(step_executor=MockExecutor())
+        recipe = RecipeDefinition(
+            recipe_id="fin_tracking_test",
+            name="Financial Tracking",
+            version="1.0.0",
+            steps=[
+                StepDefinition(step_id="search", capability_id="search.query", operation_type="read"),
+                StepDefinition(step_id="charge", capability_id="payment.charge", operation_type="financial"),
+            ],
+        )
+
+        result = await engine.execute(recipe, {})
+        assert result.has_financial_operations is True
+        assert result.financial_step_count == 1
+        assert result.financial_steps_succeeded == 1
+        assert result.step_results["charge"].is_financial is True
+        assert result.step_results["search"].is_financial is False

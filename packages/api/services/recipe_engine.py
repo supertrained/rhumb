@@ -58,7 +58,25 @@ class RecipeStatus(str, Enum):
     PARTIAL = "partial"  # Some steps succeeded, some failed
     FAILED = "failed"
     BUDGET_EXCEEDED = "budget_exceeded"
-    HALTED = "halted"
+    TIMED_OUT = "timed_out"  # AUD-6: total recipe timeout exceeded
+
+
+# AUD-6: Financial operation categories for restoration logic
+class OperationType(str, Enum):
+    """Classifies step operations for restoration/rollback decisions."""
+    READ = "read"              # Safe reads — no rollback needed
+    WRITE = "write"            # Non-financial mutations
+    FINANCIAL = "financial"    # Charges, transfers, refunds — require special handling
+    UNKNOWN = "unknown"        # Unclassified
+
+# Capability IDs that are inherently financial
+_FINANCIAL_CAPABILITIES = frozenset([
+    "payment.charge", "payment.create", "payment.capture",
+    "payment.refund", "billing.create_invoice", "billing.charge",
+    "transfer.send", "transfer.create",
+    "wallet.topup", "wallet.withdraw",
+    "subscription.create", "subscription.cancel",
+])
 
 
 class FailureMode(str, Enum):
@@ -85,6 +103,8 @@ class StepDefinition:
     retry_base_ms: int = 1000
     max_cost_usd: float = 1.0
     timeout_ms: int = MAX_STEP_TIMEOUT_MS_DEFAULT
+    # AUD-6: operation type for restoration logic
+    operation_type: str = "unknown"  # read | write | financial | unknown
 
 
 @dataclass(slots=True)
@@ -123,6 +143,9 @@ class StepResult:
     error: str | None = None
     retries_used: int = 0
     provider_used: str | None = None
+    # AUD-6: financial operation tracking
+    is_financial: bool = False
+    operation_type: str = "unknown"
 
 
 @dataclass(slots=True)
@@ -139,6 +162,10 @@ class RecipeExecution:
     completed_at: datetime | None = None
     error: str | None = None
     receipt_chain_hash: str = ""
+    # AUD-6: financial operation summary
+    financial_step_count: int = 0
+    financial_steps_succeeded: int = 0
+    has_financial_operations: bool = False
 
 
 # ── DAG Validator ─────────────────────────────────────────────────────
@@ -433,6 +460,28 @@ class RecipeEngine:
         for step_id in topo_order:
             step = steps_by_id[step_id]
 
+            # AUD-6: enforce total recipe timeout
+            elapsed_ms = (time.monotonic() - start_time) * 1000
+            if elapsed_ms > recipe.total_timeout_ms:
+                execution.step_results[step_id] = StepResult(
+                    step_id=step_id,
+                    status=StepStatus.TIMED_OUT,
+                    error=(
+                        f"Recipe total timeout exceeded: "
+                        f"{elapsed_ms:.0f}ms > {recipe.total_timeout_ms}ms"
+                    ),
+                )
+                # Mark remaining steps as timed out
+                remaining_idx = topo_order.index(step_id)
+                for remaining_id in topo_order[remaining_idx + 1:]:
+                    execution.step_results[remaining_id] = StepResult(
+                        step_id=remaining_id,
+                        status=StepStatus.TIMED_OUT,
+                        error="Skipped: recipe total timeout exceeded",
+                    )
+                execution.status = RecipeStatus.TIMED_OUT
+                break
+
             # Skip if a prior halt-mode failure stopped the pipeline
             if halted:
                 execution.step_results[step_id] = StepResult(
@@ -502,10 +551,21 @@ class RecipeEngine:
             budget.record_spend(result.cost_usd)
             execution.total_cost_usd += result.cost_usd
 
+            # AUD-6: tag financial operations
+            if step.operation_type == "financial":
+                result.is_financial = True
+                result.operation_type = "financial"
+                execution.financial_step_count += 1
+                execution.has_financial_operations = True
+            else:
+                result.operation_type = step.operation_type
+
             if result.status == StepStatus.SUCCEEDED:
                 any_succeeded = True
                 # Capture outputs for downstream $ref resolution
                 step_outputs[step_id] = result.outputs
+                if step.operation_type == "financial":
+                    execution.financial_steps_succeeded += 1
             else:
                 any_failed = True
                 if step.failure_mode == FailureMode.HALT:
@@ -516,8 +576,8 @@ class RecipeEngine:
         execution.total_duration_ms = int((end_time - start_time) * 1000)
         execution.completed_at = datetime.now(timezone.utc)
 
-        if execution.status == RecipeStatus.BUDGET_EXCEEDED:
-            pass  # Already set
+        if execution.status in (RecipeStatus.BUDGET_EXCEEDED, RecipeStatus.TIMED_OUT):
+            pass  # Already set by the enforcement code
         elif not any_failed:
             execution.status = RecipeStatus.COMPLETED
         elif any_succeeded and any_failed:
@@ -610,6 +670,17 @@ def compile_recipe(raw: dict[str, Any]) -> RecipeDefinition:
         max_cost = budget_config.get("max_cost_usd", 1.0) if isinstance(budget_config, dict) else 1.0
         timeout = budget_config.get("timeout_ms", MAX_STEP_TIMEOUT_MS_DEFAULT) if isinstance(budget_config, dict) else MAX_STEP_TIMEOUT_MS_DEFAULT
 
+        # AUD-6: classify operation type from capability_id
+        explicit_op_type = raw_step.get("operation_type", None)
+        if explicit_op_type and explicit_op_type in ("read", "write", "financial"):
+            op_type = explicit_op_type
+        elif capability_id in _FINANCIAL_CAPABILITIES:
+            op_type = "financial"
+        elif any(capability_id.startswith(p) for p in ("payment.", "billing.", "transfer.", "wallet.", "subscription.")):
+            op_type = "financial"
+        else:
+            op_type = "unknown"
+
         steps.append(StepDefinition(
             step_id=step_id,
             capability_id=capability_id,
@@ -623,6 +694,7 @@ def compile_recipe(raw: dict[str, Any]) -> RecipeDefinition:
             retry_base_ms=retry_base_ms,
             max_cost_usd=float(max_cost),
             timeout_ms=int(timeout),
+            operation_type=op_type,
         ))
 
     # Parse DAG
