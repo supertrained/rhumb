@@ -135,6 +135,19 @@ def _mock_kill_switch_registry():
         yield mock_registry
 
 
+@pytest.fixture(autouse=True)
+def _mock_recipe_step_rate_limiter():
+    """Recipe-route tests assume aggregate fan-out throttles allow steps unless overridden."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 999))
+    with patch(
+        "routes.recipes_v2._get_recipe_step_rate_limiter",
+        new_callable=AsyncMock,
+        return_value=mock_limiter,
+    ):
+        yield mock_limiter
+
+
 def _mock_supabase_fetch(path: str):
     if path.startswith("recipes?") and "recipe_id=eq.transcribe_and_notify" in path:
         return [RECIPE_ROW]
@@ -310,6 +323,68 @@ async def test_execute_recipe_propagates_step_idempotency_keys(app, mock_agent):
     assert forward_calls[1][1]["idempotency_key"] == "recipe:transcribe_and_notify:recipe-idem-1:notify"
     mock_store.claim.assert_awaited_once()
     mock_store.store.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_blocks_on_aggregate_fanout_limit(app, mock_agent):
+    forward_calls: list[tuple[str, dict]] = []
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(
+        side_effect=[
+            (True, 499),
+            (True, 1999),
+            (False, 0),
+        ]
+    )
+
+    async def _mock_forward(raw_request, *, method: str, path: str, params=None, json_body=None):
+        forward_calls.append((path, json_body or {}))
+        return _MockResponse(
+            200,
+            {
+                "data": {
+                    "provider_used": "assemblyai",
+                    "upstream_response": {"transcript": "hello world", "id": "msg_123"},
+                    "cost_estimate_usd": 0.03,
+                    "latency_ms": 120,
+                    "receipt_id": "rcpt_step",
+                    "execution_id": "exec_step",
+                },
+                "error": None,
+            },
+        )
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
+        patch(
+            "routes.recipes_v2._get_recipe_step_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["status"] == "partial"
+    assert len(forward_calls) == 1
+    assert "aggregate recipe fan-out limit exceeded" in body["data"]["step_results"][1]["error"].lower()
+    assert mock_limiter.check_and_increment.await_count == 3
 
 
 @pytest.mark.anyio

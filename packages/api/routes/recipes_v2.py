@@ -25,6 +25,7 @@ from routes._supabase import (
 from routes.resolve_v2 import _forward_internal, _resolve_policy_agent
 from services.durable_event_persistence import get_event_outbox_health
 from services.durable_idempotency import DurableIdempotencyStore, IdempotencyUnavailable
+from services.durable_rate_limit import DurableRateLimiter
 from services.error_envelope import RhumbError
 from services.kill_switches import init_kill_switch_registry
 from services.recipe_engine import (
@@ -46,6 +47,11 @@ _LAYER = 3
 _VERSION = "2026-03-31"
 
 _idempotency_store: DurableIdempotencyStore | None = None
+_recipe_step_rate_limiter: DurableRateLimiter | None = None
+
+_RECIPE_FANOUT_ORG_LIMIT = 500
+_RECIPE_FANOUT_GLOBAL_LIMIT = 2000
+_RECIPE_FANOUT_WINDOW_SECONDS = 60
 
 
 class RecipeExecuteRequest(BaseModel):
@@ -67,6 +73,27 @@ async def _get_idempotency_store() -> DurableIdempotencyStore:
         supabase = await get_supabase_client()
         _idempotency_store = DurableIdempotencyStore(supabase)
     return _idempotency_store
+
+
+async def _get_recipe_step_rate_limiter() -> DurableRateLimiter:
+    global _recipe_step_rate_limiter
+    if _recipe_step_rate_limiter is None:
+        from db.client import get_supabase_client
+
+        try:
+            supabase = await get_supabase_client()
+        except Exception:
+            class _UnavailableSupabaseClient:
+                def rpc(self, *_args, **_kwargs):
+                    raise RuntimeError("supabase_unavailable")
+
+                def table(self, *_args, **_kwargs):
+                    raise RuntimeError("supabase_unavailable")
+
+            supabase = _UnavailableSupabaseClient()
+
+        _recipe_step_rate_limiter = DurableRateLimiter(supabase)
+    return _recipe_step_rate_limiter
 
 
 def _compat_headers() -> dict[str, str]:
@@ -263,6 +290,7 @@ class _InternalRecipeStepExecutor(StepExecutor):
         safety_gate: RecipeSafetyGate,
         execution_id: str,
         recipe_id: str,
+        org_id: str,
         recipe_idempotency_key: str | None = None,
     ) -> None:
         self._raw_request = raw_request
@@ -270,7 +298,32 @@ class _InternalRecipeStepExecutor(StepExecutor):
         self._safety_gate = safety_gate
         self._execution_id = execution_id
         self._recipe_id = recipe_id
+        self._org_id = org_id
         self._recipe_idempotency_key = recipe_idempotency_key
+
+    async def _check_aggregate_fanout_limits(self, step_id: str) -> str | None:
+        limiter = await _get_recipe_step_rate_limiter()
+
+        org_allowed, _org_remaining = await limiter.check_and_increment(
+            f"recipe_fanout:org:{self._org_id}",
+            _RECIPE_FANOUT_ORG_LIMIT,
+            _RECIPE_FANOUT_WINDOW_SECONDS,
+        )
+        if not org_allowed:
+            return (
+                f"Aggregate recipe fan-out limit exceeded for organization {self._org_id} "
+                f"while launching step '{step_id}'"
+            )
+
+        global_allowed, _global_remaining = await limiter.check_and_increment(
+            "recipe_fanout:global",
+            _RECIPE_FANOUT_GLOBAL_LIMIT,
+            _RECIPE_FANOUT_WINDOW_SECONDS,
+        )
+        if not global_allowed:
+            return f"Global recipe fan-out limit exceeded while launching step '{step_id}'"
+
+        return None
 
     async def execute_step(
         self,
@@ -278,6 +331,14 @@ class _InternalRecipeStepExecutor(StepExecutor):
         resolved_params: dict[str, Any],
         credential_mode: str = "rhumb_managed",
     ) -> StepResult:
+        aggregate_limit_error = await self._check_aggregate_fanout_limits(step.step_id)
+        if aggregate_limit_error is not None:
+            return StepResult(
+                step_id=step.step_id,
+                status=StepStatus.FAILED,
+                error=aggregate_limit_error,
+            )
+
         if not self._safety_gate.rate_limiter.check(self._execution_id):
             return StepResult(
                 step_id=step.step_id,
@@ -674,6 +735,7 @@ async def execute_recipe(
             safety_gate=safety_gate,
             execution_id=execution_id,
             recipe_id=recipe.recipe_id,
+            org_id=agent.organization_id,
             recipe_idempotency_key=effective_idempotency_key,
         )
     )
