@@ -2130,12 +2130,18 @@ async def execute_capability(
     # ── Mode 2: Rhumb-managed execution ──────────────────────────────
     if request.credential_mode == "rhumb_managed":
         from services.rhumb_managed import get_managed_executor
-        from services.upstream_budget import check_provider_budget, record_provider_usage
+        from services.upstream_budget import claim_provider_budget
 
-        # Check upstream provider budget before burning our API credits
-        provider_slug = request.provider
+        # Claim upstream provider budget before burning our managed API credits.
+        # This is durable and shared across workers so budget exhaustion survives
+        # restarts and coordinated load.
+        provider_slug = (
+            selected_mapping.get("service_slug")
+            if isinstance(selected_mapping, dict)
+            else request.provider
+        )
         if provider_slug:
-            budget_ok, budget_reason = check_provider_budget(provider_slug)
+            budget_ok, budget_reason = await claim_provider_budget(provider_slug)
             if not budget_ok:
                 await _release_reservations()
                 return JSONResponse(
@@ -2165,10 +2171,6 @@ async def execute_capability(
         except Exception:
             await _release_reservations()
             raise
-
-        # Record successful execution against upstream budget
-        if provider_slug:
-            record_provider_usage(provider_slug)
 
         try:
             await supabase_patch_required(

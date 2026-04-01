@@ -1,9 +1,8 @@
-"""Upstream provider budget tracking for managed execution.
+"""Durable upstream provider budget tracking for managed execution.
 
 Tracks our API credit usage against each provider's free-tier limits.
-In-memory implementation (single-instance Railway deployment).
-When a provider hits its limit, managed executions through that provider
-are blocked until the budget resets.
+Managed execution now claims provider budget units through shared durable
+storage so budget exhaustion survives restarts and coordinates across workers.
 
 Kill hierarchy:
   MANAGED_EXECUTION_ENABLED=false  → blocks ALL execution (nuclear)
@@ -16,8 +15,8 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from datetime import UTC, datetime
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +45,10 @@ PROVIDER_BUDGETS: dict[str, dict] = {
 _WARN_THRESHOLD = 0.80
 _CRITICAL_THRESHOLD = 0.95
 
-# ── In-Memory Usage Tracking ───────────────────────────────────────
-# Key: provider slug, Value: list of Unix timestamps of executions
+# ── In-memory fallback state for diagnostics/tests ──────────────────
 _provider_usage: dict[str, list[float]] = defaultdict(list)
+_tracker: DurableUpstreamBudgetTracker | None = None
+_tracker_init_attempted = False
 
 
 def _current_month_start() -> float:
@@ -64,7 +64,7 @@ def _current_day_start() -> float:
 
 
 def _prune_old_entries(provider: str) -> None:
-    """Remove entries older than the current reset window."""
+    """Remove fallback entries older than the current reset window."""
     budget = PROVIDER_BUDGETS.get(provider)
     if not budget:
         return
@@ -75,46 +75,49 @@ def _prune_old_entries(provider: str) -> None:
     elif reset == "monthly":
         cutoff = _current_month_start()
     elif reset == "never":
-        cutoff = 0.0  # lifetime — never prune
+        cutoff = 0.0
     else:
         cutoff = _current_month_start()
 
-    _provider_usage[provider] = [
-        ts for ts in _provider_usage[provider] if ts >= cutoff
-    ]
+    _provider_usage[provider] = [ts for ts in _provider_usage[provider] if ts >= cutoff]
 
 
-def record_provider_usage(provider: str) -> None:
-    """Record one execution against a provider's budget."""
+def _fallback_record_provider_usage(provider: str) -> None:
     _provider_usage[provider].append(time.time())
 
 
-def get_provider_usage(provider: str) -> dict:
-    """Get current usage status for a provider.
+def _fallback_reset_provider_usage(provider: str | None = None) -> None:
+    if provider:
+        _provider_usage[provider] = []
+    else:
+        _provider_usage.clear()
 
-    Returns:
-        dict with keys: provider, used, limit, percentage, status, unit, reset
-    """
+
+def _usage_shape(
+    provider: str,
+    used: int,
+    *,
+    durable: bool,
+    unavailable_reason: str | None = None,
+) -> dict[str, Any]:
     budget = PROVIDER_BUDGETS.get(provider)
     if not budget:
         return {
             "provider": provider,
-            "used": len(_provider_usage.get(provider, [])),
+            "used": used,
             "limit": None,
             "percentage": 0.0,
             "status": "untracked",
             "unit": "unknown",
             "reset": "unknown",
+            "durable": durable,
+            "reason": unavailable_reason or "",
         }
 
-    _prune_old_entries(provider)
-
     limit_key = "daily_limit" if "daily_limit" in budget else "monthly_limit"
-    limit = budget[limit_key]
-    used = len(_provider_usage[provider])
+    limit = int(budget[limit_key])
 
     if limit == 0:
-        # Pay-per-use: no free tier, every call costs money
         status = "pay_per_use"
         percentage = 0.0
     else:
@@ -136,49 +139,206 @@ def get_provider_usage(provider: str) -> dict:
         "status": status,
         "unit": budget.get("unit", "requests"),
         "reset": budget.get("reset", "monthly"),
+        "durable": durable,
+        "reason": unavailable_reason or "",
     }
 
 
-def check_provider_budget(provider: str) -> tuple[bool, str]:
-    """Check if a provider has budget remaining for managed execution.
+def _budget_window(provider: str) -> tuple[str, datetime, datetime | None]:
+    budget = PROVIDER_BUDGETS.get(provider) or {}
+    reset = budget.get("reset", "monthly")
+    now = datetime.now(tz=UTC)
 
-    Returns:
-        (allowed, reason) — allowed=True if execution should proceed.
-    """
-    usage = get_provider_usage(provider)
+    if reset == "daily":
+        start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+        return start.strftime("%Y-%m-%d"), start, start + timedelta(days=1)
+    if reset == "monthly":
+        start = datetime(now.year, now.month, 1, tzinfo=UTC)
+        if now.month == 12:
+            end = datetime(now.year + 1, 1, 1, tzinfo=UTC)
+        else:
+            end = datetime(now.year, now.month + 1, 1, tzinfo=UTC)
+        return start.strftime("%Y-%m"), start, end
+    return "lifetime", datetime(1970, 1, 1, tzinfo=UTC), None
 
-    if usage["status"] == "exhausted":
-        logger.warning(
-            "Provider %s budget exhausted: %d/%d %s used",
-            provider, usage["used"], usage["limit"], usage["unit"],
-        )
+
+class DurableUpstreamBudgetTracker:
+    """Shared durable tracker for managed upstream budget usage."""
+
+    def __init__(self, supabase_client: Any) -> None:
+        self._db = supabase_client
+
+    async def claim(self, provider: str) -> tuple[bool, str]:
+        """Atomically claim one provider budget unit before managed execution."""
+        allowed, usage = await self._check_and_increment(provider)
+
+        if not allowed:
+            logger.warning(
+                "Provider %s budget exhausted: %d/%d %s used",
+                provider,
+                usage["used"],
+                usage["limit"],
+                usage["unit"],
+            )
+            return False, (
+                f"Provider '{provider}' free-tier budget exhausted "
+                f"({usage['used']}/{usage['limit']} {usage['unit']}). "
+                "Use BYO credentials or try again after budget reset."
+            )
+
+        if usage["status"] in {"critical", "exhausted"}:
+            logger.warning(
+                "Provider %s budget critical: %d/%d %s (%.0f%%)",
+                provider,
+                usage["used"],
+                usage["limit"],
+                usage["unit"],
+                usage["percentage"] * 100,
+            )
+
+        return True, "ok"
+
+    async def get_provider_usage(self, provider: str) -> dict[str, Any]:
+        """Get current durable usage for a provider's active window."""
+        window_key, _, _ = _budget_window(provider)
+        result = await self._db.table("upstream_budget_windows").select(
+            "usage_count"
+        ).eq("provider_slug", provider).eq("window_key", window_key).maybe_single().execute()
+
+        used = 0
+        if result.data:
+            used = int(result.data.get("usage_count") or 0)
+        return _usage_shape(provider, used, durable=True)
+
+    async def get_all_provider_budgets(self) -> list[dict[str, Any]]:
+        budgets: list[dict[str, Any]] = []
+        for provider in sorted(PROVIDER_BUDGETS.keys()):
+            budgets.append(await self.get_provider_usage(provider))
+        return budgets
+
+    async def reset(self, provider: str | None = None) -> bool:
+        """Reset durable usage state for tests/admin operations."""
+        try:
+            if provider:
+                await self._db.table("upstream_budget_windows").delete().eq(
+                    "provider_slug", provider
+                ).execute()
+            else:
+                await self._db.table("upstream_budget_windows").delete().execute()
+            return True
+        except Exception:
+            logger.warning("durable_upstream_budget_reset_failed", exc_info=True)
+            return False
+
+    async def _check_and_increment(self, provider: str) -> tuple[bool, dict[str, Any]]:
+        budget = PROVIDER_BUDGETS.get(provider)
+        if not budget:
+            return True, _usage_shape(provider, 0, durable=True)
+
+        limit_key = "daily_limit" if "daily_limit" in budget else "monthly_limit"
+        limit = int(budget[limit_key])
+        window_key, window_start, window_end = _budget_window(provider)
+        enforce_limit = limit > 0
+
+        result = await self._db.rpc(
+            "upstream_budget_check_and_increment",
+            {
+                "p_provider_slug": provider,
+                "p_window_key": window_key,
+                "p_limit": limit,
+                "p_window_start": window_start.isoformat(),
+                "p_window_end": window_end.isoformat() if window_end else None,
+                "p_enforce_limit": enforce_limit,
+            },
+        ).execute()
+
+        if result.data and isinstance(result.data, list) and len(result.data) > 0:
+            row = result.data[0]
+            used = int(row.get("usage_count") or 0)
+            allowed = bool(row.get("allowed", False))
+            return allowed, _usage_shape(provider, used, durable=True)
+
+        raise RuntimeError("Unexpected upstream budget RPC response")
+
+
+async def _get_tracker() -> DurableUpstreamBudgetTracker | None:
+    global _tracker, _tracker_init_attempted
+    if _tracker is not None:
+        return _tracker
+    if _tracker_init_attempted:
+        return None
+
+    _tracker_init_attempted = True
+    try:
+        from db.client import get_supabase_client
+
+        supabase = await get_supabase_client()
+        _tracker = DurableUpstreamBudgetTracker(supabase)
+    except Exception:
+        logger.warning("durable_upstream_budget_init_failed", exc_info=True)
+        _tracker = None
+    return _tracker
+
+
+async def claim_provider_budget(provider: str) -> tuple[bool, str]:
+    """Claim one managed-provider budget unit or fail closed if authority is unavailable."""
+    tracker = await _get_tracker()
+    if tracker is None:
         return False, (
-            f"Provider '{provider}' free-tier budget exhausted "
-            f"({usage['used']}/{usage['limit']} {usage['unit']}). "
-            "Use BYO credentials or try again after budget reset."
+            "Managed provider budget authority is temporarily unavailable. "
+            "Try again shortly or use BYO credentials."
         )
 
-    if usage["status"] == "critical":
-        logger.warning(
-            "Provider %s budget critical: %d/%d %s (%.0f%%)",
-            provider, usage["used"], usage["limit"], usage["unit"],
-            usage["percentage"] * 100,
+    try:
+        return await tracker.claim(provider)
+    except Exception:
+        logger.warning("durable_upstream_budget_claim_failed provider=%s", provider, exc_info=True)
+        return False, (
+            "Managed provider budget authority is temporarily unavailable. "
+            "Try again shortly or use BYO credentials."
         )
 
-    return True, "ok"
+
+async def get_provider_usage(provider: str) -> dict[str, Any]:
+    """Get provider usage, preferring durable state and falling back for diagnostics."""
+    tracker = await _get_tracker()
+    if tracker is not None:
+        try:
+            return await tracker.get_provider_usage(provider)
+        except Exception:
+            logger.warning("durable_upstream_budget_get_failed provider=%s", provider, exc_info=True)
+
+    _prune_old_entries(provider)
+    return _usage_shape(
+        provider,
+        len(_provider_usage.get(provider, [])),
+        durable=False,
+        unavailable_reason="Durable upstream budget authority unavailable.",
+    )
 
 
-def get_all_provider_budgets() -> list[dict]:
+async def get_all_provider_budgets() -> list[dict[str, Any]]:
     """Get budget status for all tracked providers."""
-    results = []
-    for provider in sorted(PROVIDER_BUDGETS.keys()):
-        results.append(get_provider_usage(provider))
-    return results
+    tracker = await _get_tracker()
+    if tracker is not None:
+        try:
+            return await tracker.get_all_provider_budgets()
+        except Exception:
+            logger.warning("durable_upstream_budget_list_failed", exc_info=True)
+
+    return [await get_provider_usage(provider) for provider in sorted(PROVIDER_BUDGETS.keys())]
 
 
-def reset_provider_usage(provider: Optional[str] = None) -> None:
-    """Reset usage tracking. If provider is None, resets all."""
-    if provider:
-        _provider_usage[provider] = []
-    else:
-        _provider_usage.clear()
+async def reset_provider_usage(provider: str | None = None) -> None:
+    """Reset usage tracking for tests/admin operations."""
+    global _tracker, _tracker_init_attempted
+
+    _fallback_reset_provider_usage(provider)
+
+    tracker = _tracker
+    if tracker is not None:
+        await tracker.reset(provider)
+
+    if provider is None:
+        _tracker = None
+        _tracker_init_attempted = False

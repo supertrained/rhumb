@@ -21,7 +21,7 @@ async def list_upstream_budgets() -> dict:
     Statuses: ok, warning (>80%), critical (>95%), exhausted (100%),
     pay_per_use (no free tier), untracked.
     """
-    budgets = get_all_provider_budgets()
+    budgets = await get_all_provider_budgets()
     exhausted = [b for b in budgets if b["status"] == "exhausted"]
     critical = [b for b in budgets if b["status"] == "critical"]
     warning = [b for b in budgets if b["status"] == "warning"]
@@ -47,4 +47,4 @@ async def list_upstream_budgets() -> dict:
 @router.get("/upstream-budgets/{provider}", dependencies=[Depends(require_admin_key)])
 async def get_provider_budget(provider: str) -> dict:
     """Return budget status for a specific provider."""
-    return {"data": get_provider_usage(provider)}
+    return {"data": await get_provider_usage(provider)}

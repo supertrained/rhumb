@@ -1026,6 +1026,11 @@ async def test_execute_managed_daily_limit_uses_durable_limiter(app):
             new_callable=AsyncMock,
             return_value=managed_mapping,
         ),
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -1071,6 +1076,11 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
             new_callable=AsyncMock,
             return_value=managed_mapping,
         ) as mock_resolve_managed,
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ) as mock_claim_budget,
         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1085,6 +1095,7 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
     assert data["credential_mode"] == "rhumb_managed"
     assert data["provider_used"] == "resend"
     mock_resolve_managed.assert_awaited_once()
+    mock_claim_budget.assert_awaited_once_with("resend")
 
 
 @pytest.mark.anyio
