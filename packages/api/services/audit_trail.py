@@ -532,13 +532,16 @@ class AuditTrail:
         )
 
     def _export_json(self, events: list[AuditEvent], chain_verified: bool) -> str:
-        """Export events as JSON."""
+        """Export events as JSON.
+
+        AUD-24: exports always redact sensitive payload content.
+        """
         export_data = {
             "export_version": "1.0",
             "exported_at": datetime.now(timezone.utc).isoformat(),
             "chain_verified": chain_verified,
             "event_count": len(events),
-            "events": [self._event_to_dict(e) for e in events],
+            "events": [self._event_to_dict(e, redact=True) for e in events],
         }
         return json.dumps(export_data, indent=2, default=str)
 
@@ -590,8 +593,20 @@ class AuditTrail:
         return output.getvalue()
 
     @staticmethod
-    def _event_to_dict(event: AuditEvent) -> dict[str, Any]:
-        """Convert an event to a JSON-serializable dict."""
+    def _event_to_dict(event: AuditEvent, *, redact: bool = False) -> dict[str, Any]:
+        """Convert an event to a JSON-serializable dict.
+
+        AUD-24: when redact=True, sensitive values in detail/metadata
+        are replaced with [REDACTED] before export.
+        """
+        detail = event.detail
+        metadata = getattr(event, "metadata", None) or {}
+
+        if redact:
+            from services.payload_redactor import redact_event_detail, redact_event_metadata
+            detail = redact_event_detail(detail)
+            metadata = redact_event_metadata(metadata)
+
         return {
             "event_id": event.event_id,
             "event_type": event.event_type.value,
@@ -604,7 +619,7 @@ class AuditTrail:
             "resource_type": event.resource_type,
             "resource_id": event.resource_id,
             "action": event.action,
-            "detail": event.detail,
+            "detail": detail,
             "receipt_id": event.receipt_id,
             "execution_id": event.execution_id,
             "provider_slug": event.provider_slug,
