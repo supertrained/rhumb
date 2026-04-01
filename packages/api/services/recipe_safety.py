@@ -14,7 +14,9 @@ tune down. Track blocked-but-legitimate content."
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
+import html
 import logging
 import re
 import threading
@@ -25,6 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from urllib.parse import unquote_plus
 
 logger = logging.getLogger(__name__)
 
@@ -246,32 +249,75 @@ class ContentFirewall:
         return found
 
     @staticmethod
-    def _try_decode_base64(text: str) -> str | None:
-        """Try to decode a base64-encoded string (AUD-2).
+    def _is_printable_text(text: str) -> bool:
+        printable_ratio = sum(
+            1 for c in text if c.isprintable() or c in ("\n", "\r", "\t")
+        ) / max(len(text), 1)
+        return printable_ratio > 0.5
 
-        Returns the decoded text if it looks like valid base64 with
-        decodable UTF-8 content, else None.
-        Only inspects strings that look like base64 (length >=20,
-        valid charset, no spaces in the middle).
-        """
+    @classmethod
+    def _try_decode_base64(cls, text: str) -> str | None:
+        """Try to decode a base64-encoded string (AUD-2)."""
         stripped = text.strip()
         if len(stripped) < 20:
             return None
-        # Quick heuristic: base64 is [A-Za-z0-9+/=] with optional padding
         if not re.match(r'^[A-Za-z0-9+/=\n\r]+$', stripped):
             return None
-        # Must have reasonable padding
         try:
             decoded = base64.b64decode(stripped, validate=True)
-            # Only inspect if it decodes to valid UTF-8 text
             decoded_text = decoded.decode("utf-8")
-            # Heuristic: real base64 payloads are usually >50% printable
-            printable_ratio = sum(1 for c in decoded_text if c.isprintable() or c in ("\n", "\r", "\t")) / max(len(decoded_text), 1)
-            if printable_ratio > 0.5:
+            if cls._is_printable_text(decoded_text):
                 return decoded_text
         except Exception:
             pass
         return None
+
+    @classmethod
+    def _try_decode_hex(cls, text: str) -> str | None:
+        """Try to decode a hex-encoded UTF-8 payload (AUD-R1-06)."""
+        stripped = re.sub(r"\s+", "", text.strip())
+        if stripped.startswith(("0x", "0X")):
+            stripped = stripped[2:]
+        if len(stripped) < 20 or len(stripped) % 2 != 0:
+            return None
+        if not re.fullmatch(r"[0-9a-fA-F]+", stripped):
+            return None
+        try:
+            decoded_text = bytes.fromhex(stripped).decode("utf-8")
+            if cls._is_printable_text(decoded_text):
+                return decoded_text
+        except (ValueError, UnicodeDecodeError, binascii.Error):
+            pass
+        return None
+
+    @classmethod
+    def _decoded_payloads(cls, text: str) -> list[tuple[str, str]]:
+        """Return encoded payload variants worth inspecting."""
+        decoded_variants: list[tuple[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+
+        def add(label: str, decoded: str | None) -> None:
+            if decoded is None:
+                return
+            key = (label, decoded)
+            if key not in seen:
+                seen.add(key)
+                decoded_variants.append(key)
+
+        add("base64", cls._try_decode_base64(text))
+        add("hex", cls._try_decode_hex(text))
+
+        if "%" in text or "+" in text:
+            url_decoded = unquote_plus(text)
+            if url_decoded != text and cls._is_printable_text(url_decoded):
+                add("url", url_decoded)
+
+        if "&" in text and ";" in text:
+            html_decoded = html.unescape(text)
+            if html_decoded != text and cls._is_printable_text(html_decoded):
+                add("html", html_decoded)
+
+        return decoded_variants
 
     def _inspect_string(
         self,
@@ -356,37 +402,35 @@ class ContentFirewall:
                     matched_pattern=label,
                 ))
 
-        # Base64 payload inspection (AUD-2: decode and inspect encoded content)
-        decoded_text = self._try_decode_base64(data)
-        if decoded_text is not None:
-            # Run the same pattern checks on decoded content
+        # Encoded payload inspection (AUD-2 / AUD-R1-06)
+        for encoding, decoded_text in self._decoded_payloads(data):
             decoded_normalized = self._normalize_text(decoded_text)
             for pattern, label in _PROMPT_INJECTION_PATTERNS:
                 if pattern.search(decoded_normalized):
                     violations.append(ContentViolation(
                         violation_type=ContentViolationType.ENCODED_PAYLOAD,
                         field_path=path,
-                        description=f"Prompt injection in base64-encoded content: {label}",
+                        description=f"Prompt injection in {encoding}-encoded content: {label}",
                         severity="block",
-                        matched_pattern=f"base64:{label}",
+                        matched_pattern=f"{encoding}:{label}",
                     ))
             for pattern, label in _SHELL_INJECTION_PATTERNS:
                 if pattern.search(decoded_normalized):
                     violations.append(ContentViolation(
                         violation_type=ContentViolationType.ENCODED_PAYLOAD,
                         field_path=path,
-                        description=f"Shell injection in base64-encoded content: {label}",
+                        description=f"Shell injection in {encoding}-encoded content: {label}",
                         severity="block",
-                        matched_pattern=f"base64:{label}",
+                        matched_pattern=f"{encoding}:{label}",
                     ))
             for pattern, label in _PATH_TRAVERSAL_PATTERNS:
                 if pattern.search(decoded_normalized):
                     violations.append(ContentViolation(
                         violation_type=ContentViolationType.ENCODED_PAYLOAD,
                         field_path=path,
-                        description=f"Path traversal in base64-encoded content: {label}",
+                        description=f"Path traversal in {encoding}-encoded content: {label}",
                         severity="block",
-                        matched_pattern=f"base64:{label}",
+                        matched_pattern=f"{encoding}:{label}",
                     ))
 
         # Custom disallowed patterns (on normalized text)
