@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import time
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -18,6 +18,56 @@ from services.principal_auth import extract_principal_from_session
 
 def _principal(user_id: str) -> object:
     return extract_principal_from_session(user_id, email=f"{user_id}@rhumb.dev")
+
+
+class AsyncInMemoryKillSwitchPersistence:
+    def __init__(self) -> None:
+        self.switches: dict[str, dict[str, object]] = {}
+        self.pending: dict[str, dict[str, object]] = {}
+
+    async def persist_switch_state(self, key: str, entry: KillSwitchEntry) -> bool:
+        self.switches[key] = {
+            "switch_key": key,
+            "switch_id": entry.switch_id,
+            "level": entry.level.value,
+            "target": entry.target,
+            "state": entry.state.value,
+            "reason": entry.reason,
+            "activated_by": entry.activated_by,
+            "activated_at": entry.activated_at.isoformat(),
+            "second_approver": entry.second_approver,
+            "restoration_phase": entry.restoration_phase,
+            "chain_hash": entry.chain_hash,
+        }
+        return True
+
+    async def load_active_switches(self) -> list[dict[str, object]]:
+        return list(self.switches.values())
+
+    async def remove_switch(self, key: str) -> bool:
+        self.switches.pop(key, None)
+        return True
+
+    async def persist_pending_global(self, pending: object) -> bool:
+        requester = pending.requester
+        self.pending[pending.request_id] = {
+            "request_id": pending.request_id,
+            "reason": pending.reason,
+            "requester_type": requester.principal_type.value,
+            "requester_unique_id": requester.unique_id,
+            "requester_display_name": requester.display_name,
+            "requester_verified_at": requester.verified_at.isoformat(),
+            "requested_at": pending.requested_at.isoformat(),
+            "expires_at": pending.expires_at.isoformat(),
+        }
+        return True
+
+    async def load_pending_globals(self) -> list[dict[str, object]]:
+        return list(self.pending.values())
+
+    async def remove_pending_global(self, request_id: str) -> bool:
+        self.pending.pop(request_id, None)
+        return True
 
 
 # ── Basic kill switch operations ──────────────────────────────────────
@@ -118,7 +168,7 @@ class TestGlobalKillSwitch:
                 reason=pending.reason,
                 requester=pending.requester,
                 requested_at=pending.requested_at,
-                expires_at=time.monotonic() - 1,  # Already expired
+                expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
             )
         entry = reg.approve_global_kill(result["request_id"], _principal("pedro"))
         assert entry is None
@@ -200,6 +250,44 @@ class TestRegistryQueries:
     def test_get_nonexistent_returns_none(self):
         reg = KillSwitchRegistry()
         assert reg.get("agent:nonexistent") is None
+
+
+class TestDurablePersistence:
+    def test_pending_global_survives_restart(self):
+        persistence = AsyncInMemoryKillSwitchPersistence()
+        reg = KillSwitchRegistry(persistence=persistence)
+
+        result = reg.request_global_kill("Security breach", _principal("tom"))
+        assert result["request_id"] in persistence.pending
+
+        restored = KillSwitchRegistry(persistence=persistence)
+        entry = restored.approve_global_kill(result["request_id"], _principal("pedro"))
+
+        assert entry is not None
+        assert entry.level == KillSwitchLevel.GLOBAL
+        assert result["request_id"] not in persistence.pending
+
+    def test_active_switch_survives_restart(self):
+        persistence = AsyncInMemoryKillSwitchPersistence()
+        reg = KillSwitchRegistry(persistence=persistence)
+
+        reg.kill_agent("agent_1", "Abuse", "admin")
+
+        restored = KillSwitchRegistry(persistence=persistence)
+        assert restored.is_blocked(agent_id="agent_1")[0] is True
+
+    def test_expired_pending_removed_on_restore(self):
+        persistence = AsyncInMemoryKillSwitchPersistence()
+        reg = KillSwitchRegistry(persistence=persistence)
+
+        result = reg.request_global_kill("Breach", _principal("tom"))
+        persistence.pending[result["request_id"]]["expires_at"] = (
+            datetime.now(timezone.utc) - timedelta(seconds=1)
+        ).isoformat()
+
+        restored = KillSwitchRegistry(persistence=persistence)
+        assert result["request_id"] not in restored._pending_global
+        assert result["request_id"] not in persistence.pending
 
 
 # ── Audit trail ───────────────────────────────────────────────────────

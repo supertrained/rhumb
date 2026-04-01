@@ -158,7 +158,9 @@ class DurableKillSwitchPersistence:
                 "reason": entry.reason,
                 "activated_by": entry.activated_by,
                 "activated_at": entry.activated_at.isoformat() if isinstance(entry.activated_at, datetime) else str(entry.activated_at),
+                "second_approver": getattr(entry, "second_approver", None),
                 "restoration_phase": getattr(entry, "restoration_phase", None),
+                "chain_hash": getattr(entry, "chain_hash", ""),
             }
             await self._db.table("kill_switch_state").upsert(row).execute()
             return True
@@ -186,4 +188,68 @@ class DurableKillSwitchPersistence:
             return True
         except Exception:
             logger.warning("durable_kill_switch_remove_failed key=%s", key, exc_info=True)
+            return False
+
+    async def persist_pending_global(self, pending: Any) -> bool:
+        """Write or update a pending global kill approval request."""
+        try:
+            requester = getattr(pending, "requester")
+            row = {
+                "request_id": pending.request_id,
+                "reason": pending.reason,
+                "requester_type": (
+                    requester.principal_type.value
+                    if hasattr(requester.principal_type, "value")
+                    else str(requester.principal_type)
+                ),
+                "requester_unique_id": requester.unique_id,
+                "requester_display_name": requester.display_name,
+                "requester_verified_at": (
+                    requester.verified_at.isoformat()
+                    if isinstance(requester.verified_at, datetime)
+                    else str(requester.verified_at)
+                ),
+                "requested_at": (
+                    pending.requested_at.isoformat()
+                    if isinstance(pending.requested_at, datetime)
+                    else str(pending.requested_at)
+                ),
+                "expires_at": (
+                    pending.expires_at.isoformat()
+                    if isinstance(pending.expires_at, datetime)
+                    else str(pending.expires_at)
+                ),
+            }
+            await self._db.table("kill_switch_pending_global").upsert(row).execute()
+            return True
+        except Exception:
+            logger.warning(
+                "durable_kill_switch_pending_persist_failed request_id=%s",
+                getattr(pending, "request_id", "unknown"),
+                exc_info=True,
+            )
+            return False
+
+    async def load_pending_globals(self) -> list[dict[str, Any]]:
+        """Load pending global kill approval requests for startup replay."""
+        try:
+            result = await self._db.table("kill_switch_pending_global").select("*").execute()
+            return result.data or []
+        except Exception:
+            logger.warning("durable_kill_switch_pending_load_failed", exc_info=True)
+            return []
+
+    async def remove_pending_global(self, request_id: str) -> bool:
+        """Remove a resolved or expired pending global kill request."""
+        try:
+            await self._db.table("kill_switch_pending_global").delete().eq(
+                "request_id", request_id
+            ).execute()
+            return True
+        except Exception:
+            logger.warning(
+                "durable_kill_switch_pending_remove_failed request_id=%s",
+                request_id,
+                exc_info=True,
+            )
             return False

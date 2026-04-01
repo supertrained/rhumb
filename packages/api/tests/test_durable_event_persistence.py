@@ -11,6 +11,7 @@ from services.durable_event_persistence import (
     DurableBillingPersistence,
     DurableKillSwitchPersistence,
 )
+from services.principal_auth import extract_principal_from_session
 
 
 class MockQueryResult:
@@ -109,7 +110,17 @@ class MockKillEntry:
     reason = "suspicious activity"
     activated_by = "admin@rhumb.dev"
     activated_at = datetime(2026, 4, 1, tzinfo=timezone.utc)
+    second_approver = None
     restoration_phase = None
+    chain_hash = ""
+
+
+class MockPendingGlobal:
+    request_id = "gkill_00000001"
+    reason = "security breach"
+    requester = extract_principal_from_session("tom", email="tom@rhumb.dev")
+    requested_at = datetime(2026, 4, 1, tzinfo=timezone.utc)
+    expires_at = datetime(2026, 4, 1, 0, 15, tzinfo=timezone.utc)
 
 
 @pytest.fixture
@@ -219,4 +230,27 @@ class TestDurableKillSwitchPersistence:
         mock_db.set_table("kill_switch_state", MockQueryBuilder())
         kp = DurableKillSwitchPersistence(mock_db)
         result = await kp.remove_switch("agent:agent_1")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_persist_pending_global_succeeds(self, mock_db):
+        mock_db.set_table("kill_switch_pending_global", MockQueryBuilder())
+        kp = DurableKillSwitchPersistence(mock_db)
+        result = await kp.persist_pending_global(MockPendingGlobal())
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_load_pending_globals(self, mock_db):
+        mock_db.set_table("kill_switch_pending_global", MockQueryBuilder([
+            {"request_id": "gkill_00000001"}
+        ]))
+        kp = DurableKillSwitchPersistence(mock_db)
+        rows = await kp.load_pending_globals()
+        assert len(rows) == 1
+
+    @pytest.mark.asyncio
+    async def test_remove_pending_global(self, mock_db):
+        mock_db.set_table("kill_switch_pending_global", MockQueryBuilder())
+        kp = DurableKillSwitchPersistence(mock_db)
+        result = await kp.remove_pending_global("gkill_00000001")
         assert result is True

@@ -18,16 +18,18 @@ Two-person auth for global:
 
 from __future__ import annotations
 
+import asyncio
+import concurrent.futures
+import inspect
 import logging
 import threading
-import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
 from services.chain_integrity import build_kill_switch_payload, compute_chain_hmac
-from services.principal_auth import PrincipalIdentity
+from services.principal_auth import PrincipalIdentity, PrincipalType
 
 logger = logging.getLogger(__name__)
 
@@ -91,13 +93,15 @@ class KillSwitchRegistry:
     GENESIS_HASH = "0" * 64
     GLOBAL_APPROVAL_WINDOW_SECONDS = 900  # 15 minutes
 
-    def __init__(self) -> None:
+    def __init__(self, persistence: Any | None = None) -> None:
+        self._persistence = persistence
         self._switches: dict[str, KillSwitchEntry] = {}
         self._audit: list[KillSwitchAuditEntry] = []
         self._pending_global: dict[str, _PendingGlobalKill] = {}
         self._lock = threading.RLock()
         self._prev_hash = self.GENESIS_HASH
         self._entry_counter = 0
+        self._restore_from_persistence()
 
     # ── Check methods (hot path — must be fast) ───────────────────
 
@@ -188,21 +192,26 @@ class KillSwitchRegistry:
         a second principal approves within the time window.
         """
         requester = self._require_principal(principal)
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(seconds=self.GLOBAL_APPROVAL_WINDOW_SECONDS)
         with self._lock:
             request_id = f"gkill_{self._entry_counter + 1:08d}"
-            self._pending_global[request_id] = _PendingGlobalKill(
+            pending = _PendingGlobalKill(
                 request_id=request_id,
                 reason=reason,
                 requester=requester,
-                requested_at=time.monotonic(),
-                expires_at=time.monotonic() + self.GLOBAL_APPROVAL_WINDOW_SECONDS,
+                requested_at=now,
+                expires_at=expires_at,
             )
+            self._pending_global[request_id] = pending
             self._append_audit(
                 switch_id=request_id,
                 action="request_global_kill",
                 principal=requester.canonical_id,
                 details=f"Global kill requested: {reason}",
             )
+            self._entry_counter = max(self._entry_counter, self._parse_id_counter(request_id))
+        self._persist_pending_global(pending)
 
         logger.critical(
             "GLOBAL_KILL_REQUESTED requester=%s reason=%s request_id=%s",
@@ -232,8 +241,9 @@ class KillSwitchRegistry:
                 return None
 
             # Expired?
-            if time.monotonic() > pending.expires_at:
+            if datetime.now(timezone.utc) > pending.expires_at:
                 self._pending_global.pop(request_id, None)
+                self._remove_pending_global(request_id)
                 logger.warning("global_kill_approve_failed: request %s expired", request_id)
                 return None
 
@@ -247,6 +257,7 @@ class KillSwitchRegistry:
 
             # Approved — activate
             self._pending_global.pop(request_id, None)
+            self._remove_pending_global(request_id)
             entry = self._activate(
                 level=KillSwitchLevel.GLOBAL,
                 target="global",
@@ -303,6 +314,7 @@ class KillSwitchRegistry:
                 chain_hash=existing.chain_hash,
             )
             self._switches[key] = restored
+            self._persist_switch_state(key, restored)
             self._append_audit(
                 switch_id=existing.switch_id,
                 action="restore_phase",
@@ -317,6 +329,7 @@ class KillSwitchRegistry:
             existing = self._switches.pop(key, None)
             if existing is None:
                 return False
+            self._remove_switch_state(key)
             self._append_audit(
                 switch_id=existing.switch_id,
                 action="lift",
@@ -404,6 +417,7 @@ class KillSwitchRegistry:
                 second_approver=second_approver,
             )
             self._switches[key] = entry
+            self._persist_switch_state(key, entry)
             self._append_audit(
                 switch_id=switch_id,
                 action="activate",
@@ -460,6 +474,111 @@ class KillSwitchRegistry:
         payload = build_kill_switch_payload(entry)
         return compute_chain_hmac(prev_hash, payload)
 
+    def _restore_from_persistence(self) -> None:
+        if self._persistence is None:
+            return
+
+        active_rows = self._call_persistence("load_active_switches") or []
+        pending_rows = self._call_persistence("load_pending_globals") or []
+
+        with self._lock:
+            for row in active_rows:
+                try:
+                    key = str(row["switch_key"])
+                    entry = KillSwitchEntry(
+                        switch_id=str(row["switch_id"]),
+                        level=KillSwitchLevel(str(row["level"])),
+                        target=str(row["target"]),
+                        state=KillSwitchState(str(row["state"])),
+                        reason=str(row.get("reason") or ""),
+                        activated_by=str(row["activated_by"]),
+                        activated_at=self._as_datetime(row.get("activated_at")),
+                        second_approver=row.get("second_approver"),
+                        restoration_phase=row.get("restoration_phase"),
+                        chain_hash=str(row.get("chain_hash") or ""),
+                    )
+                    self._switches[key] = entry
+                    self._entry_counter = max(self._entry_counter, self._parse_id_counter(entry.switch_id))
+                except Exception:
+                    logger.warning("kill_switch_restore_active_failed row=%s", row, exc_info=True)
+
+            for row in pending_rows:
+                try:
+                    requester = PrincipalIdentity(
+                        principal_type=PrincipalType(str(row["requester_type"])),
+                        unique_id=str(row["requester_unique_id"]),
+                        display_name=str(row.get("requester_display_name") or row["requester_unique_id"]),
+                        verified_at=self._as_datetime(row.get("requester_verified_at")),
+                    )
+                    pending = _PendingGlobalKill(
+                        request_id=str(row["request_id"]),
+                        reason=str(row.get("reason") or ""),
+                        requester=requester,
+                        requested_at=self._as_datetime(row.get("requested_at")),
+                        expires_at=self._as_datetime(row.get("expires_at")),
+                    )
+                    if datetime.now(timezone.utc) <= pending.expires_at:
+                        self._pending_global[pending.request_id] = pending
+                        self._entry_counter = max(self._entry_counter, self._parse_id_counter(pending.request_id))
+                    else:
+                        self._call_persistence("remove_pending_global", pending.request_id)
+                except Exception:
+                    logger.warning("kill_switch_restore_pending_failed row=%s", row, exc_info=True)
+
+    def _persist_switch_state(self, key: str, entry: KillSwitchEntry) -> None:
+        self._call_persistence("persist_switch_state", key, entry)
+
+    def _remove_switch_state(self, key: str) -> None:
+        self._call_persistence("remove_switch", key)
+
+    def _persist_pending_global(self, pending: _PendingGlobalKill) -> None:
+        self._call_persistence("persist_pending_global", pending)
+
+    def _remove_pending_global(self, request_id: str) -> None:
+        self._call_persistence("remove_pending_global", request_id)
+
+    def _call_persistence(self, method_name: str, *args: Any) -> Any:
+        if self._persistence is None:
+            return None
+        method = getattr(self._persistence, method_name, None)
+        if method is None:
+            return None
+        try:
+            result = method(*args)
+            if inspect.isawaitable(result):
+                return self._run_awaitable(result)
+            return result
+        except Exception:
+            logger.warning("kill_switch_persistence_call_failed method=%s", method_name, exc_info=True)
+            return None
+
+    @staticmethod
+    def _run_awaitable(awaitable: Any) -> Any:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(awaitable)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(lambda: asyncio.run(awaitable)).result()
+
+    @staticmethod
+    def _as_datetime(value: Any) -> datetime:
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value
+        if isinstance(value, str):
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        raise TypeError(f"Unsupported datetime value: {value!r}")
+
+    @staticmethod
+    def _parse_id_counter(identifier: str) -> int:
+        try:
+            return int(identifier.rsplit("_", 1)[-1])
+        except (TypeError, ValueError):
+            return 0
+
 
 @dataclass
 class _PendingGlobalKill:
@@ -468,8 +587,8 @@ class _PendingGlobalKill:
     request_id: str
     reason: str
     requester: PrincipalIdentity
-    requested_at: float
-    expires_at: float
+    requested_at: datetime
+    expires_at: datetime
 
 
 # ── Module singleton ──────────────────────────────────────────────────
