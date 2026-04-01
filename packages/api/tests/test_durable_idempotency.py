@@ -12,7 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.durable_idempotency import DurableIdempotencyStore, IdempotencyRecord
+from services.durable_idempotency import (
+    DurableIdempotencyStore,
+    IdempotencyRecord,
+    IdempotencyUnavailable,
+)
 
 
 class MockQueryResult:
@@ -179,6 +183,23 @@ class TestCheck:
         result = await store.check("idem_test")
         assert result is None  # Fail-open
 
+    @pytest.mark.asyncio
+    async def test_db_error_can_fail_closed(self, store, mock_db):
+        """Strict mode should surface unavailable durable idempotency."""
+        class FailingBuilder(MockQueryBuilder):
+            def select(self, *args):
+                return self
+            def eq(self, *args):
+                return self
+            def maybe_single(self):
+                return self
+            async def execute(self):
+                raise ConnectionError("DB down")
+
+        mock_db.set_table("idempotency_keys", FailingBuilder())
+        with pytest.raises(IdempotencyUnavailable):
+            await store.check("idem_test", allow_fallback=False)
+
 
 class TestClaim:
     @pytest.mark.asyncio
@@ -224,6 +245,17 @@ class TestClaim:
         result = await store.claim("idem_test", "exec_1", "r1")
         assert result is None  # Fail-open: claim "succeeds"
 
+    @pytest.mark.asyncio
+    async def test_claim_db_error_can_fail_closed(self, store, mock_db):
+        """Strict mode claim should reject DB-unavailable protection."""
+        class FailingRpc:
+            async def execute(self):
+                raise ConnectionError("DB down")
+
+        mock_db.set_rpc("idempotency_claim", FailingRpc())
+        with pytest.raises(IdempotencyUnavailable):
+            await store.claim("idem_test", "exec_1", "r1", allow_fallback=False)
+
 
 class TestStore:
     @pytest.mark.asyncio
@@ -252,6 +284,26 @@ class TestStore:
         # Should not raise
         record = await store.store("idem_test", "exec_1", "r1", "completed", "abc")
         assert record.key == "idem_test"
+
+
+class TestRelease:
+    @pytest.mark.asyncio
+    async def test_release_deletes_key(self, store, mock_db):
+        class ReleaseBuilder:
+            def __init__(self):
+                self.deleted_key = None
+            def delete(self):
+                return self
+            def eq(self, field, value):
+                self.deleted_key = value
+                return self
+            async def execute(self):
+                return MockQueryResult(None)
+
+        builder = ReleaseBuilder()
+        mock_db.set_table("idempotency_keys", builder)
+        await store.release("idem_release")
+        assert builder.deleted_key == "idem_release"
 
 
 class TestCleanup:

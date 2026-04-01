@@ -45,6 +45,7 @@ from services.credit_deduction import CreditDeductionService
 from services.payment_health import check_billing_health
 from services.payment_metrics import log_payment_event
 from services.payment_requests import PaymentRequestService
+from services.durable_idempotency import DurableIdempotencyStore, IdempotencyUnavailable
 from services.durable_rate_limit import DurableRateLimiter
 from services.durable_replay_guard import DurableReplayGuard, ReplayGuardUnavailable
 from services.kill_switches import init_kill_switch_registry
@@ -78,6 +79,7 @@ _routing_engine = RoutingEngine()
 _identity_store: Optional[AgentIdentityStore] = None
 _durable_replay_guard: DurableReplayGuard | None = None
 _durable_rate_limiter: DurableRateLimiter | None = None
+_durable_idempotency_store: DurableIdempotencyStore | None = None
 
 
 def _get_identity_store() -> AgentIdentityStore:
@@ -106,6 +108,16 @@ async def _get_rate_limiter() -> DurableRateLimiter:
         supabase = await get_supabase_client()
         _durable_rate_limiter = DurableRateLimiter(supabase)
     return _durable_rate_limiter
+
+
+async def _get_idempotency_store() -> DurableIdempotencyStore:
+    global _durable_idempotency_store
+    if _durable_idempotency_store is None:
+        from db.client import get_supabase_client
+
+        supabase = await get_supabase_client()
+        _durable_idempotency_store = DurableIdempotencyStore(supabase)
+    return _durable_idempotency_store
 
 logger = logging.getLogger(__name__)
 
@@ -1266,22 +1278,6 @@ async def execute_capability(
             headers={"Retry-After": "60"},
         )
 
-    # Idempotency before reservations.
-    if request.idempotency_key:
-        existing = await supabase_fetch(
-            f"capability_executions?idempotency_key=eq.{quote(request.idempotency_key)}"
-            f"&select=id,upstream_status,cost_estimate_usd&limit=1"
-        )
-        if existing:
-            return {
-                "data": {
-                    "capability_id": capability_id,
-                    "execution_id": existing[0]["id"],
-                    "deduplicated": True,
-                },
-                "error": None,
-            }
-
     cap_services = await _get_capability_services(capability_id)
     request.credential_mode, managed_mapping = await _resolve_auto_credential_mode(
         capability_id=capability_id,
@@ -1406,6 +1402,25 @@ async def execute_capability(
         )
 
     execution_id = f"exec_{uuid.uuid4().hex}"
+    idempotency_store: DurableIdempotencyStore | None = None
+    idempotency_claimed = False
+
+    async def _release_idempotency_claim() -> None:
+        nonlocal idempotency_claimed
+        if request.idempotency_key and idempotency_claimed and idempotency_store is not None:
+            await idempotency_store.release(request.idempotency_key)
+            idempotency_claimed = False
+
+    async def _store_idempotent_result(status: str, result_hash: str) -> None:
+        if request.idempotency_key and idempotency_store is not None:
+            await idempotency_store.store(
+                request.idempotency_key,
+                execution_id,
+                capability_id,
+                status,
+                result_hash,
+            )
+
     has_inline_x402_payment = bool(x_payment and x_payment != "required")
 
     # Free calls do not depend on org-credit balance. Billable non-x402 calls must
@@ -1904,6 +1919,34 @@ async def execute_capability(
             inferred_method = inferred_method or endpoint_parts[0]
             inferred_path = inferred_path or endpoint_parts[1]
 
+    if request.idempotency_key:
+        try:
+            idempotency_store = await _get_idempotency_store()
+            existing_claim = await idempotency_store.claim(
+                request.idempotency_key,
+                execution_id,
+                capability_id,
+                org_id=org_id,
+                agent_id=agent_id,
+                allow_fallback=False,
+            )
+        except IdempotencyUnavailable as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Idempotency protection temporarily unavailable. Retry shortly.",
+            ) from exc
+
+        if existing_claim is not None:
+            return {
+                "data": {
+                    "capability_id": capability_id,
+                    "execution_id": existing_claim.execution_id,
+                    "deduplicated": True,
+                },
+                "error": None,
+            }
+        idempotency_claimed = True
+
     await supabase_insert("capability_executions", {
         "id": execution_id,
         "agent_id": agent_id,
@@ -1944,6 +1987,7 @@ async def execute_capability(
                 amount_usd_cents=billed_cost_cents,
                 execution_id=execution_id,
             )
+            await _release_idempotency_claim()
             raise PaymentRequiredException(
                 capability_id=capability_id,
                 cost_usd_cents=billed_cost_cents,
@@ -1977,6 +2021,7 @@ async def execute_capability(
                     capability_id,
                     execution_id,
                 )
+                await _release_idempotency_claim()
                 return _billing_unavailable_response(raw_request)
             if not credit_result.allowed:
                 if cost_estimate > 0:
@@ -1987,6 +2032,7 @@ async def execute_capability(
                     amount_usd_cents=billed_cost_cents,
                     execution_id=execution_id,
                 )
+                await _release_idempotency_claim()
                 raise PaymentRequiredException(
                     capability_id=capability_id,
                     cost_usd_cents=billed_cost_cents,
@@ -2124,6 +2170,10 @@ async def execute_capability(
             except Exception as receipt_err:
                 logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
 
+        await _store_idempotent_result(
+            "completed" if result.get("upstream_status", 200) < 400 else "failed",
+            hash_response_payload(result.get("upstream_response")),
+        )
         return {"data": result, "error": None}
 
     # ── Mode 3: Agent Vault (per-request token) ────────────────────
@@ -2290,6 +2340,10 @@ async def execute_capability(
                 except Exception as receipt_err:
                     logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
 
+            await _store_idempotent_result(
+                "completed" if success else "failed",
+                hash_response_payload(upstream_response),
+            )
             return {"data": vault_response, "error": None}
 
         except httpx.HTTPError as e:
@@ -2593,6 +2647,10 @@ async def execute_capability(
             agent_id=agent_id,
             org_id=org_id,
         )
+    await _store_idempotent_result(
+        "completed",
+        hash_response_payload(response_data.get("upstream_response")),
+    )
     return {"data": response_data, "error": None}
 
 

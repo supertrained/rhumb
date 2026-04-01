@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from routes._supabase import supabase_fetch, supabase_insert
 from routes.resolve_v2 import _forward_internal, _resolve_policy_agent
+from services.durable_idempotency import DurableIdempotencyStore, IdempotencyUnavailable
 from services.error_envelope import RhumbError
 from services.kill_switches import init_kill_switch_registry
 from services.recipe_engine import (
@@ -37,6 +38,8 @@ router = APIRouter()
 _LAYER = 3
 _VERSION = "2026-03-31"
 
+_idempotency_store: DurableIdempotencyStore | None = None
+
 
 class RecipeExecuteRequest(BaseModel):
     inputs: dict[str, Any] = Field(default_factory=dict)
@@ -47,6 +50,16 @@ class RecipeExecuteRequest(BaseModel):
         default=None,
         description="Optional Layer 2 provider policy forwarded to every step execution.",
     )
+
+
+async def _get_idempotency_store() -> DurableIdempotencyStore:
+    global _idempotency_store
+    if _idempotency_store is None:
+        from db.client import get_supabase_client
+
+        supabase = await get_supabase_client()
+        _idempotency_store = DurableIdempotencyStore(supabase)
+    return _idempotency_store
 
 
 def _compat_headers() -> dict[str, str]:
@@ -242,11 +255,15 @@ class _InternalRecipeStepExecutor(StepExecutor):
         payload: RecipeExecuteRequest,
         safety_gate: RecipeSafetyGate,
         execution_id: str,
+        recipe_id: str,
+        recipe_idempotency_key: str | None = None,
     ) -> None:
         self._raw_request = raw_request
         self._payload = payload
         self._safety_gate = safety_gate
         self._execution_id = execution_id
+        self._recipe_id = recipe_id
+        self._recipe_idempotency_key = recipe_idempotency_key
 
     async def execute_step(
         self,
@@ -273,6 +290,12 @@ class _InternalRecipeStepExecutor(StepExecutor):
             )
 
         step_policy = deepcopy(self._payload.policy) if self._payload.policy else None
+        step_idempotency_key = None
+        if self._recipe_idempotency_key:
+            step_idempotency_key = (
+                f"recipe:{self._recipe_id}:{self._recipe_idempotency_key}:{step.step_id}"
+            )
+
         response = await _forward_internal(
             self._raw_request,
             method="POST",
@@ -281,6 +304,7 @@ class _InternalRecipeStepExecutor(StepExecutor):
                 "parameters": resolved_params,
                 "credential_mode": credential_mode,
                 "interface": self._payload.interface,
+                **({"idempotency_key": step_idempotency_key} if step_idempotency_key else {}),
                 **({"policy": step_policy} if step_policy else {}),
             },
         )
@@ -526,30 +550,8 @@ async def execute_recipe(
         chain_id=execution_id,
         execution_id=execution_id,
         agent_id=agent.agent_id,
-        idempotency_key=effective_idempotency_key,
+        idempotency_key=None,
     )
-
-    if preflight.idempotency_hit is not None:
-        execution_row, step_rows = await _fetch_execution_rows(preflight.idempotency_hit.execution_id)
-        if execution_row is not None:
-            replay_payload = _build_execution_payload_from_rows(
-                recipe,
-                execution_row,
-                step_rows,
-                deduplicated=True,
-            )
-        else:
-            replay_payload = {
-                "execution_id": preflight.idempotency_hit.execution_id,
-                "recipe_id": preflight.idempotency_hit.recipe_id,
-                "status": preflight.idempotency_hit.status,
-                "deduplicated": True,
-                "layer": _LAYER,
-                "outputs": {},
-                "step_results": [],
-                "receipt_chain_hash": preflight.idempotency_hit.result_hash,
-            }
-        return _json_response(200, {"data": replay_payload, "error": None})
 
     if not preflight.passed:
         if preflight.rate_limited:
@@ -564,12 +566,55 @@ async def execute_recipe(
             detail=preflight.reason,
         )
 
+    durable_idempotency = None
+    if effective_idempotency_key:
+        try:
+            durable_idempotency = await _get_idempotency_store()
+            existing_claim = await durable_idempotency.claim(
+                effective_idempotency_key,
+                execution_id,
+                recipe.recipe_id,
+                org_id=agent.organization_id,
+                agent_id=agent.agent_id,
+                allow_fallback=False,
+            )
+        except IdempotencyUnavailable as exc:
+            raise RhumbError(
+                "EXECUTION_DISABLED",
+                message="Recipe idempotency protection is temporarily unavailable.",
+                detail="Retry shortly after control-plane durability recovers.",
+            ) from exc
+
+        if existing_claim is not None:
+            execution_row, step_rows = await _fetch_execution_rows(existing_claim.execution_id)
+            if execution_row is not None:
+                replay_payload = _build_execution_payload_from_rows(
+                    recipe,
+                    execution_row,
+                    step_rows,
+                    deduplicated=True,
+                )
+            else:
+                replay_payload = {
+                    "execution_id": existing_claim.execution_id,
+                    "recipe_id": existing_claim.recipe_id,
+                    "status": existing_claim.status,
+                    "deduplicated": True,
+                    "layer": _LAYER,
+                    "outputs": {},
+                    "step_results": [],
+                    "receipt_chain_hash": existing_claim.result_hash,
+                }
+            return _json_response(200, {"data": replay_payload, "error": None})
+
     engine = RecipeEngine(
         step_executor=_InternalRecipeStepExecutor(
             raw_request=raw_request,
             payload=payload,
             safety_gate=safety_gate,
             execution_id=execution_id,
+            recipe_id=recipe.recipe_id,
+            recipe_idempotency_key=effective_idempotency_key,
         )
     )
     execution = await engine.execute(recipe, payload.inputs, credential_mode=payload.credential_mode)
@@ -601,11 +646,20 @@ async def execute_recipe(
     safety_gate.finalize_execution(
         chain_id=execution_id,
         execution_id=execution_id,
-        idempotency_key=effective_idempotency_key,
+        idempotency_key=None,
         recipe_id=recipe.recipe_id,
         status=execution.status.value if hasattr(execution.status, "value") else str(execution.status),
         result_hash=execution.receipt_chain_hash,
     )
+
+    if effective_idempotency_key and durable_idempotency is not None:
+        await durable_idempotency.store(
+            effective_idempotency_key,
+            execution_id,
+            recipe.recipe_id,
+            execution.status.value if hasattr(execution.status, "value") else str(execution.status),
+            execution.receipt_chain_hash,
+        )
 
     response_payload = _build_execution_payload(recipe, execution)
     return _json_response(

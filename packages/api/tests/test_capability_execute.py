@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
+from services.durable_idempotency import IdempotencyUnavailable
 from services.durable_replay_guard import ReplayGuardUnavailable
 
 FAKE_RHUMB_KEY = "rhumb_test_key_cap_exec"
@@ -1060,8 +1061,12 @@ async def test_explicit_byo_overrides_auto(app):
 @pytest.mark.anyio
 async def test_idempotency_prevents_duplicate(app):
     """Idempotency key returns existing execution without re-executing."""
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(return_value=MagicMock(execution_id="exec_existing123"))
+
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_existing_exec),
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -1080,6 +1085,34 @@ async def test_idempotency_prevents_duplicate(app):
     data = resp.json()["data"]
     assert data["deduplicated"] is True
     assert data["execution_id"] == "exec_existing123"
+    mock_store.claim.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_idempotency_unavailable_fails_closed(app):
+    """Capability execute should reject when durable idempotency is unavailable."""
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(side_effect=IdempotencyUnavailable("DB down"))
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch("routes.capability_execute._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {},
+                    "idempotency_key": "dedup-key-123",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Idempotency protection temporarily unavailable. Retry shortly."
 
 
 @pytest.mark.anyio

@@ -24,6 +24,10 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+class IdempotencyUnavailable(RuntimeError):
+    """Raised when durable idempotency protection is unavailable in strict mode."""
+
+
 @dataclass(frozen=True, slots=True)
 class IdempotencyRecord:
     """Stored result for a previous execution with this key."""
@@ -60,11 +64,19 @@ class DurableIdempotencyStore:
         self._cleanup_interval = cleanup_interval_seconds
         self._last_cleanup = 0.0
 
-    async def check(self, key: str) -> IdempotencyRecord | None:
+    async def check(
+        self,
+        key: str,
+        *,
+        allow_fallback: bool = True,
+    ) -> IdempotencyRecord | None:
         """Check if an idempotency key has a stored result.
 
         Returns the stored record if found and not expired, else None.
         Also triggers periodic cleanup of expired entries.
+
+        If ``allow_fallback`` is False, database failures raise
+        ``IdempotencyUnavailable`` instead of being treated as a cache miss.
         """
         try:
             # Periodic cleanup
@@ -96,7 +108,10 @@ class DurableIdempotencyStore:
                 created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00")),
                 expires_at=expires_at,
             )
-        except Exception:
+        except Exception as exc:
+            if not allow_fallback:
+                logger.error("durable_idempotency_check_unavailable key=%s fail_closed=true", key, exc_info=True)
+                raise IdempotencyUnavailable("Durable idempotency unavailable") from exc
             logger.warning("durable_idempotency_check_failed key=%s", key, exc_info=True)
             return None  # Fail-open: allow execution if DB unavailable
 
@@ -107,6 +122,8 @@ class DurableIdempotencyStore:
         recipe_id: str,
         org_id: str = "",
         agent_id: str = "",
+        *,
+        allow_fallback: bool = True,
     ) -> IdempotencyRecord | None:
         """Atomically claim an idempotency key for a new execution.
 
@@ -147,7 +164,10 @@ class DurableIdempotencyStore:
                     )
             return None  # Claim succeeded
 
-        except Exception:
+        except Exception as exc:
+            if not allow_fallback:
+                logger.error("durable_idempotency_claim_unavailable key=%s fail_closed=true", key, exc_info=True)
+                raise IdempotencyUnavailable("Durable idempotency unavailable") from exc
             logger.warning("durable_idempotency_claim_failed key=%s", key, exc_info=True)
             return None  # Fail-open
 
@@ -187,6 +207,13 @@ class DurableIdempotencyStore:
             logger.warning("durable_idempotency_store_failed key=%s", key, exc_info=True)
 
         return record
+
+    async def release(self, key: str) -> None:
+        """Release a pending idempotency claim when execution never started."""
+        try:
+            await self._db.table("idempotency_keys").delete().eq("key", key).execute()
+        except Exception:
+            logger.warning("durable_idempotency_release_failed key=%s", key, exc_info=True)
 
     async def _cleanup_expired(self) -> None:
         """Delete expired idempotency entries."""

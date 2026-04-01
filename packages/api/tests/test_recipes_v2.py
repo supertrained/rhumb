@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
+from services.durable_idempotency import IdempotencyUnavailable
 from services.recipe_safety import RecipeSafetyGate
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
@@ -214,6 +215,124 @@ async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(a
     ]
     assert forward_calls[1][1]["parameters"]["body"] == "hello world"
     assert mock_insert.await_count == 3  # recipe_executions + 2 recipe_step_executions rows
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_propagates_step_idempotency_keys(app, mock_agent):
+    forward_calls: list[tuple[str, dict]] = []
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(return_value=None)
+    mock_store.store = AsyncMock(return_value=None)
+
+    async def _mock_forward(raw_request, *, method: str, path: str, params=None, json_body=None):
+        forward_calls.append((path, json_body or {}))
+        return _MockResponse(
+            200,
+            {
+                "data": {
+                    "provider_used": "test-provider",
+                    "upstream_response": {"ok": True, "path": path},
+                    "cost_estimate_usd": 0.01,
+                    "latency_ms": 10,
+                    "receipt_id": f"rcpt_{path.split('/')[-2]}",
+                    "execution_id": f"exec_{path.split('/')[-2]}",
+                },
+                "error": None,
+            },
+        )
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
+        patch("routes.recipes_v2._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                    "idempotency_key": "recipe-idem-1",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    assert forward_calls[0][1]["idempotency_key"] == "recipe:transcribe_and_notify:recipe-idem-1:transcribe"
+    assert forward_calls[1][1]["idempotency_key"] == "recipe:transcribe_and_notify:recipe-idem-1:notify"
+    mock_store.claim.assert_awaited_once()
+    mock_store.store.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_deduplicates_via_durable_store(app, mock_agent):
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(return_value=MagicMock(
+        execution_id="rexec_existing123",
+        recipe_id="transcribe_and_notify",
+        status="completed",
+        result_hash="hash123",
+    ))
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                    "idempotency_key": "recipe-idem-1",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["deduplicated"] is True
+    assert body["data"]["execution_id"] == "rexec_existing123"
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_idempotency_unavailable_fails_closed(app, mock_agent):
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(side_effect=IdempotencyUnavailable("DB down"))
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                    "idempotency_key": "recipe-idem-1",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["error"]["code"] == "EXECUTION_DISABLED"
+    assert "idempotency protection" in body["error"]["message"].lower()
 
 
 @pytest.mark.anyio
