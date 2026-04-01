@@ -1,0 +1,178 @@
+{
+  "provider": "github",
+  "capability_id": "social.get_profile",
+  "target_username": "supertrained",
+  "review_kind": "current_depth3",
+  "organization_id": "org_runtime_review_github_20260401t002329z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260401T002329Z-github-depth3.json",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "b9921835-670d-43a4-94bf-e0997dd26bd6",
+    "organization_id": "org_runtime_review_github_20260401t002329z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "51ca04e2-1c11-4eed-9ef9-ea374ff5a509"
+  },
+  "observed_at": "2026-04-01T00:23:34Z",
+  "fresh_until": "2026-05-01T00:23:34Z",
+  "counts_before": {
+    "published_reviews": 6,
+    "runtime_backed_reviews": 2
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "social.get_profile",
+        "provider": "github",
+        "credential_mode": "byo",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "GET /users/{username}"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "social.get_profile",
+        "provider_used": "github",
+        "credential_mode": "byo",
+        "upstream_status": 200,
+        "upstream_response": {
+          "login": "supertrained",
+          "id": 215143180,
+          "node_id": "U_kgDODNLTDA",
+          "avatar_url": "https://avatars.githubusercontent.com/u/215143180?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/supertrained",
+          "html_url": "https://github.com/supertrained",
+          "followers_url": "https://api.github.com/users/supertrained/followers",
+          "following_url": "https://api.github.com/users/supertrained/following{/other_user}",
+          "gists_url": "https://api.github.com/users/supertrained/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/supertrained/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/supertrained/subscriptions",
+          "organizations_url": "https://api.github.com/users/supertrained/orgs",
+          "repos_url": "https://api.github.com/users/supertrained/repos",
+          "events_url": "https://api.github.com/users/supertrained/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/supertrained/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false,
+          "name": null,
+          "company": null,
+          "blog": "",
+          "location": null,
+          "email": null,
+          "hireable": null,
+          "bio": null,
+          "twitter_username": null,
+          "public_repos": 7,
+          "public_gists": 0,
+          "followers": 0,
+          "following": 0,
+          "created_at": "2025-06-06T10:53:11Z",
+          "updated_at": "2026-03-28T08:02:04Z"
+        },
+        "cost_estimate_usd": null,
+        "latency_ms": 224.5,
+        "fallback_attempted": false,
+        "fallback_provider": null,
+        "execution_id": "exec_a151691bfa7d48f7a669247aadda9ba3",
+        "receipt_id": "rcpt_d11feb6ca3b24417ba3bdf05",
+        "_rhumb": {
+          "provider": {
+            "id": "github",
+            "name": "github",
+            "category": null,
+            "docs_url": null,
+            "an_score": null,
+            "tier": null
+          },
+          "layer": 2,
+          "receipt_id": "rcpt_d11feb6ca3b24417ba3bdf05",
+          "latency": {
+            "total_ms": 224.5,
+            "provider_ms": 224.3,
+            "overhead_ms": 0.2
+          },
+          "credential_mode": "byo"
+        }
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "login": "supertrained",
+      "id": 215143180,
+      "node_id": "U_kgDODNLTDA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/215143180?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/supertrained",
+      "html_url": "https://github.com/supertrained",
+      "followers_url": "https://api.github.com/users/supertrained/followers",
+      "following_url": "https://api.github.com/users/supertrained/following{/other_user}",
+      "gists_url": "https://api.github.com/users/supertrained/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/supertrained/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/supertrained/subscriptions",
+      "organizations_url": "https://api.github.com/users/supertrained/orgs",
+      "repos_url": "https://api.github.com/users/supertrained/repos",
+      "events_url": "https://api.github.com/users/supertrained/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/supertrained/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false,
+      "name": null,
+      "company": null,
+      "blog": "",
+      "location": null,
+      "email": null,
+      "hireable": null,
+      "bio": null,
+      "twitter_username": null,
+      "public_repos": 7,
+      "public_gists": 0,
+      "followers": 0,
+      "following": 0,
+      "created_at": "2025-06-06T10:53:11Z",
+      "updated_at": "2026-03-28T08:02:04Z"
+    }
+  },
+  "comparison": {
+    "rhumb_provider_used": "github",
+    "rhumb_upstream_status": 200,
+    "rhumb_login": "supertrained",
+    "direct_login": "supertrained",
+    "rhumb_public_repos": 7,
+    "direct_public_repos": 7,
+    "rhumb_created_at": "2025-06-06T10:53:11Z",
+    "direct_created_at": "2025-06-06T10:53:11Z",
+    "rhumb_updated_at": "2026-03-28T08:02:04Z",
+    "direct_updated_at": "2026-03-28T08:02:04Z",
+    "login_match": true,
+    "public_repos_match": true,
+    "created_at_match": true,
+    "updated_at_match": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "github",
+    "evidence_id": "af8a2172-afc8-4f48-ad8e-17b5094a3d5d",
+    "review_id": "93c9deed-a382-4fff-8b58-868440f7fb14",
+    "execution_id": "exec_a151691bfa7d48f7a669247aadda9ba3"
+  },
+  "counts_after": {
+    "published_reviews": 7,
+    "runtime_backed_reviews": 3
+  },
+  "agent_disabled": true
+}

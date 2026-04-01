@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "af8a2172-afc8-4f48-ad8e-17b5094a3d5d",
+    "source_ref": "runtime-review:github:20260401T002329Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "af8a2172-afc8-4f48-ad8e-17b5094a3d5d",
+    "review_id": "93c9deed-a382-4fff-8b58-868440f7fb14",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "93c9deed-a382-4fff-8b58-868440f7fb14",
+    "source_batch_id": "runtime-review:github:20260401T002329Z",
+    "state": "inserted"
+  },
+  "service": "github"
+}
