@@ -1,0 +1,35 @@
+{
+  "pass_id": "algolia-depth4-20260401T115600Z",
+  "provider": "algolia",
+  "capability": "search.autocomplete",
+  "query": "runtime test",
+  "index": "rhumb_test",
+  "timestamp": "20260401T115600Z",
+  "managed": {
+    "fields": {
+      "nbHits": 1,
+      "top_objectID": "1",
+      "top_name": "Rhumb Runtime Test",
+      "query": "runtime test"
+    },
+    "execution_id": "exec_59f2b357a1114e8aa7866d77bc7e06e3",
+    "provider_used": "algolia"
+  },
+  "direct": {
+    "fields": {
+      "nbHits": 1,
+      "top_objectID": "1",
+      "top_name": "Rhumb Runtime Test",
+      "query": "runtime test"
+    }
+  },
+  "parity": true,
+  "parity_fields_checked": [
+    "nbHits",
+    "top_objectID",
+    "top_name",
+    "query"
+  ],
+  "agent_id": "a2118593-2b21-4e04-b1fb-be4a35272482",
+  "org_id": "org_rhumb_internal"
+}
