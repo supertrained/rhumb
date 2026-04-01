@@ -610,7 +610,7 @@ class TestCompileRecipe:
 
 
 class TestRecipeTimeout:
-    """AUD-6: Total recipe timeout is enforced."""
+    """AUD-6 / AUD-R1-04: total and per-step timeouts are enforced."""
 
     @pytest.mark.asyncio
     async def test_timeout_marks_remaining_steps(self):
@@ -651,6 +651,50 @@ class TestRecipeTimeout:
             if r.status == StepStatus.TIMED_OUT
         ]
         assert len(timed_out_steps) >= 1
+
+    @pytest.mark.asyncio
+    async def test_step_timeout_marks_step_timed_out_without_waiting_for_total_timeout(self):
+        """Per-step timeout_ms should be enforced even when recipe total timeout is generous."""
+        import asyncio
+
+        class SlowAsyncExecutor(StepExecutor):
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def execute_step(self, step, params, cred_mode):
+                self.calls += 1
+                await asyncio.sleep(0.05)
+                return StepResult(
+                    step_id=step.step_id,
+                    status=StepStatus.SUCCEEDED,
+                    outputs={"result": "ok"},
+                    cost_usd=0.01,
+                    duration_ms=50,
+                )
+
+        executor = SlowAsyncExecutor()
+        engine = RecipeEngine(step_executor=executor)
+        recipe = RecipeDefinition(
+            recipe_id="step_timeout_test",
+            name="Step Timeout Test",
+            version="1.0.0",
+            total_timeout_ms=5_000,
+            steps=[
+                StepDefinition(
+                    step_id="s1",
+                    capability_id="search.query",
+                    timeout_ms=1,
+                    retries=3,
+                ),
+            ],
+            dag_edges=[],
+        )
+
+        result = await engine.execute(recipe, {"q": "test"})
+        assert result.status == RecipeStatus.FAILED
+        assert result.step_results["s1"].status == StepStatus.TIMED_OUT
+        assert "timeout exceeded" in (result.step_results["s1"].error or "").lower()
+        assert executor.calls == 1
 
 
 class TestFinancialOperationClassification:

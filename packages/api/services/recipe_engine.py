@@ -15,6 +15,7 @@ Architectural rules (from Resolve spec):
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import re
@@ -597,9 +598,21 @@ class RecipeEngine:
         last_result: StepResult | None = None
 
         for attempt in range(1 + step.retries):
-            result = await self._executor.execute_step(
-                step, resolved_params, credential_mode
-            )
+            try:
+                result = await asyncio.wait_for(
+                    self._executor.execute_step(step, resolved_params, credential_mode),
+                    timeout=max(step.timeout_ms, 1) / 1000,
+                )
+            except asyncio.TimeoutError:
+                result = StepResult(
+                    step_id=step.step_id,
+                    status=StepStatus.TIMED_OUT,
+                    error=(
+                        f"Step timeout exceeded: {step.timeout_ms}ms limit reached"
+                    ),
+                    duration_ms=int(step.timeout_ms),
+                )
+
             result.retries_used = attempt
 
             if result.status == StepStatus.SUCCEEDED:
