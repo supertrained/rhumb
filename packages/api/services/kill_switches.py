@@ -28,7 +28,12 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
-from services.chain_integrity import build_kill_switch_payload, compute_chain_hmac
+from services.chain_integrity import (
+    build_kill_switch_payload,
+    compute_chain_hmac,
+    get_signing_key_version,
+    verify_chain_hmac,
+)
 from services.principal_auth import PrincipalIdentity, PrincipalType
 
 logger = logging.getLogger(__name__)
@@ -78,6 +83,7 @@ class KillSwitchAuditEntry:
     details: str
     chain_hash: str
     prev_hash: str
+    key_version: int | None = None
 
 
 # ── Kill Switch Registry ──────────────────────────────────────────────
@@ -380,8 +386,16 @@ class KillSwitchRegistry:
         with self._lock:
             prev_hash = self.GENESIS_HASH
             for entry in self._audit:
-                expected = self._compute_hash(prev_hash, entry)
-                if entry.chain_hash != expected or entry.prev_hash != prev_hash:
+                payload = build_kill_switch_payload(entry)
+                if (
+                    not verify_chain_hmac(
+                        prev_hash,
+                        payload,
+                        entry.chain_hash,
+                        key_version=entry.key_version,
+                    )
+                    or entry.prev_hash != prev_hash
+                ):
                     return False
                 prev_hash = entry.chain_hash
             return True
@@ -467,6 +481,7 @@ class KillSwitchRegistry:
         self._entry_counter += 1
         entry_id = f"ksaud_{self._entry_counter:08d}"
         now = datetime.now(timezone.utc)
+        key_version = get_signing_key_version()
         entry = KillSwitchAuditEntry(
             entry_id=entry_id,
             switch_id=switch_id,
@@ -476,6 +491,7 @@ class KillSwitchRegistry:
             details=details,
             chain_hash="",
             prev_hash=self._prev_hash,
+            key_version=key_version,
         )
         chain_hash = self._compute_hash(self._prev_hash, entry)
         entry = KillSwitchAuditEntry(
@@ -487,6 +503,7 @@ class KillSwitchRegistry:
             details=entry.details,
             chain_hash=chain_hash,
             prev_hash=entry.prev_hash,
+            key_version=entry.key_version,
         )
         self._audit.append(entry)
         self._prev_hash = chain_hash
@@ -498,7 +515,11 @@ class KillSwitchRegistry:
         entry: KillSwitchAuditEntry,
     ) -> str:
         payload = build_kill_switch_payload(entry)
-        return compute_chain_hmac(prev_hash, payload)
+        return compute_chain_hmac(
+            prev_hash,
+            payload,
+            key_version=entry.key_version,
+        )
 
     def _restore_from_persistence(self) -> None:
         if self._persistence is None:

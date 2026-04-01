@@ -116,6 +116,7 @@ class DurableBillingPersistence:
             "provider_slug": event.provider_slug,
             "chain_hash": event.chain_hash,
             "prev_hash": event.prev_hash,
+            "key_version": getattr(event, "key_version", None),
         }
 
     @staticmethod
@@ -194,6 +195,7 @@ class DurableAuditPersistence:
             "chain_sequence": event.chain_sequence,
             "chain_hash": event.chain_hash,
             "prev_hash": event.prev_hash,
+            "key_version": getattr(event, "key_version", None),
         }
 
     @staticmethod

@@ -22,12 +22,22 @@ from services.chain_integrity import (
     build_billing_payload,
     build_kill_switch_payload,
     compute_chain_hmac,
+    get_signing_key,
+    get_signing_key_version,
+    reset_signing_key_cache,
     verify_chain_hmac,
 )
 
 
 TEST_KEY = b"test-signing-key-for-aud3"
 GENESIS = "0" * 64
+
+
+@pytest.fixture(autouse=True)
+def _reset_chain_signing_cache():
+    reset_signing_key_cache()
+    yield
+    reset_signing_key_cache()
 
 
 class TestCanonicalJSON:
@@ -109,6 +119,51 @@ class TestVerifyChainHMAC:
         payload = {"event_id": "e1"}
         h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
         assert verify_chain_hmac("b" * 64, payload, h, key=TEST_KEY) is False
+
+    def test_verify_accepts_previous_key_version_during_rotation(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv(
+            "RHUMB_CHAIN_SIGNING_KEYS",
+            "1:old-rotation-key,2:new-rotation-key",
+        )
+        monkeypatch.setenv("RHUMB_CHAIN_SIGNING_ACTIVE_VERSION", "2")
+        reset_signing_key_cache()
+        payload = {"event_id": "e1", "amount": 100}
+
+        old_hash = compute_chain_hmac(GENESIS, payload, key_version=1)
+
+        assert verify_chain_hmac(
+            GENESIS,
+            payload,
+            old_hash,
+            key_version=1,
+        ) is True
+
+    def test_legacy_event_without_key_version_verifies_against_any_configured_key(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv(
+            "RHUMB_CHAIN_SIGNING_KEYS",
+            "1:old-rotation-key,2:new-rotation-key",
+        )
+        monkeypatch.setenv("RHUMB_CHAIN_SIGNING_ACTIVE_VERSION", "2")
+        reset_signing_key_cache()
+        payload = {"event_id": "legacy"}
+
+        old_hash = compute_chain_hmac(GENESIS, payload, key_version=1)
+
+        assert verify_chain_hmac(GENESIS, payload, old_hash) is True
+
+
+class TestSigningKeySelection:
+    def test_active_key_version_controls_new_signatures(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv(
+            "RHUMB_CHAIN_SIGNING_KEYS",
+            "3:third-key,7:seventh-key",
+        )
+        monkeypatch.setenv("RHUMB_CHAIN_SIGNING_ACTIVE_VERSION", "7")
+        reset_signing_key_cache()
+
+        assert get_signing_key_version() == 7
+        assert get_signing_key() == b"seventh-key"
+        assert CURRENT_KEY_VERSION == 1
 
 
 class TestFullSemanticCoverage:
@@ -249,5 +304,5 @@ class TestBuildPayloadHelpers:
             detail = {"approved_by": "admin2@rhumb.dev"}
 
         payload = build_kill_switch_payload(MockEntry())
-        assert payload["detail"]["approved_by"] == "admin2@rhumb.dev"
+        assert payload["details"]["approved_by"] == "admin2@rhumb.dev"
         assert payload["principal"] == "admin@rhumb.dev"

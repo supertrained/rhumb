@@ -63,16 +63,83 @@ def _get_signing_key() -> bytes:
     return _TEST_KEY
 
 
-# Cache the key at module load
-_SIGNING_KEY: bytes | None = None
+_SIGNING_KEYRING: dict[int, bytes] | None = None
+_ACTIVE_KEY_VERSION: int | None = None
+
+
+def _parse_keyring(raw: str) -> dict[int, bytes]:
+    keyring: dict[int, bytes] = {}
+    for part in raw.replace("\n", ",").split(","):
+        item = part.strip()
+        if not item or ":" not in item:
+            continue
+        version_text, secret = item.split(":", 1)
+        try:
+            version = int(version_text.strip())
+        except ValueError:
+            continue
+        secret = secret.strip()
+        if secret:
+            keyring[version] = secret.encode("utf-8")
+    return keyring
+
+
+def _get_signing_keyring() -> tuple[dict[int, bytes], int]:
+    env_keyring = os.environ.get("RHUMB_CHAIN_SIGNING_KEYS")
+    active_version_env = os.environ.get("RHUMB_CHAIN_SIGNING_ACTIVE_VERSION")
+
+    if env_keyring:
+        parsed = _parse_keyring(env_keyring)
+        if parsed:
+            if active_version_env:
+                try:
+                    active_version = int(active_version_env)
+                except ValueError:
+                    active_version = max(parsed)
+            else:
+                active_version = max(parsed)
+            if active_version not in parsed:
+                active_version = max(parsed)
+            return parsed, active_version
+
+    single_key = _get_signing_key()
+    if active_version_env:
+        try:
+            active_version = int(active_version_env)
+        except ValueError:
+            active_version = CURRENT_KEY_VERSION
+    else:
+        active_version = CURRENT_KEY_VERSION
+    return {active_version: single_key}, active_version
+
+
+def reset_signing_key_cache() -> None:
+    """Clear cached key material (tests / controlled runtime refresh)."""
+    global _SIGNING_KEYRING, _ACTIVE_KEY_VERSION
+    _SIGNING_KEYRING = None
+    _ACTIVE_KEY_VERSION = None
+
+
+def get_signing_keyring() -> dict[int, bytes]:
+    """Get the cached signing keyring (lazy init)."""
+    global _SIGNING_KEYRING, _ACTIVE_KEY_VERSION
+    if _SIGNING_KEYRING is None or _ACTIVE_KEY_VERSION is None:
+        _SIGNING_KEYRING, _ACTIVE_KEY_VERSION = _get_signing_keyring()
+    return dict(_SIGNING_KEYRING)
+
+
+def get_signing_key_version() -> int:
+    """Return the active signing key version for new chain entries."""
+    global _SIGNING_KEYRING, _ACTIVE_KEY_VERSION
+    if _SIGNING_KEYRING is None or _ACTIVE_KEY_VERSION is None:
+        _SIGNING_KEYRING, _ACTIVE_KEY_VERSION = _get_signing_keyring()
+    return int(_ACTIVE_KEY_VERSION)
 
 
 def get_signing_key() -> bytes:
-    """Get the cached signing key (lazy init)."""
-    global _SIGNING_KEY
-    if _SIGNING_KEY is None:
-        _SIGNING_KEY = _get_signing_key()
-    return _SIGNING_KEY
+    """Get the active signing key for new chain entries."""
+    keyring = get_signing_keyring()
+    return keyring[get_signing_key_version()]
 
 
 def _canonicalize(obj: Any) -> str:
@@ -102,6 +169,7 @@ def compute_chain_hmac(
     payload: dict[str, Any],
     *,
     key: bytes | None = None,
+    key_version: int | None = None,
 ) -> str:
     """Compute HMAC-SHA256 chain hash over the full semantic payload.
 
@@ -113,7 +181,12 @@ def compute_chain_hmac(
     Returns:
         Hex-encoded HMAC-SHA256 digest
     """
-    signing_key = key or get_signing_key()
+    if key is not None:
+        signing_key = key
+    elif key_version is not None:
+        signing_key = get_signing_keyring()[key_version]
+    else:
+        signing_key = get_signing_key()
     # Prepend prev_hash to the canonical payload
     message = f"{prev_hash}|{_canonicalize(payload)}"
     return hmac.new(signing_key, message.encode("utf-8"), hashlib.sha256).hexdigest()
@@ -125,13 +198,30 @@ def verify_chain_hmac(
     expected_hash: str,
     *,
     key: bytes | None = None,
+    key_version: int | None = None,
 ) -> bool:
     """Verify an HMAC chain hash against expected.
 
     Uses constant-time comparison to prevent timing attacks.
     """
-    computed = compute_chain_hmac(prev_hash, payload, key=key)
-    return hmac.compare_digest(computed, expected_hash)
+    if key is not None:
+        computed = compute_chain_hmac(prev_hash, payload, key=key)
+        return hmac.compare_digest(computed, expected_hash)
+
+    keyring = get_signing_keyring()
+    if key_version is not None and key_version in keyring:
+        computed = compute_chain_hmac(
+            prev_hash,
+            payload,
+            key=keyring[key_version],
+        )
+        return hmac.compare_digest(computed, expected_hash)
+
+    for candidate in keyring.values():
+        computed = compute_chain_hmac(prev_hash, payload, key=candidate)
+        if hmac.compare_digest(computed, expected_hash):
+            return True
+    return False
 
 
 def build_billing_payload(event: Any) -> dict[str, Any]:

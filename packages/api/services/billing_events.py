@@ -24,6 +24,8 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
+from services.chain_integrity import get_signing_key_version
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,6 +78,7 @@ class BillingEvent:
     # Chain integrity
     chain_hash: str = ""
     prev_hash: str = ""
+    key_version: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,7 +132,11 @@ class BillingEventStream:
         if event is not None:
             from services.chain_integrity import build_billing_payload, compute_chain_hmac
             payload = build_billing_payload(event)
-            return compute_chain_hmac(prev_hash, payload)
+            return compute_chain_hmac(
+                prev_hash,
+                payload,
+                key_version=getattr(event, "key_version", None),
+            )
         # Legacy fallback (for verify_chain on old events)
         payload = f"{prev_hash}|{event_id}|{event_type}|{org_id}|{amount}|{timestamp}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -150,6 +157,7 @@ class BillingEventStream:
         with self._lock:
             event_id = f"bevt_{uuid4().hex[:16]}"
             now = datetime.now(timezone.utc)
+            key_version = get_signing_key_version()
 
             # AUD-3: build event first (without hash), then compute HMAC over full payload
             event_without_hash = BillingEvent(
@@ -166,6 +174,7 @@ class BillingEventStream:
                 provider_slug=provider_slug,
                 chain_hash="",  # placeholder
                 prev_hash=self._prev_hash,
+                key_version=key_version,
             )
 
             chain_hash = self._compute_hash(
@@ -192,6 +201,7 @@ class BillingEventStream:
                 provider_slug=provider_slug,
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,
+                key_version=key_version,
             )
 
             if self._outbox is not None:
@@ -298,18 +308,20 @@ class BillingEventStream:
         AUD-3: uses HMAC with full semantic payload for verification.
         """
         with self._lock:
+            from services.chain_integrity import build_billing_payload, verify_chain_hmac
+
             prev_hash = self.GENESIS_HASH
             for event in self._events:
-                expected = self._compute_hash(
-                    prev_hash,
-                    event.event_id,
-                    event.event_type.value,
-                    event.org_id,
-                    event.amount_usd_cents,
-                    event.timestamp.isoformat(),
-                    event=event,
-                )
-                if event.chain_hash != expected or event.prev_hash != prev_hash:
+                payload = build_billing_payload(event)
+                if (
+                    not verify_chain_hmac(
+                        prev_hash,
+                        payload,
+                        event.chain_hash,
+                        key_version=event.key_version,
+                    )
+                    or event.prev_hash != prev_hash
+                ):
                     return False
                 prev_hash = event.chain_hash
             return True
@@ -359,6 +371,11 @@ class BillingEventStream:
             provider_slug=payload.get("provider_slug"),
             chain_hash=str(payload.get("chain_hash", "")),
             prev_hash=str(payload.get("prev_hash", "")),
+            key_version=(
+                int(payload["key_version"])
+                if payload.get("key_version") is not None
+                else None
+            ),
         )
 
 

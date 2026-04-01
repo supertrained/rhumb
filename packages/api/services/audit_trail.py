@@ -26,7 +26,12 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from services.chain_integrity import build_audit_payload, compute_chain_hmac
+from services.chain_integrity import (
+    build_audit_payload,
+    compute_chain_hmac,
+    get_signing_key_version,
+    verify_chain_hmac,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +268,7 @@ class AuditEvent:
     chain_sequence: int = 0
     chain_hash: str = ""
     prev_hash: str = ""
+    key_version: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -344,6 +350,7 @@ class AuditTrail:
             self._sequence += 1
             event_id = f"aud_{uuid4().hex[:16]}"
             now = datetime.now(timezone.utc)
+            key_version = get_signing_key_version()
 
             chain_hash = self._compute_hash(
                 self._prev_hash,
@@ -364,6 +371,7 @@ class AuditTrail:
                     "execution_id": execution_id,
                     "provider_slug": provider_slug,
                     "metadata": {},
+                    "key_version": key_version,
                 },
             )
 
@@ -386,6 +394,7 @@ class AuditTrail:
                 chain_sequence=self._sequence,
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,
+                key_version=key_version,
             )
 
             if self._outbox is not None:
@@ -507,8 +516,13 @@ class AuditTrail:
         with self._lock:
             prev_hash = self.GENESIS_HASH
             for i, event in enumerate(self._events):
-                expected = self._compute_hash(prev_hash, event)
-                if event.chain_hash != expected:
+                payload = build_audit_payload(event)
+                if not verify_chain_hmac(
+                    prev_hash,
+                    payload,
+                    event.chain_hash,
+                    key_version=event.key_version,
+                ):
                     logger.error(
                         "audit_chain_broken at sequence=%d event_id=%s",
                         event.chain_sequence, event.event_id,
@@ -698,6 +712,7 @@ class AuditTrail:
             "chain_sequence": event.chain_sequence,
             "chain_hash": event.chain_hash,
             "prev_hash": event.prev_hash,
+            "key_version": event.key_version,
         }
 
     # ── Internal ──────────────────────────────────────────────────
@@ -708,7 +723,8 @@ class AuditTrail:
         event: AuditEvent | dict[str, Any],
     ) -> str:
         payload = build_audit_payload(event)
-        return compute_chain_hmac(prev_hash, payload)
+        key_version = event.get("key_version") if isinstance(event, dict) else getattr(event, "key_version", None)
+        return compute_chain_hmac(prev_hash, payload, key_version=key_version)
 
     def enforce_retention(self) -> dict[str, int]:
         """AUD-7: Purge events that have exceeded their retention period.
@@ -830,6 +846,11 @@ class AuditTrail:
             chain_sequence=int(payload.get("chain_sequence", 0)),
             chain_hash=str(payload.get("chain_hash", "")),
             prev_hash=str(payload.get("prev_hash", "")),
+            key_version=(
+                int(payload["key_version"])
+                if payload.get("key_version") is not None
+                else None
+            ),
         )
 
 
