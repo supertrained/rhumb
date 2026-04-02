@@ -113,14 +113,19 @@ const mcpTools: McpTool[] = [
   { name: "get_failure_modes", description: "Known failure patterns", category: "score" },
   { name: "estimate_capability", description: "Cost estimate before execution", category: "execute" },
   { name: "execute_capability", description: "Execute through Rhumb proxy", category: "execute" },
-  { name: "ceremonies", description: "Setup guides for credential modes", category: "execute" },
-  { name: "credentials", description: "Check credential status", category: "execute" },
+  { name: "credential_ceremony", description: "Setup guides for credential modes", category: "execute" },
+  { name: "check_credentials", description: "Check credential status", category: "execute" },
+  { name: "routing", description: "Routing strategy configuration", category: "execute" },
+  { name: "usage_telemetry", description: "Execution analytics and provider health", category: "execute" },
+  { name: "get_receipt", description: "Execution receipt lookup", category: "execute" },
+  { name: "rhumb_list_recipes", description: "List published Layer 3 recipes", category: "execute" },
+  { name: "rhumb_get_recipe", description: "Inspect a published recipe", category: "execute" },
+  { name: "rhumb_recipe_execute", description: "Run a published recipe", category: "execute" },
   { name: "budget", description: "Budget status and limits", category: "budget" },
   { name: "spend", description: "Spend breakdown by capability", category: "budget" },
   { name: "check_balance", description: "Current credit balance", category: "budget" },
   { name: "get_payment_url", description: "Top up via Stripe checkout", category: "budget" },
   { name: "get_ledger", description: "Transaction history", category: "budget" },
-  { name: "routing", description: "Routing strategy configuration", category: "execute" },
 ];
 
 const categoryLabel: Record<string, { label: string; color: string }> = {
@@ -222,6 +227,40 @@ const frameworks: Framework[] = [
                 No API key required for discovery and scoring. Add to any MCP-compatible client.
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Default path for agents</h2>
+          <p class="text-slate-400 leading-relaxed">
+            {PUBLIC_TRUTH.resolveMentalModel.defaultPath}
+          </p>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-4 max-w-5xl">
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+            <div class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3">Entities</div>
+            <div class="space-y-2 text-sm text-slate-300">
+              <div><strong class="text-slate-100">Service</strong> = vendor</div>
+              <div><strong class="text-slate-100">Capability</strong> = executable action</div>
+              <div><strong class="text-slate-100">Recipe</strong> = compiled workflow</div>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+            <div class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3">Default layer</div>
+            <p class="text-sm text-slate-300 leading-6">Start with <strong class="text-slate-100">Layer 2</strong>. It is the main production surface today.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+            <div class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3">Default auth</div>
+            <p class="text-sm text-slate-300 leading-6">For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5">
+            <div class="text-xs font-mono font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3">Use x402 when</div>
+            <p class="text-sm text-slate-300 leading-6">Zero-signup per-call payment matters more than repeat throughput.</p>
           </div>
         </div>
       </div>

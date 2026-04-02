@@ -2,6 +2,7 @@
 export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import pricing from "../../../shared/pricing.json";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const managed = pricing.modes.rhumb_managed;
 const pricingEndpoint = `${pricing.canonical_api_base_url}/pricing`;
@@ -92,6 +93,43 @@ const PRICING_JSON_LD = {
           No subscriptions, no seat fees, no minimums.
         </p>
       </header>
+
+      <section class="mt-10" data-section="mental-model" aria-label="Resolve pricing mental model">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Default path</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Price the default production path first</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              {PUBLIC_TRUTH.resolveMentalModel.defaultPath}
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">What you are paying for</p>
+              <p class="text-sm leading-6 text-slate-300">
+                The main paid surface today is <strong class="text-slate-100">Layer 2 capability routing</strong>: discover a Service, choose a Capability, estimate the call, then execute.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Default repeat-traffic rails</p>
+              <p class="text-sm leading-6 text-slate-300">
+                For repeat traffic, default to <strong class="text-slate-100">governed API key</strong> or <strong class="text-slate-100">wallet-prefund</strong>. Both end up executing with <code class="font-mono text-emerald-300 text-xs">X-Rhumb-Key</code>.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">When to use x402</p>
+              <p class="text-sm leading-6 text-slate-300">
+                Use <strong class="text-slate-100">x402 per-call</strong> when zero-signup, request-level payment authorization is the point — not as the default repeat-throughput path.
+              </p>
+            </div>
+          </div>
+
+          <p class="mt-5 text-sm text-slate-500">
+            Canonical onboarding map: <a href="/docs#resolve-mental-model" class="text-amber hover:underline underline-offset-2">/docs#resolve-mental-model</a>
+          </p>
+        </div>
+      </section>
 
       <section class="mt-12" data-section="path-selection" aria-label="Choose your pricing path">
         <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
