@@ -4,6 +4,10 @@
 ## What is Rhumb?
 Rhumb is agent-native tool intelligence: discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.
 
+## Current launchable scope
+- Best current fit: research, extraction, generation, and narrow enrichment
+- Not the current promise: general business-agent automation or broad multi-system workflow orchestration
+
 ## Primary surfaces
 - Website: https://rhumb.dev
 - API: https://api.rhumb.dev/v1

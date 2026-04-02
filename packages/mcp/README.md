@@ -35,6 +35,12 @@ Ask your agent:
 - *"What's the AN Score for Stripe?"*
 - *"Check whether any Rhumb recipes are published yet"*
 
+## Current launchable scope
+
+Rhumb is strongest today for **research, extraction, generation, and narrow enrichment**.
+
+Treat it as capability infrastructure first, not as a general business-agent automation layer yet. Layer 2 is the real production surface today; Layer 3 is still beta with an intentionally sparse public catalog.
+
 ## What's new in v2.0.0
 
 **Rhumb Resolve** — three execution layers:
@@ -130,6 +136,8 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 **Financial (auth):** `budget`, `spend`, `check_balance`, `get_payment_url`, `get_ledger`
 
 **Operations (auth):** `routing`, `usage_telemetry`
+
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
 <!-- GENERATED:MCP_README_TOOL_SURFACE_END -->
 
 ## Common workflows

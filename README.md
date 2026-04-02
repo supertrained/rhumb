@@ -52,6 +52,12 @@ Agents need external tools. Choosing the right one is hard — not because of fe
 
 Rhumb makes those constraints visible before you commit.
 
+### Best fit today
+
+Rhumb is strongest today for **research, extraction, generation, and narrow enrichment**.
+
+Treat broader multi-system business automation as future scope, not the current launch promise. Use Layer 2 capabilities for real work now, and treat Layer 3 as beta with an intentionally sparse public catalog.
+
 <!-- GENERATED:README_PRODUCT_SURFACE_START -->
 ### Rhumb Index — Discover & Evaluate
 
@@ -73,6 +79,8 @@ Rhumb makes those constraints visible before you commit.
 - `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
 - `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
+
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise.
 <!-- GENERATED:README_PRODUCT_SURFACE_END -->
 
 ### Three credential modes
@@ -125,6 +133,8 @@ Rhumb makes those constraints visible before you commit.
 - `usage_telemetry` — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
+
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
 <!-- GENERATED:README_MCP_TOOLS_END -->
 
 ---

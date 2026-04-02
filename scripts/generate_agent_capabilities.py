@@ -83,11 +83,15 @@ def load_public_truth() -> dict[str, int | str]:
         "servicesLabel",
         "capabilities",
         "capabilitiesLabel",
+        "categories",
+        "categoriesLabel",
         "callableProviders",
         "callableProvidersLabel",
         "mcpTools",
         "mcpToolsLabel",
         "domainsLabel",
+        "beachheadLabel",
+        "beachheadSummary",
     ]:
         match = re.search(rf"{re.escape(key)}:\s*(\d+|\"[^\"]+\")", text)
         if not match:
@@ -130,7 +134,7 @@ def build_agent_capabilities() -> dict:
     return {
         "schema_version": "1.0",
         "name": "Rhumb",
-        "description": "Agent-native tool intelligence — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+        "description": f"Agent-native tool intelligence for {public_truth['beachheadLabel']} — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
         "homepage": "https://rhumb.dev",
         "api_base": "https://api.rhumb.dev/v1",
         "mcp_install": "npx rhumb-mcp@latest",
@@ -145,7 +149,7 @@ def build_agent_capabilities() -> dict:
             "services": public_truth["services"],
             "capabilities": public_truth["capabilities"],
             "domains": 50,
-            "categories": 92,
+            "categories": public_truth["categories"],
             "providers_with_execution": public_truth["callableProviders"],
             "credential_modes": ["byo", "rhumb_managed", "agent_vault"],
         },
@@ -206,7 +210,9 @@ def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[
 - `resolve_capability` — {tools['resolve_capability']}
 - `estimate_capability` — {tools['estimate_capability']}
 - `get_receipt` — {tools['get_receipt']}
-- Budget enforcement, credential management, and execution telemetry included"""
+- Budget enforcement, credential management, and execution telemetry included
+
+> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise."""
 
 
 def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
@@ -216,6 +222,9 @@ def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, s
         sections.append(f"\n**{title}**\n{render_tool_bullets(tool_names, tools)}")
     sections.append(
         "\n> Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists."
+    )
+    sections.append(
+        f"\n> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current launch promise."
     )
     return "\n".join(sections)
 
@@ -231,7 +240,8 @@ def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: di
         f"**Discovery (free):** {', '.join(f'`{name}`' for name in GROUPS[0][3])}\n\n"
         f"**Execution (auth):** {', '.join(f'`{name}`' for name in GROUPS[1][3])}\n\n"
         f"**Financial (auth):** {', '.join(f'`{name}`' for name in GROUPS[2][3])}\n\n"
-        f"**Operations (auth):** {', '.join(f'`{name}`' for name in GROUPS[3][3])}"
+        f"**Operations (auth):** {', '.join(f'`{name}`' for name in GROUPS[3][3])}\n\n"
+        f"> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current launch promise."
     )
     return "\n\n".join(sections)
 
@@ -243,6 +253,10 @@ def render_llms_txt(public_truth: dict[str, int | str], tools: dict[str, str]) -
 ## What is Rhumb?
 Rhumb is agent-native tool intelligence: discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.
 
+## Current launchable scope
+- Best current fit: {public_truth['beachheadLabel']}
+- Not the current promise: general business-agent automation or broad multi-system workflow orchestration
+
 ## Primary surfaces
 - Website: https://rhumb.dev
 - API: https://api.rhumb.dev/v1
@@ -252,7 +266,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 ## Current coverage
 - {public_truth['servicesLabel']} scored services across {public_truth['domainsLabel']} domains
 - {public_truth['capabilitiesLabel']} capabilities
-- 92 categories
+- {public_truth['categoriesLabel']} categories
 - {public_truth['callableProvidersLabel']} callable providers
 - {public_truth['mcpToolsLabel']} MCP tools
 - 3 credential modes: BYO, Rhumb-managed, Agent Vault

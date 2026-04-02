@@ -4,6 +4,7 @@ import ScoreDisplay from "../components/ScoreDisplay.astro";
 import TierBadge from "../components/TierBadge.astro";
 import CopyInstall from "../components/CopyInstall.tsx";
 import { getLeaderboard, getServiceCount } from "../lib/api";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 import type { EvidenceTier } from "../lib/types";
 
 const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
@@ -41,7 +42,7 @@ const HOME_JSON_LD = {
 const previewItems = leaderboard.items.slice(0, 3);
 const stats = [
   { value: String(serviceCount), label: "services scored" },
-  { value: "11", label: "categories" },
+  { value: PUBLIC_TRUTH.categoriesLabel, label: "categories" },
   { value: "20", label: "scored dimensions" },
   { value: "live", label: "evidence data" },
 ];
@@ -77,8 +78,8 @@ const stats = [
 
         <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">
           Rhumb measures execution reliability and access readiness for every
-          service your agent might call. Neutral scores. Real failure mode data.
-          Zero-signup access via MCP or REST API.
+          service your agent might call. Best current fit: {PUBLIC_TRUTH.beachheadLabel}.
+          Neutral scores. Real failure mode data. Zero-signup discovery via MCP or REST API.
         </p>
 
         <form
@@ -119,6 +120,21 @@ const stats = [
             Search {serviceCount} services &rarr;
           </a>
           <CopyInstall client:load command="npx rhumb-mcp" />
+        </div>
+
+        <div class="animate-fade-up animate-delay-400 mt-8 grid gap-4 md:grid-cols-2 max-w-4xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-surface/70 p-5">
+            <p class="text-xs font-mono uppercase tracking-widest text-emerald-300 mb-2">Best fit today</p>
+            <p class="text-sm text-slate-300 leading-6">
+              Start with {PUBLIC_TRUTH.beachheadLabel}. That is where Rhumb is strongest and most honest today.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-amber/20 bg-surface/70 p-5">
+            <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">Current boundary</p>
+            <p class="text-sm text-slate-300 leading-6">
+              Treat Rhumb as capability infrastructure, not a general business-agent automation platform yet. Layer 3 is live but the public recipe catalog is still intentionally sparse.
+            </p>
+          </div>
         </div>
       </div>
     </section>
