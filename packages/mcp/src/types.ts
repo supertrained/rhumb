@@ -621,7 +621,7 @@ export type ListRecipesOutput = {
 export const GetRecipeInputSchema = {
   type: "object" as const,
   properties: {
-    recipe_id: { type: "string" as const, description: "Published recipe ID from rhumb_list_recipes." },
+    recipe_id: { type: "string" as const, description: "Published recipe ID returned by rhumb_list_recipes. Do not assume a recipe exists until it appears there." },
   },
   required: ["recipe_id"] as string[],
 };
@@ -648,7 +648,7 @@ export type GetRecipeOutput = {
 export const RecipeExecuteInputSchema = {
   type: "object" as const,
   properties: {
-    recipe_id: { type: "string" as const, description: "Published recipe ID to execute." },
+    recipe_id: { type: "string" as const, description: "Published recipe ID to execute, after confirming it is present in rhumb_list_recipes." },
     inputs: { type: "object" as const, description: "Recipe inputs object. These become the Layer 3 recipe input bindings." },
     credential_mode: { type: "string" as const, description: "Credential mode for all underlying step executions. Default: 'rhumb_managed'." },
     idempotency_key: { type: "string" as const, description: "Optional idempotency key for safe retries." },

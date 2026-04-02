@@ -2,7 +2,7 @@
 
 **Agent-native tool intelligence for the Model Context Protocol.**
 
-Three execution layers: raw provider access (Layer 1), intelligent routing (Layer 2), and deterministic composed recipes (Layer 3, beta). Every provider rated with the AN Score. Every execution produces a chain-hashed receipt.
+Three execution layers: raw provider access (Layer 1), intelligent routing (Layer 2), and deterministic composed recipes (Layer 3, beta with a truthful public catalog). Every provider rated with the AN Score. Every execution produces a chain-hashed receipt.
 
 - Website: https://rhumb.dev
 - Docs: https://rhumb.dev/blog/getting-started-mcp
@@ -33,7 +33,7 @@ Or add to Claude Desktop / Cursor / any MCP client:
 Ask your agent:
 - *"Find me the best email API for agents"*
 - *"What's the AN Score for Stripe?"*
-- *"Execute a recipe that enriches a contact and sends a welcome email"*
+- *"Check whether any Rhumb recipes are published yet"*
 
 ## What's new in v2.0.0
 
@@ -60,7 +60,7 @@ Ask your agent:
 - All v1 endpoints remain **fully backward compatible** — no breaking changes
 - New v2 endpoints available alongside v1
 - `execute_capability` now returns `_rhumb_v2` metadata with attribution and receipts
-- New tools for recipes, receipts, and telemetry
+- New tools for recipe-catalog inspection, receipts, and telemetry
 - Update: `npx rhumb-mcp@2` (or `npx rhumb-mcp@latest`)
 
 ## Discovery tools (no auth, 6 tools)
@@ -96,9 +96,9 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 |------|-------------|
 | `execute_capability` | Call a capability through Rhumb Resolve (Layer 2) |
 | `estimate_capability` | Get cost before executing (no charge) |
-| `rhumb_recipe_execute` | Execute a compiled recipe (Layer 3) |
-| `rhumb_list_recipes` | Browse available recipes |
-| `rhumb_get_recipe` | Get recipe details and step definitions |
+| `rhumb_recipe_execute` | Execute a published Layer 3 recipe when one is live |
+| `rhumb_list_recipes` | Check the current published recipe catalog |
+| `rhumb_get_recipe` | Get details for a recipe already visible in the catalog |
 | `check_credentials` | See what you can call right now |
 | `credential_ceremony` | Step-by-step guide to get provider credentials |
 | `get_receipt` | Retrieve HMAC-signed execution receipt with chain hash |
@@ -155,13 +155,14 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 - `execute_capability` → perform the action
 - `get_receipt` → verify the HMAC-signed execution record
 
-### 4) Run a recipe (auth required)
+### 4) Check recipe availability / run a recipe (auth required)
 
-> "Enrich this contact, find their company, and draft an intro email."
+> "Is there already a published Rhumb workflow for this?"
 
-- `rhumb_list_recipes` → browse available workflows
-- `rhumb_recipe_execute` → run the compiled recipe
-- Each step is content-firewalled, budget-enforced, and produces a receipt
+- `rhumb_list_recipes` → check what is actually live in the public catalog
+- `rhumb_get_recipe` → inspect a recipe only after it appears there
+- `rhumb_recipe_execute` → run the compiled recipe once it is published
+- Public note: the Layer 3 catalog is currently sparse/empty, so most real work should use Layer 2 capabilities today
 
 ## x402 micropayments
 

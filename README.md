@@ -100,9 +100,9 @@ Rhumb makes those constraints visible before you commit.
 **Execution**
 - `execute_capability` — execute through Resolve
 - `estimate_capability` — cost estimate before execution
-- `rhumb_list_recipes` — browse published Layer 3 recipes
-- `rhumb_get_recipe` — inspect a published recipe definition
-- `rhumb_recipe_execute` — execute a published Layer 3 recipe
+- `rhumb_list_recipes` — check the current published Layer 3 catalog
+- `rhumb_get_recipe` — inspect a recipe only after it appears in that catalog
+- `rhumb_recipe_execute` — execute a published Layer 3 recipe once one is live
 - `credential_ceremony` — set up credentials
 - `check_credentials` — verify credential status
 - `get_receipt` — retrieve an HMAC-signed execution receipt
@@ -117,6 +117,8 @@ Rhumb makes those constraints visible before you commit.
 **Operations**
 - `routing` — configure routing strategy
 - `usage_telemetry` — your usage analytics
+
+> Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
 
 ---
 

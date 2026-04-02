@@ -348,7 +348,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- rhumb_list_recipes -------------------------------------------------
   server.tool(
     "rhumb_list_recipes",
-    "List published Rhumb Layer 3 recipes. Use this to discover deterministic multi-step workflows you can execute through Rhumb instead of orchestrating raw capabilities yourself.",
+    "List the current published Rhumb Layer 3 recipe catalog. Use this to check what is actually live before assuming a deterministic multi-step workflow exists; the public catalog can be empty while Layer 3 remains in beta.",
     {
       category: z.string().optional().describe(ListRecipesInputSchema.properties.category.description),
       stability: z.string().optional().describe(ListRecipesInputSchema.properties.stability.description),
@@ -365,7 +365,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- rhumb_get_recipe ---------------------------------------------------
   server.tool(
     "rhumb_get_recipe",
-    "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology. Call this after rhumb_list_recipes before executing an unfamiliar recipe.",
+    "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology. Call this only after rhumb_list_recipes confirms the recipe is currently in the public catalog.",
     {
       recipe_id: z.string().describe(GetRecipeInputSchema.properties.recipe_id.description)
     },
@@ -380,7 +380,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- rhumb_recipe_execute ----------------------------------------------
   server.tool(
     "rhumb_recipe_execute",
-    "Execute a published Rhumb Layer 3 recipe. Rhumb runs the multi-step workflow through the existing Layer 2 capability rail, applies recipe safety controls, and returns per-step results plus a recipe-level receipt chain hash.",
+    "Execute a published Rhumb Layer 3 recipe once one is live in the public catalog. Rhumb runs the multi-step workflow through the existing Layer 2 capability rail, applies recipe safety controls, and returns per-step results plus a recipe-level receipt chain hash.",
     {
       recipe_id: z.string().describe(RecipeExecuteInputSchema.properties.recipe_id.description),
       inputs: z.record(z.string(), z.unknown()).optional().describe(RecipeExecuteInputSchema.properties.inputs.description),

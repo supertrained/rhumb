@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
 
@@ -178,9 +179,9 @@ const MCP_TOOLS = [
   { name: "check_balance", desc: "Check current Rhumb credit balance.", example: 'check_balance()' },
   { name: "get_payment_url", desc: "Generate a top-up URL for prepaid credits.", example: 'get_payment_url({ amount_usd: 25 })' },
   { name: "get_ledger", desc: "Review billing history.", example: 'get_ledger()' },
-  { name: "rhumb_list_recipes", desc: "List published Rhumb Layer 3 recipes.", example: 'rhumb_list_recipes({ limit: 10 })' },
-  { name: "rhumb_get_recipe", desc: "Inspect a published recipe definition.", example: 'rhumb_get_recipe("contact_enrich_and_intro")' },
-  { name: "rhumb_recipe_execute", desc: "Execute a published Rhumb recipe.", example: 'rhumb_recipe_execute("contact_enrich_and_intro", { inputs: { email: "sam@acme.com" } })' },
+  { name: "rhumb_list_recipes", desc: "Check the current published Layer 3 recipe catalog. Public inventory may be empty while Layer 3 remains in beta.", example: 'rhumb_list_recipes({ limit: 10 })' },
+  { name: "rhumb_get_recipe", desc: "Inspect a published recipe definition after confirming it exists in rhumb_list_recipes.", example: 'rhumb_get_recipe("published_recipe_id")' },
+  { name: "rhumb_recipe_execute", desc: "Execute a published Rhumb recipe once it is live in the public catalog.", example: 'rhumb_recipe_execute("published_recipe_id", { inputs: { email: "sam@acme.com" } })' },
   { name: "get_receipt", desc: "Retrieve a chain-hashed execution receipt.", example: 'get_receipt("rcpt_123")' },
 ];
 ---
@@ -285,7 +286,7 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">MCP Server</h2>
         <p class="text-slate-400 leading-relaxed mb-6">
           Rhumb provides an MCP server for discovery, routing, execution, billing, and telemetry.
-          Current public server surface: <strong class="text-slate-200">21 tools</strong>.
+          Current public server surface: <strong class="text-slate-200">{PUBLIC_TRUTH.mcpToolsLabel} tools</strong>.
         </p>
 
         <div class="bg-surface border border-slate-800 rounded-xl p-5 mb-6">
@@ -329,6 +330,13 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
             <span>
               <strong class="text-slate-200">x402 proof</strong>{" "}
               — retry direct execute with <code class="font-mono text-xs bg-surface px-1 rounded text-amber">X-Payment</code> carrying <code class="font-mono text-xs bg-surface px-1 rounded text-amber">tx_hash</code>, <code class="font-mono text-xs bg-surface px-1 rounded text-amber">network</code>, and <code class="font-mono text-xs bg-surface px-1 rounded text-amber">wallet_address</code>. If your wallet emits a standard x402 authorization payload instead, use the wallet-prefund top-up flow rather than the direct execute retry path.
+            </span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-amber mt-0.5">&bull;</span>
+            <span>
+              <strong class="text-slate-200">Layer 3 public state</strong>{" "}
+              — the recipe tooling is live, but the public catalog can still be empty. Check <a href="/recipes" class="text-amber hover:underline underline-offset-2">/recipes</a> or run <code class="font-mono text-xs bg-surface px-1 rounded text-amber">rhumb_list_recipes</code> before assuming a workflow exists.
             </span>
           </li>
           <li class="flex items-start gap-2">
