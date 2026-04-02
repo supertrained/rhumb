@@ -35,6 +35,8 @@ PROVIDER = "people-data-labs"
 CAPABILITY_ID = "data.enrich_person"
 PROFILE_URL = "https://www.linkedin.com/in/satyanadella/"
 POST_GRANT_PROPAGATION_DELAY_SECONDS = 5
+ESTIMATE_AUTH_RETRY_ATTEMPTS = 4
+ESTIMATE_AUTH_RETRY_DELAY_SECONDS = 5
 
 
 async def _request_json(
@@ -52,6 +54,14 @@ async def _request_json(
         return response.status_code, response.json()
     except Exception:
         return response.status_code, response.text
+
+
+def _looks_like_invalid_key(body: Any) -> bool:
+    if not isinstance(body, dict):
+        return False
+    detail = str(body.get("detail") or "").lower()
+    error = str(body.get("error") or "").lower()
+    return "invalid or expired rhumb api key" in detail or "invalid or expired rhumb api key" in error
 
 
 def _sample_fields(payload: dict[str, Any] | None) -> dict[str, Any]:
@@ -121,13 +131,25 @@ async def main() -> int:
     api_headers = {"X-Rhumb-Key": api_key}
 
     try:
-        estimate_status, estimate_body = await _request_json(
-            "GET",
-            f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute/estimate",
-            headers=api_headers,
-            params={"provider": PROVIDER, "credential_mode": "rhumb_managed"},
-            timeout=60.0,
-        )
+        estimate_attempts = 0
+        estimate_status = 0
+        estimate_body: Any = None
+        while estimate_attempts < ESTIMATE_AUTH_RETRY_ATTEMPTS:
+            estimate_attempts += 1
+            estimate_status, estimate_body = await _request_json(
+                "GET",
+                f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute/estimate",
+                headers=api_headers,
+                params={"provider": PROVIDER, "credential_mode": "rhumb_managed"},
+                timeout=60.0,
+            )
+            if not (
+                estimate_status == 401
+                and _looks_like_invalid_key(estimate_body)
+                and estimate_attempts < ESTIMATE_AUTH_RETRY_ATTEMPTS
+            ):
+                break
+            await asyncio.sleep(ESTIMATE_AUTH_RETRY_DELAY_SECONDS)
         execute_status, execute_body = await _request_json(
             "POST",
             f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute",
@@ -166,7 +188,11 @@ async def main() -> int:
 
         payload.update(
             {
-                "estimate": {"status": estimate_status, "data": estimate_body},
+                "estimate": {
+                    "status": estimate_status,
+                    "attempts": estimate_attempts,
+                    "data": estimate_body,
+                },
                 "rhumb_execute": {"status": execute_status, "data": execute_body},
                 "direct_control": {"status": direct_status, "data": direct_body},
                 "parity": {

@@ -1,0 +1,106 @@
+{
+  "provider": "people-data-labs",
+  "capability_id": "data.enrich_person",
+  "review_kind": "fix_verify",
+  "started_at": "2026-04-02T06:54:54Z",
+  "artifact_path": "artifacts/runtime-review-pass-20260402T065454Z-pdl-fix-verify-20260401b.json",
+  "input": {
+    "profile": "https://www.linkedin.com/in/satyanadella/"
+  },
+  "organization_id": "org_runtime_review_pdl_fixverify_20260402t065454z",
+  "post_grant_delay_seconds": 5,
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "df69b339-3e19-4e37-9341-88aa9f8592fc",
+    "organization_id": "org_runtime_review_pdl_fixverify_20260402t065454z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "8809192a-86b3-477f-ad32-e2e3188a20d1"
+  },
+  "estimate": {
+    "status": 200,
+    "attempts": 1,
+    "data": {
+      "data": {
+        "capability_id": "data.enrich_person",
+        "provider": "people-data-labs",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.1,
+        "circuit_state": "closed",
+        "endpoint_pattern": "GET /v5/person/enrich"
+      },
+      "error": null
+    }
+  },
+  "rhumb_execute": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "data.enrich_person",
+        "provider_used": "people-data-labs",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 402,
+        "upstream_response": {
+          "status": 402,
+          "error": {
+            "type": [
+              "payment_required"
+            ],
+            "message": "You have hit your account maximum for person enrichment (all matches used)"
+          }
+        },
+        "latency_ms": 791.2,
+        "execution_id": "exec_15b7ec1fd03c4becbb7c04bc651ef896",
+        "org_credits_remaining_cents": 4988,
+        "receipt_id": "rcpt_1d38cdb55358425da8b2b231"
+      },
+      "error": null
+    }
+  },
+  "direct_control": {
+    "status": 402,
+    "data": {
+      "status": 402,
+      "error": {
+        "type": [
+          "payment_required"
+        ],
+        "message": "You have hit your account maximum for person enrichment (all matches used)"
+      }
+    }
+  },
+  "parity": {
+    "sampled_keys": [
+      "full_name",
+      "job_title",
+      "job_company_name",
+      "linkedin_url"
+    ],
+    "rhumb_sample": {
+      "full_name": null,
+      "job_title": null,
+      "job_company_name": null,
+      "linkedin_url": null
+    },
+    "direct_sample": {
+      "full_name": null,
+      "job_title": null,
+      "job_company_name": null,
+      "linkedin_url": null
+    },
+    "provider_used": "people-data-labs",
+    "execution_id": "exec_15b7ec1fd03c4becbb7c04bc651ef896",
+    "upstream_status": 402,
+    "same_error_message": true,
+    "all_matched": true
+  },
+  "control_quota_blocked": true,
+  "observed_at": "2026-04-02T06:55:07Z",
+  "verdict": "pass",
+  "agent_disabled": true
+}
