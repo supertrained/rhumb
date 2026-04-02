@@ -2144,12 +2144,25 @@ async def execute_capability(
             budget_ok, budget_reason = await claim_provider_budget(provider_slug)
             if not budget_ok:
                 await _release_reservations()
+                budget_reason_text = str(budget_reason or "")
+                authority_unavailable = (
+                    "authority" in budget_reason_text.lower()
+                    and "unavailable" in budget_reason_text.lower()
+                )
                 return JSONResponse(
                     status_code=503,
                     content={
-                        "error": "provider_budget_exhausted",
+                        "error": (
+                            "managed_budget_authority_unavailable"
+                            if authority_unavailable
+                            else "provider_budget_exhausted"
+                        ),
                         "message": budget_reason,
-                        "resolution": "Switch to credential_mode: byo with your own API key, or try again after budget reset",
+                        "resolution": (
+                            "Retry after the managed budget authority is restored, or use credential_mode: byo with your own API key if you need an immediate bypass"
+                            if authority_unavailable
+                            else "Switch to credential_mode: byo with your own API key, or try again after budget reset"
+                        ),
                         "request_id": f"req_{uuid.uuid4().hex[:12]}",
                     },
                 )

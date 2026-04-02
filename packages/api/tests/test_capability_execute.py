@@ -1052,6 +1052,45 @@ async def test_execute_managed_daily_limit_uses_durable_limiter(app):
 
 
 @pytest.mark.anyio
+async def test_execute_managed_budget_authority_unavailable_is_honest(app):
+    """Managed execute should surface authority outages distinctly from true provider exhaustion."""
+    managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ),
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(
+                False,
+                "Managed provider budget authority is temporarily unavailable. Retry once the durable budget store is healthy.",
+            ),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "resend",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    data = resp.json()
+    assert data["error"] == "managed_budget_authority_unavailable"
+    assert "managed budget authority" in data["resolution"].lower()
+    assert "temporarily unavailable" in data["message"].lower()
+
+
+@pytest.mark.anyio
 async def test_auto_resolves_to_managed_when_config_exists(app):
     """Execute defaults auto to rhumb_managed when a managed config exists."""
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
