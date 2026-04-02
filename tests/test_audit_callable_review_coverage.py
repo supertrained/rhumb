@@ -31,7 +31,7 @@ def test_audit_flags_runtime_evidence_without_runtime_backed_reviews(
     monkeypatch.setattr(
         audit_module,
         "_callable_services",
-        lambda base_url, timeout: [
+        lambda base_url, timeout, cache_bust_token=None: [
             {
                 "canonical_slug": "slack",
                 "proxy_name": "slack",
@@ -62,7 +62,7 @@ def test_audit_flags_runtime_evidence_without_runtime_backed_reviews(
         },
         "stripe": {
             "reviews": [
-                {"id": "stripe-1", "trust_label": audit_module.RUNTIME_TRUST_LABEL},
+                {"id": "stripe-1", "trust_label": "🟢 Runtime-verified"},
                 {"id": "stripe-2", "trust_label": "📘 Docs-backed"},
             ],
             "total_reviews": 2,
@@ -93,12 +93,12 @@ def test_audit_flags_runtime_evidence_without_runtime_backed_reviews(
     monkeypatch.setattr(
         audit_module,
         "_service_reviews",
-        lambda base_url, slug, timeout: review_payloads[slug],
+        lambda base_url, slug, timeout, cache_bust_token=None: review_payloads[slug],
     )
     monkeypatch.setattr(
         audit_module,
         "_service_evidence",
-        lambda base_url, slug, timeout: evidence_payloads[slug],
+        lambda base_url, slug, timeout, cache_bust_token=None: evidence_payloads[slug],
     )
 
     payload = audit_module.audit("https://api.example.test/v1", 1.0)
@@ -127,7 +127,7 @@ def test_audit_does_not_flag_gap_when_service_has_no_reviews(monkeypatch: Any) -
     monkeypatch.setattr(
         audit_module,
         "_callable_services",
-        lambda base_url, timeout: [
+        lambda base_url, timeout, cache_bust_token=None: [
             {
                 "canonical_slug": "new-service",
                 "proxy_name": "new-service",
@@ -139,7 +139,7 @@ def test_audit_does_not_flag_gap_when_service_has_no_reviews(monkeypatch: Any) -
     monkeypatch.setattr(
         audit_module,
         "_service_reviews",
-        lambda base_url, slug, timeout: {
+        lambda base_url, slug, timeout, cache_bust_token=None: {
             "reviews": [],
             "total_reviews": 0,
             "trust_summary": {
@@ -152,7 +152,7 @@ def test_audit_does_not_flag_gap_when_service_has_no_reviews(monkeypatch: Any) -
     monkeypatch.setattr(
         audit_module,
         "_service_evidence",
-        lambda base_url, slug, timeout: {
+        lambda base_url, slug, timeout, cache_bust_token=None: {
             "evidence": [{"id": "n-1", "source_type": "runtime_verified"}],
             "total_evidence": 1,
         },
@@ -170,6 +170,7 @@ def test_print_human_surfaces_mismatch_flag(capsys: Any) -> None:
             "base_url": "https://api.example.test/v1",
             "callable_provider_count": 1,
             "weakest_runtime_depth": 0,
+            "weakest_claim_safe_depth": 0,
             "weakest_bucket": ["slack"],
             "providers": [
                 {
@@ -194,6 +195,55 @@ def test_print_human_surfaces_mismatch_flag(capsys: Any) -> None:
     )
 
     output = capsys.readouterr().out
-    assert "Evidence/review mismatches suspected: 1" in output
-    assert "Flagged providers: slack" in output
+    assert "Evidence/review gap suspected: slack" in output
     assert "MISMATCH" in output
+
+
+def test_audit_counts_tester_generated_reviews_as_runtime_backed(monkeypatch: Any) -> None:
+    monkeypatch.setattr(
+        audit_module,
+        "_callable_services",
+        lambda base_url, timeout, cache_bust_token=None: [
+            {
+                "canonical_slug": "firecrawl",
+                "proxy_name": "firecrawl",
+                "auth_type": "bearer_token",
+                "callable": True,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        audit_module,
+        "_service_reviews",
+        lambda base_url, slug, timeout, cache_bust_token=None: {
+            "reviews": [
+                {"id": "r1", "trust_label": "🟢 Runtime-verified"},
+                {"id": "r2", "trust_label": "🧪 Tester-generated"},
+                {"id": "r3", "trust_label": "🔧 Operator-verified"},
+            ],
+            "total_reviews": 3,
+            "trust_summary": {
+                "highest_source_type": "runtime_verified",
+                "runtime_backed_pct": 66.7,
+                "freshest_evidence_at": "2026-04-01T18:00:00Z",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        audit_module,
+        "_service_evidence",
+        lambda base_url, slug, timeout, cache_bust_token=None: {
+            "evidence": [
+                {"id": "e1", "source_type": "runtime_verified"},
+                {"id": "e2", "source_type": "tester_generated"},
+            ],
+            "total_evidence": 2,
+        },
+    )
+
+    payload = audit_module.audit("https://api.example.test/v1", 1.0)
+    row = payload["providers"][0]
+
+    assert row["runtime_backed_reviews"] == 2
+    assert row["non_runtime_reviews"] == 1
+    assert row["claim_safe_runtime_backed"] == 2

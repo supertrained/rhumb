@@ -27,7 +27,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from urllib.request import Request, urlopen
 
-RUNTIME_TRUST_LABEL = "🟢 Runtime-verified"
+RUNTIME_BACKED_TRUST_LABELS = frozenset({"🟢 Runtime-verified", "🧪 Tester-generated"})
 DEFAULT_BASE_URL = "https://api.rhumb.dev/v1"
 DEFAULT_TIMEOUT = 30.0
 RUNTIME_BACKED_EVIDENCE_SOURCE_TYPES = frozenset(
@@ -127,7 +127,7 @@ def audit(base_url: str, timeout: float, cache_bust: bool = False) -> dict[str, 
         reviews = review_payload.get("reviews", [])
         evidence_records = evidence_payload.get("evidence", [])
         runtime_backed_reviews = sum(
-            1 for review in reviews if review.get("trust_label") == RUNTIME_TRUST_LABEL
+            1 for review in reviews if review.get("trust_label") in RUNTIME_BACKED_TRUST_LABELS
         )
         runtime_backed_evidence_records = sum(
             1
