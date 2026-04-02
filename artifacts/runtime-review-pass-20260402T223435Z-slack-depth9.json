@@ -1,0 +1,131 @@
+{
+  "provider": "slack",
+  "method": "POST",
+  "path": "/api/auth.test",
+  "review_kind": "current_depth9",
+  "organization_id": "org_runtime_review_slack_20260402t223435z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260402T223435Z-slack-depth9.json",
+  "direct_credential_source": "1password",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "9bff835c-4b88-42fa-ac97-328f4a61daf6",
+    "organization_id": "org_runtime_review_slack_20260402t223435z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "80be92c3-afb7-4e12-b9b9-8022a3e67e44"
+  },
+  "observed_at": "2026-04-02T22:34:39Z",
+  "fresh_until": "2026-05-02T22:34:39Z",
+  "counts_before": {
+    "published_reviews": 8,
+    "runtime_backed_reviews": 8
+  },
+  "target_depth": 9,
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "status_code": 200,
+      "headers": {
+        "date": "Thu, 02 Apr 2026 22:34:39 GMT",
+        "server": "Apache",
+        "vary": "Accept-Encoding",
+        "x-slack-req-id": "08a9a2538957e32804a8626bbf8126b0",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "pragma": "no-cache",
+        "cache-control": "private, no-cache, no-store, must-revalidate",
+        "expires": "Sat, 26 Jul 1997 05:00:00 GMT",
+        "content-type": "application/json; charset=utf-8",
+        "x-oauth-scopes": "chat:write,channels:history,channels:read,groups:history,groups:read,groups:write,im:history,im:read,im:write,mpim:history,mpim:read,mpim:write,users:read,app_mentions:read,reactions:read,reactions:write,pins:read,pins:write,emoji:read,commands,files:read,files:write",
+        "access-control-expose-headers": "x-slack-req-id, retry-after",
+        "access-control-allow-headers": "slack-route, x-slack-version-ts, x-b3-traceid, x-b3-spanid, x-b3-parentspanid, x-b3-sampled, x-b3-flags",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "referrer-policy": "no-referrer",
+        "x-slack-unique-id": "ac7u_yusCMJmb_ZaLJkybAAAADA",
+        "x-slack-backend": "r",
+        "access-control-allow-origin": "*",
+        "via": "1.1 slack-prod.tinyspeck.com, envoy-www-iad-kjijahjg,envoy-edge-fra-ayegsmkr",
+        "content-encoding": "gzip",
+        "content-length": "171",
+        "x-envoy-attempt-count": "1",
+        "x-envoy-upstream-service-time": "211",
+        "x-backend": "api_normal",
+        "x-server": "slack-www-hhvm-api-iad-6i1qc44ln9ce",
+        "x-slack-shared-secret-outcome": "no-match",
+        "x-edge-backend": "envoy-www",
+        "timing-allow-origin": "*",
+        "alt-svc": "h3=\":443\"; ma=2592000, h3-29=\":443\"; ma=2592000, quic=\":443\"; ma=2592000",
+        "x-slack-edge-shared-secret-outcome": "no-match"
+      },
+      "body": {
+        "ok": true,
+        "url": "https://team-super-ai.slack.com/",
+        "team": "TeamSuper",
+        "user": "cordelia",
+        "team_id": "T08HGQD6FGW",
+        "user_id": "U0AECQMK5FG",
+        "bot_id": "B0AEESDJ1CJ",
+        "is_enterprise_install": false
+      },
+      "latency_ms": 625.5015060305595,
+      "upstream_latency_ms": 254.868533462286,
+      "service": "slack",
+      "path": "/api/auth.test",
+      "timestamp": 1775169279.2793655,
+      "fail_open": false
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "ok": true,
+      "url": "https://team-super-ai.slack.com/",
+      "team": "TeamSuper",
+      "user": "cordelia",
+      "team_id": "T08HGQD6FGW",
+      "user_id": "U0AECQMK5FG",
+      "bot_id": "B0AEESDJ1CJ",
+      "is_enterprise_install": false
+    }
+  },
+  "comparison": {
+    "rhumb_fields": {
+      "ok": true,
+      "url": "https://team-super-ai.slack.com/",
+      "team": "TeamSuper",
+      "team_id": "T08HGQD6FGW",
+      "user": "cordelia",
+      "user_id": "U0AECQMK5FG",
+      "bot_id": "B0AEESDJ1CJ",
+      "is_enterprise_install": false
+    },
+    "direct_fields": {
+      "ok": true,
+      "url": "https://team-super-ai.slack.com/",
+      "team": "TeamSuper",
+      "team_id": "T08HGQD6FGW",
+      "user": "cordelia",
+      "user_id": "U0AECQMK5FG",
+      "bot_id": "B0AEESDJ1CJ",
+      "is_enterprise_install": false
+    },
+    "parity": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "slack",
+    "evidence_id": "4f59ba6e-0a29-45bb-9258-067d5a403728",
+    "review_id": "c9182d6f-04a9-4169-a64b-fe3c58c79632",
+    "execution_id": ""
+  },
+  "counts_after": {
+    "published_reviews": 9,
+    "runtime_backed_reviews": 9
+  },
+  "agent_disabled": true
+}

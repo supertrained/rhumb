@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "4f59ba6e-0a29-45bb-9258-067d5a403728",
+    "source_ref": "runtime-review:slack:20260402T223435Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "4f59ba6e-0a29-45bb-9258-067d5a403728",
+    "review_id": "c9182d6f-04a9-4169-a64b-fe3c58c79632",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "c9182d6f-04a9-4169-a64b-fe3c58c79632",
+    "source_batch_id": "runtime-review:slack:20260402T223435Z",
+    "state": "inserted"
+  },
+  "service": "slack"
+}
