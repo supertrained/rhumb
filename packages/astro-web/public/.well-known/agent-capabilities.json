@@ -1,95 +1,174 @@
 {
+  "schema_version": "1.0",
   "name": "Rhumb",
-  "version": "0.8.2",
-  "description": "Agent-native infrastructure for discovering, evaluating, and executing external tools. 695+ services scored for AI agent compatibility (AN Score), 414 capabilities across 92 categories, 16 callable providers.",
-  "url": "https://rhumb.dev",
-  "api": {
-    "base_url": "https://api.rhumb.dev/v1",
-    "docs": "https://rhumb.dev/docs",
-    "authentication": {
-      "methods": ["x402", "api_key", "byok"],
-      "x402": {
-        "description": "Zero-signup per-call payment. No API key or account required.",
-        "currency": "USDC",
-        "network": "Base",
-        "flow": "POST /v1/capabilities/{id}/execute → receive 402 with payment details → submit on-chain USDC payment → retry with X-Payment header containing tx proof (tx_hash, network, wallet_address)"
-      },
-      "api_key": {
-        "description": "Bearer token from signup. Free tier: 1,000 executions/month.",
-        "header": "X-Rhumb-Key: rhumb_live_{key}",
-        "signup_url": "https://rhumb.dev/auth/login"
-      },
-      "byok": {
-        "description": "Bring your own API keys for external services. Free passthrough."
-      }
-    }
+  "description": "Agent-native tool intelligence — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "homepage": "https://rhumb.dev",
+  "api_base": "https://api.rhumb.dev/v1",
+  "mcp_install": "npx rhumb-mcp@latest",
+  "npm_package": "rhumb-mcp",
+  "auth": {
+    "discovery": "none",
+    "execution": "api_key_or_x402",
+    "signup_url": "https://rhumb.dev/auth/login"
   },
-  "mcp": {
-    "activation": "npx rhumb-mcp@latest",
-    "tools": 17,
-    "tool_list": [
-      "find_services",
-      "get_score",
-      "get_alternatives",
-      "get_failure_modes",
-      "discover_capabilities",
-      "resolve_capability",
-      "execute_capability",
-      "estimate_capability",
-      "credential_ceremony",
-      "check_credentials",
-      "budget",
-      "spend",
-      "routing",
-      "usage_telemetry",
-      "check_balance",
-      "get_payment_url",
-      "get_ledger"
-    ]
+  "capabilities": {
+    "discovery": {
+      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
+      "auth_required": false,
+      "tools": [
+        {
+          "name": "find_services",
+          "description": "Search indexed Services by what you need them to do"
+        },
+        {
+          "name": "get_score",
+          "description": "Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness"
+        },
+        {
+          "name": "get_alternatives",
+          "description": "Find alternative Services, ranked by AN Score"
+        },
+        {
+          "name": "get_failure_modes",
+          "description": "Get known failure patterns, impact severity, and workarounds for a service"
+        },
+        {
+          "name": "discover_capabilities",
+          "description": "Browse Capabilities by domain or search text"
+        },
+        {
+          "name": "resolve_capability",
+          "description": "Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains"
+        }
+      ]
+    },
+    "execution": {
+      "description": "Execute capabilities through Resolve with managed auth and cost-aware routing",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "execute_capability",
+          "description": "Call a Capability through Rhumb Resolve"
+        },
+        {
+          "name": "estimate_capability",
+          "description": "Get the cost of a Capability call WITHOUT making the call"
+        },
+        {
+          "name": "credential_ceremony",
+          "description": "Get step-by-step instructions to obtain API credentials for a Service"
+        },
+        {
+          "name": "check_credentials",
+          "description": "Check what credential modes are available to you"
+        },
+        {
+          "name": "rhumb_list_recipes",
+          "description": "List the current published Rhumb Layer 3 recipe catalog"
+        },
+        {
+          "name": "rhumb_get_recipe",
+          "description": "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology"
+        },
+        {
+          "name": "rhumb_recipe_execute",
+          "description": "Execute a published Rhumb Layer 3 recipe once one is live in the public catalog"
+        },
+        {
+          "name": "get_receipt",
+          "description": "Retrieve an execution receipt by ID"
+        }
+      ]
+    },
+    "billing": {
+      "description": "Budget enforcement and spend tracking",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "budget",
+          "description": "Check or set your call spending limit"
+        },
+        {
+          "name": "spend",
+          "description": "Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider"
+        },
+        {
+          "name": "check_balance",
+          "description": "Check your current Rhumb credit balance in USD"
+        },
+        {
+          "name": "get_payment_url",
+          "description": "Get a checkout URL to add credits to your Rhumb balance"
+        },
+        {
+          "name": "get_ledger",
+          "description": "Get your billing history: charges (debits), top-ups (credits), and auto-reload events"
+        }
+      ]
+    },
+    "operations": {
+      "description": "Routing preferences and usage analytics",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "routing",
+          "description": "Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability"
+        },
+        {
+          "name": "usage_telemetry",
+          "description": "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage"
+        }
+      ]
+    }
   },
   "coverage": {
-    "services_scored": 695,
-    "capabilities": 414,
-    "categories": 92,
+    "services": 1038,
+    "capabilities": 415,
     "domains": 50,
-    "callable_providers": 16,
-    "comparisons": 13,
-    "autopsies": 4
+    "categories": 92,
+    "providers_with_execution": 16,
+    "credential_modes": [
+      "byo",
+      "rhumb_managed",
+      "agent_vault"
+    ]
   },
-  "pricing": {
-    "free_tier": {
-      "executions_per_month": 1000,
-      "signup_required": false,
-      "credit_card_required": false
+  "scoring": {
+    "methodology": "https://rhumb.dev/methodology",
+    "dimensions": 20,
+    "axes": {
+      "execution": {
+        "weight": 0.45,
+        "dimensions": 17
+      },
+      "access": {
+        "weight": 0.4,
+        "dimensions": 6
+      },
+      "autonomy": {
+        "weight": 0.15,
+        "dimensions": 3
+      }
     },
-    "x402": {
-      "margin": "15% over upstream cost",
-      "currency": "USDC",
-      "signup_required": false
-    },
-    "managed": {
-      "margin": "20% over upstream cost",
-      "signup_required": true
-    },
-    "byok": {
-      "cost": "free",
-      "description": "You pay external providers directly"
+    "tiers": {
+      "L4_Native": "8.0-10.0",
+      "L3_Ready": "6.0-7.9",
+      "L2_Developing": "4.0-5.9",
+      "L1_Emerging": "0.0-3.9"
     }
   },
-  "trust": {
-    "neutrality": "Scores are computed, not curated. No pay-to-rank.",
+  "pricing": {
+    "discovery": "free",
+    "execution": "prepaid_or_x402",
+    "free_tier": "1000_calls_per_month",
+    "details": "https://rhumb.dev/pricing"
+  },
+  "links": {
+    "quickstart": "https://rhumb.dev/quickstart",
+    "trust": "https://rhumb.dev/trust",
     "methodology": "https://rhumb.dev/methodology",
-    "self_score": "https://rhumb.dev/blog/rhumb-self-score",
-    "disputes": "providers@supertrained.ai"
-  },
-  "discovery": {
-    "llms_txt": "https://rhumb.dev/llms.txt",
-    "llms_full_txt": "https://rhumb.dev/llms-full.txt",
-    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
-    "capabilities_browse": "https://rhumb.dev/capabilities"
-  },
-  "contact": {
-    "providers": "providers@supertrained.ai",
-    "github": "https://github.com/supertrained/rhumb"
+    "blog": "https://rhumb.dev/blog",
+    "github": "https://github.com/supertrained/rhumb",
+    "disputes": "https://github.com/supertrained/rhumb/issues"
   }
 }

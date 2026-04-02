@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SERVER_TS = ROOT / "packages/mcp/src/server.ts"
 PUBLIC_TRUTH_TS = ROOT / "packages/astro-web/src/lib/public-truth.ts"
 OUTPUT_JSON = ROOT / "agent-capabilities.json"
+WELL_KNOWN_OUTPUT_JSON = ROOT / "packages/astro-web/public/.well-known/agent-capabilities.json"
 ROOT_README = ROOT / "README.md"
 MCP_README = ROOT / "packages/mcp/README.md"
 
@@ -243,6 +244,8 @@ def replace_managed_block(text: str, start_marker: str, end_marker: str, body: s
 
 
 def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, str]) -> dict[Path, str]:
+    agent_contract = json.dumps(build_agent_capabilities(), indent=2, ensure_ascii=False) + "\n"
+
     root_readme = ROOT_README.read_text()
     root_readme = replace_managed_block(
         root_readme,
@@ -266,7 +269,8 @@ def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, st
     )
 
     return {
-        OUTPUT_JSON: json.dumps(build_agent_capabilities(), indent=2, ensure_ascii=False) + "\n",
+        OUTPUT_JSON: agent_contract,
+        WELL_KNOWN_OUTPUT_JSON: agent_contract,
         ROOT_README: root_readme,
         MCP_README: mcp_readme,
     }
