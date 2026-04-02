@@ -29,6 +29,9 @@ LOOKUP_FIELDS = "line_type_intelligence"
 TWILIO_LOOKUP_URL = f"https://lookups.twilio.com/v2/PhoneNumbers/{NUMBER}"
 PUBLIC_SERVICE_SLUG = "twilio"
 CANONICAL_PUBLISH_SLUG = "twilio"
+POST_GRANT_PROPAGATION_DELAY_SECONDS = 5
+ESTIMATE_AUTH_RETRY_ATTEMPTS = 4
+ESTIMATE_AUTH_RETRY_DELAY_SECONDS = 5
 
 
 @dataclass
@@ -64,6 +67,14 @@ async def _request_json(
 def _json_dump(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _looks_like_invalid_key(body: Any) -> bool:
+    if not isinstance(body, dict):
+        return False
+    detail = str(body.get("detail") or "").lower()
+    error = str(body.get("error") or "").lower()
+    return "invalid or expired rhumb api key" in detail or "invalid or expired rhumb api key" in error
 
 
 def _iso_now() -> str:
@@ -190,7 +201,13 @@ async def main() -> None:
         "status": "success",
         "access_id": access_id,
     }
+    payload["post_grant_delay_seconds"] = POST_GRANT_PROPAGATION_DELAY_SECONDS
     _json_dump(artifact_path, payload)
+
+    # Fresh agent access and auth can race the estimate read path; mirror the
+    # PDL harness fix so this rail does not false-fail when execute/direct parity
+    # is already green.
+    await asyncio.sleep(POST_GRANT_PROPAGATION_DELAY_SECONDS)
 
     api_headers = {"X-Rhumb-Key": api_key}
     twilio_basic_auth = os.environ["RHUMB_CREDENTIAL_TWILIO_BASIC_AUTH"]
@@ -198,13 +215,25 @@ async def main() -> None:
 
     try:
         counts_before = await _fetch_public_review_stats(PUBLIC_SERVICE_SLUG)
-        estimate = await _request_json(
-            "GET",
-            f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute/estimate",
-            headers=api_headers,
-            params={"provider": PROVIDER, "credential_mode": "byo"},
-            timeout=60.0,
-        )
+        estimate_attempts = 0
+        estimate = HttpResult(status_code=0, body=None)
+        while estimate_attempts < ESTIMATE_AUTH_RETRY_ATTEMPTS:
+            estimate_attempts += 1
+            estimate = await _request_json(
+                "GET",
+                f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute/estimate",
+                headers=api_headers,
+                params={"provider": PROVIDER, "credential_mode": "byo"},
+                timeout=60.0,
+            )
+            if not (
+                estimate.status_code == 401
+                and _looks_like_invalid_key(estimate.body)
+                and estimate_attempts < ESTIMATE_AUTH_RETRY_ATTEMPTS
+            ):
+                break
+            await asyncio.sleep(ESTIMATE_AUTH_RETRY_DELAY_SECONDS)
+
         execute = await _request_json(
             "POST",
             f"{BASE_URL}/capabilities/{CAPABILITY_ID}/execute",
@@ -262,7 +291,11 @@ async def main() -> None:
                 "observed_at": observed_at,
                 "fresh_until": fresh_until,
                 "counts_before": counts_before,
-                "estimate": {"status": estimate.status_code, "data": estimate.body},
+                "estimate": {
+                    "status": estimate.status_code,
+                    "attempts": estimate_attempts,
+                    "data": estimate.body,
+                },
                 "rhumb": {
                     "status": execute.status_code,
                     "data": execute.body,
