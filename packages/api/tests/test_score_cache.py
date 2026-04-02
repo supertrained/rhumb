@@ -509,6 +509,57 @@ class TestFetchScoresFromDb:
                 await fetch_scores_from_db()
 
     @pytest.mark.asyncio
+    async def test_fetch_scores_from_db_pages_past_supabase_default_limit(self):
+        first_page = [
+            {
+                "service_slug": f"svc-{i:04d}",
+                "aggregate_recommendation_score": 7.0,
+                "execution_score": 7.0,
+                "access_readiness_score": 7.0,
+                "autonomy_score": None,
+                "confidence": 0.5,
+                "tier": "L3",
+                "calculated_at": "2026-04-01T22:00:00Z",
+            }
+            for i in range(1000)
+        ]
+        second_page = [
+            {
+                "service_slug": "stripe",
+                "aggregate_recommendation_score": 9.4,
+                "execution_score": 9.4,
+                "access_readiness_score": 9.5,
+                "autonomy_score": 9.33,
+                "confidence": 0.7,
+                "tier": "L4",
+                "calculated_at": "2026-03-06T22:21:51.113+00:00",
+            }
+        ]
+
+        first_response = Mock()
+        first_response.raise_for_status.return_value = None
+        first_response.json.return_value = first_page
+
+        second_response = Mock()
+        second_response.raise_for_status.return_value = None
+        second_response.json.return_value = second_page
+
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = [first_response, second_response]
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch("services.score_cache.httpx.AsyncClient", return_value=mock_client):
+            entries = await fetch_scores_from_db()
+
+        assert len(entries) == 1001
+        assert any(entry.service_slug == "stripe" for entry in entries)
+        first_url = mock_client.get.call_args_list[0].args[0]
+        second_url = mock_client.get.call_args_list[1].args[0]
+        assert "limit=1000&offset=0" in first_url
+        assert "limit=1000&offset=1000" in second_url
+
+    @pytest.mark.asyncio
     async def test_fetch_scores_from_db_parses_live_scores_shape(self):
         row = {
             "service_slug": "stripe",

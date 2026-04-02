@@ -25,6 +25,7 @@ import httpx
 from config import settings
 
 logger = logging.getLogger(__name__)
+SCORE_PAGE_SIZE = 1000
 
 # ── Data types ────────────────────────────────────────────────────────
 
@@ -337,7 +338,7 @@ async def fetch_scores_from_db() -> list[CachedScore]:
     This is the ONLY function that touches the score DB for reads.
     It returns immutable CachedScore entries for the cache to ingest.
     """
-    url = (
+    base_url = (
         f"{settings.supabase_url}/rest/v1/scores"
         f"?select=service_slug,aggregate_recommendation_score,execution_score,access_readiness_score,autonomy_score,confidence,tier,calculated_at"
         f"&order=calculated_at.desc"
@@ -347,10 +348,18 @@ async def fetch_scores_from_db() -> list[CachedScore]:
         "Authorization": f"Bearer {settings.supabase_service_role_key}",
     }
 
+    rows: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(url, headers=headers)
-        resp.raise_for_status()
-        rows = resp.json()
+        offset = 0
+        while True:
+            url = f"{base_url}&limit={SCORE_PAGE_SIZE}&offset={offset}"
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            page = resp.json()
+            rows.extend(page)
+            if len(page) < SCORE_PAGE_SIZE:
+                break
+            offset += SCORE_PAGE_SIZE
 
     # Deduplicate: keep only the latest per slug (query ordered desc)
     seen: set[str] = set()
