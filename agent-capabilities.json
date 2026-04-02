@@ -16,45 +16,108 @@
       "description": "Search, score, and evaluate 1,038 services across 50+ domains",
       "auth_required": false,
       "tools": [
-        {"name": "find_services", "description": "Search services by capability, domain, or name"},
-        {"name": "get_score", "description": "Get AN Score breakdown (0-10) for a service"},
-        {"name": "get_alternatives", "description": "Find ranked alternatives to any service"},
-        {"name": "get_failure_modes", "description": "Get known failure patterns before integrating"},
-        {"name": "discover_capabilities", "description": "Browse the capability registry"},
-        {"name": "resolve_capability", "description": "Get ranked providers for a capability"}
+        {
+          "name": "find_services",
+          "description": "Search indexed Services by what you need them to do"
+        },
+        {
+          "name": "get_score",
+          "description": "Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness"
+        },
+        {
+          "name": "get_alternatives",
+          "description": "Find alternative Services, ranked by AN Score"
+        },
+        {
+          "name": "get_failure_modes",
+          "description": "Get known failure patterns, impact severity, and workarounds for a service"
+        },
+        {
+          "name": "discover_capabilities",
+          "description": "Browse Capabilities by domain or search text"
+        },
+        {
+          "name": "resolve_capability",
+          "description": "Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains"
+        }
       ]
     },
     "execution": {
       "description": "Execute capabilities through Resolve with managed auth and cost-aware routing",
       "auth_required": true,
       "tools": [
-        {"name": "execute_capability", "description": "Execute a capability through Resolve"},
-        {"name": "estimate_capability", "description": "Get cost estimate before execution"},
-        {"name": "credential_ceremony", "description": "Set up credentials for a provider"},
-        {"name": "check_credentials", "description": "Verify credential status"},
-        {"name": "rhumb_list_recipes", "description": "Check the current public Layer 3 recipe catalog; it may still be empty"},
-        {"name": "rhumb_get_recipe", "description": "Inspect a recipe definition only after it appears in the public catalog"},
-        {"name": "rhumb_recipe_execute", "description": "Execute a published Layer 3 recipe after confirming it is live in the public catalog"},
-        {"name": "get_receipt", "description": "Retrieve an HMAC-signed execution receipt"}
+        {
+          "name": "execute_capability",
+          "description": "Call a Capability through Rhumb Resolve"
+        },
+        {
+          "name": "estimate_capability",
+          "description": "Get the cost of a Capability call WITHOUT making the call"
+        },
+        {
+          "name": "credential_ceremony",
+          "description": "Get step-by-step instructions to obtain API credentials for a Service"
+        },
+        {
+          "name": "check_credentials",
+          "description": "Check what credential modes are available to you"
+        },
+        {
+          "name": "rhumb_list_recipes",
+          "description": "List the current published Rhumb Layer 3 recipe catalog"
+        },
+        {
+          "name": "rhumb_get_recipe",
+          "description": "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology"
+        },
+        {
+          "name": "rhumb_recipe_execute",
+          "description": "Execute a published Rhumb Layer 3 recipe once one is live in the public catalog"
+        },
+        {
+          "name": "get_receipt",
+          "description": "Retrieve an execution receipt by ID"
+        }
       ]
     },
     "billing": {
       "description": "Budget enforcement and spend tracking",
       "auth_required": true,
       "tools": [
-        {"name": "budget", "description": "Set spend limits"},
-        {"name": "spend", "description": "Check current spend"},
-        {"name": "check_balance", "description": "Check prepaid balance"},
-        {"name": "get_payment_url", "description": "Get top-up link"},
-        {"name": "get_ledger", "description": "Transaction history"}
+        {
+          "name": "budget",
+          "description": "Check or set your call spending limit"
+        },
+        {
+          "name": "spend",
+          "description": "Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider"
+        },
+        {
+          "name": "check_balance",
+          "description": "Check your current Rhumb credit balance in USD"
+        },
+        {
+          "name": "get_payment_url",
+          "description": "Get a checkout URL to add credits to your Rhumb balance"
+        },
+        {
+          "name": "get_ledger",
+          "description": "Get your billing history: charges (debits), top-ups (credits), and auto-reload events"
+        }
       ]
     },
     "operations": {
       "description": "Routing preferences and usage analytics",
       "auth_required": true,
       "tools": [
-        {"name": "routing", "description": "Configure routing strategy"},
-        {"name": "usage_telemetry", "description": "Query your own usage analytics"}
+        {
+          "name": "routing",
+          "description": "Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability"
+        },
+        {
+          "name": "usage_telemetry",
+          "description": "Get your execution analytics â calls, latency, errors, costs, and provider health for your Rhumb usage"
+        }
       ]
     }
   },
@@ -64,15 +127,28 @@
     "domains": 50,
     "categories": 92,
     "providers_with_execution": 16,
-    "credential_modes": ["byo", "rhumb_managed", "agent_vault"]
+    "credential_modes": [
+      "byo",
+      "rhumb_managed",
+      "agent_vault"
+    ]
   },
   "scoring": {
     "methodology": "https://rhumb.dev/methodology",
     "dimensions": 20,
     "axes": {
-      "execution": {"weight": 0.45, "dimensions": 17},
-      "access": {"weight": 0.40, "dimensions": 6},
-      "autonomy": {"weight": 0.15, "dimensions": 3}
+      "execution": {
+        "weight": 0.45,
+        "dimensions": 17
+      },
+      "access": {
+        "weight": 0.4,
+        "dimensions": 6
+      },
+      "autonomy": {
+        "weight": 0.15,
+        "dimensions": 3
+      }
     },
     "tiers": {
       "L4_Native": "8.0-10.0",
