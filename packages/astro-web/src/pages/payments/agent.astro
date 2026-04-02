@@ -72,6 +72,67 @@ const USE_CASES = [
   },
 ];
 
+const RAIL_CHOOSER = [
+  {
+    name: "Governed API key",
+    badge: "Default",
+    badgeClass:
+      "text-[11px] font-mono text-amber uppercase tracking-widest bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1",
+    useWhen: "You want the normal production setup for an app, team, or repeat agent workflow.",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Rhumb-managed account billing and controls.",
+    bestFor: "Most buyers and most repeat traffic.",
+    tradeoff: "Requires account signup before the first paid call.",
+  },
+  {
+    name: "Wallet-prefund",
+    badge: "Wallet-first",
+    badgeClass:
+      "text-[11px] font-mono text-emerald-300 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1",
+    useWhen: "Wallet identity matters, but the same wallet will call Rhumb repeatedly.",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Top up reusable balance from a wallet, then spend from that balance.",
+    bestFor: "Wallet-native agents that need repeat throughput.",
+    tradeoff: "Has an initial wallet verify + top-up step before the steady-state path.",
+  },
+  {
+    name: "x402 per-call",
+    badge: "Zero signup",
+    badgeClass:
+      "text-[11px] font-mono text-amber uppercase tracking-widest bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1",
+    useWhen: "You need payment authorization on each request and no account before the first paid call.",
+    authHeader: "X-Payment",
+    moneyFlow: "USDC on Base, authorized per request.",
+    bestFor: "Ephemeral agents, demos, and strict pay-per-request flows.",
+    tradeoff: "Not the easiest repeat-traffic rail today; the public execute path still expects tx-hash proof.",
+  },
+];
+
+const FIRST_SUCCESS_PATHS = [
+  {
+    title: "Wallet-native buyer with repeat traffic",
+    label: "Use wallet-prefund",
+    borderClass: "border-emerald-500/20",
+    labelClass: "text-emerald-300",
+    summary:
+      "Use wallet-prefund when wallet identity matters but you want the steady-state call path to look like normal Layer 2 execution.",
+    setup:
+      "Authenticate the wallet once, top up reusable balance, then execute repeat calls with X-Rhumb-Key.",
+    snippet: `# After wallet verify + top-up, the first successful repeatable call looks like this\ncurl -X POST "${executeEndpoint}" \\\n+  -H "X-Rhumb-Key: rk_live_..." \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'`,
+  },
+  {
+    title: "Zero-signup buyer who wants payment proof on the request",
+    label: "Use x402 per-call",
+    borderClass: "border-amber/20",
+    labelClass: "text-amber",
+    summary:
+      "Use x402 when the payment authorization itself is the product requirement, not just a funding source behind repeat traffic.",
+    setup:
+      "Request execution without a key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.",
+    snippet: `# One-off zero-signup request\ncurl -X POST "${executeEndpoint}" \\\n+  -H '${x402.execution_auth[0]}: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'`,
+  },
+];
+
 const AGENT_PAYMENTS_JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -80,7 +141,7 @@ const AGENT_PAYMENTS_JSON_LD = {
       name: "Agent Payments - Rhumb",
       url: "https://rhumb.dev/payments/agent",
       description:
-        "Rhumb x402 agent payments: HTTP 402 flow, USDC on Base, wallet setup, and when to use on-chain per-call authorization.",
+        "Rhumb wallet-first agent payments: when to use governed API key, wallet-prefund, or x402 per-call; current USDC on Base boundary; and first-call examples.",
       isPartOf: {
         "@type": "WebSite",
         name: "Rhumb",
@@ -114,10 +175,10 @@ const AGENT_PAYMENTS_JSON_LD = {
 
 <Layout
   title="Agent Payments"
-  description="Use Rhumb x402 agent payments for zero-signup execution: HTTP 402 payment flow, USDC on Base, wallet setup, and per-call pricing."
+  description="Wallet-first Rhumb payments for agents: when to use wallet-prefund vs x402 per-call, current USDC on Base boundaries, and first-call examples."
   canonical="/payments/agent"
   ogTitle="Agent Payments - Rhumb"
-  ogDescription="x402 payments for autonomous agents: USDC on Base, wallet setup, request flow, and pricing."
+  ogDescription="Wallet-first agent payments on Rhumb: choose governed API key, wallet-prefund, or x402 per-call with the current public compatibility boundary." 
   ogUrl="https://rhumb.dev/payments/agent"
   jsonLd={AGENT_PAYMENTS_JSON_LD}
 >
@@ -133,12 +194,12 @@ const AGENT_PAYMENTS_JSON_LD = {
           Agent Payments
         </p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
-          x402 for agents that should pay, not sign up.
+          Choose the right wallet rail for agent payments.
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Rhumb&apos;s on-chain payment flow is a separate path from standard API-key pricing. Use it
-          when a wallet should authorize each execution and the right UX is zero-signup, per-call payment.
-          If the same wallet needs repeat traffic, switch to wallet-prefund after first proof.
+          Most buyers should still start with the governed API-key path. This page is for the wallet-first
+          cases: use <strong class="text-slate-200">wallet-prefund</strong> when the same wallet will call repeatedly,
+          and use <strong class="text-slate-200">x402 per-call</strong> when request-level payment authorization is the actual requirement.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
           <a
@@ -151,12 +212,59 @@ const AGENT_PAYMENTS_JSON_LD = {
           <a
             href="/auth/login"
             class="inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-100 transition-colors"
-            aria-label="Use standard API-key pricing instead"
+            aria-label="Start with governed API key"
           >
-            Use standard pricing instead
+            Start with governed API key
           </a>
         </div>
       </header>
+
+      <section class="mt-10" data-section="rail-chooser" aria-label="Choose the right wallet or payment rail">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Choose your rail</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Pick based on how money moves, not on protocol jargon.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              The buyer-readable version is simple: start with governed API key by default, use wallet-prefund
+              when you want wallet identity plus repeat traffic, and use x402 only when each request should carry
+              its own payment authorization.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            {RAIL_CHOOSER.map((rail) => (
+              <article class="rounded-xl border border-slate-800 bg-navy p-5">
+                <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+                  <h3 class="font-display text-lg font-semibold text-slate-100">{rail.name}</h3>
+                  <span class={rail.badgeClass}>{rail.badge}</span>
+                </div>
+                <dl class="space-y-3 text-sm leading-6">
+                  <div>
+                    <dt class="text-slate-500">Use when</dt>
+                    <dd class="text-slate-200">{rail.useWhen}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">You send</dt>
+                    <dd class="text-slate-200 font-mono text-xs">{rail.authHeader}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Money flow</dt>
+                    <dd class="text-slate-200">{rail.moneyFlow}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Best for</dt>
+                    <dd class="text-slate-200">{rail.bestFor}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Tradeoff</dt>
+                    <dd class="text-slate-400">{rail.tradeoff}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section class="mt-10" data-section="where-x402-fits" aria-label="Where x402 fits in Resolve">
         <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
@@ -343,6 +451,34 @@ POST /v1/billing/x402/topup/request
 POST /v1/billing/x402/topup/verify
 POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre>
           </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="first-successful-call-examples" aria-label="First successful call examples by buyer story">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">First successful call</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Two buyer stories, two correct first-call paths.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              If you are choosing between wallet-prefund and x402, anchor on the first call that should feel normal in production.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            {FIRST_SUCCESS_PATHS.map((path) => (
+              <article class={`rounded-xl border bg-navy p-5 ${path.borderClass}`}>
+                <p class={`text-xs font-mono uppercase tracking-widest mb-2 ${path.labelClass}`}>{path.label}</p>
+                <h3 class="font-display text-lg font-semibold text-slate-100">{path.title}</h3>
+                <p class="mt-3 text-sm text-slate-400 leading-6">{path.summary}</p>
+                <p class="mt-3 text-sm text-slate-300 leading-6">{path.setup}</p>
+                <pre class="mt-4 text-sm font-mono text-slate-200 overflow-x-auto"><code>{path.snippet}</code></pre>
+              </article>
+            ))}
+          </div>
+
+          <p class="mt-5 text-sm text-slate-500">
+            If neither of those stories sounds like you, go back to <a href="/pricing" class="text-amber hover:underline underline-offset-2">pricing</a> and start with the governed API-key path.
+          </p>
         </div>
       </section>
 
