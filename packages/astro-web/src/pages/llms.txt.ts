@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getServices, getCategories } from '../lib/api';
+import { PUBLIC_TRUTH } from '../lib/public-truth';
 // Pricing values inlined to avoid cross-package JSON import failures on Vercel
 const pricing = {
   free_tier: null,
@@ -19,7 +20,7 @@ export const GET: APIRoute = async () => {
       .then((r) => r.ok ? r.json() : null)
       .catch(() => null),
   ]);
-  const totalCapabilities = capRes?.data?.total ?? 414;
+  const totalCapabilities = capRes?.data?.total ?? PUBLIC_TRUTH.capabilities;
 
   const categoryList = categories
     .map((c) => `- /leaderboard/${c.slug} (${c.serviceCount} services)`)
@@ -141,7 +142,7 @@ the specific friction of a tool before integrating.
 - https://rhumb.dev/blog/how-agents-actually-pay-x402-dogfood — x402 seller dogfood report: 5 compatibility mismatches, authorization proof vs tx_hash gap, and why structured 422 errors beat infinite 402 loops
 - https://rhumb.dev/blog/getting-started-mcp — MCP install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential modes explained
 - https://rhumb.dev/blog/securing-keys-for-agents — How to secure API keys for agent use: three credential modes (BYOK, managed, x402), storage hierarchy, honest threat modeling
-- MCP tools reference with examples for all 21 tools
+- MCP tools reference with examples for all ${PUBLIC_TRUTH.mcpToolsLabel} tools
 - Three credential modes: BYO, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
 
