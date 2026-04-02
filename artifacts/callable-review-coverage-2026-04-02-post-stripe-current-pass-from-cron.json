@@ -23,25 +23,6 @@
       "total_reviews": 7
     },
     {
-      "auth_type": "bearer_token",
-      "callable": true,
-      "claim_safe_runtime_backed": 7,
-      "evidence_review_gap_suspected": false,
-      "freshest_evidence_at": "2026-04-01T02:19:03Z",
-      "highest_source_type": "runtime_verified",
-      "label_evidence_mismatch": false,
-      "non_runtime_reviews": 0,
-      "proxy_name": "stripe",
-      "reported_runtime_backed_pct": 100.0,
-      "runtime_backed_evidence_pct": 87.5,
-      "runtime_backed_evidence_records": 21,
-      "runtime_backed_review_pct": 100.0,
-      "runtime_backed_reviews": 7,
-      "service_slug": "stripe",
-      "total_evidence_records": 24,
-      "total_reviews": 7
-    },
-    {
       "auth_type": "basic_auth",
       "callable": true,
       "claim_safe_runtime_backed": 7,
@@ -59,6 +40,25 @@
       "service_slug": "twilio",
       "total_evidence_records": 10,
       "total_reviews": 10
+    },
+    {
+      "auth_type": "bearer_token",
+      "callable": true,
+      "claim_safe_runtime_backed": 8,
+      "evidence_review_gap_suspected": false,
+      "freshest_evidence_at": "2026-04-02T10:50:35Z",
+      "highest_source_type": "runtime_verified",
+      "label_evidence_mismatch": false,
+      "non_runtime_reviews": 0,
+      "proxy_name": "stripe",
+      "reported_runtime_backed_pct": 100.0,
+      "runtime_backed_evidence_pct": 88.0,
+      "runtime_backed_evidence_records": 22,
+      "runtime_backed_review_pct": 100.0,
+      "runtime_backed_reviews": 8,
+      "service_slug": "stripe",
+      "total_evidence_records": 25,
+      "total_reviews": 8
     },
     {
       "auth_type": "bearer_token",
@@ -310,7 +310,6 @@
   ],
   "weakest_bucket": [
     "slack",
-    "stripe",
     "twilio"
   ],
   "weakest_claim_safe_depth": 7,

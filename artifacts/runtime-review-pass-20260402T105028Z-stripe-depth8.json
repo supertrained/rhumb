@@ -1,0 +1,218 @@
+{
+  "provider": "stripe",
+  "capability_id": "wallet.get_balance",
+  "method": "GET",
+  "path": "/v1/balance",
+  "review_kind": "current_depth8",
+  "organization_id": "org_runtime_review_stripe_20260402t105028z",
+  "artifact_path": "/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/artifacts/runtime-review-pass-20260402T105028Z-stripe-depth8.json",
+  "direct_credential_source": "environment",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "4b192935-4233-49b7-8d21-6d05a0c75942",
+    "organization_id": "org_runtime_review_stripe_20260402t105028z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "978c3285-564d-48d0-8906-610602b81b51"
+  },
+  "observed_at": "2026-04-02T10:50:35Z",
+  "fresh_until": "2026-05-02T10:50:35Z",
+  "counts_before": {
+    "published_reviews": 7,
+    "runtime_backed_reviews": 4
+  },
+  "target_depth": 5,
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "wallet.get_balance",
+        "provider": "stripe",
+        "credential_mode": "byo",
+        "cost_estimate_usd": 0.002,
+        "circuit_state": "closed",
+        "endpoint_pattern": null
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "wallet.get_balance",
+        "provider_used": "stripe",
+        "credential_mode": "byo",
+        "upstream_status": 200,
+        "upstream_response": {
+          "object": "balance",
+          "available": [
+            {
+              "amount": 0,
+              "currency": "usd",
+              "source_types": {
+                "card": 0
+              }
+            }
+          ],
+          "livemode": false,
+          "pending": [
+            {
+              "amount": 0,
+              "currency": "usd",
+              "source_types": {
+                "card": 0
+              }
+            }
+          ],
+          "refund_and_dispute_prefunding": {
+            "available": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              }
+            ],
+            "pending": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              }
+            ]
+          }
+        },
+        "cost_estimate_usd": 0.002,
+        "latency_ms": 231.1,
+        "fallback_attempted": false,
+        "fallback_provider": null,
+        "execution_id": "exec_ae410d6a615d42b2b766646bbd2c4b3a",
+        "receipt_id": "rcpt_ec38c0c7a3024778b39a68ba",
+        "_rhumb": {
+          "provider": {
+            "id": "stripe",
+            "name": "stripe",
+            "category": null,
+            "docs_url": null,
+            "an_score": null,
+            "tier": null
+          },
+          "layer": 2,
+          "receipt_id": "rcpt_ec38c0c7a3024778b39a68ba",
+          "latency": {
+            "total_ms": 231.1,
+            "provider_ms": 224.6,
+            "overhead_ms": 6.5
+          },
+          "credential_mode": "byo"
+        }
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 200,
+    "data": {
+      "object": "balance",
+      "available": [
+        {
+          "amount": 0,
+          "currency": "usd",
+          "source_types": {
+            "card": 0
+          }
+        }
+      ],
+      "livemode": false,
+      "pending": [
+        {
+          "amount": 0,
+          "currency": "usd",
+          "source_types": {
+            "card": 0
+          }
+        }
+      ],
+      "refund_and_dispute_prefunding": {
+        "available": [
+          {
+            "amount": 0,
+            "currency": "usd"
+          }
+        ],
+        "pending": [
+          {
+            "amount": 0,
+            "currency": "usd"
+          }
+        ]
+      }
+    }
+  },
+  "comparison": {
+    "rhumb_fields": {
+      "object": "balance",
+      "livemode": false,
+      "available": {
+        "currency": "usd",
+        "amount": 0,
+        "card_amount": 0
+      },
+      "pending": {
+        "currency": "usd",
+        "amount": 0,
+        "card_amount": 0
+      },
+      "refund_and_dispute_prefunding": {
+        "available": {
+          "currency": "usd",
+          "amount": 0
+        },
+        "pending": {
+          "currency": "usd",
+          "amount": 0
+        }
+      }
+    },
+    "direct_fields": {
+      "object": "balance",
+      "livemode": false,
+      "available": {
+        "currency": "usd",
+        "amount": 0,
+        "card_amount": 0
+      },
+      "pending": {
+        "currency": "usd",
+        "amount": 0,
+        "card_amount": 0
+      },
+      "refund_and_dispute_prefunding": {
+        "available": {
+          "currency": "usd",
+          "amount": 0
+        },
+        "pending": {
+          "currency": "usd",
+          "amount": 0
+        }
+      }
+    },
+    "parity": true
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "stripe",
+    "evidence_id": "3d01fe7d-d1d1-414b-8168-7ae0fce4b572",
+    "review_id": "1f3fbf1c-1d7a-4c55-a0e6-40fbe6dc6f21",
+    "execution_id": "exec_ae410d6a615d42b2b766646bbd2c4b3a"
+  },
+  "counts_after": {
+    "published_reviews": 8,
+    "runtime_backed_reviews": 5
+  },
+  "agent_disabled": true
+}
