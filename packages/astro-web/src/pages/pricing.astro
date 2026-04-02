@@ -44,14 +44,105 @@ const EXECUTION_EXAMPLES = [
   },
 ];
 
+const RAIL_CHOOSER = [
+  {
+    name: "Governed API key",
+    badge: "Default",
+    badgeClass:
+      "text-[11px] font-mono text-amber uppercase tracking-widest bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1",
+    useWhen: "You are shipping a production app, internal tool, or repeat agent workflow.",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Rhumb-managed account billing and controls.",
+    bestFor: "Teams that want the simplest default path.",
+    tradeoff: "Requires account signup before the first paid call.",
+  },
+  {
+    name: "Wallet-prefund",
+    badge: "Wallet-first",
+    badgeClass:
+      "text-[11px] font-mono text-emerald-300 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1",
+    useWhen: "You want wallet identity, but you also want repeat throughput and one stable execution key.",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Top up reusable balance from a wallet, then spend from that balance.",
+    bestFor: "Agents that are wallet-native but call Rhumb repeatedly.",
+    tradeoff: "Has a setup step before the first repeatable execution path.",
+  },
+  {
+    name: "x402 per-call",
+    badge: "Zero signup",
+    badgeClass:
+      "text-[11px] font-mono text-amber uppercase tracking-widest bg-amber/10 border border-amber/20 rounded-full px-2.5 py-1",
+    useWhen: "You want request-level payment authorization and no account signup before the first paid call.",
+    authHeader: "X-Payment",
+    moneyFlow: "USDC on Base, authorized per request.",
+    bestFor: "Ephemeral agents, demos, and strict per-request payment flows.",
+    tradeoff: "Not the easiest repeat-traffic rail today; tx-hash proof shape matters.",
+  },
+  {
+    name: "BYOK",
+    badge: "Provider control",
+    badgeClass:
+      "text-[11px] font-mono text-slate-300 uppercase tracking-widest bg-slate-800 rounded-full px-2.5 py-1",
+    useWhen: "You already have provider contracts, credentials, or compliance boundaries you must keep.",
+    authHeader: "Provider credential via Rhumb",
+    moneyFlow: "You pay the provider directly; Rhumb routes without markup on the credential itself.",
+    bestFor: "Enterprise teams and direct vendor-control cases.",
+    tradeoff: "You keep the credential-management burden.",
+  },
+];
+
+const BUYER_PATHS = [
+  {
+    title: "I just want the normal production setup",
+    summary: "Start with governed API key unless you have a strong reason not to.",
+    steps: [
+      "Create an account and get X-Rhumb-Key.",
+      "Estimate the capability cost before execution.",
+      "Execute through Layer 2 with Rhumb-managed routing and billing.",
+    ],
+    href: "/auth/login",
+    cta: "Start with API key",
+  },
+  {
+    title: "My agent is wallet-native and will call repeatedly",
+    summary: "Use wallet-prefund when wallet identity matters but repeat traffic matters more than zero-signup purity.",
+    steps: [
+      "Prove wallet control once and create the wallet session.",
+      "Top up reusable balance from the wallet flow.",
+      "Execute repeat calls with X-Rhumb-Key instead of paying every request individually.",
+    ],
+    href: "/payments/agent#wallet-prefund",
+    cta: "See wallet-prefund",
+  },
+  {
+    title: "I need a one-off or true pay-per-request flow",
+    summary: "Use x402 when payment authorization on each request is the product requirement.",
+    steps: [
+      "Request the capability and read the payment requirement.",
+      "Authorize the payment with X-Payment on the x402 rail.",
+      "If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.",
+    ],
+    href: "/payments/agent",
+    cta: "See x402 guide",
+  },
+];
+
 const FAQ = [
   {
     q: "What counts as a call?",
     a: "A call is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider calls are not charged.",
   },
   {
+    q: "Which rail should most buyers start with?",
+    a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it gives you one stable execution header, pre-call estimates, and simpler repeat-traffic operations.",
+  },
+  {
     q: "What is the difference between API key, wallet-prefund, and x402?",
     a: "API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance and currently uses the standard x402 authorization settlement path during top-up verification. x402 direct per-call execute is payment-as-auth using X-Payment, but today the repeatable public execute path expects legacy tx-hash proof rather than wrapped authorization payloads.",
+  },
+  {
+    q: "Do I need crypto to use Rhumb?",
+    a: "No. Most buyers should not start with crypto. If you are using the governed API-key path or BYOK, you do not need wallet setup. Wallet-prefund and x402 are wallet-first rails for teams that explicitly want those payment properties.",
   },
 ];
 
@@ -220,6 +311,81 @@ const PRICING_JSON_LD = {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="rail-chooser" aria-label="Human-readable rail chooser">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pick the right rail</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Choose based on how money moves, not on jargon.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              Buyers do not need a protocol lecture first. Ask three questions: do you want the default production path,
+              do you need wallet identity, and do you need each request to carry its own payment authorization?
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            {RAIL_CHOOSER.map((rail) => (
+              <article class="rounded-xl border border-slate-800 bg-navy p-5">
+                <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+                  <h3 class="font-display text-lg font-semibold text-slate-100">{rail.name}</h3>
+                  <span class={rail.badgeClass}>{rail.badge}</span>
+                </div>
+                <dl class="space-y-3 text-sm leading-6">
+                  <div>
+                    <dt class="text-slate-500">Use when</dt>
+                    <dd class="text-slate-200">{rail.useWhen}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">You send</dt>
+                    <dd class="text-slate-200 font-mono text-xs">{rail.authHeader}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Money flow</dt>
+                    <dd class="text-slate-200">{rail.moneyFlow}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Best for</dt>
+                    <dd class="text-slate-200">{rail.bestFor}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-500">Tradeoff</dt>
+                    <dd class="text-slate-400">{rail.tradeoff}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="buyer-paths" aria-label="Common buyer paths">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Common buyer paths</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Three realistic ways buyers arrive here.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              If you are unsure which rail fits, find the path that sounds like you and start there.
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            {BUYER_PATHS.map((path) => (
+              <article class="rounded-xl border border-slate-800 bg-navy p-5 h-full flex flex-col">
+                <h3 class="font-display text-lg font-semibold text-slate-100">{path.title}</h3>
+                <p class="mt-3 text-sm text-slate-400 leading-6">{path.summary}</p>
+                <ol class="mt-5 space-y-3 text-sm text-slate-300 leading-6 list-decimal pl-5">
+                  {path.steps.map((step) => (
+                    <li>{step}</li>
+                  ))}
+                </ol>
+                <a href={path.href} class="mt-6 inline-flex text-sm text-amber hover:underline underline-offset-2">
+                  {path.cta} →
+                </a>
+              </article>
+            ))}
           </div>
         </div>
       </section>
