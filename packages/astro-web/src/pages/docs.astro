@@ -229,6 +229,78 @@ const MCP_TOOLS = [
         </div>
       </header>
 
+      <section class="mb-16" id="resolve-mental-model">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">Start here</span>
+        </div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Resolve mental model in 60 seconds</h2>
+        <p class="text-slate-400 leading-relaxed mb-6 max-w-3xl">
+          {PUBLIC_TRUTH.resolveMentalModel.defaultPath}
+        </p>
+
+        <div class="grid gap-4 lg:grid-cols-2 mb-4">
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Interface surfaces</p>
+            <div class="space-y-3">
+              {PUBLIC_TRUTH.resolveMentalModel.surfaces.map((item) => (
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">{item.name}</p>
+                  <p class="text-sm text-slate-400 leading-6">{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Entity types</p>
+            <div class="space-y-3">
+              {PUBLIC_TRUTH.resolveMentalModel.entities.map((item) => (
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">{item.name}</p>
+                  <p class="text-sm text-slate-400 leading-6">{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Execution layers</p>
+            <div class="space-y-3">
+              {PUBLIC_TRUTH.resolveMentalModel.layers.map((item) => (
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">{item.name}</p>
+                  <p class="text-sm text-slate-400 leading-6">{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="bg-surface border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Auth + payment rails</p>
+            <div class="space-y-3">
+              {PUBLIC_TRUTH.resolveMentalModel.rails.map((item) => (
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">{item.name}</p>
+                  <p class="text-sm text-slate-400 leading-6">{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-surface border border-slate-800 rounded-xl p-5">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Credential modes</p>
+          <div class="grid gap-4 sm:grid-cols-3">
+            {PUBLIC_TRUTH.resolveMentalModel.credentialModes.map((item) => (
+              <div>
+                <p class="text-sm font-semibold text-slate-100">{item.name}</p>
+                <p class="text-sm text-slate-400 leading-6">{item.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section class="mb-16">
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Auth + payment rails</h2>
         <div class="grid gap-4 sm:grid-cols-4">

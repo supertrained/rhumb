@@ -41,6 +41,17 @@ Rhumb is strongest today for **research, extraction, generation, and narrow enri
 
 Treat it as capability infrastructure first, not as a general business-agent automation layer yet. Layer 2 is the real production surface today; Layer 3 is still beta with an intentionally sparse public catalog.
 
+## Resolve mental model
+
+- **Service** = vendor Rhumb evaluates and compares
+- **Capability** = executable action your MCP client can route and execute
+- **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
+- **Layer 2 is the default path** — discover → resolve → estimate → execute
+- **Default auth for repeat traffic** = `RHUMB_API_KEY` via governed account or wallet-prefunded API key
+- **Use x402** only when zero-signup per-call payment is the point
+
+Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
+
 ## What's new in v2.0.0
 
 **Rhumb Resolve** — three execution layers:

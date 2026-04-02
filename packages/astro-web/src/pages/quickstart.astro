@@ -106,6 +106,45 @@ const QUICKSTART_JSON_LD = {
         </div>
       </section>
 
+      <section class="mb-16">
+        <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Mental model</p>
+            <h2 class="font-display font-bold text-2xl text-slate-100">Use one default path unless you have a reason not to</h2>
+            <p class="text-slate-400 text-sm mt-2 leading-relaxed">
+              {PUBLIC_TRUTH.resolveMentalModel.defaultPath}
+            </p>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-4">
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Think in entities</p>
+              <p class="text-sm text-slate-300 leading-6">
+                <strong class="text-slate-100">Service</strong> = vendor. <strong class="text-slate-100">Capability</strong> = executable action. <strong class="text-slate-100">Recipe</strong> = compiled workflow.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Default layer</p>
+              <p class="text-sm text-slate-300 leading-6">
+                Start with <strong class="text-slate-100">Layer 2</strong>: capability routing. It is the cleanest real production surface today.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Default auth rail</p>
+              <p class="text-sm text-slate-300 leading-6">
+                Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-navy p-5">
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Canonical docs</p>
+              <p class="text-sm text-slate-300 leading-6">
+                Full map: <a href="/docs#resolve-mental-model" class="text-amber hover:underline">/docs#resolve-mental-model</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Step 1: Try the API -->
       <section class="mb-16">
         <div class="flex items-center gap-3 mb-6">

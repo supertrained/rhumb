@@ -96,6 +96,17 @@ Treat broader multi-system business automation as future scope, not the current 
 - **API key** — sign up, get a key, prepaid credits
 - **x402 / USDC** — no signup, pay per call on-chain
 
+### Resolve mental model
+
+- **Service** = vendor Rhumb evaluates and compares
+- **Capability** = executable action like `email.send`
+- **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
+- **Layer 2 is the default path** — discover a Service, choose a Capability, estimate, then execute
+- **Default auth for repeat traffic** = governed API key or wallet-prefunded API key
+- **Use x402** when zero-signup per-call payment matters more than repeat throughput
+
+Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
+
 ---
 
 ## MCP tools
