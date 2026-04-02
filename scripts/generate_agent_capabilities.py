@@ -13,6 +13,7 @@ SERVER_TS = ROOT / "packages/mcp/src/server.ts"
 PUBLIC_TRUTH_TS = ROOT / "packages/astro-web/src/lib/public-truth.ts"
 OUTPUT_JSON = ROOT / "agent-capabilities.json"
 WELL_KNOWN_OUTPUT_JSON = ROOT / "packages/astro-web/public/.well-known/agent-capabilities.json"
+LLMS_TXT = ROOT / "llms.txt"
 ROOT_README = ROOT / "README.md"
 MCP_README = ROOT / "packages/mcp/README.md"
 
@@ -235,6 +236,76 @@ def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: di
     return "\n\n".join(sections)
 
 
+def render_llms_txt(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
+    return f"""# Rhumb — Agent-Native Tool Intelligence
+> Canonical public docs: https://rhumb.dev/llms.txt
+
+## What is Rhumb?
+Rhumb is agent-native tool intelligence: discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.
+
+## Primary surfaces
+- Website: https://rhumb.dev
+- API: https://api.rhumb.dev/v1
+- MCP: npx rhumb-mcp@latest
+- npm: https://www.npmjs.com/package/rhumb-mcp
+
+## Current coverage
+- {public_truth['servicesLabel']} scored services across {public_truth['domainsLabel']} domains
+- {public_truth['capabilitiesLabel']} capabilities
+- 92 categories
+- {public_truth['callableProvidersLabel']} callable providers
+- {public_truth['mcpToolsLabel']} MCP tools
+- 3 credential modes: BYO, Rhumb-managed, Agent Vault
+
+## Discovery (no auth)
+- GET https://api.rhumb.dev/v1/search?q={{query}} — search services
+- GET https://api.rhumb.dev/v1/services/{{slug}}/score — AN Score breakdown
+- GET https://api.rhumb.dev/v1/services/{{slug}}/failures — known failure modes
+- GET https://api.rhumb.dev/v1/capabilities — browse capability registry
+- GET https://api.rhumb.dev/v1/capabilities/{{id}}/resolve — ranked providers
+- GET https://api.rhumb.dev/v1/leaderboard/{{category}} — category rankings
+- GET https://api.rhumb.dev/v1/telemetry/provider-health — provider health status
+- GET https://api.rhumb.dev/v1/pricing — machine-readable pricing
+
+## Execution (requires API key or x402 payment)
+- POST https://api.rhumb.dev/v1/capabilities/{{id}}/execute — execute a capability
+- GET https://api.rhumb.dev/v1/capabilities/{{id}}/execute/estimate — cost estimate
+
+## Auth paths
+1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
+2. x402 / USDC: no signup, pay per call, send X-Payment header
+3. BYO credentials: pass your own upstream API keys
+
+## MCP tools ({public_truth['mcpToolsLabel']} total)
+Discovery: {', '.join(GROUPS[0][3])}
+Execution: {', '.join(GROUPS[1][3])}
+Billing: {', '.join(GROUPS[2][3])}
+Operations: {', '.join(GROUPS[3][3])}
+
+## Key tool semantics
+- find_services — {tools['find_services']}
+- get_score — {tools['get_score']}
+- resolve_capability — {tools['resolve_capability']}
+- execute_capability — {tools['execute_capability']}
+- estimate_capability — {tools['estimate_capability']}
+- get_receipt — {tools['get_receipt']}
+- usage_telemetry — {tools['usage_telemetry']}
+
+## Pricing
+- Discovery: free, no auth
+- Execution: prepaid credits or x402 per-call
+- Free tier: 1,000 calls/month
+
+## Links
+- Quickstart: https://rhumb.dev/quickstart
+- Methodology: https://rhumb.dev/methodology
+- Trust: https://rhumb.dev/trust
+- Pricing: https://rhumb.dev/pricing
+- Blog: https://rhumb.dev/blog
+- GitHub: https://github.com/supertrained/rhumb
+- Public agent capabilities: https://rhumb.dev/.well-known/agent-capabilities.json""" + "\n"
+
+
 def replace_managed_block(text: str, start_marker: str, end_marker: str, body: str) -> str:
     pattern = re.compile(rf"{re.escape(start_marker)}.*?{re.escape(end_marker)}", re.S)
     if not pattern.search(text):
@@ -271,6 +342,7 @@ def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, st
     return {
         OUTPUT_JSON: agent_contract,
         WELL_KNOWN_OUTPUT_JSON: agent_contract,
+        LLMS_TXT: render_llms_txt(public_truth, tools),
         ROOT_README: root_readme,
         MCP_README: mcp_readme,
     }
