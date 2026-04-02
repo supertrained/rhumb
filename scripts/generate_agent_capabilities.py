@@ -202,9 +202,11 @@ def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[
 
 {render_tool_bullets(GROUPS[0][3], tools)}
 
+> Discovery breadth is wider than current execution coverage. The index is broader than what Rhumb can execute today.
+
 ### Rhumb Resolve — Execute
 
-**{public_truth['capabilitiesLabel']} capabilities** across {public_truth['callableProvidersLabel']} callable providers. Cost-aware routing picks the best provider for each call.
+**{public_truth['capabilitiesLabel']} capability definitions** across **{public_truth['callableProvidersLabel']} callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
 
 - `execute_capability` — {tools['execute_capability']}
 - `resolve_capability` — {tools['resolve_capability']}
@@ -220,6 +222,9 @@ def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, s
     for group_name, _, _, tool_names in GROUPS:
         title = group_name.capitalize()
         sections.append(f"\n**{title}**\n{render_tool_bullets(tool_names, tools)}")
+    sections.append(
+        f"\n> Discovery spans {public_truth['servicesLabel']} scored services, but current governed execution spans {public_truth['callableProvidersLabel']} callable providers."
+    )
     sections.append(
         "\n> Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists."
     )
@@ -241,6 +246,7 @@ def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: di
         f"**Execution (auth):** {', '.join(f'`{name}`' for name in GROUPS[1][3])}\n\n"
         f"**Financial (auth):** {', '.join(f'`{name}`' for name in GROUPS[2][3])}\n\n"
         f"**Operations (auth):** {', '.join(f'`{name}`' for name in GROUPS[3][3])}\n\n"
+        f"> Discovery spans {public_truth['servicesLabel']} scored services, but current governed execution spans {public_truth['callableProvidersLabel']} callable providers.\n\n"
         f"> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current launch promise."
     )
     return "\n\n".join(sections)
@@ -265,11 +271,17 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 
 ## Current coverage
 - {public_truth['servicesLabel']} scored services across {public_truth['domainsLabel']} domains
-- {public_truth['capabilitiesLabel']} capabilities
+- {public_truth['capabilitiesLabel']} capability definitions
 - {public_truth['categoriesLabel']} categories
 - {public_truth['callableProvidersLabel']} callable providers
 - {public_truth['mcpToolsLabel']} MCP tools
 - 3 credential modes: BYO, Rhumb-managed, Agent Vault
+
+## Honest current state
+- Discovery breadth is wider than execution breadth
+- The index covers {public_truth['servicesLabel']} scored services and {public_truth['capabilitiesLabel']} capability definitions
+- Current governed execution surface is {public_truth['callableProvidersLabel']} callable providers
+- Best current fit remains {public_truth['beachheadLabel']}
 
 ## Discovery (no auth)
 - GET https://api.rhumb.dev/v1/search?q={{query}} — search services

@@ -16,11 +16,17 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 
 ## Current coverage
 - 1,038 scored services across 50+ domains
-- 415 capabilities
+- 415 capability definitions
 - 92 categories
 - 16 callable providers
 - 21 MCP tools
 - 3 credential modes: BYO, Rhumb-managed, Agent Vault
+
+## Honest current state
+- Discovery breadth is wider than execution breadth
+- The index covers 1,038 scored services and 415 capability definitions
+- Current governed execution surface is 16 callable providers
+- Best current fit remains research, extraction, generation, and narrow enrichment
 
 ## Discovery (no auth)
 - GET https://api.rhumb.dev/v1/search?q={query} — search services

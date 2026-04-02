@@ -70,9 +70,11 @@ Treat broader multi-system business automation as future scope, not the current 
 - `discover_capabilities` — Browse Capabilities by domain or search text
 - `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
 
+> Discovery breadth is wider than current execution coverage. The index is broader than what Rhumb can execute today.
+
 ### Rhumb Resolve — Execute
 
-**415 capabilities** across 16 callable providers. Cost-aware routing picks the best provider for each call.
+**415 capability definitions** across **16 callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
@@ -142,6 +144,8 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 **Operations**
 - `routing` — Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability
 - `usage_telemetry` — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
+
+> Discovery spans 1,038 scored services, but current governed execution spans 16 callable providers.
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
 

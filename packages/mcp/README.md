@@ -41,6 +41,8 @@ Rhumb is strongest today for **research, extraction, generation, and narrow enri
 
 Treat it as capability infrastructure first, not as a general business-agent automation layer yet. Layer 2 is the real production surface today; Layer 3 is still beta with an intentionally sparse public catalog.
 
+Discovery breadth is wider than current execution breadth: Rhumb scores **1,038 services** and exposes **415 capability definitions**, but current governed execution is concentrated in **16 callable providers**.
+
 ## Resolve mental model
 
 - **Service** = vendor Rhumb evaluates and compares
@@ -147,6 +149,8 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 **Financial (auth):** `budget`, `spend`, `check_balance`, `get_payment_url`, `get_ledger`
 
 **Operations (auth):** `routing`, `usage_telemetry`
+
+> Discovery spans 1,038 scored services, but current governed execution spans 16 callable providers.
 
 > Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
 <!-- GENERATED:MCP_README_TOOL_SURFACE_END -->
