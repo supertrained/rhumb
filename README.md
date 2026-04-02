@@ -54,16 +54,16 @@ Rhumb makes those constraints visible before you commit.
 
 ### Rhumb Index — Discover & Evaluate
 
-**695 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+**1,038 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
 
 - `find_services` — search by capability, domain, or name
-- `an_score` — full score breakdown with dimension-level detail
+- `get_score` — full score breakdown with dimension-level detail
 - `get_alternatives` — ranked alternatives for any service
 - `get_failure_modes` — known failure patterns before you integrate
 
 ### Rhumb Resolve — Execute
 
-**414 capabilities** across 23 providers. Cost-aware routing picks the best provider for each call.
+**415 capabilities** across 16 callable providers. Cost-aware routing picks the best provider for each call.
 
 - `execute_capability` — call a capability through Resolve with managed auth
 - `resolve_capability` — see ranked providers before executing
@@ -91,19 +91,21 @@ Rhumb makes those constraints visible before you commit.
 
 **Discovery**
 - `find_services` — search services
-- `an_score` — score breakdown
+- `get_score` — score breakdown
 - `get_alternatives` — ranked alternatives
 - `get_failure_modes` — failure patterns
 - `discover_capabilities` — browse capability registry
-- `usage_telemetry` — your usage analytics
+- `resolve_capability` — ranked providers for a capability
 
 **Execution**
-- `resolve_capability` — ranked providers for a capability
 - `execute_capability` — execute through Resolve
 - `estimate_capability` — cost estimate before execution
+- `rhumb_list_recipes` — browse published Layer 3 recipes
+- `rhumb_get_recipe` — inspect a published recipe definition
+- `rhumb_recipe_execute` — execute a published Layer 3 recipe
 - `credential_ceremony` — set up credentials
 - `check_credentials` — verify credential status
-- `routing` — configure routing strategy
+- `get_receipt` — retrieve an HMAC-signed execution receipt
 
 **Billing**
 - `budget` — set spend limits
@@ -111,6 +113,10 @@ Rhumb makes those constraints visible before you commit.
 - `check_balance` — prepaid balance
 - `get_payment_url` — top-up link
 - `get_ledger` — transaction history
+
+**Operations**
+- `routing` — configure routing strategy
+- `usage_telemetry` — your usage analytics
 
 ---
 

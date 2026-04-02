@@ -96,9 +96,9 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 |------|-------------|
 | `execute_capability` | Call a capability through Rhumb Resolve (Layer 2) |
 | `estimate_capability` | Get cost before executing (no charge) |
-| `recipe_execute` | Execute a compiled recipe (Layer 3) |
-| `list_recipes` | Browse available recipes |
-| `get_recipe` | Get recipe details and step definitions |
+| `rhumb_recipe_execute` | Execute a compiled recipe (Layer 3) |
+| `rhumb_list_recipes` | Browse available recipes |
+| `rhumb_get_recipe` | Get recipe details and step definitions |
 | `check_credentials` | See what you can call right now |
 | `credential_ceremony` | Step-by-step guide to get provider credentials |
 | `get_receipt` | Retrieve HMAC-signed execution receipt with chain hash |
@@ -124,7 +124,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 
 **Discovery (free):** `find_services`, `get_score`, `get_alternatives`, `get_failure_modes`, `discover_capabilities`, `resolve_capability`
 
-**Execution (auth):** `execute_capability`, `estimate_capability`, `recipe_execute`, `list_recipes`, `get_recipe`, `check_credentials`, `credential_ceremony`, `get_receipt`
+**Execution (auth):** `execute_capability`, `estimate_capability`, `rhumb_recipe_execute`, `rhumb_list_recipes`, `rhumb_get_recipe`, `check_credentials`, `credential_ceremony`, `get_receipt`
 
 **Financial (auth):** `budget`, `spend`, `check_balance`, `get_payment_url`, `get_ledger`
 
@@ -159,8 +159,8 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 
 > "Enrich this contact, find their company, and draft an intro email."
 
-- `list_recipes` → browse available workflows
-- `recipe_execute` → run the compiled recipe
+- `rhumb_list_recipes` → browse available workflows
+- `rhumb_recipe_execute` → run the compiled recipe
 - Each step is content-firewalled, budget-enforced, and produces a receipt
 
 ## x402 micropayments

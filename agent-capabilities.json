@@ -13,27 +13,29 @@
   },
   "capabilities": {
     "discovery": {
-      "description": "Search, score, and evaluate 695+ services across 50+ domains",
+      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
       "auth_required": false,
       "tools": [
         {"name": "find_services", "description": "Search services by capability, domain, or name"},
-        {"name": "an_score", "description": "Get AN Score breakdown (0-10) for a service"},
+        {"name": "get_score", "description": "Get AN Score breakdown (0-10) for a service"},
         {"name": "get_alternatives", "description": "Find ranked alternatives to any service"},
         {"name": "get_failure_modes", "description": "Get known failure patterns before integrating"},
         {"name": "discover_capabilities", "description": "Browse the capability registry"},
-        {"name": "usage_telemetry", "description": "Query your own usage analytics"}
+        {"name": "resolve_capability", "description": "Get ranked providers for a capability"}
       ]
     },
     "execution": {
       "description": "Execute capabilities through Resolve with managed auth and cost-aware routing",
       "auth_required": true,
       "tools": [
-        {"name": "resolve_capability", "description": "Get ranked providers for a capability"},
         {"name": "execute_capability", "description": "Execute a capability through Resolve"},
         {"name": "estimate_capability", "description": "Get cost estimate before execution"},
         {"name": "credential_ceremony", "description": "Set up credentials for a provider"},
         {"name": "check_credentials", "description": "Verify credential status"},
-        {"name": "routing", "description": "Configure routing strategy"}
+        {"name": "rhumb_list_recipes", "description": "Browse published Layer 3 recipes"},
+        {"name": "rhumb_get_recipe", "description": "Inspect a published recipe definition"},
+        {"name": "rhumb_recipe_execute", "description": "Execute a published Layer 3 recipe"},
+        {"name": "get_receipt", "description": "Retrieve an HMAC-signed execution receipt"}
       ]
     },
     "billing": {
@@ -46,14 +48,22 @@
         {"name": "get_payment_url", "description": "Get top-up link"},
         {"name": "get_ledger", "description": "Transaction history"}
       ]
+    },
+    "operations": {
+      "description": "Routing preferences and usage analytics",
+      "auth_required": true,
+      "tools": [
+        {"name": "routing", "description": "Configure routing strategy"},
+        {"name": "usage_telemetry", "description": "Query your own usage analytics"}
+      ]
     }
   },
   "coverage": {
-    "services": 695,
-    "capabilities": 414,
+    "services": 1038,
+    "capabilities": 415,
     "domains": 50,
     "categories": 92,
-    "providers_with_execution": 23,
+    "providers_with_execution": 16,
     "credential_modes": ["byo", "rhumb_managed", "agent_vault"]
   },
   "scoring": {
