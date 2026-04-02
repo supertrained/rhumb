@@ -100,6 +100,24 @@ _PATH_TRAVERSAL_PATTERNS: list[tuple[re.Pattern, str]] = [
 MAX_FIELD_LENGTH = 100_000  # 100KB per field
 MAX_TOTAL_CONTENT_LENGTH = 1_000_000  # 1MB total across all fields
 
+_INVISIBLE_CHARS = frozenset([
+    "\u200b",  # zero-width space
+    "\u200c",  # zero-width non-joiner
+    "\u200d",  # zero-width joiner
+    "\u200e",  # left-to-right mark
+    "\u200f",  # right-to-left mark
+    "\u2060",  # word joiner
+    "\u2061",  # function application
+    "\u2062",  # invisible times
+    "\u2063",  # invisible separator
+    "\u2064",  # invisible plus
+    "\ufeff",  # byte order mark / zero-width no-break space
+    "\u00ad",  # soft hyphen
+    "\u034f",  # combining grapheme joiner
+    "\u061c",  # arabic letter mark
+    "\u180e",  # mongolian vowel separator
+])
+
 
 class ContentFirewall:
     """Inspects data flowing between recipe steps for safety violations.
@@ -207,23 +225,6 @@ class ContentFirewall:
         normalized = unicodedata.normalize("NFKC", text)
 
         # Strip zero-width and invisible formatting characters
-        _INVISIBLE_CHARS = frozenset([
-            "\u200b",  # zero-width space
-            "\u200c",  # zero-width non-joiner
-            "\u200d",  # zero-width joiner
-            "\u200e",  # left-to-right mark
-            "\u200f",  # right-to-left mark
-            "\u2060",  # word joiner
-            "\u2061",  # function application
-            "\u2062",  # invisible times
-            "\u2063",  # invisible separator
-            "\u2064",  # invisible plus
-            "\ufeff",  # byte order mark / zero-width no-break space
-            "\u00ad",  # soft hyphen
-            "\u034f",  # combining grapheme joiner
-            "\u061c",  # arabic letter mark
-            "\u180e",  # mongolian vowel separator
-        ])
         normalized = "".join(c for c in normalized if c not in _INVISIBLE_CHARS)
 
         return normalized
