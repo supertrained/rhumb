@@ -491,6 +491,7 @@ class TestFetchScoresFromDb:
         called_url = mock_client.get.call_args.args[0]
         assert "aggregate_recommendation_score" in called_url
         assert ",score," not in called_url
+        assert "dimension_snapshot" not in called_url
         assert "?select=service_slug,score," not in called_url
 
     @pytest.mark.asyncio
