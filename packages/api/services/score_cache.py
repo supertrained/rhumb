@@ -347,14 +347,10 @@ async def fetch_scores_from_db() -> list[CachedScore]:
         "Authorization": f"Bearer {settings.supabase_service_role_key}",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(url, headers=headers)
-            resp.raise_for_status()
-            rows = resp.json()
-    except Exception:
-        logger.exception("score_cache_refresh_failed")
-        return []
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+        rows = resp.json()
 
     # Deduplicate: keep only the latest per slug (query ordered desc)
     seen: set[str] = set()

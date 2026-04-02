@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+import httpx
 
 from services.score_cache import (
     CachedScore,
@@ -491,6 +492,20 @@ class TestFetchScoresFromDb:
         assert "aggregate_recommendation_score" in called_url
         assert ",score," not in called_url
         assert "?select=service_slug,score," not in called_url
+
+    @pytest.mark.asyncio
+    async def test_fetch_scores_from_db_raises_instead_of_masking_query_errors(self):
+        request = httpx.Request("GET", "https://example.test/rest/v1/scores")
+        response = httpx.Response(400, request=request, text='{"code":"42703"}')
+
+        mock_client = AsyncMock()
+        mock_client.get.return_value = response
+        mock_client.__aenter__.return_value = mock_client
+        mock_client.__aexit__.return_value = None
+
+        with patch("services.score_cache.httpx.AsyncClient", return_value=mock_client):
+            with pytest.raises(httpx.HTTPStatusError):
+                await fetch_scores_from_db()
 
     @pytest.mark.asyncio
     async def test_fetch_scores_from_db_parses_live_scores_shape(self):
