@@ -32,9 +32,9 @@
         {"name": "estimate_capability", "description": "Get cost estimate before execution"},
         {"name": "credential_ceremony", "description": "Set up credentials for a provider"},
         {"name": "check_credentials", "description": "Verify credential status"},
-        {"name": "rhumb_list_recipes", "description": "Browse published Layer 3 recipes"},
-        {"name": "rhumb_get_recipe", "description": "Inspect a published recipe definition"},
-        {"name": "rhumb_recipe_execute", "description": "Execute a published Layer 3 recipe"},
+        {"name": "rhumb_list_recipes", "description": "Check the current public Layer 3 recipe catalog; it may still be empty"},
+        {"name": "rhumb_get_recipe", "description": "Inspect a recipe definition only after it appears in the public catalog"},
+        {"name": "rhumb_recipe_execute", "description": "Execute a published Layer 3 recipe after confirming it is live in the public catalog"},
         {"name": "get_receipt", "description": "Retrieve an HMAC-signed execution receipt"}
       ]
     },
