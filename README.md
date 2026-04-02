@@ -52,23 +52,28 @@ Agents need external tools. Choosing the right one is hard — not because of fe
 
 Rhumb makes those constraints visible before you commit.
 
+<!-- GENERATED:README_PRODUCT_SURFACE_START -->
 ### Rhumb Index — Discover & Evaluate
 
 **1,038 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
 
-- `find_services` — search by capability, domain, or name
-- `get_score` — full score breakdown with dimension-level detail
-- `get_alternatives` — ranked alternatives for any service
-- `get_failure_modes` — known failure patterns before you integrate
+- `find_services` — Search indexed Services by what you need them to do
+- `get_score` — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness
+- `get_alternatives` — Find alternative Services, ranked by AN Score
+- `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
+- `discover_capabilities` — Browse Capabilities by domain or search text
+- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
 
 ### Rhumb Resolve — Execute
 
 **415 capabilities** across 16 callable providers. Cost-aware routing picks the best provider for each call.
 
-- `execute_capability` — call a capability through Resolve with managed auth
-- `resolve_capability` — see ranked providers before executing
-- `estimate_capability` — get cost estimate before committing
+- `execute_capability` — Call a Capability through Rhumb Resolve
+- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
+- `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
+- `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
+<!-- GENERATED:README_PRODUCT_SURFACE_END -->
 
 ### Three credential modes
 
@@ -87,38 +92,40 @@ Rhumb makes those constraints visible before you commit.
 
 ## MCP tools
 
+<!-- GENERATED:README_MCP_TOOLS_START -->
 `rhumb-mcp` exposes **21 tools**:
 
 **Discovery**
-- `find_services` — search services
-- `get_score` — score breakdown
-- `get_alternatives` — ranked alternatives
-- `get_failure_modes` — failure patterns
-- `discover_capabilities` — browse capability registry
-- `resolve_capability` — ranked providers for a capability
+- `find_services` — Search indexed Services by what you need them to do
+- `get_score` — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness
+- `get_alternatives` — Find alternative Services, ranked by AN Score
+- `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
+- `discover_capabilities` — Browse Capabilities by domain or search text
+- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
 
 **Execution**
-- `execute_capability` — execute through Resolve
-- `estimate_capability` — cost estimate before execution
-- `rhumb_list_recipes` — check the current published Layer 3 catalog
-- `rhumb_get_recipe` — inspect a recipe only after it appears in that catalog
-- `rhumb_recipe_execute` — execute a published Layer 3 recipe once one is live
-- `credential_ceremony` — set up credentials
-- `check_credentials` — verify credential status
-- `get_receipt` — retrieve an HMAC-signed execution receipt
+- `execute_capability` — Call a Capability through Rhumb Resolve
+- `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
+- `credential_ceremony` — Get step-by-step instructions to obtain API credentials for a Service
+- `check_credentials` — Check what credential modes are available to you
+- `rhumb_list_recipes` — List the current published Rhumb Layer 3 recipe catalog
+- `rhumb_get_recipe` — Get the full published definition for a Rhumb recipe, including input/output schemas and step topology
+- `rhumb_recipe_execute` — Execute a published Rhumb Layer 3 recipe once one is live in the public catalog
+- `get_receipt` — Retrieve an execution receipt by ID
 
 **Billing**
-- `budget` — set spend limits
-- `spend` — check current spend
-- `check_balance` — prepaid balance
-- `get_payment_url` — top-up link
-- `get_ledger` — transaction history
+- `budget` — Check or set your call spending limit
+- `spend` — Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider
+- `check_balance` — Check your current Rhumb credit balance in USD
+- `get_payment_url` — Get a checkout URL to add credits to your Rhumb balance
+- `get_ledger` — Get your billing history: charges (debits), top-ups (credits), and auto-reload events
 
 **Operations**
-- `routing` — configure routing strategy
-- `usage_telemetry` — your usage analytics
+- `routing` — Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability
+- `usage_telemetry` — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
+<!-- GENERATED:README_MCP_TOOLS_END -->
 
 ---
 

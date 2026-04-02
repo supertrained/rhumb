@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 from pathlib import Path
@@ -11,6 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SERVER_TS = ROOT / "packages/mcp/src/server.ts"
 PUBLIC_TRUTH_TS = ROOT / "packages/astro-web/src/lib/public-truth.ts"
 OUTPUT_JSON = ROOT / "agent-capabilities.json"
+ROOT_README = ROOT / "README.md"
+MCP_README = ROOT / "packages/mcp/README.md"
+
+README_PRODUCT_START = "<!-- GENERATED:README_PRODUCT_SURFACE_START -->"
+README_PRODUCT_END = "<!-- GENERATED:README_PRODUCT_SURFACE_END -->"
+README_MCP_TOOLS_START = "<!-- GENERATED:README_MCP_TOOLS_START -->"
+README_MCP_TOOLS_END = "<!-- GENERATED:README_MCP_TOOLS_END -->"
+MCP_README_TOOL_SURFACE_START = "<!-- GENERATED:MCP_README_TOOL_SURFACE_START -->"
+MCP_README_TOOL_SURFACE_END = "<!-- GENERATED:MCP_README_TOOL_SURFACE_END -->"
 
 
 GROUPS: list[tuple[str, str, bool, list[str]]] = [
@@ -93,7 +103,7 @@ def extract_tools() -> dict[str, str]:
     )
     tools: dict[str, str] = {}
     for name, description in pattern.findall(text):
-        desc = bytes(description, "utf-8").decode("unicode_escape")
+        desc = ast.literal_eval(f'"{description}"')
         tools[name] = desc.split(". ", 1)[0].strip().rstrip(".")
     if len(tools) != 21:
         raise RuntimeError(f"Expected 21 MCP tools from {SERVER_TS}, got {len(tools)}")
@@ -169,28 +179,130 @@ def build_agent_capabilities() -> dict:
     }
 
 
+def render_tool_bullets(tool_names: list[str], tools: dict[str, str]) -> str:
+    return "\n".join(f"- `{tool_name}` — {tools[tool_name]}" for tool_name in tool_names)
+
+
+def render_tool_table(tool_names: list[str], tools: dict[str, str]) -> str:
+    rows = ["| Tool | What it does |", "|------|-------------|"]
+    rows.extend(f"| `{tool_name}` | {tools[tool_name]} |" for tool_name in tool_names)
+    return "\n".join(rows)
+
+
+def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
+    return f"""### Rhumb Index — Discover & Evaluate
+
+**{public_truth['servicesLabel']} scored services** across {public_truth['domainsLabel']} domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+
+{render_tool_bullets(GROUPS[0][3], tools)}
+
+### Rhumb Resolve — Execute
+
+**{public_truth['capabilitiesLabel']} capabilities** across {public_truth['callableProvidersLabel']} callable providers. Cost-aware routing picks the best provider for each call.
+
+- `execute_capability` — {tools['execute_capability']}
+- `resolve_capability` — {tools['resolve_capability']}
+- `estimate_capability` — {tools['estimate_capability']}
+- `get_receipt` — {tools['get_receipt']}
+- Budget enforcement, credential management, and execution telemetry included"""
+
+
+def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
+    sections: list[str] = [f"`rhumb-mcp` exposes **{public_truth['mcpToolsLabel']} tools**:"]
+    for group_name, _, _, tool_names in GROUPS:
+        title = group_name.capitalize()
+        sections.append(f"\n**{title}**\n{render_tool_bullets(tool_names, tools)}")
+    sections.append(
+        "\n> Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists."
+    )
+    return "\n".join(sections)
+
+
+def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
+    sections: list[str] = []
+    sections.append(f"## Discovery tools (no auth, {len(GROUPS[0][3])} tools)\n\n{render_tool_table(GROUPS[0][3], tools)}")
+    sections.append(f"## Execution tools (auth required, {len(GROUPS[1][3])} tools)\n\n```json\n{{\n  \"mcpServers\": {{\n    \"rhumb\": {{\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"rhumb-mcp@latest\"],\n      \"env\": {{\n        \"RHUMB_API_KEY\": \"rk_your_key_here\"\n      }}\n    }}\n  }}\n}}\n```\n\nGet a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).\n\n{render_tool_table(GROUPS[1][3], tools)}")
+    sections.append(f"## Financial tools (auth required, {len(GROUPS[2][3])} tools)\n\n{render_tool_table(GROUPS[2][3], tools)}")
+    sections.append(f"## Operations tools (auth required, {len(GROUPS[3][3])} tools)\n\n{render_tool_table(GROUPS[3][3], tools)}")
+    sections.append(
+        f"## {public_truth['mcpToolsLabel']} MCP tools\n\n"
+        f"**Discovery (free):** {', '.join(f'`{name}`' for name in GROUPS[0][3])}\n\n"
+        f"**Execution (auth):** {', '.join(f'`{name}`' for name in GROUPS[1][3])}\n\n"
+        f"**Financial (auth):** {', '.join(f'`{name}`' for name in GROUPS[2][3])}\n\n"
+        f"**Operations (auth):** {', '.join(f'`{name}`' for name in GROUPS[3][3])}"
+    )
+    return "\n\n".join(sections)
+
+
+def replace_managed_block(text: str, start_marker: str, end_marker: str, body: str) -> str:
+    pattern = re.compile(rf"{re.escape(start_marker)}.*?{re.escape(end_marker)}", re.S)
+    if not pattern.search(text):
+        raise RuntimeError(f"Missing managed block markers: {start_marker} ... {end_marker}")
+    replacement = f"{start_marker}\n{body.rstrip()}\n{end_marker}"
+    return pattern.sub(replacement, text, count=1)
+
+
+def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, str]) -> dict[Path, str]:
+    root_readme = ROOT_README.read_text()
+    root_readme = replace_managed_block(
+        root_readme,
+        README_PRODUCT_START,
+        README_PRODUCT_END,
+        render_root_product_surface(public_truth, tools),
+    )
+    root_readme = replace_managed_block(
+        root_readme,
+        README_MCP_TOOLS_START,
+        README_MCP_TOOLS_END,
+        render_root_mcp_tools(public_truth, tools),
+    )
+
+    mcp_readme = MCP_README.read_text()
+    mcp_readme = replace_managed_block(
+        mcp_readme,
+        MCP_README_TOOL_SURFACE_START,
+        MCP_README_TOOL_SURFACE_END,
+        render_mcp_readme_tool_surface(public_truth, tools),
+    )
+
+    return {
+        OUTPUT_JSON: json.dumps(build_agent_capabilities(), indent=2, ensure_ascii=False) + "\n",
+        ROOT_README: root_readme,
+        MCP_README: mcp_readme,
+    }
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate agent-capabilities.json from live repo truth")
-    parser.add_argument("--check", action="store_true", help="Exit non-zero if agent-capabilities.json is out of date")
-    parser.add_argument("--write", action="store_true", help="Write the generated JSON to agent-capabilities.json")
+    parser = argparse.ArgumentParser(description="Generate public truth surfaces from live repo truth")
+    parser.add_argument("--check", action="store_true", help="Exit non-zero if generated truth surfaces are out of date")
+    parser.add_argument("--write", action="store_true", help="Write generated truth surfaces to disk")
     args = parser.parse_args()
 
-    rendered = json.dumps(build_agent_capabilities(), indent=2, ensure_ascii=False) + "\n"
+    public_truth = load_public_truth()
+    tools = extract_tools()
+    rendered_files = build_readme_outputs(public_truth, tools)
 
     if args.check:
-        current = OUTPUT_JSON.read_text() if OUTPUT_JSON.exists() else ""
-        if current != rendered:
-            print("agent-capabilities.json is out of date")
+        stale_files = []
+        for path, rendered in rendered_files.items():
+            current = path.read_text() if path.exists() else ""
+            if current != rendered:
+                stale_files.append(path.relative_to(ROOT).as_posix())
+        if stale_files:
+            print("Generated truth surfaces are out of date:")
+            for path in stale_files:
+                print(f"- {path}")
             return 1
-        print("agent-capabilities.json is up to date")
+        print("Generated truth surfaces are up to date")
         return 0
 
     if args.write:
-        OUTPUT_JSON.write_text(rendered)
-        print(f"wrote {OUTPUT_JSON}")
+        for path, rendered in rendered_files.items():
+            path.write_text(rendered)
+            print(f"wrote {path}")
         return 0
 
-    print(rendered, end="")
+    print(rendered_files[OUTPUT_JSON], end="")
     return 0
 
 

@@ -116,7 +116,7 @@
         },
         {
           "name": "usage_telemetry",
-          "description": "Get your execution analytics â calls, latency, errors, costs, and provider health for your Rhumb usage"
+          "description": "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage"
         }
       ]
     }

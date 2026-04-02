@@ -63,16 +63,17 @@ Ask your agent:
 - New tools for recipe-catalog inspection, receipts, and telemetry
 - Update: `npx rhumb-mcp@2` (or `npx rhumb-mcp@latest`)
 
+<!-- GENERATED:MCP_README_TOOL_SURFACE_START -->
 ## Discovery tools (no auth, 6 tools)
 
 | Tool | What it does |
 |------|-------------|
-| `find_services` | Search 1,000+ services by what you need |
-| `get_score` | Full AN Score breakdown for any service |
-| `get_alternatives` | Find alternatives ranked by score |
-| `get_failure_modes` | Known failure patterns + workarounds |
-| `discover_capabilities` | Browse capabilities by domain (`email.send`, `payment.charge`) |
-| `resolve_capability` | Get ranked providers with health, cost, and routing data |
+| `find_services` | Search indexed Services by what you need them to do |
+| `get_score` | Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness |
+| `get_alternatives` | Find alternative Services, ranked by AN Score |
+| `get_failure_modes` | Get known failure patterns, impact severity, and workarounds for a service |
+| `discover_capabilities` | Browse Capabilities by domain or search text |
+| `resolve_capability` | Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains |
 
 ## Execution tools (auth required, 8 tools)
 
@@ -94,41 +95,42 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 
 | Tool | What it does |
 |------|-------------|
-| `execute_capability` | Call a capability through Rhumb Resolve (Layer 2) |
-| `estimate_capability` | Get cost before executing (no charge) |
-| `rhumb_recipe_execute` | Execute a published Layer 3 recipe when one is live |
-| `rhumb_list_recipes` | Check the current published recipe catalog |
-| `rhumb_get_recipe` | Get details for a recipe already visible in the catalog |
-| `check_credentials` | See what you can call right now |
-| `credential_ceremony` | Step-by-step guide to get provider credentials |
-| `get_receipt` | Retrieve HMAC-signed execution receipt with chain hash |
+| `execute_capability` | Call a Capability through Rhumb Resolve |
+| `estimate_capability` | Get the cost of a Capability call WITHOUT making the call |
+| `credential_ceremony` | Get step-by-step instructions to obtain API credentials for a Service |
+| `check_credentials` | Check what credential modes are available to you |
+| `rhumb_list_recipes` | List the current published Rhumb Layer 3 recipe catalog |
+| `rhumb_get_recipe` | Get the full published definition for a Rhumb recipe, including input/output schemas and step topology |
+| `rhumb_recipe_execute` | Execute a published Rhumb Layer 3 recipe once one is live in the public catalog |
+| `get_receipt` | Retrieve an execution receipt by ID |
 
 ## Financial tools (auth required, 5 tools)
 
 | Tool | What it does |
 |------|-------------|
-| `budget` | Set spending limits |
-| `spend` | Track spending |
-| `check_balance` | View credits |
-| `get_payment_url` | Get Stripe top-up link |
-| `get_ledger` | Transaction history |
+| `budget` | Check or set your call spending limit |
+| `spend` | Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider |
+| `check_balance` | Check your current Rhumb credit balance in USD |
+| `get_payment_url` | Get a checkout URL to add credits to your Rhumb balance |
+| `get_ledger` | Get your billing history: charges (debits), top-ups (credits), and auto-reload events |
 
 ## Operations tools (auth required, 2 tools)
 
 | Tool | What it does |
 |------|-------------|
-| `routing` | Choose routing strategy (cheapest, fastest, highest quality, balanced) |
-| `usage_telemetry` | Report execution telemetry for L2 learning |
+| `routing` | Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability |
+| `usage_telemetry` | Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage |
 
 ## 21 MCP tools
 
 **Discovery (free):** `find_services`, `get_score`, `get_alternatives`, `get_failure_modes`, `discover_capabilities`, `resolve_capability`
 
-**Execution (auth):** `execute_capability`, `estimate_capability`, `rhumb_recipe_execute`, `rhumb_list_recipes`, `rhumb_get_recipe`, `check_credentials`, `credential_ceremony`, `get_receipt`
+**Execution (auth):** `execute_capability`, `estimate_capability`, `credential_ceremony`, `check_credentials`, `rhumb_list_recipes`, `rhumb_get_recipe`, `rhumb_recipe_execute`, `get_receipt`
 
 **Financial (auth):** `budget`, `spend`, `check_balance`, `get_payment_url`, `get_ledger`
 
 **Operations (auth):** `routing`, `usage_telemetry`
+<!-- GENERATED:MCP_README_TOOL_SURFACE_END -->
 
 ## Common workflows
 
