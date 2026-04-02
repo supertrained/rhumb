@@ -59,7 +59,7 @@ and sandbox availability.
 
 ## Programmatic Access
 \`\`\`
-npx rhumb-mcp
+npx rhumb-mcp@latest
 \`\`\`
 Tools: find_services, get_score, get_alternatives, get_failure_modes
 
@@ -93,7 +93,7 @@ Each service has an evidence tier indicating the depth of evaluation:
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
-- MCP: npx rhumb-mcp
+- MCP: npx rhumb-mcp@latest
 - Twitter: https://x.com/pedrorhumb
 `;
 

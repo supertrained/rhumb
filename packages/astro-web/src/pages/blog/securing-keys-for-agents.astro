@@ -88,7 +88,7 @@ export STRIPE_API_KEY=sk_live_...
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp"],
+      "args": ["rhumb-mcp@latest"],
       "env": {
         "RHUMB_API_KEY": "rhumb_live_..."
       }
@@ -116,9 +116,9 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
 
 **Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
 
-### Mode 3: x402 anonymous payment
+### Mode 3: x402 per-call payment
 
-No account. No key. The on-chain payment is the authentication.
+No account signup on this rail. Payment proof authorizes the request. For repeat traffic, prefer wallet-prefund or a governed API key.
 
 \`\`\`bash
 # First call: get payment instructions
@@ -130,7 +130,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
   -H 'X-Payment: {"tx_hash":"0x...","network":"base","wallet_address":"0x..."}'
 \`\`\`
 
-**When to use it:** Your agent has a crypto wallet. You want zero-signup, zero-credential execution. You're building autonomous agents that need to operate without human provisioning.
+**When to use it:** Your agent has a crypto wallet and you want zero-signup, request-level payment authorization. Use this when per-call payment is the point, not as the default repeat-throughput path.
 
 **Security posture:** No credential to steal. The wallet's private key is the only secret, and it stays on the agent's machine. Replay protection via unique transaction hashes.
 

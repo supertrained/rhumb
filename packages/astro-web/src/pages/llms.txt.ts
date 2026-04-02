@@ -40,7 +40,7 @@ across 20 dimensions. Scores are computed as 70% Execution + 30% Access Readines
 
 ## For Agents
 Install the MCP server for programmatic access:
-  npx rhumb-mcp
+  npx rhumb-mcp@latest
 
 MCP tools available:
   find_services("payment processing") — discover services by need
@@ -157,7 +157,7 @@ the specific friction of a tool before integrating.
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
-- MCP Server: npx rhumb-mcp
+- MCP Server: npx rhumb-mcp@latest
 `;
 
   return new Response(content, {
