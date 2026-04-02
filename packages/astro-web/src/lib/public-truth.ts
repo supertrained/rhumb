@@ -13,6 +13,10 @@ export const PUBLIC_TRUTH = {
   beachheadLabel: "research, extraction, generation, and narrow enrichment",
   beachheadSummary:
     "Current launchable scope: research, extraction, generation, and narrow enrichment — not general business-agent automation.",
+  catalogRealitySummary:
+    "Discovery breadth: 1,038 scored services and 415 capability definitions. Current execution-ready surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
+  callableRealitySummary:
+    "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
   resolveMentalModel: {
     defaultPath:
       "Default path: discover a Service, choose a Capability, estimate the call, then execute through Layer 2 with a governed API key or wallet-prefunded API key. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",

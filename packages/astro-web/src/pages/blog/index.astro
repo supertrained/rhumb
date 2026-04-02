@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 type ContentType = "Comparison" | "Autopsy" | "Guide" | "Article";
 type ScoreTier = "native" | "ready" | "developing" | "emerging";
@@ -324,7 +325,7 @@ const POSTS: Post[] = [
   {
     slug: "getting-started-mcp",
     title: "Getting Started with Rhumb MCP",
-    description: "Install in 30 seconds. 16 MCP tools give your agent tool intelligence: scores, failure modes, cost estimates, and capability execution across 200+ services.",
+    description: `Install in 30 seconds. ${PUBLIC_TRUTH.mcpToolsLabel} MCP tools give your agent discovery across ${PUBLIC_TRUTH.servicesLabel} scored services and execution through ${PUBLIC_TRUTH.callableProvidersLabel} callable providers.`,
     date: "March 18, 2026",
     dateISO: "2026-03-18T00:00:00Z",
     readTime: "6 min",
