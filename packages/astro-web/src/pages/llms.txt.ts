@@ -65,11 +65,11 @@ Current governed execution is concentrated in ${PUBLIC_TRUTH.callableProvidersLa
 ${apiBase}
 
 ## Capabilities
-Browse all ${totalCapabilities} capabilities: https://rhumb.dev/capabilities
-- GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of all capabilities
+Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabilities
+- GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of capability definitions
 - Each capability: { id, domain, action, description, provider_count, top_provider }
 - Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
-- Use discover_capabilities() in MCP to browse, resolve_capability() to find the best provider
+- Use discover_capabilities() in MCP to browse, resolve_capability() to find the best provider where execution is live
 
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract
