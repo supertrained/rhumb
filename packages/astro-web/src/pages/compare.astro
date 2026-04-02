@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const PAGE_JSON_LD = {
   "@context": "https://schema.org",
@@ -260,9 +261,12 @@ const comparisons: Comparison[] = [
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Methodology</p>
         <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Same framework, different stories</h2>
         <p class="mt-4 max-w-2xl mx-auto text-slate-400 leading-relaxed">
-          Every comparison pulls live scores from the Rhumb AN Score — the same methodology applied to all 212+ scored services.
+          Every comparison pulls live scores from the Rhumb AN Score — the same methodology applied to all {PUBLIC_TRUTH.servicesLabel} scored services.
           Different categories tell structurally different stories: clear winners, close races, or no-winner constraint problems.
           That diversity is honest; these pages do not exist to sell a verdict.
+        </p>
+        <p class="mt-4 max-w-2xl mx-auto text-sm text-slate-500 leading-relaxed">
+          These comparison pages are primarily a discovery and evaluation surface. Rhumb’s current governed execution surface is narrower: {PUBLIC_TRUTH.callableProvidersLabel} callable providers today.
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-4">
           <a href="/methodology" class="inline-flex rounded-xl px-5 py-3 font-display font-semibold text-sm transition-colors cta-button">Read methodology</a>

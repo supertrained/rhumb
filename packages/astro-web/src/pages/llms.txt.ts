@@ -47,7 +47,7 @@ MCP tools available:
   get_score("stripe") — detailed AN Score breakdown
   get_alternatives("stripe") — comparable services ranked
   get_failure_modes("stripe") — known failure patterns
-  discover_capabilities({ domain: "communication" }) — browse executable capabilities
+  discover_capabilities({ domain: "communication" }) — browse capability definitions
   resolve_capability({ capability: "email.send" }) — rank providers for a capability
   estimate_capability({ capability_id: "email.send" }) — estimate cost before execution
   execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — execute through Rhumb
@@ -55,6 +55,11 @@ MCP tools available:
   spend() — view spend by capability/provider
   check_balance() — current credit balance
   get_payment_url({ amount_usd: 25 }) — top up credits
+
+## Honest current state
+Discovery breadth is wider than current execution breadth.
+Rhumb indexes ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions.
+Current governed execution is concentrated in ${PUBLIC_TRUTH.callableProvidersLabel} callable providers.
 
 ## API Base URL
 ${apiBase}
