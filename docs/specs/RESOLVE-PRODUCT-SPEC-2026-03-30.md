@@ -22,7 +22,7 @@ Rhumb Resolve is a **managed execution substrate** for AI agents. It is not an a
 - NOT a black-box outcome engine
 - Resolve **COMPILES** workflows, it does **NOT** improvise business intent
 
-**Current state:** 1,038 services, 415 capabilities, 92 categories, 16 callable providers, Railway deployment, Supabase DB, MCP server with 17 tools, Stripe prepaid credits + x402 USDC payments.
+**Current state:** 1,038 services, 415 capabilities, 92 categories, 16 callable providers, Railway deployment, Supabase DB, MCP server with 21 tools, Stripe prepaid credits + x402 USDC payments.
 
 **This spec defines:** How to evolve from the current state to the Resolve architecture without breaking existing users, while adding Layer 1 (raw access), enhancing Layer 2 (intelligent routing + policy), and introducing Layer 3 (recipes) as a premium tier.
 

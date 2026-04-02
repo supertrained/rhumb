@@ -159,9 +159,9 @@ Administrative safety controls:
 
 | Tool | Layer | What it does |
 |------|-------|-------------|
-| `recipe_execute` | L3 | Execute a compiled recipe |
-| `list_recipes` | L3 | Browse available recipes |
-| `get_recipe` | L3 | Get recipe details |
+| `rhumb_recipe_execute` | L3 | Execute a compiled recipe |
+| `rhumb_list_recipes` | L3 | Browse available recipes |
+| `rhumb_get_recipe` | L3 | Get recipe details |
 | `get_receipt` | All | Retrieve HMAC-signed execution receipt |
 | `usage_telemetry` | L2 | Report execution telemetry |
 
