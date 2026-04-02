@@ -73,7 +73,7 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract
-- GET ${apiBase}/capabilities?limit=100&offset=0 — browse capabilities
+- GET ${apiBase}/capabilities?limit=100&offset=0 — browse capability definitions
 - GET ${apiBase}/services — list scored services
 - GET ${apiBase}/services/{slug}/score — detailed score breakdown
 - GET ${apiBase}/services/{slug}/failures — active failure modes
