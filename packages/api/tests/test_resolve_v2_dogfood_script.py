@@ -127,3 +127,50 @@ def test_build_summary_mentions_l1_and_l2_receipts():
     assert "L1 provider=brave-search-api exec=exec_l1 receipt=rcpt_l1" in summary
     assert "billing_events=4" in summary
     assert "audit_events=7" in summary
+
+
+def test_apply_profile_defaults_sets_interface_and_parameters_from_profile():
+    args = resolve_v2_dogfood.parse_args([])
+
+    profiled = resolve_v2_dogfood._apply_profile_defaults(args, "beacon")
+
+    assert profiled.profile == "beacon"
+    assert profiled.interface == "dogfood-beacon"
+    assert profiled.provider == "brave-search"
+    assert profiled.capability == "search.query"
+    assert profiled.parameters_json == '{"query": "best MCP server distribution channels for developers", "numResults": 3}'
+
+
+def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
+    args = resolve_v2_dogfood.parse_args(
+        [
+            "--interface",
+            "custom-interface",
+            "--parameters-json",
+            '{"query": "custom", "numResults": 1}',
+        ]
+    )
+
+    profiled = resolve_v2_dogfood._apply_profile_defaults(args, "keel")
+
+    assert profiled.interface == "custom-interface"
+    assert profiled.parameters_json == '{"query": "custom", "numResults": 1}'
+
+
+def test_build_batch_summary_mentions_profile_statuses():
+    summary = resolve_v2_dogfood._build_batch_summary(
+        {
+            "pedro": {
+                "ok": True,
+                "config": {"provider": "brave-search", "interface": "dogfood-pedro"},
+            },
+            "beacon": {
+                "ok": False,
+                "config": {"provider": "brave-search", "interface": "dogfood-beacon"},
+            },
+        }
+    )
+
+    assert "Resolve v2 dogfood batch complete; ok_profiles=1/2" in summary
+    assert "pedro=ok provider=brave-search interface=dogfood-pedro" in summary
+    assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary

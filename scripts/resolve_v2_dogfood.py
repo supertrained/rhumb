@@ -22,7 +22,9 @@ Honest boundary:
 Examples:
   export RHUMB_DOGFOOD_API_KEY=rhumb_...
   python3 scripts/resolve_v2_dogfood.py --json
-  python3 scripts/resolve_v2_dogfood.py --policy-provider-preference brave-search-api
+  python3 scripts/resolve_v2_dogfood.py --profile beacon --json
+  python3 scripts/resolve_v2_dogfood.py --all-profiles --json-out /tmp/resolve-v2-dogfood-fleet.json
+  python3 scripts/resolve_v2_dogfood.py --policy-provider-preference brave-search
   python3 scripts/resolve_v2_dogfood.py --skip-layer1 --json-out /tmp/resolve-v2-dogfood.json
 
 Fallback secret path:
@@ -57,8 +59,57 @@ DEFAULT_PARAMETERS = {
     "query": "best AI agent observability tools",
     "numResults": 3,
 }
+DEFAULT_PARAMETERS_JSON = json.dumps(DEFAULT_PARAMETERS)
 DEFAULT_INTERFACE = "dogfood"
 DEFAULT_MAX_READ_LIMIT = 10
+DEFAULT_PROFILE = "pedro"
+
+PROFILE_PRESETS: dict[str, dict[str, Any]] = {
+    "pedro": {
+        "description": "Operator search smoke path for Resolve v2.",
+        "capability": "search.query",
+        "provider": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-pedro",
+        "parameters": {
+            "query": "best AI agent observability tools",
+            "numResults": 3,
+        },
+    },
+    "keel": {
+        "description": "Evidence/reviewops search smoke path with Keel-tagged telemetry.",
+        "capability": "search.query",
+        "provider": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-keel",
+        "parameters": {
+            "query": "runtime-backed API review evidence best practices",
+            "numResults": 3,
+        },
+    },
+    "helm": {
+        "description": "Access/proxy search smoke path with Helm-tagged telemetry.",
+        "capability": "search.query",
+        "provider": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-helm",
+        "parameters": {
+            "query": "API proxy auth budget telemetry patterns",
+            "numResults": 3,
+        },
+    },
+    "beacon": {
+        "description": "GTM/distribution search smoke path with Beacon-tagged telemetry.",
+        "capability": "search.query",
+        "provider": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-beacon",
+        "parameters": {
+            "query": "best MCP server distribution channels for developers",
+            "numResults": 3,
+        },
+    },
+}
 
 
 class FlowError(RuntimeError):
@@ -134,6 +185,38 @@ def _json_or_default(raw: str, fallback: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("Expected a JSON object")
     return parsed
+
+
+def _profile_names_csv() -> str:
+    return ", ".join(sorted(PROFILE_PRESETS))
+
+
+def _get_profile(profile_name: str) -> dict[str, Any]:
+    profile = PROFILE_PRESETS.get(profile_name)
+    if profile is None:
+        raise ValueError(
+            f"Unknown dogfood profile {profile_name!r}. Available: {_profile_names_csv()}"
+        )
+    return profile
+
+
+def _apply_profile_defaults(args: argparse.Namespace, profile_name: str) -> argparse.Namespace:
+    profile = _get_profile(profile_name)
+    resolved = argparse.Namespace(**vars(args))
+    resolved.profile = profile_name
+
+    if resolved.capability == DEFAULT_CAPABILITY:
+        resolved.capability = profile.get("capability", resolved.capability)
+    if resolved.provider == DEFAULT_PROVIDER:
+        resolved.provider = profile.get("provider", resolved.provider)
+    if resolved.credential_mode == DEFAULT_CREDENTIAL_MODE:
+        resolved.credential_mode = profile.get("credential_mode", resolved.credential_mode)
+    if resolved.interface == DEFAULT_INTERFACE:
+        resolved.interface = profile.get("interface", resolved.interface)
+    if resolved.parameters_json == DEFAULT_PARAMETERS_JSON:
+        resolved.parameters_json = json.dumps(profile.get("parameters", DEFAULT_PARAMETERS))
+
+    return resolved
 
 
 def _http_json(
@@ -350,6 +433,56 @@ def _build_summary(state: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
+def _build_batch_summary(results: dict[str, dict[str, Any]]) -> str:
+    total = len(results)
+    ok_count = sum(1 for payload in results.values() if payload.get("ok"))
+    parts = [f"Resolve v2 dogfood batch complete; ok_profiles={ok_count}/{total}"]
+
+    for profile_name, payload in results.items():
+        status = "ok" if payload.get("ok") else "failed"
+        config = payload.get("config") or {}
+        provider = config.get("provider") or "n/a"
+        interface = config.get("interface") or "n/a"
+        parts.append(f"{profile_name}={status} provider={provider} interface={interface}")
+
+    return "; ".join(parts)
+
+
+def run_batch(args: argparse.Namespace, profile_names: list[str]) -> dict[str, Any]:
+    results: dict[str, dict[str, Any]] = {}
+
+    for profile_name in profile_names:
+        run_args = _apply_profile_defaults(args, profile_name)
+        try:
+            payload = run_flow(run_args)
+        except FlowError as exc:
+            payload = {
+                "ok": False,
+                "summary": str(exc),
+                **exc.state,
+            }
+        except Exception as exc:  # pragma: no cover - defensive CLI fallback
+            payload = {
+                "ok": False,
+                "summary": str(exc),
+                "config": {
+                    "profile": profile_name,
+                    "provider": run_args.provider,
+                    "interface": run_args.interface,
+                    "capability": run_args.capability,
+                },
+            }
+        results[profile_name] = payload
+
+    return {
+        "ok": all(payload.get("ok") for payload in results.values()),
+        "mode": "batch",
+        "profiles": results,
+        "profile_count": len(results),
+        "summary": _build_batch_summary(results),
+    }
+
+
 def run_flow(args: argparse.Namespace) -> dict[str, Any]:
     root = args.base_url.rstrip("/")
     v2_root = f"{root}/v2"
@@ -359,6 +492,7 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
     state: dict[str, Any] = {
         "config": {
+            "profile": getattr(args, "profile", None),
             "base_url": root,
             "v2_root": v2_root,
             "api_key_env": args.api_key_env,
@@ -647,6 +781,14 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _print_human(payload: dict[str, Any]) -> None:
+    if payload.get("mode") == "batch":
+        print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
+        print()
+        for profile_name, profile_payload in (payload.get("profiles") or {}).items():
+            status = "OK" if profile_payload.get("ok") else "FAILED"
+            print(f"{profile_name}: {status} — {profile_payload.get('summary')}")
+        return
+
     print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
     print()
 
@@ -713,6 +855,24 @@ def _print_human(payload: dict[str, Any]) -> None:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--profile",
+        help=f"Apply a named dogfood profile default set ({_profile_names_csv()})",
+    )
+    parser.add_argument(
+        "--batch-profiles",
+        help=f"Run multiple named dogfood profiles, comma-separated ({_profile_names_csv()})",
+    )
+    parser.add_argument(
+        "--all-profiles",
+        action="store_true",
+        help="Run all built-in dogfood profiles in sequence",
+    )
+    parser.add_argument(
+        "--list-profiles",
+        action="store_true",
+        help="Print available built-in dogfood profiles and exit",
+    )
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Rhumb API root URL (without /v2)")
     parser.add_argument(
         "--api-key-env",
@@ -729,7 +889,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--parameters-json",
-        default=json.dumps(DEFAULT_PARAMETERS),
+        default=DEFAULT_PARAMETERS_JSON,
         help="JSON object for execute parameters",
     )
     parser.add_argument("--interface", default=DEFAULT_INTERFACE, help="Interface label for analytics")
@@ -763,22 +923,54 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    try:
-        payload = run_flow(args)
-        exit_code = 0
-    except FlowError as exc:
-        payload = {
-            "ok": False,
-            "summary": str(exc),
-            **exc.state,
-        }
-        exit_code = 1
-    except Exception as exc:  # pragma: no cover - defensive CLI fallback
-        payload = {
-            "ok": False,
-            "summary": str(exc),
-        }
-        exit_code = 1
+
+    if args.list_profiles:
+        for profile_name in sorted(PROFILE_PRESETS):
+            profile = PROFILE_PRESETS[profile_name]
+            print(
+                f"{profile_name}: {profile.get('description', '')} "
+                f"[capability={profile.get('capability')} provider={profile.get('provider')} interface={profile.get('interface')}]"
+            )
+        return 0
+
+    batch_profiles: list[str] = []
+    if args.all_profiles:
+        batch_profiles.extend(sorted(PROFILE_PRESETS))
+    if args.batch_profiles:
+        batch_profiles.extend(
+            [item.strip() for item in args.batch_profiles.split(",") if item.strip()]
+        )
+
+    if batch_profiles:
+        seen: set[str] = set()
+        ordered_profiles: list[str] = []
+        for profile_name in batch_profiles:
+            _get_profile(profile_name)
+            if profile_name not in seen:
+                seen.add(profile_name)
+                ordered_profiles.append(profile_name)
+        payload = run_batch(args, ordered_profiles)
+        exit_code = 0 if payload.get("ok") else 1
+    else:
+        if args.profile:
+            _get_profile(args.profile)
+            args = _apply_profile_defaults(args, args.profile)
+        try:
+            payload = run_flow(args)
+            exit_code = 0
+        except FlowError as exc:
+            payload = {
+                "ok": False,
+                "summary": str(exc),
+                **exc.state,
+            }
+            exit_code = 1
+        except Exception as exc:  # pragma: no cover - defensive CLI fallback
+            payload = {
+                "ok": False,
+                "summary": str(exc),
+            }
+            exit_code = 1
 
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))

@@ -1,6 +1,6 @@
 # Runbook: Resolve v2 dogfood loop
 
-**Last updated:** 2026-03-31
+**Last updated:** 2026-04-02
 **Owner:** Pedro
 
 ## Purpose
@@ -71,7 +71,7 @@ python3 scripts/resolve_v2_dogfood.py --json
 
 Default execution target:
 - capability: `search.query`
-- provider: `brave-search-api`
+- provider: `brave-search`
 - credential mode: `rhumb_managed`
 - parameters: `{"query":"best AI agent observability tools","numResults":3}`
 
@@ -89,6 +89,42 @@ python3 scripts/resolve_v2_dogfood.py \
   --force-provider-preference \
   --json
 ```
+
+## Fleet / multi-agent dogfood profiles
+
+The harness now supports built-in internal profiles so the dogfood loop can tag telemetry by agent lane instead of staying Pedro-only.
+
+List profiles:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py --list-profiles
+```
+
+Run one profile with profile-specific defaults for `interface` + `parameters`:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py --profile beacon --json
+```
+
+Run the current internal fleet batch (`pedro`, `keel`, `helm`, `beacon`) and capture one consolidated artifact:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py \
+  --all-profiles \
+  --json \
+  --json-out /tmp/resolve-v2-dogfood-fleet.json
+```
+
+Current built-in profiles all stay on the proven `search.query` / `brave-search` path, but each emits a distinct interface label:
+- `dogfood-pedro`
+- `dogfood-keel`
+- `dogfood-helm`
+- `dogfood-beacon`
+
+This is deliberate: it expands the dogfood loop into per-agent telemetry without pretending the fleet is already exercising a wider stable capability set than we have actually verified.
 
 ## Policy smoke test
 
