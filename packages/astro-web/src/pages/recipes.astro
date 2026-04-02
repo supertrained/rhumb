@@ -1,0 +1,328 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
+
+type RecipeSummary = {
+  recipe_id: string;
+  name: string | null;
+  version: string | null;
+  category: string | null;
+  stability: string | null;
+  tier: string | null;
+  step_count: number | null;
+  max_total_cost_usd: number | null;
+  published: boolean;
+  updated_at: string | null;
+};
+
+let recipes: RecipeSummary[] = [];
+let fetchError: string | null = null;
+let count = 0;
+
+try {
+  const response = await fetch(`${API_URL}/v2/recipes?limit=50`, {
+    headers: {
+      Accept: "application/json",
+      "X-Rhumb-Client": "web",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    fetchError = `Live recipe catalog unavailable (${response.status}).`;
+  } else {
+    const json = await response.json();
+    recipes = (json?.data?.recipes ?? []) as RecipeSummary[];
+    count = Number(json?.data?.count ?? recipes.length ?? 0);
+  }
+} catch {
+  fetchError = "Live recipe catalog unavailable.";
+}
+
+const hasRecipes = count > 0;
+
+function formatMoney(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return "Budget pending";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: value < 1 ? 3 : 2,
+    maximumFractionDigits: value < 1 ? 3 : 2,
+  }).format(value);
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "Freshness pending";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Freshness pending";
+  return `Updated ${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+}
+
+function labelize(value: string | null, fallback: string): string {
+  if (!value) return fallback;
+  return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+const RECIPES_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Recipes | Rhumb",
+  url: "https://rhumb.dev/recipes",
+  description: hasRecipes
+    ? `Browse ${count} published Rhumb recipes: compiled multi-step workflows with visible budgets, step counts, and freshness metadata.`
+    : "Rhumb Recipes is a truthful Layer 3 status page. The public recipe catalog is not yet published, and the page explains what is required before recipes go live.",
+  mainEntity: hasRecipes
+    ? {
+        "@type": "ItemList",
+        numberOfItems: count,
+        itemListElement: recipes.slice(0, 20).map((recipe, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          item: {
+            "@type": "SoftwareApplication",
+            name: recipe.name ?? recipe.recipe_id,
+            applicationCategory: "WorkflowApplication",
+            softwareVersion: recipe.version ?? undefined,
+          },
+        })),
+      }
+    : undefined,
+};
+---
+
+<Layout
+  title="Recipes | Rhumb"
+  description={hasRecipes
+    ? `Browse ${count} published Rhumb recipes: compiled multi-step workflows with visible budgets, step counts, and freshness metadata.`
+    : "Rhumb Recipes is a truthful Layer 3 status page. The public recipe catalog is not yet published, and this page explains the current state."}
+  canonical="/recipes"
+  ogTitle="Recipes | Rhumb"
+  ogDescription={hasRecipes
+    ? `${count} published Rhumb recipes for deterministic multi-step execution.`
+    : "Layer 3 exists, but the public recipe catalog is still being curated. See the honest current state instead of a broken route."}
+  ogUrl="https://rhumb.dev/recipes"
+  jsonLd={RECIPES_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-25 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber/60 to-transparent"></div>
+      <div class="absolute left-1/2 top-0 h-64 w-px -translate-x-1/2 bg-gradient-to-b from-amber/60 via-amber/10 to-transparent"></div>
+      <div
+        class="absolute left-1/2 top-24 h-72 w-[44rem] -translate-x-1/2 rounded-full blur-3xl pointer-events-none"
+        style="background: radial-gradient(circle, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.05) 30%, transparent 72%)"
+      ></div>
+
+      <div class="relative mx-auto max-w-6xl px-6 pt-18 pb-14">
+        <div class="mb-6 flex flex-wrap items-center gap-3">
+          <span class="rounded-full border border-amber/30 bg-amber/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.28em] text-amber">
+            Layer 3 · Curated beta
+          </span>
+          <span class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500">
+            Public catalog: {count}
+          </span>
+        </div>
+
+        <div class="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-end">
+          <div>
+            <h1 class="max-w-4xl font-display text-5xl font-bold leading-[0.98] tracking-tight text-slate-100 sm:text-6xl">
+              Compiled workflows,
+              <span class="text-amber">published only when they deserve it.</span>
+            </h1>
+            <p class="mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
+              Rhumb recipes are the Layer 3 surface for deterministic multi-step execution. The route is live.
+              The public catalog is not padded with placeholders. If a recipe is not ready for public use,
+              this page says so plainly.
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-surface/80 p-6 backdrop-blur-sm">
+            <p class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500">Current public state</p>
+            <div class="mt-4 grid grid-cols-3 gap-3">
+              <div class="rounded-xl border border-slate-800 bg-navy/70 p-4">
+                <p class="text-[11px] font-mono uppercase tracking-[0.2em] text-slate-500">Published</p>
+                <p class="mt-2 font-mono text-3xl font-semibold text-slate-100">{count}</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-navy/70 p-4">
+                <p class="text-[11px] font-mono uppercase tracking-[0.2em] text-slate-500">API route</p>
+                <p class="mt-2 font-mono text-sm font-semibold text-score-native">Live</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-navy/70 p-4">
+                <p class="text-[11px] font-mono uppercase tracking-[0.2em] text-slate-500">Catalog</p>
+                <p class={`mt-2 font-mono text-sm font-semibold ${hasRecipes ? "text-score-native" : "text-amber"}`}>
+                  {hasRecipes ? "Published" : "Curating"}
+                </p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-slate-400">
+              {hasRecipes
+                ? "The recipes below are currently published on the live Layer 3 API."
+                : "There are currently no public recipes in the live catalog. That is intentional truth, not a broken page."}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {fetchError ? (
+      <section class="mx-auto max-w-6xl px-6 pt-8">
+        <div class="rounded-2xl border border-red-500/20 bg-red-500/8 p-5 text-sm text-red-100">
+          <span class="font-mono uppercase tracking-[0.22em] text-red-300">Live status</span>
+          <p class="mt-2 leading-relaxed">{fetchError} The page stays honest even when the catalog read fails.</p>
+        </div>
+      </section>
+    ) : null}
+
+    {hasRecipes ? (
+      <section class="mx-auto max-w-6xl px-6 py-14">
+        <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber">Published recipes</p>
+            <h2 class="mt-2 font-display text-3xl font-bold tracking-tight text-slate-100">
+              Layer 3 workflows available now
+            </h2>
+          </div>
+          <div class="text-sm text-slate-500">Direct API: <code class="font-mono text-slate-300">GET /v2/recipes</code></div>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+          {recipes.map((recipe) => (
+            <article class="group rounded-2xl border border-slate-800 bg-surface p-6 card-lift">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">{labelize(recipe.category, "Uncategorized")}</p>
+                  <h3 class="mt-2 font-display text-2xl font-semibold tracking-tight text-slate-100 group-hover:text-amber transition-colors duration-200">
+                    {recipe.name ?? recipe.recipe_id}
+                  </h3>
+                  <p class="mt-2 font-mono text-xs text-slate-500">{recipe.recipe_id}</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+                  <span class="rounded-full border border-slate-700 bg-navy/70 px-2.5 py-1 text-slate-300">
+                    {labelize(recipe.stability, "Beta")}
+                  </span>
+                  <span class="rounded-full border border-amber/25 bg-amber/10 px-2.5 py-1 text-amber">
+                    {labelize(recipe.tier, "Layer 3")}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-6 grid grid-cols-3 gap-3 text-sm">
+                <div class="rounded-xl border border-slate-800 bg-navy/60 p-4">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-500">Version</p>
+                  <p class="mt-2 text-slate-100">{recipe.version ?? "Pending"}</p>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-navy/60 p-4">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-500">Steps</p>
+                  <p class="mt-2 text-slate-100">{recipe.step_count ?? "—"}</p>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-navy/60 p-4">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.18em] text-slate-500">Max cost</p>
+                  <p class="mt-2 text-slate-100">{formatMoney(recipe.max_total_cost_usd)}</p>
+                </div>
+              </div>
+
+              <div class="mt-5 flex items-center justify-between gap-3 text-sm">
+                <p class="text-slate-500">{formatDate(recipe.updated_at)}</p>
+                <a
+                  href={`${API_URL}/v2/recipes/${recipe.recipe_id}`}
+                  class="font-mono text-amber hover:text-amber-dark transition-colors duration-200"
+                >
+                  Open schema →
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ) : (
+      <>
+        <section class="mx-auto max-w-6xl px-6 py-14">
+          <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div class="rounded-[1.75rem] border border-amber/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.10)_0%,rgba(21,29,46,0.92)_55%,rgba(11,17,32,0.98)_100%)] p-8">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber">No public catalog yet</p>
+              <h2 class="mt-3 max-w-xl font-display text-3xl font-bold tracking-tight text-slate-100">
+                We would rather show zero than publish a fake marketplace.
+              </h2>
+              <p class="mt-4 max-w-2xl text-base leading-relaxed text-slate-300">
+                Layer 3 exists in the product, but the public recipe inventory is still being curated. Until each
+                workflow has a stable schema, bounded cost envelope, clear failure behavior, and docs we are willing
+                to defend, the public catalog stays empty on purpose.
+              </p>
+              <div class="mt-6 rounded-2xl border border-slate-800 bg-navy/70 p-5">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">Direct API probe</p>
+                <pre class="mt-3 overflow-x-auto text-sm text-slate-300"><code>{`curl https://api.rhumb.dev/v2/recipes\n# => { "data": { "recipes": [], "count": 0, ... } }`}</code></pre>
+              </div>
+            </div>
+
+            <div class="grid gap-4">
+              <div class="rounded-2xl border border-slate-800 bg-surface p-6">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">What a public recipe must prove</p>
+                <ul class="mt-4 space-y-4 text-sm leading-relaxed text-slate-300">
+                  <li>
+                    <span class="font-medium text-slate-100">Deterministic execution order.</span>
+                    <span class="text-slate-400"> No improvised planning loops disguised as a recipe.</span>
+                  </li>
+                  <li>
+                    <span class="font-medium text-slate-100">Bounded cost and timeout behavior.</span>
+                    <span class="text-slate-400"> Public workflows need visible ceilings before we ask agents to trust them.</span>
+                  </li>
+                  <li>
+                    <span class="font-medium text-slate-100">Traceable step outcomes.</span>
+                    <span class="text-slate-400"> Inputs, outputs, and failure surfaces must be inspectable, not hand-waved.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="rounded-2xl border border-slate-800 bg-surface p-6">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">Use Rhumb today</p>
+                <div class="mt-4 grid gap-3">
+                  <a href="/capabilities" class="rounded-xl border border-slate-800 bg-navy/60 px-4 py-3 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+                    Browse live capability coverage →
+                  </a>
+                  <a href="/docs" class="rounded-xl border border-slate-800 bg-navy/60 px-4 py-3 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+                    Read the execution and payment docs →
+                  </a>
+                  <a href="/pricing" class="rounded-xl border border-slate-800 bg-navy/60 px-4 py-3 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+                    Inspect pricing and auth rails →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="border-t border-slate-800 bg-surface/40">
+          <div class="mx-auto max-w-6xl px-6 py-14">
+            <div class="mb-8 max-w-2xl">
+              <p class="text-xs font-mono uppercase tracking-[0.24em] text-amber">Why this page exists</p>
+              <h2 class="mt-2 font-display text-3xl font-bold tracking-tight text-slate-100">Because a 404 is less honest than a zero.</h2>
+              <p class="mt-4 text-base leading-relaxed text-slate-400">
+                If you reached for Rhumb recipes, you should land on a truthful status page: the API route exists,
+                the catalog is empty, and the next useful surfaces are capabilities, docs, and pricing.
+              </p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-3">
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-6">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">Today</p>
+                <p class="mt-3 text-lg font-semibold text-slate-100">Layer 2 is the public workhorse</p>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use capabilities and governed execution while the Layer 3 catalog is curated.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-6">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">Next</p>
+                <p class="mt-3 text-lg font-semibold text-slate-100">Publish only canonical workflows</p>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">When recipes go live here, they should have stable schemas, step counts, ceilings, and receipts.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-6">
+                <p class="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">Principle</p>
+                <p class="mt-3 text-lg font-semibold text-slate-100">Truth over theater</p>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Public surfaces should say exactly what exists now, not what we hope to publish next week.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </>
+    )}
+  </div>
+</Layout>
