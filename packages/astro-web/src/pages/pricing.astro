@@ -50,7 +50,7 @@ const FAQ = [
   },
   {
     q: "What is the difference between API key, wallet-prefund, and x402?",
-    a: "API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance. x402 is per-call payment-as-auth using X-Payment.",
+    a: "API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance and currently uses the standard x402 authorization settlement path during top-up verification. x402 direct per-call execute is payment-as-auth using X-Payment, but today the repeatable public execute path expects legacy tx-hash proof rather than wrapped authorization payloads.",
   },
 ];
 

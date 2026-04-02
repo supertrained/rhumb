@@ -231,7 +231,7 @@ const MCP_TOOLS = [
           </div>
           <div class="bg-surface border border-amber/20 rounded-xl p-5">
             <p class="text-xs font-mono text-amber uppercase tracking-wider mb-2">x402 per-call</p>
-            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Payment</code> for zero-signup, per-call USDC payment on Base.</p>
+            <p class="text-sm text-slate-300">Use <code class="text-amber">X-Payment</code> for zero-signup, per-call USDC payment on Base. Current public execute compatibility is the legacy tx-hash proof flow; standard authorization payloads belong on the wallet-prefund top-up rail.</p>
           </div>
         </div>
       </section>
@@ -328,7 +328,7 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
             <span class="text-amber mt-0.5">&bull;</span>
             <span>
               <strong class="text-slate-200">x402 proof</strong>{" "}
-              — retry execute with <code class="font-mono text-xs bg-surface px-1 rounded text-amber">X-Payment</code> carrying <code class="font-mono text-xs bg-surface px-1 rounded text-amber">tx_hash</code>, <code class="font-mono text-xs bg-surface px-1 rounded text-amber">network</code>, and <code class="font-mono text-xs bg-surface px-1 rounded text-amber">wallet_address</code>.
+              — retry direct execute with <code class="font-mono text-xs bg-surface px-1 rounded text-amber">X-Payment</code> carrying <code class="font-mono text-xs bg-surface px-1 rounded text-amber">tx_hash</code>, <code class="font-mono text-xs bg-surface px-1 rounded text-amber">network</code>, and <code class="font-mono text-xs bg-surface px-1 rounded text-amber">wallet_address</code>. If your wallet emits a standard x402 authorization payload instead, use the wallet-prefund top-up flow rather than the direct execute retry path.
             </span>
           </li>
           <li class="flex items-start gap-2">

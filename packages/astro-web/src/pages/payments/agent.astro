@@ -179,10 +179,11 @@ const AGENT_PAYMENTS_JSON_LD = {
           <div class="mt-5 rounded-xl border border-amber/30 bg-amber/5 p-4">
             <p class="text-xs font-mono uppercase tracking-widest text-amber">Current compatibility boundary</p>
             <p class="mt-2 text-sm leading-6 text-slate-300">
-              The repeatable public x402 path today is the plain payment-proof flow shown below: request 402,
+              The repeatable public x402 execute path today is the plain payment-proof flow shown below: request 402,
               pay the exact requirement, then retry with <code class="font-mono text-amber">X-Payment</code>
               carrying tx-hash proof. Some smart-wallet or wrapped authorization payloads still depend on a
-              facilitator path that is not wired in current production. If your buyer emits wrapped proofs,
+              facilitator path that is not wired in current production. Wallet-prefund top-up verification is the
+              standard x402 authorization path today. If your buyer emits wrapped proofs,
               use <a href="#wallet-prefund" class="text-amber hover:underline underline-offset-2">wallet-prefund</a>
               or the standard API-key rail instead of assuming drop-in x402 interoperability.
             </p>
@@ -290,7 +291,7 @@ curl -X POST "${executeEndpoint}" \\
               <p class="text-xs font-mono uppercase tracking-widest text-emerald-300 mb-2">wallet-prefund</p>
               <ul class="space-y-2 text-sm text-slate-300 leading-6">
                 <li>• Wallet signs once to create identity + wallet-scoped key.</li>
-                <li>• Top-ups settle on-chain, then credit reusable <code class="font-mono text-emerald-300">org_credits</code>.</li>
+                <li>• Top-ups settle standard x402 authorization payloads on-chain, then credit reusable <code class="font-mono text-emerald-300">org_credits</code>.</li>
                 <li>• Repeat calls run through normal <code class="font-mono text-emerald-300">X-Rhumb-Key</code> execution.</li>
               </ul>
             </div>
