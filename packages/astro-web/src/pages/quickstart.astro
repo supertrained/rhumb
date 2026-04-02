@@ -227,19 +227,37 @@ print(data["an_score"])  # 8.1`}</code></pre>
         </div>
 
         <p class="text-slate-400 mb-6">
-          To actually <em>do</em> things through APIs (send emails, create records, charge cards), choose one execution rail:
+          To actually <em>do</em> things through APIs (send emails, create records, charge cards), start with the default production path: discover a Service, choose a Capability, estimate the call, then execute through Layer 2 with <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code>. Use x402 only when zero-signup per-call payment is the point.
         </p>
+
+        <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Recommended sequence</p>
+          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# 1) Discover the capability you need
+curl "${API}/capabilities?search=email"
+
+# 2) Resolve the best provider
+curl "${API}/capabilities/email.send/resolve"
+
+# 3) Estimate before paying
+curl "${API}/capabilities/email.send/execute/estimate"
+
+# 4) Execute through Layer 2 with X-Rhumb-Key
+curl -X POST "${API}/capabilities/email.send/execute" \
+  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
+        </div>
 
         <div class="grid sm:grid-cols-4 gap-4 mb-8">
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
             <h3 class="font-display font-semibold text-slate-100 mb-2">API Key</h3>
             <p class="text-xs text-slate-400 mb-3">Sign up, get a key, pass it as <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code></p>
-            <span class="text-xs font-mono text-slate-500">Best for: developers</span>
+            <span class="text-xs font-mono text-slate-500">Best for: default production path</span>
           </div>
           <div class="bg-surface border border-amber/20 rounded-lg p-5">
             <h3 class="font-display font-semibold text-slate-100 mb-2">x402 Payment</h3>
             <p class="text-xs text-slate-400 mb-3">No signup. Pay per call with USDC. The payment is the authentication.</p>
-            <span class="text-xs font-mono text-amber">Best for: autonomous agents</span>
+            <span class="text-xs font-mono text-amber">Best for: zero-signup per-call auth</span>
           </div>
           <div class="bg-surface border border-emerald-500/20 rounded-lg p-5" id="wallet-prefund">
             <h3 class="font-display font-semibold text-slate-100 mb-2">Wallet Prefund</h3>
@@ -329,7 +347,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
 
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
           <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Install</p>
-          <pre class="text-sm font-mono text-slate-300"><code>npx rhumb-mcp</code></pre>
+          <pre class="text-sm font-mono text-slate-300"><code>npx rhumb-mcp@latest</code></pre>
         </div>
 
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
@@ -338,7 +356,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp"],
+      "args": ["rhumb-mcp@latest"],
       "env": {
         "RHUMB_API_KEY": "rhumb_live_..."
       }
