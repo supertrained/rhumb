@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     supabase_url: str = "http://localhost:54321"
     supabase_service_role_key: str = "replace-me"
+    supabase_score_reader_key: str | None = None
+    supabase_score_publisher_key: str | None = None
 
     rhumb_admin_secret: str | None = None
 

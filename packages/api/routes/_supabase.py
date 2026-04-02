@@ -10,8 +10,12 @@ import httpx
 from config import settings
 from services.cache import TTLCache, build_cache_key
 from services.circuit_breaker import CircuitBreaker, CircuitState, ServiceDegradedError
-
-_HEADERS: dict[str, str] | None = None
+from services.supabase_access import (
+    get_app_supabase_headers,
+    get_score_publisher_supabase_headers,
+    get_score_reader_supabase_headers,
+    is_score_truth_target,
+)
 _SUPABASE_RESOLUTION = "Supabase is temporarily unavailable. Check /status"
 _SUPABASE_TIMEOUT_SECONDS = 10.0
 _SUPABASE_CACHE = TTLCache(default_ttl=60.0, max_size=1000)
@@ -40,15 +44,21 @@ def _build_url(path: str) -> str:
     return f"{settings.supabase_url}/rest/v1/{path}"
 
 
-def _get_headers() -> dict[str, str]:
-    """Build Supabase REST API headers (cached)."""
-    global _HEADERS
-    if _HEADERS is None:
-        _HEADERS = {
-            "apikey": settings.supabase_service_role_key,
-            "Authorization": f"Bearer {settings.supabase_service_role_key}",
-        }
-    return _HEADERS
+def _get_read_headers(path: str) -> dict[str, str]:
+    """Select the correct read credential surface for a Supabase path."""
+    if is_score_truth_target(path):
+        return get_score_reader_supabase_headers()
+    return get_app_supabase_headers()
+
+
+def _generic_write_allowed(target: str) -> bool:
+    """Generic runtime/control-plane helpers must not mutate score truth."""
+    return not is_score_truth_target(target)
+
+
+def _score_publisher_write_allowed(target: str) -> bool:
+    """Score publisher helpers may only touch protected score-truth tables."""
+    return is_score_truth_target(target)
 
 
 def _count_from_response(response: httpx.Response) -> int:
@@ -147,7 +157,7 @@ async def supabase_fetch(path: str) -> Any | None:
             "GET",
             path,
             expected_status_codes=(200,),
-            headers=_get_headers(),
+            headers=_get_read_headers(path),
             transform=lambda response: response.json(),
         )
     except (httpx.HTTPError, _SupabaseRequestError, ValueError):
@@ -164,7 +174,7 @@ async def supabase_count(path: str) -> int:
         path: PostgREST filter path, e.g. ``credit_ledger?org_id=eq.org_1``
     """
     headers = {
-        **_get_headers(),
+        **_get_read_headers(path),
         "Prefer": "count=exact",
         "Range-Unit": "items",
         "Range": "0-0",
@@ -194,8 +204,11 @@ async def supabase_patch(path: str, payload: dict[str, Any]) -> Any | None:
     Returns:
         Parsed JSON response (list of updated rows) or None on error.
     """
+    if not _generic_write_allowed(path):
+        return None
+
     headers = {
-        **_get_headers(),
+        **get_app_supabase_headers(),
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     }
@@ -214,8 +227,11 @@ async def supabase_patch(path: str, payload: dict[str, Any]) -> Any | None:
 
 async def supabase_insert(table: str, payload: dict[str, Any]) -> bool:
     """Insert a row into a Supabase table via PostgREST."""
+    if not _generic_write_allowed(table):
+        return False
+
     headers = {
-        **_get_headers(),
+        **get_app_supabase_headers(),
         "Content-Type": "application/json",
         "Prefer": "return=minimal",
     }
@@ -258,8 +274,11 @@ async def supabase_insert_returning(
 
     Returns the first created row dict, or None on error.
     """
+    if not _generic_write_allowed(table):
+        return None
+
     headers = {
-        **_get_headers(),
+        **get_app_supabase_headers(),
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     }
@@ -280,3 +299,133 @@ async def supabase_insert_returning(
         return None
     except (httpx.HTTPError, _SupabaseRequestError, ValueError):
         return None
+
+
+async def supabase_score_patch(path: str, payload: dict[str, Any]) -> Any | None:
+    """Patch score-truth rows via the publisher-only credential surface."""
+    if not _score_publisher_write_allowed(path):
+        return None
+
+    headers = {
+        **get_score_publisher_supabase_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    try:
+        return await _request(
+            "PATCH",
+            path,
+            expected_status_codes=(200, 201, 204),
+            headers=headers,
+            payload=payload,
+            transform=lambda response: [] if response.status_code == 204 else response.json(),
+        )
+    except (httpx.HTTPError, _SupabaseRequestError, ValueError):
+        return None
+
+
+async def supabase_score_insert(table: str, payload: dict[str, Any]) -> bool:
+    """Insert a score-truth row via the publisher-only credential surface."""
+    if not _score_publisher_write_allowed(table):
+        return False
+
+    headers = {
+        **get_score_publisher_supabase_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+
+    try:
+        await _request(
+            "POST",
+            table,
+            expected_status_codes=(200, 201, 204),
+            headers=headers,
+            payload=payload,
+            transform=lambda response: response.status_code in (200, 201, 204),
+        )
+        return True
+    except (httpx.HTTPError, _SupabaseRequestError, ValueError):
+        return False
+
+
+async def supabase_score_insert_returning(
+    table: str, payload: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Insert a score-truth row and return the created record.
+
+    This is the dedicated publisher-only write surface for `scores` and
+    `score_audit_chain` so future score writers do not route through the
+    generic app/control-plane helper path.
+    """
+    if not _score_publisher_write_allowed(table):
+        return None
+
+    headers = {
+        **get_score_publisher_supabase_headers(),
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    try:
+        data = await _request(
+            "POST",
+            table,
+            expected_status_codes=(200, 201),
+            headers=headers,
+            payload=payload,
+            transform=lambda response: response.json(),
+        )
+        if isinstance(data, list) and data:
+            return data[0]
+        if isinstance(data, dict):
+            return data
+        return None
+    except (httpx.HTTPError, _SupabaseRequestError, ValueError):
+        return None
+
+
+async def supabase_score_insert_required(table: str, payload: dict[str, Any]) -> None:
+    """Insert a score-truth row and raise if the durable write cannot be recorded."""
+    try:
+        ok = await supabase_score_insert(table, payload)
+    except Exception as exc:
+        raise SupabaseWriteUnavailable(
+            f"Required score insert failed for table={table}"
+        ) from exc
+    if not ok:
+        raise SupabaseWriteUnavailable(f"Required score insert failed for table={table}")
+
+
+async def supabase_score_patch_required(
+    path: str,
+    payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Patch score-truth rows and raise if the durable write cannot be recorded."""
+    try:
+        result = await supabase_score_patch(path, payload)
+    except Exception as exc:
+        raise SupabaseWriteUnavailable(
+            f"Required score patch failed for path={path}"
+        ) from exc
+    if result is None:
+        raise SupabaseWriteUnavailable(f"Required score patch failed for path={path}")
+    return result
+
+
+async def supabase_score_insert_returning_required(
+    table: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Insert a score-truth row, return it, and raise on failure."""
+    try:
+        result = await supabase_score_insert_returning(table, payload)
+    except Exception as exc:
+        raise SupabaseWriteUnavailable(
+            f"Required score insert-returning failed for table={table}"
+        ) from exc
+    if result is None:
+        raise SupabaseWriteUnavailable(
+            f"Required score insert-returning failed for table={table}"
+        )
+    return result

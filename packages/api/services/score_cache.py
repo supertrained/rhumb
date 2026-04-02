@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 from config import settings
+from services.supabase_access import get_score_reader_supabase_headers
 
 logger = logging.getLogger(__name__)
 SCORE_PAGE_SIZE = 1000
@@ -343,10 +344,7 @@ async def fetch_scores_from_db() -> list[CachedScore]:
         f"?select=service_slug,aggregate_recommendation_score,execution_score,access_readiness_score,autonomy_score,confidence,tier,calculated_at"
         f"&order=calculated_at.desc"
     )
-    headers = {
-        "apikey": settings.supabase_service_role_key,
-        "Authorization": f"Bearer {settings.supabase_service_role_key}",
-    }
+    headers = get_score_reader_supabase_headers()
 
     rows: list[dict[str, Any]] = []
     async with httpx.AsyncClient(timeout=15.0) as client:
