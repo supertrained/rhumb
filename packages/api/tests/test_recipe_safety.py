@@ -540,10 +540,10 @@ class TestBase64PayloadInspection:
         encoded = [v for v in result.violations if v.violation_type == ContentViolationType.ENCODED_PAYLOAD]
         assert len(encoded) >= 1
 
-    def test_short_base64_not_inspected(self):
-        """Short strings that happen to be valid base64 are not decoded."""
+    def test_short_safe_base64_still_passes(self):
+        """Short printable base64 can be decoded without becoming a false positive."""
         fw = ContentFirewall()
-        result = fw.inspect({"id": "aGVsbG8="})  # "hello" - too short
+        result = fw.inspect({"id": "aGVsbG8="})  # "hello"
         assert result.passed is True
 
     def test_non_base64_not_decoded(self):
@@ -586,6 +586,26 @@ class TestAdditionalEncodedPayloadInspection:
 
     def test_hex_encoded_path_traversal_detected(self):
         payload = "read file at ../../../etc/passwd please".encode("utf-8").hex()
+        fw = ContentFirewall()
+        result = fw.inspect({"encoded": payload})
+        assert result.passed is False
+        encoded = [v for v in result.violations if v.violation_type == ContentViolationType.ENCODED_PAYLOAD]
+        assert len(encoded) >= 1
+        assert any((v.matched_pattern or "").startswith("hex:") for v in encoded)
+
+    def test_short_base64_path_traversal_detected(self):
+        import base64 as b64
+
+        payload = b64.b64encode(b"../").decode()
+        fw = ContentFirewall()
+        result = fw.inspect({"encoded": payload})
+        assert result.passed is False
+        encoded = [v for v in result.violations if v.violation_type == ContentViolationType.ENCODED_PAYLOAD]
+        assert len(encoded) >= 1
+        assert any((v.matched_pattern or "").startswith("base64:") for v in encoded)
+
+    def test_short_hex_path_traversal_detected(self):
+        payload = "../".encode("utf-8").hex()
         fw = ContentFirewall()
         result = fw.inspect({"encoded": payload})
         assert result.passed is False

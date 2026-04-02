@@ -257,9 +257,15 @@ class ContentFirewall:
 
     @classmethod
     def _try_decode_base64(cls, text: str) -> str | None:
-        """Try to decode a base64-encoded string (AUD-2)."""
+        """Try to decode a base64-encoded string (AUD-2 / AUD-R1-09).
+
+        We intentionally inspect short payloads too: even tiny encoded values can
+        hide dangerous strings like "../" or short shell fragments.
+        """
         stripped = text.strip()
-        if len(stripped) < 20:
+        if len(stripped) < 4:
+            return None
+        if len(re.sub(r"\s+", "", stripped)) % 4 != 0:
             return None
         if not re.match(r'^[A-Za-z0-9+/=\n\r]+$', stripped):
             return None
@@ -274,11 +280,11 @@ class ContentFirewall:
 
     @classmethod
     def _try_decode_hex(cls, text: str) -> str | None:
-        """Try to decode a hex-encoded UTF-8 payload (AUD-R1-06)."""
+        """Try to decode a hex-encoded UTF-8 payload (AUD-R1-06 / AUD-R1-09)."""
         stripped = re.sub(r"\s+", "", text.strip())
         if stripped.startswith(("0x", "0X")):
             stripped = stripped[2:]
-        if len(stripped) < 20 or len(stripped) % 2 != 0:
+        if len(stripped) < 6 or len(stripped) % 2 != 0:
             return None
         if not re.fullmatch(r"[0-9a-fA-F]+", stripped):
             return None
