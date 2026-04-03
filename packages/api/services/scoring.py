@@ -63,7 +63,10 @@ AUTONOMY_DIMENSION_WEIGHTS: dict[str, float] = {
 
 # Effective aggregate weights by dimension (sum = 1.0).
 DIMENSION_WEIGHTS: dict[str, float] = {
-    **{key: weight * AXIS_WEIGHTS["execution"] for key, weight in EXECUTION_DIMENSION_WEIGHTS.items()},
+    **{
+        key: weight * AXIS_WEIGHTS["execution"]
+        for key, weight in EXECUTION_DIMENSION_WEIGHTS.items()
+    },
     **{key: weight * AXIS_WEIGHTS["access"] for key, weight in ACCESS_DIMENSION_WEIGHTS.items()},
     **AUTONOMY_DIMENSION_WEIGHTS,
 }
@@ -99,6 +102,7 @@ def load_autonomy_score_artifact() -> dict[str, dict[str, Any]]:
         for service_slug, value in raw_scores.items()
         if isinstance(value, dict)
     }
+
 
 CATEGORY_DIMENSIONS: dict[str, tuple[str, ...]] = {
     "infrastructure": ("I1", "I2", "I3", "I4", "I5", "I6", "I7"),
@@ -860,30 +864,29 @@ class ScoringService:
             calculated_at=datetime.now(timezone.utc),
         )
 
-    def save_score(self, service_slug: str, result: ANScoreResult) -> UUID | None:
+    async def save_score(self, service_slug: str, result: ANScoreResult) -> UUID | str | None:
         """Persist score in configured repository."""
         if self._repository is None:
             return None
 
-        return self._repository.save_score(
+        return await self._repository.save_score(
             service_slug=service_slug,
-            score=result.score,
-            confidence=result.confidence,
-            tier=result.tier,
-            explanation=result.explanation,
-            dimension_snapshot=result.dimension_snapshot,
+            result=result,
         )
 
-    def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
         """Fetch latest stored score for a service."""
         if self._repository is None:
             return None
-        return self._repository.fetch_latest_score(service_slug)
+        return await self._repository.fetch_latest_score(service_slug)
 
-    def query_scores_by_range(
+    async def query_scores_by_range(
         self, min_score: float = 0.0, max_score: float = 10.0
     ) -> list[StoredScore]:
         """Query scores in a numeric range (e.g., L3+ services)."""
         if self._repository is None:
             return []
-        return self._repository.query_by_score_range(min_score=min_score, max_score=max_score)
+        return await self._repository.query_by_score_range(
+            min_score=min_score,
+            max_score=max_score,
+        )

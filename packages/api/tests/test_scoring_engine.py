@@ -171,7 +171,12 @@ def test_v03_aggregate_formula_uses_execution_access_autonomy_45_40_15() -> None
         autonomy_score_raw=9.0,
     )
 
-    expected = round((8.9 * AXIS_WEIGHTS["execution"]) + (6.5 * AXIS_WEIGHTS["access"]) + (9.0 * AXIS_WEIGHTS["autonomy"]), 1)
+    expected = round(
+        (8.9 * AXIS_WEIGHTS["execution"])
+        + (6.5 * AXIS_WEIGHTS["access"])
+        + (9.0 * AXIS_WEIGHTS["autonomy"]),
+        1,
+    )
     assert aggregate == expected
 
 
@@ -307,15 +312,15 @@ def test_database_round_trip_save_fetch_and_query() -> None:
         )
     )
 
-    score_id = scoring.save_score("resend", result)
+    score_id = asyncio.run(scoring.save_score("resend", result))
     assert score_id is not None
 
-    latest = scoring.fetch_latest_score("resend")
+    latest = asyncio.run(scoring.fetch_latest_score("resend"))
     assert latest is not None
     assert latest.service_slug == "resend"
     assert latest.score == result.score
 
-    ranged = scoring.query_scores_by_range(min_score=8.0, max_score=10.0)
+    ranged = asyncio.run(scoring.query_scores_by_range(min_score=8.0, max_score=10.0))
     assert any(item.service_slug == "resend" for item in ranged)
 
 

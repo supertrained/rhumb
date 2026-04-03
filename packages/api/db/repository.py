@@ -4,14 +4,33 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Protocol
-from uuid import UUID
+from typing import TYPE_CHECKING, Any, Protocol
+from urllib.parse import quote
+from uuid import UUID, uuid4
 
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from db.models import ANScore, Base, ProbeResult, ProbeRun, Service
+from routes._supabase import (
+    supabase_fetch,
+    supabase_score_insert_required,
+    supabase_score_insert_returning_required,
+    supabase_score_patch_required,
+)
+from services.chain_integrity import build_score_audit_payload, compute_chain_hmac
+
+if TYPE_CHECKING:
+    from services.scoring import ANScoreResult
+
+
+_SCORE_TIER_LABELS = {
+    "L1": "Emerging",
+    "L2": "Developing",
+    "L3": "Ready",
+    "L4": "Native",
+}
 
 
 @dataclass(slots=True)
@@ -50,19 +69,15 @@ class StoredProbe:
 class ScoreRepository(Protocol):
     """Protocol for score persistence implementations."""
 
-    def save_score(
+    async def save_score(
         self,
         service_slug: str,
-        score: float,
-        confidence: float,
-        tier: str,
-        explanation: str,
-        dimension_snapshot: dict[str, Any],
-    ) -> UUID: ...
+        result: ANScoreResult,
+    ) -> UUID | str: ...
 
-    def fetch_latest_score(self, service_slug: str) -> StoredScore | None: ...
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None: ...
 
-    def query_by_score_range(
+    async def query_by_score_range(
         self, min_score: float = 0.0, max_score: float = 10.0
     ) -> list[StoredScore]: ...
 
@@ -103,41 +118,266 @@ class InMemoryScoreRepository:
 
     _rows: list[StoredScore] = field(default_factory=list)
 
-    def save_score(
+    async def save_score(
         self,
         service_slug: str,
-        score: float,
-        confidence: float,
-        tier: str,
-        explanation: str,
-        dimension_snapshot: dict[str, Any],
+        result: ANScoreResult,
     ) -> UUID:
-        from uuid import uuid4
-
         entry = StoredScore(
             id=uuid4(),
             service_slug=service_slug,
-            score=score,
-            confidence=confidence,
-            tier=tier,
-            explanation=explanation,
-            dimension_snapshot=dimension_snapshot,
-            calculated_at=datetime.now(timezone.utc),
+            score=result.score,
+            confidence=result.confidence,
+            tier=result.tier,
+            explanation=result.explanation,
+            dimension_snapshot=result.dimension_snapshot,
+            calculated_at=result.calculated_at,
         )
         self._rows.append(entry)
         return entry.id
 
-    def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
         matches = [row for row in self._rows if row.service_slug == service_slug]
         if not matches:
             return None
         min_utc = datetime.min.replace(tzinfo=timezone.utc)
         return sorted(matches, key=lambda row: row.calculated_at or min_utc)[-1]
 
-    def query_by_score_range(
+    async def query_by_score_range(
         self, min_score: float = 0.0, max_score: float = 10.0
     ) -> list[StoredScore]:
         return [row for row in self._rows if min_score <= row.score <= max_score]
+
+
+class SupabaseScoreRepository:
+    """Supabase-backed score persistence on the protected score-truth surface."""
+
+    GENESIS_HASH = "0" * 64
+
+    @staticmethod
+    def _parse_datetime(value: str | None) -> datetime | None:
+        if not value:
+            return None
+        try:
+            normalized = value.replace("Z", "+00:00")
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed
+
+    @staticmethod
+    def _score_probe_metadata(result: ANScoreResult) -> dict[str, Any]:
+        return {
+            "explanation": result.explanation,
+            "dimension_snapshot": result.dimension_snapshot,
+            "an_score_version": result.an_score_version,
+            "writer_surface": "publisher",
+        }
+
+    @staticmethod
+    def _autonomy_column_payload(result: ANScoreResult) -> dict[str, Any]:
+        autonomy_section = (
+            result.dimension_snapshot.get("autonomy")
+            if isinstance(result.dimension_snapshot, dict)
+            else None
+        )
+        raw_dimensions = (
+            autonomy_section.get("dimensions", []) if isinstance(autonomy_section, dict) else []
+        )
+
+        by_code: dict[str, dict[str, Any]] = {}
+        for entry in raw_dimensions:
+            if not isinstance(entry, dict):
+                continue
+            code = entry.get("code")
+            if isinstance(code, str) and code:
+                by_code[code] = entry
+
+        def _value(code: str, field: str) -> Any:
+            candidate = by_code.get(code, {})
+            return candidate.get(field)
+
+        return {
+            "payment_autonomy": _value("P1", "score"),
+            "payment_autonomy_rationale": _value("P1", "rationale"),
+            "payment_autonomy_confidence": _value("P1", "confidence"),
+            "governance_readiness": _value("G1", "score"),
+            "governance_readiness_rationale": _value("G1", "rationale"),
+            "governance_readiness_confidence": _value("G1", "confidence"),
+            "web_accessibility": _value("W1", "score"),
+            "web_accessibility_rationale": _value("W1", "rationale"),
+            "web_accessibility_confidence": _value("W1", "confidence"),
+            "autonomy_score": result.autonomy_score,
+        }
+
+    @classmethod
+    def _score_row_payload(cls, service_slug: str, result: ANScoreResult) -> dict[str, Any]:
+        tier_labels = (
+            result.dimension_snapshot.get("tier_labels", {})
+            if isinstance(result.dimension_snapshot, dict)
+            else {}
+        )
+        tier_label = tier_labels.get(result.tier, _SCORE_TIER_LABELS.get(result.tier, result.tier))
+
+        payload: dict[str, Any] = {
+            "service_slug": service_slug,
+            "aggregate_recommendation_score": round(
+                float(result.aggregate_recommendation_score), 2
+            ),
+            "execution_score": round(float(result.execution_score), 2),
+            "access_readiness_score": (
+                None
+                if result.access_readiness_score is None
+                else round(float(result.access_readiness_score), 2)
+            ),
+            "confidence": round(float(result.confidence), 4),
+            "tier": result.tier,
+            "tier_label": tier_label,
+            "probe_metadata": cls._score_probe_metadata(result),
+            "calculated_at": result.calculated_at.isoformat(),
+        }
+        payload.update(cls._autonomy_column_payload(result))
+        return payload
+
+    @staticmethod
+    def _stored_from_score_row(row: dict[str, Any]) -> StoredScore | None:
+        score_value = row.get("aggregate_recommendation_score")
+        if score_value is None:
+            score_value = row.get("score")
+        if score_value is None:
+            return None
+
+        probe_metadata = row.get("probe_metadata")
+        if not isinstance(probe_metadata, dict):
+            probe_metadata = {}
+        dimension_snapshot = probe_metadata.get("dimension_snapshot")
+        if not isinstance(dimension_snapshot, dict):
+            dimension_snapshot = {}
+
+        raw_id = row.get("id")
+        try:
+            parsed_id = UUID(str(raw_id)) if raw_id is not None else uuid4()
+        except (TypeError, ValueError):
+            parsed_id = uuid4()
+
+        return StoredScore(
+            id=parsed_id,
+            service_slug=str(row.get("service_slug") or ""),
+            score=float(score_value),
+            confidence=float(row.get("confidence") or 0.0),
+            tier=str(row.get("tier") or "L1"),
+            explanation=str(probe_metadata.get("explanation") or ""),
+            dimension_snapshot=dimension_snapshot,
+            calculated_at=SupabaseScoreRepository._parse_datetime(row.get("calculated_at")),
+        )
+
+    @staticmethod
+    async def _ensure_service_exists(service_slug: str) -> None:
+        rows = await supabase_fetch(f"services?slug=eq.{quote(service_slug)}&select=slug&limit=1")
+        if not rows:
+            raise ValueError(
+                f"Cannot publish score for unknown canonical service_slug '{service_slug}'"
+            )
+
+    @staticmethod
+    async def _latest_audit_hash() -> str:
+        rows = await supabase_fetch(
+            "score_audit_chain?select=chain_hash&order=created_at.desc&limit=1"
+        )
+        if not rows:
+            return SupabaseScoreRepository.GENESIS_HASH
+        latest = rows[0].get("chain_hash")
+        return str(latest) if latest else SupabaseScoreRepository.GENESIS_HASH
+
+    async def save_score(
+        self,
+        service_slug: str,
+        result: ANScoreResult,
+    ) -> UUID | str:
+        await self._ensure_service_exists(service_slug)
+
+        existing_rows = await supabase_fetch(
+            f"scores?service_slug=eq.{quote(service_slug)}"
+            "&select=id,aggregate_recommendation_score&limit=1"
+        )
+        existing = existing_rows[0] if existing_rows else None
+        old_score = (
+            float(existing.get("aggregate_recommendation_score"))
+            if existing and existing.get("aggregate_recommendation_score") is not None
+            else None
+        )
+
+        score_payload = self._score_row_payload(service_slug, result)
+        persisted_id: UUID | str
+        if existing is None:
+            created = await supabase_score_insert_returning_required("scores", score_payload)
+            persisted_id = str(created.get("id") or "") or str(uuid4())
+        else:
+            await supabase_score_patch_required(
+                f"scores?service_slug=eq.{quote(service_slug)}",
+                score_payload,
+            )
+            persisted_id = str(existing.get("id") or "") or str(uuid4())
+
+        created_at = result.calculated_at.isoformat()
+        change_reason = "initial" if old_score is None else "recalculation"
+        entry_id = f"saud_{uuid4().hex}"
+        prev_hash = await self._latest_audit_hash()
+        audit_payload = build_score_audit_payload(
+            {
+                "entry_id": entry_id,
+                "service_slug": service_slug,
+                "old_score": old_score,
+                "new_score": round(float(result.aggregate_recommendation_score), 2),
+                "change_reason": change_reason,
+                "created_at": created_at,
+            }
+        )
+        chain_hash = compute_chain_hmac(prev_hash, audit_payload)
+
+        await supabase_score_insert_required(
+            "score_audit_chain",
+            {
+                **audit_payload,
+                "chain_hash": chain_hash,
+                "prev_hash": prev_hash,
+            },
+        )
+
+        return persisted_id
+
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
+        rows = await supabase_fetch(
+            f"scores?service_slug=eq.{quote(service_slug)}"
+            "&select=id,service_slug,aggregate_recommendation_score,confidence,tier,probe_metadata,calculated_at"
+            "&order=calculated_at.desc&limit=1"
+        )
+        if not rows:
+            return None
+        return self._stored_from_score_row(rows[0])
+
+    async def query_by_score_range(
+        self,
+        min_score: float = 0.0,
+        max_score: float = 10.0,
+    ) -> list[StoredScore]:
+        rows = await supabase_fetch(
+            "scores?"
+            f"aggregate_recommendation_score=gte.{min_score}"
+            f"&aggregate_recommendation_score=lte.{max_score}"
+            "&select=id,service_slug,aggregate_recommendation_score,confidence,tier,probe_metadata,calculated_at"
+            "&order=aggregate_recommendation_score.desc.nullslast"
+        )
+        if not rows:
+            return []
+        stored: list[StoredScore] = []
+        for row in rows:
+            parsed = self._stored_from_score_row(row)
+            if parsed is not None:
+                stored.append(parsed)
+        return stored
 
 
 @dataclass(slots=True)
@@ -255,14 +495,10 @@ class SQLAlchemyScoreRepository:
             calculated_at=record.calculated_at,
         )
 
-    def save_score(
+    async def save_score(
         self,
         service_slug: str,
-        score: float,
-        confidence: float,
-        tier: str,
-        explanation: str,
-        dimension_snapshot: dict[str, Any],
+        result: ANScoreResult,
     ) -> UUID:
         if not self._initialized:
             self.create_tables()
@@ -272,11 +508,11 @@ class SQLAlchemyScoreRepository:
                 service = self._ensure_service(session, service_slug)
                 record = ANScore(
                     service_id=service.id,
-                    score=round(score, 1),
-                    confidence=round(confidence, 2),
-                    tier=tier,
-                    explanation=explanation,
-                    dimension_snapshot=dimension_snapshot,
+                    score=round(result.score, 1),
+                    confidence=round(result.confidence, 2),
+                    tier=result.tier,
+                    explanation=result.explanation,
+                    dimension_snapshot=result.dimension_snapshot,
                 )
                 session.add(record)
                 session.commit()
@@ -284,17 +520,13 @@ class SQLAlchemyScoreRepository:
         except SQLAlchemyError:
             if not self._initialized:
                 self.create_tables()
-                return self.save_score(
+                return await self.save_score(
                     service_slug,
-                    score,
-                    confidence,
-                    tier,
-                    explanation,
-                    dimension_snapshot,
+                    result,
                 )
             raise
 
-    def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
         if not self._initialized:
             self.create_tables()
 
@@ -312,7 +544,7 @@ class SQLAlchemyScoreRepository:
             score_record, slug = row
             return self._to_stored_score(score_record, slug)
 
-    def query_by_score_range(
+    async def query_by_score_range(
         self, min_score: float = 0.0, max_score: float = 10.0
     ) -> list[StoredScore]:
         if not self._initialized:

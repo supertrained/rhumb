@@ -8,7 +8,6 @@ from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException
 
 from config import settings
-from routes.admin_auth import require_admin_key
 from db.repository import (
     InMemoryProbeRepository,
     InMemoryScoreRepository,
@@ -18,7 +17,10 @@ from db.repository import (
     ScoreRepository,
     StoredProbe,
     StoredScore,
+    SupabaseScoreRepository,
 )
+from routes._supabase import SupabaseWriteUnavailable
+from routes.admin_auth import require_admin_key
 from schemas.score import ANScoreSchema, ScoreRequestSchema
 from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
@@ -33,7 +35,10 @@ def get_scoring_service() -> ScoringService:
     """Create singleton scoring service for API routes."""
     repository: ScoreRepository
     try:
-        repository = SQLAlchemyScoreRepository.from_url(settings.database_url)
+        if settings.supabase_service_role_key != "replace-me":
+            repository = SupabaseScoreRepository()
+        else:
+            repository = SQLAlchemyScoreRepository.from_url(settings.database_url)
     except Exception:
         repository = InMemoryScoreRepository()
     return ScoringService(repository=repository)
@@ -123,6 +128,29 @@ def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
         score_id=str(stored.id),
         calculated_at=calculated_at,
     )
+
+
+async def _persist_score_or_raise(
+    scoring_service: ScoringService,
+    service_slug: str,
+    result,
+) -> str | None:
+    try:
+        persisted_id = await scoring_service.save_score(service_slug, result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SupabaseWriteUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Score publication failed before the audit chain could be durably recorded.",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Score publication failed.",
+        ) from exc
+
+    return str(persisted_id) if persisted_id else None
 
 
 def _coerce_latency_distribution(value: dict | None) -> dict[str, int] | None:
@@ -237,12 +265,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         autonomy_dimensions=payload.autonomy_dimensions,
     )
 
-    score_id: str | None = None
-    try:
-        persisted_id = scoring_service.save_score(payload.service_slug, result)
-        score_id = str(persisted_id) if persisted_id else None
-    except Exception:
-        score_id = None
+    score_id = await _persist_score_or_raise(scoring_service, payload.service_slug, result)
 
     return _result_to_schema(
         service_slug=result.service_slug,
@@ -267,7 +290,7 @@ async def get_score(slug: str) -> ANScoreSchema:
     scoring_service = get_scoring_service()
 
     try:
-        stored = scoring_service.fetch_latest_score(slug)
+        stored = await scoring_service.fetch_latest_score(slug)
     except Exception:
         stored = None
 
@@ -292,12 +315,7 @@ async def get_score(slug: str) -> ANScoreSchema:
         result.dimension_snapshot["active_failures"] = fixture.get("active_failures", [])
         result.dimension_snapshot["alternatives"] = fixture.get("alternatives", [])
 
-        score_id: str | None = None
-        try:
-            persisted_id = scoring_service.save_score(slug, result)
-            score_id = str(persisted_id) if persisted_id else None
-        except Exception:
-            score_id = None
+        score_id = await _persist_score_or_raise(scoring_service, slug, result)
 
         return _result_to_schema(
             service_slug=slug,
@@ -329,7 +347,7 @@ async def compare_services(services: str) -> dict:
         schema_payload: ANScoreSchema | None = None
 
         try:
-            latest = scoring_service.fetch_latest_score(service_slug)
+            latest = await scoring_service.fetch_latest_score(service_slug)
         except Exception:
             latest = None
 

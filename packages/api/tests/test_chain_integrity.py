@@ -11,7 +11,6 @@ Verifies that:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import pytest
 
@@ -20,6 +19,7 @@ from services.chain_integrity import (
     _canonicalize,
     build_audit_payload,
     build_billing_payload,
+    build_score_audit_payload,
     build_kill_switch_payload,
     compute_chain_hmac,
     get_signing_key,
@@ -120,7 +120,9 @@ class TestVerifyChainHMAC:
         h = compute_chain_hmac(GENESIS, payload, key=TEST_KEY)
         assert verify_chain_hmac("b" * 64, payload, h, key=TEST_KEY) is False
 
-    def test_verify_accepts_previous_key_version_during_rotation(self, monkeypatch: pytest.MonkeyPatch):
+    def test_verify_accepts_previous_key_version_during_rotation(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         monkeypatch.setenv(
             "RHUMB_CHAIN_SIGNING_KEYS",
             "1:old-rotation-key,2:new-rotation-key",
@@ -131,14 +133,19 @@ class TestVerifyChainHMAC:
 
         old_hash = compute_chain_hmac(GENESIS, payload, key_version=1)
 
-        assert verify_chain_hmac(
-            GENESIS,
-            payload,
-            old_hash,
-            key_version=1,
-        ) is True
+        assert (
+            verify_chain_hmac(
+                GENESIS,
+                payload,
+                old_hash,
+                key_version=1,
+            )
+            is True
+        )
 
-    def test_legacy_event_without_key_version_verifies_against_any_configured_key(self, monkeypatch: pytest.MonkeyPatch):
+    def test_legacy_event_without_key_version_verifies_against_any_configured_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         monkeypatch.setenv(
             "RHUMB_CHAIN_SIGNING_KEYS",
             "1:old-rotation-key,2:new-rotation-key",
@@ -306,3 +313,20 @@ class TestBuildPayloadHelpers:
         payload = build_kill_switch_payload(MockEntry())
         assert payload["details"]["approved_by"] == "admin2@rhumb.dev"
         assert payload["principal"] == "admin@rhumb.dev"
+
+    def test_score_audit_payload_covers_chain_fields(self):
+        class MockScoreAuditEntry:
+            entry_id = "saud_123"
+            service_slug = "stripe"
+            old_score = 8.5
+            new_score = 8.9
+            change_reason = "recalculation"
+            created_at = datetime(2026, 4, 3, 16, 0, 0, tzinfo=timezone.utc)
+
+        payload = build_score_audit_payload(MockScoreAuditEntry())
+        assert payload["entry_id"] == "saud_123"
+        assert payload["service_slug"] == "stripe"
+        assert payload["old_score"] == 8.5
+        assert payload["new_score"] == 8.9
+        assert payload["change_reason"] == "recalculation"
+        assert payload["created_at"].startswith("2026-04-03T16:00:00")

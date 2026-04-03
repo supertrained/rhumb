@@ -48,9 +48,20 @@ def _get_signing_key() -> bytes:
 
     try:
         result = subprocess.run(
-            ["sop", "item", "get", "Rhumb Chain Signing Key", "--vault", "OpenClaw Agents",
-             "--fields", "credential", "--reveal"],
-            capture_output=True, text=True, timeout=10
+            [
+                "sop",
+                "item",
+                "get",
+                "Rhumb Chain Signing Key",
+                "--vault",
+                "OpenClaw Agents",
+                "--fields",
+                "credential",
+                "--reveal",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip().encode("utf-8")
@@ -152,6 +163,7 @@ def _canonicalize(obj: Any) -> str:
     - None → null
     - Enums → their value
     """
+
     def _serialize(o: Any) -> Any:
         if isinstance(o, datetime):
             return o.isoformat()
@@ -232,9 +244,13 @@ def build_billing_payload(event: Any) -> dict[str, Any]:
     """
     return {
         "event_id": event.event_id,
-        "event_type": event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type),
+        "event_type": event.event_type.value
+        if hasattr(event.event_type, "value")
+        else str(event.event_type),
         "org_id": event.org_id,
-        "timestamp": event.timestamp.isoformat() if isinstance(event.timestamp, datetime) else str(event.timestamp),
+        "timestamp": event.timestamp.isoformat()
+        if isinstance(event.timestamp, datetime)
+        else str(event.timestamp),
         "amount_usd_cents": event.amount_usd_cents,
         "balance_after_usd_cents": event.balance_after_usd_cents,
         "metadata": event.metadata if isinstance(event.metadata, dict) else {},
@@ -255,10 +271,20 @@ def build_audit_payload(event: Any) -> dict[str, Any]:
     """Build the full semantic payload for an audit event."""
     return {
         "event_id": _field(event, "event_id"),
-        "event_type": (_field(event, "event_type").value if hasattr(_field(event, "event_type"), "value") else str(_field(event, "event_type"))),
-        "severity": (_field(event, "severity").value if hasattr(_field(event, "severity"), "value") else str(_field(event, "severity"))),
+        "event_type": (
+            _field(event, "event_type").value
+            if hasattr(_field(event, "event_type"), "value")
+            else str(_field(event, "event_type"))
+        ),
+        "severity": (
+            _field(event, "severity").value
+            if hasattr(_field(event, "severity"), "value")
+            else str(_field(event, "severity"))
+        ),
         "category": _field(event, "category"),
-        "timestamp": _field(event, "timestamp").isoformat() if isinstance(_field(event, "timestamp"), datetime) else str(_field(event, "timestamp")),
+        "timestamp": _field(event, "timestamp").isoformat()
+        if isinstance(_field(event, "timestamp"), datetime)
+        else str(_field(event, "timestamp")),
         "org_id": _field(event, "org_id"),
         "agent_id": _field(event, "agent_id"),
         "principal": _field(event, "principal"),
@@ -280,6 +306,26 @@ def build_kill_switch_payload(entry: Any) -> dict[str, Any]:
         "switch_id": _field(entry, "switch_id"),
         "action": _field(entry, "action"),
         "principal": _field(entry, "principal"),
-        "timestamp": _field(entry, "timestamp").isoformat() if isinstance(_field(entry, "timestamp"), datetime) else str(_field(entry, "timestamp")),
+        "timestamp": _field(entry, "timestamp").isoformat()
+        if isinstance(_field(entry, "timestamp"), datetime)
+        else str(_field(entry, "timestamp")),
         "details": _field(entry, "details") or _field(entry, "detail") or {},
+    }
+
+
+def build_score_audit_payload(entry: Any) -> dict[str, Any]:
+    """Build the semantic payload for a score-audit-chain entry."""
+    created_at = _field(entry, "created_at") or _field(entry, "timestamp")
+    if isinstance(created_at, datetime):
+        created_at_value = created_at.isoformat()
+    else:
+        created_at_value = str(created_at)
+
+    return {
+        "entry_id": _field(entry, "entry_id"),
+        "service_slug": _field(entry, "service_slug"),
+        "old_score": _field(entry, "old_score"),
+        "new_score": _field(entry, "new_score"),
+        "change_reason": _field(entry, "change_reason", "recalculation"),
+        "created_at": created_at_value,
     }
