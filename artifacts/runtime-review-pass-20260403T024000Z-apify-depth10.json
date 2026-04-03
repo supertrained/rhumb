@@ -1,0 +1,383 @@
+{
+  "provider": "apify",
+  "capability_id": "scrape.extract",
+  "review_kind": "current_depth10",
+  "organization_id": "org_runtime_review_apify_20260403t024000z",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T024000Z-apify-depth10.json",
+  "target_url": "https://example.com",
+  "crawl_input": {
+    "startUrls": [
+      {
+        "url": "https://example.com"
+      }
+    ],
+    "maxCrawlDepth": 0,
+    "maxCrawlPages": 1
+  },
+  "started_at": "2026-04-03T02:40:00Z",
+  "bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "9a439aa2-e01f-4073-bc5a-e22abbd091a1",
+    "organization_id": "org_runtime_review_apify_20260403t024000z"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "43bb0001-90bf-4a83-a967-90ecaeed27cd"
+  },
+  "observed_at": "2026-04-03T02:40:47Z",
+  "fresh_until": "2026-05-03T02:40:47Z",
+  "counts_before": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 9
+  },
+  "estimate": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider": "apify",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v2/acts/{actorId}/runs"
+      },
+      "error": null
+    }
+  },
+  "rhumb": {
+    "status": 200,
+    "data": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider_used": "apify",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 201,
+        "upstream_response": {
+          "data": {
+            "id": "kldSwXmevtmGDNKEb",
+            "actId": "aYG0l9s7dbB7j3gbS",
+            "userId": "Nxwljsib7z8cHYVvN",
+            "startedAt": "2026-04-03T02:40:07.039Z",
+            "finishedAt": "2026-04-03T02:40:27.669Z",
+            "status": "SUCCEEDED",
+            "statusMessage": "Crawled 0/1 pages, 0 failed requests, desired concurrency 2.",
+            "isStatusMessageTerminal": null,
+            "meta": {
+              "origin": "API",
+              "userAgent": "python-httpx/0.27.2"
+            },
+            "stats": {
+              "inputBodyLen": 1439,
+              "migrationCount": 0,
+              "rebootCount": 0,
+              "restartCount": 0,
+              "durationMillis": 20467,
+              "resurrectCount": 0,
+              "runTimeSecs": 20.467,
+              "metamorph": 0,
+              "computeUnits": 0.04548222222222222,
+              "memAvgBytes": 1108952414.3244798,
+              "memMaxBytes": 1559982080,
+              "memCurrentBytes": 1200504832,
+              "cpuAvgUsage": 78.83832111368494,
+              "cpuMaxUsage": 449.9462507221259,
+              "cpuCurrentUsage": 78.81790570719603,
+              "netRxBytes": 54920,
+              "netTxBytes": 26795
+            },
+            "options": {
+              "build": "version-0",
+              "timeoutSecs": 360000,
+              "memoryMbytes": 8192,
+              "restartOnError": true,
+              "diskMbytes": 16384
+            },
+            "buildId": "ag5IWnRTtSxqRFKZg",
+            "exitCode": 0,
+            "defaultKeyValueStoreId": "bzJ3cRGZC0TEpIwm8",
+            "defaultDatasetId": "Rtrc2HbbcXM2zCXO9",
+            "defaultRequestQueueId": "Sh89NHLJ8EQKPDPEr",
+            "storageIds": {
+              "keyValueStores": {
+                "default": "bzJ3cRGZC0TEpIwm8"
+              },
+              "datasets": {
+                "default": "Rtrc2HbbcXM2zCXO9",
+                "errors": "vbypC41ozKyoIf13p"
+              },
+              "requestQueues": {
+                "default": "Sh89NHLJ8EQKPDPEr"
+              }
+            },
+            "platformUsageBillingModel": "USER",
+            "generalAccess": "FOLLOW_USER_SETTING",
+            "buildNumber": "0.3.80",
+            "containerUrl": "https://qssoh6xr4z0h.runs.apify.net",
+            "usage": {
+              "ACTOR_COMPUTE_UNITS": 0.04548222222222222,
+              "DATASET_READS": 0,
+              "DATASET_WRITES": 0,
+              "KEY_VALUE_STORE_READS": 3,
+              "KEY_VALUE_STORE_WRITES": 2,
+              "KEY_VALUE_STORE_LISTS": 0,
+              "REQUEST_QUEUE_READS": 0,
+              "REQUEST_QUEUE_WRITES": 0,
+              "DATA_TRANSFER_INTERNAL_GBYTES": 2.8043054044246674e-05,
+              "DATA_TRANSFER_EXTERNAL_GBYTES": 1.9179657101631165e-05,
+              "PROXY_RESIDENTIAL_TRANSFER_GBYTES": 0,
+              "PROXY_SERPS": 0
+            },
+            "usageTotalUsd": 0.01831312697301143,
+            "usageUsd": {
+              "ACTOR_COMPUTE_UNITS": 0.01819288888888889,
+              "DATASET_READS": 0,
+              "DATASET_WRITES": 0,
+              "KEY_VALUE_STORE_READS": 1.5000000000000002e-05,
+              "KEY_VALUE_STORE_WRITES": 0.0001,
+              "KEY_VALUE_STORE_LISTS": 0,
+              "REQUEST_QUEUE_READS": 0,
+              "REQUEST_QUEUE_WRITES": 0,
+              "DATA_TRANSFER_INTERNAL_GBYTES": 1.4021527022123338e-06,
+              "DATA_TRANSFER_EXTERNAL_GBYTES": 3.835931420326233e-06,
+              "PROXY_RESIDENTIAL_TRANSFER_GBYTES": 0,
+              "PROXY_SERPS": 0
+            }
+          }
+        },
+        "latency_ms": 21202.9,
+        "execution_id": "exec_55a6f832da2540d6905a4119400c2bd4",
+        "receipt_id": "rcpt_a595a2ebbf0d49589ad4e223"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status": 201,
+    "data": {
+      "data": {
+        "id": "WgNsMVKBZqc0i7moy",
+        "actId": "aYG0l9s7dbB7j3gbS",
+        "userId": "Nxwljsib7z8cHYVvN",
+        "startedAt": "2026-04-03T02:40:29.480Z",
+        "finishedAt": "2026-04-03T02:40:47.081Z",
+        "status": "SUCCEEDED",
+        "statusMessage": "Crawled 0/1 pages, 0 failed requests, desired concurrency 2.",
+        "isStatusMessageTerminal": null,
+        "meta": {
+          "origin": "API",
+          "userAgent": "python-httpx/0.28.1"
+        },
+        "stats": {
+          "inputBodyLen": 1439,
+          "migrationCount": 0,
+          "rebootCount": 0,
+          "restartCount": 0,
+          "durationMillis": 17389,
+          "resurrectCount": 0,
+          "runTimeSecs": 17.389,
+          "metamorph": 0,
+          "computeUnits": 0.038642222222222224,
+          "memAvgBytes": 1126735282.8739097,
+          "memMaxBytes": 1437855744,
+          "memCurrentBytes": 0,
+          "cpuAvgUsage": 80.85743102637221,
+          "cpuMaxUsage": 492.788557089084,
+          "cpuCurrentUsage": 0,
+          "netRxBytes": 60934,
+          "netTxBytes": 31193
+        },
+        "options": {
+          "build": "version-0",
+          "timeoutSecs": 360000,
+          "memoryMbytes": 8192,
+          "restartOnError": true,
+          "diskMbytes": 16384
+        },
+        "buildId": "ag5IWnRTtSxqRFKZg",
+        "exitCode": 0,
+        "defaultKeyValueStoreId": "hmGRcUSp5A48EpemY",
+        "defaultDatasetId": "IawqfMUuZdFtR4tIz",
+        "defaultRequestQueueId": "T2oKT5gK0T7gewuZG",
+        "storageIds": {
+          "keyValueStores": {
+            "default": "hmGRcUSp5A48EpemY"
+          },
+          "datasets": {
+            "default": "IawqfMUuZdFtR4tIz",
+            "errors": "nJdzZScGvjzWXhn7g"
+          },
+          "requestQueues": {
+            "default": "T2oKT5gK0T7gewuZG"
+          }
+        },
+        "platformUsageBillingModel": "USER",
+        "generalAccess": "FOLLOW_USER_SETTING",
+        "buildNumber": "0.3.80",
+        "containerUrl": "https://dt6dlm2lcrbj.runs.apify.net",
+        "usage": {
+          "ACTOR_COMPUTE_UNITS": 0.038642222222222224,
+          "DATASET_READS": 0,
+          "DATASET_WRITES": 0,
+          "KEY_VALUE_STORE_READS": 3,
+          "KEY_VALUE_STORE_WRITES": 2,
+          "KEY_VALUE_STORE_LISTS": 0,
+          "REQUEST_QUEUE_READS": 0,
+          "REQUEST_QUEUE_WRITES": 0,
+          "DATA_TRANSFER_INTERNAL_GBYTES": 2.5716610252857208e-05,
+          "DATA_TRANSFER_EXTERNAL_GBYTES": 2.374127507209778e-05,
+          "PROXY_RESIDENTIAL_TRANSFER_GBYTES": 0,
+          "PROXY_SERPS": 0
+        },
+        "usageTotalUsd": 0.015577922974415952,
+        "usageUsd": {
+          "ACTOR_COMPUTE_UNITS": 0.01545688888888889,
+          "DATASET_READS": 0,
+          "DATASET_WRITES": 0,
+          "KEY_VALUE_STORE_READS": 1.5000000000000002e-05,
+          "KEY_VALUE_STORE_WRITES": 0.0001,
+          "KEY_VALUE_STORE_LISTS": 0,
+          "REQUEST_QUEUE_READS": 0,
+          "REQUEST_QUEUE_WRITES": 0,
+          "DATA_TRANSFER_INTERNAL_GBYTES": 1.2858305126428605e-06,
+          "DATA_TRANSFER_EXTERNAL_GBYTES": 4.748255014419556e-06,
+          "PROXY_RESIDENTIAL_TRANSFER_GBYTES": 0,
+          "PROXY_SERPS": 0
+        }
+      }
+    }
+  },
+  "rhumb_dataset": {
+    "status": 200,
+    "data": [
+      {
+        "url": "https://example.com/",
+        "crawl": {
+          "loadedUrl": "https://example.com/",
+          "loadedTime": "2026-04-03T02:40:18.168Z",
+          "referrerUrl": "https://example.com/",
+          "httpStatusCode": 200,
+          "depth": 0,
+          "contentType": "text/html"
+        },
+        "metadata": {
+          "title": "Example Domain",
+          "description": null,
+          "author": null,
+          "keywords": null,
+          "languageCode": "en",
+          "jsonLd": null,
+          "headers": {
+            "date": "Fri, 03 Apr 2026 02:40:17 GMT",
+            "content-type": "text/html",
+            "server": "cloudflare",
+            "last-modified": "Tue, 24 Mar 2026 22:06:31 GMT",
+            "allow": "GET, HEAD",
+            "age": "6",
+            "cf-cache-status": "HIT",
+            "content-encoding": "gzip",
+            "cf-ray": "9e64b52f7c7b583a-LAX",
+            "x-firefox-spdy": "h2"
+          }
+        },
+        "screenshotUrl": null,
+        "text": "Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\nLearn more",
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+        "debug": {
+          "requestHandlerMode": "browser"
+        }
+      }
+    ]
+  },
+  "direct_dataset": {
+    "status": 200,
+    "data": [
+      {
+        "url": "https://example.com/",
+        "crawl": {
+          "loadedUrl": "https://example.com/",
+          "loadedTime": "2026-04-03T02:40:37.541Z",
+          "referrerUrl": "https://example.com/",
+          "httpStatusCode": 200,
+          "depth": 0,
+          "contentType": "text/html"
+        },
+        "metadata": {
+          "title": "Example Domain",
+          "description": null,
+          "author": null,
+          "keywords": null,
+          "languageCode": "en",
+          "jsonLd": null,
+          "headers": {
+            "date": "Fri, 03 Apr 2026 02:40:37 GMT",
+            "content-type": "text/html",
+            "server": "cloudflare",
+            "last-modified": "Tue, 24 Mar 2026 22:06:31 GMT",
+            "allow": "GET, HEAD",
+            "cf-cache-status": "HIT",
+            "age": "7689",
+            "content-encoding": "gzip",
+            "cf-ray": "9e64b5a929cb4f3a-EWR",
+            "x-firefox-spdy": "h2"
+          }
+        },
+        "screenshotUrl": null,
+        "text": "Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\nLearn more",
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+        "debug": {
+          "requestHandlerMode": "browser"
+        }
+      }
+    ]
+  },
+  "comparison": {
+    "rhumb_provider_used": "apify",
+    "rhumb_upstream_status": 201,
+    "rhumb_execution_id": "exec_55a6f832da2540d6905a4119400c2bd4",
+    "rhumb_run_id": "kldSwXmevtmGDNKEb",
+    "direct_run_id": "WgNsMVKBZqc0i7moy",
+    "rhumb_dataset_id": "Rtrc2HbbcXM2zCXO9",
+    "direct_dataset_id": "IawqfMUuZdFtR4tIz",
+    "sampled_fields": [
+      "url",
+      "metadata.title",
+      "markdown"
+    ],
+    "checks": {
+      "url": true,
+      "metadata.title": true,
+      "markdown": true
+    },
+    "all_matched": true,
+    "rhumb_sample": {
+      "url": "https://example.com/",
+      "metadata": {
+        "title": "Example Domain"
+      },
+      "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)"
+    },
+    "direct_sample": {
+      "url": "https://example.com/",
+      "metadata": {
+        "title": "Example Domain"
+      },
+      "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)"
+    }
+  },
+  "verdict": "pass",
+  "published": {
+    "service_slug": "apify",
+    "evidence_id": "43d72678-719c-46ba-b08a-6f6e0a7db6fb",
+    "review_id": "608e85a7-d77b-4a77-9f25-603579e13e35",
+    "execution_id": "exec_55a6f832da2540d6905a4119400c2bd4"
+  },
+  "counts_after": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 10
+  },
+  "agent_disabled": true
+}
