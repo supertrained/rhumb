@@ -1,0 +1,228 @@
+{
+  "provider": "algolia",
+  "capability_id": "search.autocomplete",
+  "index_name": "rhumb_test",
+  "query": "runtime test",
+  "review_kind": "current_depth10",
+  "organization_id": "org_runtime_review_algolia_20260403t044212z_7c83840e",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T044212Z-algolia-depth10.json",
+  "started_at": "2026-04-03T04:42:12Z",
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "02489dea-68bb-4738-ab4f-a46bca76fc45",
+    "organization_id": "org_runtime_review_algolia_20260403t044212z_7c83840e"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "81a63885-d427-4e55-8485-609d4fc0f31a"
+  },
+  "post_grant_delay_seconds": 5,
+  "reviewed_at": "2026-04-03T04:42:24Z",
+  "fresh_until": "2026-05-03T04:42:24Z",
+  "counts_before": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 9
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "search.autocomplete",
+        "provider": "algolia",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.001,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /1/indexes/{index}/query (prefix)"
+      },
+      "error": null
+    },
+    "attempts": 1
+  },
+  "rhumb_execute": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "search.autocomplete",
+        "provider_used": "algolia",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "hits": [
+            {
+              "name": "Rhumb Runtime Test",
+              "description": "Agent-native tool infrastructure for discovering and accessing APIs.",
+              "category": "test",
+              "objectID": "1",
+              "_highlightResult": {
+                "name": {
+                  "value": "Rhumb <em>Runtime</em> <em>Test</em>",
+                  "matchLevel": "full",
+                  "fullyHighlighted": false,
+                  "matchedWords": [
+                    "runtime",
+                    "test"
+                  ]
+                },
+                "description": {
+                  "value": "Agent-native tool infrastructure for discovering and accessing APIs.",
+                  "matchLevel": "none",
+                  "matchedWords": []
+                },
+                "category": {
+                  "value": "<em>test</em>",
+                  "matchLevel": "partial",
+                  "fullyHighlighted": true,
+                  "matchedWords": [
+                    "test"
+                  ]
+                }
+              }
+            }
+          ],
+          "nbHits": 1,
+          "page": 0,
+          "nbPages": 1,
+          "hitsPerPage": 20,
+          "exhaustiveNbHits": true,
+          "exhaustiveTypo": true,
+          "exhaustive": {
+            "nbHits": true,
+            "typo": true
+          },
+          "query": "runtime test",
+          "params": "query=runtime+test",
+          "renderingContent": {},
+          "processingTimeMS": 1,
+          "processingTimingsMS": {
+            "_request": {
+              "roundTrip": 142
+            },
+            "total": 1
+          },
+          "serverTimeMS": 1
+        },
+        "latency_ms": 461.7,
+        "execution_id": "exec_69f94bf2add44cd88a9311bbe0270f78",
+        "receipt_id": "rcpt_79666fa753004e1ba6661c08"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status_code": 200,
+    "body": {
+      "hits": [
+        {
+          "name": "Rhumb Runtime Test",
+          "description": "Agent-native tool infrastructure for discovering and accessing APIs.",
+          "category": "test",
+          "objectID": "1",
+          "_highlightResult": {
+            "name": {
+              "value": "Rhumb <em>Runtime</em> <em>Test</em>",
+              "matchLevel": "full",
+              "fullyHighlighted": false,
+              "matchedWords": [
+                "runtime",
+                "test"
+              ]
+            },
+            "description": {
+              "value": "Agent-native tool infrastructure for discovering and accessing APIs.",
+              "matchLevel": "none",
+              "matchedWords": []
+            },
+            "category": {
+              "value": "<em>test</em>",
+              "matchLevel": "partial",
+              "fullyHighlighted": true,
+              "matchedWords": [
+                "test"
+              ]
+            }
+          }
+        }
+      ],
+      "nbHits": 1,
+      "page": 0,
+      "nbPages": 1,
+      "hitsPerPage": 20,
+      "exhaustiveNbHits": true,
+      "exhaustiveTypo": true,
+      "exhaustive": {
+        "nbHits": true,
+        "typo": true
+      },
+      "query": "runtime test",
+      "params": "query=runtime+test",
+      "renderingContent": {},
+      "processingTimeMS": 1,
+      "processingTimingsMS": {
+        "_request": {
+          "roundTrip": 3
+        },
+        "getIdx": {
+          "total": 1
+        },
+        "total": 1
+      },
+      "serverTimeMS": 1
+    }
+  },
+  "comparison": {
+    "provider_used": "algolia",
+    "upstream_status": 200,
+    "execution_id": "exec_69f94bf2add44cd88a9311bbe0270f78",
+    "rhumb_nb_hits": 1,
+    "direct_nb_hits": 1,
+    "rhumb_query": "runtime test",
+    "direct_query": "runtime test",
+    "rhumb_top": {
+      "objectID": "1",
+      "name": "Rhumb Runtime Test"
+    },
+    "direct_top": {
+      "objectID": "1",
+      "name": "Rhumb Runtime Test"
+    },
+    "nb_hits_match": true,
+    "query_match": true,
+    "top_object_id_match": true,
+    "top_name_match": true
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "48851f7a-a557-41ae-bd73-e7ebe97d040f",
+      "source_ref": "runtime-review:algolia:20260403T044212Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "48851f7a-a557-41ae-bd73-e7ebe97d040f",
+      "review_id": "b9726c82-9165-489e-ac08-7152d3917a96",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "b9726c82-9165-489e-ac08-7152d3917a96",
+      "source_batch_id": "runtime-review:algolia:20260403T044212Z",
+      "state": "inserted"
+    },
+    "service": "algolia"
+  },
+  "counts_after": {
+    "published_reviews": 12,
+    "runtime_backed_reviews": 10
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "02489dea-68bb-4738-ab4f-a46bca76fc45"
+    }
+  }
+}
