@@ -10,7 +10,7 @@ from urllib.parse import quote
 from uuid import UUID, uuid4
 
 from sqlalchemy import Engine, create_engine, select, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from db.models import ANScore, Base, ProbeResult, ProbeRun, Service
@@ -471,15 +471,6 @@ class DirectPostgresScorePublisherRepository:
         persisted_id: str
 
         with self._sessionmaker() as session:
-            service_row = session.execute(
-                text("SELECT slug FROM services WHERE slug = :slug LIMIT 1"),
-                {"slug": service_slug},
-            ).first()
-            if service_row is None:
-                raise ValueError(
-                    f"Cannot publish score for unknown canonical service_slug '{service_slug}'"
-                )
-
             existing = (
                 session.execute(
                     text(
@@ -524,103 +515,111 @@ class DirectPostgresScorePublisherRepository:
                 "autonomy_score": score_payload.get("autonomy_score"),
             }
 
-            if existing is None:
-                persisted_id = str(uuid4())
+            try:
+                if existing is None:
+                    persisted_id = str(uuid4())
+                    session.execute(
+                        text(
+                            "INSERT INTO scores ("
+                            "id, service_slug, aggregate_recommendation_score, execution_score, "
+                            "access_readiness_score, confidence, tier, tier_label, probe_metadata, "
+                            "calculated_at, payment_autonomy, payment_autonomy_rationale, "
+                            "payment_autonomy_confidence, governance_readiness, "
+                            "governance_readiness_rationale, governance_readiness_confidence, "
+                            "web_accessibility, web_accessibility_rationale, "
+                            "web_accessibility_confidence, autonomy_score"
+                            ") VALUES ("
+                            ":id, :service_slug, :aggregate_recommendation_score, :execution_score, "
+                            ":access_readiness_score, :confidence, :tier, :tier_label, :probe_metadata, "
+                            ":calculated_at, :payment_autonomy, :payment_autonomy_rationale, "
+                            ":payment_autonomy_confidence, :governance_readiness, "
+                            ":governance_readiness_rationale, :governance_readiness_confidence, "
+                            ":web_accessibility, :web_accessibility_rationale, "
+                            ":web_accessibility_confidence, :autonomy_score"
+                            ")"
+                        ),
+                        {"id": persisted_id, **score_params},
+                    )
+                else:
+                    persisted_id = str(existing.get("id") or uuid4())
+                    session.execute(
+                        text(
+                            "UPDATE scores SET "
+                            "aggregate_recommendation_score = :aggregate_recommendation_score, "
+                            "execution_score = :execution_score, "
+                            "access_readiness_score = :access_readiness_score, "
+                            "confidence = :confidence, "
+                            "tier = :tier, "
+                            "tier_label = :tier_label, "
+                            "probe_metadata = :probe_metadata, "
+                            "calculated_at = :calculated_at, "
+                            "payment_autonomy = :payment_autonomy, "
+                            "payment_autonomy_rationale = :payment_autonomy_rationale, "
+                            "payment_autonomy_confidence = :payment_autonomy_confidence, "
+                            "governance_readiness = :governance_readiness, "
+                            "governance_readiness_rationale = :governance_readiness_rationale, "
+                            "governance_readiness_confidence = :governance_readiness_confidence, "
+                            "web_accessibility = :web_accessibility, "
+                            "web_accessibility_rationale = :web_accessibility_rationale, "
+                            "web_accessibility_confidence = :web_accessibility_confidence, "
+                            "autonomy_score = :autonomy_score "
+                            "WHERE service_slug = :service_slug"
+                        ),
+                        score_params,
+                    )
+
+                latest = (
+                    session.execute(
+                        text(
+                            "SELECT chain_hash FROM score_audit_chain ORDER BY created_at DESC LIMIT 1"
+                        )
+                    )
+                    .mappings()
+                    .first()
+                )
+                prev_hash = (
+                    str(latest.get("chain_hash"))
+                    if latest and latest.get("chain_hash")
+                    else self.GENESIS_HASH
+                )
+
+                created_at = result.calculated_at.isoformat()
+                change_reason = "initial" if old_score is None else "recalculation"
+                entry_id = f"saud_{uuid4().hex}"
+                audit_payload = build_score_audit_payload(
+                    {
+                        "entry_id": entry_id,
+                        "service_slug": service_slug,
+                        "old_score": old_score,
+                        "new_score": round(float(result.aggregate_recommendation_score), 2),
+                        "change_reason": change_reason,
+                        "created_at": created_at,
+                    }
+                )
+                chain_hash = compute_chain_hmac(prev_hash, audit_payload)
+
                 session.execute(
                     text(
-                        "INSERT INTO scores ("
-                        "id, service_slug, aggregate_recommendation_score, execution_score, "
-                        "access_readiness_score, confidence, tier, tier_label, probe_metadata, "
-                        "calculated_at, payment_autonomy, payment_autonomy_rationale, "
-                        "payment_autonomy_confidence, governance_readiness, "
-                        "governance_readiness_rationale, governance_readiness_confidence, "
-                        "web_accessibility, web_accessibility_rationale, "
-                        "web_accessibility_confidence, autonomy_score"
+                        "INSERT INTO score_audit_chain ("
+                        "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash"
                         ") VALUES ("
-                        ":id, :service_slug, :aggregate_recommendation_score, :execution_score, "
-                        ":access_readiness_score, :confidence, :tier, :tier_label, :probe_metadata, "
-                        ":calculated_at, :payment_autonomy, :payment_autonomy_rationale, "
-                        ":payment_autonomy_confidence, :governance_readiness, "
-                        ":governance_readiness_rationale, :governance_readiness_confidence, "
-                        ":web_accessibility, :web_accessibility_rationale, "
-                        ":web_accessibility_confidence, :autonomy_score"
+                        ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash"
                         ")"
                     ),
-                    {"id": persisted_id, **score_params},
+                    {
+                        **audit_payload,
+                        "chain_hash": chain_hash,
+                        "prev_hash": prev_hash,
+                    },
                 )
-            else:
-                persisted_id = str(existing.get("id") or uuid4())
-                session.execute(
-                    text(
-                        "UPDATE scores SET "
-                        "aggregate_recommendation_score = :aggregate_recommendation_score, "
-                        "execution_score = :execution_score, "
-                        "access_readiness_score = :access_readiness_score, "
-                        "confidence = :confidence, "
-                        "tier = :tier, "
-                        "tier_label = :tier_label, "
-                        "probe_metadata = :probe_metadata, "
-                        "calculated_at = :calculated_at, "
-                        "payment_autonomy = :payment_autonomy, "
-                        "payment_autonomy_rationale = :payment_autonomy_rationale, "
-                        "payment_autonomy_confidence = :payment_autonomy_confidence, "
-                        "governance_readiness = :governance_readiness, "
-                        "governance_readiness_rationale = :governance_readiness_rationale, "
-                        "governance_readiness_confidence = :governance_readiness_confidence, "
-                        "web_accessibility = :web_accessibility, "
-                        "web_accessibility_rationale = :web_accessibility_rationale, "
-                        "web_accessibility_confidence = :web_accessibility_confidence, "
-                        "autonomy_score = :autonomy_score "
-                        "WHERE service_slug = :service_slug"
-                    ),
-                    score_params,
-                )
-
-            latest = (
-                session.execute(
-                    text(
-                        "SELECT chain_hash FROM score_audit_chain ORDER BY created_at DESC LIMIT 1"
-                    )
-                )
-                .mappings()
-                .first()
-            )
-            prev_hash = (
-                str(latest.get("chain_hash"))
-                if latest and latest.get("chain_hash")
-                else self.GENESIS_HASH
-            )
-
-            created_at = result.calculated_at.isoformat()
-            change_reason = "initial" if old_score is None else "recalculation"
-            entry_id = f"saud_{uuid4().hex}"
-            audit_payload = build_score_audit_payload(
-                {
-                    "entry_id": entry_id,
-                    "service_slug": service_slug,
-                    "old_score": old_score,
-                    "new_score": round(float(result.aggregate_recommendation_score), 2),
-                    "change_reason": change_reason,
-                    "created_at": created_at,
-                }
-            )
-            chain_hash = compute_chain_hmac(prev_hash, audit_payload)
-
-            session.execute(
-                text(
-                    "INSERT INTO score_audit_chain ("
-                    "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash"
-                    ") VALUES ("
-                    ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash"
-                    ")"
-                ),
-                {
-                    **audit_payload,
-                    "chain_hash": chain_hash,
-                    "prev_hash": prev_hash,
-                },
-            )
-            session.commit()
+                session.commit()
+            except IntegrityError as exc:
+                session.rollback()
+                if "foreign key" in str(exc).lower():
+                    raise ValueError(
+                        f"Cannot publish score for unknown canonical service_slug '{service_slug}'"
+                    ) from exc
+                raise
 
         return persisted_id
 

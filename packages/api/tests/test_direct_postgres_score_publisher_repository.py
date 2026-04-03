@@ -15,12 +15,13 @@ from services.scoring import ANScoreResult
 def repository() -> DirectPostgresScorePublisherRepository:
     engine = create_engine("sqlite+pysqlite:///:memory:")
     with engine.begin() as conn:
+        conn.execute(text("PRAGMA foreign_keys = ON"))
         conn.execute(text("CREATE TABLE services (slug TEXT PRIMARY KEY)"))
         conn.execute(
             text(
                 "CREATE TABLE scores ("
                 "id TEXT PRIMARY KEY, "
-                "service_slug TEXT NOT NULL, "
+                "service_slug TEXT NOT NULL REFERENCES services(slug), "
                 "aggregate_recommendation_score REAL, "
                 "execution_score REAL, "
                 "access_readiness_score REAL, "
@@ -46,7 +47,7 @@ def repository() -> DirectPostgresScorePublisherRepository:
             text(
                 "CREATE TABLE score_audit_chain ("
                 "entry_id TEXT PRIMARY KEY, "
-                "service_slug TEXT NOT NULL, "
+                "service_slug TEXT NOT NULL REFERENCES services(slug), "
                 "old_score REAL, "
                 "new_score REAL NOT NULL, "
                 "change_reason TEXT NOT NULL, "
