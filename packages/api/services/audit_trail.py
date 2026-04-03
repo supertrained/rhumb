@@ -447,27 +447,29 @@ class AuditTrail:
     ) -> list[AuditEvent]:
         """Query audit events with filters. Returns newest first."""
         with self._lock:
-            # Start with the smallest relevant index
-            if org_id and org_id in self._org_index:
-                indices = set(self._org_index[org_id])
-            elif event_type and event_type in self._type_index:
-                indices = set(self._type_index[event_type])
-            elif severity and severity in self._severity_index:
-                indices = set(self._severity_index[severity])
-            elif category and category in self._category_index:
-                indices = set(self._category_index[category])
-            else:
-                indices = set(range(len(self._events)))
+            # Start with the full event set
+            indices: set[int] | None = None
 
-            # Intersect with other filters
-            if org_id and org_id in self._org_index:
-                indices &= set(self._org_index[org_id])
-            if event_type and event_type in self._type_index:
-                indices &= set(self._type_index[event_type])
-            if severity and severity in self._severity_index:
-                indices &= set(self._severity_index[severity])
-            if category and category in self._category_index:
-                indices &= set(self._category_index[category])
+            # Each indexed filter either narrows (intersect) or short-circuits
+            # to empty when the requested key is absent from the index.
+            for key, index in (
+                (org_id, self._org_index),
+                (event_type, self._type_index),
+                (severity, self._severity_index),
+                (category, self._category_index),
+            ):
+                if key is None:
+                    continue
+                if key not in index:
+                    # Requested filter value does not exist → zero matches
+                    indices = set()
+                    break
+                matched = set(index[key])
+                indices = matched if indices is None else indices & matched
+
+            if indices is None:
+                # No indexed filters applied → start from all events
+                indices = set(range(len(self._events)))
 
             candidates = [self._events[i] for i in indices]
 

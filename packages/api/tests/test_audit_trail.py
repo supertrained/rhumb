@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import datetime, timezone, timedelta
 
 import pytest
@@ -574,3 +575,177 @@ class TestAuditRoutes:
         data = resp.json()["data"]
         assert len(data["events"]) == 1
         assert data["pagination"]["has_more"] is False
+
+
+# ── Retention / purge / rechain (AUD-R1-01 + AUD-R1-02) ─────────────
+
+
+class TestRetentionPurge:
+    """Verify enforce_retention removes expired events while keeping the
+    tamper-evident chain and internal indexes valid over survivors."""
+
+    @staticmethod
+    def _make_trail_with_mixed_retention():
+        """Create a trail with 5 events spanning different retention periods.
+
+        Event types used:
+        - EXECUTION_STARTED (retention_days=90) x2 — will be purged
+        - KILL_SWITCH_ACTIVATED (retention_days=365) x2 — will survive
+        - BUDGET_EXCEEDED (retention_days=180) x1 — will survive
+
+        Since `record()` uses real now(), we back-date events by
+        replacing timestamps in-memory.  Retention enforcement only
+        checks `event.timestamp` vs `now()`, not chain hashes, so
+        back-dating is safe for this purpose.
+        """
+        trail = AuditTrail()
+        old_ts = datetime.now(timezone.utc) - timedelta(days=200)
+        mid_ts = datetime.now(timezone.utc) - timedelta(days=100)
+        recent_ts = datetime.now(timezone.utc) - timedelta(days=10)
+
+        # Record five events (all at real now() initially)
+        trail.record(AuditEventType.EXECUTION_STARTED, "old exec 1", org_id="org_a")
+        trail.record(AuditEventType.EXECUTION_STARTED, "old exec 2", org_id="org_a")
+        trail.record(AuditEventType.KILL_SWITCH_ACTIVATED, "important 1", org_id="org_b")
+        trail.record(AuditEventType.BUDGET_EXCEEDED, "budget", org_id="org_a")
+        trail.record(AuditEventType.KILL_SWITCH_ACTIVATED, "important 2", org_id="org_b")
+
+        # Back-date in-memory to trigger retention purge:
+        # events[0..1] (EXECUTION_STARTED, 90-day retention) → 200 days old → purge
+        # events[2] (KILL_SWITCH_ACTIVATED, 365-day retention) → 100 days old → keep
+        # events[3] (BUDGET_EXCEEDED, 180-day retention) → 10 days old → keep
+        # events[4] (KILL_SWITCH_ACTIVATED, 365-day retention) → 10 days old → keep
+        with trail._lock:
+            trail._events[0] = replace(trail._events[0], timestamp=old_ts)
+            trail._events[1] = replace(trail._events[1], timestamp=old_ts + timedelta(seconds=1))
+            trail._events[2] = replace(trail._events[2], timestamp=mid_ts)
+            trail._events[3] = replace(trail._events[3], timestamp=recent_ts)
+            trail._events[4] = replace(trail._events[4], timestamp=recent_ts + timedelta(seconds=1))
+
+        return trail
+
+    def test_purge_removes_expired_events(self):
+        trail = self._make_trail_with_mixed_retention()
+        assert trail.length == 5
+
+        purged = trail.enforce_retention()
+        assert purged == {"execution.started": 2}
+        assert trail.length == 3
+
+    def test_chain_is_valid_after_purge(self):
+        """AUD-R1-01: surviving events must form a self-consistent HMAC chain."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        status = trail.status()
+        assert status.chain_verified is True
+        assert status.total_events == 3
+
+    def test_chain_starts_from_genesis_after_purge(self):
+        """AUD-R1-01: the rechained segment must start from GENESIS_HASH."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        events = trail.query(limit=100)
+        # Oldest surviving event (sequence 1 after rechain) should link to genesis
+        oldest = events[-1]  # query returns newest-first
+        assert oldest.prev_hash == trail.GENESIS_HASH
+        assert oldest.chain_sequence == 1
+
+    def test_chain_sequences_are_contiguous_after_purge(self):
+        """After purge, surviving events should be renumbered 1..N."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        events = trail.query(limit=100)
+        sequences = sorted(e.chain_sequence for e in events)
+        assert sequences == [1, 2, 3]
+
+    def test_chain_links_are_consistent_after_purge(self):
+        """Each event's prev_hash should match the prior event's chain_hash."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        events = sorted(trail.query(limit=100), key=lambda e: e.chain_sequence)
+        for i in range(1, len(events)):
+            assert events[i].prev_hash == events[i - 1].chain_hash
+
+    def test_latest_hash_updated_after_purge(self):
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        events = sorted(trail.query(limit=100), key=lambda e: e.chain_sequence)
+        assert trail.latest_hash == events[-1].chain_hash
+        assert trail.latest_sequence == 3
+
+    def test_indexes_rebuilt_after_purge(self):
+        """AUD-R1-02: org/type/severity/category indexes match survivors."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+
+        # org_a should have 1 event (budget_exceeded), org_b should have 2
+        org_a_events = trail.query(org_id="org_a", limit=100)
+        org_b_events = trail.query(org_id="org_b", limit=100)
+        assert len(org_a_events) == 1
+        assert len(org_b_events) == 2
+
+        # Type index: kill_switch_activated=2, budget_exceeded=1
+        ks_events = trail.query(event_type=AuditEventType.KILL_SWITCH_ACTIVATED, limit=100)
+        be_events = trail.query(event_type=AuditEventType.BUDGET_EXCEEDED, limit=100)
+        assert len(ks_events) == 2
+        assert len(be_events) == 1
+
+        # Severity index: critical=3 (all survivors are critical)
+        crit_events = trail.query(severity=AuditSeverity.CRITICAL, limit=100)
+        assert len(crit_events) == 3
+
+        # Purged type should return nothing
+        exec_events = trail.query(event_type=AuditEventType.EXECUTION_STARTED, limit=100)
+        assert len(exec_events) == 0
+
+    def test_no_purge_when_all_within_retention(self):
+        trail = AuditTrail()
+        trail.record(AuditEventType.KILL_SWITCH_ACTIVATED, "recent", org_id="org_1")
+        trail.record(AuditEventType.BUDGET_EXCEEDED, "recent", org_id="org_1")
+
+        purged = trail.enforce_retention()
+        assert purged == {}
+        assert trail.length == 2
+
+    def test_purge_all_events(self):
+        trail = AuditTrail()
+        old_ts = datetime.now(timezone.utc) - timedelta(days=400)
+        trail.record(AuditEventType.EXECUTION_STARTED, "ancient", org_id="org_1")
+        trail.record(AuditEventType.EXECUTION_COMPLETED, "ancient 2", org_id="org_1")
+        with trail._lock:
+            trail._events[0] = replace(trail._events[0], timestamp=old_ts)
+            trail._events[1] = replace(trail._events[1], timestamp=old_ts + timedelta(seconds=1))
+
+        purged = trail.enforce_retention()
+        assert sum(purged.values()) == 2
+        assert trail.length == 0
+
+        status = trail.status()
+        assert status.chain_verified is True
+        assert status.total_events == 0
+        assert trail.latest_hash == trail.GENESIS_HASH
+
+    def test_new_events_chain_correctly_after_purge(self):
+        """After purge+rechain, appending new events should link properly."""
+        trail = self._make_trail_with_mixed_retention()
+        trail.enforce_retention()
+        assert trail.length == 3
+
+        # Append a new event
+        new_event = trail.record(
+            AuditEventType.POLICY_UPDATED,
+            "new policy",
+            org_id="org_c",
+        )
+        assert new_event.chain_sequence == 4
+        assert new_event.prev_hash == trail.query(limit=100)[1].chain_hash  # second newest
+
+        # Full chain should still verify
+        status = trail.status()
+        assert status.chain_verified is True
+        assert status.total_events == 4
