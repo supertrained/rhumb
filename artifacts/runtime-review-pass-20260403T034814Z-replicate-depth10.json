@@ -1,0 +1,319 @@
+{
+  "provider": "replicate",
+  "capability_id": "ai.generate_text",
+  "review_kind": "current_depth10",
+  "started_at": "2026-04-03T03:48:14Z",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T034814Z-replicate-depth10.json",
+  "organization_id": "org_runtime_review_replicate_20260403t034814z_e7dccdcf",
+  "execute_body": {
+    "version": "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8",
+    "input": {
+      "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+      "system_prompt": "You are a precise assistant.",
+      "max_new_tokens": 20,
+      "temperature": 0.1
+    }
+  },
+  "expected_output": "REPLICATE_DEPTH10_OK_20260403T034814Z",
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "cedcb999-7c9b-4724-8b8e-bc7d8aa11408",
+    "organization_id": "org_runtime_review_replicate_20260403t034814z_e7dccdcf"
+  },
+  "grant_access": {
+    "service": "replicate",
+    "status": "success",
+    "access_id": "0ca61e39-bcbe-487e-a411-b30d89e784cd"
+  },
+  "reviewed_at": "2026-04-03T03:48:35Z",
+  "fresh_until": "2026-05-03T03:48:35Z",
+  "counts_before": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 9
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "ai.generate_text",
+        "provider": "replicate",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.002,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1/predictions"
+      },
+      "error": null
+    }
+  },
+  "rhumb_execute": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "ai.generate_text",
+        "provider_used": "replicate",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 201,
+        "upstream_response": {
+          "id": "0xm6f1e805rnc0cxa5tb9mtns0",
+          "model": "meta/meta-llama-3-8b-instruct",
+          "version": "hidden",
+          "input": {
+            "max_new_tokens": 20,
+            "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+            "system_prompt": "You are a precise assistant.",
+            "temperature": 0.1
+          },
+          "logs": "",
+          "output": null,
+          "data_removed": false,
+          "error": null,
+          "source": "api",
+          "status": "starting",
+          "created_at": "2026-04-03T03:48:21.121Z",
+          "urls": {
+            "cancel": "https://api.replicate.com/v1/predictions/0xm6f1e805rnc0cxa5tb9mtns0/cancel",
+            "get": "https://api.replicate.com/v1/predictions/0xm6f1e805rnc0cxa5tb9mtns0",
+            "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/v5bzuh4k23dhfm7u2gpnnmsq7ugreab7kfzfsr7mh42hhdmiooda",
+            "web": "https://replicate.com/p/0xm6f1e805rnc0cxa5tb9mtns0"
+          }
+        },
+        "latency_ms": 368.0,
+        "execution_id": "exec_6a218519bc0149008c896b05238b5bc2",
+        "receipt_id": "rcpt_18b952d03dc44dc6a9fc82e6"
+      },
+      "error": null
+    }
+  },
+  "rhumb_final": {
+    "status_code": 200,
+    "body": {
+      "id": "0xm6f1e805rnc0cxa5tb9mtns0",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "Random seed used: `69774`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`Random seed used: `69774`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`",
+      "output": [
+        "\n\n",
+        "RE",
+        "PLICATE",
+        "_DEPTH",
+        "10",
+        "_OK",
+        "_",
+        "202",
+        "604",
+        "03",
+        "T",
+        "034",
+        "814",
+        "Z"
+      ],
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "succeeded",
+      "created_at": "2026-04-03T03:48:21.121Z",
+      "started_at": "2026-04-03T03:48:21.226383664Z",
+      "completed_at": "2026-04-03T03:48:21.441721526Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/0xm6f1e805rnc0cxa5tb9mtns0/cancel",
+        "get": "https://api.replicate.com/v1/predictions/0xm6f1e805rnc0cxa5tb9mtns0",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/v5bzuh4k23dhfm7u2gpnnmsq7ugreab7kfzfsr7mh42hhdmiooda",
+        "web": "https://replicate.com/p/0xm6f1e805rnc0cxa5tb9mtns0"
+      },
+      "metrics": {
+        "batch_size": 2.010875736627708,
+        "input_token_count": 36,
+        "output_token_count": 15,
+        "predict_time": 0.215337862,
+        "predict_time_share": 0.10673658053080241,
+        "time_to_first_token": 0.039872726,
+        "tokens_per_second": 85.48706792670198,
+        "total_time": 0.320721526
+      }
+    }
+  },
+  "direct_create_attempts": [
+    {
+      "attempt": 1,
+      "status_code": 429,
+      "body": {
+        "detail": "Request was throttled. Your rate limit for creating predictions is reduced to 6 requests per minute with a burst of 1 requests while you have less than $5.0 in credit. Your rate limit resets in ~8s.",
+        "status": 429,
+        "retry_after": 8
+      }
+    },
+    {
+      "attempt": 2,
+      "status_code": 429,
+      "body": {
+        "detail": "Request was throttled. Your rate limit for creating predictions is reduced to 6 requests per minute with a burst of 1 requests while you have less than $5.0 in credit. Your rate limit resets in ~2s.",
+        "status": 429,
+        "retry_after": 2
+      }
+    },
+    {
+      "attempt": 3,
+      "status_code": 201,
+      "body": {
+        "id": "x0btq5qqt5rne0cxa5t8tqc2jw",
+        "model": "meta/meta-llama-3-8b-instruct",
+        "version": "hidden",
+        "input": {
+          "max_new_tokens": 20,
+          "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+          "system_prompt": "You are a precise assistant.",
+          "temperature": 0.1
+        },
+        "logs": "",
+        "output": null,
+        "data_removed": false,
+        "error": null,
+        "source": "api",
+        "status": "starting",
+        "created_at": "2026-04-03T03:48:33.361Z",
+        "urls": {
+          "cancel": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw/cancel",
+          "get": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw",
+          "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/qk6zrsx3aqh7sxomzij3aojufcq276szuzmivxcuo7233v62qrcq",
+          "web": "https://replicate.com/p/x0btq5qqt5rne0cxa5t8tqc2jw"
+        }
+      }
+    }
+  ],
+  "direct_create": {
+    "status_code": 201,
+    "body": {
+      "id": "x0btq5qqt5rne0cxa5t8tqc2jw",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "",
+      "output": null,
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "starting",
+      "created_at": "2026-04-03T03:48:33.361Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw/cancel",
+        "get": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/qk6zrsx3aqh7sxomzij3aojufcq276szuzmivxcuo7233v62qrcq",
+        "web": "https://replicate.com/p/x0btq5qqt5rne0cxa5t8tqc2jw"
+      }
+    }
+  },
+  "direct_final": {
+    "status_code": 200,
+    "body": {
+      "id": "x0btq5qqt5rne0cxa5t8tqc2jw",
+      "model": "meta/meta-llama-3-8b-instruct",
+      "version": "hidden",
+      "input": {
+        "max_new_tokens": 20,
+        "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+        "system_prompt": "You are a precise assistant.",
+        "temperature": 0.1
+      },
+      "logs": "Random seed used: `12677`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`Random seed used: `12677`\nNote: Random seed will not impact output if greedy decoding is used.\nFormatted prompt: `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a precise assistant.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nReply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z<|eot_id|><|start_header_id|>assistant<|end_header_id|>`",
+      "output": [
+        "\n\n",
+        "RE",
+        "PLICATE",
+        "_DEPTH",
+        "10",
+        "_OK",
+        "_",
+        "202",
+        "604",
+        "03",
+        "T",
+        "034",
+        "814",
+        "Z"
+      ],
+      "data_removed": false,
+      "error": null,
+      "source": "api",
+      "status": "succeeded",
+      "created_at": "2026-04-03T03:48:33.361Z",
+      "started_at": "2026-04-03T03:48:33.367615877Z",
+      "completed_at": "2026-04-03T03:48:33.57751972Z",
+      "urls": {
+        "cancel": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw/cancel",
+        "get": "https://api.replicate.com/v1/predictions/x0btq5qqt5rne0cxa5t8tqc2jw",
+        "stream": "https://stream-b.svc.rno3.c.replicate.net/v1/streams/qk6zrsx3aqh7sxomzij3aojufcq276szuzmivxcuo7233v62qrcq",
+        "web": "https://replicate.com/p/x0btq5qqt5rne0cxa5t8tqc2jw"
+      },
+      "metrics": {
+        "batch_size": 1.652703217310889,
+        "input_token_count": 36,
+        "output_token_count": 15,
+        "predict_time": 0.209903843,
+        "predict_time_share": 0.126714825630188,
+        "time_to_first_token": 0.040631521,
+        "tokens_per_second": 88.61460528674026,
+        "total_time": 0.21651972
+      }
+    }
+  },
+  "comparison": {
+    "prompt": "Reply with exactly REPLICATE_DEPTH10_OK_20260403T034814Z",
+    "rhumb_prediction_id": "0xm6f1e805rnc0cxa5tb9mtns0",
+    "direct_prediction_id": "x0btq5qqt5rne0cxa5t8tqc2jw",
+    "rhumb_status": "succeeded",
+    "direct_status": "succeeded",
+    "rhumb_output": "REPLICATE_DEPTH10_OK_20260403T034814Z",
+    "direct_output": "REPLICATE_DEPTH10_OK_20260403T034814Z",
+    "status_match": true,
+    "output_match": true,
+    "provider_used": "replicate",
+    "upstream_status": 201,
+    "execution_id": "exec_6a218519bc0149008c896b05238b5bc2"
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "ca5608c1-d9a0-4fe1-8986-d9042382b4b7",
+      "source_ref": "runtime-review:replicate:20260403T034814Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "ca5608c1-d9a0-4fe1-8986-d9042382b4b7",
+      "review_id": "9f009fa5-7ccc-4e74-862b-d5a86bc3d29d",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "9f009fa5-7ccc-4e74-862b-d5a86bc3d29d",
+      "source_batch_id": "runtime-review:replicate:20260403T034814Z",
+      "state": "inserted"
+    },
+    "service": "replicate"
+  },
+  "counts_after": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 10
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "cedcb999-7c9b-4724-8b8e-bc7d8aa11408"
+    }
+  }
+}
