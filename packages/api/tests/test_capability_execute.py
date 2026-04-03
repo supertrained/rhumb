@@ -47,7 +47,11 @@ def _mock_rate_limiter():
     """Keep execute-route tests off the real Supabase-backed limiter path."""
     mock_limiter = MagicMock()
     mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
-    with patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter):
+    with patch(
+        "routes.capability_execute._get_rate_limiter",
+        new_callable=AsyncMock,
+        return_value=mock_limiter,
+    ):
         yield mock_limiter
 
 
@@ -78,31 +82,55 @@ def _mock_billing_health():
 @pytest.fixture(autouse=True)
 def _mock_required_execution_insert():
     """Default required execution-record insert to success for focused route tests."""
-    with patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, return_value=None):
+    with patch(
+        "routes.capability_execute.supabase_insert_required",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
         yield
 
 
 @pytest.fixture(autouse=True)
 def _mock_required_execution_patch():
     """Default required execution-record patch to success for focused route tests."""
-    with patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, return_value=[{}]):
+    with patch(
+        "routes.capability_execute.supabase_patch_required",
+        new_callable=AsyncMock,
+        return_value=[{}],
+    ):
         yield
 
 
 # ── Sample data ─────────────────────────────────────────────
 
 SAMPLE_CAP = [
-    {"id": "email.send", "domain": "email", "action": "send",
-     "description": "Send transactional email"},
+    {
+        "id": "email.send",
+        "domain": "email",
+        "action": "send",
+        "description": "Send transactional email",
+    },
 ]
 
 SAMPLE_MAPPINGS = [
-    {"service_slug": "sendgrid", "credential_modes": ["byo"],
-     "auth_method": "api_key", "endpoint_pattern": "POST /v3/mail/send",
-     "cost_per_call": "0.01", "cost_currency": "USD", "free_tier_calls": 100},
-    {"service_slug": "resend", "credential_modes": ["byo"],
-     "auth_method": "api_key", "endpoint_pattern": "POST /emails",
-     "cost_per_call": None, "cost_currency": "USD", "free_tier_calls": 100},
+    {
+        "service_slug": "sendgrid",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "POST /v3/mail/send",
+        "cost_per_call": "0.01",
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    },
+    {
+        "service_slug": "resend",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "POST /emails",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    },
 ]
 
 SAMPLE_SCORES = [
@@ -116,12 +144,24 @@ SAMPLE_SERVICE_DOMAIN = [
 ]
 
 MANAGED_SAMPLE_MAPPINGS = [
-    {"service_slug": "sendgrid", "credential_modes": ["byo"],
-     "auth_method": "api_key", "endpoint_pattern": "POST /v3/mail/send",
-     "cost_per_call": "0.01", "cost_currency": "USD", "free_tier_calls": 100},
-    {"service_slug": "resend", "credential_modes": ["byo", "rhumb_managed"],
-     "auth_method": "api_key", "endpoint_pattern": "POST /emails",
-     "cost_per_call": None, "cost_currency": "USD", "free_tier_calls": 100},
+    {
+        "service_slug": "sendgrid",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "POST /v3/mail/send",
+        "cost_per_call": "0.01",
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    },
+    {
+        "service_slug": "resend",
+        "credential_modes": ["byo", "rhumb_managed"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "POST /emails",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    },
 ]
 
 
@@ -193,15 +233,24 @@ def _build_patches():
 
 # ── Tests ───────────────────────────────────────────────────
 
+
 @pytest.mark.anyio
 async def test_execute_explicit_provider(app):
     """POST /v1/capabilities/email.send/execute with explicit provider proxies correctly."""
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True) as mock_insert,
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ) as mock_insert,
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -236,8 +285,16 @@ async def test_execute_blocks_when_kill_switch_active(app):
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.init_kill_switch_registry", new_callable=AsyncMock, return_value=mock_registry),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.init_kill_switch_registry",
+            new_callable=AsyncMock,
+            return_value=mock_registry,
+        ),
         patch("routes.capability_execute.get_pool_manager") as mock_pool,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -272,9 +329,17 @@ async def test_execute_supports_query_envelope_and_top_level_body(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -307,17 +372,26 @@ async def test_twilio_lookup_uses_lookups_domain(app):
 
     async def mock_fetch(path: str):
         if path.startswith("capabilities?") and "id=eq.phone.lookup" in path:
-            return [{"id": "phone.lookup", "domain": "phone", "action": "lookup", "description": "Lookup phone metadata"}]
+            return [
+                {
+                    "id": "phone.lookup",
+                    "domain": "phone",
+                    "action": "lookup",
+                    "description": "Lookup phone metadata",
+                }
+            ]
         if path.startswith("capability_services?") and "capability_id=eq.phone.lookup" in path:
-            return [{
-                "service_slug": "twilio",
-                "credential_modes": ["byo"],
-                "auth_method": "api_key",
-                "endpoint_pattern": "GET /v2/PhoneNumbers/{number}?Fields=carrier",
-                "cost_per_call": None,
-                "cost_currency": "USD",
-                "free_tier_calls": None,
-            }]
+            return [
+                {
+                    "service_slug": "twilio",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /v2/PhoneNumbers/{number}?Fields=carrier",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                }
+            ]
         if path.startswith("services?") and "slug=eq.twilio" in path:
             return [{"slug": "twilio", "api_domain": "api.twilio.com"}]
         if path.startswith("capability_executions?"):
@@ -325,9 +399,17 @@ async def test_twilio_lookup_uses_lookups_domain(app):
         return []
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -368,8 +450,7 @@ async def test_unknown_capability_returns_404_before_payment_flow(app):
         "error": "capability_not_found",
         "message": "No capability found with id 'nonexistent'",
         "resolution": (
-            "Browse capabilities at GET /v1/capabilities or use "
-            "discover_capabilities MCP tool"
+            "Browse capabilities at GET /v1/capabilities or use " "discover_capabilities MCP tool"
         ),
         "request_id": "req-capability-404",
     }
@@ -381,10 +462,22 @@ async def test_billable_execution_checks_billing_health_before_execute(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.check_billing_health", new_callable=AsyncMock, return_value=(True, "ok")) as mock_billing_health,
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ) as mock_billing_health,
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -411,10 +504,22 @@ async def test_billable_execution_blocks_when_billing_health_fails(app, billing_
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.check_billing_health", new_callable=AsyncMock, return_value=(False, billing_reason)),
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True) as mock_insert,
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new_callable=AsyncMock,
+            return_value=(False, billing_reason),
+        ),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ) as mock_insert,
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -449,9 +554,17 @@ async def test_execute_auto_select_provider(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         # resend is NOT in SERVICE_REGISTRY, so it takes the httpx.AsyncClient path
         patch("httpx.AsyncClient") as MockHttpxClient,
     ):
@@ -482,7 +595,11 @@ async def test_execute_auto_select_provider(app):
 async def test_execute_unknown_capability(app):
     """POST execute with unknown capability returns 404."""
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -497,8 +614,7 @@ async def test_execute_unknown_capability(app):
         "error": "capability_not_found",
         "message": "No capability found with id 'nonexistent'",
         "resolution": (
-            "Browse capabilities at GET /v1/capabilities or use "
-            "discover_capabilities MCP tool"
+            "Browse capabilities at GET /v1/capabilities or use " "discover_capabilities MCP tool"
         ),
         "request_id": body["request_id"],
     }
@@ -516,7 +632,11 @@ async def test_execute_unavailable_provider(app):
         breaker.record_failure(status_code=500)
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
         patch("routes.capability_execute.get_breaker_registry", return_value=broken_registry),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -539,7 +659,11 @@ async def test_execute_unavailable_provider(app):
 async def test_estimate_endpoint(app):
     """GET estimate returns cost and provider without executing."""
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
@@ -564,21 +688,34 @@ async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
 
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):
-            return [{"id": "search.query", "domain": "search", "action": "query", "description": "Web search"}]
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
         if path.startswith("capability_services?"):
-            return [{
-                "service_slug": "brave-search",
-                "credential_modes": ["byo", "rhumb_managed"],
-                "auth_method": "api_key",
-                "endpoint_pattern": "GET /res/v1/web/search",
-                "cost_per_call": "0.003",
-                "cost_currency": "USD",
-                "free_tier_calls": 2000,
-            }]
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo", "rhumb_managed"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.003",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 2000,
+                }
+            ]
         return []
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
@@ -601,7 +738,11 @@ async def test_estimate_auto_resolves_to_managed_when_config_exists(app):
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -627,7 +768,11 @@ async def test_estimate_explicit_rhumb_managed_uses_managed_mapping(app):
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -658,7 +803,11 @@ async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
     """Explicit rhumb_managed estimates should fail fast for non-managed providers."""
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -693,10 +842,24 @@ async def test_execution_logging(app):
         return [payload]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, side_effect=capture_insert),
-        patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, side_effect=capture_patch),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            side_effect=capture_insert,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            side_effect=capture_patch,
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -744,9 +907,19 @@ async def test_byo_4xx_marks_execution_failed_and_refunded(app):
         return [payload]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, side_effect=capture_patch),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            side_effect=capture_patch,
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -775,17 +948,26 @@ async def test_byo_get_promotes_body_to_query_params(app):
 
     async def _mock_fetch(path: str):
         if path.startswith("capabilities?"):
-            return [{"id": "search.query", "domain": "search", "action": "query", "description": "Web search"}]
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
         if path.startswith("capability_services?"):
-            return [{
-                "service_slug": "brave-search",
-                "credential_modes": ["byo"],
-                "auth_method": "api_key",
-                "endpoint_pattern": "GET /res/v1/web/search",
-                "cost_per_call": "0.10",
-                "cost_currency": "USD",
-                "free_tier_calls": 0,
-            }]
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
         if path.startswith("services?"):
             return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
         if path.startswith("capability_executions?"):
@@ -818,10 +1000,20 @@ async def test_byo_get_promotes_body_to_query_params(app):
             return DummyResponse()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_fetch),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, return_value=[{}]),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch", new_callable=AsyncMock, return_value=[{}]
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -850,8 +1042,16 @@ async def test_execute_agent_rate_limit_uses_durable_limiter(app):
     mock_limiter.check_and_increment = AsyncMock(return_value=(False, 0))
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -883,9 +1083,21 @@ async def test_execute_x402_wallet_rate_limit_uses_durable_limiter(app):
     mock_replay_guard.check_and_claim = AsyncMock(return_value=False)
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
-        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
+        patch(
+            "routes.capability_execute._get_replay_guard",
+            new_callable=AsyncMock,
+            return_value=mock_replay_guard,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -897,11 +1109,13 @@ async def test_execute_x402_wallet_rate_limit_uses_durable_limiter(app):
                     "body": {"to": "test@example.com"},
                 },
                 headers={
-                    "X-Payment": json.dumps({
-                        "tx_hash": "0xabc123",
-                        "wallet_address": "0xFEE123",
-                        "network": "base",
-                    }),
+                    "X-Payment": json.dumps(
+                        {
+                            "tx_hash": "0xabc123",
+                            "wallet_address": "0xFEE123",
+                            "network": "base",
+                        }
+                    ),
                 },
             )
 
@@ -925,8 +1139,16 @@ async def test_execute_x402_replay_guard_failure_fails_closed(app):
     mock_replay_guard.check_and_claim = AsyncMock(side_effect=ReplayGuardUnavailable("DB down"))
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_replay_guard",
+            new_callable=AsyncMock,
+            return_value=mock_replay_guard,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -938,11 +1160,13 @@ async def test_execute_x402_replay_guard_failure_fails_closed(app):
                     "body": {"to": "test@example.com"},
                 },
                 headers={
-                    "X-Payment": json.dumps({
-                        "tx_hash": "0xdeadbeef",
-                        "wallet_address": "0xFEE123",
-                        "network": "base",
-                    }),
+                    "X-Payment": json.dumps(
+                        {
+                            "tx_hash": "0xdeadbeef",
+                            "wallet_address": "0xFEE123",
+                            "network": "base",
+                        }
+                    ),
                 },
             )
 
@@ -962,8 +1186,16 @@ async def test_execute_x402_receipt_write_failure_fails_closed(app):
 
     with (
         patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": "0xRHUMB"}, clear=False),
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_replay_guard", new_callable=AsyncMock, return_value=mock_replay_guard),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_replay_guard",
+            new_callable=AsyncMock,
+            return_value=mock_replay_guard,
+        ),
         patch(
             "routes.capability_execute.verify_usdc_payment",
             new_callable=AsyncMock,
@@ -992,11 +1224,13 @@ async def test_execute_x402_receipt_write_failure_fails_closed(app):
                     "body": {"to": "test@example.com"},
                 },
                 headers={
-                    "X-Payment": json.dumps({
-                        "tx_hash": "0xfeedface",
-                        "wallet_address": "0xFEE123",
-                        "network": "base",
-                    }),
+                    "X-Payment": json.dumps(
+                        {
+                            "tx_hash": "0xfeedface",
+                            "wallet_address": "0xFEE123",
+                            "network": "base",
+                        }
+                    ),
                 },
             )
 
@@ -1019,8 +1253,16 @@ async def test_execute_managed_daily_limit_uses_durable_limiter(app):
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
-        patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -1057,7 +1299,11 @@ async def test_execute_managed_budget_authority_unavailable_is_honest(app):
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -1095,8 +1341,16 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
     """Execute defaults auto to rhumb_managed when a managed config exists."""
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
 
-    async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest", execution_id=None):
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -1108,8 +1362,14 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
         }
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
@@ -1143,14 +1403,22 @@ async def test_auto_resolves_to_byo_when_no_config(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
             return_value=None,
         ) as mock_resolve_managed,
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("httpx.AsyncClient") as MockHttpxClient,
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -1184,13 +1452,21 @@ async def test_explicit_byo_overrides_auto(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_with_managed_option),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
         ) as mock_resolve_managed,
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1220,8 +1496,16 @@ async def test_idempotency_prevents_duplicate(app):
     mock_store.claim = AsyncMock(return_value=MagicMock(execution_id="exec_existing123"))
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_idempotency_store",
+            new_callable=AsyncMock,
+            return_value=mock_store,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -1250,8 +1534,16 @@ async def test_idempotency_unavailable_fails_closed(app):
     mock_store.claim = AsyncMock(side_effect=IdempotencyUnavailable("DB down"))
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._get_idempotency_store",
+            new_callable=AsyncMock,
+            return_value=mock_store,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -1273,7 +1565,11 @@ async def test_idempotency_unavailable_fails_closed(app):
 @pytest.mark.anyio
 async def test_execute_fails_when_execution_record_unavailable(app):
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
         patch(
             "routes.capability_execute.supabase_insert_required",
             new_callable=AsyncMock,
@@ -1293,7 +1589,9 @@ async def test_execute_fails_when_execution_record_unavailable(app):
             )
 
     assert resp.status_code == 503
-    assert resp.json()["detail"] == "Execution control plane temporarily unavailable. Retry shortly."
+    assert (
+        resp.json()["detail"] == "Execution control plane temporarily unavailable. Retry shortly."
+    )
 
 
 @pytest.mark.anyio
@@ -1301,13 +1599,19 @@ async def test_execute_fails_when_final_execution_record_patch_unavailable(app):
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
         patch(
             "routes.capability_execute.supabase_patch_required",
             new_callable=AsyncMock,
             side_effect=SupabaseWriteUnavailable("down"),
         ),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1401,9 +1705,17 @@ async def test_execute_post_raw_json_without_content_type_accepts_authenticated_
     _, mock_pool = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1446,7 +1758,11 @@ async def test_execute_get_unknown_capability_404(app):
 async def test_estimate_auto_select(app):
     """GET estimate without provider auto-selects best."""
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(

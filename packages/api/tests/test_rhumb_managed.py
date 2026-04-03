@@ -29,13 +29,21 @@ def app():
 
 @pytest.fixture(autouse=True)
 def _mock_required_execution_insert():
-    with patch("routes.capability_execute.supabase_insert_required", new_callable=AsyncMock, return_value=None):
+    with patch(
+        "routes.capability_execute.supabase_insert_required",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
         yield
 
 
 @pytest.fixture(autouse=True)
 def _mock_required_execution_patch():
-    with patch("routes.capability_execute.supabase_patch_required", new_callable=AsyncMock, return_value=[{}]):
+    with patch(
+        "routes.capability_execute.supabase_patch_required",
+        new_callable=AsyncMock,
+        return_value=[{}],
+    ):
         yield
 
 
@@ -43,7 +51,11 @@ def _mock_required_execution_patch():
 def _mock_rate_limiter():
     mock_limiter = MagicMock()
     mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
-    with patch("routes.capability_execute._get_rate_limiter", new_callable=AsyncMock, return_value=mock_limiter):
+    with patch(
+        "routes.capability_execute._get_rate_limiter",
+        new_callable=AsyncMock,
+        return_value=mock_limiter,
+    ):
         yield mock_limiter
 
 
@@ -71,9 +83,11 @@ def _mock_billing_health():
 
 # ── RhumbManagedExecutor unit tests ────────────────────────────
 
+
 @pytest.mark.anyio
 async def test_managed_executor_is_managed(monkeypatch):
     """is_managed returns True when a managed config exists."""
+
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
             return [{"id": 1}]
@@ -81,6 +95,7 @@ async def test_managed_executor_is_managed(monkeypatch):
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
         from services.rhumb_managed import RhumbManagedExecutor
+
         executor = RhumbManagedExecutor()
         assert await executor.is_managed("email.send") is True
 
@@ -88,11 +103,13 @@ async def test_managed_executor_is_managed(monkeypatch):
 @pytest.mark.anyio
 async def test_managed_executor_not_managed(monkeypatch):
     """is_managed returns False when no managed config exists."""
+
     async def mock_fetch(path):
         return []
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
         from services.rhumb_managed import RhumbManagedExecutor
+
         executor = RhumbManagedExecutor()
         assert await executor.is_managed("nonexistent.action") is False
 
@@ -100,16 +117,22 @@ async def test_managed_executor_not_managed(monkeypatch):
 @pytest.mark.anyio
 async def test_managed_executor_list(monkeypatch):
     """list_managed returns enabled managed capabilities."""
+
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
             return [
-                {"capability_id": "email.send", "service_slug": "resend",
-                 "description": "Send email via Resend", "daily_limit_per_agent": 100},
+                {
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Send email via Resend",
+                    "daily_limit_per_agent": 100,
+                },
             ]
         return []
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
         from services.rhumb_managed import RhumbManagedExecutor
+
         executor = RhumbManagedExecutor()
         managed = await executor.list_managed()
         assert len(managed) == 1
@@ -123,17 +146,19 @@ async def test_managed_executor_prelogged_execution_uses_required_patch(monkeypa
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1,
-                "capability_id": "email.send",
-                "service_slug": "resend",
-                "description": "Managed email send",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/emails",
-                "default_headers": {},
-                "daily_limit_per_agent": 100,
-            }]
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Managed email send",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/emails",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
         if "services?slug=eq.resend" in path:
             return [{"api_domain": "api.resend.com"}]
         return []
@@ -171,11 +196,13 @@ async def test_managed_executor_prelogged_execution_uses_required_patch(monkeypa
         async def request(self, method, url, headers=None, json=None, params=None):
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_patch_required", side_effect=mock_patch_required), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_patch_required", side_effect=mock_patch_required),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -195,22 +222,36 @@ async def test_managed_executor_prelogged_execution_uses_required_patch(monkeypa
 
 # ── Catalog endpoint ──────────────────────────────────────────
 
+
 @pytest.mark.anyio
 async def test_managed_catalog_endpoint(app):
     """GET /v1/capabilities/rhumb-managed returns managed capabilities."""
+
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
             return [
-                {"capability_id": "email.send", "service_slug": "resend",
-                 "description": "Send email via Resend", "daily_limit_per_agent": 100},
+                {
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Send email via Resend",
+                    "daily_limit_per_agent": 100,
+                },
             ]
         if "capabilities?" in path and "id=in." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send",
-                      "description": "Send transactional email"}]
+            return [
+                {
+                    "id": "email.send",
+                    "domain": "email",
+                    "action": "send",
+                    "description": "Send transactional email",
+                }
+            ]
         return []
 
-    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+    with (
+        patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.get("/v1/capabilities/rhumb-managed")
 
@@ -224,11 +265,14 @@ async def test_managed_catalog_endpoint(app):
 @pytest.mark.anyio
 async def test_managed_catalog_empty(app):
     """Managed catalog returns empty list when no managed capabilities."""
+
     async def mock_fetch(path):
         return []
 
-    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+    with (
+        patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.get("/v1/capabilities/rhumb-managed")
 
@@ -237,6 +281,7 @@ async def test_managed_catalog_empty(app):
 
 
 # ── Execute with rhumb_managed mode ──────────────────────────
+
 
 @pytest.mark.anyio
 async def test_execute_rhumb_managed_mode(app, monkeypatch):
@@ -250,19 +295,23 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
     async def mock_fetch(path):
         call_log.append(("fetch", path))
         if "capabilities?" in path and "id=eq." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+            return [
+                {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
+            ]
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1,
-                "capability_id": "email.send",
-                "service_slug": "resend",
-                "description": "Managed email send",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/emails",
-                "default_headers": {},
-                "daily_limit_per_agent": 100,
-            }]
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Managed email send",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/emails",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
         if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
@@ -272,8 +321,16 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
         return {"id": payload.get("id")}
 
     # Mock at the executor's execute method to avoid httpx.AsyncClient global patch
-    async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest", execution_id=None):
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -284,16 +341,21 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
             "execution_id": "exec_test123",
         }
 
-    with patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute):
-
+    with (
+        patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
                 json={
                     "credential_mode": "rhumb_managed",
-                    "body": {"from": "test@rhumb.dev", "to": "user@example.com",
-                             "subject": "Test", "html": "<p>Hello</p>"},
+                    "body": {
+                        "from": "test@rhumb.dev",
+                        "to": "user@example.com",
+                        "subject": "Test",
+                        "html": "<p>Hello</p>",
+                    },
                 },
                 headers={"X-Rhumb-Key": _BYPASS_KEY},
             )
@@ -313,12 +375,22 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
 
     async def mock_fetch(path):
         if "capabilities?" in path and "id=eq." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+            return [
+                {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
+            ]
         return []
 
     # Mock executor to return a result that we can inspect for leakage
-    async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest", execution_id=None):
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -329,9 +401,10 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
             "execution_id": "exec_leak_test",
         }
 
-    with patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute):
-
+    with (
+        patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
@@ -352,29 +425,34 @@ async def test_execute_rhumb_managed_missing_env_var(app, monkeypatch):
 
     async def mock_cap_fetch(path):
         if "capabilities?" in path and "id=eq." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+            return [
+                {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
+            ]
         return []
 
     async def mock_managed_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1,
-                "capability_id": "email.send",
-                "service_slug": "resend",
-                "description": "Managed",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/emails",
-                "default_headers": {},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Managed",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/emails",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?" in path and "capability_services?" not in path:
             return [{"slug": "resend", "api_domain": "api.resend.com"}]
         return []
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_managed_fetch), \
-         patch("routes.capability_execute.supabase_fetch", side_effect=mock_cap_fetch):
-
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_managed_fetch),
+        patch("routes.capability_execute.supabase_fetch", side_effect=mock_cap_fetch),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.post(
                 "/v1/capabilities/email.send/execute",
@@ -390,9 +468,12 @@ async def test_execute_rhumb_managed_missing_env_var(app, monkeypatch):
 @pytest.mark.anyio
 async def test_execute_byo_still_requires_method_path(app):
     """BYO mode execution still requires method and path."""
+
     async def mock_fetch(path):
         if "capabilities?" in path and "id=eq." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+            return [
+                {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
+            ]
         return []
 
     with patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch):
@@ -410,13 +491,24 @@ async def test_execute_byo_still_requires_method_path(app):
 @pytest.mark.anyio
 async def test_execute_managed_omits_method_path(app, monkeypatch):
     """Managed mode does not require method/path — uses defaults from config."""
+
     async def mock_fetch(path):
         if "capabilities?" in path and "id=eq." in path:
-            return [{"id": "email.send", "domain": "email", "action": "send", "description": "Send"}]
+            return [
+                {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
+            ]
         return []
 
-    async def mock_execute(self, capability_id, agent_id, body=None, params=None,
-                           service_slug=None, interface="rest", execution_id=None):
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
         return {
             "capability_id": capability_id,
             "provider_used": "resend",
@@ -427,9 +519,10 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
             "execution_id": "exec_omit_test",
         }
 
-    with patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute):
-
+    with (
+        patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             # No method or path — managed mode uses defaults
             resp = await c.post(
@@ -479,11 +572,13 @@ async def test_get_managed_config_accepts_proxy_alias_for_canonical_row():
         if "service_slug=eq.pdl" in path:
             return []
         if "service_slug=eq.people-data-labs" in path:
-            return [{
-                "id": 144,
-                "capability_id": "data.enrich_person",
-                "service_slug": "people-data-labs",
-            }]
+            return [
+                {
+                    "id": 144,
+                    "capability_id": "data.enrich_person",
+                    "service_slug": "people-data-labs",
+                }
+            ]
         return []
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
@@ -504,17 +599,19 @@ async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failu
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 321,
-                "capability_id": "search.query",
-                "service_slug": "tavily",
-                "description": "Managed Tavily search",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_TAVILY_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/search",
-                "default_headers": {},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 321,
+                    "capability_id": "search.query",
+                    "service_slug": "tavily",
+                    "description": "Managed Tavily search",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_TAVILY_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/search",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.tavily" in path:
             return [{"api_domain": "api.tavily.com"}]
         return []
@@ -554,10 +651,12 @@ async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failu
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -593,17 +692,19 @@ async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 654,
-                "capability_id": "search.query",
-                "service_slug": "brave-search",
-                "description": "Managed Brave search",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY"],
-                "default_method": "GET",
-                "default_path": "/res/v1/web/search",
-                "default_headers": {"Accept": "application/json"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 654,
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Managed Brave search",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY"],
+                    "default_method": "GET",
+                    "default_path": "/res/v1/web/search",
+                    "default_headers": {"Accept": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.brave-search" in path:
             return [{"api_domain": "api.search.brave.com"}]
         return []
@@ -640,10 +741,12 @@ async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -676,17 +779,19 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 999,
-                "capability_id": "ai.generate_text",
-                "service_slug": "google-ai",
-                "description": "Managed Google AI text generation",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/v1beta/models/{model}:generateContent",
-                "default_headers": {"Content-Type": "application/json"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 999,
+                    "capability_id": "ai.generate_text",
+                    "service_slug": "google-ai",
+                    "description": "Managed Google AI text generation",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/v1beta/models/{model}:generateContent",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.google-ai" in path:
             return [{"api_domain": "generativelanguage.googleapis.com"}]
         return []
@@ -724,10 +829,12 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -751,23 +858,27 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_param_from_body(monkeypatch):
+async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_param_from_body(
+    monkeypatch,
+):
     """Algolia managed execution should accept index aliases and keep them out of the POST body."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_ALGOLIA_API_KEY", "algolia_test_secret")
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1701,
-                "capability_id": "search.autocomplete",
-                "service_slug": "algolia",
-                "description": "Managed Algolia autocomplete",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/1/indexes/{indexName}/query",
-                "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1701,
+                    "capability_id": "search.autocomplete",
+                    "service_slug": "algolia",
+                    "description": "Managed Algolia autocomplete",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/1/indexes/{indexName}/query",
+                    "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.algolia" in path:
             return [{"api_domain": "80LYFTF37Y-dsn.algolia.net"}]
         return []
@@ -804,10 +915,12 @@ async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_para
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -838,17 +951,19 @@ async def test_managed_executor_missing_path_template_param_returns_clear_400(mo
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1702,
-                "capability_id": "search.autocomplete",
-                "service_slug": "algolia",
-                "description": "Managed Algolia autocomplete",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/1/indexes/{indexName}/query",
-                "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1702,
+                    "capability_id": "search.autocomplete",
+                    "service_slug": "algolia",
+                    "description": "Managed Algolia autocomplete",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_ALGOLIA_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/1/indexes/{indexName}/query",
+                    "default_headers": {"X-Algolia-Application-Id": "80LYFTF37Y"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         return []
 
     with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
@@ -873,17 +988,19 @@ async def test_managed_executor_emailable_verify_normalizes_email_and_uses_beare
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1301,
-                "capability_id": "email.verify",
-                "service_slug": "emailable",
-                "description": "Managed Emailable verify",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
-                "default_method": "GET",
-                "default_path": "/v1/verify",
-                "default_headers": {},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1301,
+                    "capability_id": "email.verify",
+                    "service_slug": "emailable",
+                    "description": "Managed Emailable verify",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
+                    "default_method": "GET",
+                    "default_path": "/v1/verify",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.emailable" in path:
             return [{"api_domain": "api.emailable.com"}]
         return []
@@ -920,10 +1037,12 @@ async def test_managed_executor_emailable_verify_normalizes_email_and_uses_beare
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -960,17 +1079,19 @@ async def test_managed_executor_emailable_batch_verify_joins_inputs(monkeypatch)
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1302,
-                "capability_id": "email.batch_verify",
-                "service_slug": "emailable",
-                "description": "Managed Emailable batch verify",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/v1/batch",
-                "default_headers": {"Content-Type": "application/json"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1302,
+                    "capability_id": "email.batch_verify",
+                    "service_slug": "emailable",
+                    "description": "Managed Emailable batch verify",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_EMAILABLE_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/v1/batch",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.emailable" in path:
             return [{"api_domain": "api.emailable.com"}]
         return []
@@ -1007,10 +1128,12 @@ async def test_managed_executor_emailable_batch_verify_joins_inputs(monkeypatch)
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1048,20 +1171,22 @@ async def test_managed_executor_airship_send_to_user_normalizes_and_uses_validat
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1201,
-                "capability_id": "push_notification.send_to_user",
-                "service_slug": "airship",
-                "description": "Managed Airship named-user push",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
-                "default_method": "POST",
-                "default_path": "/api/push",
-                "default_headers": {
-                    "Accept": "application/vnd.urbanairship+json; version=3",
-                    "Content-Type": "application/json",
-                },
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1201,
+                    "capability_id": "push_notification.send_to_user",
+                    "service_slug": "airship",
+                    "description": "Managed Airship named-user push",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                    "default_method": "POST",
+                    "default_path": "/api/push",
+                    "default_headers": {
+                        "Accept": "application/vnd.urbanairship+json; version=3",
+                        "Content-Type": "application/json",
+                    },
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.airship" in path:
             return [{"api_domain": "go.urbanairship.com"}]
         return []
@@ -1098,10 +1223,12 @@ async def test_managed_executor_airship_send_to_user_normalizes_and_uses_validat
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1137,20 +1264,22 @@ async def test_managed_executor_airship_topic_publish_normalizes_tag_group(monke
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1202,
-                "capability_id": "push_topic.publish",
-                "service_slug": "airship",
-                "description": "Managed Airship tag-group push",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
-                "default_method": "POST",
-                "default_path": "/api/push",
-                "default_headers": {
-                    "Accept": "application/vnd.urbanairship+json; version=3",
-                    "Content-Type": "application/json",
-                },
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1202,
+                    "capability_id": "push_topic.publish",
+                    "service_slug": "airship",
+                    "description": "Managed Airship tag-group push",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                    "default_method": "POST",
+                    "default_path": "/api/push",
+                    "default_headers": {
+                        "Accept": "application/vnd.urbanairship+json; version=3",
+                        "Content-Type": "application/json",
+                    },
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.airship" in path:
             return [{"api_domain": "go.urbanairship.com"}]
         return []
@@ -1187,10 +1316,12 @@ async def test_managed_executor_airship_topic_publish_normalizes_tag_group(monke
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1225,20 +1356,22 @@ async def test_managed_executor_airship_uses_basic_auth_and_preserves_accept_hea
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1203,
-                "capability_id": "push_notification.send",
-                "service_slug": "airship",
-                "description": "Managed Airship push",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
-                "default_method": "POST",
-                "default_path": "/api/push",
-                "default_headers": {
-                    "Accept": "application/vnd.urbanairship+json; version=3",
-                    "Content-Type": "application/json",
-                },
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1203,
+                    "capability_id": "push_notification.send",
+                    "service_slug": "airship",
+                    "description": "Managed Airship push",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_AIRSHIP_BASIC_AUTH"],
+                    "default_method": "POST",
+                    "default_path": "/api/push",
+                    "default_headers": {
+                        "Accept": "application/vnd.urbanairship+json; version=3",
+                        "Content-Type": "application/json",
+                    },
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.airship" in path:
             return [{"api_domain": "go.urbanairship.com"}]
         return []
@@ -1275,10 +1408,12 @@ async def test_managed_executor_airship_uses_basic_auth_and_preserves_accept_hea
             captured["params"] = params
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1312,17 +1447,19 @@ async def test_managed_executor_mindee_uses_token_auth_and_document_multipart(mo
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1401,
-                "capability_id": "invoice.extract",
-                "service_slug": "mindee",
-                "description": "Managed Mindee invoice extraction",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/v1/products/mindee/financial_document/v1/predict",
-                "default_headers": {},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1401,
+                    "capability_id": "invoice.extract",
+                    "service_slug": "mindee",
+                    "description": "Managed Mindee invoice extraction",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/v1/products/mindee/financial_document/v1/predict",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.mindee" in path:
             return [{"api_domain": "api.mindee.net"}]
         return []
@@ -1351,7 +1488,9 @@ async def test_managed_executor_mindee_uses_token_auth_and_document_multipart(mo
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+        async def request(
+            self, method, url, headers=None, json=None, params=None, data=None, files=None
+        ):
             captured["method"] = method
             captured["url"] = url
             captured["headers"] = headers
@@ -1361,10 +1500,12 @@ async def test_managed_executor_mindee_uses_token_auth_and_document_multipart(mo
             captured["files"] = files
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1412,17 +1553,19 @@ async def test_managed_executor_mindee_accepts_files_alias_for_document_extract(
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1402,
-                "capability_id": "document.extract_fields",
-                "service_slug": "mindee",
-                "description": "Managed Mindee document extraction",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/v1/products/mindee/financial_document/v1/predict",
-                "default_headers": {},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1402,
+                    "capability_id": "document.extract_fields",
+                    "service_slug": "mindee",
+                    "description": "Managed Mindee document extraction",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_MINDEE_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/v1/products/mindee/financial_document/v1/predict",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.mindee" in path:
             return [{"api_domain": "api.mindee.net"}]
         return []
@@ -1451,7 +1594,9 @@ async def test_managed_executor_mindee_accepts_files_alias_for_document_extract(
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+        async def request(
+            self, method, url, headers=None, json=None, params=None, data=None, files=None
+        ):
             captured["method"] = method
             captured["url"] = url
             captured["headers"] = headers
@@ -1461,10 +1606,12 @@ async def test_managed_executor_mindee_accepts_files_alias_for_document_extract(
             captured["files"] = files
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()
@@ -1507,17 +1654,19 @@ async def test_managed_executor_unstructured_translates_json_body_to_multipart(m
 
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
-            return [{
-                "id": 1111,
-                "capability_id": "documents.partition",
-                "service_slug": "unstructured",
-                "description": "Managed Unstructured partition",
-                "credential_env_keys": ["RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY"],
-                "default_method": "POST",
-                "default_path": "/general/v0/general",
-                "default_headers": {"Content-Type": "application/json"},
-                "daily_limit_per_agent": None,
-            }]
+            return [
+                {
+                    "id": 1111,
+                    "capability_id": "documents.partition",
+                    "service_slug": "unstructured",
+                    "description": "Managed Unstructured partition",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/general/v0/general",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
         if "services?slug=eq.unstructured" in path:
             return [{"api_domain": "api.unstructuredapp.io"}]
         return []
@@ -1547,7 +1696,9 @@ async def test_managed_executor_unstructured_translates_json_body_to_multipart(m
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        async def request(self, method, url, headers=None, json=None, params=None, data=None, files=None):
+        async def request(
+            self, method, url, headers=None, json=None, params=None, data=None, files=None
+        ):
             captured["method"] = method
             captured["url"] = url
             captured["headers"] = headers
@@ -1557,10 +1708,12 @@ async def test_managed_executor_unstructured_translates_json_body_to_multipart(m
             captured["files"] = files
             return DummyResponse()
 
-    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch), \
-         patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert), \
-         patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch), \
-         patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient):
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
         from services.rhumb_managed import RhumbManagedExecutor
 
         executor = RhumbManagedExecutor()

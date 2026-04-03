@@ -11,23 +11,17 @@ from middleware.request_id import RequestIDMiddleware
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client():
     """Fresh app for each test (clean rate-limit buckets).
 
-    Disables the durable DB path so tests verify in-memory rate-limit
-    semantics without interference from Supabase connection failures.
+    The durable DB path is disabled by the autouse conftest fixture
+    ``_disable_durable_rate_limit``, so these tests verify in-memory
+    rate-limit semantics cleanly.
     """
     import middleware.rate_limit as rl
+
     rl._buckets.clear()
     rl._last_cleanup = time.monotonic()
-
-    # Prevent the middleware from trying to connect to Supabase
-    _original_get_durable = RateLimitMiddleware._get_durable
-
-    async def _no_durable(self):
-        return None
-
-    monkeypatch.setattr(RateLimitMiddleware, "_get_durable", _no_durable)
 
     app = FastAPI()
     app.add_middleware(RateLimitMiddleware)

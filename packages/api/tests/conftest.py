@@ -17,6 +17,22 @@ ADMIN_TEST_SECRET = "rhumb_test_admin_secret_0000"
 os.environ.setdefault("RHUMB_ADMIN_SECRET", ADMIN_TEST_SECRET)
 
 from app import app
+from middleware.rate_limit import RateLimitMiddleware
+
+
+# ── Disable durable rate-limit DB path for all tests ────────────────────────
+# The durable limiter tries to connect to Supabase, which is unavailable in
+# test context. When it fails, the in-memory fallback accumulates state
+# across test files/collections, causing flaky 429s.
+@pytest.fixture(autouse=True)
+def _disable_durable_rate_limit(monkeypatch):
+    """Force all tests to use the in-memory rate-limit path."""
+
+    async def _no_durable(self):
+        return None
+
+    monkeypatch.setattr(RateLimitMiddleware, "_get_durable", _no_durable)
+
 
 # ── Bypass auth constants (shared across all proxy test files) ───────────────
 BYPASS_KEY = "rhumb_test_bypass_key_0000"
@@ -101,9 +117,8 @@ def _inject_proxy_bypass_auth() -> Generator[None, None, None]:
     acl = AgentAccessControl(identity_store=identity_store)
     # Use a fresh RateLimiter per test to avoid cross-test counter accumulation
     from services.proxy_rate_limit import RateLimiter
-    rate_checker = AgentRateLimitChecker(
-        identity_store=identity_store, rate_limiter=RateLimiter()
-    )
+
+    rate_checker = AgentRateLimitChecker(identity_store=identity_store, rate_limiter=RateLimiter())
     meter = UsageMeterEngine(identity_store=identity_store)
 
     proxy_module._pool_manager = None
@@ -191,7 +206,10 @@ def _mock_execute_billing_health() -> Generator[None, None, None]:
 @pytest.fixture
 def client() -> TestClient:
     """Create an in-process FastAPI test client with bypass auth + admin headers."""
-    return TestClient(app, headers={
-        "X-Rhumb-Key": BYPASS_KEY,
-        "X-Rhumb-Admin-Key": ADMIN_TEST_SECRET,
-    })
+    return TestClient(
+        app,
+        headers={
+            "X-Rhumb-Key": BYPASS_KEY,
+            "X-Rhumb-Admin-Key": ADMIN_TEST_SECRET,
+        },
+    )
