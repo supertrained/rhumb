@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = "replace-me"
     supabase_score_reader_key: str | None = None
     supabase_score_publisher_key: str | None = None
+    supabase_score_publisher_database_url: str | None = None
 
     rhumb_admin_secret: str | None = None
 

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
-from sqlalchemy import Engine, create_engine, select
+from sqlalchemy import Engine, create_engine, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -378,6 +379,297 @@ class SupabaseScoreRepository:
             if parsed is not None:
                 stored.append(parsed)
         return stored
+
+
+class DirectPostgresScorePublisherRepository:
+    """Direct Postgres publisher rail for protected score truth.
+
+    This exists for AUD-8 when the runtime can hold a restricted Postgres DSN
+    for the `score_publisher` role but cannot mint a meaningfully distinct
+    PostgREST/JWT credential. It writes `scores` and `score_audit_chain`
+    directly, preserving the fail-closed score publication invariant while
+    keeping the publisher boundary structurally separate from the broad
+    service-role REST surface.
+    """
+
+    GENESIS_HASH = "0" * 64
+
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+        self._sessionmaker = sessionmaker(bind=engine, expire_on_commit=False)
+
+    @classmethod
+    def from_url(cls, database_url: str) -> "DirectPostgresScorePublisherRepository":
+        return cls(create_engine(database_url))
+
+    @staticmethod
+    def _json_dumps(value: dict[str, Any]) -> str:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _json_loads(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str) and value:
+            try:
+                parsed = json.loads(value)
+            except ValueError:
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
+    @staticmethod
+    def _parse_datetime(value: Any) -> datetime | None:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+            return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+        return None
+
+    @classmethod
+    def _stored_from_score_row(cls, row: dict[str, Any]) -> StoredScore | None:
+        score_value = row.get("aggregate_recommendation_score")
+        if score_value is None:
+            score_value = row.get("score")
+        if score_value is None:
+            return None
+
+        probe_metadata = cls._json_loads(row.get("probe_metadata"))
+        dimension_snapshot = probe_metadata.get("dimension_snapshot")
+        if not isinstance(dimension_snapshot, dict):
+            dimension_snapshot = {}
+
+        raw_id = row.get("id")
+        try:
+            parsed_id = UUID(str(raw_id)) if raw_id is not None else uuid4()
+        except (TypeError, ValueError):
+            parsed_id = uuid4()
+
+        return StoredScore(
+            id=parsed_id,
+            service_slug=str(row.get("service_slug") or ""),
+            score=float(score_value),
+            confidence=float(row.get("confidence") or 0.0),
+            tier=str(row.get("tier") or "L1"),
+            explanation=str(probe_metadata.get("explanation") or ""),
+            dimension_snapshot=dimension_snapshot,
+            calculated_at=cls._parse_datetime(row.get("calculated_at")),
+        )
+
+    async def save_score(
+        self,
+        service_slug: str,
+        result: ANScoreResult,
+    ) -> UUID | str:
+        score_payload = SupabaseScoreRepository._score_row_payload(service_slug, result)
+        persisted_id: str
+
+        with self._sessionmaker() as session:
+            service_row = session.execute(
+                text("SELECT slug FROM services WHERE slug = :slug LIMIT 1"),
+                {"slug": service_slug},
+            ).first()
+            if service_row is None:
+                raise ValueError(
+                    f"Cannot publish score for unknown canonical service_slug '{service_slug}'"
+                )
+
+            existing = (
+                session.execute(
+                    text(
+                        "SELECT id, aggregate_recommendation_score "
+                        "FROM scores WHERE service_slug = :slug LIMIT 1"
+                    ),
+                    {"slug": service_slug},
+                )
+                .mappings()
+                .first()
+            )
+
+            old_score = (
+                float(existing.get("aggregate_recommendation_score"))
+                if existing and existing.get("aggregate_recommendation_score") is not None
+                else None
+            )
+
+            score_params = {
+                "service_slug": service_slug,
+                "aggregate_recommendation_score": score_payload["aggregate_recommendation_score"],
+                "execution_score": score_payload["execution_score"],
+                "access_readiness_score": score_payload["access_readiness_score"],
+                "confidence": score_payload["confidence"],
+                "tier": score_payload["tier"],
+                "tier_label": score_payload["tier_label"],
+                "probe_metadata": self._json_dumps(score_payload["probe_metadata"]),
+                "calculated_at": score_payload["calculated_at"],
+                "payment_autonomy": score_payload.get("payment_autonomy"),
+                "payment_autonomy_rationale": score_payload.get("payment_autonomy_rationale"),
+                "payment_autonomy_confidence": score_payload.get("payment_autonomy_confidence"),
+                "governance_readiness": score_payload.get("governance_readiness"),
+                "governance_readiness_rationale": score_payload.get(
+                    "governance_readiness_rationale"
+                ),
+                "governance_readiness_confidence": score_payload.get(
+                    "governance_readiness_confidence"
+                ),
+                "web_accessibility": score_payload.get("web_accessibility"),
+                "web_accessibility_rationale": score_payload.get("web_accessibility_rationale"),
+                "web_accessibility_confidence": score_payload.get("web_accessibility_confidence"),
+                "autonomy_score": score_payload.get("autonomy_score"),
+            }
+
+            if existing is None:
+                persisted_id = str(uuid4())
+                session.execute(
+                    text(
+                        "INSERT INTO scores ("
+                        "id, service_slug, aggregate_recommendation_score, execution_score, "
+                        "access_readiness_score, confidence, tier, tier_label, probe_metadata, "
+                        "calculated_at, payment_autonomy, payment_autonomy_rationale, "
+                        "payment_autonomy_confidence, governance_readiness, "
+                        "governance_readiness_rationale, governance_readiness_confidence, "
+                        "web_accessibility, web_accessibility_rationale, "
+                        "web_accessibility_confidence, autonomy_score"
+                        ") VALUES ("
+                        ":id, :service_slug, :aggregate_recommendation_score, :execution_score, "
+                        ":access_readiness_score, :confidence, :tier, :tier_label, :probe_metadata, "
+                        ":calculated_at, :payment_autonomy, :payment_autonomy_rationale, "
+                        ":payment_autonomy_confidence, :governance_readiness, "
+                        ":governance_readiness_rationale, :governance_readiness_confidence, "
+                        ":web_accessibility, :web_accessibility_rationale, "
+                        ":web_accessibility_confidence, :autonomy_score"
+                        ")"
+                    ),
+                    {"id": persisted_id, **score_params},
+                )
+            else:
+                persisted_id = str(existing.get("id") or uuid4())
+                session.execute(
+                    text(
+                        "UPDATE scores SET "
+                        "aggregate_recommendation_score = :aggregate_recommendation_score, "
+                        "execution_score = :execution_score, "
+                        "access_readiness_score = :access_readiness_score, "
+                        "confidence = :confidence, "
+                        "tier = :tier, "
+                        "tier_label = :tier_label, "
+                        "probe_metadata = :probe_metadata, "
+                        "calculated_at = :calculated_at, "
+                        "payment_autonomy = :payment_autonomy, "
+                        "payment_autonomy_rationale = :payment_autonomy_rationale, "
+                        "payment_autonomy_confidence = :payment_autonomy_confidence, "
+                        "governance_readiness = :governance_readiness, "
+                        "governance_readiness_rationale = :governance_readiness_rationale, "
+                        "governance_readiness_confidence = :governance_readiness_confidence, "
+                        "web_accessibility = :web_accessibility, "
+                        "web_accessibility_rationale = :web_accessibility_rationale, "
+                        "web_accessibility_confidence = :web_accessibility_confidence, "
+                        "autonomy_score = :autonomy_score "
+                        "WHERE service_slug = :service_slug"
+                    ),
+                    score_params,
+                )
+
+            latest = (
+                session.execute(
+                    text(
+                        "SELECT chain_hash FROM score_audit_chain ORDER BY created_at DESC LIMIT 1"
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            prev_hash = (
+                str(latest.get("chain_hash"))
+                if latest and latest.get("chain_hash")
+                else self.GENESIS_HASH
+            )
+
+            created_at = result.calculated_at.isoformat()
+            change_reason = "initial" if old_score is None else "recalculation"
+            entry_id = f"saud_{uuid4().hex}"
+            audit_payload = build_score_audit_payload(
+                {
+                    "entry_id": entry_id,
+                    "service_slug": service_slug,
+                    "old_score": old_score,
+                    "new_score": round(float(result.aggregate_recommendation_score), 2),
+                    "change_reason": change_reason,
+                    "created_at": created_at,
+                }
+            )
+            chain_hash = compute_chain_hmac(prev_hash, audit_payload)
+
+            session.execute(
+                text(
+                    "INSERT INTO score_audit_chain ("
+                    "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash"
+                    ") VALUES ("
+                    ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash"
+                    ")"
+                ),
+                {
+                    **audit_payload,
+                    "chain_hash": chain_hash,
+                    "prev_hash": prev_hash,
+                },
+            )
+            session.commit()
+
+        return persisted_id
+
+    async def fetch_latest_score(self, service_slug: str) -> StoredScore | None:
+        with self._sessionmaker() as session:
+            row = (
+                session.execute(
+                    text(
+                        "SELECT id, service_slug, aggregate_recommendation_score, confidence, tier, "
+                        "probe_metadata, calculated_at "
+                        "FROM scores WHERE service_slug = :slug "
+                        "ORDER BY calculated_at DESC LIMIT 1"
+                    ),
+                    {"slug": service_slug},
+                )
+                .mappings()
+                .first()
+            )
+            if row is None:
+                return None
+            return self._stored_from_score_row(dict(row))
+
+    async def query_by_score_range(
+        self,
+        min_score: float = 0.0,
+        max_score: float = 10.0,
+    ) -> list[StoredScore]:
+        with self._sessionmaker() as session:
+            rows = (
+                session.execute(
+                    text(
+                        "SELECT id, service_slug, aggregate_recommendation_score, confidence, tier, "
+                        "probe_metadata, calculated_at "
+                        "FROM scores "
+                        "WHERE aggregate_recommendation_score >= :min_score "
+                        "AND aggregate_recommendation_score <= :max_score "
+                        "ORDER BY aggregate_recommendation_score DESC"
+                    ),
+                    {"min_score": min_score, "max_score": max_score},
+                )
+                .mappings()
+                .all()
+            )
+            stored: list[StoredScore] = []
+            for row in rows:
+                parsed = self._stored_from_score_row(dict(row))
+                if parsed is not None:
+                    stored.append(parsed)
+            return stored
 
 
 @dataclass(slots=True)

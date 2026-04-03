@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from config import settings
 from db.repository import (
+    DirectPostgresScorePublisherRepository,
     InMemoryProbeRepository,
     InMemoryScoreRepository,
     ProbeRepository,
@@ -35,7 +36,11 @@ def get_scoring_service() -> ScoringService:
     """Create singleton scoring service for API routes."""
     repository: ScoreRepository
     try:
-        if settings.supabase_service_role_key != "replace-me":
+        if settings.supabase_score_publisher_database_url:
+            repository = DirectPostgresScorePublisherRepository.from_url(
+                settings.supabase_score_publisher_database_url
+            )
+        elif settings.supabase_service_role_key != "replace-me":
             repository = SupabaseScoreRepository()
         else:
             repository = SQLAlchemyScoreRepository.from_url(settings.database_url)
