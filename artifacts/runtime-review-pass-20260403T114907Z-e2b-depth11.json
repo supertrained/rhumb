@@ -1,0 +1,237 @@
+{
+  "provider": "e2b",
+  "create_capability_id": "agent.spawn",
+  "status_capability_id": "agent.get_status",
+  "review_kind": "current_depth11",
+  "organization_id": "org_runtime_review_e2b_20260403t114907z_35177de0",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T114907Z-e2b-depth11.json",
+  "started_at": "2026-04-03T11:49:07Z",
+  "review_template": {
+    "templateID": "base",
+    "timeout": 300,
+    "metadata": {
+      "source": "rhumb-runtime-review",
+      "service": "e2b",
+      "stamp": "20260403T114907Z"
+    }
+  },
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "ef98781c-51bb-497f-9102-de4baa26f7b1",
+    "organization_id": "org_runtime_review_e2b_20260403t114907z_35177de0"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "1e9b9d74-e051-4bb1-ac64-9e603baeac73"
+  },
+  "post_grant_delay_seconds": 5,
+  "reviewed_at": "2026-04-03T11:49:24Z",
+  "fresh_until": "2026-05-03T11:49:24Z",
+  "counts_before": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 10
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "agent.spawn",
+        "provider": "e2b",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /sandboxes"
+      },
+      "error": null
+    },
+    "attempts": 1
+  },
+  "rhumb_create": {
+    "status_code": 200,
+    "execution_id": "exec_3bcebc01105443a1956795446b142730",
+    "provider_used": "e2b",
+    "credential_mode": "rhumb_managed",
+    "upstream_status": 201,
+    "sandbox": {
+      "sandboxID": "i7iqgeva261tff9atmcc4",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "envdVersion": "0.5.8"
+    },
+    "raw": {
+      "data": {
+        "capability_id": "agent.spawn",
+        "provider_used": "e2b",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 201,
+        "upstream_response": {
+          "alias": "base",
+          "clientID": "6532622b",
+          "domain": null,
+          "envdVersion": "0.5.8",
+          "sandboxID": "i7iqgeva261tff9atmcc4",
+          "templateID": "rki5dems9wqfm4r03t7g",
+          "trafficAccessToken": null
+        },
+        "latency_ms": 786.6,
+        "execution_id": "exec_3bcebc01105443a1956795446b142730",
+        "receipt_id": "rcpt_e16d972f701f460c8cc2762b"
+      },
+      "error": null
+    }
+  },
+  "rhumb_status": {
+    "status_code": 200,
+    "execution_id": "exec_145e5dbc7d4148f891c61c8802973f38",
+    "provider_used": "e2b",
+    "credential_mode": "rhumb_managed",
+    "upstream_status": 200,
+    "sandbox": {
+      "sandboxID": "i7iqgeva261tff9atmcc4",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "state": "running",
+      "envdVersion": "0.5.8",
+      "cpuCount": 2,
+      "memoryMB": 512
+    },
+    "raw": {
+      "data": {
+        "capability_id": "agent.get_status",
+        "provider_used": "e2b",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "alias": "base",
+          "allowInternetAccess": null,
+          "clientID": "6532622b",
+          "cpuCount": 2,
+          "diskSizeMB": 23318,
+          "domain": null,
+          "endAt": "2026-04-03T11:54:19.060040617Z",
+          "envdVersion": "0.5.8",
+          "lifecycle": {
+            "autoResume": false,
+            "onTimeout": "kill"
+          },
+          "memoryMB": 512,
+          "metadata": {
+            "service": "e2b",
+            "source": "rhumb-runtime-review",
+            "stamp": "20260403T114907Z"
+          },
+          "sandboxID": "i7iqgeva261tff9atmcc4",
+          "startedAt": "2026-04-03T11:49:19.060040617Z",
+          "state": "running",
+          "templateID": "rki5dems9wqfm4r03t7g",
+          "volumeMounts": []
+        },
+        "latency_ms": 159.6,
+        "execution_id": "exec_145e5dbc7d4148f891c61c8802973f38",
+        "receipt_id": "rcpt_3ea3aa769ac44176b755b7f5"
+      },
+      "error": null
+    }
+  },
+  "direct_create": {
+    "status_code": 201,
+    "sandbox": {
+      "sandboxID": "ir0pk6a9z14ogj2vzoa9r",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "envdVersion": "0.5.8"
+    },
+    "raw": {
+      "alias": "base",
+      "clientID": "6532622b",
+      "domain": null,
+      "envdVersion": "0.5.8",
+      "sandboxID": "ir0pk6a9z14ogj2vzoa9r",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "trafficAccessToken": null
+    }
+  },
+  "direct_status": {
+    "status_code": 200,
+    "sandbox": {
+      "sandboxID": "ir0pk6a9z14ogj2vzoa9r",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "alias": "base",
+      "state": "running",
+      "envdVersion": "0.5.8",
+      "cpuCount": 2,
+      "memoryMB": 512
+    },
+    "raw": {
+      "alias": "base",
+      "allowInternetAccess": null,
+      "clientID": "6532622b",
+      "cpuCount": 2,
+      "diskSizeMB": 23318,
+      "domain": null,
+      "endAt": "2026-04-03T11:54:24.67628757Z",
+      "envdVersion": "0.5.8",
+      "lifecycle": {
+        "autoResume": false,
+        "onTimeout": "kill"
+      },
+      "memoryMB": 512,
+      "metadata": {
+        "service": "e2b",
+        "source": "rhumb-runtime-review",
+        "stamp": "20260403T114907Z"
+      },
+      "sandboxID": "ir0pk6a9z14ogj2vzoa9r",
+      "startedAt": "2026-04-03T11:49:24.67628757Z",
+      "state": "running",
+      "templateID": "rki5dems9wqfm4r03t7g",
+      "volumeMounts": []
+    }
+  },
+  "comparison": {
+    "create_template_match": true,
+    "status_template_match": true,
+    "status_state_match": true,
+    "envd_version_match": true,
+    "compute_shape_match": true
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "ed3e9997-4602-4bfd-97f1-89bc892d8b44",
+      "source_ref": "runtime-review:e2b:20260403T114907Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "ed3e9997-4602-4bfd-97f1-89bc892d8b44",
+      "review_id": "f078af31-7bba-4a6c-97e1-e2ace068d919",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "f078af31-7bba-4a6c-97e1-e2ace068d919",
+      "source_batch_id": "runtime-review:e2b:20260403T114907Z",
+      "state": "inserted"
+    },
+    "service": "e2b"
+  },
+  "counts_after": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 11
+  },
+  "cleanup": {
+    "rhumb_sandbox_delete_status": 204,
+    "direct_sandbox_delete_status": 204
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "ef98781c-51bb-497f-9102-de4baa26f7b1"
+    }
+  }
+}
