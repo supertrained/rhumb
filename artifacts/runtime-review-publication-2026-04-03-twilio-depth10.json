@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "65017973-b1f7-48da-8d04-de816cb57c7b",
+    "source_ref": "runtime-review:twilio:20260403T084616Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "65017973-b1f7-48da-8d04-de816cb57c7b",
+    "review_id": "9d229c1c-68e5-44fe-af0e-9f0ff446cdb4",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "9d229c1c-68e5-44fe-af0e-9f0ff446cdb4",
+    "source_batch_id": "runtime-review:twilio:20260403T084616Z",
+    "state": "inserted"
+  },
+  "service": "twilio"
+}
