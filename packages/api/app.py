@@ -16,6 +16,7 @@ from middleware.error_response import (
     unhandled_exception_handler,
     validation_exception_handler,
 )
+from middleware.execute_body_limit import ExecuteBodyLimitMiddleware
 from middleware.query_logging import QueryLoggingMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.request_id import RequestIDMiddleware
@@ -159,6 +160,10 @@ def create_app() -> FastAPI:
     )
 
     # ── Middleware ──
+    application.add_middleware(
+        ExecuteBodyLimitMiddleware,
+        max_body_bytes=int(os.environ.get("RHUMB_EXECUTE_MAX_BODY_BYTES", "1048576")),
+    )
     application.add_middleware(QueryLoggingMiddleware)
     application.add_middleware(RateLimitMiddleware)
     application.add_middleware(RequestIDMiddleware)
