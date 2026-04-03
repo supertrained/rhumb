@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "10453582-0657-4007-aee3-70146766ecbf",
+    "source_ref": "runtime-review:google-ai:20260403T144821Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "10453582-0657-4007-aee3-70146766ecbf",
+    "review_id": "a0c7e9d0-e4d6-44a7-91f5-c3d1b66ec819",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "a0c7e9d0-e4d6-44a7-91f5-c3d1b66ec819",
+    "source_batch_id": "runtime-review:google-ai:20260403T144821Z",
+    "state": "inserted"
+  },
+  "service": "google-ai"
+}
