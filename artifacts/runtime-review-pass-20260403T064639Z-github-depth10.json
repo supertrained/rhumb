@@ -1,0 +1,247 @@
+{
+  "provider": "github",
+  "capability_id": "social.get_profile",
+  "target_username": "torvalds",
+  "direct_url": "https://api.github.com/users/torvalds",
+  "review_kind": "current_depth10",
+  "organization_id": "org_runtime_review_github_20260403t064639z_21d21dca",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T064639Z-github-depth10.json",
+  "started_at": "2026-04-03T06:46:39Z",
+  "parity_fields": [
+    "login",
+    "id",
+    "type",
+    "site_admin",
+    "name",
+    "company",
+    "blog",
+    "location",
+    "public_repos",
+    "followers",
+    "following",
+    "created_at"
+  ],
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "c77a633e-0671-4b74-bfc7-ea5c23c5a45e",
+    "organization_id": "org_runtime_review_github_20260403t064639z_21d21dca"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "65290565-1f68-4bc4-ab46-921dedfe0776"
+  },
+  "post_grant_delay_seconds": 5,
+  "direct_auth_mode": "token",
+  "reviewed_at": "2026-04-03T06:46:51Z",
+  "fresh_until": "2026-05-03T06:46:51Z",
+  "counts_before": {
+    "published_reviews": 9,
+    "runtime_backed_reviews": 9
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "social.get_profile",
+        "provider": "github",
+        "credential_mode": "byo",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "GET /users/{username}"
+      },
+      "error": null
+    },
+    "attempts": 1
+  },
+  "rhumb_execute": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "social.get_profile",
+        "provider_used": "github",
+        "credential_mode": "byo",
+        "upstream_status": 200,
+        "upstream_response": {
+          "login": "torvalds",
+          "id": 1024025,
+          "node_id": "MDQ6VXNlcjEwMjQwMjU=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1024025?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/torvalds",
+          "html_url": "https://github.com/torvalds",
+          "followers_url": "https://api.github.com/users/torvalds/followers",
+          "following_url": "https://api.github.com/users/torvalds/following{/other_user}",
+          "gists_url": "https://api.github.com/users/torvalds/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/torvalds/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/torvalds/subscriptions",
+          "organizations_url": "https://api.github.com/users/torvalds/orgs",
+          "repos_url": "https://api.github.com/users/torvalds/repos",
+          "events_url": "https://api.github.com/users/torvalds/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/torvalds/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false,
+          "name": "Linus Torvalds",
+          "company": "Linux Foundation",
+          "blog": "",
+          "location": "Portland, OR",
+          "email": null,
+          "hireable": null,
+          "bio": null,
+          "twitter_username": null,
+          "public_repos": 11,
+          "public_gists": 1,
+          "followers": 294596,
+          "following": 0,
+          "created_at": "2011-09-03T15:26:22Z",
+          "updated_at": "2026-01-13T07:10:05Z"
+        },
+        "cost_estimate_usd": null,
+        "latency_ms": 183.8,
+        "fallback_attempted": false,
+        "fallback_provider": null,
+        "execution_id": "exec_12d9a8683120498eb6af529b1d5d6d4e",
+        "receipt_id": "rcpt_3af52f7b89f74c1a9779e6f7",
+        "_rhumb": {
+          "provider": {
+            "id": "github",
+            "name": "github",
+            "category": null,
+            "docs_url": null,
+            "an_score": null,
+            "tier": null
+          },
+          "layer": 2,
+          "receipt_id": "rcpt_3af52f7b89f74c1a9779e6f7",
+          "latency": {
+            "total_ms": 183.8,
+            "provider_ms": 179.2,
+            "overhead_ms": 4.7
+          },
+          "credential_mode": "byo"
+        }
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status_code": 200,
+    "body": {
+      "login": "torvalds",
+      "id": 1024025,
+      "node_id": "MDQ6VXNlcjEwMjQwMjU=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1024025?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/torvalds",
+      "html_url": "https://github.com/torvalds",
+      "followers_url": "https://api.github.com/users/torvalds/followers",
+      "following_url": "https://api.github.com/users/torvalds/following{/other_user}",
+      "gists_url": "https://api.github.com/users/torvalds/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/torvalds/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/torvalds/subscriptions",
+      "organizations_url": "https://api.github.com/users/torvalds/orgs",
+      "repos_url": "https://api.github.com/users/torvalds/repos",
+      "events_url": "https://api.github.com/users/torvalds/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/torvalds/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false,
+      "name": "Linus Torvalds",
+      "company": "Linux Foundation",
+      "blog": "",
+      "location": "Portland, OR",
+      "email": null,
+      "hireable": null,
+      "bio": null,
+      "twitter_username": null,
+      "public_repos": 11,
+      "public_gists": 1,
+      "followers": 294596,
+      "following": 0,
+      "created_at": "2011-09-03T15:26:22Z",
+      "updated_at": "2026-01-13T07:10:05Z"
+    }
+  },
+  "comparison": {
+    "provider_used": "github",
+    "upstream_status": 200,
+    "execution_id": "exec_12d9a8683120498eb6af529b1d5d6d4e",
+    "rhumb_fields": {
+      "login": "torvalds",
+      "id": 1024025,
+      "type": "User",
+      "site_admin": false,
+      "name": "Linus Torvalds",
+      "company": "Linux Foundation",
+      "blog": "",
+      "location": "Portland, OR",
+      "public_repos": 11,
+      "followers": 294596,
+      "following": 0,
+      "created_at": "2011-09-03T15:26:22Z"
+    },
+    "direct_fields": {
+      "login": "torvalds",
+      "id": 1024025,
+      "type": "User",
+      "site_admin": false,
+      "name": "Linus Torvalds",
+      "company": "Linux Foundation",
+      "blog": "",
+      "location": "Portland, OR",
+      "public_repos": 11,
+      "followers": 294596,
+      "following": 0,
+      "created_at": "2011-09-03T15:26:22Z"
+    },
+    "field_matches": {
+      "login": true,
+      "id": true,
+      "type": true,
+      "site_admin": true,
+      "name": true,
+      "company": true,
+      "blog": true,
+      "location": true,
+      "public_repos": true,
+      "followers": true,
+      "following": true,
+      "created_at": true
+    }
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "3366e6df-e1c6-4bad-bad0-e5c0c5b3dc4d",
+      "source_ref": "runtime-review:github:20260403T064639Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "3366e6df-e1c6-4bad-bad0-e5c0c5b3dc4d",
+      "review_id": "3650770b-7747-472f-8e56-0389238d3369",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "3650770b-7747-472f-8e56-0389238d3369",
+      "source_batch_id": "runtime-review:github:20260403T064639Z",
+      "state": "inserted"
+    },
+    "service": "github"
+  },
+  "counts_after": {
+    "published_reviews": 10,
+    "runtime_backed_reviews": 10
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "c77a633e-0671-4b74-bfc7-ea5c23c5a45e"
+    }
+  }
+}
