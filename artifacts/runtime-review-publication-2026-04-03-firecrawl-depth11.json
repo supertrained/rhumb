@@ -1,0 +1,19 @@
+{
+  "evidence": {
+    "id": "3bed0f06-d0ab-4d88-83a0-4fc06abe07f1",
+    "source_ref": "runtime-review:firecrawl:20260403T225620Z",
+    "state": "inserted"
+  },
+  "link": {
+    "evidence_record_id": "3bed0f06-d0ab-4d88-83a0-4fc06abe07f1",
+    "review_id": "8cdcdece-1287-4994-8165-cfb9be0f13bb",
+    "role": "primary",
+    "state": "inserted"
+  },
+  "review": {
+    "id": "8cdcdece-1287-4994-8165-cfb9be0f13bb",
+    "source_batch_id": "runtime-review:firecrawl:20260403T225620Z",
+    "state": "inserted"
+  },
+  "service": "firecrawl"
+}

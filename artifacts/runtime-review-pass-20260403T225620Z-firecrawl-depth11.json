@@ -1,0 +1,155 @@
+{
+  "provider": "firecrawl",
+  "capability_id": "scrape.extract",
+  "target_url": "https://example.com",
+  "formats": [
+    "markdown"
+  ],
+  "review_kind": "current_depth11",
+  "organization_id": "org_runtime_review_firecrawl_20260403t225620z_5066b0d7",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T225620Z-firecrawl-depth11.json",
+  "started_at": "2026-04-03T22:56:20Z",
+  "post_grant_delay_seconds": 5,
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "17dfa551-d6fa-4580-aa2d-01f19267bc32",
+    "organization_id": "org_runtime_review_firecrawl_20260403t225620z_5066b0d7"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "b7ee43b1-458a-4231-84d7-81fd3ecfd84e"
+  },
+  "reviewed_at": "2026-04-03T22:56:33Z",
+  "fresh_until": "2026-05-03T22:56:33Z",
+  "counts_before": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 10
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": null,
+        "circuit_state": "closed",
+        "endpoint_pattern": "POST /v1/scrape"
+      },
+      "error": null
+    },
+    "attempts": 1
+  },
+  "rhumb_execute": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "scrape.extract",
+        "provider_used": "firecrawl",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "success": true,
+          "data": {
+            "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+            "metadata": {
+              "title": "Example Domain",
+              "language": "en",
+              "viewport": "width=device-width, initial-scale=1",
+              "scrapeId": "019d558f-f5e0-7065-8745-317a5d974c00",
+              "sourceURL": "https://example.com",
+              "url": "https://example.com/",
+              "statusCode": 200,
+              "contentType": "text/html",
+              "proxyUsed": "basic",
+              "cacheState": "hit",
+              "cachedAt": "2026-04-03T22:44:04.242Z",
+              "creditsUsed": 1,
+              "concurrencyLimited": false
+            }
+          }
+        },
+        "latency_ms": 750.8,
+        "execution_id": "exec_b51f19a3a1be4df6b3c6fb713223708c",
+        "receipt_id": "rcpt_6588bae091c1421097316980"
+      },
+      "error": null
+    }
+  },
+  "direct_control": {
+    "status_code": 200,
+    "body": {
+      "success": true,
+      "data": {
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)",
+        "metadata": {
+          "title": "Example Domain",
+          "language": "en",
+          "viewport": "width=device-width, initial-scale=1",
+          "scrapeId": "019d558f-fd6b-712e-a837-3757ff099a45",
+          "sourceURL": "https://example.com",
+          "url": "https://example.com/",
+          "statusCode": 200,
+          "contentType": "text/html",
+          "proxyUsed": "basic",
+          "cacheState": "hit",
+          "cachedAt": "2026-04-03T22:44:04.242Z",
+          "creditsUsed": 1,
+          "concurrencyLimited": false
+        }
+      }
+    }
+  },
+  "comparison": {
+    "provider_used": "firecrawl",
+    "upstream_status": 200,
+    "execution_id": "exec_b51f19a3a1be4df6b3c6fb713223708c",
+    "rhumb_success": true,
+    "direct_success": true,
+    "rhumb_title": "Example Domain",
+    "direct_title": "Example Domain",
+    "rhumb_source_url": "https://example.com",
+    "direct_source_url": "https://example.com",
+    "rhumb_has_markdown": true,
+    "direct_has_markdown": true,
+    "markdown_prefix_match": true,
+    "success_match": true,
+    "title_match": true,
+    "source_url_match": true
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "3bed0f06-d0ab-4d88-83a0-4fc06abe07f1",
+      "source_ref": "runtime-review:firecrawl:20260403T225620Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "3bed0f06-d0ab-4d88-83a0-4fc06abe07f1",
+      "review_id": "8cdcdece-1287-4994-8165-cfb9be0f13bb",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "8cdcdece-1287-4994-8165-cfb9be0f13bb",
+      "source_batch_id": "runtime-review:firecrawl:20260403T225620Z",
+      "state": "inserted"
+    },
+    "service": "firecrawl"
+  },
+  "counts_after": {
+    "published_reviews": 12,
+    "runtime_backed_reviews": 11
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "17dfa551-d6fa-4580-aa2d-01f19267bc32"
+    }
+  }
+}
