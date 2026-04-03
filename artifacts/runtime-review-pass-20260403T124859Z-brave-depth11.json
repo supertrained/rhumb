@@ -1,0 +1,1003 @@
+{
+  "provider": "brave-search-api",
+  "canonical_publish_slug": "brave-search",
+  "capability_id": "search.query",
+  "query": "LLM observability tools",
+  "num_results": 5,
+  "review_kind": "current_depth11",
+  "organization_id": "org_runtime_review_brave_20260403t124859z_b02c9f6d",
+  "artifact_path": "artifacts/runtime-review-pass-20260403T124859Z-brave-depth11.json",
+  "started_at": "2026-04-03T12:48:59Z",
+  "post_grant_delay_seconds": 5,
+  "wallet_bootstrap": {
+    "org_created": true,
+    "wallet_created": true,
+    "seeded_credits_cents": 5000
+  },
+  "review_agent": {
+    "agent_id": "1d476b48-d9d6-409d-8bc3-96a93a404adc",
+    "organization_id": "org_runtime_review_brave_20260403t124859z_b02c9f6d"
+  },
+  "grant_access": {
+    "status": "success",
+    "access_id": "d5049399-1641-429e-abc1-8a42a0c06be6"
+  },
+  "reviewed_at": "2026-04-03T12:49:19Z",
+  "fresh_until": "2026-05-03T12:49:19Z",
+  "counts_before": {
+    "published_reviews": 11,
+    "runtime_backed_reviews": 10
+  },
+  "estimate": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "search.query",
+        "provider": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "cost_estimate_usd": 0.003,
+        "circuit_state": "closed",
+        "endpoint_pattern": "GET /res/v1/web/search"
+      },
+      "error": null
+    },
+    "attempts": 2
+  },
+  "rhumb_execute": {
+    "status_code": 200,
+    "body": {
+      "data": {
+        "capability_id": "search.query",
+        "provider_used": "brave-search",
+        "credential_mode": "rhumb_managed",
+        "upstream_status": 200,
+        "upstream_response": {
+          "type": "search",
+          "query": {
+            "original": "LLM observability tools",
+            "show_strict_warning": false,
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "spellcheck_off": false,
+            "country": "us",
+            "bad_results": false,
+            "should_fallback": false,
+            "postal_code": "",
+            "city": "",
+            "header_country": "",
+            "more_results_available": true,
+            "state": ""
+          },
+          "mixed": {
+            "type": "mixed",
+            "main": [
+              {
+                "type": "web",
+                "index": 0,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 1,
+                "all": false
+              },
+              {
+                "type": "videos",
+                "all": true
+              },
+              {
+                "type": "web",
+                "index": 2,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 3,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 4,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 5,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 6,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 7,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 8,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 9,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 10,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 11,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 12,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 13,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 14,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 15,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 16,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 17,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 18,
+                "all": false
+              },
+              {
+                "type": "web",
+                "index": 19,
+                "all": false
+              }
+            ],
+            "top": [],
+            "side": []
+          },
+          "videos": {
+            "type": "videos",
+            "results": [
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=Q9zd548hqiQ",
+                "title": "LLM Observability: The Breakdown - YouTube",
+                "description": "LLM observability focuses on maximizing the utility of larger language models (LLMs) by monitoring key metrics and signals. Alex Williams, Founder and Publis...",
+                "age": "March 28, 2024",
+                "page_age": "2024-03-28T14:31:23",
+                "fetched_content_timestamp": 1774857247,
+                "video": {
+                  "duration": "25:52",
+                  "creator": "The New Stack",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/HwPfZXWqljZuGhjLUuVelQuiLV1-EbIpGdXNZrTjoec/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9R/OXpkNTQ4aHFpUS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/Q9zd548hqiQ/maxresdefault.jpg"
+                }
+              },
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=uA4pBu8leyU",
+                "title": "Datadog LLM Observability: Monitor and secure your AI workloads ...",
+                "description": "Datadog LLM Observability\u2019s new execution flow chart visualizes the execution run and decision path of your AI agents. For more information, read our blog po...",
+                "age": "July 25, 2025",
+                "page_age": "2025-07-25T15:01:42",
+                "fetched_content_timestamp": 1774857247,
+                "video": {
+                  "duration": "06:59",
+                  "creator": "Datadog",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/wfMSo3948oOmvwIox76EedpqFm3fEQHfDhjvp8WQVTU/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS91/QTRwQnU4bGV5VS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/uA4pBu8leyU/maxresdefault.jpg"
+                }
+              },
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=klVE_8pz_MQ",
+                "title": "Accelerate your AI Evaluations with Datadog LLM Observability - ...",
+                "description": "LLM applications are evolving fast, but without the right evaluations, iteration often feels like guesswork. In this session, Datadog Group Product Manager S...",
+                "age": "September 18, 2025",
+                "page_age": "2025-09-18T13:24:09",
+                "fetched_content_timestamp": 1759126759,
+                "video": {
+                  "duration": "10:42",
+                  "creator": "Datadog",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/WvwgRmLjyQ4BXKh5WWkaY66efYqAKNDztyAxmugSAnM/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9r/bFZFXzhwel9NUS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/klVE_8pz_MQ/maxresdefault.jpg"
+                }
+              },
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=17pfYqcGciw",
+                "title": "LLM Observability | AI Agent Monitoring | AIOps | OpenLLMetry - ...",
+                "description": "I explored how to use OpenLLMetry for complete LLM observability\u2014from tracing OpenAI calls to visualizing vector DB usage.In this video, I walk you through t...",
+                "age": "July 15, 2025",
+                "page_age": "2025-07-15T06:00:15",
+                "fetched_content_timestamp": 1774619445,
+                "video": {
+                  "duration": "10:24",
+                  "creator": "AI Anytime",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/2-BfiijreOtTPv2TvUQMtz1sIoBLWebEZYLZ9l8Y7To/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8x/N3BmWXFjR2Npdy9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/17pfYqcGciw/maxresdefault.jpg"
+                }
+              },
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=0I0ZrmyoTpM",
+                "title": "Intro to OpenTelemetry and LLM Observability - YouTube",
+                "description": "OpenTelemetry is one of the leading standards for application observability. But how does it handle the unique features of LLM applications?In this video, Da...",
+                "age": "November 4, 2024",
+                "page_age": "2024-11-04T21:12:44",
+                "fetched_content_timestamp": 1774104143,
+                "video": {
+                  "duration": "15:36",
+                  "views": 3752,
+                  "creator": "Arize AI",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/8Gsw_BNcTT0JMHjyYu99uB5L96u4uz2wN4CtM_mQ34I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8w/STBacm15b1RwTS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/0I0ZrmyoTpM/maxresdefault.jpg"
+                }
+              },
+              {
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=eW2KuWFeZyY",
+                "title": "AI and LLM Observability with Dynatrace - YouTube",
+                "description": "Explore how #Dynatrace provides OpenTelemetry-based AI and LLM Observability into all layers of your AI Stack: Infrastructure, Model, Semantic, Orchestration...",
+                "age": "October 1, 2024",
+                "page_age": "2024-10-01T13:30:20",
+                "fetched_content_timestamp": 1774622009,
+                "video": {
+                  "duration": "15:23",
+                  "creator": "Dynatrace",
+                  "publisher": "YouTube"
+                },
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "youtube.com",
+                  "hostname": "www.youtube.com",
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "path": "\u203a watch"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/S21mRyvEvgaULA0T9D3C0BLKPajo0FebFZqdH5SHqpw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9l/VzJLdVdGZVp5WS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+                  "original": "https://i.ytimg.com/vi/eW2KuWFeZyY/maxresdefault.jpg"
+                }
+              }
+            ],
+            "mutated_by_goggles": false
+          },
+          "web": {
+            "type": "search",
+            "results": [
+              {
+                "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+                "url": "https://www.langchain.com/articles/llm-observability-tools",
+                "is_source_local": false,
+                "is_source_both": false,
+                "description": "Choose <strong>Datadog LLM Observability</strong> if you need unified infrastructure and LLM monitoring within an existing Datadog stack. Choose Langfuse if you need an open-source, self-hostable platform combining observability with prompt management. Choose Helicone if you need a low-latency proxy that adds ...",
+                "profile": {
+                  "name": "LangChain",
+                  "url": "https://www.langchain.com/articles/llm-observability-tools",
+                  "long_name": "langchain.com",
+                  "img": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8"
+                },
+                "language": "en",
+                "family_friendly": true,
+                "type": "search_result",
+                "subtype": "generic",
+                "is_live": false,
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "langchain.com",
+                  "hostname": "www.langchain.com",
+                  "favicon": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+                  "path": "\u203a articles  \u203a llm-observability-tools"
+                }
+              },
+              {
+                "title": "r/LangChain on Reddit: What are the best open source LLM observability platforms/packages?",
+                "url": "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+                "is_source_local": false,
+                "is_source_both": false,
+                "description": "LLM Observability Is the New Logging: Quick Benchmark of 5 Tools (<strong>Langfuse, LangSmith, Helicone, Datadog, W&amp;B</strong>)",
+                "page_age": "2025-09-11T18:51:54",
+                "profile": {
+                  "name": "Reddit",
+                  "url": "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+                  "long_name": "reddit.com",
+                  "img": "https://imgs.search.brave.com/U-eHNCapRHVNWWCVPPMTIvOofZULh0_A_FQKe8xTE4I/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2ZiNTU0M2Nj/MTFhZjRiYWViZDlk/MjJiMjBjMzFjMDRk/Y2IzYWI0MGI0MjVk/OGY5NzQzOGQ5NzQ5/NWJhMWI0NC93d3cu/cmVkZGl0LmNvbS8"
+                },
+                "language": "en",
+                "family_friendly": true,
+                "type": "search_result",
+                "subtype": "qa",
+                "is_live": false,
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "reddit.com",
+                  "hostname": "www.reddit.com",
+                  "favicon": "https://imgs.search.brave.com/U-eHNCapRHVNWWCVPPMTIvOofZULh0_A_FQKe8xTE4I/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2ZiNTU0M2Nj/MTFhZjRiYWViZDlk/MjJiMjBjMzFjMDRk/Y2IzYWI0MGI0MjVk/OGY5NzQzOGQ5NzQ5/NWJhMWI0NC93d3cu/cmVkZGl0LmNvbS8",
+                  "path": "  \u203a r/langchain  \u203a what are the best open source llm observability platforms/packages?"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/9RZL0PrTTFpWqH7SRvqQeLcR8S3nvRArgj-BktRpGt8/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9zaGFy/ZS5yZWRkLml0L3By/ZXZpZXcvcG9zdC8x/bmVoNXN3",
+                  "original": "https://share.redd.it/preview/post/1neh5sw",
+                  "logo": false
+                },
+                "age": "September 11, 2025"
+              },
+              {
+                "title": "7 best free and open source LLM observability tools",
+                "url": "https://posthog.com/blog/best-open-source-llm-observability-tools",
+                "is_source_local": false,
+                "is_source_both": false,
+                "description": "Compare the best free and open source LLM observability tools, including <strong>PostHog, Langfuse, Opik, OpenLLMetry, Phoenix, and Helicone</strong>.",
+                "page_age": "2026-03-19T00:00:00",
+                "profile": {
+                  "name": "PostHog",
+                  "url": "https://posthog.com/blog/best-open-source-llm-observability-tools",
+                  "long_name": "posthog.com",
+                  "img": "https://imgs.search.brave.com/x6bT0d8VOdYW6XY8oZi4zv9QLhx9HtN4tNhHBVEZW1A/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjQxZTMyMjE3/ZTExY2MzY2I0YTQ3/Yjg2ZGE5YWQ5YmVj/MDIwOGU4MjFjMmFh/YmQ2NjJhNWZkYzAy/ZDQzODMwMC9wb3N0/aG9nLmNvbS8"
+                },
+                "language": "en",
+                "family_friendly": true,
+                "type": "search_result",
+                "subtype": "generic",
+                "is_live": false,
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "posthog.com",
+                  "hostname": "posthog.com",
+                  "favicon": "https://imgs.search.brave.com/x6bT0d8VOdYW6XY8oZi4zv9QLhx9HtN4tNhHBVEZW1A/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjQxZTMyMjE3/ZTExY2MzY2I0YTQ3/Yjg2ZGE5YWQ5YmVj/MDIwOGU4MjFjMmFh/YmQ2NjJhNWZkYzAy/ZDQzODMwMC9wb3N0/aG9nLmNvbS8",
+                  "path": "\u203a blog  \u203a best-open-source-llm-observability-tools"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/2ZRcn7rWigADzEst_yVp6KmngRvXPjEILQ0asM0__fw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9kMzZq/M3JjZ2MycWZzdi5j/bG91ZGZyb250Lm5l/dC9ibG9nYmVzdC1v/cGVuLXNvdXJjZS1s/bG0tb2JzZXJ2YWJp/bGl0eS10b29scy5q/cGVn",
+                  "original": "https://d36j3rcgc2qfsv.cloudfront.net/blogbest-open-source-llm-observability-tools.jpeg",
+                  "logo": false
+                },
+                "age": "2 weeks ago"
+              },
+              {
+                "title": "List of top LLM Observability Tools | Engineering Tools",
+                "url": "https://drdroid.io/engineering-tools/list-of-top-llm-observability-tools",
+                "is_source_local": false,
+                "is_source_both": false,
+                "description": "LLM Observability specifically focuses on tools and packages that help measuring the cost, quality &amp; security of LLM usage within organisations.",
+                "profile": {
+                  "name": "DrDroid",
+                  "url": "https://drdroid.io/engineering-tools/list-of-top-llm-observability-tools",
+                  "long_name": "drdroid.io",
+                  "img": "https://imgs.search.brave.com/9i6RF4zAH-DBIuUT2iXzRVFhuA3nQunYhDo_dGR9roU/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiNmI3OTZm/ZTE5YjMyNjFhYjI4/YjVmODc4OTA4MDNi/OWYyYWEzMGExODA1/NzhjMjcxMmZiYTlk/NWM4OTAyNC9kcmRy/b2lkLmlvLw"
+                },
+                "language": "en",
+                "family_friendly": true,
+                "type": "search_result",
+                "subtype": "generic",
+                "is_live": false,
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "drdroid.io",
+                  "hostname": "drdroid.io",
+                  "favicon": "https://imgs.search.brave.com/9i6RF4zAH-DBIuUT2iXzRVFhuA3nQunYhDo_dGR9roU/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiNmI3OTZm/ZTE5YjMyNjFhYjI4/YjVmODc4OTA4MDNi/OWYyYWEzMGExODA1/NzhjMjcxMmZiYTlk/NWM4OTAyNC9kcmRy/b2lkLmlvLw",
+                  "path": "\u203a engineering-tools  \u203a list-of-top-llm-observability-tools"
+                }
+              },
+              {
+                "title": "LLM Observability for AI Agents and Applications - Arize AI",
+                "url": "https://arize.com/blog/llm-observability-for-ai-agents-and-applications/",
+                "is_source_local": false,
+                "is_source_both": false,
+                "description": "LLM observability is <strong>complete, real-time visibility into every layer of an LLM-based system and its behavior from development to production</strong>. It provides visibility into LLM inputs, how they reason, which tools they call, what outputs they generate, ...",
+                "page_age": "2025-10-12T04:37:09",
+                "profile": {
+                  "name": "Arize",
+                  "url": "https://arize.com/blog/llm-observability-for-ai-agents-and-applications/",
+                  "long_name": "arize.com",
+                  "img": "https://imgs.search.brave.com/qFha21OwbxpJmHDFtYJ2srUuuR9bUAxCqvhA14_1zLo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjNiMGMxOTQ0/NTRkYjFlMTc5ODQw/MGEwOTE1YmE1NTU0/MWJkZjFlNTExMDhi/ZWVkMGFmNTE5MDQ0/ZjgyNzRhMy9hcml6/ZS5jb20v"
+                },
+                "language": "en",
+                "family_friendly": true,
+                "type": "search_result",
+                "subtype": "video",
+                "is_live": false,
+                "meta_url": {
+                  "scheme": "https",
+                  "netloc": "arize.com",
+                  "hostname": "arize.com",
+                  "favicon": "https://imgs.search.brave.com/qFha21OwbxpJmHDFtYJ2srUuuR9bUAxCqvhA14_1zLo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjNiMGMxOTQ0/NTRkYjFlMTc5ODQw/MGEwOTE1YmE1NTU0/MWJkZjFlNTExMDhi/ZWVkMGFmNTE5MDQ0/ZjgyNzRhMy9hcml6/ZS5jb20v",
+                  "path": "  \u203a arize ai  \u203a llm observability for ai agents and applications"
+                },
+                "thumbnail": {
+                  "src": "https://imgs.search.brave.com/kfJ9D-mEJrOl5BbX0vdRz1PPnKmfCxKxk63_hTcp6Wg/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9hcml6/ZS5jb20vd3AtY29u/dGVudC91cGxvYWRz/LzIwMjUvMTAvaGVh/ZGVyLmpwZw",
+                  "original": "https://arize.com/wp-content/uploads/2025/10/header.jpg",
+                  "logo": false
+                },
+                "age": "October 12, 2025"
+              }
+            ],
+            "family_friendly": true
+          }
+        },
+        "latency_ms": 694.3,
+        "execution_id": "exec_a6cb1959de734d8f93b8dd391a4c08b5",
+        "receipt_id": "rcpt_991c0194a8a94063a84fc386"
+      },
+      "error": null
+    }
+  },
+  "direct": {
+    "status_code": 200,
+    "body": {
+      "type": "search",
+      "query": {
+        "original": "LLM observability tools",
+        "show_strict_warning": false,
+        "is_navigational": false,
+        "is_news_breaking": false,
+        "spellcheck_off": false,
+        "country": "us",
+        "bad_results": false,
+        "should_fallback": false,
+        "postal_code": "",
+        "city": "",
+        "header_country": "",
+        "more_results_available": true,
+        "state": ""
+      },
+      "mixed": {
+        "type": "mixed",
+        "main": [
+          {
+            "type": "web",
+            "index": 0,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 1,
+            "all": false
+          },
+          {
+            "type": "videos",
+            "all": true
+          },
+          {
+            "type": "web",
+            "index": 2,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 3,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 4,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 5,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 6,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 7,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 8,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 9,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 10,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 11,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 12,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 13,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 14,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 15,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 16,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 17,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 18,
+            "all": false
+          },
+          {
+            "type": "web",
+            "index": 19,
+            "all": false
+          }
+        ],
+        "top": [],
+        "side": []
+      },
+      "videos": {
+        "type": "videos",
+        "results": [
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=Q9zd548hqiQ",
+            "title": "LLM Observability: The Breakdown - YouTube",
+            "description": "LLM observability focuses on maximizing the utility of larger language models (LLMs) by monitoring key metrics and signals. Alex Williams, Founder and Publis...",
+            "age": "March 28, 2024",
+            "page_age": "2024-03-28T14:31:23",
+            "fetched_content_timestamp": 1774857247,
+            "video": {
+              "duration": "25:52",
+              "creator": "The New Stack",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/HwPfZXWqljZuGhjLUuVelQuiLV1-EbIpGdXNZrTjoec/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9R/OXpkNTQ4aHFpUS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/Q9zd548hqiQ/maxresdefault.jpg"
+            }
+          },
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=uA4pBu8leyU",
+            "title": "Datadog LLM Observability: Monitor and secure your AI workloads ...",
+            "description": "Datadog LLM Observability\u2019s new execution flow chart visualizes the execution run and decision path of your AI agents. For more information, read our blog po...",
+            "age": "July 25, 2025",
+            "page_age": "2025-07-25T15:01:42",
+            "fetched_content_timestamp": 1774857247,
+            "video": {
+              "duration": "06:59",
+              "creator": "Datadog",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/wfMSo3948oOmvwIox76EedpqFm3fEQHfDhjvp8WQVTU/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS91/QTRwQnU4bGV5VS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/uA4pBu8leyU/maxresdefault.jpg"
+            }
+          },
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=klVE_8pz_MQ",
+            "title": "Accelerate your AI Evaluations with Datadog LLM Observability - ...",
+            "description": "LLM applications are evolving fast, but without the right evaluations, iteration often feels like guesswork. In this session, Datadog Group Product Manager S...",
+            "age": "September 18, 2025",
+            "page_age": "2025-09-18T13:24:09",
+            "fetched_content_timestamp": 1759126759,
+            "video": {
+              "duration": "10:42",
+              "creator": "Datadog",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/WvwgRmLjyQ4BXKh5WWkaY66efYqAKNDztyAxmugSAnM/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9r/bFZFXzhwel9NUS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/klVE_8pz_MQ/maxresdefault.jpg"
+            }
+          },
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=17pfYqcGciw",
+            "title": "LLM Observability | AI Agent Monitoring | AIOps | OpenLLMetry - ...",
+            "description": "I explored how to use OpenLLMetry for complete LLM observability\u2014from tracing OpenAI calls to visualizing vector DB usage.In this video, I walk you through t...",
+            "age": "July 15, 2025",
+            "page_age": "2025-07-15T06:00:15",
+            "fetched_content_timestamp": 1774619445,
+            "video": {
+              "duration": "10:24",
+              "creator": "AI Anytime",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/2-BfiijreOtTPv2TvUQMtz1sIoBLWebEZYLZ9l8Y7To/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8x/N3BmWXFjR2Npdy9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/17pfYqcGciw/maxresdefault.jpg"
+            }
+          },
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=0I0ZrmyoTpM",
+            "title": "Intro to OpenTelemetry and LLM Observability - YouTube",
+            "description": "OpenTelemetry is one of the leading standards for application observability. But how does it handle the unique features of LLM applications?In this video, Da...",
+            "age": "November 4, 2024",
+            "page_age": "2024-11-04T21:12:44",
+            "fetched_content_timestamp": 1774104143,
+            "video": {
+              "duration": "15:36",
+              "views": 3752,
+              "creator": "Arize AI",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/8Gsw_BNcTT0JMHjyYu99uB5L96u4uz2wN4CtM_mQ34I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8w/STBacm15b1RwTS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/0I0ZrmyoTpM/maxresdefault.jpg"
+            }
+          },
+          {
+            "type": "video_result",
+            "url": "https://www.youtube.com/watch?v=eW2KuWFeZyY",
+            "title": "AI and LLM Observability with Dynatrace - YouTube",
+            "description": "Explore how #Dynatrace provides OpenTelemetry-based AI and LLM Observability into all layers of your AI Stack: Infrastructure, Model, Semantic, Orchestration...",
+            "age": "October 1, 2024",
+            "page_age": "2024-10-01T13:30:20",
+            "fetched_content_timestamp": 1774622009,
+            "video": {
+              "duration": "15:23",
+              "creator": "Dynatrace",
+              "publisher": "YouTube"
+            },
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "youtube.com",
+              "hostname": "www.youtube.com",
+              "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+              "path": "\u203a watch"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/S21mRyvEvgaULA0T9D3C0BLKPajo0FebFZqdH5SHqpw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9l/VzJLdVdGZVp5WS9t/YXhyZXNkZWZhdWx0/LmpwZw",
+              "original": "https://i.ytimg.com/vi/eW2KuWFeZyY/maxresdefault.jpg"
+            }
+          }
+        ],
+        "mutated_by_goggles": false
+      },
+      "web": {
+        "type": "search",
+        "results": [
+          {
+            "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+            "url": "https://www.langchain.com/articles/llm-observability-tools",
+            "is_source_local": false,
+            "is_source_both": false,
+            "description": "Choose <strong>Datadog LLM Observability</strong> if you need unified infrastructure and LLM monitoring within an existing Datadog stack. Choose Langfuse if you need an open-source, self-hostable platform combining observability with prompt management. Choose Helicone if you need a low-latency proxy that adds ...",
+            "profile": {
+              "name": "LangChain",
+              "url": "https://www.langchain.com/articles/llm-observability-tools",
+              "long_name": "langchain.com",
+              "img": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8"
+            },
+            "language": "en",
+            "family_friendly": true,
+            "type": "search_result",
+            "subtype": "generic",
+            "is_live": false,
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "langchain.com",
+              "hostname": "www.langchain.com",
+              "favicon": "https://imgs.search.brave.com/3vBqkpyj1di7qVcqeMawx47ma01rDaEnbANsoV-taP8/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTYwMDhlYzlh/ZWMyODY4NTczZmJj/YjhhMjI5MGM4OWJl/ZTIyYmEzZTIyMGQx/ZTk5MTVhZTM5OTJi/ZjM0YjhhYS93d3cu/bGFuZ2NoYWluLmNv/bS8",
+              "path": "\u203a articles  \u203a llm-observability-tools"
+            }
+          },
+          {
+            "title": "r/LangChain on Reddit: What are the best open source LLM observability platforms/packages?",
+            "url": "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+            "is_source_local": false,
+            "is_source_both": false,
+            "description": "LLM Observability Is the New Logging: Quick Benchmark of 5 Tools (<strong>Langfuse, LangSmith, Helicone, Datadog, W&amp;B</strong>)",
+            "page_age": "2025-09-11T18:51:54",
+            "profile": {
+              "name": "Reddit",
+              "url": "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+              "long_name": "reddit.com",
+              "img": "https://imgs.search.brave.com/U-eHNCapRHVNWWCVPPMTIvOofZULh0_A_FQKe8xTE4I/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2ZiNTU0M2Nj/MTFhZjRiYWViZDlk/MjJiMjBjMzFjMDRk/Y2IzYWI0MGI0MjVk/OGY5NzQzOGQ5NzQ5/NWJhMWI0NC93d3cu/cmVkZGl0LmNvbS8"
+            },
+            "language": "en",
+            "family_friendly": true,
+            "type": "search_result",
+            "subtype": "qa",
+            "is_live": false,
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "reddit.com",
+              "hostname": "www.reddit.com",
+              "favicon": "https://imgs.search.brave.com/U-eHNCapRHVNWWCVPPMTIvOofZULh0_A_FQKe8xTE4I/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2ZiNTU0M2Nj/MTFhZjRiYWViZDlk/MjJiMjBjMzFjMDRk/Y2IzYWI0MGI0MjVk/OGY5NzQzOGQ5NzQ5/NWJhMWI0NC93d3cu/cmVkZGl0LmNvbS8",
+              "path": "  \u203a r/langchain  \u203a what are the best open source llm observability platforms/packages?"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/9RZL0PrTTFpWqH7SRvqQeLcR8S3nvRArgj-BktRpGt8/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9zaGFy/ZS5yZWRkLml0L3By/ZXZpZXcvcG9zdC8x/bmVoNXN3",
+              "original": "https://share.redd.it/preview/post/1neh5sw",
+              "logo": false
+            },
+            "age": "September 11, 2025"
+          },
+          {
+            "title": "7 best free and open source LLM observability tools",
+            "url": "https://posthog.com/blog/best-open-source-llm-observability-tools",
+            "is_source_local": false,
+            "is_source_both": false,
+            "description": "Compare the best free and open source LLM observability tools, including <strong>PostHog, Langfuse, Opik, OpenLLMetry, Phoenix, and Helicone</strong>.",
+            "page_age": "2026-03-19T00:00:00",
+            "profile": {
+              "name": "PostHog",
+              "url": "https://posthog.com/blog/best-open-source-llm-observability-tools",
+              "long_name": "posthog.com",
+              "img": "https://imgs.search.brave.com/x6bT0d8VOdYW6XY8oZi4zv9QLhx9HtN4tNhHBVEZW1A/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjQxZTMyMjE3/ZTExY2MzY2I0YTQ3/Yjg2ZGE5YWQ5YmVj/MDIwOGU4MjFjMmFh/YmQ2NjJhNWZkYzAy/ZDQzODMwMC9wb3N0/aG9nLmNvbS8"
+            },
+            "language": "en",
+            "family_friendly": true,
+            "type": "search_result",
+            "subtype": "generic",
+            "is_live": false,
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "posthog.com",
+              "hostname": "posthog.com",
+              "favicon": "https://imgs.search.brave.com/x6bT0d8VOdYW6XY8oZi4zv9QLhx9HtN4tNhHBVEZW1A/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvZjQxZTMyMjE3/ZTExY2MzY2I0YTQ3/Yjg2ZGE5YWQ5YmVj/MDIwOGU4MjFjMmFh/YmQ2NjJhNWZkYzAy/ZDQzODMwMC9wb3N0/aG9nLmNvbS8",
+              "path": "\u203a blog  \u203a best-open-source-llm-observability-tools"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/2ZRcn7rWigADzEst_yVp6KmngRvXPjEILQ0asM0__fw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9kMzZq/M3JjZ2MycWZzdi5j/bG91ZGZyb250Lm5l/dC9ibG9nYmVzdC1v/cGVuLXNvdXJjZS1s/bG0tb2JzZXJ2YWJp/bGl0eS10b29scy5q/cGVn",
+              "original": "https://d36j3rcgc2qfsv.cloudfront.net/blogbest-open-source-llm-observability-tools.jpeg",
+              "logo": false
+            },
+            "age": "2 weeks ago"
+          },
+          {
+            "title": "List of top LLM Observability Tools | Engineering Tools",
+            "url": "https://drdroid.io/engineering-tools/list-of-top-llm-observability-tools",
+            "is_source_local": false,
+            "is_source_both": false,
+            "description": "LLM Observability specifically focuses on tools and packages that help measuring the cost, quality &amp; security of LLM usage within organisations.",
+            "profile": {
+              "name": "DrDroid",
+              "url": "https://drdroid.io/engineering-tools/list-of-top-llm-observability-tools",
+              "long_name": "drdroid.io",
+              "img": "https://imgs.search.brave.com/9i6RF4zAH-DBIuUT2iXzRVFhuA3nQunYhDo_dGR9roU/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiNmI3OTZm/ZTE5YjMyNjFhYjI4/YjVmODc4OTA4MDNi/OWYyYWEzMGExODA1/NzhjMjcxMmZiYTlk/NWM4OTAyNC9kcmRy/b2lkLmlvLw"
+            },
+            "language": "en",
+            "family_friendly": true,
+            "type": "search_result",
+            "subtype": "generic",
+            "is_live": false,
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "drdroid.io",
+              "hostname": "drdroid.io",
+              "favicon": "https://imgs.search.brave.com/9i6RF4zAH-DBIuUT2iXzRVFhuA3nQunYhDo_dGR9roU/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiNmI3OTZm/ZTE5YjMyNjFhYjI4/YjVmODc4OTA4MDNi/OWYyYWEzMGExODA1/NzhjMjcxMmZiYTlk/NWM4OTAyNC9kcmRy/b2lkLmlvLw",
+              "path": "\u203a engineering-tools  \u203a list-of-top-llm-observability-tools"
+            }
+          },
+          {
+            "title": "LLM Observability for AI Agents and Applications - Arize AI",
+            "url": "https://arize.com/blog/llm-observability-for-ai-agents-and-applications/",
+            "is_source_local": false,
+            "is_source_both": false,
+            "description": "LLM observability is <strong>complete, real-time visibility into every layer of an LLM-based system and its behavior from development to production</strong>. It provides visibility into LLM inputs, how they reason, which tools they call, what outputs they generate, ...",
+            "page_age": "2025-10-12T04:37:09",
+            "profile": {
+              "name": "Arize",
+              "url": "https://arize.com/blog/llm-observability-for-ai-agents-and-applications/",
+              "long_name": "arize.com",
+              "img": "https://imgs.search.brave.com/qFha21OwbxpJmHDFtYJ2srUuuR9bUAxCqvhA14_1zLo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjNiMGMxOTQ0/NTRkYjFlMTc5ODQw/MGEwOTE1YmE1NTU0/MWJkZjFlNTExMDhi/ZWVkMGFmNTE5MDQ0/ZjgyNzRhMy9hcml6/ZS5jb20v"
+            },
+            "language": "en",
+            "family_friendly": true,
+            "type": "search_result",
+            "subtype": "video",
+            "is_live": false,
+            "meta_url": {
+              "scheme": "https",
+              "netloc": "arize.com",
+              "hostname": "arize.com",
+              "favicon": "https://imgs.search.brave.com/qFha21OwbxpJmHDFtYJ2srUuuR9bUAxCqvhA14_1zLo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjNiMGMxOTQ0/NTRkYjFlMTc5ODQw/MGEwOTE1YmE1NTU0/MWJkZjFlNTExMDhi/ZWVkMGFmNTE5MDQ0/ZjgyNzRhMy9hcml6/ZS5jb20v",
+              "path": "  \u203a arize ai  \u203a llm observability for ai agents and applications"
+            },
+            "thumbnail": {
+              "src": "https://imgs.search.brave.com/kfJ9D-mEJrOl5BbX0vdRz1PPnKmfCxKxk63_hTcp6Wg/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9hcml6/ZS5jb20vd3AtY29u/dGVudC91cGxvYWRz/LzIwMjUvMTAvaGVh/ZGVyLmpwZw",
+              "original": "https://arize.com/wp-content/uploads/2025/10/header.jpg",
+              "logo": false
+            },
+            "age": "October 12, 2025"
+          }
+        ],
+        "family_friendly": true
+      }
+    }
+  },
+  "comparison": {
+    "provider_used": "brave-search",
+    "upstream_status": 200,
+    "execution_id": "exec_a6cb1959de734d8f93b8dd391a4c08b5",
+    "rhumb_count": 5,
+    "direct_count": 5,
+    "rhumb_top": {
+      "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+      "url": "https://www.langchain.com/articles/llm-observability-tools",
+      "description": "Choose <strong>Datadog LLM Observability</strong> if you need unified infrastructure and LLM monitoring within an existing Datadog stack. Choose Langfuse if you need an open-source, self-hostable platform combining observability with prompt management. Choose Helicone if you need a low-latency proxy that adds ..."
+    },
+    "direct_top": {
+      "title": "8 LLM Observability Tools to Monitor & Evaluate AI Agents",
+      "url": "https://www.langchain.com/articles/llm-observability-tools",
+      "description": "Choose <strong>Datadog LLM Observability</strong> if you need unified infrastructure and LLM monitoring within an existing Datadog stack. Choose Langfuse if you need an open-source, self-hostable platform combining observability with prompt management. Choose Helicone if you need a low-latency proxy that adds ..."
+    },
+    "rhumb_top3_urls": [
+      "https://www.langchain.com/articles/llm-observability-tools",
+      "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+      "https://posthog.com/blog/best-open-source-llm-observability-tools"
+    ],
+    "direct_top3_urls": [
+      "https://www.langchain.com/articles/llm-observability-tools",
+      "https://www.reddit.com/r/LangChain/comments/1neh5sw/what_are_the_best_open_source_llm_observability/",
+      "https://posthog.com/blog/best-open-source-llm-observability-tools"
+    ],
+    "result_count_match": true,
+    "top_title_match": true,
+    "top_url_match": true,
+    "top_description_match": true,
+    "top3_urls_match": true
+  },
+  "verdict": "pass",
+  "publication": {
+    "evidence": {
+      "id": "0104de70-ccf0-4a92-8d15-8db7dc567b53",
+      "source_ref": "runtime-review:brave-search:20260403T124859Z",
+      "state": "inserted"
+    },
+    "link": {
+      "evidence_record_id": "0104de70-ccf0-4a92-8d15-8db7dc567b53",
+      "review_id": "ab5dfd9a-325a-412a-885d-d98773588342",
+      "role": "primary",
+      "state": "inserted"
+    },
+    "review": {
+      "id": "ab5dfd9a-325a-412a-885d-d98773588342",
+      "source_batch_id": "runtime-review:brave-search:20260403T124859Z",
+      "state": "inserted"
+    },
+    "service": "brave-search"
+  },
+  "counts_after": {
+    "published_reviews": 12,
+    "runtime_backed_reviews": 11
+  },
+  "disable_agent": {
+    "status_code": 200,
+    "body": {
+      "status": "success",
+      "agent_id": "1d476b48-d9d6-409d-8bc3-96a93a404adc"
+    }
+  }
+}
