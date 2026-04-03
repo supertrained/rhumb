@@ -6,6 +6,8 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
 
+from services.payload_redactor import sanitize_external_payload
+
 LAUNCH_WINDOW_START = datetime(2026, 3, 13, tzinfo=UTC)
 SUPPORTED_WINDOWS = {"24h", "7d", "launch"}
 
@@ -47,13 +49,26 @@ def _normalize_service_slug(value: Any) -> str | None:
     return None
 
 
+def _safe_label(value: Any, *, max_length: int = 120) -> str | None:
+    sanitized = sanitize_external_payload(
+        value,
+        max_depth=1,
+        max_items=5,
+        max_string_length=max_length,
+        strict=True,
+    )
+    if isinstance(sanitized, str) and sanitized:
+        return sanitized
+    return None
+
+
 def _client_key(row: dict[str, Any]) -> str | None:
-    agent_id = row.get("agent_id")
-    if isinstance(agent_id, str) and agent_id:
+    agent_id = _safe_label(row.get("agent_id"))
+    if agent_id:
         return f"agent:{agent_id}"
 
-    user_agent = row.get("user_agent")
-    if isinstance(user_agent, str) and user_agent:
+    user_agent = _safe_label(row.get("user_agent"))
+    if user_agent:
         return f"ua:{user_agent}"
 
     return None
@@ -109,8 +124,8 @@ def build_launch_dashboard(
                 top_services[service_slug] += 1
 
         if query_type == "search":
-            query_text = row.get("query_text")
-            if isinstance(query_text, str) and query_text:
+            query_text = _safe_label(row.get("query_text"))
+            if query_text:
                 top_searches[query_text] += 1
 
         client_key = _client_key(row)

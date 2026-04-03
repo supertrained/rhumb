@@ -20,9 +20,13 @@ Design:
 
 from __future__ import annotations
 
+from datetime import date, datetime, time
+from decimal import Decimal
+from enum import Enum
 import re
-from copy import deepcopy
+from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 # Keys that always get redacted (case-insensitive matching)
 _SENSITIVE_KEYS = frozenset([
@@ -53,6 +57,108 @@ _SECRET_VALUE_PATTERNS = [
 ]
 
 REDACTED = "[REDACTED]"
+TRUNCATED = "[TRUNCATED]"
+UNSERIALIZABLE = "[UNSERIALIZABLE]"
+
+
+def _redact_string(value: str, *, strict: bool) -> str:
+    if not strict:
+        return value
+    for pattern in _SECRET_VALUE_PATTERNS:
+        if pattern.match(value):
+            return REDACTED
+    return value
+
+
+def _truncate_string(value: str, *, max_length: int) -> str:
+    if len(value) <= max_length:
+        return value
+    return f"{value[:max_length]}…{TRUNCATED}"
+
+
+def sanitize_external_payload(
+    data: Any,
+    *,
+    depth: int = 0,
+    max_depth: int = 6,
+    max_items: int = 50,
+    max_string_length: int = 256,
+    strict: bool = True,
+) -> Any:
+    """Convert arbitrary data into a bounded, JSON-safe, redacted structure.
+
+    This is the default-safe serializer for external/API-facing payloads where we
+    want to preserve enough structure for debugging and analytics without
+    allowing raw secrets, pathological nesting, giant strings, or unserializable
+    Python objects to leak through.
+    """
+    if depth > max_depth:
+        return TRUNCATED
+
+    if isinstance(data, dict):
+        items = list(data.items())
+        result: dict[str, Any] = {}
+        for key, value in items[:max_items]:
+            safe_key = _truncate_string(str(key), max_length=max_string_length)
+            normalized_key = str(key).lower().replace("-", "_").replace(" ", "_")
+            if strict and normalized_key in _SENSITIVE_KEYS:
+                result[safe_key] = REDACTED
+                continue
+            result[safe_key] = sanitize_external_payload(
+                value,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_items=max_items,
+                max_string_length=max_string_length,
+                strict=strict,
+            )
+        if len(items) > max_items:
+            result["__truncated_items__"] = len(items) - max_items
+        return result
+
+    if isinstance(data, (list, tuple, set, frozenset)):
+        items = list(data)
+        result = [
+            sanitize_external_payload(
+                item,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_items=max_items,
+                max_string_length=max_string_length,
+                strict=strict,
+            )
+            for item in items[:max_items]
+        ]
+        if len(items) > max_items:
+            result.append(TRUNCATED)
+        return result
+
+    if isinstance(data, str):
+        return _truncate_string(_redact_string(data, strict=strict), max_length=max_string_length)
+
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        return TRUNCATED
+
+    if isinstance(data, (datetime, date, time)):
+        return data.isoformat()
+
+    if isinstance(data, (UUID, Path, Decimal)):
+        return str(data)
+
+    if isinstance(data, Enum):
+        return sanitize_external_payload(
+            data.value,
+            depth=depth + 1,
+            max_depth=max_depth,
+            max_items=max_items,
+            max_string_length=max_string_length,
+            strict=strict,
+        )
+
+    if data is None or isinstance(data, (bool, int, float)):
+        return data
+
+    return f"{UNSERIALIZABLE}:{type(data).__name__}"
 
 
 def redact_payload(
@@ -96,12 +202,8 @@ def redact_payload(
             for item in data
         ]
 
-    elif isinstance(data, str) and strict:
-        # Check if the value itself looks like a secret
-        for pattern in _SECRET_VALUE_PATTERNS:
-            if pattern.match(data):
-                return REDACTED
-        return data
+    elif isinstance(data, str):
+        return _redact_string(data, strict=strict)
 
     else:
         return data
@@ -127,11 +229,11 @@ def redact_event_detail(detail: dict[str, Any] | None) -> dict[str, Any]:
     """Redact an audit or billing event detail field for export."""
     if detail is None:
         return {}
-    return redact_payload(detail, strict=True)
+    return sanitize_external_payload(redact_payload(detail, strict=True), strict=False)
 
 
 def redact_event_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
     """Redact an audit or billing event metadata field for export."""
     if metadata is None:
         return {}
-    return redact_payload(metadata, strict=True)
+    return sanitize_external_payload(redact_payload(metadata, strict=True), strict=False)

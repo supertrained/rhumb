@@ -6,14 +6,19 @@ preserving structure and non-sensitive data.
 
 from __future__ import annotations
 
-import pytest
+from datetime import datetime, timezone
+from pathlib import Path
+from uuid import UUID
 
 from services.payload_redactor import (
     REDACTED,
+    TRUNCATED,
+    UNSERIALIZABLE,
     redact_event_detail,
     redact_event_metadata,
     redact_headers,
     redact_payload,
+    sanitize_external_payload,
 )
 
 
@@ -175,6 +180,51 @@ class TestHeaderRedaction:
 
     def test_none_headers(self):
         assert redact_headers(None) is None
+
+
+class TestExternalPayloadSanitization:
+    def test_secret_values_and_unserializable_objects_are_sanitized(self):
+        class Weird:
+            pass
+
+        payload = {
+            "token": "abc123",
+            "bearer": "Bearer super-secret-token",
+            "nested": {"password": "hunter2"},
+            "obj": Weird(),
+        }
+
+        result = sanitize_external_payload(payload)
+        assert result["token"] == REDACTED
+        assert result["bearer"] == REDACTED
+        assert result["nested"]["password"] == REDACTED
+        assert result["obj"] == f"{UNSERIALIZABLE}:Weird"
+
+    def test_strings_and_collections_are_bounded(self):
+        result = sanitize_external_payload(
+            {
+                "text": ("abc-" * 80),
+                "items": list(range(60)),
+            },
+            max_items=3,
+            max_string_length=10,
+        )
+        assert result["text"] == f"{'abc-' * 2}ab…{TRUNCATED}"
+        assert result["items"] == [0, 1, 2, TRUNCATED]
+        assert "__truncated_items__" not in result
+
+    def test_dates_paths_and_uuids_are_json_safe(self):
+        value = UUID("12345678-1234-5678-1234-567812345678")
+        result = sanitize_external_payload(
+            {
+                "ts": datetime(2026, 4, 3, 12, 0, tzinfo=timezone.utc),
+                "path": Path("/tmp/demo"),
+                "id": value,
+            }
+        )
+        assert result["ts"] == "2026-04-03T12:00:00+00:00"
+        assert result["path"] == "/tmp/demo"
+        assert result["id"] == str(value)
 
 
 class TestEventHelpers:

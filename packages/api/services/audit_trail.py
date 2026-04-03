@@ -681,6 +681,11 @@ class AuditTrail:
         return output.getvalue()
 
     @staticmethod
+    def serialize_event(event: AuditEvent, *, redact: bool = True) -> dict[str, Any]:
+        """Convert an event to a JSON-safe dict for external/API-facing use."""
+        return AuditTrail._event_to_dict(event, redact=redact)
+
+    @staticmethod
     def _event_to_dict(event: AuditEvent, *, redact: bool = False) -> dict[str, Any]:
         """Convert an event to a JSON-serializable dict.
 

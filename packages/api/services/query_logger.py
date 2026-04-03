@@ -19,6 +19,8 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
+from services.payload_redactor import sanitize_external_payload
+
 logger = logging.getLogger(__name__)
 
 # Agent identification patterns in User-Agent strings
@@ -178,13 +180,43 @@ class QueryLogger:
         if not self._check_rate_limit(source):
             return
 
+        safe_query_text = sanitize_external_payload(
+            query_text,
+            max_depth=1,
+            max_items=10,
+            max_string_length=256,
+            strict=True,
+        )
+        if not isinstance(safe_query_text, str):
+            safe_query_text = str(safe_query_text)
+
+        safe_query_params = sanitize_external_payload(
+            query_params or {},
+            max_depth=4,
+            max_items=25,
+            max_string_length=256,
+            strict=True,
+        )
+        if not isinstance(safe_query_params, dict):
+            safe_query_params = {"value": safe_query_params}
+
+        safe_user_agent = sanitize_external_payload(
+            user_agent,
+            max_depth=1,
+            max_items=5,
+            max_string_length=256,
+            strict=True,
+        )
+        if safe_user_agent is not None and not isinstance(safe_user_agent, str):
+            safe_user_agent = str(safe_user_agent)
+
         entry = {
             "source": source,
             "query_type": query_type,
-            "query_text": query_text,
-            "query_params": query_params or {},
+            "query_text": safe_query_text,
+            "query_params": safe_query_params,
             "agent_id": agent_id,
-            "user_agent": user_agent,
+            "user_agent": safe_user_agent,
             "result_count": result_count,
             "result_status": result_status,
             "latency_ms": latency_ms,

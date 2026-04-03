@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from services.launch_dashboard import build_launch_dashboard
+from services.payload_redactor import REDACTED
 
 
 def test_capture_click_event_logs_payload(client: TestClient, monkeypatch) -> None:
@@ -101,6 +102,30 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
     assert payload["queries"]["machine_total"] == 1
     assert payload["clicks"]["provider_clicks"] == 1
     assert payload["clicks"]["dispute_clicks"]["github"] == 1
+
+
+def test_build_launch_dashboard_sanitizes_top_searches_and_client_keys() -> None:
+    dashboard = build_launch_dashboard(
+        query_logs=[
+            {
+                "created_at": "2026-03-13T01:00:00Z",
+                "source": "web",
+                "query_type": "search",
+                "query_text": "Bearer super-secret-token",
+                "query_params": {"query": "Bearer super-secret-token"},
+                "agent_id": None,
+                "user_agent": "Browser/1.0 " + ("x" * 200),
+            },
+        ],
+        click_events=[],
+        service_rows=[{"slug": "stripe"}],
+        window="launch",
+        now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
+    )
+
+    assert dashboard["queries"]["top_searches"] == [{"key": REDACTED, "count": 1}]
+    assert dashboard["queries"]["unique_clients"] == 1
+    assert dashboard["queries"]["repeat_clients"] == 0
 
 
 def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:

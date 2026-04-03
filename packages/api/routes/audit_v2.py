@@ -293,25 +293,31 @@ async def verify_audit_chain(
 
 
 def _event_response(event: Any) -> dict[str, Any]:
-    """Format an audit event for API response."""
+    """Format an audit event for API response.
+
+    Default-safe posture: external query surfaces should return the redacted,
+    shape-bounded serialization unless a future internal-only path opts out
+    explicitly.
+    """
+    serialized = get_audit_trail().serialize_event(event, redact=True)
     return {
-        "event_id": event.event_id,
-        "event_type": event.event_type.value,
-        "severity": event.severity.value,
-        "category": event.category,
-        "timestamp": event.timestamp.isoformat(),
-        "org_id": event.org_id,
-        "agent_id": event.agent_id,
-        "principal": event.principal,
-        "resource_type": event.resource_type,
-        "resource_id": event.resource_id,
-        "action": event.action,
-        "detail": event.detail,
-        "receipt_id": event.receipt_id,
-        "execution_id": event.execution_id,
-        "provider_slug": event.provider_slug,
-        "chain_sequence": event.chain_sequence,
-        "chain_hash": event.chain_hash,
+        "event_id": serialized["event_id"],
+        "event_type": serialized["event_type"],
+        "severity": serialized["severity"],
+        "category": serialized["category"],
+        "timestamp": serialized["timestamp"],
+        "org_id": serialized["org_id"],
+        "agent_id": serialized["agent_id"],
+        "principal": serialized["principal"],
+        "resource_type": serialized["resource_type"],
+        "resource_id": serialized["resource_id"],
+        "action": serialized["action"],
+        "detail": serialized["detail"],
+        "receipt_id": serialized["receipt_id"],
+        "execution_id": serialized["execution_id"],
+        "provider_slug": serialized["provider_slug"],
+        "chain_sequence": serialized["chain_sequence"],
+        "chain_hash": serialized["chain_hash"],
     }
 
 

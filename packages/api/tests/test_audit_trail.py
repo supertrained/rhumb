@@ -416,6 +416,7 @@ class TestAuditRoutes:
             AuditEventType.EXECUTION_COMPLETED, "Test execution completed",
             org_id="org_test", agent_id="agent_1", provider_slug="brave",
             receipt_id="rcpt_001", execution_id="exec_001",
+            detail={"api_key": "sk-live-12345", "latency_ms": 42},
         )
         trail.record(
             AuditEventType.KILL_SWITCH_ACTIVATED, "Agent compromised",
@@ -477,6 +478,14 @@ class TestAuditRoutes:
             headers={"X-Rhumb-Key": "test_key"},
         )
         assert resp.status_code == 400
+
+    def test_event_detail_is_redacted_on_query_surfaces(self, client):
+        resp = client.get("/v2/audit/events", headers={"X-Rhumb-Key": "test_key"})
+        assert resp.status_code == 200
+        events = resp.json()["data"]["events"]
+        completed = next(event for event in events if event["event_type"] == "execution.completed")
+        assert completed["detail"]["api_key"] == "[REDACTED]"
+        assert completed["detail"]["latency_ms"] == 42
 
     def test_get_event_by_id(self, client):
         # First get the list to find an event ID

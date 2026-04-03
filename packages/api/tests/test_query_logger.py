@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from services.payload_redactor import REDACTED, TRUNCATED
 from services.query_logger import QueryLogger, classify_query_source, extract_agent_id
 
 
@@ -353,6 +354,37 @@ async def test_log_entry_structure(mock_supabase: MockSupabaseClient) -> None:
     assert entry["result_count"] == 5
     assert entry["result_status"] == "success"
     assert entry["latency_ms"] == 42
+    ql.reset()
+
+
+@pytest.mark.asyncio
+async def test_log_entry_sanitizes_external_fields(mock_supabase: MockSupabaseClient) -> None:
+    """Query logs should store bounded, redacted, JSON-safe payloads."""
+    ql = QueryLogger(supabase_client=mock_supabase)
+
+    class Strange:
+        pass
+
+    await ql.log(
+        source="web",
+        query_type="search",
+        query_text="Bearer super-secret-token",
+        query_params={
+            "token": "abc123",
+            "unsafe": Strange(),
+            "items": list(range(30)),
+        },
+        user_agent="rhumb-cli/1.0 " + ("x" * 300),
+        result_status="success",
+    )
+
+    await ql.flush()
+    entry = mock_supabase.query_logs_table.inserted[0][0]
+    assert entry["query_text"] == REDACTED
+    assert entry["query_params"]["token"] == REDACTED
+    assert entry["query_params"]["unsafe"] == "[UNSERIALIZABLE]:Strange"
+    assert entry["query_params"]["items"][-1] == TRUNCATED
+    assert entry["user_agent"].endswith(f"…{TRUNCATED}")
     ql.reset()
 
 
