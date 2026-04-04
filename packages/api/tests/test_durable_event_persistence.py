@@ -26,6 +26,7 @@ class MockQueryBuilder:
         self._data = data
         self.inserted: list[dict] = []
         self.upserted: list[dict] = []
+        self.order_calls: list[tuple] = []
 
     def select(self, *args):
         return self
@@ -37,6 +38,7 @@ class MockQueryBuilder:
         return self
 
     def order(self, *args, **kwargs):
+        self.order_calls.append((args, kwargs))
         return self
 
     def limit(self, *args):
@@ -85,6 +87,7 @@ class MockBillingEvent:
     provider_slug = "brave-search"
     chain_hash = "abc123"
     prev_hash = "000000"
+    key_version = 1
 
 
 class MockAuditEvent:
@@ -106,6 +109,7 @@ class MockAuditEvent:
     chain_sequence = 1
     chain_hash = "def456"
     prev_hash = "000000"
+    key_version = 1
 
 
 class MockKillEntry:
@@ -151,10 +155,13 @@ def mock_db():
 class TestDurableBillingPersistence:
     @pytest.mark.asyncio
     async def test_persist_event_succeeds(self, mock_db):
-        mock_db.set_table("billing_events", MockQueryBuilder())
+        builder = MockQueryBuilder()
+        mock_db.set_table("billing_events", builder)
         bp = DurableBillingPersistence(mock_db)
         result = await bp.persist_event(MockBillingEvent())
         assert result is True
+        assert builder.inserted[0]["key_version"] == 1
+        assert builder.inserted[0]["created_at"] == MockBillingEvent.timestamp.isoformat()
 
     @pytest.mark.asyncio
     async def test_persist_event_survives_failure(self, mock_db):
@@ -189,10 +196,14 @@ class TestDurableBillingPersistence:
 class TestDurableAuditPersistence:
     @pytest.mark.asyncio
     async def test_persist_event_succeeds(self, mock_db):
-        mock_db.set_table("audit_events", MockQueryBuilder())
+        builder = MockQueryBuilder()
+        mock_db.set_table("audit_events", builder)
         ap = DurableAuditPersistence(mock_db)
         result = await ap.persist_event(MockAuditEvent())
         assert result is True
+        assert builder.inserted[0]["key_version"] == 1
+        assert builder.inserted[0]["timestamp"] == MockAuditEvent.timestamp.isoformat()
+        assert "created_at" not in builder.inserted[0]
 
     @pytest.mark.asyncio
     async def test_persist_event_survives_failure(self, mock_db):
@@ -209,10 +220,13 @@ class TestDurableAuditPersistence:
 
     @pytest.mark.asyncio
     async def test_load_recent(self, mock_db):
-        mock_db.set_table("audit_events", MockQueryBuilder([{"event_id": "aevt_1"}]))
+        builder = MockQueryBuilder([{"event_id": "aevt_1"}])
+        mock_db.set_table("audit_events", builder)
         ap = DurableAuditPersistence(mock_db)
         events = await ap.load_recent()
         assert len(events) == 1
+        assert builder.order_calls[0][0][0] == "timestamp"
+        assert builder.order_calls[0][1].get("desc") is False
 
 
 class TestDurableChainCheckpointPersistence:

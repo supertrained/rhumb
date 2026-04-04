@@ -134,6 +134,7 @@ class DurableBillingPersistence:
             "provider_slug": payload.get("provider_slug"),
             "chain_hash": payload.get("chain_hash", ""),
             "prev_hash": payload.get("prev_hash", ""),
+            "key_version": payload.get("key_version"),
             "created_at": payload.get("timestamp"),
         }
 
@@ -167,7 +168,7 @@ class DurableAuditPersistence:
         """Load recent audit events for startup replay."""
         try:
             result = await self._db.table("audit_events").select("*").order(
-                "created_at", desc=False
+                "timestamp", desc=False
             ).limit(limit).execute()
             return result.data or []
         except Exception:
@@ -218,7 +219,8 @@ class DurableAuditPersistence:
             "chain_sequence": payload.get("chain_sequence"),
             "chain_hash": payload.get("chain_hash", ""),
             "prev_hash": payload.get("prev_hash", ""),
-            "created_at": payload.get("timestamp"),
+            "key_version": payload.get("key_version"),
+            "timestamp": payload.get("timestamp"),
         }
 
 
