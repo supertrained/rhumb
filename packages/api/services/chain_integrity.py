@@ -131,6 +131,37 @@ def reset_signing_key_cache() -> None:
     _ACTIVE_KEY_VERSION = None
 
 
+def check_signing_key_health(*, fail_in_production: bool = True) -> bool:
+    """Validate that the active signing key is not the test fallback.
+
+    AUD-R1-12 / AUD-R4-04: production must never boot with the test key.
+    Returns True if healthy, raises RuntimeError in production if not.
+    """
+    keyring = get_signing_keyring()
+    active_version = get_signing_key_version()
+    active_key = keyring.get(active_version)
+
+    if active_key == _TEST_KEY:
+        is_production = os.environ.get("RAILWAY_ENVIRONMENT") == "production"
+        if is_production and fail_in_production:
+            raise RuntimeError(
+                "FATAL: chain signing key is the test fallback in production. "
+                "Set RHUMB_CHAIN_SIGNING_KEYS or RHUMB_CHAIN_SIGNING_KEY before deploying."
+            )
+        logger.warning(
+            "chain_integrity: active signing key is the test fallback — "
+            "this is acceptable in dev/test but MUST be replaced before production"
+        )
+        return False
+
+    logger.info(
+        "chain_integrity: signing key health OK (active version=%d, keyring size=%d)",
+        active_version,
+        len(keyring),
+    )
+    return True
+
+
 def get_signing_keyring() -> dict[int, bytes]:
     """Get the cached signing keyring (lazy init)."""
     global _SIGNING_KEYRING, _ACTIVE_KEY_VERSION
