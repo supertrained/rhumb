@@ -24,6 +24,7 @@ from routes import (
     admin_agents,
     admin_billing,
     admin_budgets,
+    admin_chain_integrity,
     auth,
     auth_wallet,
     billing,
@@ -251,6 +252,7 @@ def create_app() -> FastAPI:
         admin_billing.router, prefix="/v1", tags=["admin-billing"],
         dependencies=[Depends(require_admin_key)],
     )
+    application.include_router(admin_chain_integrity.router)
     application.include_router(admin_budgets.router, tags=["admin-budgets"])
     application.include_router(billing.router, prefix="/v1", tags=["billing"])
     application.include_router(billing_v2.router, tags=["billing-v2"])

@@ -336,6 +336,16 @@ class BillingEventStream:
         with self._lock:
             return self._prev_hash
 
+    @property
+    def latest_key_version(self) -> int | None:
+        with self._lock:
+            return self._events[-1].key_version if self._events else None
+
+    @property
+    def latest_timestamp(self) -> datetime | None:
+        with self._lock:
+            return self._events[-1].timestamp if self._events else None
+
     def configure_outbox(self, outbox: Any | None) -> None:
         """Attach or replace the durable outbox."""
         with self._lock:
