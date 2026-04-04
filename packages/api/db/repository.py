@@ -20,7 +20,11 @@ from routes._supabase import (
     supabase_score_insert_returning_required,
     supabase_score_patch_required,
 )
-from services.chain_integrity import build_score_audit_payload, compute_chain_hmac
+from services.chain_integrity import (
+    build_score_audit_payload,
+    compute_chain_hmac,
+    get_signing_key_version,
+)
 
 if TYPE_CHECKING:
     from services.scoring import ANScoreResult
@@ -336,7 +340,8 @@ class SupabaseScoreRepository:
                 "created_at": created_at,
             }
         )
-        chain_hash = compute_chain_hmac(prev_hash, audit_payload)
+        key_version = get_signing_key_version()
+        chain_hash = compute_chain_hmac(prev_hash, audit_payload, key_version=key_version)
 
         await supabase_score_insert_required(
             "score_audit_chain",
@@ -344,6 +349,7 @@ class SupabaseScoreRepository:
                 **audit_payload,
                 "chain_hash": chain_hash,
                 "prev_hash": prev_hash,
+                "key_version": key_version,
             },
         )
 
@@ -596,20 +602,26 @@ class DirectPostgresScorePublisherRepository:
                         "created_at": created_at,
                     }
                 )
-                chain_hash = compute_chain_hmac(prev_hash, audit_payload)
+                key_version = get_signing_key_version()
+                chain_hash = compute_chain_hmac(
+                    prev_hash,
+                    audit_payload,
+                    key_version=key_version,
+                )
 
                 session.execute(
                     text(
                         "INSERT INTO score_audit_chain ("
-                        "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash"
+                        "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash, key_version"
                         ") VALUES ("
-                        ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash"
+                        ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash, :key_version"
                         ")"
                     ),
                     {
                         **audit_payload,
                         "chain_hash": chain_hash,
                         "prev_hash": prev_hash,
+                        "key_version": key_version,
                     },
                 )
                 session.commit()

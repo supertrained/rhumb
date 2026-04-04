@@ -90,6 +90,7 @@ async def test_save_score_updates_existing_row_and_appends_audit_chain() -> None
         patch(
             "db.repository.supabase_score_insert_returning_required", new=AsyncMock()
         ) as mock_score_insert,
+        patch("db.repository.get_signing_key_version", return_value=1),
     ):
         persisted_id = await repository.save_score("stripe", _result())
 
@@ -108,6 +109,7 @@ async def test_save_score_updates_existing_row_and_appends_audit_chain() -> None
     assert audit_payload["new_score"] == 8.9
     assert audit_payload["prev_hash"] == "abc123"
     assert audit_payload["chain_hash"]
+    assert audit_payload["key_version"] == 1
     assert mock_fetch.await_count == 3
 
 
