@@ -360,3 +360,27 @@ def build_score_audit_payload(entry: Any) -> dict[str, Any]:
         "change_reason": _field(entry, "change_reason", "recalculation"),
         "created_at": created_at_value,
     }
+
+
+def build_chain_checkpoint_payload(entry: Any) -> dict[str, Any]:
+    """Build the semantic payload for a durable chain checkpoint."""
+    created_at = _field(entry, "created_at") or _field(entry, "timestamp")
+    if isinstance(created_at, datetime):
+        created_at_value = created_at.isoformat()
+    else:
+        created_at_value = str(created_at)
+
+    metadata = _field(entry, "metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    return {
+        "checkpoint_id": _field(entry, "checkpoint_id"),
+        "stream_name": _field(entry, "stream_name"),
+        "reason": _field(entry, "reason"),
+        "source_head_hash": _field(entry, "source_head_hash"),
+        "source_head_sequence": _field(entry, "source_head_sequence"),
+        "source_key_version": _field(entry, "source_key_version"),
+        "created_at": created_at_value,
+        "metadata": metadata,
+    }

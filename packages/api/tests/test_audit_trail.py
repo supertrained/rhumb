@@ -687,6 +687,51 @@ class TestRetentionPurge:
         assert trail.latest_hash == events[-1].chain_hash
         assert trail.latest_sequence == 3
 
+    def test_retention_emits_signed_checkpoint_before_rechain(self):
+        class StubOutbox:
+            def __init__(self):
+                self.checkpoints = []
+            def append_chain_checkpoint(self, payload):
+                self.checkpoints.append(payload)
+
+        outbox = StubOutbox()
+        trail = self._make_trail_with_mixed_retention()
+        trail.configure_outbox(outbox)
+        pre_purge_head = trail.latest_hash
+        pre_purge_sequence = trail.latest_sequence
+
+        trail.enforce_retention()
+
+        assert len(outbox.checkpoints) == 1
+        checkpoint = outbox.checkpoints[0]
+        assert checkpoint["stream_name"] == "audit_events"
+        assert checkpoint["reason"] == "retention_purge"
+        assert checkpoint["source_head_hash"] == pre_purge_head
+        assert checkpoint["source_head_sequence"] == pre_purge_sequence
+        assert checkpoint["checkpoint_hash"]
+        assert checkpoint["key_version"] == 1
+        assert checkpoint["metadata"]["purged_count"] == 2
+        assert checkpoint["metadata"]["surviving_count"] == 3
+        assert checkpoint["metadata"]["purged_by_type"] == {"execution.started": 2}
+        assert checkpoint["metadata"]["surviving_segment_digest"]
+
+    def test_retention_does_not_purge_if_checkpoint_write_fails(self):
+        class FailingOutbox:
+            def append_chain_checkpoint(self, payload):
+                raise RuntimeError("disk full")
+
+        trail = self._make_trail_with_mixed_retention()
+        trail.configure_outbox(FailingOutbox())
+        pre_events = list(trail.query(limit=100))
+        pre_hash = trail.latest_hash
+
+        with pytest.raises(RuntimeError, match="disk full"):
+            trail.enforce_retention()
+
+        assert trail.length == 5
+        assert trail.latest_hash == pre_hash
+        assert trail.query(limit=100) == pre_events
+
     def test_indexes_rebuilt_after_purge(self):
         """AUD-R1-02: org/type/severity/category indexes match survivors."""
         trail = self._make_trail_with_mixed_retention()

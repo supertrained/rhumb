@@ -16,6 +16,7 @@ Chain-hash integrity is verifiable by any consumer at any time.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -28,6 +29,7 @@ from uuid import uuid4
 
 from services.chain_integrity import (
     build_audit_payload,
+    build_chain_checkpoint_payload,
     compute_chain_hmac,
     get_signing_key_version,
     verify_chain_hmac,
@@ -734,10 +736,13 @@ class AuditTrail:
         return compute_chain_hmac(prev_hash, payload, key_version=key_version)
 
     def enforce_retention(self) -> dict[str, int]:
-        """AUD-7: Purge events that have exceeded their retention period.
+        """AUD-7 + AUD-3: purge expired events while checkpointing the old head.
 
         Each event type has a configured retention_days in _EVENT_METADATA.
         Events older than their retention period are removed from the in-memory store.
+
+        If an outbox is configured, a signed chain-checkpoint payload is emitted
+        before the chain is rewritten so purge boundaries remain durable.
 
         Returns a summary of purged events by type.
         """
@@ -757,6 +762,14 @@ class AuditTrail:
                     surviving.append(event)
 
             if purged:
+                if self._outbox is not None and hasattr(self._outbox, "append_chain_checkpoint"):
+                    checkpoint_payload = self._build_retention_checkpoint_payload(
+                        surviving=surviving,
+                        purged=purged,
+                        created_at=now,
+                    )
+                    self._outbox.append_chain_checkpoint(checkpoint_payload)
+
                 self._events = self._rechain_events(surviving)
                 self._rebuild_indexes()
                 logger.info(
@@ -766,6 +779,66 @@ class AuditTrail:
                 )
 
         return purged
+
+    @staticmethod
+    def _surviving_segment_digest(events: list[AuditEvent]) -> str:
+        rows = [
+            {
+                "event_id": event.event_id,
+                "chain_sequence": event.chain_sequence,
+                "prev_hash": event.prev_hash,
+                "chain_hash": event.chain_hash,
+                "key_version": event.key_version,
+            }
+            for event in events
+        ]
+        canonical = json.dumps(rows, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def _build_retention_checkpoint_payload(
+        self,
+        *,
+        surviving: list[AuditEvent],
+        purged: dict[str, int],
+        created_at: datetime,
+    ) -> dict[str, Any]:
+        latest_event = self._events[-1] if self._events else None
+        source_key_version = getattr(latest_event, "key_version", None)
+        checkpoint_key_version = get_signing_key_version()
+        metadata: dict[str, Any] = {
+            "purged_by_type": purged,
+            "purged_count": sum(purged.values()),
+            "surviving_count": len(surviving),
+            "surviving_segment_digest": self._surviving_segment_digest(surviving),
+        }
+        if surviving:
+            first_survivor = surviving[0]
+            metadata["first_survivor_event_id"] = first_survivor.event_id
+            metadata["first_survivor_original_hash"] = first_survivor.chain_hash
+            metadata["first_survivor_original_prev_hash"] = first_survivor.prev_hash
+
+        payload = build_chain_checkpoint_payload(
+            {
+                "checkpoint_id": f"chk_{uuid4().hex[:16]}",
+                "stream_name": "audit_events",
+                "reason": "retention_purge",
+                "source_head_hash": self._prev_hash,
+                "source_head_sequence": self._sequence,
+                "source_key_version": source_key_version,
+                "created_at": created_at,
+                "metadata": metadata,
+            }
+        )
+        checkpoint_hash = compute_chain_hmac(
+            self.GENESIS_HASH,
+            payload,
+            key_version=checkpoint_key_version,
+        )
+        return {
+            **payload,
+            "checkpoint_hash": checkpoint_hash,
+            "key_version": checkpoint_key_version,
+        }
 
     def _rebuild_indexes(self) -> None:
         """Rebuild internal indexes after retention purge (call under lock)."""

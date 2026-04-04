@@ -9,6 +9,7 @@ import pytest
 from services.durable_event_persistence import (
     DurableAuditPersistence,
     DurableBillingPersistence,
+    DurableChainCheckpointPersistence,
     DurableEventOutbox,
     DurableKillSwitchPersistence,
 )
@@ -120,6 +121,20 @@ class MockKillEntry:
     chain_hash = ""
 
 
+MOCK_CHAIN_CHECKPOINT = {
+    "checkpoint_id": "chk_test1",
+    "stream_name": "audit_events",
+    "reason": "retention_purge",
+    "source_head_hash": "head123",
+    "source_head_sequence": 5,
+    "source_key_version": 1,
+    "checkpoint_hash": "chkhash456",
+    "key_version": 1,
+    "metadata": {"purged_count": 2, "surviving_count": 3},
+    "created_at": "2026-04-04T18:51:00+00:00",
+}
+
+
 class MockPendingGlobal:
     request_id = "gkill_00000001"
     reason = "security breach"
@@ -200,6 +215,31 @@ class TestDurableAuditPersistence:
         assert len(events) == 1
 
 
+class TestDurableChainCheckpointPersistence:
+    @pytest.mark.asyncio
+    async def test_persist_payload_succeeds(self, mock_db):
+        checkpoint_table = MockQueryBuilder()
+        mock_db.set_table("chain_checkpoints", checkpoint_table)
+        cp = DurableChainCheckpointPersistence(mock_db)
+        result = await cp.persist_payload(MOCK_CHAIN_CHECKPOINT)
+        assert result is True
+        assert checkpoint_table.inserted[0]["checkpoint_id"] == "chk_test1"
+        assert checkpoint_table.inserted[0]["stream_name"] == "audit_events"
+
+    @pytest.mark.asyncio
+    async def test_persist_payload_survives_failure(self, mock_db):
+        class FailingBuilder(MockQueryBuilder):
+            def insert(self, data):
+                return self
+            async def execute(self):
+                raise ConnectionError("DB down")
+
+        mock_db.set_table("chain_checkpoints", FailingBuilder())
+        cp = DurableChainCheckpointPersistence(mock_db)
+        result = await cp.persist_payload(MOCK_CHAIN_CHECKPOINT)
+        assert result is False
+
+
 class TestDurableKillSwitchPersistence:
     @pytest.mark.asyncio
     async def test_persist_switch_succeeds(self, mock_db):
@@ -266,18 +306,22 @@ class TestDurableEventOutbox:
     async def test_flushes_and_replays_across_restart(self, mock_db, tmp_path):
         billing_table = MockQueryBuilder()
         audit_table = MockQueryBuilder()
+        checkpoint_table = MockQueryBuilder()
         mock_db.set_table("billing_events", billing_table)
         mock_db.set_table("audit_events", audit_table)
+        mock_db.set_table("chain_checkpoints", checkpoint_table)
 
         sqlite_path = tmp_path / "event-outbox.sqlite3"
         outbox = DurableEventOutbox(
             billing_persistence=DurableBillingPersistence(mock_db),
             audit_persistence=DurableAuditPersistence(mock_db),
+            checkpoint_persistence=DurableChainCheckpointPersistence(mock_db),
             sqlite_path=str(sqlite_path),
             max_pending_count=10,
         )
         outbox.append_billing_event(MockBillingEvent())
         outbox.append_audit_event(MockAuditEvent())
+        outbox.append_chain_checkpoint(MOCK_CHAIN_CHECKPOINT)
 
         replayed = DurableEventOutbox(sqlite_path=str(sqlite_path), max_pending_count=10)
         assert len(replayed.load_billing_payloads()) == 1
@@ -285,9 +329,10 @@ class TestDurableEventOutbox:
         replayed.close()
 
         flushed = await outbox.flush_once()
-        assert flushed == 2
+        assert flushed == 3
         assert len(billing_table.inserted) == 1
         assert len(audit_table.inserted) == 1
+        assert len(checkpoint_table.inserted) == 1
         assert outbox.health().pending_count == 0
         outbox.close()
 

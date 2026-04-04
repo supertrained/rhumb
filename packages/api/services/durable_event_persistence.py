@@ -222,6 +222,43 @@ class DurableAuditPersistence:
         }
 
 
+class DurableChainCheckpointPersistence:
+    """Persist signed chain checkpoints to the chain_checkpoints table."""
+
+    def __init__(self, supabase_client: Any) -> None:
+        self._db = supabase_client
+
+    async def persist_payload(self, payload: dict[str, Any]) -> bool:
+        """Persist an already-serialized checkpoint payload."""
+        try:
+            await self._db.table("chain_checkpoints").insert(
+                self._build_row_from_payload(payload)
+            ).execute()
+            return True
+        except Exception:
+            logger.warning(
+                "durable_chain_checkpoint_persist_failed checkpoint_id=%s",
+                payload.get("checkpoint_id", "unknown"),
+                exc_info=True,
+            )
+            return False
+
+    @staticmethod
+    def _build_row_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "checkpoint_id": payload.get("checkpoint_id"),
+            "stream_name": payload.get("stream_name"),
+            "reason": payload.get("reason"),
+            "source_head_hash": payload.get("source_head_hash", ""),
+            "source_head_sequence": payload.get("source_head_sequence"),
+            "source_key_version": payload.get("source_key_version"),
+            "checkpoint_hash": payload.get("checkpoint_hash", ""),
+            "key_version": payload.get("key_version"),
+            "metadata": json.dumps(payload.get("metadata") or {}),
+            "created_at": payload.get("created_at"),
+        }
+
+
 class DurableKillSwitchPersistence:
     """Persist kill switch state + audit entries."""
 
@@ -341,6 +378,7 @@ class DurableEventOutbox:
         *,
         billing_persistence: DurableBillingPersistence | None = None,
         audit_persistence: DurableAuditPersistence | None = None,
+        checkpoint_persistence: DurableChainCheckpointPersistence | None = None,
         sqlite_path: str | None = None,
         max_pending_count: int | None = None,
         flush_batch_size: int | None = None,
@@ -348,6 +386,7 @@ class DurableEventOutbox:
     ) -> None:
         self._billing_persistence = billing_persistence
         self._audit_persistence = audit_persistence
+        self._checkpoint_persistence = checkpoint_persistence
         self._sqlite_path = sqlite_path or os.environ.get(
             "RHUMB_EVENT_OUTBOX_PATH",
             os.path.join(tempfile.gettempdir(), "rhumb_event_outbox.sqlite3"),
@@ -381,6 +420,14 @@ class DurableEventOutbox:
             event_id=getattr(event, "event_id", "unknown"),
             event_timestamp=_isoformat(getattr(event, "timestamp", None)),
             payload=DurableAuditPersistence._payload_from_event(event),
+        )
+
+    def append_chain_checkpoint(self, payload: dict[str, Any]) -> None:
+        self._append(
+            stream="chain_checkpoint",
+            event_id=str(payload.get("checkpoint_id") or "unknown"),
+            event_timestamp=_isoformat(payload.get("created_at")),
+            payload=payload,
         )
 
     def load_billing_payloads(self) -> list[dict[str, Any]]:
@@ -462,6 +509,8 @@ class DurableEventOutbox:
                 persistence = self._billing_persistence
             elif stream == "audit":
                 persistence = self._audit_persistence
+            elif stream == "chain_checkpoint":
+                persistence = self._checkpoint_persistence
             else:
                 self._mark_failure(row["id"], f"unknown stream: {stream}")
                 continue
@@ -650,6 +699,7 @@ async def init_event_outbox(supabase_client: Any | None = None) -> DurableEventO
         _event_outbox = DurableEventOutbox(
             billing_persistence=DurableBillingPersistence(supabase_client),
             audit_persistence=DurableAuditPersistence(supabase_client),
+            checkpoint_persistence=DurableChainCheckpointPersistence(supabase_client),
         )
 
         from services.audit_trail import init_audit_trail
