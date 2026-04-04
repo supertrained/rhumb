@@ -12,7 +12,11 @@ from config import settings
 from routes.admin_chain_integrity import router, set_test_chain_integrity_stores
 from services.audit_trail import AuditEventType, AuditTrail
 from services.billing_events import BillingEventStream, BillingEventType
-from services.chain_checkpoints import checkpoint_audit_head, checkpoint_billing_head
+from services.chain_checkpoints import (
+    checkpoint_audit_head,
+    checkpoint_billing_head,
+    checkpoint_score_audit_head,
+)
 
 
 class FakeOutbox:
@@ -77,6 +81,39 @@ async def test_checkpoint_billing_head_skips_empty_stream() -> None:
         billing_stream=BillingEventStream(),
     )
     assert payload is None
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_score_audit_head_appends_signed_payload() -> None:
+    outbox = FakeOutbox()
+
+    payload = await checkpoint_score_audit_head(
+        reason="external_anchor_candidate",
+        metadata={"requested_by": "pedro"},
+        outbox=outbox,
+        latest_row={
+            "entry_id": "saud_latest_row",
+            "chain_hash": "ab" * 32,
+            "key_version": 1,
+            "created_at": "2026-04-04T18:38:00+00:00",
+        },
+        row_count=2,
+    )
+
+    assert payload is not None
+    assert payload["stream_name"] == "score_audit_chain"
+    assert payload["reason"] == "external_anchor_candidate"
+    assert payload["source_head_hash"] == "ab" * 32
+    assert payload["source_head_sequence"] == 2
+    assert payload["source_key_version"] == 1
+    assert payload["checkpoint_hash"]
+    assert payload["metadata"]["event_count"] == 2
+    assert payload["metadata"]["requested_by"] == "pedro"
+    assert payload["metadata"]["latest_entry_id"] == "saud_latest_row"
+    assert payload["metadata"]["checkpoint_origin"] == "manual_head_snapshot"
+    assert payload["metadata"]["latest_event_timestamp"] == "2026-04-04T18:38:00+00:00"
+    assert outbox.checkpoints == [payload]
+    assert outbox.flush_calls == 1
 
 
 @pytest.mark.asyncio
@@ -145,3 +182,37 @@ def test_admin_route_skips_empty_billing_stream() -> None:
     body = response.json()
     assert body["status"] == "skipped"
     assert body["stream_name"] == "billing_events"
+
+
+def test_admin_route_creates_score_audit_checkpoint() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+    outbox = FakeOutbox()
+    set_test_chain_integrity_stores(
+        outbox=outbox,
+        score_audit_row={
+            "entry_id": "saud_live_head",
+            "chain_hash": "cd" * 32,
+            "key_version": 1,
+            "created_at": "2026-04-04T18:45:00+00:00",
+        },
+        score_audit_count=3,
+    )
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/admin/trust/chain-checkpoints/score_audit_chain",
+        headers={"X-Rhumb-Admin-Key": "test-secret"},
+        json={"reason": "external_anchor_candidate", "metadata": {"operator": "pedro"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "created"
+    assert body["checkpoint"]["stream_name"] == "score_audit_chain"
+    assert body["checkpoint"]["source_head_sequence"] == 3
+    assert body["checkpoint"]["metadata"]["operator"] == "pedro"
+    assert body["checkpoint"]["metadata"]["latest_entry_id"] == "saud_live_head"
+    assert outbox.flush_calls == 1

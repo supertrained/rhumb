@@ -49,6 +49,28 @@ SAMPLE_CHECKPOINT_RESPONSE_AUDIT = {
     },
 }
 
+SAMPLE_CHECKPOINT_RESPONSE_SCORE = {
+    "status": "created",
+    "stream_name": "score_audit_chain",
+    "checkpoint": {
+        "checkpoint_id": "chk_score1234567890",
+        "stream_name": "score_audit_chain",
+        "reason": "external_anchor",
+        "source_head_hash": "c3d4e5f6a1b2" + "0" * 52,
+        "source_head_sequence": 2,
+        "source_key_version": 1,
+        "checkpoint_hash": "dd" * 32,
+        "key_version": 1,
+        "created_at": "2026-04-04T12:00:02+00:00",
+        "metadata": {
+            "checkpoint_origin": "manual_head_snapshot",
+            "event_count": 2,
+            "operator": "pedro",
+            "latest_entry_id": "saud_latest_row",
+        },
+    },
+}
+
 SAMPLE_CHECKPOINT_RESPONSE_BILLING_SKIPPED = {
     "status": "skipped",
     "stream_name": "billing_events",
@@ -202,6 +224,8 @@ def test_write_anchor_bundle_creates_parent_dirs(tmp_path: Path):
 # ── CLI main() with mocked API ───────────────────────────────────────────────
 
 def _mock_create_checkpoint(stream_name, reason, metadata, **kwargs):
+    if stream_name == "score_audit_chain":
+        return SAMPLE_CHECKPOINT_RESPONSE_SCORE
     if stream_name == "audit_events":
         return SAMPLE_CHECKPOINT_RESPONSE_AUDIT
     if stream_name == "billing_events":
@@ -265,3 +289,17 @@ def test_main_single_stream(tmp_path: Path):
     content = json.loads(files[0].read_text(encoding="utf-8"))
     assert "audit_events" in content["streams"]
     assert "billing_events" not in content["streams"]
+
+
+def test_main_default_streams_include_score_audit_chain(capsys):
+    with patch.object(publish_chain_anchor, "create_checkpoint", side_effect=_mock_create_checkpoint):
+        rc = publish_chain_anchor.main([
+            "--operator", "pedro",
+            "--dry-run",
+        ])
+
+    assert rc == 0
+    stdout = capsys.readouterr().out
+    bundle = json.loads(stdout)
+    assert "score_audit_chain" in bundle["streams"]
+    assert bundle["streams"]["score_audit_chain"]["status"] == "anchored"

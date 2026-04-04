@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from routes._supabase import supabase_count, supabase_fetch
 from services.audit_trail import AuditTrail, get_audit_trail
 from services.billing_events import BillingEventStream, get_billing_event_stream
 from services.chain_integrity import (
@@ -20,6 +21,29 @@ from services.chain_integrity import (
     get_signing_key_version,
 )
 from services.durable_event_persistence import get_event_outbox
+
+
+def _parse_optional_timestamp(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def _parse_optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 async def checkpoint_stream_head(
@@ -132,6 +156,55 @@ async def checkpoint_billing_head(
         latest_event_timestamp=stream.latest_timestamp,
         reason=reason,
         metadata=metadata,
+        outbox=outbox,
+        flush=flush,
+    )
+
+
+async def checkpoint_score_audit_head(
+    *,
+    reason: str,
+    metadata: dict[str, Any] | None = None,
+    outbox: Any | None = None,
+    latest_row: dict[str, Any] | None = None,
+    row_count: int | None = None,
+    flush: bool = True,
+) -> dict[str, Any] | None:
+    """Persist a checkpoint for the current durable score-audit-chain head."""
+    row = latest_row
+    if row is None:
+        rows = await supabase_fetch(
+            "score_audit_chain?select=entry_id,chain_hash,key_version,created_at"
+            "&order=created_at.desc&limit=1"
+        )
+        row = rows[0] if isinstance(rows, list) and rows else None
+
+    if not isinstance(row, dict):
+        return None
+
+    source_head_hash = row.get("chain_hash")
+    if not source_head_hash:
+        return None
+
+    event_count = row_count if row_count is not None else await supabase_count("score_audit_chain")
+    event_count = _parse_optional_int(event_count) or 0
+    if event_count <= 0:
+        raise RuntimeError("Unable to determine score_audit_chain length for checkpointing.")
+
+    checkpoint_metadata = {
+        **(metadata or {}),
+        "latest_entry_id": row.get("entry_id"),
+    }
+
+    return await checkpoint_stream_head(
+        stream_name="score_audit_chain",
+        source_head_hash=str(source_head_hash),
+        source_head_sequence=event_count,
+        source_key_version=_parse_optional_int(row.get("key_version")),
+        stream_event_count=event_count,
+        latest_event_timestamp=_parse_optional_timestamp(row.get("created_at")),
+        reason=reason,
+        metadata=checkpoint_metadata,
         outbox=outbox,
         flush=flush,
     )

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Publish a chain-anchor bundle as an external witness artifact.
 
-Creates fresh checkpoints for audit_events and/or billing_events via the
-Rhumb admin API, then writes a deterministic JSON anchor bundle under
+Creates fresh checkpoints for score_audit_chain, audit_events, and/or
+billing_events via the Rhumb admin API, then writes a deterministic JSON anchor bundle under
 ``anchors/`` suitable for committing to Git as a public witness.
 
 This is the first external-anchor publication path for AUD-3.  It is honest
@@ -22,7 +22,8 @@ Production-friendly env fallbacks:
 - Admin secret: `RHUMB_ADMIN_KEY` → `RHUMB_ADMIN_SECRET`
 
 Options:
-    --streams audit_events,billing_events   Comma-separated streams (default: both)
+    --streams score_audit_chain,audit_events,billing_events
+                                           Comma-separated streams (default: all three)
     --reason  <string>                      Checkpoint reason tag (default: external_anchor)
     --operator <string>                     Who initiated this publication
     --output-dir <path>                     Override output directory (default: anchors/)
@@ -44,7 +45,7 @@ from urllib.request import Request, urlopen
 
 SCHEMA_VERSION = "1.0.0"
 BUNDLE_TYPE = "chain_anchor"
-DEFAULT_STREAMS = ["audit_events", "billing_events"]
+DEFAULT_STREAMS = ["score_audit_chain", "audit_events", "billing_events"]
 DEFAULT_REASON = "external_anchor"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "anchors"
