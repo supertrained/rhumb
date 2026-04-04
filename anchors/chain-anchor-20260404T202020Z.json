@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_type": "chain_anchor",
+  "published_at": "2026-04-04T20:20:20.220411+00:00",
+  "provenance": {
+    "system": "rhumb",
+    "operator": "pedro",
+    "reason": "external_anchor_v1",
+    "note": "First external anchor witness -- HMAC-signed checkpoint bundle committed to Git for public verifiability. Individual checkpoint_hash values are HMAC-SHA256 (require signing key to verify). The bundle_hash is plain SHA-256 of the canonical streams payload (publicly verifiable)."
+  },
+  "streams": {
+    "score_audit_chain": {
+      "status": "anchored",
+      "checkpoint_id": "chk_d14619a9c5f246a6",
+      "source_head_hash": "a1aaa8215369049fb485b66802cf9ad595d9867e93bfccd7cc334dcf7774ccf9",
+      "source_head_sequence": 2,
+      "source_key_version": null,
+      "checkpoint_hash": "11f19193dd097ccab7ac966adf2c6472fa2ada37949cdee444e4579d63bf611e",
+      "key_version": 1,
+      "created_at": "2026-04-04T20:20:21.668607+00:00",
+      "metadata": {
+        "operator": "pedro",
+        "publication_reason": "external_anchor_v1",
+        "latest_entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+        "checkpoint_origin": "manual_head_snapshot",
+        "event_count": 2,
+        "latest_event_timestamp": "2026-04-03T19:30:35.190409+00:00"
+      }
+    }
+  },
+  "bundle_hash": "1908b1a6ff4a7b906490b07728b1a6f29e1c944ca0e206d09b0bacea76a73b30"
+}
