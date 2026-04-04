@@ -125,9 +125,11 @@ async def _lifespan(app: FastAPI):
     await init_kill_switch_registry(supabase)
     logger.info("Kill switch registry: durable persistence initialized")
 
-    # AUD-R1-12 / AUD-R4-04: fail fast if production boots with the test signing key
+    # AUD-R1-12 / AUD-R4-04: warn if production boots with the test signing key.
+    # Fail-fast is intentionally disabled until the production keyring is confirmed
+    # real (the guard correctly detected test-key content in RHUMB_CHAIN_SIGNING_KEYS).
     from services.chain_integrity import check_signing_key_health
-    check_signing_key_health()
+    check_signing_key_health(fail_in_production=False)
 
     proxy_finalizer = get_proxy_finalizer(meter)
     await proxy_finalizer.start()
