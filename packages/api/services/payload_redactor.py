@@ -53,6 +53,9 @@ _SECRET_VALUE_PATTERNS = [
     re.compile(r"^ghp_\S+$"),  # GitHub PATs
     re.compile(r"^(?:AIza|ya29\.)\S+$"),  # Google API/OAuth tokens
     re.compile(r"^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\."),  # JWTs
+    re.compile(r"^(?:tvly|exa|unst)[-_][A-Za-z0-9]{7,}$", re.IGNORECASE),  # Known provider keys
+    re.compile(r"^BSA[A-Za-z0-9]{16,}$"),  # Brave Search API keys
+    re.compile(r"^[A-Za-z]{2,8}[-_][A-Za-z0-9]{20,}$"),  # Provider-style prefix-long secrets
     re.compile(r"^[A-Za-z0-9+/]{40,}={0,2}$"),  # Long base64 (likely keys)
 ]
 
@@ -219,6 +222,8 @@ def redact_headers(headers: dict[str, str] | None) -> dict[str, str] | None:
         if key_lower in _SENSITIVE_KEYS or key_lower.startswith("x_rhumb"):
             result[key] = REDACTED
         elif key_lower == "authorization":
+            result[key] = REDACTED
+        elif isinstance(value, str) and _redact_string(value, strict=True) == REDACTED:
             result[key] = REDACTED
         else:
             result[key] = value

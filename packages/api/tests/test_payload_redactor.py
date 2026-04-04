@@ -92,6 +92,30 @@ class TestValuePatternRedaction:
         result = redact_payload({"session": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"})
         assert result["session"] == REDACTED
 
+    def test_tavily_key_value(self):
+        result = redact_payload({"provider_token": "tvly-aBcDeFgHiJkLmNoPqRsT"}, strict=True)
+        assert result["provider_token"] == REDACTED
+
+    def test_exa_key_value(self):
+        result = redact_payload({"provider_token": "exa_AbCdEfGh12345678"}, strict=True)
+        assert result["provider_token"] == REDACTED
+
+    def test_unstructured_key_value(self):
+        result = redact_payload({"provider_token": "UNST-aBcDeFg"}, strict=True)
+        assert result["provider_token"] == REDACTED
+
+    def test_brave_key_value(self):
+        result = redact_payload({"provider_token": "BSAabcdefghijklmnop1234567890"}, strict=True)
+        assert result["provider_token"] == REDACTED
+
+    def test_generic_provider_style_secret_value(self):
+        result = redact_payload({"provider_token": "abcde-1234567890abcdefghijklmn"}, strict=True)
+        assert result["provider_token"] == REDACTED
+
+    def test_safe_providerish_short_value_not_redacted(self):
+        result = redact_payload({"label": "exa-search"}, strict=True)
+        assert result["label"] == "exa-search"
+
     def test_non_strict_skips_value_patterns(self):
         """In non-strict mode, only key-based redaction applies."""
         result = redact_payload(
@@ -177,6 +201,11 @@ class TestHeaderRedaction:
         result = redact_headers(headers)
         assert result["X-Rhumb-Key"] == REDACTED
         assert result["X-Rhumb-Receipt-Id"] == REDACTED
+
+    def test_value_pattern_header_redacted(self):
+        headers = {"X-Provider-Credential": "tvly-aBcDeFgHiJkLmNoPqRsT"}
+        result = redact_headers(headers)
+        assert result["X-Provider-Credential"] == REDACTED
 
     def test_none_headers(self):
         assert redact_headers(None) is None
