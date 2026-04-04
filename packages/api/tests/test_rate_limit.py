@@ -39,6 +39,10 @@ def client():
     async def healthz():
         return {"ok": True}
 
+    @app.get("/v1/admin/agents")
+    async def admin_agents():
+        return {"agents": []}
+
     return TestClient(app)
 
 
@@ -93,6 +97,24 @@ class TestRateLimitEnforcement:
         rem1 = int(r1.headers["X-RateLimit-Remaining"])
         rem2 = int(r2.headers["X-RateLimit-Remaining"])
         assert rem2 == rem1 - 1
+
+
+class TestAdminRateLimit:
+    """AUD-R1-11: admin endpoints have a rate limit instead of a bypass."""
+
+    def test_admin_endpoint_has_rate_limit_headers(self, client):
+        resp = client.get("/v1/admin/agents")
+        assert resp.headers.get("X-RateLimit-Limit") == "60"
+        assert "X-RateLimit-Remaining" in resp.headers
+
+    def test_admin_endpoint_limited_at_60_per_minute(self, client):
+        """Admin endpoints should return 429 after 60 requests."""
+        for i in range(60):
+            resp = client.get("/v1/admin/agents")
+            assert resp.status_code != 429, f"Blocked too early on request {i+1}"
+
+        resp = client.get("/v1/admin/agents")
+        assert resp.status_code == 429
 
 
 class TestRateLimitBypass:

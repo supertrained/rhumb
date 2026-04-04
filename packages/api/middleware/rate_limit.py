@@ -27,11 +27,18 @@ TIER_EXECUTE = (30, 60)     # Capability execution: 30/min
 TIER_WRITE = (20, 60)       # Write operations: 20/min
 TIER_READ = (120, 60)       # Public read endpoints: 120/min
 TIER_HEALTH = (300, 60)     # Health/status: generous
+TIER_ADMIN = (60, 60)       # Admin endpoints: 60/min (AUD-R1-11)
 
 # ── Route Classification ────────────────────────────────────────────
 # Prefix-based tier assignment. More specific prefixes match first.
 _ROUTE_TIERS: list[tuple[str, str, tuple[int, int]]] = [
     # (method, path_prefix, tier)
+    # Admin endpoints get a higher-tier limit instead of a full bypass (AUD-R1-11)
+    ("GET", "/v1/admin/", TIER_ADMIN),
+    ("POST", "/v1/admin/", TIER_ADMIN),
+    ("PUT", "/v1/admin/", TIER_ADMIN),
+    ("DELETE", "/v1/admin/", TIER_ADMIN),
+    ("PATCH", "/v1/admin/", TIER_ADMIN),
     ("POST", "/v1/auth/", TIER_AUTH),
     ("GET", "/v1/auth/", TIER_AUTH),
     ("POST", "/v1/capabilities/", TIER_EXECUTE),
@@ -132,10 +139,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Skip rate limiting for admin endpoints (they have their own auth)
         path = request.url.path
-        if "/admin" in path:
-            return await call_next(request)
 
         ip = _client_ip(request)
         limit, window = _classify(request.method, path)
