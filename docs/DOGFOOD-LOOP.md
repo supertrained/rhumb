@@ -56,6 +56,7 @@ A healthy run should show:
 - Give each internal agent its own Rhumb API key
 - Run the harness under that agent identity
 - Log results into runtime reviews / backed evidence
+- For unattended v2 automation, prefer `scripts/resolve_v2_dogfood.py --bootstrap-via-admin` so the loop can create or rotate its verifier key instead of depending on a stale long-lived dogfood key
 - Expand from `search.query` to other callable capabilities only after the loop is clean
 
 ## Expansion order

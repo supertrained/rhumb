@@ -89,6 +89,24 @@ def test_get_api_key_falls_back_to_sop_when_env_missing():
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
 
 
+def test_get_admin_key_uses_primary_env_first():
+    with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_ADMIN_SECRET": "admin_primary"}, clear=True):
+        assert resolve_v2_dogfood._get_admin_key("RHUMB_ADMIN_SECRET") == "admin_primary"
+
+
+def test_get_admin_key_falls_back_to_legacy_env_name():
+    with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_ADMIN_KEY": "admin_legacy"}, clear=True):
+        assert resolve_v2_dogfood._get_admin_key("RHUMB_ADMIN_SECRET") == "admin_legacy"
+
+
+def test_get_admin_key_falls_back_to_sop_when_env_missing():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
+        patch.object(resolve_v2_dogfood, "_load_admin_key_from_sop", return_value="admin_sop"),
+    ):
+        assert resolve_v2_dogfood._get_admin_key("RHUMB_ADMIN_SECRET") == "admin_sop"
+
+
 def test_build_summary_mentions_l1_and_l2_receipts():
     summary = resolve_v2_dogfood._build_summary({
         "config": {

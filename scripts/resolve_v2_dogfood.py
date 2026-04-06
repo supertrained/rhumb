@@ -50,7 +50,9 @@ from urllib.request import Request, urlopen
 DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_API_KEY_ENV = "RHUMB_DOGFOOD_API_KEY"
 DEFAULT_ADMIN_KEY_ENV = "RHUMB_ADMIN_SECRET"
+DEFAULT_ADMIN_KEY_ENV_FALLBACKS = ("RHUMB_ADMIN_KEY",)
 DEFAULT_API_KEY_ITEM = "Rhumb API Key - pedro-dogfood"
+DEFAULT_ADMIN_KEY_ITEM = "Rhumb Admin Secret (Railway)"
 DEFAULT_API_KEY_VAULT = "OpenClaw Agents"
 DEFAULT_BOOTSTRAP_ORG_ID = "org_aud3_verifier"
 DEFAULT_BOOTSTRAP_AGENT_NAME = "Pedro AUD-3 Verifier"
@@ -166,6 +168,38 @@ def _load_api_key_from_sop(
     return value or None
 
 
+def _load_admin_key_from_sop(
+    item_name: str = DEFAULT_ADMIN_KEY_ITEM,
+    vault: str = DEFAULT_API_KEY_VAULT,
+) -> str | None:
+    try:
+        result = subprocess.run(
+            [
+                "sop",
+                "item",
+                "get",
+                item_name,
+                "--vault",
+                vault,
+                "--fields",
+                "credential",
+                "--reveal",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    value = result.stdout.strip()
+    return value or None
+
+
 def _get_api_key(env_name: str) -> str:
     value = os.environ.get(env_name, "").strip()
     if value:
@@ -185,7 +219,21 @@ def _get_admin_key(env_name: str) -> str:
     value = os.environ.get(env_name, "").strip()
     if value:
         return value
-    raise RuntimeError(f"Missing admin key. Set the {env_name} environment variable.")
+
+    for fallback_env in DEFAULT_ADMIN_KEY_ENV_FALLBACKS:
+        value = os.environ.get(fallback_env, "").strip()
+        if value:
+            return value
+
+    value = _load_admin_key_from_sop()
+    if value:
+        return value
+
+    env_names = ", ".join([env_name, *DEFAULT_ADMIN_KEY_ENV_FALLBACKS])
+    raise RuntimeError(
+        "Missing admin key. Set one of "
+        f"{env_names} or store {DEFAULT_ADMIN_KEY_ITEM!r} in 1Password."
+    )
 
 
 def provision_api_key_via_admin(
@@ -985,7 +1033,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--admin-key-env",
         default=DEFAULT_ADMIN_KEY_ENV,
-        help="Environment variable containing the Rhumb admin key for --bootstrap-via-admin",
+        help=(
+            "Primary environment variable containing the Rhumb admin key for "
+            "--bootstrap-via-admin (falls back to RHUMB_ADMIN_KEY or 1Password item "
+            f"{DEFAULT_ADMIN_KEY_ITEM!r})"
+        ),
     )
     parser.add_argument(
         "--bootstrap-org-id",

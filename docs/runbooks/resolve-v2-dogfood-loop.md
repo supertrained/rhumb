@@ -50,6 +50,25 @@ export RHUMB_DOGFOOD_API_KEY=rhumb_...
 
 Use a dedicated internal dogfood key when possible.
 
+### 1b) Or bootstrap a verifier key through the admin rail
+
+If you are running the loop from automation and do not want to depend on a long-lived dogfood key, the harness can create or rotate a dedicated verifier key first.
+
+It looks for the admin secret in this order:
+- `RHUMB_ADMIN_SECRET`
+- `RHUMB_ADMIN_KEY`
+- 1Password item `Rhumb Admin Secret (Railway)` in vault `OpenClaw Agents`
+
+Example:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py \
+  --profile keel \
+  --bootstrap-via-admin \
+  --json
+```
+
 ### 2) Use the product repo Python env
 
 ```bash
@@ -106,6 +125,13 @@ Run one profile with profile-specific defaults for `interface` + `parameters`:
 ```bash
 cd rhumb
 python3 scripts/resolve_v2_dogfood.py --profile beacon --json
+```
+
+For unattended runs, prefer the admin-bootstrap path so the loop does not silently rot on an expired dogfood key:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py --profile keel --bootstrap-via-admin --json
 ```
 
 Run the current internal fleet batch (`pedro`, `keel`, `helm`, `beacon`) and capture one consolidated artifact:
