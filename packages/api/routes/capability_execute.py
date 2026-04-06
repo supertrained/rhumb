@@ -46,7 +46,9 @@ from routes.proxy import (
     normalize_slug,
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.audit_trail import AuditEventType, get_audit_trail
 from services.auto_reload import check_and_trigger_auto_reload
+from services.billing_events import BillingEventType, get_billing_event_stream
 from services.budget_enforcer import BudgetEnforcer
 from services.credit_deduction import CreditDeductionService
 from services.payment_health import check_billing_health
@@ -180,6 +182,107 @@ def _billing_unavailable_response(
     if detail:
         content["detail"] = detail
     return JSONResponse(status_code=503, content=content)
+
+
+def _emit_execution_billing_event(
+    *,
+    success: bool,
+    org_id: str | None,
+    execution_id: str,
+    capability_id: str,
+    provider_slug: str | None,
+    credential_mode: str,
+    amount_usd_cents: int | None,
+    receipt_id: str | None = None,
+    interface: str | None = None,
+    billing_status: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Best-effort durable billing event emission for live execution outcomes."""
+    if not org_id:
+        return
+
+    metadata: dict[str, Any] = {
+        "layer": 2,
+        "credential_mode": credential_mode,
+    }
+    if interface:
+        metadata["interface"] = interface
+    if billing_status:
+        metadata["billing_status"] = billing_status
+    if error_message:
+        metadata["error"] = str(error_message)[:200]
+
+    try:
+        get_billing_event_stream().emit(
+            BillingEventType.EXECUTION_CHARGED if success else BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            org_id=org_id,
+            amount_usd_cents=max(int(amount_usd_cents or 0), 0) if success else 0,
+            receipt_id=receipt_id,
+            execution_id=execution_id,
+            capability_id=capability_id,
+            provider_slug=provider_slug,
+            metadata=metadata,
+        )
+    except Exception:
+        logger.exception(
+            "execution_billing_event_emission_failed execution_id=%s provider=%s",
+            execution_id,
+            provider_slug,
+        )
+
+
+def _record_execution_audit_outcome(
+    *,
+    success: bool,
+    org_id: str | None,
+    agent_id: str | None,
+    execution_id: str,
+    capability_id: str,
+    provider_slug: str | None,
+    credential_mode: str,
+    interface: str,
+    upstream_status: int | None,
+    receipt_id: str | None = None,
+    billing_status: str | None = None,
+    latency_ms: float | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Best-effort durable audit recording for live execution outcomes."""
+    detail: dict[str, Any] = {
+        "capability_id": capability_id,
+        "credential_mode": credential_mode,
+        "interface": interface,
+    }
+    if upstream_status is not None:
+        detail["upstream_status"] = upstream_status
+    if billing_status is not None:
+        detail["billing_status"] = billing_status
+    if latency_ms is not None:
+        detail["latency_ms"] = round(latency_ms, 1)
+    if error_message:
+        detail["error"] = str(error_message)[:300]
+
+    try:
+        get_audit_trail().record(
+            AuditEventType.EXECUTION_COMPLETED if success else AuditEventType.EXECUTION_FAILED,
+            "capability.execute",
+            org_id=org_id,
+            agent_id=agent_id,
+            principal=agent_id,
+            resource_type="capability_execution",
+            resource_id=execution_id,
+            detail=detail,
+            receipt_id=receipt_id,
+            execution_id=execution_id,
+            provider_slug=provider_slug,
+        )
+    except Exception:
+        logger.exception(
+            "execution_audit_record_failed execution_id=%s provider=%s",
+            execution_id,
+            provider_slug,
+        )
 
 
 async def _create_payment_request_safe(
@@ -2214,15 +2317,23 @@ async def execute_capability(
                 org_id=org_id,
             )
 
+        managed_success = result.get("upstream_status", 200) < 400
+        managed_provider = result.get("provider_used") or request.provider or "unknown"
+        managed_billing_status = (
+            "billed"
+            if managed_success and billed_cost_cents > 0
+            else ("refunded" if not managed_success else "unbilled")
+        )
+
         # ── Emit execution receipt (managed) ──
         if not _should_skip_receipt(raw_request):
             try:
                 managed_receipt = await get_receipt_service().create_receipt(ReceiptInput(
                     execution_id=execution_id,
                     capability_id=capability_id,
-                    status="success" if result.get("upstream_status", 200) < 400 else "failure",
+                    status="success" if managed_success else "failure",
                     agent_id=agent_id,
-                    provider_id=result.get("provider_used") or request.provider or "unknown",
+                    provider_id=managed_provider,
                     credential_mode="rhumb_managed",
                     org_id=org_id,
                     caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
@@ -2249,8 +2360,35 @@ async def execute_capability(
             except Exception as receipt_err:
                 logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
 
+        _emit_execution_billing_event(
+            success=managed_success,
+            org_id=org_id,
+            execution_id=execution_id,
+            capability_id=capability_id,
+            provider_slug=managed_provider,
+            credential_mode="rhumb_managed",
+            amount_usd_cents=billed_cost_cents,
+            receipt_id=result.get("receipt_id"),
+            interface=request.interface,
+            billing_status=managed_billing_status,
+        )
+        _record_execution_audit_outcome(
+            success=managed_success,
+            org_id=org_id,
+            agent_id=agent_id,
+            execution_id=execution_id,
+            capability_id=capability_id,
+            provider_slug=managed_provider,
+            credential_mode="rhumb_managed",
+            interface=request.interface,
+            upstream_status=result.get("upstream_status"),
+            receipt_id=result.get("receipt_id"),
+            billing_status=managed_billing_status,
+            latency_ms=result.get("total_latency_ms") or result.get("latency_ms"),
+        )
+
         await _store_idempotent_result(
-            "completed" if result.get("upstream_status", 200) < 400 else "failed",
+            "completed" if managed_success else "failed",
             hash_response_payload(result.get("upstream_response")),
         )
         return {"data": result, "error": None}
@@ -2414,6 +2552,33 @@ async def execute_capability(
                     vault_response["receipt_id"] = vault_receipt_obj.receipt_id
                 except Exception as receipt_err:
                     logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
+
+            _emit_execution_billing_event(
+                success=success,
+                org_id=org_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=request.provider,
+                credential_mode="agent_vault",
+                amount_usd_cents=billed_cost_cents,
+                receipt_id=vault_response.get("receipt_id"),
+                interface=request.interface,
+                billing_status=billing_status,
+            )
+            _record_execution_audit_outcome(
+                success=success,
+                org_id=org_id,
+                agent_id=agent_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                provider_slug=request.provider,
+                credential_mode="agent_vault",
+                interface=request.interface,
+                upstream_status=upstream_status,
+                receipt_id=vault_response.get("receipt_id"),
+                billing_status=billing_status,
+                latency_ms=total_latency_ms,
+            )
 
             await _store_idempotent_result(
                 "completed" if success else "failed",
@@ -2657,6 +2822,35 @@ async def execute_capability(
             response_data["receipt_id"] = byo_receipt_obj.receipt_id
         except Exception as receipt_err:
             logger.warning("receipt_creation_failed execution_id=%s error=%s", execution_id, receipt_err)
+
+    _emit_execution_billing_event(
+        success=success,
+        org_id=org_id,
+        execution_id=execution_id,
+        capability_id=capability_id,
+        provider_slug=provider_slug,
+        credential_mode=request.credential_mode,
+        amount_usd_cents=actual_billed_cents,
+        receipt_id=response_data.get("receipt_id"),
+        interface=request.interface,
+        billing_status=billing_status,
+        error_message=error_message if not success else None,
+    )
+    _record_execution_audit_outcome(
+        success=success,
+        org_id=org_id,
+        agent_id=agent_id,
+        execution_id=execution_id,
+        capability_id=capability_id,
+        provider_slug=provider_slug,
+        credential_mode=request.credential_mode,
+        interface=request.interface,
+        upstream_status=upstream_status,
+        receipt_id=response_data.get("receipt_id"),
+        billing_status=billing_status,
+        latency_ms=total_latency_ms,
+        error_message=error_message if not success else None,
+    )
 
     # ── Provider attribution (WU-41.2) ──────────────────────────────
     try:
