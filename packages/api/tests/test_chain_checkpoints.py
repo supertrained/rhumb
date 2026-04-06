@@ -110,8 +110,55 @@ async def test_checkpoint_score_audit_head_appends_signed_payload() -> None:
     assert payload["metadata"]["event_count"] == 2
     assert payload["metadata"]["requested_by"] == "pedro"
     assert payload["metadata"]["latest_entry_id"] == "saud_latest_row"
+    assert payload["metadata"]["selected_head_entry_id"] == "saud_latest_row"
+    assert payload["metadata"]["verification_status"] == "verified"
+    assert payload["metadata"]["head_selection_mode"] == "latest_head"
     assert payload["metadata"]["checkpoint_origin"] == "manual_head_snapshot"
     assert payload["metadata"]["latest_event_timestamp"] == "2026-04-04T18:38:00+00:00"
+    assert outbox.checkpoints == [payload]
+    assert outbox.flush_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_score_audit_head_quarantines_unverifiable_latest_tail() -> None:
+    outbox = FakeOutbox()
+
+    payload = await checkpoint_score_audit_head(
+        reason="external_anchor_candidate",
+        outbox=outbox,
+        latest_row={
+            "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+            "chain_hash": "aa" * 32,
+            "key_version": None,
+            "created_at": "2026-04-04T18:39:00+00:00",
+        },
+        latest_verified_row={
+            "entry_id": "saud_verified_prior_head",
+            "chain_hash": "bb" * 32,
+            "key_version": 0,
+            "created_at": "2026-04-04T18:38:00+00:00",
+        },
+        row_count=2,
+        verified_row_count=1,
+    )
+
+    assert payload is not None
+    assert payload["source_head_hash"] == "bb" * 32
+    assert payload["source_head_sequence"] == 1
+    assert payload["source_key_version"] == 0
+    assert payload["metadata"]["event_count"] == 1
+    assert payload["metadata"]["latest_event_timestamp"] == "2026-04-04T18:38:00+00:00"
+    assert payload["metadata"]["verification_status"] == "verified_with_quarantined_tail"
+    assert payload["metadata"]["head_selection_mode"] == "latest_verified_head"
+    assert payload["metadata"]["selected_head_entry_id"] == "saud_verified_prior_head"
+    assert payload["metadata"]["latest_entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
+    assert payload["metadata"]["latest_observed_entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
+    assert payload["metadata"]["total_observed_event_count"] == 2
+    assert payload["metadata"]["quarantined_tail_count"] == 1
+    assert payload["metadata"]["quarantined_tail_entry_ids"] == [
+        "saud_5565e543fcc248dbbe515e38103ac518"
+    ]
+    assert payload["metadata"]["quarantined_tail"][0]["verification_status"] == "unverifiable_legacy"
     assert outbox.checkpoints == [payload]
     assert outbox.flush_calls == 1
 
@@ -145,13 +192,15 @@ async def test_checkpoint_score_audit_head_quarantines_unverifiable_tail() -> No
     assert payload["source_head_hash"] == "ab" * 32
     assert payload["source_head_sequence"] == 1
     assert payload["source_key_version"] == 0
-    assert payload["metadata"]["event_count"] == 2
-    assert payload["metadata"]["verification_status"] == "latest_verified_head_with_quarantined_tail"
-    assert payload["metadata"]["verified_head_entry_id"] == "saud_verified_head"
+    assert payload["metadata"]["event_count"] == 1
+    assert payload["metadata"]["verification_status"] == "verified_with_quarantined_tail"
+    assert payload["metadata"]["head_selection_mode"] == "latest_verified_head"
+    assert payload["metadata"]["selected_head_entry_id"] == "saud_verified_head"
     assert payload["metadata"]["latest_entry_id"] == "saud_unverifiable_tail"
     assert payload["metadata"]["latest_observed_entry_id"] == "saud_unverifiable_tail"
     assert payload["metadata"]["quarantine_action"] == "excluded_from_verified_head"
-    assert payload["metadata"]["quarantined_tail_reason"] == "legacy_reconstruction_failure"
+    assert payload["metadata"]["latest_observed_verification_status"] == "unattributed_legacy"
+    assert payload["metadata"]["total_observed_event_count"] == 2
     assert payload["metadata"]["quarantined_tail_count"] == 1
     assert payload["metadata"]["quarantined_tail_entry_ids"] == ["saud_unverifiable_tail"]
     assert outbox.checkpoints == [payload]
@@ -257,6 +306,7 @@ def test_admin_route_creates_score_audit_checkpoint() -> None:
     assert body["checkpoint"]["source_head_sequence"] == 3
     assert body["checkpoint"]["metadata"]["operator"] == "pedro"
     assert body["checkpoint"]["metadata"]["latest_entry_id"] == "saud_live_head"
+    assert body["checkpoint"]["metadata"]["selected_head_entry_id"] == "saud_live_head"
     assert outbox.flush_calls == 1
 
 
@@ -296,9 +346,7 @@ def test_admin_route_quarantines_unverifiable_score_tail() -> None:
     assert body["status"] == "created"
     assert body["checkpoint"]["source_head_sequence"] == 1
     assert body["checkpoint"]["source_key_version"] == 0
-    assert (
-        body["checkpoint"]["metadata"]["verification_status"]
-        == "latest_verified_head_with_quarantined_tail"
-    )
+    assert body["checkpoint"]["metadata"]["verification_status"] == "verified_with_quarantined_tail"
+    assert body["checkpoint"]["metadata"]["head_selection_mode"] == "latest_verified_head"
     assert body["checkpoint"]["metadata"]["quarantined_tail_count"] == 1
     assert outbox.flush_calls == 1
