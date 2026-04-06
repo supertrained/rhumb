@@ -49,8 +49,11 @@ from urllib.request import Request, urlopen
 
 DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_API_KEY_ENV = "RHUMB_DOGFOOD_API_KEY"
+DEFAULT_ADMIN_KEY_ENV = "RHUMB_ADMIN_SECRET"
 DEFAULT_API_KEY_ITEM = "Rhumb API Key - pedro-dogfood"
 DEFAULT_API_KEY_VAULT = "OpenClaw Agents"
+DEFAULT_BOOTSTRAP_ORG_ID = "org_aud3_verifier"
+DEFAULT_BOOTSTRAP_AGENT_NAME = "Pedro AUD-3 Verifier"
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_CAPABILITY = "search.query"
 DEFAULT_PROVIDER = "brave-search"
@@ -176,6 +179,96 @@ def _get_api_key(env_name: str) -> str:
         f"Missing API key. Set the {env_name} environment variable or store "
         f"{DEFAULT_API_KEY_ITEM!r} in 1Password."
     )
+
+
+def _get_admin_key(env_name: str) -> str:
+    value = os.environ.get(env_name, "").strip()
+    if value:
+        return value
+    raise RuntimeError(f"Missing admin key. Set the {env_name} environment variable.")
+
+
+def provision_api_key_via_admin(
+    args: argparse.Namespace,
+    *,
+    provider: str,
+) -> tuple[str, dict[str, Any]]:
+    """Create or rotate a verifier-agent API key through the admin API."""
+    root = args.base_url.rstrip("/")
+    admin_key = _get_admin_key(args.admin_key_env)
+    org_id = args.bootstrap_org_id
+    agent_name = args.bootstrap_agent_name
+    service = args.bootstrap_service or provider
+    headers = {"X-Rhumb-Admin-Key": admin_key}
+
+    list_resp = _http_json(
+        "GET",
+        f"{root}/v1/admin/agents?organization_id={quote(org_id, safe='')}&status=active",
+        headers=headers,
+        timeout=args.timeout,
+    )
+    agents = list_resp.get("json")
+    if list_resp.get("status") != 200 or not isinstance(agents, list):
+        raise RuntimeError(f"Admin agent list failed: {list_resp.get('detail')}")
+
+    existing_agent = next(
+        (item for item in agents if item.get("name") == agent_name),
+        None,
+    )
+    metadata: dict[str, Any] = {
+        "organization_id": org_id,
+        "agent_name": agent_name,
+        "service": service,
+    }
+
+    if existing_agent is None:
+        create_resp = _http_json(
+            "POST",
+            f"{root}/v1/admin/agents",
+            payload={
+                "name": agent_name,
+                "organization_id": org_id,
+                "rate_limit_qpm": 100,
+                "description": "Resolve v2 dogfood verifier agent",
+                "tags": ["dogfood", "verifier"],
+            },
+            headers=headers,
+            timeout=args.timeout,
+        )
+        create_payload = create_resp.get("json") or {}
+        agent_id = create_payload.get("agent_id")
+        api_key = create_payload.get("api_key")
+        if create_resp.get("status") != 200 or not agent_id or not api_key:
+            raise RuntimeError(f"Admin agent create failed: {create_resp.get('detail')}")
+        metadata.update({"mode": "created", "agent_id": agent_id})
+    else:
+        agent_id = existing_agent.get("agent_id")
+        rotate_resp = _http_json(
+            "POST",
+            f"{root}/v1/admin/agents/{quote(agent_id, safe='')}/rotate-key",
+            payload={},
+            headers=headers,
+            timeout=args.timeout,
+        )
+        rotate_payload = rotate_resp.get("json") or {}
+        api_key = rotate_payload.get("new_api_key")
+        if rotate_resp.get("status") != 200 or not api_key:
+            raise RuntimeError(f"Admin agent rotate failed: {rotate_resp.get('detail')}")
+        metadata.update({"mode": "rotated", "agent_id": agent_id})
+
+    if service:
+        grant_resp = _http_json(
+            "POST",
+            f"{root}/v1/admin/agents/{quote(agent_id, safe='')}/grant-access",
+            payload={"service": service},
+            headers=headers,
+            timeout=args.timeout,
+        )
+        if grant_resp.get("status") not in {200, 409}:
+            raise RuntimeError(f"Admin agent grant-access failed: {grant_resp.get('detail')}")
+        metadata["service_access"] = "already_granted" if grant_resp.get("status") == 409 else "granted"
+
+    return api_key, metadata
 
 
 def _json_or_default(raw: str, fallback: dict[str, Any]) -> dict[str, Any]:
@@ -486,7 +579,11 @@ def run_batch(args: argparse.Namespace, profile_names: list[str]) -> dict[str, A
 def run_flow(args: argparse.Namespace) -> dict[str, Any]:
     root = args.base_url.rstrip("/")
     v2_root = f"{root}/v2"
-    api_key = _get_api_key(args.api_key_env)
+    bootstrap = None
+    if args.bootstrap_via_admin:
+        api_key, bootstrap = provision_api_key_via_admin(args, provider=args.provider)
+    else:
+        api_key = _get_api_key(args.api_key_env)
     parameters = _json_or_default(args.parameters_json, DEFAULT_PARAMETERS)
     headers = {"X-Rhumb-Key": api_key}
 
@@ -497,6 +594,7 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
             "v2_root": v2_root,
             "api_key_env": args.api_key_env,
             "api_key_preview": _mask_secret(api_key),
+            "bootstrap": bootstrap,
             "capability": args.capability,
             "provider": args.provider,
             "credential_mode": args.credential_mode,
@@ -878,6 +976,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--api-key-env",
         default=DEFAULT_API_KEY_ENV,
         help="Environment variable containing a real Rhumb API key",
+    )
+    parser.add_argument(
+        "--bootstrap-via-admin",
+        action="store_true",
+        help="Create or rotate a verifier agent key through the admin API instead of reading a local API key",
+    )
+    parser.add_argument(
+        "--admin-key-env",
+        default=DEFAULT_ADMIN_KEY_ENV,
+        help="Environment variable containing the Rhumb admin key for --bootstrap-via-admin",
+    )
+    parser.add_argument(
+        "--bootstrap-org-id",
+        default=DEFAULT_BOOTSTRAP_ORG_ID,
+        help="Organization id to use for verifier-agent bootstrap",
+    )
+    parser.add_argument(
+        "--bootstrap-agent-name",
+        default=DEFAULT_BOOTSTRAP_AGENT_NAME,
+        help="Agent name to create or rotate for verifier bootstrap",
+    )
+    parser.add_argument(
+        "--bootstrap-service",
+        help="Optional service slug to grant during verifier bootstrap (defaults to --provider)",
     )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds")
     parser.add_argument("--capability", default=DEFAULT_CAPABILITY, help="Capability ID for L1/L2 execute")

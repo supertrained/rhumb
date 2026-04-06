@@ -174,3 +174,70 @@ def test_build_batch_summary_mentions_profile_statuses():
     assert "Resolve v2 dogfood batch complete; ok_profiles=1/2" in summary
     assert "pedro=ok provider=brave-search interface=dogfood-pedro" in summary
     assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary
+
+
+def test_provision_api_key_via_admin_creates_agent_and_grants_access():
+    args = resolve_v2_dogfood.argparse.Namespace(
+        base_url="https://api.rhumb.dev",
+        admin_key_env="RHUMB_ADMIN_SECRET",
+        bootstrap_org_id="org_verify",
+        bootstrap_agent_name="Verifier Agent",
+        bootstrap_service=None,
+        timeout=30.0,
+    )
+
+    responses = iter([
+        {"status": 200, "json": []},
+        {"status": 200, "json": {"agent_id": "agent_123", "api_key": "rhumb_new_key"}},
+        {"status": 200, "json": {"access_id": "acc_123"}},
+    ])
+
+    with (
+        patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
+        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+    ):
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+
+    assert api_key == "rhumb_new_key"
+    assert metadata == {
+        "organization_id": "org_verify",
+        "agent_name": "Verifier Agent",
+        "service": "brave-search",
+        "mode": "created",
+        "agent_id": "agent_123",
+        "service_access": "granted",
+    }
+    assert mock_http.call_count == 3
+
+
+def test_provision_api_key_via_admin_rotates_existing_agent_and_tolerates_existing_access():
+    args = resolve_v2_dogfood.argparse.Namespace(
+        base_url="https://api.rhumb.dev",
+        admin_key_env="RHUMB_ADMIN_SECRET",
+        bootstrap_org_id="org_verify",
+        bootstrap_agent_name="Verifier Agent",
+        bootstrap_service="brave-search",
+        timeout=30.0,
+    )
+
+    responses = iter([
+        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+    ])
+
+    with (
+        patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
+        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)),
+    ):
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+
+    assert api_key == "rhumb_rotated_key"
+    assert metadata == {
+        "organization_id": "org_verify",
+        "agent_name": "Verifier Agent",
+        "service": "brave-search",
+        "mode": "rotated",
+        "agent_id": "agent_existing",
+        "service_access": "already_granted",
+    }
