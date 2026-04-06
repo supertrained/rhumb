@@ -236,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--operator",
         default=os.environ.get("USER", "unknown"),
-        help="Operator identity for provenance (default: $USER)",
+        help="Operator identity for provenance (default: env USER)",
     )
     parser.add_argument(
         "--output-dir",
