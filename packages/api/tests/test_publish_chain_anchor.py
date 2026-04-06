@@ -160,6 +160,30 @@ SAMPLE_CHECKPOINT_RESPONSE_BILLING_CREATED = {
     },
 }
 
+
+SAMPLE_CHECKPOINT_RESPONSE_RECEIPTS_CREATED = {
+    "status": "created",
+    "stream_name": "execution_receipts",
+    "checkpoint": {
+        "checkpoint_id": "chk_rcpt123uvw456xyz",
+        "stream_name": "execution_receipts",
+        "source_head_hash": "ee" * 32,
+        "source_head_sequence": 376,
+        "source_key_version": None,
+        "checkpoint_hash": "ff" * 32,
+        "key_version": 1,
+        "metadata": {
+            "checkpoint_origin": "manual_head_snapshot",
+            "event_count": 376,
+            "latest_receipt_id": "rcpt_latest_001",
+            "latest_event_timestamp": "2026-04-06T22:01:00+00:00",
+            "source_hash_mode": "receipt_hash_chain_sha256",
+            "source_key_version_semantics": "not_applicable",
+        },
+        "created_at": "2026-04-06T22:01:34+00:00",
+    },
+}
+
 FIXED_TIME = datetime(2026, 4, 4, 12, 0, 0, tzinfo=timezone.utc)
 
 
@@ -331,6 +355,8 @@ def _mock_create_checkpoint(stream_name, reason, metadata, **kwargs):
         return SAMPLE_CHECKPOINT_RESPONSE_AUDIT
     if stream_name == "billing_events":
         return SAMPLE_CHECKPOINT_RESPONSE_BILLING_CREATED
+    if stream_name == "execution_receipts":
+        return SAMPLE_CHECKPOINT_RESPONSE_RECEIPTS_CREATED
     raise RuntimeError(f"Unknown stream: {stream_name}")
 
 
@@ -403,4 +429,6 @@ def test_main_default_streams_include_score_audit_chain(capsys):
     stdout = capsys.readouterr().out
     bundle = json.loads(stdout)
     assert "score_audit_chain" in bundle["streams"]
+    assert "execution_receipts" in bundle["streams"]
     assert bundle["streams"]["score_audit_chain"]["status"] == "anchored"
+    assert bundle["streams"]["execution_receipts"]["status"] == "anchored"

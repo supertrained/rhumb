@@ -13,6 +13,7 @@ from services.billing_events import BillingEventStream, get_billing_event_stream
 from services.chain_checkpoints import (
     checkpoint_audit_head,
     checkpoint_billing_head,
+    checkpoint_execution_receipts_head,
     checkpoint_score_audit_head,
 )
 from services.durable_event_persistence import DurableEventOutbox, get_event_outbox
@@ -35,6 +36,8 @@ _test_score_audit_row: dict[str, Any] | None = None
 _test_score_audit_verified_row: dict[str, Any] | None = None
 _test_score_audit_count: int | None = None
 _test_score_audit_verified_count: int | None = None
+_test_execution_receipt_row: dict[str, Any] | None = None
+_test_execution_receipt_count: int | None = None
 
 
 def set_test_chain_integrity_stores(
@@ -46,11 +49,14 @@ def set_test_chain_integrity_stores(
     score_audit_verified_row: dict[str, Any] | None = None,
     score_audit_count: int | None = None,
     score_audit_verified_count: int | None = None,
+    execution_receipt_row: dict[str, Any] | None = None,
+    execution_receipt_count: int | None = None,
 ) -> None:
     """Inject test doubles for route-level chain-integrity tests."""
     global _test_outbox, _test_audit_trail, _test_billing_stream
     global _test_score_audit_row, _test_score_audit_verified_row
     global _test_score_audit_count, _test_score_audit_verified_count
+    global _test_execution_receipt_row, _test_execution_receipt_count
     _test_outbox = outbox
     _test_audit_trail = audit_trail
     _test_billing_stream = billing_stream
@@ -58,6 +64,8 @@ def set_test_chain_integrity_stores(
     _test_score_audit_verified_row = score_audit_verified_row
     _test_score_audit_count = score_audit_count
     _test_score_audit_verified_count = score_audit_verified_count
+    _test_execution_receipt_row = execution_receipt_row
+    _test_execution_receipt_count = execution_receipt_count
 
 
 @router.post("/chain-checkpoints/{stream_name}", dependencies=[Depends(require_admin_key)])
@@ -96,6 +104,15 @@ async def create_chain_checkpoint(
                 latest_verified_row=_test_score_audit_verified_row,
                 row_count=_test_score_audit_count,
                 verified_row_count=_test_score_audit_verified_count,
+                flush=body.flush,
+            )
+        elif stream_name == "execution_receipts":
+            payload = await checkpoint_execution_receipts_head(
+                reason=body.reason,
+                metadata=body.metadata,
+                outbox=outbox,
+                latest_row=_test_execution_receipt_row,
+                row_count=_test_execution_receipt_count,
                 flush=body.flush,
             )
         else:

@@ -15,6 +15,7 @@ from services.billing_events import BillingEventStream, BillingEventType
 from services.chain_checkpoints import (
     checkpoint_audit_head,
     checkpoint_billing_head,
+    checkpoint_execution_receipts_head,
     checkpoint_score_audit_head,
 )
 
@@ -79,6 +80,49 @@ async def test_checkpoint_billing_head_skips_empty_stream() -> None:
         reason="anchor_ready_snapshot",
         outbox=FakeOutbox(),
         billing_stream=BillingEventStream(),
+    )
+    assert payload is None
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_execution_receipts_head_appends_signed_payload() -> None:
+    outbox = FakeOutbox()
+
+    payload = await checkpoint_execution_receipts_head(
+        reason="anchor_ready_snapshot",
+        metadata={"requested_by": "pedro"},
+        outbox=outbox,
+        latest_row={
+            "receipt_id": "rcpt_latest_001",
+            "receipt_hash": "ab" * 32,
+            "chain_sequence": 376,
+            "created_at": "2026-04-06T22:01:00+00:00",
+        },
+        row_count=376,
+    )
+
+    assert payload is not None
+    assert payload["stream_name"] == "execution_receipts"
+    assert payload["source_head_hash"] == "ab" * 32
+    assert payload["source_head_sequence"] == 376
+    assert payload["source_key_version"] is None
+    assert payload["metadata"]["event_count"] == 376
+    assert payload["metadata"]["latest_receipt_id"] == "rcpt_latest_001"
+    assert payload["metadata"]["source_hash_mode"] == "receipt_hash_chain_sha256"
+    assert payload["metadata"]["source_key_version_semantics"] == "not_applicable"
+    assert payload["metadata"]["requested_by"] == "pedro"
+    assert outbox.checkpoints[0]["stream_name"] == "execution_receipts"
+    assert outbox.flush_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_execution_receipts_head_skips_empty_stream() -> None:
+    payload = await checkpoint_execution_receipts_head(
+        reason="anchor_ready_snapshot",
+        outbox=FakeOutbox(),
+        latest_row={},
+        row_count=0,
+        metadata={},
     )
     assert payload is None
 
@@ -273,6 +317,38 @@ def test_admin_route_skips_empty_billing_stream() -> None:
     body = response.json()
     assert body["status"] == "skipped"
     assert body["stream_name"] == "billing_events"
+
+
+def test_admin_route_creates_execution_receipts_checkpoint() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+    set_test_chain_integrity_stores(
+        outbox=FakeOutbox(),
+        execution_receipt_row={
+            "receipt_id": "rcpt_latest_001",
+            "receipt_hash": "ef" * 32,
+            "chain_sequence": 376,
+            "created_at": "2026-04-06T22:01:00+00:00",
+        },
+        execution_receipt_count=376,
+    )
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/admin/trust/chain-checkpoints/execution_receipts",
+        headers={"X-Rhumb-Admin-Key": "test-secret"},
+        json={"reason": "external_anchor_candidate", "metadata": {"operator": "pedro"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "created"
+    assert body["stream_name"] == "execution_receipts"
+    assert body["checkpoint"]["source_head_sequence"] == 376
+    assert body["checkpoint"]["source_key_version"] is None
+    assert body["checkpoint"]["metadata"]["latest_receipt_id"] == "rcpt_latest_001"
 
 
 def test_admin_route_creates_score_audit_checkpoint() -> None:

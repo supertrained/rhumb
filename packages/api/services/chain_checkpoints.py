@@ -82,6 +82,25 @@ async def _count_score_audit_rows_through(value: Any) -> int:
     ) or 0
 
 
+
+
+async def _fetch_latest_execution_receipt_row() -> dict[str, Any] | None:
+    rows = await supabase_fetch(
+        "execution_receipts?select=receipt_id,receipt_hash,chain_sequence,created_at"
+        "&order=created_at.desc&limit=1"
+    )
+    parsed_rows = [row for row in rows if isinstance(row, dict)]
+    return parsed_rows[0] if parsed_rows else None
+
+
+async def _count_execution_receipts_through(value: Any) -> int:
+    timestamp = _parse_optional_timestamp(value)
+    return _parse_optional_int(
+        await supabase_count(f"execution_receipts?created_at=lte.{quote(timestamp.isoformat(), safe='')}")
+        if timestamp
+        else await supabase_count("execution_receipts")
+    )
+
 async def _fetch_score_audit_quarantined_tail(
     after_value: Any,
     *,
@@ -342,6 +361,57 @@ async def checkpoint_score_audit_head(
         source_head_sequence=source_head_sequence,
         source_key_version=source_key_version,
         stream_event_count=source_head_sequence,
+        latest_event_timestamp=_parse_optional_timestamp(source_row.get("created_at")),
+        reason=reason,
+        metadata=checkpoint_metadata,
+        outbox=outbox,
+        flush=flush,
+    )
+
+
+async def checkpoint_execution_receipts_head(
+    *,
+    reason: str,
+    metadata: dict[str, Any],
+    outbox: DurableEventOutbox,
+    latest_row: dict[str, Any] | None = None,
+    row_count: int | None = None,
+    flush: bool = True,
+) -> dict[str, Any] | None:
+    """Checkpoint the latest execution-receipts chain head.
+
+    Honest note: the receipts stream is append-only and populated in production,
+    but its source head still uses the historical `receipt_hash` chain rather than
+    the newer keyed-HMAC durable-event format. We preserve that truth in metadata
+    and leave `source_key_version` null.
+    """
+    source_row = latest_row if latest_row is not None else await _fetch_latest_execution_receipt_row()
+    if not source_row:
+        return None
+
+    source_head_hash = source_row.get("receipt_hash")
+    source_head_sequence = _parse_optional_int(source_row.get("chain_sequence"))
+    if source_head_sequence is None:
+        source_head_sequence = await _count_execution_receipts_through(source_row.get("created_at"))
+    if row_count is None:
+        row_count = await _count_execution_receipts_through(source_row.get("created_at"))
+
+    if not source_head_hash or source_head_sequence is None:
+        return None
+
+    checkpoint_metadata = {
+        **(metadata or {}),
+        "latest_receipt_id": source_row.get("receipt_id"),
+        "source_hash_mode": "receipt_hash_chain_sha256",
+        "source_key_version_semantics": "not_applicable",
+    }
+
+    return await checkpoint_stream_head(
+        stream_name="execution_receipts",
+        source_head_hash=str(source_head_hash),
+        source_head_sequence=source_head_sequence,
+        source_key_version=None,
+        stream_event_count=int(row_count or 0),
         latest_event_timestamp=_parse_optional_timestamp(source_row.get("created_at")),
         reason=reason,
         metadata=checkpoint_metadata,
