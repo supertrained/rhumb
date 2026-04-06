@@ -32,7 +32,9 @@ _test_outbox: DurableEventOutbox | Any | None = None
 _test_audit_trail: AuditTrail | None = None
 _test_billing_stream: BillingEventStream | None = None
 _test_score_audit_row: dict[str, Any] | None = None
+_test_score_audit_verified_row: dict[str, Any] | None = None
 _test_score_audit_count: int | None = None
+_test_score_audit_verified_count: int | None = None
 
 
 def set_test_chain_integrity_stores(
@@ -41,16 +43,21 @@ def set_test_chain_integrity_stores(
     audit_trail: AuditTrail | None = None,
     billing_stream: BillingEventStream | None = None,
     score_audit_row: dict[str, Any] | None = None,
+    score_audit_verified_row: dict[str, Any] | None = None,
     score_audit_count: int | None = None,
+    score_audit_verified_count: int | None = None,
 ) -> None:
     """Inject test doubles for route-level chain-integrity tests."""
     global _test_outbox, _test_audit_trail, _test_billing_stream
-    global _test_score_audit_row, _test_score_audit_count
+    global _test_score_audit_row, _test_score_audit_verified_row
+    global _test_score_audit_count, _test_score_audit_verified_count
     _test_outbox = outbox
     _test_audit_trail = audit_trail
     _test_billing_stream = billing_stream
     _test_score_audit_row = score_audit_row
+    _test_score_audit_verified_row = score_audit_verified_row
     _test_score_audit_count = score_audit_count
+    _test_score_audit_verified_count = score_audit_verified_count
 
 
 @router.post("/chain-checkpoints/{stream_name}", dependencies=[Depends(require_admin_key)])
@@ -86,7 +93,9 @@ async def create_chain_checkpoint(
                 metadata=body.metadata,
                 outbox=outbox,
                 latest_row=_test_score_audit_row,
+                latest_verified_row=_test_score_audit_verified_row,
                 row_count=_test_score_audit_count,
+                verified_row_count=_test_score_audit_verified_count,
                 flush=body.flush,
             )
         else:

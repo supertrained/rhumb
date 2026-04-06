@@ -144,8 +144,15 @@ def build_anchor_bundle(
             }
         elif response.get("status") == "created":
             cp = response["checkpoint"]
-            streams[stream_name] = {
-                "status": "anchored",
+            metadata = cp.get("metadata", {}) or {}
+            verification_status = metadata.get("verification_status")
+            stream_status = (
+                "anchored_with_quarantined_tail"
+                if verification_status == "latest_verified_head_with_quarantined_tail"
+                else "anchored"
+            )
+            stream_payload = {
+                "status": stream_status,
                 "checkpoint_id": cp["checkpoint_id"],
                 "source_head_hash": cp["source_head_hash"],
                 "source_head_sequence": cp["source_head_sequence"],
@@ -153,8 +160,17 @@ def build_anchor_bundle(
                 "checkpoint_hash": cp["checkpoint_hash"],
                 "key_version": cp["key_version"],
                 "created_at": cp["created_at"],
-                "metadata": cp.get("metadata", {}),
+                "metadata": metadata,
             }
+            if verification_status:
+                stream_payload["verification_status"] = verification_status
+            if metadata.get("quarantined_tail_count") is not None:
+                stream_payload["quarantined_tail_count"] = metadata.get("quarantined_tail_count")
+            if metadata.get("verified_head_entry_id"):
+                stream_payload["verified_head_entry_id"] = metadata.get("verified_head_entry_id")
+            if metadata.get("latest_observed_entry_id"):
+                stream_payload["latest_observed_entry_id"] = metadata.get("latest_observed_entry_id")
+            streams[stream_name] = stream_payload
 
     bundle_hash = compute_bundle_hash(streams)
 

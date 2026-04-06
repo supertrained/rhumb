@@ -71,6 +71,35 @@ SAMPLE_CHECKPOINT_RESPONSE_SCORE = {
     },
 }
 
+SAMPLE_CHECKPOINT_RESPONSE_SCORE_QUARANTINED = {
+    "status": "created",
+    "stream_name": "score_audit_chain",
+    "checkpoint": {
+        "checkpoint_id": "chk_score_quarantine1",
+        "stream_name": "score_audit_chain",
+        "reason": "external_anchor",
+        "source_head_hash": "a1" * 32,
+        "source_head_sequence": 1,
+        "source_key_version": 0,
+        "checkpoint_hash": "cc" * 32,
+        "key_version": 1,
+        "created_at": "2026-04-04T12:00:03+00:00",
+        "metadata": {
+            "checkpoint_origin": "manual_head_snapshot",
+            "event_count": 2,
+            "operator": "pedro",
+            "latest_entry_id": "saud_unverifiable_tail",
+            "latest_observed_entry_id": "saud_unverifiable_tail",
+            "verified_head_entry_id": "saud_verified_head",
+            "verification_status": "latest_verified_head_with_quarantined_tail",
+            "quarantine_action": "excluded_from_verified_head",
+            "quarantined_tail_reason": "legacy_reconstruction_failure",
+            "quarantined_tail_count": 1,
+            "quarantined_tail_entry_ids": ["saud_unverifiable_tail"],
+        },
+    },
+}
+
 SAMPLE_CHECKPOINT_RESPONSE_BILLING_SKIPPED = {
     "status": "skipped",
     "stream_name": "billing_events",
@@ -142,6 +171,25 @@ def test_build_anchor_bundle_with_skipped_stream():
     assert bundle["streams"]["audit_events"]["status"] == "anchored"
     assert bundle["streams"]["billing_events"]["status"] == "skipped"
     assert "checkpoint_id" not in bundle["streams"]["billing_events"]
+
+
+def test_build_anchor_bundle_marks_quarantined_score_tail_explicitly():
+    checkpoints = {
+        "score_audit_chain": SAMPLE_CHECKPOINT_RESPONSE_SCORE_QUARANTINED,
+    }
+    bundle = publish_chain_anchor.build_anchor_bundle(
+        checkpoints,
+        operator="pedro",
+        reason="external_anchor",
+        published_at=FIXED_TIME,
+    )
+
+    stream = bundle["streams"]["score_audit_chain"]
+    assert stream["status"] == "anchored_with_quarantined_tail"
+    assert stream["verification_status"] == "latest_verified_head_with_quarantined_tail"
+    assert stream["quarantined_tail_count"] == 1
+    assert stream["verified_head_entry_id"] == "saud_verified_head"
+    assert stream["latest_observed_entry_id"] == "saud_unverifiable_tail"
 
 
 # ── Hash determinism ──────────────────────────────────────────────────────────

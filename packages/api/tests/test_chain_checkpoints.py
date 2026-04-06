@@ -117,6 +117,48 @@ async def test_checkpoint_score_audit_head_appends_signed_payload() -> None:
 
 
 @pytest.mark.asyncio
+async def test_checkpoint_score_audit_head_quarantines_unverifiable_tail() -> None:
+    outbox = FakeOutbox()
+
+    payload = await checkpoint_score_audit_head(
+        reason="external_anchor_candidate",
+        metadata={"requested_by": "pedro"},
+        outbox=outbox,
+        latest_row={
+            "entry_id": "saud_unverifiable_tail",
+            "chain_hash": "ef" * 32,
+            "key_version": None,
+            "created_at": "2026-04-04T18:39:00+00:00",
+        },
+        latest_verified_row={
+            "entry_id": "saud_verified_head",
+            "chain_hash": "ab" * 32,
+            "key_version": 0,
+            "created_at": "2026-04-04T18:38:00+00:00",
+        },
+        row_count=2,
+        verified_row_count=1,
+    )
+
+    assert payload is not None
+    assert payload["stream_name"] == "score_audit_chain"
+    assert payload["source_head_hash"] == "ab" * 32
+    assert payload["source_head_sequence"] == 1
+    assert payload["source_key_version"] == 0
+    assert payload["metadata"]["event_count"] == 2
+    assert payload["metadata"]["verification_status"] == "latest_verified_head_with_quarantined_tail"
+    assert payload["metadata"]["verified_head_entry_id"] == "saud_verified_head"
+    assert payload["metadata"]["latest_entry_id"] == "saud_unverifiable_tail"
+    assert payload["metadata"]["latest_observed_entry_id"] == "saud_unverifiable_tail"
+    assert payload["metadata"]["quarantine_action"] == "excluded_from_verified_head"
+    assert payload["metadata"]["quarantined_tail_reason"] == "legacy_reconstruction_failure"
+    assert payload["metadata"]["quarantined_tail_count"] == 1
+    assert payload["metadata"]["quarantined_tail_entry_ids"] == ["saud_unverifiable_tail"]
+    assert outbox.checkpoints == [payload]
+    assert outbox.flush_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_checkpoint_head_fails_closed_without_outbox() -> None:
     billing = BillingEventStream()
     billing.emit(
@@ -215,4 +257,48 @@ def test_admin_route_creates_score_audit_checkpoint() -> None:
     assert body["checkpoint"]["source_head_sequence"] == 3
     assert body["checkpoint"]["metadata"]["operator"] == "pedro"
     assert body["checkpoint"]["metadata"]["latest_entry_id"] == "saud_live_head"
+    assert outbox.flush_calls == 1
+
+
+def test_admin_route_quarantines_unverifiable_score_tail() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+    outbox = FakeOutbox()
+    set_test_chain_integrity_stores(
+        outbox=outbox,
+        score_audit_row={
+            "entry_id": "saud_unverifiable_tail",
+            "chain_hash": "ef" * 32,
+            "key_version": None,
+            "created_at": "2026-04-04T18:39:00+00:00",
+        },
+        score_audit_verified_row={
+            "entry_id": "saud_verified_head",
+            "chain_hash": "ab" * 32,
+            "key_version": 0,
+            "created_at": "2026-04-04T18:38:00+00:00",
+        },
+        score_audit_count=2,
+        score_audit_verified_count=1,
+    )
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/admin/trust/chain-checkpoints/score_audit_chain",
+        headers={"X-Rhumb-Admin-Key": "test-secret"},
+        json={"reason": "external_anchor_candidate", "metadata": {"operator": "pedro"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "created"
+    assert body["checkpoint"]["source_head_sequence"] == 1
+    assert body["checkpoint"]["source_key_version"] == 0
+    assert (
+        body["checkpoint"]["metadata"]["verification_status"]
+        == "latest_verified_head_with_quarantined_tail"
+    )
+    assert body["checkpoint"]["metadata"]["quarantined_tail_count"] == 1
     assert outbox.flush_calls == 1
