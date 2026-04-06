@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_type": "chain_anchor",
+  "published_at": "2026-04-06T23:16:04.925440+00:00",
+  "provenance": {
+    "system": "rhumb",
+    "operator": "pedro",
+    "reason": "external_anchor_full_streams_v4_retry",
+    "note": "First external anchor witness -- HMAC-signed checkpoint bundle committed to Git for public verifiability. Individual checkpoint_hash values are HMAC-SHA256 (require signing key to verify). The bundle_hash is plain SHA-256 of the canonical streams payload (publicly verifiable)."
+  },
+  "streams": {
+    "score_audit_chain": {
+      "status": "anchored_with_quarantined_tail",
+      "checkpoint_id": "chk_eebae4e6cc2949ae",
+      "source_head_hash": "cea54aebe81483d6f7b4bdc928b8b60a8c9aacc044f513d03c0cb1ae1f27d875",
+      "source_head_sequence": 1,
+      "source_key_version": 0,
+      "head_selection_mode": "latest_verified_head",
+      "selected_head_entry_id": "saud_0d07fcfcbd464b4fb45a6ef885aa49d1",
+      "checkpoint_hash": "4caa7b53393486e14b2e30ad5f861e758d9f8ff84ef48bd364d046505cd1186e",
+      "key_version": 1,
+      "created_at": "2026-04-06T23:16:06.779259+00:00",
+      "metadata": {
+        "operator": "pedro",
+        "publication_reason": "external_anchor_full_streams_v4_retry",
+        "latest_entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+        "verification_status": "verified_with_quarantined_tail",
+        "head_selection_mode": "latest_verified_head",
+        "selected_head_entry_id": "saud_0d07fcfcbd464b4fb45a6ef885aa49d1",
+        "verified_event_count": 1,
+        "total_observed_event_count": 2,
+        "latest_observed_entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+        "latest_observed_verification_status": "unverifiable_legacy",
+        "quarantine_action": "excluded_from_verified_head",
+        "quarantined_tail_count": 1,
+        "quarantined_tail_entry_ids": [
+          "saud_5565e543fcc248dbbe515e38103ac518"
+        ],
+        "quarantined_tail": [
+          {
+            "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+            "verification_status": "unverifiable_legacy",
+            "reason": "Legacy reconstruction failure: forensic verification on 2026-04-04 could not reproduce this row from the preserved payload surface and preserved keyring under the current verifier.",
+            "quarantine_decision": "exclude_from_verified_head",
+            "forensic_note": "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md"
+          }
+        ],
+        "checkpoint_origin": "manual_head_snapshot",
+        "event_count": 1,
+        "latest_event_timestamp": "2026-04-03T19:28:03.601436+00:00"
+      },
+      "verification_status": "verified_with_quarantined_tail",
+      "quarantined_tail_count": 1,
+      "verified_head_entry_id": "saud_0d07fcfcbd464b4fb45a6ef885aa49d1",
+      "latest_observed_entry_id": "saud_5565e543fcc248dbbe515e38103ac518"
+    },
+    "audit_events": {
+      "status": "anchored",
+      "checkpoint_id": "chk_91906c2243694546",
+      "source_head_hash": "3afa361c608c9f1281daa917b5771f4dff23e6bbc05620413c9f13ff3a83b743",
+      "source_head_sequence": 2,
+      "source_key_version": 1,
+      "head_selection_mode": "latest_head",
+      "selected_head_entry_id": null,
+      "checkpoint_hash": "502885fc242a559555d2b11bd829b7828caabba4b5b484e524dbc5182384e707",
+      "key_version": 1,
+      "created_at": "2026-04-06T23:16:07.560689+00:00",
+      "metadata": {
+        "operator": "pedro",
+        "publication_reason": "external_anchor_full_streams_v4_retry",
+        "head_source": "durable_table_fallback",
+        "checkpoint_origin": "manual_head_snapshot",
+        "event_count": 2,
+        "latest_event_timestamp": "2026-04-06T22:01:00.200022+00:00"
+      }
+    },
+    "billing_events": {
+      "status": "anchored",
+      "checkpoint_id": "chk_80752dbcc58c4edb",
+      "source_head_hash": "aadb31020bb52d452af05d7c099e9e5190eb877fc149fb1489c6ea789f3d0a15",
+      "source_head_sequence": 5,
+      "source_key_version": 1,
+      "head_selection_mode": "latest_head",
+      "selected_head_entry_id": null,
+      "checkpoint_hash": "2b1906e843f574d48e79a5a4b1b1ea99a396493d718fda6d68b120f8052017a5",
+      "key_version": 1,
+      "created_at": "2026-04-06T23:16:08.865686+00:00",
+      "metadata": {
+        "operator": "pedro",
+        "publication_reason": "external_anchor_full_streams_v4_retry",
+        "head_source": "durable_table_fallback",
+        "checkpoint_origin": "manual_head_snapshot",
+        "event_count": 5,
+        "latest_event_timestamp": "2026-04-06T22:25:23.639466+00:00"
+      }
+    },
+    "execution_receipts": {
+      "status": "anchored",
+      "checkpoint_id": "chk_77a312cd3e3d4cc1",
+      "source_head_hash": "sha256:407cf1bea9c7395936889e5bdc8895ce180bda7ccf6d2cbc2e07cf0de23f4ca1",
+      "source_head_sequence": 378,
+      "source_key_version": null,
+      "head_selection_mode": "latest_head",
+      "selected_head_entry_id": null,
+      "checkpoint_hash": "74474b9d8ad2aec7542c92d93dfb79ca39e7b9eb3a9f5ff26caaf7da4f358bc1",
+      "key_version": 1,
+      "created_at": "2026-04-06T23:16:10.218091+00:00",
+      "metadata": {
+        "operator": "pedro",
+        "publication_reason": "external_anchor_full_streams_v4_retry",
+        "latest_receipt_id": "rcpt_76176c27d03c40868c32b9bf",
+        "source_hash_mode": "receipt_hash_chain_sha256",
+        "source_key_version_semantics": "not_applicable",
+        "checkpoint_origin": "manual_head_snapshot",
+        "event_count": 378,
+        "latest_event_timestamp": "2026-04-06T22:25:33.618354+00:00"
+      }
+    }
+  },
+  "bundle_hash": "e66373d8e68c195e93a3476f3324b774e4911f42dd8956be53c43b7e244f939e"
+}
