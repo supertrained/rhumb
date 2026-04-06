@@ -166,6 +166,14 @@ def build_anchor_bundle(
             }
             if verification_status:
                 stream_payload["verification_status"] = verification_status
+            if metadata.get("verification_policy_version"):
+                stream_payload["verification_policy_version"] = metadata.get(
+                    "verification_policy_version"
+                )
+            if metadata.get("verification_policy_reference"):
+                stream_payload["verification_policy_reference"] = metadata.get(
+                    "verification_policy_reference"
+                )
             if metadata.get("quarantined_tail_count") is not None:
                 stream_payload["quarantined_tail_count"] = metadata.get("quarantined_tail_count")
             if metadata.get("selected_head_entry_id"):
@@ -174,6 +182,16 @@ def build_anchor_bundle(
                 stream_payload["latest_observed_entry_id"] = metadata.get("latest_observed_entry_id")
             elif metadata.get("latest_entry_id"):
                 stream_payload["latest_observed_entry_id"] = metadata.get("latest_entry_id")
+            if metadata.get("latest_observed_verification_status"):
+                stream_payload["latest_observed_verification_status"] = metadata.get(
+                    "latest_observed_verification_status"
+                )
+            if metadata.get("quarantine_action"):
+                stream_payload["quarantine_action"] = metadata.get("quarantine_action")
+            if metadata.get("latest_observed_forensic_note"):
+                stream_payload["latest_observed_forensic_note"] = metadata.get(
+                    "latest_observed_forensic_note"
+                )
             streams[stream_name] = stream_payload
 
     bundle_hash = compute_bundle_hash(streams)

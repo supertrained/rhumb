@@ -69,6 +69,8 @@ SAMPLE_CHECKPOINT_RESPONSE_SCORE = {
             "latest_entry_id": "saud_latest_row",
             "selected_head_entry_id": "saud_latest_row",
             "verification_status": "verified",
+            "verification_policy_version": "2026-04-06",
+            "verification_policy_reference": "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md",
             "head_selection_mode": "latest_head",
         },
     },
@@ -94,9 +96,14 @@ SAMPLE_CHECKPOINT_RESPONSE_SCORE_WITH_QUARANTINED_TAIL = {
             "latest_entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
             "selected_head_entry_id": "saud_verified_prior_head",
             "verification_status": "verified_with_quarantined_tail",
+            "verification_policy_version": "2026-04-06",
+            "verification_policy_reference": "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md",
             "head_selection_mode": "latest_verified_head",
             "quarantined_tail_count": 1,
             "latest_observed_entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+            "latest_observed_verification_status": "unverifiable_legacy",
+            "quarantine_action": "excluded_from_verified_head",
+            "latest_observed_forensic_note": "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md",
         },
     },
 }
@@ -122,6 +129,8 @@ SAMPLE_CHECKPOINT_RESPONSE_SCORE_QUARANTINED = {
             "latest_observed_entry_id": "saud_unverifiable_tail",
             "selected_head_entry_id": "saud_verified_head",
             "verification_status": "verified_with_quarantined_tail",
+            "verification_policy_version": "2026-04-06",
+            "verification_policy_reference": "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md",
             "head_selection_mode": "latest_verified_head",
             "quarantine_action": "excluded_from_verified_head",
             "total_observed_event_count": 2,
@@ -243,9 +252,20 @@ def test_build_anchor_bundle_surfaces_quarantined_tail_metadata():
     stream = bundle["streams"]["score_audit_chain"]
     assert stream["status"] == "anchored_with_quarantined_tail"
     assert stream["verification_status"] == "verified_with_quarantined_tail"
+    assert stream["verification_policy_version"] == "2026-04-06"
+    assert (
+        stream["verification_policy_reference"]
+        == "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md"
+    )
     assert stream["head_selection_mode"] == "latest_verified_head"
     assert stream["selected_head_entry_id"] == "saud_verified_prior_head"
     assert stream["latest_observed_entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
+    assert stream["latest_observed_verification_status"] == "unverifiable_legacy"
+    assert stream["quarantine_action"] == "excluded_from_verified_head"
+    assert (
+        stream["latest_observed_forensic_note"]
+        == "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md"
+    )
     assert stream["quarantined_tail_count"] == 1
 
 
@@ -263,10 +283,13 @@ def test_build_anchor_bundle_marks_quarantined_score_tail_explicitly():
     stream = bundle["streams"]["score_audit_chain"]
     assert stream["status"] == "anchored_with_quarantined_tail"
     assert stream["verification_status"] == "verified_with_quarantined_tail"
+    assert stream["verification_policy_version"] == "2026-04-06"
     assert stream["head_selection_mode"] == "latest_verified_head"
     assert stream["quarantined_tail_count"] == 1
     assert stream["verified_head_entry_id"] == "saud_verified_head"
     assert stream["latest_observed_entry_id"] == "saud_unverifiable_tail"
+    assert stream["latest_observed_verification_status"] == "unattributed_legacy"
+    assert stream["quarantine_action"] == "excluded_from_verified_head"
 
 
 # ── Hash determinism ──────────────────────────────────────────────────────────

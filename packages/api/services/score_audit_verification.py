@@ -15,6 +15,15 @@ from __future__ import annotations
 from typing import Any
 
 
+SCORE_AUDIT_VERIFICATION_POLICY_VERSION = "2026-04-06"
+SCORE_AUDIT_VERIFICATION_POLICY_REFERENCE = (
+    "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md"
+)
+LEGACY_SCORE_AUDIT_FORENSIC_NOTE_REFERENCE = (
+    "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md"
+)
+
+
 KNOWN_SCORE_AUDIT_QUARANTINE: dict[str, dict[str, Any]] = {
     "saud_5565e543fcc248dbbe515e38103ac518": {
         "verification_status": "unverifiable_legacy",
@@ -23,7 +32,7 @@ KNOWN_SCORE_AUDIT_QUARANTINE: dict[str, dict[str, Any]] = {
             "could not reproduce this row from the preserved payload surface and "
             "preserved keyring under the current verifier."
         ),
-        "forensic_note": "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md",
+        "forensic_note": LEGACY_SCORE_AUDIT_FORENSIC_NOTE_REFERENCE,
         "quarantine_decision": "exclude_from_verified_head",
     },
 }
@@ -44,6 +53,13 @@ def _parse_optional_int(value: Any) -> int | None:
         return None
 
 
+def _verification_policy_metadata() -> dict[str, Any]:
+    return {
+        "verification_policy_version": SCORE_AUDIT_VERIFICATION_POLICY_VERSION,
+        "verification_policy_reference": SCORE_AUDIT_VERIFICATION_POLICY_REFERENCE,
+    }
+
+
 def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
     """Describe whether a score-audit-chain row is anchor-eligible.
 
@@ -59,6 +75,7 @@ def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
         return {
             "entry_id": entry_id,
             "is_anchor_eligible": False,
+            **_verification_policy_metadata(),
             **known,
         }
 
@@ -66,6 +83,7 @@ def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
     if key_version is None:
         return {
             "entry_id": entry_id,
+            **_verification_policy_metadata(),
             "verification_status": "unattributed_legacy",
             "reason": "Row has no persisted key_version, so it cannot qualify as a verified head.",
             "quarantine_decision": "exclude_from_verified_head",
@@ -74,9 +92,9 @@ def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
 
     return {
         "entry_id": entry_id,
+        **_verification_policy_metadata(),
         "verification_status": "verified",
         "reason": "Row has an explicit persisted key_version and no active quarantine exception.",
         "quarantine_decision": "none",
         "is_anchor_eligible": True,
     }
-

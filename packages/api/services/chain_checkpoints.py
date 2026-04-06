@@ -352,6 +352,14 @@ async def checkpoint_score_audit_head(
     source_head_sequence = total_event_count
     source_key_version = _parse_optional_int(source_row.get("key_version"))
     latest_verification = describe_score_audit_entry_verification(row)
+    if latest_verification.get("verification_policy_version"):
+        checkpoint_metadata["verification_policy_version"] = latest_verification.get(
+            "verification_policy_version"
+        )
+    if latest_verification.get("verification_policy_reference"):
+        checkpoint_metadata["verification_policy_reference"] = latest_verification.get(
+            "verification_policy_reference"
+        )
 
     if not latest_verification.get("is_anchor_eligible"):
         verified_row = latest_verified_row or await _fetch_latest_anchor_eligible_score_audit_row()
@@ -414,6 +422,10 @@ async def checkpoint_score_audit_head(
                 "quarantined_tail_count": quarantined_tail_count,
             }
         )
+        if latest_verification.get("forensic_note"):
+            checkpoint_metadata["latest_observed_forensic_note"] = latest_verification.get(
+                "forensic_note"
+            )
         if quarantined_tail_entry_ids:
             checkpoint_metadata["quarantined_tail_entry_ids"] = quarantined_tail_entry_ids
         if quarantined_tail:

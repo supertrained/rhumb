@@ -216,6 +216,11 @@ async def test_checkpoint_score_audit_head_appends_signed_payload() -> None:
     assert payload["metadata"]["latest_entry_id"] == "saud_latest_row"
     assert payload["metadata"]["selected_head_entry_id"] == "saud_latest_row"
     assert payload["metadata"]["verification_status"] == "verified"
+    assert payload["metadata"]["verification_policy_version"] == "2026-04-06"
+    assert (
+        payload["metadata"]["verification_policy_reference"]
+        == "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md"
+    )
     assert payload["metadata"]["head_selection_mode"] == "latest_head"
     assert payload["metadata"]["checkpoint_origin"] == "manual_head_snapshot"
     assert payload["metadata"]["latest_event_timestamp"] == "2026-04-04T18:38:00+00:00"
@@ -257,6 +262,15 @@ async def test_checkpoint_score_audit_head_quarantines_unverifiable_latest_tail(
     assert payload["metadata"]["selected_head_entry_id"] == "saud_verified_prior_head"
     assert payload["metadata"]["latest_entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
     assert payload["metadata"]["latest_observed_entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
+    assert payload["metadata"]["verification_policy_version"] == "2026-04-06"
+    assert (
+        payload["metadata"]["verification_policy_reference"]
+        == "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md"
+    )
+    assert (
+        payload["metadata"]["latest_observed_forensic_note"]
+        == "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md"
+    )
     assert payload["metadata"]["total_observed_event_count"] == 2
     assert payload["metadata"]["quarantined_tail_count"] == 1
     assert payload["metadata"]["quarantined_tail_entry_ids"] == [
@@ -302,6 +316,11 @@ async def test_checkpoint_score_audit_head_quarantines_unverifiable_tail() -> No
     assert payload["metadata"]["selected_head_entry_id"] == "saud_verified_head"
     assert payload["metadata"]["latest_entry_id"] == "saud_unverifiable_tail"
     assert payload["metadata"]["latest_observed_entry_id"] == "saud_unverifiable_tail"
+    assert payload["metadata"]["verification_policy_version"] == "2026-04-06"
+    assert (
+        payload["metadata"]["verification_policy_reference"]
+        == "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md"
+    )
     assert payload["metadata"]["quarantine_action"] == "excluded_from_verified_head"
     assert payload["metadata"]["latest_observed_verification_status"] == "unattributed_legacy"
     assert payload["metadata"]["total_observed_event_count"] == 2
@@ -484,6 +503,7 @@ def test_admin_route_quarantines_unverifiable_score_tail() -> None:
     assert body["checkpoint"]["source_head_sequence"] == 1
     assert body["checkpoint"]["source_key_version"] == 0
     assert body["checkpoint"]["metadata"]["verification_status"] == "verified_with_quarantined_tail"
+    assert body["checkpoint"]["metadata"]["verification_policy_version"] == "2026-04-06"
     assert body["checkpoint"]["metadata"]["head_selection_mode"] == "latest_verified_head"
     assert body["checkpoint"]["metadata"]["quarantined_tail_count"] == 1
     assert outbox.flush_calls == 1
