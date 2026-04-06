@@ -101,6 +101,33 @@ async def _count_execution_receipts_through(value: Any) -> int:
         else await supabase_count("execution_receipts")
     )
 
+
+async def _fetch_latest_audit_event_row() -> dict[str, Any] | None:
+    rows = await supabase_fetch(
+        "audit_events?select=event_id,chain_hash,chain_sequence,timestamp,key_version"
+        "&order=timestamp.desc&limit=1"
+    )
+    parsed_rows = [row for row in rows if isinstance(row, dict)]
+    return parsed_rows[0] if parsed_rows else None
+
+
+async def _fetch_latest_billing_event_row() -> dict[str, Any] | None:
+    rows = await supabase_fetch(
+        "billing_events?select=event_id,chain_hash,created_at,key_version"
+        "&order=created_at.desc&limit=1"
+    )
+    parsed_rows = [row for row in rows if isinstance(row, dict)]
+    return parsed_rows[0] if parsed_rows else None
+
+
+async def _count_billing_events_through(value: Any) -> int:
+    timestamp = _parse_optional_timestamp(value)
+    return _parse_optional_int(
+        await supabase_count(f"billing_events?created_at=lte.{quote(timestamp.isoformat(), safe='')}")
+        if timestamp
+        else await supabase_count("billing_events")
+    )
+
 async def _fetch_score_audit_quarantined_tail(
     after_value: Any,
     *,
@@ -199,15 +226,41 @@ async def checkpoint_audit_head(
 ) -> dict[str, Any] | None:
     """Persist a checkpoint for the current audit stream head."""
     stream = audit_trail or get_audit_trail()
+    if stream.latest_hash and stream.latest_hash != ("0" * 64) and stream.latest_sequence > 0:
+        return await checkpoint_stream_head(
+            stream_name="audit_events",
+            source_head_hash=stream.latest_hash,
+            source_head_sequence=stream.latest_sequence,
+            source_key_version=stream.latest_key_version,
+            stream_event_count=stream.length,
+            latest_event_timestamp=stream.latest_timestamp,
+            reason=reason,
+            metadata=metadata,
+            outbox=outbox,
+            flush=flush,
+        )
+
+    source_row = await _fetch_latest_audit_event_row()
+    if not source_row:
+        return None
+
+    source_head_sequence = _parse_optional_int(source_row.get("chain_sequence"))
+    if source_head_sequence is None:
+        return None
+
+    durable_metadata = {
+        **(metadata or {}),
+        "head_source": "durable_table_fallback",
+    }
     return await checkpoint_stream_head(
         stream_name="audit_events",
-        source_head_hash=stream.latest_hash,
-        source_head_sequence=stream.latest_sequence,
-        source_key_version=stream.latest_key_version,
-        stream_event_count=stream.length,
-        latest_event_timestamp=stream.latest_timestamp,
+        source_head_hash=str(source_row.get("chain_hash") or ""),
+        source_head_sequence=source_head_sequence,
+        source_key_version=_parse_optional_int(source_row.get("key_version")),
+        stream_event_count=source_head_sequence,
+        latest_event_timestamp=_parse_optional_timestamp(source_row.get("timestamp")),
         reason=reason,
-        metadata=metadata,
+        metadata=durable_metadata,
         outbox=outbox,
         flush=flush,
     )
@@ -223,15 +276,42 @@ async def checkpoint_billing_head(
 ) -> dict[str, Any] | None:
     """Persist a checkpoint for the current billing stream head."""
     stream = billing_stream or get_billing_event_stream()
+    if stream.latest_hash and stream.latest_hash != ("0" * 64) and stream.length > 0:
+        return await checkpoint_stream_head(
+            stream_name="billing_events",
+            source_head_hash=stream.latest_hash,
+            source_head_sequence=stream.length,
+            source_key_version=stream.latest_key_version,
+            stream_event_count=stream.length,
+            latest_event_timestamp=stream.latest_timestamp,
+            reason=reason,
+            metadata=metadata,
+            outbox=outbox,
+            flush=flush,
+        )
+
+    source_row = await _fetch_latest_billing_event_row()
+    if not source_row:
+        return None
+
+    source_head_hash = source_row.get("chain_hash")
+    source_head_sequence = await _count_billing_events_through(source_row.get("created_at"))
+    if not source_head_hash or source_head_sequence <= 0:
+        return None
+
+    durable_metadata = {
+        **(metadata or {}),
+        "head_source": "durable_table_fallback",
+    }
     return await checkpoint_stream_head(
         stream_name="billing_events",
-        source_head_hash=stream.latest_hash,
-        source_head_sequence=stream.length,
-        source_key_version=stream.latest_key_version,
-        stream_event_count=stream.length,
-        latest_event_timestamp=stream.latest_timestamp,
+        source_head_hash=str(source_head_hash),
+        source_head_sequence=source_head_sequence,
+        source_key_version=_parse_optional_int(source_row.get("key_version")),
+        stream_event_count=source_head_sequence,
+        latest_event_timestamp=_parse_optional_timestamp(source_row.get("created_at")),
         reason=reason,
-        metadata=metadata,
+        metadata=durable_metadata,
         outbox=outbox,
         flush=flush,
     )

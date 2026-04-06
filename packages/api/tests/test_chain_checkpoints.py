@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -76,11 +77,12 @@ async def test_checkpoint_audit_head_appends_signed_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_checkpoint_billing_head_skips_empty_stream() -> None:
-    payload = await checkpoint_billing_head(
-        reason="anchor_ready_snapshot",
-        outbox=FakeOutbox(),
-        billing_stream=BillingEventStream(),
-    )
+    with patch("services.chain_checkpoints.supabase_fetch", new=AsyncMock(return_value=[])):
+        payload = await checkpoint_billing_head(
+            reason="anchor_ready_snapshot",
+            outbox=FakeOutbox(),
+            billing_stream=BillingEventStream(),
+        )
     assert payload is None
 
 
@@ -125,6 +127,64 @@ async def test_checkpoint_execution_receipts_head_skips_empty_stream() -> None:
         metadata={},
     )
     assert payload is None
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_audit_head_falls_back_to_durable_table_when_stream_empty() -> None:
+    outbox = FakeOutbox()
+
+    with (
+        patch("services.chain_checkpoints.supabase_fetch", new=AsyncMock(return_value=[{
+            "event_id": "aud_latest_001",
+            "chain_hash": "cd" * 32,
+            "chain_sequence": 2,
+            "timestamp": "2026-04-06T22:01:00+00:00",
+            "key_version": 1,
+        }])),
+    ):
+        payload = await checkpoint_audit_head(
+            reason="anchor_ready_snapshot",
+            metadata={"requested_by": "pedro"},
+            outbox=outbox,
+            audit_trail=AuditTrail(),
+        )
+
+    assert payload is not None
+    assert payload["stream_name"] == "audit_events"
+    assert payload["source_head_hash"] == "cd" * 32
+    assert payload["source_head_sequence"] == 2
+    assert payload["source_key_version"] == 1
+    assert payload["metadata"]["head_source"] == "durable_table_fallback"
+    assert outbox.checkpoints[0]["stream_name"] == "audit_events"
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_billing_head_falls_back_to_durable_table_when_stream_empty() -> None:
+    outbox = FakeOutbox()
+
+    with (
+        patch("services.chain_checkpoints.supabase_fetch", new=AsyncMock(return_value=[{
+            "event_id": "bevt_latest_001",
+            "chain_hash": "de" * 32,
+            "created_at": "2026-04-06T22:01:01+00:00",
+            "key_version": 1,
+        }])),
+        patch("services.chain_checkpoints.supabase_count", new=AsyncMock(return_value=4)),
+    ):
+        payload = await checkpoint_billing_head(
+            reason="anchor_ready_snapshot",
+            metadata={"requested_by": "pedro"},
+            outbox=outbox,
+            billing_stream=BillingEventStream(),
+        )
+
+    assert payload is not None
+    assert payload["stream_name"] == "billing_events"
+    assert payload["source_head_hash"] == "de" * 32
+    assert payload["source_head_sequence"] == 4
+    assert payload["source_key_version"] == 1
+    assert payload["metadata"]["head_source"] == "durable_table_fallback"
+    assert outbox.checkpoints[0]["stream_name"] == "billing_events"
 
 
 @pytest.mark.asyncio
@@ -307,11 +367,12 @@ def test_admin_route_skips_empty_billing_stream() -> None:
     app.include_router(router)
     client = TestClient(app)
 
-    response = client.post(
-        "/v1/admin/trust/chain-checkpoints/billing_events",
-        headers={"X-Rhumb-Admin-Key": "test-secret"},
-        json={"reason": "anchor_ready_snapshot"},
-    )
+    with patch("services.chain_checkpoints.supabase_fetch", new=AsyncMock(return_value=[])):
+        response = client.post(
+            "/v1/admin/trust/chain-checkpoints/billing_events",
+            headers={"X-Rhumb-Admin-Key": "test-secret"},
+            json={"reason": "anchor_ready_snapshot"},
+        )
 
     assert response.status_code == 200
     body = response.json()
