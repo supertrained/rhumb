@@ -162,6 +162,8 @@ class TestDurableBillingPersistence:
         assert result is True
         assert builder.inserted[0]["key_version"] == 1
         assert builder.inserted[0]["created_at"] == MockBillingEvent.timestamp.isoformat()
+        assert builder.inserted[0]["balance_after_cents"] == MockBillingEvent.balance_after_usd_cents
+        assert "balance_after_usd_cents" not in builder.inserted[0]
 
     @pytest.mark.asyncio
     async def test_persist_event_survives_failure(self, mock_db):

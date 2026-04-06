@@ -126,7 +126,7 @@ class DurableBillingPersistence:
             "event_type": payload.get("event_type"),
             "org_id": payload.get("org_id"),
             "amount_usd_cents": payload.get("amount_usd_cents"),
-            "balance_after_usd_cents": payload.get("balance_after_usd_cents"),
+            "balance_after_cents": payload.get("balance_after_usd_cents"),
             "metadata": json.dumps(payload.get("metadata") or {}),
             "receipt_id": payload.get("receipt_id"),
             "execution_id": payload.get("execution_id"),
