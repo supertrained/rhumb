@@ -7,191 +7,87 @@
             "action": "capability.execute",
             "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "category": "execution",
-            "chain_hash": "891078649bc154374e949470472bda4401e441635c15f7bc87885a44b6d193ad",
-            "chain_sequence": 6,
-            "detail": {
-              "billing_status": "unbilled",
-              "capability_id": "search.query",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2-l1",
-              "latency_ms": 488.5,
-              "upstream_status": 200
-            },
-            "event_id": "aud_8a69710d46c041a3",
-            "event_type": "execution.completed",
-            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
-            "org_id": "org_aud3_verifier",
-            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "resource_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
-            "resource_type": "capability_execution",
-            "severity": "info",
-            "timestamp": "2026-04-07T01:45:47.436340+00:00"
-          },
-          {
-            "action": "capability.execute",
-            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "category": "execution",
-            "chain_hash": "800b9e7c72e3f738be792ee20b6c634de548ffdd4c8386d0f767d8a5b943b9de",
-            "chain_sequence": 5,
-            "detail": {
-              "billing_status": "unbilled",
-              "capability_id": "search.query",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2",
-              "latency_ms": 577.0,
-              "upstream_status": 200
-            },
-            "event_id": "aud_eae13bfe0a9d4c46",
-            "event_type": "execution.completed",
-            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
-            "org_id": "org_aud3_verifier",
-            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "resource_id": "exec_20a5e33a8d1145749eca471531f0888c",
-            "resource_type": "capability_execution",
-            "severity": "info",
-            "timestamp": "2026-04-07T01:45:37.367415+00:00"
-          },
-          {
-            "action": "capability.execute",
-            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "category": "execution",
-            "chain_hash": "50c40047fc538219b41270d44d4d43edb407d7addbfb28bfe6a4c429923c55a8",
-            "chain_sequence": 4,
-            "detail": {
-              "billing_status": "unbilled",
-              "capability_id": "search.query",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2-l1",
-              "latency_ms": 473.9,
-              "upstream_status": 200
-            },
-            "event_id": "aud_0b8c441d1b3c4096",
-            "event_type": "execution.completed",
-            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
-            "org_id": "org_aud3_verifier",
-            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "resource_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
-            "resource_type": "capability_execution",
-            "severity": "info",
-            "timestamp": "2026-04-07T01:43:23.310059+00:00"
-          },
-          {
-            "action": "capability.execute",
-            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "category": "execution",
-            "chain_hash": "4dc183684e37edd36c6f261a69faaf904a3abb5fc0b6c3fa73ec24f81b59598e",
-            "chain_sequence": 3,
-            "detail": {
-              "billing_status": "unbilled",
-              "capability_id": "search.query",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2",
-              "latency_ms": 504.1,
-              "upstream_status": 200
-            },
-            "event_id": "aud_a73bd5d8b25a4f0a",
-            "event_type": "execution.completed",
-            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
-            "org_id": "org_aud3_verifier",
-            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "resource_id": "exec_262d46023c4a4c029dcef4093a57e22d",
-            "resource_type": "capability_execution",
-            "severity": "info",
-            "timestamp": "2026-04-07T01:43:13.760333+00:00"
-          },
-          {
-            "action": "capability.execute",
-            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
-            "category": "execution",
-            "chain_hash": "3a4a99a279d5b376e86f33713a9d140717639070fcebb3dd4677541fbbbd41b0",
+            "chain_hash": "a2ff664e9d5778a2db0d872204b8f1256015b16d1d35ecf9121db684ab659663",
             "chain_sequence": 2,
             "detail": {
               "billing_status": "unbilled",
               "capability_id": "search.query",
               "credential_mode": "rhumb_managed",
               "interface": "dogfood-keel-v2-l1",
-              "latency_ms": 472.8,
+              "latency_ms": 517.1,
               "upstream_status": 200
             },
-            "event_id": "aud_996b23bd4888490e",
+            "event_id": "aud_36d47c03667b4c00",
             "event_type": "execution.completed",
-            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "execution_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
             "org_id": "org_aud3_verifier",
             "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "resource_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "resource_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
             "resource_type": "capability_execution",
             "severity": "info",
-            "timestamp": "2026-04-07T01:42:48.087160+00:00"
+            "timestamp": "2026-04-07T03:44:21.581473+00:00"
           },
           {
             "action": "capability.execute",
             "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "category": "execution",
-            "chain_hash": "ae93cabaa6dc46a530c9972e8e7451b976018682f2716dd10027da38bc8011c1",
+            "chain_hash": "a1ff2cc3d5bee2d7c3fa6849b08dacd08fdf80a90b94325ad7b1f7502484f6ad",
             "chain_sequence": 1,
             "detail": {
               "billing_status": "unbilled",
               "capability_id": "search.query",
               "credential_mode": "rhumb_managed",
               "interface": "dogfood-keel-v2",
-              "latency_ms": 929.4,
+              "latency_ms": 988.2,
               "upstream_status": 200
             },
-            "event_id": "aud_f94c40802d4d4877",
+            "event_id": "aud_a30565fd99e047d7",
             "event_type": "execution.completed",
-            "execution_id": "exec_21afc4f952f04b6db7e0737403b6e8be",
+            "execution_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
             "org_id": "org_aud3_verifier",
             "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "resource_id": "exec_21afc4f952f04b6db7e0737403b6e8be",
+            "resource_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
             "resource_type": "capability_execution",
             "severity": "info",
-            "timestamp": "2026-04-07T01:42:37.958977+00:00"
+            "timestamp": "2026-04-07T03:44:11.496079+00:00"
           }
         ],
         "pagination": {
           "has_more": false,
           "limit": 10,
           "offset": 0,
-          "total": 6
+          "total": 2
         }
       }
     },
     "status": {
       "data": {
         "chain_verified": true,
-        "earliest_event": "2026-04-07T01:42:37.958977+00:00",
+        "earliest_event": "2026-04-07T03:44:11.496079+00:00",
         "events_by_category": {
-          "execution": 6
+          "execution": 2
         },
         "events_by_severity": {
-          "info": 6
+          "info": 2
         },
         "events_by_type": {
-          "execution.completed": 6
+          "execution.completed": 2
         },
-        "latest_event": "2026-04-07T01:45:47.436340+00:00",
-        "latest_hash": "891078649bc154374e949470472bda4401e441635c15f7bc87885a44b6d193ad",
-        "latest_sequence": 6,
-        "total_events": 6
+        "latest_event": "2026-04-07T03:44:21.581473+00:00",
+        "latest_hash": "a2ff664e9d5778a2db0d872204b8f1256015b16d1d35ecf9121db684ab659663",
+        "latest_sequence": 2,
+        "total_events": 2
       }
     }
   },
   "billing": {
     "events": {
       "data": {
-        "count": 10,
+        "count": 4,
         "events": [
           {
             "amount_usd": 0.0,
@@ -199,18 +95,18 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "a0310c3cc1ce76dfa8cc512ee03edd6f9078ab652da32977bbdc744722082d88",
-            "event_id": "bevt_63cb6b8992b44458",
+            "chain_hash": "a91bcebd02ae94c33e383bd03d81f322453c82150b91ba9989c3f9ea2d918b35",
+            "event_id": "bevt_0c4c3ce790fe4637",
             "event_type": "execution.charged",
-            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "execution_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
             "metadata": {
               "credential_mode": "rhumb_managed",
               "layer": 1
             },
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
-            "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
-            "timestamp": "2026-04-07T01:45:48.498567+00:00"
+            "receipt_id": "rcpt_11821d0239bb4811a08becb3",
+            "timestamp": "2026-04-07T03:44:22.552888+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -218,10 +114,10 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "9bbc70544953307d6bc3ce4d37e22f08521851e17d26fff6abc2f77ecf6c99ae",
-            "event_id": "bevt_65f9d88c50ac4a40",
+            "chain_hash": "058d4a093eec2b9eae90b22060050634de7f749dec4d0c36e089dff40ea0a93f",
+            "event_id": "bevt_76b6422ea1ee4d5a",
             "event_type": "execution.charged",
-            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "execution_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
             "metadata": {
               "billing_status": "unbilled",
               "credential_mode": "rhumb_managed",
@@ -231,7 +127,7 @@
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "timestamp": "2026-04-07T01:45:47.416757+00:00"
+            "timestamp": "2026-04-07T03:44:21.577007+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -239,18 +135,18 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "b243e272b69cf778d828e7657a960478676a16c3498ae640567fdcbdc15c3a81",
-            "event_id": "bevt_382c7b3c6be240ca",
+            "chain_hash": "672b08ca1f654c93afe5a409a65dfa563d8e73e21b36b23cf84f2b2485a8a895",
+            "event_id": "bevt_08bee989de394f85",
             "event_type": "execution.charged",
-            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "execution_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
             "metadata": {
               "credential_mode": "rhumb_managed",
               "layer": 2
             },
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
-            "receipt_id": "rcpt_0f199809894f4fecb544acd9",
-            "timestamp": "2026-04-07T01:45:38.415761+00:00"
+            "receipt_id": "rcpt_91fc01f65b0843ccbfb21ee7",
+            "timestamp": "2026-04-07T03:44:13.038702+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -258,10 +154,10 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "fcc18e3f4b10a235cbbbc2ac58c2e057b55328e7ba45b4f14bfb8e54c34a197f",
-            "event_id": "bevt_aedb0cb343b545c1",
+            "chain_hash": "17a51dfef18e02fa5bd747d4ecb0aed81b96b3251c9813aa1783e5cd007825b0",
+            "event_id": "bevt_99b21491bcca4b7e",
             "event_type": "execution.charged",
-            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "execution_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
             "metadata": {
               "billing_status": "unbilled",
               "credential_mode": "rhumb_managed",
@@ -271,127 +167,7 @@
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "timestamp": "2026-04-07T01:45:37.358697+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "198ba9971ab10f882ed9138a38b4fb0c0f370ac8d816c4dcb781fb149ab624f0",
-            "event_id": "bevt_6f556f6e93524f35",
-            "event_type": "execution.charged",
-            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
-            "metadata": {
-              "credential_mode": "rhumb_managed",
-              "layer": 1
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": "rcpt_f45935673e1143c4abe7aff8",
-            "timestamp": "2026-04-07T01:43:24.368937+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "4d1095ca208b722fb249e06764fc2d5a80d7662697d076348d5c01cc300777c9",
-            "event_id": "bevt_9eaa773f83ad4a81",
-            "event_type": "execution.charged",
-            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
-            "metadata": {
-              "billing_status": "unbilled",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2-l1",
-              "layer": 2
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "timestamp": "2026-04-07T01:43:23.304344+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "05a6047da64bfb83ccba204098cd880ea824835708772112b2a868d59a79554f",
-            "event_id": "bevt_52256b1b4ef046cd",
-            "event_type": "execution.charged",
-            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
-            "metadata": {
-              "credential_mode": "rhumb_managed",
-              "layer": 2
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": "rcpt_c794d45add7f4c84b4077a0e",
-            "timestamp": "2026-04-07T01:43:14.788458+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "a5913f78f3ecd7cc750cb84573b1344383ab88ed6d736947144f342702b2b376",
-            "event_id": "bevt_6cf4a4aac7c045b7",
-            "event_type": "execution.charged",
-            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
-            "metadata": {
-              "billing_status": "unbilled",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2",
-              "layer": 2
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "timestamp": "2026-04-07T01:43:13.741816+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "4b950c6399362405434d6ff38f4877388a73cf1bb55dc80307c359d94deb519a",
-            "event_id": "bevt_00020591d5214fcb",
-            "event_type": "execution.charged",
-            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
-            "metadata": {
-              "credential_mode": "rhumb_managed",
-              "layer": 1
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": "rcpt_929fa734fcbc4cc08ca3aee4",
-            "timestamp": "2026-04-07T01:42:49.068460+00:00"
-          },
-          {
-            "amount_usd": 0.0,
-            "amount_usd_cents": 0,
-            "balance_after_usd": null,
-            "balance_after_usd_cents": null,
-            "capability_id": "search.query",
-            "chain_hash": "74604256cbca5597e60fd2110728cd581ae30dd9bd274cdd2806c23fe8643370",
-            "event_id": "bevt_dae9a41c57a6413c",
-            "event_type": "execution.charged",
-            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
-            "metadata": {
-              "billing_status": "unbilled",
-              "credential_mode": "rhumb_managed",
-              "interface": "dogfood-keel-v2-l1",
-              "layer": 2
-            },
-            "org_id": "org_aud3_verifier",
-            "provider_slug": "brave-search",
-            "receipt_id": null,
-            "timestamp": "2026-04-07T01:42:48.084209+00:00"
+            "timestamp": "2026-04-07T03:44:11.492985+00:00"
           }
         ],
         "org_id": "org_aud3_verifier"
@@ -418,8 +194,8 @@
           "auto_reload.triggered",
           "auto_reload.failed"
         ],
-        "latest_chain_hash": "a0310c3cc1ce76dfa8cc512ee03edd6f9078ab652da32977bbdc744722082d88",
-        "stream_length": 12,
+        "latest_chain_hash": "a91bcebd02ae94c33e383bd03d81f322453c82150b91ba9989c3f9ea2d918b35",
+        "stream_length": 4,
         "structural_guarantees": [
           "All billing events are immutable and chain-hashed",
           "Event stream is append-only with SHA-256 chain integrity",
@@ -443,8 +219,8 @@
           }
         },
         "credit_purchase_count": 0,
-        "events_count": 12,
-        "execution_count": 12,
+        "events_count": 4,
+        "execution_count": 4,
         "net_usd": 0.0,
         "org_id": "org_aud3_verifier",
         "period": "all",
@@ -590,7 +366,7 @@
   },
   "config": {
     "api_key_env": "RHUMB_DOGFOOD_API_KEY",
-    "api_key_preview": "rhumb_795b31\u20260f49",
+    "api_key_preview": "rhumb_3670dc\u2026ade7",
     "base_url": "https://api.rhumb.dev",
     "bootstrap": {
       "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
@@ -629,7 +405,7 @@
           "latency": {
             "overhead_ms": 0.0,
             "provider_ms": null,
-            "total_ms": 5840.0
+            "total_ms": 5258.0
           },
           "layer": 1,
           "provider": {
@@ -640,7 +416,7 @@
             "name": "Brave Search",
             "tier": null
           },
-          "receipt_id": "rcpt_c1351ed534564e3bb527d1fd"
+          "receipt_id": "rcpt_11821d0239bb4811a08becb3"
         },
         "_rhumb_v2": {
           "api_version": "v2-alpha",
@@ -654,11 +430,11 @@
             "rhumb_fee_usd": 0.00024,
             "total_usd": 0.00324
           },
-          "explanation_id": "rexp_412b49bc4bcd",
+          "explanation_id": "rexp_63cbb1b32c94",
           "latency": {
             "provider_ms": null,
             "rhumb_overhead_ms": 0,
-            "total_ms": 5840
+            "total_ms": 5258
           },
           "layer": 1,
           "provider": {
@@ -667,14 +443,14 @@
             "display_name": "Brave Search",
             "id": "brave-search"
           },
-          "receipt_id": "rcpt_c1351ed534564e3bb527d1fd"
+          "receipt_id": "rcpt_11821d0239bb4811a08becb3"
         },
         "capability_id": "search.query",
         "credential_mode": "rhumb_managed",
-        "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
-        "latency_ms": 488.5,
+        "execution_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
+        "latency_ms": 517.1,
         "provider_used": "brave-search",
-        "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
+        "receipt_id": "rcpt_11821d0239bb4811a08becb3",
         "upstream_response": {
           "mixed": {
             "main": [
@@ -855,29 +631,36 @@
                 "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
               },
               {
-                "description": "<strong>Perform vulnerability scanning and penetration testing</strong>. Use an automated API scanner to test the source code and look for runtime errors, and employ periodic penetration testing to identify API vulnerabilities to more sophisticated, new, or novel attacks.",
+                "age": "January 6, 2026",
+                "description": "DAST (Dynamic Application Security Testing): Test running APIs like an attacker would, identifying runtime vulnerabilities like authentication bypasses, injection flaws, and misconfigurations. SAST (Static Application Security Testing): Scan source code without running it to find security issues like hardcoded credentials, unsafe functions, and vulnerable patterns. SCA (Software Composition Analysis): Check dependencies for known vulnerabilities (covered in Practice #8).",
                 "family_friendly": true,
                 "is_live": false,
                 "is_source_both": false,
                 "is_source_local": false,
                 "language": "en",
                 "meta_url": {
-                  "favicon": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
-                  "hostname": "www.f5.com",
-                  "netloc": "f5.com",
-                  "path": "\u203a company  \u203a blog  \u203a api-security-checklist",
+                  "favicon": "https://imgs.search.brave.com/8ToOJaLYsanKebzhRd81ez90Q7pKKk1tUgDkOFo1LBQ/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzAzNDJlNzg0/MzVkYTIwMmI5M2Fl/NTUzNDIwZGY5MTk1/ZTMxNmZlYjdiOTE2/NjY4MzcxZTNiMDEz/NWQyMmZhYS93d3cu/c3RhY2toYXdrLmNv/bS8",
+                  "hostname": "www.stackhawk.com",
+                  "netloc": "stackhawk.com",
+                  "path": "  \u203a stackhawk, inc.  \u203a api security testing  \u203a api security best practices: 11 ways to secure your apis",
                   "scheme": "https"
                 },
+                "page_age": "2026-01-06T07:00:00",
                 "profile": {
-                  "img": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
-                  "long_name": "f5.com",
-                  "name": "F5",
-                  "url": "https://www.f5.com/company/blog/api-security-checklist"
+                  "img": "https://imgs.search.brave.com/8ToOJaLYsanKebzhRd81ez90Q7pKKk1tUgDkOFo1LBQ/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzAzNDJlNzg0/MzVkYTIwMmI5M2Fl/NTUzNDIwZGY5MTk1/ZTMxNmZlYjdiOTE2/NjY4MzcxZTNiMDEz/NWQyMmZhYS93d3cu/c3RhY2toYXdrLmNv/bS8",
+                  "long_name": "stackhawk.com",
+                  "name": "StackHawk",
+                  "url": "https://www.stackhawk.com/blog/api-security-best-practices-ultimate-guide/"
                 },
-                "subtype": "generic",
-                "title": "API Security Checklist: Best Practices, Testing, and NIST",
+                "subtype": "video",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://www.stackhawk.com/wp-content/uploads/2026/01/qer3-cvzlbq.jpg",
+                  "src": "https://imgs.search.brave.com/l5X_Bn92JkNy7zRZxUg9L7qN0fPGr29CLM4l_S-CcAA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly93d3cu/c3RhY2toYXdrLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/Ni8wMS9xZXIzLWN2/emxicS5qcGc"
+                },
+                "title": "API Security Best Practices: 11 Essential Strategies to Protect Your APIs",
                 "type": "search_result",
-                "url": "https://www.f5.com/company/blog/api-security-checklist"
+                "url": "https://www.stackhawk.com/blog/api-security-best-practices-ultimate-guide/"
               }
             ],
             "type": "search"
@@ -887,9 +670,9 @@
       },
       "headers": {
         "Connection": "close",
-        "Content-Length": "7447",
+        "Content-Length": "8181",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 01:45:41 GMT",
+        "date": "Tue, 07 Apr 2026 03:44:16 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -897,25 +680,25 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200060-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200039-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "keOhh5VUT1-AxkphLPU1MQ",
+        "x-railway-request-id": "e9buL8hCS4aJj-1zn6XIxQ",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775526408",
-        "x-request-id": "07a98265-bd4c-4cb2-bc42-e8f62a5094a0",
+        "x-ratelimit-reset": "1775533522",
+        "x-request-id": "4605e67f-2a76-4c0f-bb59-9830e7eaf36d",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-cost-usd": "0.003240",
         "x-rhumb-layer": "1",
         "x-rhumb-provider": "brave-search",
-        "x-rhumb-receipt-id": "rcpt_c1351ed534564e3bb527d1fd",
+        "x-rhumb-receipt-id": "rcpt_11821d0239bb4811a08becb3",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200060-BUR"
+        "x-served-by": "cache-bur-kbur8200039-BUR"
       },
       "request": {
         "capability": "search.query",
         "credential_mode": "rhumb_managed",
-        "idempotency_key": "dogfood-e93c2ef1c00640a8b17f1adc0014e420",
+        "idempotency_key": "dogfood-c125abbf88094791837018675d1b5cac",
         "interface": "dogfood-keel",
         "parameters": {
           "numResults": 3,
@@ -960,32 +743,32 @@
     "receipt": {
       "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
       "attempt_number": 1,
-      "caller_ip_hash": "sha256:6ab65ffd10199850",
+      "caller_ip_hash": "sha256:2241f04e44531710",
       "candidates_evaluated": 1,
       "capability_id": "search.query",
       "capability_version": null,
-      "chain_sequence": 386,
+      "chain_sequence": 388,
       "compat_mode": "v1-translate",
-      "created_at": "2026-04-07T01:45:47.642299+00:00",
+      "created_at": "2026-04-07T03:44:21.763678+00:00",
       "credential_mode": "rhumb_managed",
       "credits_deducted": null,
       "error_code": null,
       "error_message": null,
       "error_provider_raw": null,
-      "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
-      "idempotency_key": "dogfood-e93c2ef1c00640a8b17f1adc0014e420",
+      "execution_id": "exec_b5d585a5db2e4b95b543c92598035b6d",
+      "idempotency_key": "dogfood-c125abbf88094791837018675d1b5cac",
       "interface": "dogfood-keel-v2-l1",
       "layer": 1,
       "org_id": "org_aud3_verifier",
-      "previous_receipt_hash": "sha256:5fd0a72b0a8a4d18331afa053c01c775f235b52dc44cf91d280c99d0206ae0da",
+      "previous_receipt_hash": "sha256:47e20fbaee10bfd4cdfecca51356a20dd469eb985730732cab1e0fe3ca2fa13c",
       "provider_cost_usd": 0.003,
       "provider_id": "brave-search",
       "provider_latency_ms": null,
       "provider_model": null,
       "provider_name": "brave-search",
       "provider_region": null,
-      "receipt_hash": "sha256:f1811cfe1dd08284c410cb9901b4800f3cdf76ac2761e48b81dcb87ecd5faed1",
-      "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
+      "receipt_hash": "sha256:7531cd8e0ac9a98da66eb786d2aa526ff12d7e94a888bd19572e1fb99bb1d28f",
+      "receipt_id": "rcpt_11821d0239bb4811a08becb3",
       "receipt_version": "1.0",
       "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
       "response_hash": null,
@@ -994,7 +777,7 @@
       "router_version": "2026-03-30",
       "status": "success",
       "total_cost_usd": 0.00324,
-      "total_latency_ms": 5840,
+      "total_latency_ms": 5258,
       "winner_reason": "agent_pinned_layer1",
       "x402_network": null,
       "x402_payer": null,
@@ -1020,7 +803,7 @@
         "Connection": "close",
         "Content-Length": "287",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 01:45:30 GMT",
+        "date": "Tue, 07 Apr 2026 03:44:02 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -1028,16 +811,16 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200023-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200022-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "Dp6vvKHMST-AMqiOxtoGcA",
+        "x-railway-request-id": "bCewmuOfRiSKFZJKn6XIxQ",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775526391",
-        "x-request-id": "14d6dbca-5b4c-405c-8d45-ba0a53835548",
+        "x-ratelimit-reset": "1775533504",
+        "x-request-id": "89186cf7-e071-41ef-9ebf-3d5c2eabd914",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200023-BUR"
+        "x-served-by": "cache-bur-kbur8200022-BUR"
       }
     },
     "execute": {
@@ -1053,7 +836,7 @@
             "name": "brave-search",
             "tier": null
           },
-          "receipt_id": "rcpt_0f199809894f4fecb544acd9"
+          "receipt_id": "rcpt_91fc01f65b0843ccbfb21ee7"
         },
         "_rhumb_v2": {
           "api_version": "v2-alpha",
@@ -1061,17 +844,17 @@
           "budget_summary": null,
           "compat_mode": "v1-translate",
           "estimated_cost_usd": 0.003,
-          "explanation_id": "rexp_ed3bf6bb9cda",
+          "explanation_id": "rexp_b73abadd0449",
           "layer": 2,
           "policy_applied": true,
           "policy_candidates": [
             "algolia",
-            "brave-search",
             "elasticsearch",
-            "exa",
+            "typesense",
             "meilisearch",
-            "tavily",
-            "typesense"
+            "exa",
+            "brave-search",
+            "tavily"
           ],
           "policy_selected_reason": "policy_preference_match",
           "policy_source": {
@@ -1087,12 +870,12 @@
             "allow_only": [],
             "candidate_providers": [
               "algolia",
-              "brave-search",
               "elasticsearch",
-              "exa",
+              "typesense",
               "meilisearch",
-              "tavily",
-              "typesense"
+              "exa",
+              "brave-search",
+              "tavily"
             ],
             "controls": [
               "provider_preference",
@@ -1105,7 +888,7 @@
               "brave-search"
             ]
           },
-          "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+          "receipt_id": "rcpt_91fc01f65b0843ccbfb21ee7",
           "selected_provider": "brave-search",
           "translated_from": {
             "idempotency_header_used": false,
@@ -1118,10 +901,10 @@
         },
         "capability_id": "search.query",
         "credential_mode": "rhumb_managed",
-        "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
-        "latency_ms": 577.0,
+        "execution_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
+        "latency_ms": 988.2,
         "provider_used": "brave-search",
-        "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+        "receipt_id": "rcpt_91fc01f65b0843ccbfb21ee7",
         "upstream_response": {
           "mixed": {
             "main": [
@@ -1302,29 +1085,36 @@
                 "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
               },
               {
-                "description": "<strong>Perform vulnerability scanning and penetration testing</strong>. Use an automated API scanner to test the source code and look for runtime errors, and employ periodic penetration testing to identify API vulnerabilities to more sophisticated, new, or novel attacks.",
+                "age": "January 6, 2026",
+                "description": "DAST (Dynamic Application Security Testing): Test running APIs like an attacker would, identifying runtime vulnerabilities like authentication bypasses, injection flaws, and misconfigurations. SAST (Static Application Security Testing): Scan source code without running it to find security issues like hardcoded credentials, unsafe functions, and vulnerable patterns. SCA (Software Composition Analysis): Check dependencies for known vulnerabilities (covered in Practice #8).",
                 "family_friendly": true,
                 "is_live": false,
                 "is_source_both": false,
                 "is_source_local": false,
                 "language": "en",
                 "meta_url": {
-                  "favicon": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
-                  "hostname": "www.f5.com",
-                  "netloc": "f5.com",
-                  "path": "\u203a company  \u203a blog  \u203a api-security-checklist",
+                  "favicon": "https://imgs.search.brave.com/8ToOJaLYsanKebzhRd81ez90Q7pKKk1tUgDkOFo1LBQ/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzAzNDJlNzg0/MzVkYTIwMmI5M2Fl/NTUzNDIwZGY5MTk1/ZTMxNmZlYjdiOTE2/NjY4MzcxZTNiMDEz/NWQyMmZhYS93d3cu/c3RhY2toYXdrLmNv/bS8",
+                  "hostname": "www.stackhawk.com",
+                  "netloc": "stackhawk.com",
+                  "path": "  \u203a stackhawk, inc.  \u203a api security testing  \u203a api security best practices: 11 ways to secure your apis",
                   "scheme": "https"
                 },
+                "page_age": "2026-01-06T07:00:00",
                 "profile": {
-                  "img": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
-                  "long_name": "f5.com",
-                  "name": "F5",
-                  "url": "https://www.f5.com/company/blog/api-security-checklist"
+                  "img": "https://imgs.search.brave.com/8ToOJaLYsanKebzhRd81ez90Q7pKKk1tUgDkOFo1LBQ/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzAzNDJlNzg0/MzVkYTIwMmI5M2Fl/NTUzNDIwZGY5MTk1/ZTMxNmZlYjdiOTE2/NjY4MzcxZTNiMDEz/NWQyMmZhYS93d3cu/c3RhY2toYXdrLmNv/bS8",
+                  "long_name": "stackhawk.com",
+                  "name": "StackHawk",
+                  "url": "https://www.stackhawk.com/blog/api-security-best-practices-ultimate-guide/"
                 },
-                "subtype": "generic",
-                "title": "API Security Checklist: Best Practices, Testing, and NIST",
+                "subtype": "video",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://www.stackhawk.com/wp-content/uploads/2026/01/qer3-cvzlbq.jpg",
+                  "src": "https://imgs.search.brave.com/l5X_Bn92JkNy7zRZxUg9L7qN0fPGr29CLM4l_S-CcAA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly93d3cu/c3RhY2toYXdrLmNv/bS93cC1jb250ZW50/L3VwbG9hZHMvMjAy/Ni8wMS9xZXIzLWN2/emxicS5qcGc"
+                },
+                "title": "API Security Best Practices: 11 Essential Strategies to Protect Your APIs",
                 "type": "search_result",
-                "url": "https://www.f5.com/company/blog/api-security-checklist"
+                "url": "https://www.stackhawk.com/blog/api-security-best-practices-ultimate-guide/"
               }
             ],
             "type": "search"
@@ -1334,9 +1124,9 @@
       },
       "headers": {
         "Connection": "close",
-        "Content-Length": "7796",
+        "Content-Length": "8530",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 01:45:31 GMT",
+        "date": "Tue, 07 Apr 2026 03:44:04 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -1344,19 +1134,19 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200057-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200148-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "nRwsRiEUTua_B7al0_TJvA",
+        "x-railway-request-id": "oqYzu4oIQUmEkhm00_TJvA",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775526398",
-        "x-request-id": "dcb46c4f-1e8a-42f0-ad0f-3b8ff78a9d1a",
+        "x-ratelimit-reset": "1775533513",
+        "x-request-id": "8148d753-7ceb-4af3-b136-ec2a84875f18",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-layer": "2",
         "x-rhumb-provider": "brave-search",
-        "x-rhumb-receipt-id": "rcpt_0f199809894f4fecb544acd9",
+        "x-rhumb-receipt-id": "rcpt_91fc01f65b0843ccbfb21ee7",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200057-BUR"
+        "x-served-by": "cache-bur-kbur8200148-BUR"
       },
       "request": {
         "credential_mode": "rhumb_managed",
@@ -1692,7 +1482,7 @@
         }
       ],
       "capability_id": "search.query",
-      "explanation_id": "rexp_ed3bf6bb9cda",
+      "explanation_id": "rexp_b73abadd0449",
       "human_summary": "brave-search selected over 6 other eligible candidate(s). Strongest factors: availability (0.300), latency (0.150). Strategy: balanced.",
       "layer": 2,
       "policy_active": false,
@@ -1710,28 +1500,28 @@
       "candidates_evaluated": 7,
       "capability_id": "search.query",
       "capability_version": null,
-      "chain_sequence": 385,
+      "chain_sequence": 387,
       "compat_mode": "v1-translate",
-      "created_at": "2026-04-07T01:45:37.383078+00:00",
+      "created_at": "2026-04-07T03:44:11.501665+00:00",
       "credential_mode": "rhumb_managed",
       "credits_deducted": null,
       "error_code": null,
       "error_message": null,
       "error_provider_raw": null,
-      "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+      "execution_id": "exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9",
       "idempotency_key": null,
       "interface": "dogfood-keel-v2",
       "layer": 2,
       "org_id": null,
-      "previous_receipt_hash": "sha256:10439852bc5313f03e5365f062b098e971053bd13cee643ebe67f1e35f953097",
+      "previous_receipt_hash": "sha256:f1811cfe1dd08284c410cb9901b4800f3cdf76ac2761e48b81dcb87ecd5faed1",
       "provider_cost_usd": 0.003,
       "provider_id": "brave-search",
       "provider_latency_ms": null,
       "provider_model": null,
       "provider_name": "brave-search",
       "provider_region": null,
-      "receipt_hash": "sha256:5fd0a72b0a8a4d18331afa053c01c775f235b52dc44cf91d280c99d0206ae0da",
-      "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+      "receipt_hash": "sha256:47e20fbaee10bfd4cdfecca51356a20dd469eb985730732cab1e0fe3ca2fa13c",
+      "receipt_id": "rcpt_91fc01f65b0843ccbfb21ee7",
       "receipt_version": "1.0",
       "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
       "response_hash": null,
@@ -1740,7 +1530,7 @@
       "router_version": "2026-03-30",
       "status": "success",
       "total_cost_usd": null,
-      "total_latency_ms": 577,
+      "total_latency_ms": 988.2,
       "winner_reason": "policy_preference_match",
       "x402_network": null,
       "x402_payer": null,
@@ -1785,8 +1575,8 @@
     "total_checked": 20,
     "verified": 20
   },
-  "started_at": 1775526327,
-  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_20a5e33a8d1145749eca471531f0888c receipt=rcpt_0f199809894f4fecb544acd9; L1 provider=brave-search exec=exec_b5eff972a8fe4d72ada49a004e139fd2 receipt=rcpt_c1351ed534564e3bb527d1fd; billing_events=12; audit_events=6",
+  "started_at": 1775533439,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_e4bc1cb25c9a4a6892e10a74c5b9ecf9 receipt=rcpt_91fc01f65b0843ccbfb21ee7; L1 provider=brave-search exec=exec_b5d585a5db2e4b95b543c92598035b6d receipt=rcpt_11821d0239bb4811a08becb3; billing_events=4; audit_events=2",
   "trust": {
     "providers": {
       "data": {
@@ -1795,10 +1585,10 @@
         "providers": [
           {
             "an_score": 7.1,
-            "execution_count": 12,
+            "execution_count": 4,
             "failure_count": 0,
             "provider_slug": "brave-search",
-            "success_count": 12,
+            "success_count": 4,
             "success_rate_pct": 100.0,
             "tier": "L3",
             "total_charged_usd": 0.0,
@@ -1815,8 +1605,8 @@
         "org_id": "org_aud3_verifier",
         "period": "all",
         "success_rate_pct": 100.0,
-        "successful_executions": 12,
-        "total_executions": 12,
+        "successful_executions": 4,
+        "total_executions": 4,
         "total_spend_usd": 0.0,
         "total_spend_usd_cents": 0,
         "trust_posture": {
