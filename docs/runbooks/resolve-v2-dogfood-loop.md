@@ -193,6 +193,29 @@ Use this mode when the job's purpose is strictly mechanical proof refresh:
 - return one compact status line to cron history
 - avoid duplicating backlog / memory bookkeeping inside the recurring lane
 
+## Recurring fleet-status audit cron
+
+The consolidated artifact-side audit is now also on a recurring mechanical cron:
+
+- job id: `db54ed12-26ac-4fed-8f95-72b0196f4c90`
+- name: `Resolve v2 Dogfood Fleet Status Audit`
+- schedule: `10:45` and `22:45` PT
+
+It runs this exact command:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py \
+  --fleet-status \
+  --summary-only \
+  --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json
+```
+
+Purpose:
+- refresh the consolidated `keel` / `helm` / `beacon` proof artifact after the per-profile lanes
+- keep cron history to one compact proof line
+- separate mechanical evidence refresh from backlog / memory bookkeeping
+
 ## Policy smoke test
 
 Only do this on a dedicated internal dogfood org or key.

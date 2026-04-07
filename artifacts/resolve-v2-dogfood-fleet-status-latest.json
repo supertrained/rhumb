@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-04-07T07:41:05.649512Z",
+  "checked_at": "2026-04-07T20:28:26.649535Z",
   "max_artifact_age_minutes": 1080,
   "mode": "fleet_status",
   "ok": true,
   "profile_count": 3,
   "profiles": {
     "beacon": {
-      "age_minutes": 147.0,
+      "age_minutes": 914.4,
       "artifact_ok": true,
       "artifact_path": "artifacts/resolve-v2-dogfood-beacon-admin-latest.json",
       "audit_events": 6,
@@ -30,7 +30,7 @@
       "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_c3a6cbca118d4e6a9492475e34527983 receipt=rcpt_3409cfa4bbd24e7e9e59b341; L1 provider=brave-search exec=exec_25ae1254919a49d1837d9b3c7243da79 receipt=rcpt_b7a2534a97a54e918729a253; billing_events=12; audit_events=6"
     },
     "helm": {
-      "age_minutes": 163.6,
+      "age_minutes": 930.9,
       "artifact_ok": true,
       "artifact_path": "artifacts/resolve-v2-dogfood-helm-admin-latest.json",
       "audit_events": 4,
@@ -54,7 +54,7 @@
       "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_8a7cffb29e8e4462b4383c6624fd3e6f receipt=rcpt_2aae5b66bdf14eadb9a3a3bc; L1 provider=brave-search exec=exec_319d4ab6dc154547a5398adf3775bd0c receipt=rcpt_e41012ac8e984b5eadfea150; billing_events=8; audit_events=4"
     },
     "keel": {
-      "age_minutes": 170.6,
+      "age_minutes": 937.9,
       "artifact_ok": true,
       "artifact_path": "artifacts/resolve-v2-dogfood-keel-admin-latest.json",
       "audit_events": 2,
@@ -78,5 +78,5 @@
       "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_964f49be92b04454b5f2944f479275f4 receipt=rcpt_f982bab918ff469eb7eb16f7; L1 provider=brave-search exec=exec_cbf4655488934fb0aca92068cdf7c58b receipt=rcpt_8fa9039f92cc486288bad4ca; billing_events=4; audit_events=2"
     }
   },
-  "summary": "Resolve v2 dogfood fleet status complete; ok_profiles=3/3; freshness_window_minutes=1080; keel=ok provider=brave-search age_min=170.6; helm=ok provider=brave-search age_min=163.6; beacon=ok provider=brave-search age_min=147.0"
+  "summary": "Resolve v2 dogfood fleet status complete; ok_profiles=3/3; freshness_window_minutes=1080; keel=ok provider=brave-search age_min=937.9; helm=ok provider=brave-search age_min=930.9; beacon=ok provider=brave-search age_min=914.4"
 }
