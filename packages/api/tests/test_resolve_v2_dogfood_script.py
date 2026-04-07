@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 from unittest.mock import call, patch
 
@@ -192,6 +193,100 @@ def test_build_batch_summary_mentions_profile_statuses():
     assert "Resolve v2 dogfood batch complete; ok_profiles=1/2" in summary
     assert "pedro=ok provider=brave-search interface=dogfood-pedro" in summary
     assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary
+
+
+def test_build_fleet_status_entry_marks_profile_ok(tmp_path):
+    artifact_path = tmp_path / "resolve-v2-dogfood-keel-admin-latest.json"
+    artifact_path.write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "started_at": 1_700_000_000,
+                "summary": "Resolve v2 dogfood complete",
+                "config": {
+                    "provider": "brave-search",
+                    "interface": "dogfood-keel",
+                },
+                "layer2": {"execute": {"data": {"execution_id": "exec_l2", "receipt_id": "rcpt_l2"}}},
+                "layer1": {"execute": {"data": {"execution_id": "exec_l1", "receipt_id": "rcpt_l1"}}},
+                "billing": {"summary": {"data": {"events_count": 4}}},
+                "audit": {"status": {"data": {"total_events": 2}}},
+                "receipt_chain": {"chain_intact": True, "verified": 20, "total_checked": 20},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with patch.object(resolve_v2_dogfood, "_artifact_root", return_value=tmp_path):
+        entry = resolve_v2_dogfood._build_fleet_status_entry(
+            "keel",
+            artifact_path,
+            now_ts=1_700_000_300,
+            max_age_minutes=60,
+        )
+
+    expected_artifact_path = f"{tmp_path.name}/resolve-v2-dogfood-keel-admin-latest.json"
+    assert entry == {
+        "profile": "keel",
+        "artifact_path": expected_artifact_path,
+        "max_age_minutes": 60,
+        "ok": True,
+        "artifact_ok": True,
+        "fresh": True,
+        "started_at": 1_700_000_000,
+        "started_at_iso": "2023-11-14T22:13:20Z",
+        "age_minutes": 5.0,
+        "provider": "brave-search",
+        "interface": "dogfood-keel",
+        "summary": "Resolve v2 dogfood complete",
+        "billing_events": 4,
+        "audit_events": 2,
+        "chain_intact": True,
+        "receipt_chain_verified": 20,
+        "receipt_chain_checked": 20,
+        "layer2_execution_id": "exec_l2",
+        "layer2_receipt_id": "rcpt_l2",
+        "layer1_execution_id": "exec_l1",
+        "layer1_receipt_id": "rcpt_l1",
+        "blocker": None,
+    }
+
+
+def test_build_fleet_status_entry_marks_missing_artifact_failed(tmp_path):
+    missing_path = tmp_path / "resolve-v2-dogfood-beacon-admin-latest.json"
+
+    with patch.object(resolve_v2_dogfood, "_artifact_root", return_value=tmp_path):
+        entry = resolve_v2_dogfood._build_fleet_status_entry(
+            "beacon",
+            missing_path,
+            now_ts=1_700_000_300,
+            max_age_minutes=60,
+        )
+
+    expected_artifact_path = f"{tmp_path.name}/resolve-v2-dogfood-beacon-admin-latest.json"
+    assert entry == {
+        "profile": "beacon",
+        "artifact_path": expected_artifact_path,
+        "max_age_minutes": 60,
+        "ok": False,
+        "artifact_ok": False,
+        "fresh": False,
+        "blocker": "latest artifact missing",
+    }
+
+
+def test_build_fleet_status_summary_mentions_age_and_freshness_window():
+    summary = resolve_v2_dogfood._build_fleet_status_summary(
+        {
+            "keel": {"ok": True, "provider": "brave-search", "age_minutes": 5.0},
+            "helm": {"ok": False, "provider": "brave-search", "age_minutes": 1200.0},
+        },
+        1080,
+    )
+
+    assert "Resolve v2 dogfood fleet status complete; ok_profiles=1/2; freshness_window_minutes=1080" in summary
+    assert "keel=ok provider=brave-search age_min=5.0" in summary
+    assert "helm=failed provider=brave-search age_min=1200.0" in summary
 
 
 def test_provision_api_key_via_admin_creates_agent_and_grants_access():

@@ -152,6 +152,27 @@ Current built-in profiles all stay on the proven `search.query` / `brave-search`
 
 This is deliberate: it expands the dogfood loop into per-agent telemetry without pretending the fleet is already exercising a wider stable capability set than we have actually verified.
 
+## Fleet status from latest artifacts
+
+When the recurring non-Pedro lanes are already running and you want a quick steady-state read without hitting live APIs again, audit the latest checked-in artifacts instead:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py \
+  --fleet-status \
+  --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json
+```
+
+Default audited lanes:
+- `keel`
+- `helm`
+- `beacon`
+
+Default freshness window:
+- `1080` minutes (18 hours)
+
+This mode reads the current `resolve-v2-dogfood-*-admin-latest.json` artifacts, checks whether each lane is still marked `ok`, verifies the receipt-chain flag, and fails the summary if an artifact is missing or stale.
+
 ## Policy smoke test
 
 Only do this on a dedicated internal dogfood org or key.

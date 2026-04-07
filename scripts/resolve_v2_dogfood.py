@@ -42,6 +42,8 @@ import subprocess
 import sys
 import time
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 from urllib.error import HTTPError, URLError
@@ -68,6 +70,8 @@ DEFAULT_PARAMETERS_JSON = json.dumps(DEFAULT_PARAMETERS)
 DEFAULT_INTERFACE = "dogfood"
 DEFAULT_MAX_READ_LIMIT = 10
 DEFAULT_PROFILE = "pedro"
+DEFAULT_FLEET_STATUS_PROFILES = ("keel", "helm", "beacon")
+DEFAULT_FLEET_STATUS_MAX_AGE_MINUTES = 18 * 60
 ADMIN_BOOTSTRAP_LIST_RETRY_DELAYS = (0.5, 1.0, 2.0, 4.0)
 ADMIN_BOOTSTRAP_TRANSIENT_STATUSES = {500, 502, 503, 504}
 
@@ -662,6 +666,173 @@ def _build_batch_summary(results: dict[str, dict[str, Any]]) -> str:
     return "; ".join(parts)
 
 
+def _artifact_root() -> Path:
+    return Path(__file__).resolve().parents[1] / "artifacts"
+
+
+def _default_fleet_status_profiles() -> list[str]:
+    return list(DEFAULT_FLEET_STATUS_PROFILES)
+
+
+def _resolve_fleet_status_profiles(args: argparse.Namespace) -> list[str]:
+    requested = args.fleet_status_profiles
+    if requested:
+        candidates = [item.strip() for item in requested.split(",") if item.strip()]
+    else:
+        candidates = _default_fleet_status_profiles()
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for profile_name in candidates:
+        _get_profile(profile_name)
+        if profile_name not in seen:
+            seen.add(profile_name)
+            ordered.append(profile_name)
+    return ordered
+
+
+def _artifact_path_for_profile(profile_name: str) -> Path:
+    return _artifact_root() / f"resolve-v2-dogfood-{profile_name}-admin-latest.json"
+
+
+def _isoformat_utc(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _round_age_minutes(age_seconds: float | None) -> float | None:
+    if age_seconds is None:
+        return None
+    return round(age_seconds / 60.0, 1)
+
+
+def _build_fleet_status_entry(
+    profile_name: str,
+    artifact_path: Path,
+    *,
+    now_ts: float,
+    max_age_minutes: float,
+) -> dict[str, Any]:
+    artifact_root = _artifact_root().parent
+    relative_artifact_path = (
+        str(artifact_path.relative_to(artifact_root))
+        if artifact_path.is_absolute() and artifact_path.is_relative_to(artifact_root)
+        else str(artifact_path)
+    )
+    base: dict[str, Any] = {
+        "profile": profile_name,
+        "artifact_path": relative_artifact_path,
+        "max_age_minutes": max_age_minutes,
+    }
+
+    if not artifact_path.exists():
+        return {
+            **base,
+            "ok": False,
+            "artifact_ok": False,
+            "fresh": False,
+            "blocker": "latest artifact missing",
+        }
+
+    try:
+        payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            **base,
+            "ok": False,
+            "artifact_ok": False,
+            "fresh": False,
+            "blocker": f"artifact unreadable: {exc}",
+        }
+
+    started_at_raw = payload.get("started_at")
+    started_at = float(started_at_raw) if started_at_raw is not None else None
+    age_seconds = max(now_ts - started_at, 0.0) if started_at is not None else None
+    age_minutes = _round_age_minutes(age_seconds)
+    fresh = age_minutes is not None and age_minutes <= max_age_minutes
+
+    config = payload.get("config") or {}
+    layer2_data = ((payload.get("layer2") or {}).get("execute") or {}).get("data") or {}
+    layer1_data = ((payload.get("layer1") or {}).get("execute") or {}).get("data") or {}
+    billing_summary = ((payload.get("billing") or {}).get("summary") or {}).get("data") or {}
+    audit_status = ((payload.get("audit") or {}).get("status") or {}).get("data") or {}
+    receipt_chain = payload.get("receipt_chain") or {}
+    artifact_ok = bool(payload.get("ok"))
+    chain_intact = bool(receipt_chain.get("chain_intact"))
+
+    blocker_parts: list[str] = []
+    if not artifact_ok:
+        blocker_parts.append("artifact marked failed")
+    if not fresh:
+        blocker_parts.append("artifact stale")
+    if not chain_intact:
+        blocker_parts.append("receipt chain not intact")
+
+    return {
+        **base,
+        "ok": artifact_ok and fresh and chain_intact,
+        "artifact_ok": artifact_ok,
+        "fresh": fresh,
+        "started_at": started_at_raw,
+        "started_at_iso": _isoformat_utc(started_at) if started_at is not None else None,
+        "age_minutes": age_minutes,
+        "provider": config.get("provider"),
+        "interface": config.get("interface"),
+        "summary": payload.get("summary"),
+        "billing_events": billing_summary.get("events_count"),
+        "audit_events": audit_status.get("total_events"),
+        "chain_intact": chain_intact,
+        "receipt_chain_verified": receipt_chain.get("verified"),
+        "receipt_chain_checked": receipt_chain.get("total_checked"),
+        "layer2_execution_id": extract_execution_id(layer2_data),
+        "layer2_receipt_id": extract_receipt_id(layer2_data),
+        "layer1_execution_id": extract_execution_id(layer1_data),
+        "layer1_receipt_id": extract_receipt_id(layer1_data),
+        "blocker": "; ".join(blocker_parts) if blocker_parts else None,
+    }
+
+
+def _build_fleet_status_summary(results: dict[str, dict[str, Any]], max_age_minutes: float) -> str:
+    total = len(results)
+    ok_count = sum(1 for payload in results.values() if payload.get("ok"))
+    parts = [
+        "Resolve v2 dogfood fleet status complete"
+        f"; ok_profiles={ok_count}/{total}"
+        f"; freshness_window_minutes={max_age_minutes}"
+    ]
+
+    for profile_name, payload in results.items():
+        status = "ok" if payload.get("ok") else "failed"
+        provider = payload.get("provider") or "n/a"
+        age_minutes = payload.get("age_minutes")
+        age_part = f" age_min={age_minutes}" if age_minutes is not None else " age_min=n/a"
+        parts.append(f"{profile_name}={status} provider={provider}{age_part}")
+
+    return "; ".join(parts)
+
+
+def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict[str, Any]:
+    now_ts = time.time()
+    results = {
+        profile_name: _build_fleet_status_entry(
+            profile_name,
+            _artifact_path_for_profile(profile_name),
+            now_ts=now_ts,
+            max_age_minutes=args.fleet_status_max_age_minutes,
+        )
+        for profile_name in profile_names
+    }
+
+    return {
+        "ok": all(payload.get("ok") for payload in results.values()),
+        "mode": "fleet_status",
+        "profiles": results,
+        "profile_count": len(results),
+        "checked_at": _isoformat_utc(now_ts),
+        "max_artifact_age_minutes": args.fleet_status_max_age_minutes,
+        "summary": _build_fleet_status_summary(results, args.fleet_status_max_age_minutes),
+    }
+
+
 def run_batch(args: argparse.Namespace, profile_names: list[str]) -> dict[str, Any]:
     results: dict[str, dict[str, Any]] = {}
 
@@ -1008,6 +1179,22 @@ def _print_human(payload: dict[str, Any]) -> None:
             print(f"{profile_name}: {status} — {profile_payload.get('summary')}")
         return
 
+    if payload.get("mode") == "fleet_status":
+        print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
+        print()
+        for profile_name, profile_payload in (payload.get("profiles") or {}).items():
+            status = "OK" if profile_payload.get("ok") else "FAILED"
+            age_minutes = profile_payload.get("age_minutes")
+            age_part = f"age_min={age_minutes}" if age_minutes is not None else "age_min=n/a"
+            provider = profile_payload.get("provider") or "n/a"
+            print(
+                f"{profile_name}: {status} — provider={provider} {age_part} "
+                f"artifact={profile_payload.get('artifact_path')}"
+            )
+            if profile_payload.get("blocker"):
+                print(f"  blocker: {profile_payload.get('blocker')}")
+        return
+
     print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
     print()
 
@@ -1091,6 +1278,24 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--list-profiles",
         action="store_true",
         help="Print available built-in dogfood profiles and exit",
+    )
+    parser.add_argument(
+        "--fleet-status",
+        action="store_true",
+        help="Read the latest per-profile dogfood artifacts and summarize fleet health without hitting live APIs",
+    )
+    parser.add_argument(
+        "--fleet-status-profiles",
+        help=(
+            "Profiles to audit from latest artifacts, comma-separated "
+            f"(default: {', '.join(DEFAULT_FLEET_STATUS_PROFILES)})"
+        ),
+    )
+    parser.add_argument(
+        "--fleet-status-max-age-minutes",
+        type=float,
+        default=DEFAULT_FLEET_STATUS_MAX_AGE_MINUTES,
+        help="Maximum artifact age in minutes for --fleet-status mode before a lane is marked stale",
     )
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Rhumb API root URL (without /v2)")
     parser.add_argument(
@@ -1180,44 +1385,48 @@ def main(argv: list[str] | None = None) -> int:
             )
         return 0
 
-    batch_profiles: list[str] = []
-    if args.all_profiles:
-        batch_profiles.extend(sorted(PROFILE_PRESETS))
-    if args.batch_profiles:
-        batch_profiles.extend(
-            [item.strip() for item in args.batch_profiles.split(",") if item.strip()]
-        )
-
-    if batch_profiles:
-        seen: set[str] = set()
-        ordered_profiles: list[str] = []
-        for profile_name in batch_profiles:
-            _get_profile(profile_name)
-            if profile_name not in seen:
-                seen.add(profile_name)
-                ordered_profiles.append(profile_name)
-        payload = run_batch(args, ordered_profiles)
+    if args.fleet_status:
+        payload = run_fleet_status(args, _resolve_fleet_status_profiles(args))
         exit_code = 0 if payload.get("ok") else 1
     else:
-        if args.profile:
-            _get_profile(args.profile)
-            args = _apply_profile_defaults(args, args.profile)
-        try:
-            payload = run_flow(args)
-            exit_code = 0
-        except FlowError as exc:
-            payload = {
-                "ok": False,
-                "summary": str(exc),
-                **exc.state,
-            }
-            exit_code = 1
-        except Exception as exc:  # pragma: no cover - defensive CLI fallback
-            payload = {
-                "ok": False,
-                "summary": str(exc),
-            }
-            exit_code = 1
+        batch_profiles: list[str] = []
+        if args.all_profiles:
+            batch_profiles.extend(sorted(PROFILE_PRESETS))
+        if args.batch_profiles:
+            batch_profiles.extend(
+                [item.strip() for item in args.batch_profiles.split(",") if item.strip()]
+            )
+
+        if batch_profiles:
+            seen: set[str] = set()
+            ordered_profiles: list[str] = []
+            for profile_name in batch_profiles:
+                _get_profile(profile_name)
+                if profile_name not in seen:
+                    seen.add(profile_name)
+                    ordered_profiles.append(profile_name)
+            payload = run_batch(args, ordered_profiles)
+            exit_code = 0 if payload.get("ok") else 1
+        else:
+            if args.profile:
+                _get_profile(args.profile)
+                args = _apply_profile_defaults(args, args.profile)
+            try:
+                payload = run_flow(args)
+                exit_code = 0
+            except FlowError as exc:
+                payload = {
+                    "ok": False,
+                    "summary": str(exc),
+                    **exc.state,
+                }
+                exit_code = 1
+            except Exception as exc:  # pragma: no cover - defensive CLI fallback
+                payload = {
+                    "ok": False,
+                    "summary": str(exc),
+                }
+                exit_code = 1
 
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
