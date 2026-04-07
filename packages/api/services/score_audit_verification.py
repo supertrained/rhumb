@@ -10,6 +10,7 @@ AUD-3 follow-on:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from typing import Any
 
@@ -65,6 +66,20 @@ def _parse_optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _parse_optional_timestamp(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+    return None
 
 
 def _verification_policy_metadata() -> dict[str, Any]:
@@ -200,4 +215,111 @@ def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
         "quarantine_decision": "none",
         "verification_method": "key_version_only_surface",
         "is_anchor_eligible": True,
+    }
+
+
+def _score_audit_report_row(row: Any) -> dict[str, Any]:
+    verification = describe_score_audit_entry_verification(row)
+    return {
+        "entry_id": verification.get("entry_id") or _field(row, "entry_id"),
+        "service_slug": _field(row, "service_slug"),
+        "created_at": _field(row, "created_at"),
+        "key_version": _parse_optional_int(_field(row, "key_version")),
+        "verification_status": verification.get("verification_status"),
+        "verification_method": verification.get("verification_method"),
+        "quarantine_decision": verification.get("quarantine_decision"),
+        "reason": verification.get("reason"),
+        "forensic_note": verification.get("forensic_note"),
+        "is_anchor_eligible": bool(verification.get("is_anchor_eligible")),
+    }
+
+
+def build_score_audit_verification_report(rows: list[Any]) -> dict[str, Any]:
+    """Summarize score-audit-chain verification truth across a full row set.
+
+    The report is intentionally honest about three states:
+    - replay-verified rows
+    - legacy rows that are only anchor-eligible via key-version semantics
+    - quarantined / unattributed rows that cannot qualify as the verified head
+
+    Rows are ordered oldest -> newest by ``created_at`` when possible, with
+    input order preserved for ties or unparsable timestamps.
+    """
+
+    parsed_rows: list[dict[str, Any]] = [row for row in rows if isinstance(row, dict)]
+    ordered_rows = sorted(
+        enumerate(parsed_rows),
+        key=lambda item: (
+            _parse_optional_timestamp(item[1].get("created_at")) or datetime.min.replace(tzinfo=timezone.utc),
+            item[0],
+        ),
+    )
+    report_rows = [_score_audit_report_row(row) for _, row in ordered_rows]
+
+    status_counts: dict[str, int] = {}
+    verification_method_counts: dict[str, int] = {}
+    anchor_eligible_rows = 0
+    replay_verified_rows = 0
+    key_version_only_rows = 0
+    latest_anchor_eligible_index: int | None = None
+
+    for index, row in enumerate(report_rows):
+        status = str(row.get("verification_status") or "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+        method = row.get("verification_method")
+        if method:
+            method_key = str(method)
+            verification_method_counts[method_key] = verification_method_counts.get(method_key, 0) + 1
+            if method_key in {"stored_canonical_payload", "reconstructed_from_row_fields"}:
+                replay_verified_rows += 1
+            elif method_key == "key_version_only_surface":
+                key_version_only_rows += 1
+
+        if row.get("is_anchor_eligible"):
+            anchor_eligible_rows += 1
+            latest_anchor_eligible_index = index
+
+    latest_observed = report_rows[-1] if report_rows else None
+    latest_anchor_eligible = (
+        report_rows[latest_anchor_eligible_index]
+        if latest_anchor_eligible_index is not None and report_rows
+        else None
+    )
+
+    quarantined_tail_rows = (
+        report_rows[latest_anchor_eligible_index + 1 :]
+        if latest_anchor_eligible_index is not None
+        else report_rows
+    )
+    quarantined_tail_entry_ids = [
+        str(row["entry_id"])
+        for row in quarantined_tail_rows
+        if row.get("entry_id") and not row.get("is_anchor_eligible")
+    ]
+
+    head_selection_mode = "none"
+    if latest_observed is not None:
+        head_selection_mode = (
+            "latest_head"
+            if latest_observed.get("is_anchor_eligible")
+            else "latest_verified_head"
+            if latest_anchor_eligible is not None
+            else "none"
+        )
+
+    return {
+        **_verification_policy_metadata(),
+        "total_rows": len(report_rows),
+        "anchor_eligible_rows": anchor_eligible_rows,
+        "replay_verified_rows": replay_verified_rows,
+        "key_version_only_rows": key_version_only_rows,
+        "head_selection_mode": head_selection_mode,
+        "status_counts": status_counts,
+        "verification_method_counts": verification_method_counts,
+        "latest_observed": latest_observed,
+        "latest_anchor_eligible": latest_anchor_eligible,
+        "quarantined_tail_count": len(quarantined_tail_entry_ids),
+        "quarantined_tail_entry_ids": quarantined_tail_entry_ids,
+        "rows": report_rows,
     }

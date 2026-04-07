@@ -12,6 +12,7 @@ from services.score_audit_verification import (
     LEGACY_SCORE_AUDIT_FORENSIC_NOTE_REFERENCE,
     SCORE_AUDIT_VERIFICATION_POLICY_REFERENCE,
     SCORE_AUDIT_VERIFICATION_POLICY_VERSION,
+    build_score_audit_verification_report,
     describe_score_audit_entry_verification,
 )
 
@@ -118,6 +119,84 @@ def test_describe_score_audit_entry_verification_blocks_payload_mismatch() -> No
     assert result["verification_status"] == "unverifiable_payload_mismatch"
     assert result["verification_method"] == "stored_canonical_payload"
     assert result["quarantine_decision"] == "exclude_from_verified_head"
+
+
+def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> None:
+    prev_hash = "ab" * 32
+    replay_payload = build_score_audit_payload(
+        {
+            "entry_id": "saud_replay_verified",
+            "service_slug": "stripe",
+            "old_score": 8.1,
+            "new_score": 8.2,
+            "change_reason": "recalculation",
+            "created_at": "2026-04-03T19:28:03.601436+00:00",
+        }
+    )
+    replay_row = {
+        "entry_id": "saud_replay_verified",
+        "service_slug": "stripe",
+        "created_at": "2026-04-03T19:28:03.601436+00:00",
+        "prev_hash": prev_hash,
+        "chain_hash": compute_chain_hmac(prev_hash, replay_payload, key_version=1),
+        "payload_canonical_json": canonicalize_payload(replay_payload),
+        "key_version": 1,
+    }
+    key_version_only_row = {
+        "entry_id": "saud_key_version_only",
+        "service_slug": "stripe",
+        "created_at": "2026-04-03T19:29:03.601436+00:00",
+        "key_version": 1,
+    }
+    known_quarantine_row = {
+        "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+        "service_slug": "stripe",
+        "created_at": "2026-04-03T19:30:35.190409+00:00",
+        "key_version": None,
+    }
+
+    report = build_score_audit_verification_report(
+        [known_quarantine_row, key_version_only_row, replay_row]
+    )
+
+    assert report["total_rows"] == 3
+    assert report["anchor_eligible_rows"] == 2
+    assert report["replay_verified_rows"] == 1
+    assert report["key_version_only_rows"] == 1
+    assert report["head_selection_mode"] == "latest_verified_head"
+    assert report["status_counts"] == {"verified": 2, "unverifiable_legacy": 1}
+    assert report["verification_method_counts"] == {
+        "stored_canonical_payload": 1,
+        "key_version_only_surface": 1,
+    }
+    assert report["latest_observed"]["entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
+    assert report["latest_observed"]["verification_status"] == "unverifiable_legacy"
+    assert report["latest_anchor_eligible"]["entry_id"] == "saud_key_version_only"
+    assert report["latest_anchor_eligible"]["verification_method"] == "key_version_only_surface"
+    assert report["quarantined_tail_count"] == 1
+    assert report["quarantined_tail_entry_ids"] == ["saud_5565e543fcc248dbbe515e38103ac518"]
+    assert [row["entry_id"] for row in report["rows"]] == [
+        "saud_replay_verified",
+        "saud_key_version_only",
+        "saud_5565e543fcc248dbbe515e38103ac518",
+    ]
+
+
+def test_build_score_audit_verification_report_handles_empty_input() -> None:
+    report = build_score_audit_verification_report([])
+
+    assert report["total_rows"] == 0
+    assert report["anchor_eligible_rows"] == 0
+    assert report["replay_verified_rows"] == 0
+    assert report["key_version_only_rows"] == 0
+    assert report["head_selection_mode"] == "none"
+    assert report["status_counts"] == {}
+    assert report["verification_method_counts"] == {}
+    assert report["latest_observed"] is None
+    assert report["latest_anchor_eligible"] is None
+    assert report["quarantined_tail_count"] == 0
+    assert report["quarantined_tail_entry_ids"] == []
+    assert report["rows"] == []
 
 
 def test_score_audit_verification_references_docs_in_product_repo() -> None:

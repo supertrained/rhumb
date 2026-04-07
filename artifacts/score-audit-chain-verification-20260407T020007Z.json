@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0.0",
+  "report_type": "score_audit_chain_verification",
+  "generated_at": "2026-04-07T02:00:07.642150+00:00",
+  "provenance": {
+    "system": "rhumb",
+    "operator": "tomstudio",
+    "reason": "score_audit_chain_verification_snapshot",
+    "note": "Full-table score_audit_chain verification snapshot under the current AUD-3 verification policy. Replay-verifiable rows, legacy key-version-only rows, and quarantined tails are all surfaced explicitly."
+  },
+  "report": {
+    "verification_policy_version": "2026-04-06",
+    "verification_policy_reference": "docs/specs/AUD-3-SCORE-AUDIT-QUARANTINE-POLICY-2026-04-06.md",
+    "total_rows": 2,
+    "anchor_eligible_rows": 1,
+    "replay_verified_rows": 1,
+    "key_version_only_rows": 0,
+    "head_selection_mode": "latest_verified_head",
+    "status_counts": {
+      "verified": 1,
+      "unverifiable_legacy": 1
+    },
+    "verification_method_counts": {
+      "reconstructed_from_row_fields": 1
+    },
+    "latest_observed": {
+      "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+      "service_slug": "stripe",
+      "created_at": "2026-04-03T19:30:35.190409+00:00",
+      "key_version": null,
+      "verification_status": "unverifiable_legacy",
+      "verification_method": null,
+      "quarantine_decision": "exclude_from_verified_head",
+      "reason": "Legacy reconstruction failure: forensic verification on 2026-04-04 could not reproduce this row from the preserved payload surface and preserved keyring under the current verifier.",
+      "forensic_note": "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md",
+      "is_anchor_eligible": false
+    },
+    "latest_anchor_eligible": {
+      "entry_id": "saud_0d07fcfcbd464b4fb45a6ef885aa49d1",
+      "service_slug": "stripe",
+      "created_at": "2026-04-03T19:28:03.601436+00:00",
+      "key_version": 0,
+      "verification_status": "verified",
+      "verification_method": "reconstructed_from_row_fields",
+      "quarantine_decision": "none",
+      "reason": "Row cryptographically replays under the preserved signing key and payload surface.",
+      "forensic_note": null,
+      "is_anchor_eligible": true
+    },
+    "quarantined_tail_count": 1,
+    "quarantined_tail_entry_ids": [
+      "saud_5565e543fcc248dbbe515e38103ac518"
+    ],
+    "rows": [
+      {
+        "entry_id": "saud_0d07fcfcbd464b4fb45a6ef885aa49d1",
+        "service_slug": "stripe",
+        "created_at": "2026-04-03T19:28:03.601436+00:00",
+        "key_version": 0,
+        "verification_status": "verified",
+        "verification_method": "reconstructed_from_row_fields",
+        "quarantine_decision": "none",
+        "reason": "Row cryptographically replays under the preserved signing key and payload surface.",
+        "forensic_note": null,
+        "is_anchor_eligible": true
+      },
+      {
+        "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
+        "service_slug": "stripe",
+        "created_at": "2026-04-03T19:30:35.190409+00:00",
+        "key_version": null,
+        "verification_status": "unverifiable_legacy",
+        "verification_method": null,
+        "quarantine_decision": "exclude_from_verified_head",
+        "reason": "Legacy reconstruction failure: forensic verification on 2026-04-04 could not reproduce this row from the preserved payload surface and preserved keyring under the current verifier.",
+        "forensic_note": "docs/specs/AUD-3-LEGACY-SCORE-AUDIT-FORENSIC-NOTE-2026-04-04.md",
+        "is_anchor_eligible": false
+      }
+    ]
+  }
+}
