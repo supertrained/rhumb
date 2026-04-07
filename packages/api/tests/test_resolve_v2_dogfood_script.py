@@ -221,6 +221,7 @@ def test_provision_api_key_via_admin_creates_agent_and_grants_access():
         "organization_id": "org_verify",
         "agent_name": "Verifier Agent",
         "service": "brave-search",
+        "list_attempts": 1,
         "mode": "created",
         "agent_id": "agent_123",
         "service_access": "granted",
@@ -255,10 +256,49 @@ def test_provision_api_key_via_admin_rotates_existing_agent_and_tolerates_existi
         "organization_id": "org_verify",
         "agent_name": "Verifier Agent",
         "service": "brave-search",
+        "list_attempts": 1,
         "mode": "rotated",
         "agent_id": "agent_existing",
         "service_access": "already_granted",
     }
+
+
+def test_provision_api_key_via_admin_retries_transient_list_failure_once():
+    args = resolve_v2_dogfood.argparse.Namespace(
+        base_url="https://api.rhumb.dev",
+        admin_key_env="RHUMB_ADMIN_SECRET",
+        bootstrap_org_id="org_verify",
+        bootstrap_agent_name="Verifier Agent",
+        bootstrap_service="brave-search",
+        timeout=30.0,
+    )
+
+    responses = iter([
+        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+    ])
+
+    with (
+        patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
+        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+        patch.object(resolve_v2_dogfood.time, "sleep") as mock_sleep,
+    ):
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+
+    assert api_key == "rhumb_rotated_key"
+    assert metadata == {
+        "organization_id": "org_verify",
+        "agent_name": "Verifier Agent",
+        "service": "brave-search",
+        "list_attempts": 2,
+        "mode": "rotated",
+        "agent_id": "agent_existing",
+        "service_access": "already_granted",
+    }
+    assert mock_http.call_count == 4
+    mock_sleep.assert_called_once_with(0.5)
 
 
 def test_provision_api_key_via_admin_surfaces_http_status_and_detail_on_list_failure():

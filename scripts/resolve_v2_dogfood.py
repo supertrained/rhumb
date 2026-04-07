@@ -68,6 +68,8 @@ DEFAULT_PARAMETERS_JSON = json.dumps(DEFAULT_PARAMETERS)
 DEFAULT_INTERFACE = "dogfood"
 DEFAULT_MAX_READ_LIMIT = 10
 DEFAULT_PROFILE = "pedro"
+ADMIN_BOOTSTRAP_LIST_RETRY_DELAYS = (0.5, 1.0)
+ADMIN_BOOTSTRAP_TRANSIENT_STATUSES = {500, 502, 503, 504}
 
 PROFILE_PRESETS: dict[str, dict[str, Any]] = {
     "pedro": {
@@ -236,6 +238,64 @@ def _get_admin_key(env_name: str) -> str:
     )
 
 
+def _is_transient_admin_bootstrap_failure(response: dict[str, Any]) -> bool:
+    status = int(response.get("status") or 0)
+    if status in ADMIN_BOOTSTRAP_TRANSIENT_STATUSES:
+        return True
+
+    detail = _extract_error_detail(response).lower()
+    return any(
+        marker in detail
+        for marker in (
+            "unexpected error occurred",
+            "timeout",
+            "timed out",
+            "temporarily unavailable",
+            "connection",
+            "transport",
+        )
+    )
+
+
+def _list_agents_via_admin_with_retry(
+    *,
+    root: str,
+    org_id: str,
+    headers: dict[str, str],
+    timeout: float,
+) -> tuple[dict[str, Any], int]:
+    url = (
+        f"{root}/v1/admin/agents?organization_id={quote(org_id, safe='')}&status=active"
+    )
+    delays = list(ADMIN_BOOTSTRAP_LIST_RETRY_DELAYS)
+    attempts = len(delays) + 1
+
+    for attempt in range(1, attempts + 1):
+        try:
+            response = _http_json(
+                "GET",
+                url,
+                headers=headers,
+                timeout=timeout,
+            )
+        except RuntimeError:
+            if attempt >= attempts:
+                raise
+            time.sleep(delays[attempt - 1])
+            continue
+
+        agents = response.get("json")
+        if response.get("status") == 200 and isinstance(agents, list):
+            return response, attempt
+
+        if attempt >= attempts or not _is_transient_admin_bootstrap_failure(response):
+            return response, attempt
+
+        time.sleep(delays[attempt - 1])
+
+    raise RuntimeError("Admin agent list retry loop exited unexpectedly")
+
+
 def provision_api_key_via_admin(
     args: argparse.Namespace,
     *,
@@ -249,9 +309,9 @@ def provision_api_key_via_admin(
     service = args.bootstrap_service or provider
     headers = {"X-Rhumb-Admin-Key": admin_key}
 
-    list_resp = _http_json(
-        "GET",
-        f"{root}/v1/admin/agents?organization_id={quote(org_id, safe='')}&status=active",
+    list_resp, list_attempts = _list_agents_via_admin_with_retry(
+        root=root,
+        org_id=org_id,
         headers=headers,
         timeout=args.timeout,
     )
@@ -270,6 +330,7 @@ def provision_api_key_via_admin(
         "organization_id": org_id,
         "agent_name": agent_name,
         "service": service,
+        "list_attempts": list_attempts,
     }
 
     if existing_agent is None:
