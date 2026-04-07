@@ -57,6 +57,7 @@ A healthy run should show:
 - Run the harness under that agent identity
 - Log results into runtime reviews / backed evidence
 - For unattended v2 automation, prefer `scripts/resolve_v2_dogfood.py --bootstrap-via-admin` so the loop can create or rotate its verifier key instead of depending on a stale long-lived dogfood key
+- For recurring per-profile proof jobs, add `--summary-only` so cron history stays to one proof line while the JSON artifact remains the real evidence surface
 - For recurring non-Pedro lanes already writing latest artifacts, use `python3 scripts/resolve_v2_dogfood.py --fleet-status --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json` to audit Keel/Helm/Beacon freshness and chain health without generating another live call
 - Expand from `search.query` to other callable capabilities only after the loop is clean
 

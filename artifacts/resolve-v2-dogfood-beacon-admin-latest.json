@@ -1,0 +1,2188 @@
+{
+  "audit": {
+    "events": {
+      "data": {
+        "events": [
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "d161a6003665f7450ac71bc4d42d96dde07c468382ca268ccb77ee1d03675607",
+            "chain_sequence": 6,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-beacon-v2-l1",
+              "latency_ms": 526.9,
+              "upstream_status": 200
+            },
+            "event_id": "aud_d203583b2b8948b3",
+            "event_type": "execution.completed",
+            "execution_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T05:14:24.002644+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "b50bd26faab20eaab5d9ba4a0bc58a3954263f663e2a0bcb95d0db67dc0f33c4",
+            "chain_sequence": 5,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-beacon-v2",
+              "latency_ms": 884.2,
+              "upstream_status": 200
+            },
+            "event_id": "aud_ae0838e609d142e1",
+            "event_type": "execution.completed",
+            "execution_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T05:14:14.400599+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "612e983c5d4d822f7c1a0c824f83dfe2fdb106dbbc5c9c7033233049deef578a",
+            "chain_sequence": 4,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2-l1",
+              "latency_ms": 522.0,
+              "upstream_status": 200
+            },
+            "event_id": "aud_3044f0f978704742",
+            "event_type": "execution.completed",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:57:51.018122+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "5e45fdc11249f87047a0f87eab93bd708625a78c62ec98059514ba2325a2fd1b",
+            "chain_sequence": 3,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2",
+              "latency_ms": 983.2,
+              "upstream_status": 200
+            },
+            "event_id": "aud_f76ab4aae0aa4306",
+            "event_type": "execution.completed",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:57:41.417361+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "cbcbf8db31033d60e7dcf63b16343b3465844054976229cf20f9f7550c1a28e8",
+            "chain_sequence": 2,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 512.9,
+              "upstream_status": 200
+            },
+            "event_id": "aud_245545b178c548c9",
+            "event_type": "execution.completed",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:50:51.926319+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "301244410de3eae5b05c6885e2cce49c09b0ab84b3211585b61a72a70a58415f",
+            "chain_sequence": 1,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 570.5,
+              "upstream_status": 200
+            },
+            "event_id": "aud_f6315c58128944b7",
+            "event_type": "execution.completed",
+            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:50:41.983945+00:00"
+          }
+        ],
+        "pagination": {
+          "has_more": false,
+          "limit": 10,
+          "offset": 0,
+          "total": 6
+        }
+      }
+    },
+    "status": {
+      "data": {
+        "chain_verified": true,
+        "earliest_event": "2026-04-07T04:50:41.983945+00:00",
+        "events_by_category": {
+          "execution": 6
+        },
+        "events_by_severity": {
+          "info": 6
+        },
+        "events_by_type": {
+          "execution.completed": 6
+        },
+        "latest_event": "2026-04-07T05:14:24.002644+00:00",
+        "latest_hash": "d161a6003665f7450ac71bc4d42d96dde07c468382ca268ccb77ee1d03675607",
+        "latest_sequence": 6,
+        "total_events": 6
+      }
+    }
+  },
+  "billing": {
+    "events": {
+      "data": {
+        "count": 10,
+        "events": [
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "85b3daebc34a11ae034f64352bc556427bcf6bc48306b0bb3f4c127c2ccdc409",
+            "event_id": "bevt_03a1571812494713",
+            "event_type": "execution.charged",
+            "execution_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_b7a2534a97a54e918729a253",
+            "timestamp": "2026-04-07T05:14:25.017598+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "5fdef6e03ad2b7c11dad7f1fbd3c7dbc6a93e18162fcece9ebcc5ee31d9b5732",
+            "event_id": "bevt_3a56e49340bc4747",
+            "event_type": "execution.charged",
+            "execution_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-beacon-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T05:14:23.999504+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "779d0d5d992d5ad83b8d691819882849bb5c780749fb807cb1cbbd0be91a938d",
+            "event_id": "bevt_23308736be22480b",
+            "event_type": "execution.charged",
+            "execution_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_3409cfa4bbd24e7e9e59b341",
+            "timestamp": "2026-04-07T05:14:15.411808+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "cea2326ca18cd613e77a85d860f1f4b46a96c50421bc9683f1c1dfccab72bbdc",
+            "event_id": "bevt_ba4ee5b0c3604084",
+            "event_type": "execution.charged",
+            "execution_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-beacon-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T05:14:14.397814+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "8e08b0374063d4dcbede914e57c41bea9b845ecab0f8fb25bfb18d867f00fcde",
+            "event_id": "bevt_d055ef5ea44243b2",
+            "event_type": "execution.charged",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_e41012ac8e984b5eadfea150",
+            "timestamp": "2026-04-07T04:57:52.018860+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "ed3ba9f5a6fc40d6903f8a285c0af191967317626334253b5b28530e83584db5",
+            "event_id": "bevt_0763191fca254fbd",
+            "event_type": "execution.charged",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:57:51.014110+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "14a0c19ccfce3ad294ce945dfb590d2315e8093d4c4f1977d4d274b9edae9810",
+            "event_id": "bevt_d18c472786284fb3",
+            "event_type": "execution.charged",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+            "timestamp": "2026-04-07T04:57:42.472905+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "feeb99bd9fc14768c9acb8a6b6e091324c5a34f36a9ffe62ca27e2649b3ce48d",
+            "event_id": "bevt_b24b9abc51a84fb8",
+            "event_type": "execution.charged",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:57:41.413882+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "06ac9de8c693cf52d0bc0101e7d495bc3d5744988dbb21eaccb80aad299e57b0",
+            "event_id": "bevt_80bdb1d60eb543b9",
+            "event_type": "execution.charged",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_8fa9039f92cc486288bad4ca",
+            "timestamp": "2026-04-07T04:50:52.899818+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "f61ac3809d69fa518a5debfb33cda42ca850530d700f327fc87480ccb04bf0fc",
+            "event_id": "bevt_680c70f502cf49df",
+            "event_type": "execution.charged",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:50:51.922229+00:00"
+          }
+        ],
+        "org_id": "org_aud3_verifier"
+      }
+    },
+    "stream_status": {
+      "data": {
+        "chain_verified": true,
+        "event_types": [
+          "execution.charged",
+          "execution.refunded",
+          "execution.failed_no_charge",
+          "credit.purchased",
+          "credit.expired",
+          "credit.adjusted",
+          "x402.payment_received",
+          "x402.settlement_completed",
+          "x402.settlement_failed",
+          "wallet.topup_completed",
+          "wallet.topup_failed",
+          "budget.threshold_warning",
+          "budget.limit_reached",
+          "budget.reset",
+          "auto_reload.triggered",
+          "auto_reload.failed"
+        ],
+        "latest_chain_hash": "85b3daebc34a11ae034f64352bc556427bcf6bc48306b0bb3f4c127c2ccdc409",
+        "stream_length": 12,
+        "structural_guarantees": [
+          "All billing events are immutable and chain-hashed",
+          "Event stream is append-only with SHA-256 chain integrity",
+          "Events capture full execution context (provider, capability, receipt)",
+          "Summaries aggregate across providers and capabilities"
+        ]
+      }
+    },
+    "summary": {
+      "data": {
+        "by_capability": {
+          "search.query": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "by_provider": {
+          "brave-search": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "credit_purchase_count": 0,
+        "events_count": 12,
+        "execution_count": 12,
+        "net_usd": 0.0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "total_charged_usd": 0.0,
+        "total_charged_usd_cents": 0,
+        "total_credited_usd": 0.0,
+        "total_credited_usd_cents": 0,
+        "x402_payment_count": 0
+      }
+    }
+  },
+  "capabilities": {
+    "_rhumb_v2": {
+      "api_version": "v2-alpha",
+      "compat_mode": "v1-translate",
+      "layer": 2
+    },
+    "items": [
+      {
+        "action": "report",
+        "description": "Generate a formatted accessibility audit report for a URL",
+        "domain": "accessibility",
+        "id": "accessibility.report",
+        "input_hint": "optional: parameters, filters",
+        "outcome": "Generated report",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "scan",
+        "description": "Run an automated accessibility audit against a URL or HTML snippet",
+        "domain": "accessibility",
+        "id": "accessibility.scan",
+        "input_hint": "target URL or content",
+        "outcome": "Scan results with findings",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "autocomplete",
+        "description": "Suggest address completions as a user types",
+        "domain": "address_verification",
+        "id": "address_verification.autocomplete",
+        "input_hint": "partial input text",
+        "outcome": "Completion suggestions",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.0,
+          "slug": "google-places",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "verify",
+        "description": "Validate and standardize a postal address",
+        "domain": "address_verification",
+        "id": "address_verification.verify",
+        "input_hint": "data or identity to verify",
+        "outcome": "Verification result (verified/not)",
+        "provider_count": 4,
+        "top_provider": {
+          "an_score": 8.1,
+          "slug": "lob",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "create_link",
+        "description": "Generate a trackable affiliate referral link for a partner",
+        "domain": "affiliate",
+        "id": "affiliate.create_link",
+        "input_hint": "target URL, optional: campaign",
+        "outcome": "Tracking link URL",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "get_commissions",
+        "description": "List pending or paid commission payouts for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_commissions",
+        "input_hint": "optional: date_range",
+        "outcome": "Commission records",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_stats",
+        "description": "Retrieve clicks, conversions, and revenue attribution for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_stats",
+        "input_hint": "optional: date_range, filters",
+        "outcome": "Statistics and metrics",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_status",
+        "description": "Check the status or output of a running agent",
+        "domain": "agent",
+        "id": "agent.get_status",
+        "input_hint": "sandbox_id",
+        "outcome": "Sandbox status including running state, resource usage, uptime",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "send_message",
+        "description": "Send a message or instruction to an active agent",
+        "domain": "agent",
+        "id": "agent.send_message",
+        "input_hint": "agent parameters",
+        "outcome": "Send a message or instruction to an active agent",
+        "provider_count": 2,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "spawn",
+        "description": "Create and start a new autonomous agent run",
+        "domain": "agent",
+        "id": "agent.spawn",
+        "input_hint": "template?, timeout_seconds?",
+        "outcome": "Sandbox ID with connection URL and status",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      }
+    ],
+    "limit": 10,
+    "offset": 0,
+    "total": 415
+  },
+  "config": {
+    "api_key_env": "RHUMB_DOGFOOD_API_KEY",
+    "api_key_preview": "rhumb_c10490\u20268bce",
+    "base_url": "https://api.rhumb.dev",
+    "bootstrap": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "agent_name": "Pedro AUD-3 Verifier",
+      "list_attempts": 1,
+      "mode": "rotated",
+      "organization_id": "org_aud3_verifier",
+      "service": "brave-search",
+      "service_access": "already_granted"
+    },
+    "capability": "search.query",
+    "credential_mode": "rhumb_managed",
+    "interface": "dogfood-beacon",
+    "policy_max_cost_usd": null,
+    "policy_provider_preference": null,
+    "profile": "beacon",
+    "provider": "brave-search",
+    "skip_layer1": false,
+    "v2_root": "https://api.rhumb.dev/v2"
+  },
+  "health": {
+    "compat_mode": "v1-translate",
+    "layer": 2,
+    "status": "ok",
+    "version": "2026-03-30"
+  },
+  "layer1": {
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "cost": {
+            "provider_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "credential_mode": "rhumb_managed",
+          "latency": {
+            "overhead_ms": 0.0,
+            "provider_ms": null,
+            "total_ms": 5314.0
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "category": "search",
+            "docs_url": "https://api.search.brave.com/app/#/documentation",
+            "id": "brave-search",
+            "name": "Brave Search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_b7a2534a97a54e918729a253"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "cost": {
+            "markup_floor_usd": 0.0002,
+            "markup_rate": 0.08,
+            "provider_cost_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "explanation_id": "rexp_8eac6f0aa6f3",
+          "latency": {
+            "provider_ms": null,
+            "rhumb_overhead_ms": 0,
+            "total_ms": 5314
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "capability_used": "search.query",
+            "display_name": "Brave Search",
+            "id": "brave-search"
+          },
+          "receipt_id": "rcpt_b7a2534a97a54e918729a253"
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+        "latency_ms": 526.9,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_b7a2534a97a54e918729a253",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 18,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 19,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "best MCP server distribution channels for developers",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "December 23, 2025",
+                "description": "The 6 best MCP servers of 2025 that changed how I approach AI coding. From pulling live documentation into Claude Code and Cursor AI, to managing databases w...",
+                "fetched_content_timestamp": 1775074410,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-12-23T13:08:52",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/kRxdsv1ZY1E/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/ZN6808vttZWXwS4DPfp_mCIU-9ruPg_8zzcvP7EyWSY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9r/Unhkc3YxWlkxRS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The Best MCP Servers of 2025 - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=kRxdsv1ZY1E",
+                "video": {
+                  "creator": "AI LABS",
+                  "duration": "08:11",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "October 20, 2025",
+                "description": "Scott and Wes break down the top-tier MCP servers developers are using right now. From browser automation to debugging superpowers, they explore how these se...",
+                "fetched_content_timestamp": 1774894664,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-10-20T11:00:09",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/5az_4IwTwAE/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/C4ClIKHtUDZouECmVLRE9vYRtmsoBtPwhgXVif8O4lI/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS81/YXpfNEl3VHdBRS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "S-Tier MCP Servers for Developers - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=5az_4IwTwAE",
+                "video": {
+                  "creator": "Syntax",
+                  "duration": "32:56",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "October 7, 2025",
+                "description": "Learn & build with other people in our free community: https://www.skool.com/tech-snackIn this video I break down the 9 MCP Servers that I use on a weekly ba",
+                "fetched_content_timestamp": 1774985832,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-10-07T16:44:35",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2wYO6sdQ9xc/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/AF5AoHQlsCE3uWJ7PVC0S1ahAxAWnGMFeYlwphfKa4I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/d1lPNnNkUTl4Yy9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "9 MCP Servers That'll Make Vibe Coders Cry Tears Of Joy - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2wYO6sdQ9xc",
+                "video": {
+                  "creator": "Sean Kochel",
+                  "duration": "32:06",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "May 15, 2025",
+                "description": "Everyone knows that if you aren\u2019t using an AI coding assistant, you are going to fall behind no matter what you are developing. But what people usually don\u2019t...",
+                "fetched_content_timestamp": 1774870493,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-05-15T00:00:18",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/MBaTuJfICP4/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/NVlQ7Tt6UnwoUm9cqeoIGnSdOO3XcCjn7wLVuL6jxf0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9N/QmFUdUpmSUNQNC9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The 3 MUST Have MCP Servers for Any AI Coding (and How to Use Them) ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=MBaTuJfICP4",
+                "video": {
+                  "creator": "Cole Medin",
+                  "duration": "19:56",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "August 21, 2025",
+                "description": "Work With Me \u2192 https://itsbyrob.in/Gqh_KdHP1XkWeekly AI Coding Tips \u2192 https://itsbyrob.in/nswYxbyFree Prompt Coaching \u2192 https://itsbyrob.in/vxFWHe1\ud83d\udce3 CHECK O",
+                "fetched_content_timestamp": 1775030303,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-21T13:00:28",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/Gqh_KdHP1Xk/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/gkA4hrlyK3pfeOEW3Pgpmiss2k0JOIqBVGLewAtW8wE/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9H/cWhfS2RIUDFYay9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "8 MCP Servers That Make Claude Code 10x Better - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=Gqh_KdHP1Xk",
+                "video": {
+                  "creator": "Robin Ebers",
+                  "duration": "14:26",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "July 24, 2025",
+                "description": "Get all the prompts and frameworks from my videos for free here: https://www.skool.com/tech-snackDiscover the most powerful claude code mcp servers that will",
+                "fetched_content_timestamp": 1775051165,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-07-24T20:34:14",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/sF799nFJONk/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/tzFwYoIwV4sb812aS2yNmPNqD3aYIHOtAtNO_855Ook/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9z/Rjc5OW5GSk9Oay9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "5 Claude Code MCP Servers You Need To Be Using - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=sF799nFJONk",
+                "video": {
+                  "creator": "Sean Kochel",
+                  "duration": "17:09",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "age": "3 days ago",
+                "description": "Most MCP server developers use exactly one distribution channel: <strong>npm</strong>.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/UUpF8I85K--vkQzrhameM7iRPRU5VCTXyWbS4sk6G2g/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNTg5MTcxNDBh/N2U4ODc4MDg0NWQ4/MzU0YWJkNDY3ZWRm/MjUxY2U1YjY5MzJm/YWRlOTI4YjAyZDI1/ZjU0MmJjNi9kZXYu/dG8v",
+                  "hostname": "dev.to",
+                  "netloc": "dev.to",
+                  "path": "\u203a lexwhiting  \u203a your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8",
+                  "scheme": "https"
+                },
+                "page_age": "2026-04-04T11:26:52",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/UUpF8I85K--vkQzrhameM7iRPRU5VCTXyWbS4sk6G2g/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNTg5MTcxNDBh/N2U4ODc4MDg0NWQ4/MzU0YWJkNDY3ZWRm/MjUxY2U1YjY5MzJm/YWRlOTI4YjAyZDI1/ZjU0MmJjNi9kZXYu/dG8v",
+                  "long_name": "dev.to",
+                  "name": "DEV Community",
+                  "url": "https://dev.to/lexwhiting/your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://media2.dev.to/dynamic/image/width=1080,height=1080,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fzzf62aowki8kccz8azxs.png",
+                  "src": "https://imgs.search.brave.com/zJb_0ze0uT2-NRxo9IKXxYZCVIppzptRr1Z7IhZOTKA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9tZWRp/YTIuZGV2LnRvL2R5/bmFtaWMvaW1hZ2Uv/d2lkdGg9MTA4MCxo/ZWlnaHQ9MTA4MCxm/aXQ9Y292ZXIsZ3Jh/dml0eT1hdXRvLGZv/cm1hdD1hdXRvL2h0/dHBzJTNBJTJGJTJG/ZGV2LXRvLXVwbG9h/ZHMuczMuYW1hem9u/YXdzLmNvbSUyRnVw/bG9hZHMlMkZhcnRp/Y2xlcyUyRnp6ZjYy/YW93a2k4a2Njejhh/enhzLnBuZw"
+                },
+                "title": "Your MCP Server Has 10 Distribution Channels You're Not Using - DEV Community",
+                "type": "search_result",
+                "url": "https://dev.to/lexwhiting/your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8"
+              },
+              {
+                "age": "August 11, 2025",
+                "description": "For example, you will be able to send and read messages, and you can discover new channels, etc. GitHub repository: https://github.com/v-3/discordmcp \u00b7 WhatsApp is a really popular messaging app. And it has an impressive API which also has a MCP server you can use. You can use this MCP server to send messages, list messages, search contacts, send files, and a lot of other cool things.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/_pBOn4jryFGOsE6iY2enCq1Bawm4a3EWf3CtwTQ_n_Y/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTM0NGRiOTNk/YTViZTdhYTczYzVh/ZjY3MTQyOTNjNGY3/MWQ2NDQ1Y2JlOWVj/ZDc1MWZhZmNhNGYz/NWEzMjQ4NS9vYm90/LmFpLw",
+                  "hostname": "obot.ai",
+                  "netloc": "obot.ai",
+                  "path": "\u203a blog  \u203a top-15-mcp-servers",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-11T16:20:49",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/_pBOn4jryFGOsE6iY2enCq1Bawm4a3EWf3CtwTQ_n_Y/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTM0NGRiOTNk/YTViZTdhYTczYzVh/ZjY3MTQyOTNjNGY3/MWQ2NDQ1Y2JlOWVj/ZDc1MWZhZmNhNGYz/NWEzMjQ4NS9vYm90/LmFpLw",
+                  "long_name": "obot.ai",
+                  "name": "Obot AI",
+                  "url": "https://obot.ai/blog/top-15-mcp-servers/"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://obot.ai/wp-content/uploads/2025/08/15-of-the-Best-MCP-Servers-1.png",
+                  "src": "https://imgs.search.brave.com/EXZMkuaZPmpcGxdqCEdJn1bt6g45xdSIXwSlTxB2d4c/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vYm90/LmFpL3dwLWNvbnRl/bnQvdXBsb2Fkcy8y/MDI1LzA4LzE1LW9m/LXRoZS1CZXN0LU1D/UC1TZXJ2ZXJzLTEu/cG5n"
+                },
+                "title": "Best MCP Servers: 15 Must-Have Tools for Developers",
+                "type": "search_result",
+                "url": "https://obot.ai/blog/top-15-mcp-servers/"
+              },
+              {
+                "description": "next-devtools-mcp is a MCP server that provides Next.js development tools and utilities for AI coding assistants like Claude and Cursor.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/QXSm0yN0aSuh2XC--uiQ9O4Lz9D08YAPZZBGHqLJVAY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYmNiODZlMTJk/ODM4Mjg0MGVkYWJm/MjMzZDI4ZmZlMGIw/MGFhMTY0MmJhYzVk/MDFmNGRiOWU2ZmY1/ODRiNGZhNC9tY3Bz/ZXJ2ZXJzLm9yZy8",
+                  "hostname": "mcpservers.org",
+                  "netloc": "mcpservers.org",
+                  "path": "",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/QXSm0yN0aSuh2XC--uiQ9O4Lz9D08YAPZZBGHqLJVAY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYmNiODZlMTJk/ODM4Mjg0MGVkYWJm/MjMzZDI4ZmZlMGIw/MGFhMTY0MmJhYzVk/MDFmNGRiOWU2ZmY1/ODRiNGZhNC9tY3Bz/ZXJ2ZXJzLm9yZy8",
+                  "long_name": "mcpservers.org",
+                  "name": "MCP Servers",
+                  "url": "https://mcpservers.org"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://mcpservers.org/api/og",
+                  "src": "https://imgs.search.brave.com/h_L_noJbxRC7vV_sixmjnGbR4_8dZyskRQwQYIYM2o4/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9tY3Bz/ZXJ2ZXJzLm9yZy9h/cGkvb2c"
+                },
+                "title": "Awesome MCP Servers",
+                "type": "search_result",
+                "url": "https://mcpservers.org"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "14310",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 05:14:18 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200069-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "BbOLsuykQiuv8SnQ0_TJvA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775538925",
+        "x-request-id": "e809534c-3f4b-41e7-ad82-d6a980115ed4",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-cost-usd": "0.003240",
+        "x-rhumb-layer": "1",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_b7a2534a97a54e918729a253",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200069-BUR"
+      },
+      "request": {
+        "capability": "search.query",
+        "credential_mode": "rhumb_managed",
+        "idempotency_key": "dogfood-a7139eca831e4e588a89256cec9ef249",
+        "interface": "dogfood-beacon",
+        "parameters": {
+          "numResults": 3,
+          "query": "best MCP server distribution channels for developers"
+        },
+        "policy": {
+          "max_cost_usd": 0.05
+        }
+      }
+    },
+    "provider": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "layer": 1
+      },
+      "an_score": null,
+      "callable": true,
+      "capabilities": [
+        {
+          "capability_id": "search.query",
+          "cost_currency": "USD",
+          "cost_per_call": 0.003,
+          "credential_modes": [
+            "byo",
+            "rhumb_managed"
+          ],
+          "free_tier_calls": 2000
+        }
+      ],
+      "category": "search",
+      "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+      "id": "brave-search",
+      "name": "Brave Search",
+      "pricing": {
+        "description": "provider_cost + max($0.0002, provider_cost \u00d7 0.08)",
+        "markup_floor_usd": 0.0002,
+        "markup_rate": 0.08,
+        "model": "passthrough_plus_markup"
+      },
+      "tier": null
+    },
+    "receipt": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:4b13ea3ee688fe79",
+      "candidates_evaluated": 1,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 398,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T05:14:24.178616+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_25ae1254919a49d1837d9b3c7243da79",
+      "idempotency_key": "dogfood-a7139eca831e4e588a89256cec9ef249",
+      "interface": "dogfood-beacon-v2-l1",
+      "layer": 1,
+      "org_id": "org_aud3_verifier",
+      "previous_receipt_hash": "sha256:194957f98933a0a1506a545c1ea29838cdfb2a4540cdc24321d48c868467d107",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:3ff1dea1291ad7cc30c04ac26ded11722ce5a27fe59da5987517ba0348bd647a",
+      "receipt_id": "rcpt_b7a2534a97a54e918729a253",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:7ac316f5715bd8f452d4141eafb0072300bdc9100415874dfd53c16ffb548c8b",
+      "response_hash": null,
+      "rhumb_fee_usd": 0.00024,
+      "rhumb_overhead_ms": 0,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": 0.00324,
+      "total_latency_ms": 5314,
+      "winner_reason": "agent_pinned_layer1",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "layer2": {
+    "estimate": {
+      "data": {
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "compat_mode": "v1-translate",
+          "layer": 2
+        },
+        "capability_id": "search.query",
+        "circuit_state": "closed",
+        "cost_estimate_usd": 0.003,
+        "credential_mode": "rhumb_managed",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "provider": "brave-search"
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "287",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 05:14:07 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200046-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "h3YswftEShyDCsgxn6XIxQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775538908",
+        "x-request-id": "fa6566be-febe-4eff-8cc5-4d12f241935b",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200046-BUR"
+      }
+    },
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "credential_mode": "rhumb_managed",
+          "layer": 2,
+          "provider": {
+            "an_score": null,
+            "category": null,
+            "docs_url": null,
+            "id": "brave-search",
+            "name": "brave-search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_3409cfa4bbd24e7e9e59b341"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "estimated_cost_usd": 0.003,
+          "explanation_id": "rexp_0547e1578c95",
+          "layer": 2,
+          "policy_applied": true,
+          "policy_candidates": [
+            "algolia",
+            "brave-search",
+            "elasticsearch",
+            "exa",
+            "meilisearch",
+            "tavily",
+            "typesense"
+          ],
+          "policy_selected_reason": "policy_preference_match",
+          "policy_source": {
+            "has_account_policy": false,
+            "inline_fields": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "organization_fields": [],
+            "scope": "organization"
+          },
+          "policy_summary": {
+            "allow_only": [],
+            "candidate_providers": [
+              "algolia",
+              "brave-search",
+              "elasticsearch",
+              "exa",
+              "meilisearch",
+              "tavily",
+              "typesense"
+            ],
+            "controls": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "max_cost_usd": 0.05,
+            "pin": null,
+            "provider_deny": [],
+            "provider_preference": [
+              "brave-search"
+            ]
+          },
+          "receipt_id": "rcpt_3409cfa4bbd24e7e9e59b341",
+          "selected_provider": "brave-search",
+          "translated_from": {
+            "idempotency_header_used": false,
+            "parameters": true,
+            "policy_allow_only": false,
+            "policy_pin": false,
+            "policy_provider_deny": false,
+            "policy_provider_preference": true
+          }
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+        "latency_ms": 884.2,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_3409cfa4bbd24e7e9e59b341",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 18,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 19,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "best MCP server distribution channels for developers",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "December 23, 2025",
+                "description": "The 6 best MCP servers of 2025 that changed how I approach AI coding. From pulling live documentation into Claude Code and Cursor AI, to managing databases w...",
+                "fetched_content_timestamp": 1775074410,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-12-23T13:08:52",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/kRxdsv1ZY1E/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/ZN6808vttZWXwS4DPfp_mCIU-9ruPg_8zzcvP7EyWSY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9r/Unhkc3YxWlkxRS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The Best MCP Servers of 2025 - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=kRxdsv1ZY1E",
+                "video": {
+                  "creator": "AI LABS",
+                  "duration": "08:11",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "October 20, 2025",
+                "description": "Scott and Wes break down the top-tier MCP servers developers are using right now. From browser automation to debugging superpowers, they explore how these se...",
+                "fetched_content_timestamp": 1774894664,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-10-20T11:00:09",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/5az_4IwTwAE/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/C4ClIKHtUDZouECmVLRE9vYRtmsoBtPwhgXVif8O4lI/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS81/YXpfNEl3VHdBRS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "S-Tier MCP Servers for Developers - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=5az_4IwTwAE",
+                "video": {
+                  "creator": "Syntax",
+                  "duration": "32:56",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "October 7, 2025",
+                "description": "Learn & build with other people in our free community: https://www.skool.com/tech-snackIn this video I break down the 9 MCP Servers that I use on a weekly ba",
+                "fetched_content_timestamp": 1774985832,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-10-07T16:44:35",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2wYO6sdQ9xc/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/AF5AoHQlsCE3uWJ7PVC0S1ahAxAWnGMFeYlwphfKa4I/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/d1lPNnNkUTl4Yy9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "9 MCP Servers That'll Make Vibe Coders Cry Tears Of Joy - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2wYO6sdQ9xc",
+                "video": {
+                  "creator": "Sean Kochel",
+                  "duration": "32:06",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "May 15, 2025",
+                "description": "Everyone knows that if you aren\u2019t using an AI coding assistant, you are going to fall behind no matter what you are developing. But what people usually don\u2019t...",
+                "fetched_content_timestamp": 1774870493,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-05-15T00:00:18",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/MBaTuJfICP4/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/NVlQ7Tt6UnwoUm9cqeoIGnSdOO3XcCjn7wLVuL6jxf0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9N/QmFUdUpmSUNQNC9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "The 3 MUST Have MCP Servers for Any AI Coding (and How to Use Them) ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=MBaTuJfICP4",
+                "video": {
+                  "creator": "Cole Medin",
+                  "duration": "19:56",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "August 21, 2025",
+                "description": "Work With Me \u2192 https://itsbyrob.in/Gqh_KdHP1XkWeekly AI Coding Tips \u2192 https://itsbyrob.in/nswYxbyFree Prompt Coaching \u2192 https://itsbyrob.in/vxFWHe1\ud83d\udce3 CHECK O",
+                "fetched_content_timestamp": 1775030303,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-21T13:00:28",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/Gqh_KdHP1Xk/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/gkA4hrlyK3pfeOEW3Pgpmiss2k0JOIqBVGLewAtW8wE/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9H/cWhfS2RIUDFYay9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "8 MCP Servers That Make Claude Code 10x Better - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=Gqh_KdHP1Xk",
+                "video": {
+                  "creator": "Robin Ebers",
+                  "duration": "14:26",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "July 24, 2025",
+                "description": "Get all the prompts and frameworks from my videos for free here: https://www.skool.com/tech-snackDiscover the most powerful claude code mcp servers that will",
+                "fetched_content_timestamp": 1775051165,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-07-24T20:34:14",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/sF799nFJONk/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/tzFwYoIwV4sb812aS2yNmPNqD3aYIHOtAtNO_855Ook/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9z/Rjc5OW5GSk9Oay9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "5 Claude Code MCP Servers You Need To Be Using - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=sF799nFJONk",
+                "video": {
+                  "creator": "Sean Kochel",
+                  "duration": "17:09",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "age": "3 days ago",
+                "description": "Most MCP server developers use exactly one distribution channel: <strong>npm</strong>.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/UUpF8I85K--vkQzrhameM7iRPRU5VCTXyWbS4sk6G2g/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNTg5MTcxNDBh/N2U4ODc4MDg0NWQ4/MzU0YWJkNDY3ZWRm/MjUxY2U1YjY5MzJm/YWRlOTI4YjAyZDI1/ZjU0MmJjNi9kZXYu/dG8v",
+                  "hostname": "dev.to",
+                  "netloc": "dev.to",
+                  "path": "\u203a lexwhiting  \u203a your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8",
+                  "scheme": "https"
+                },
+                "page_age": "2026-04-04T11:26:52",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/UUpF8I85K--vkQzrhameM7iRPRU5VCTXyWbS4sk6G2g/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNTg5MTcxNDBh/N2U4ODc4MDg0NWQ4/MzU0YWJkNDY3ZWRm/MjUxY2U1YjY5MzJm/YWRlOTI4YjAyZDI1/ZjU0MmJjNi9kZXYu/dG8v",
+                  "long_name": "dev.to",
+                  "name": "DEV Community",
+                  "url": "https://dev.to/lexwhiting/your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://media2.dev.to/dynamic/image/width=1080,height=1080,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fzzf62aowki8kccz8azxs.png",
+                  "src": "https://imgs.search.brave.com/zJb_0ze0uT2-NRxo9IKXxYZCVIppzptRr1Z7IhZOTKA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9tZWRp/YTIuZGV2LnRvL2R5/bmFtaWMvaW1hZ2Uv/d2lkdGg9MTA4MCxo/ZWlnaHQ9MTA4MCxm/aXQ9Y292ZXIsZ3Jh/dml0eT1hdXRvLGZv/cm1hdD1hdXRvL2h0/dHBzJTNBJTJGJTJG/ZGV2LXRvLXVwbG9h/ZHMuczMuYW1hem9u/YXdzLmNvbSUyRnVw/bG9hZHMlMkZhcnRp/Y2xlcyUyRnp6ZjYy/YW93a2k4a2Njejhh/enhzLnBuZw"
+                },
+                "title": "Your MCP Server Has 10 Distribution Channels You're Not Using - DEV Community",
+                "type": "search_result",
+                "url": "https://dev.to/lexwhiting/your-mcp-server-has-10-distribution-channels-youre-not-using-4pk8"
+              },
+              {
+                "age": "August 11, 2025",
+                "description": "For example, you will be able to send and read messages, and you can discover new channels, etc. GitHub repository: https://github.com/v-3/discordmcp \u00b7 WhatsApp is a really popular messaging app. And it has an impressive API which also has a MCP server you can use. You can use this MCP server to send messages, list messages, search contacts, send files, and a lot of other cool things.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/_pBOn4jryFGOsE6iY2enCq1Bawm4a3EWf3CtwTQ_n_Y/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTM0NGRiOTNk/YTViZTdhYTczYzVh/ZjY3MTQyOTNjNGY3/MWQ2NDQ1Y2JlOWVj/ZDc1MWZhZmNhNGYz/NWEzMjQ4NS9vYm90/LmFpLw",
+                  "hostname": "obot.ai",
+                  "netloc": "obot.ai",
+                  "path": "\u203a blog  \u203a top-15-mcp-servers",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-11T16:20:49",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/_pBOn4jryFGOsE6iY2enCq1Bawm4a3EWf3CtwTQ_n_Y/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTM0NGRiOTNk/YTViZTdhYTczYzVh/ZjY3MTQyOTNjNGY3/MWQ2NDQ1Y2JlOWVj/ZDc1MWZhZmNhNGYz/NWEzMjQ4NS9vYm90/LmFpLw",
+                  "long_name": "obot.ai",
+                  "name": "Obot AI",
+                  "url": "https://obot.ai/blog/top-15-mcp-servers/"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://obot.ai/wp-content/uploads/2025/08/15-of-the-Best-MCP-Servers-1.png",
+                  "src": "https://imgs.search.brave.com/EXZMkuaZPmpcGxdqCEdJn1bt6g45xdSIXwSlTxB2d4c/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vYm90/LmFpL3dwLWNvbnRl/bnQvdXBsb2Fkcy8y/MDI1LzA4LzE1LW9m/LXRoZS1CZXN0LU1D/UC1TZXJ2ZXJzLTEu/cG5n"
+                },
+                "title": "Best MCP Servers: 15 Must-Have Tools for Developers",
+                "type": "search_result",
+                "url": "https://obot.ai/blog/top-15-mcp-servers/"
+              },
+              {
+                "description": "next-devtools-mcp is a MCP server that provides Next.js development tools and utilities for AI coding assistants like Claude and Cursor.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/QXSm0yN0aSuh2XC--uiQ9O4Lz9D08YAPZZBGHqLJVAY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYmNiODZlMTJk/ODM4Mjg0MGVkYWJm/MjMzZDI4ZmZlMGIw/MGFhMTY0MmJhYzVk/MDFmNGRiOWU2ZmY1/ODRiNGZhNC9tY3Bz/ZXJ2ZXJzLm9yZy8",
+                  "hostname": "mcpservers.org",
+                  "netloc": "mcpservers.org",
+                  "path": "",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/QXSm0yN0aSuh2XC--uiQ9O4Lz9D08YAPZZBGHqLJVAY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYmNiODZlMTJk/ODM4Mjg0MGVkYWJm/MjMzZDI4ZmZlMGIw/MGFhMTY0MmJhYzVk/MDFmNGRiOWU2ZmY1/ODRiNGZhNC9tY3Bz/ZXJ2ZXJzLm9yZy8",
+                  "long_name": "mcpservers.org",
+                  "name": "MCP Servers",
+                  "url": "https://mcpservers.org"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://mcpservers.org/api/og",
+                  "src": "https://imgs.search.brave.com/h_L_noJbxRC7vV_sixmjnGbR4_8dZyskRQwQYIYM2o4/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9tY3Bz/ZXJ2ZXJzLm9yZy9h/cGkvb2c"
+                },
+                "title": "Awesome MCP Servers",
+                "type": "search_result",
+                "url": "https://mcpservers.org"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "14659",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 05:14:08 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200111-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "9dWoiEqlT_2nx0uYnpoFkQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775538915",
+        "x-request-id": "982c6a3b-d128-48e9-bd5d-f3c590b852c3",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-layer": "2",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_3409cfa4bbd24e7e9e59b341",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200111-BUR"
+      },
+      "request": {
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-beacon",
+        "parameters": {
+          "numResults": 3,
+          "query": "best MCP server distribution channels for developers"
+        },
+        "policy": {
+          "max_cost_usd": 0.05,
+          "provider_preference": [
+            "brave-search"
+          ]
+        }
+      }
+    },
+    "explanation": {
+      "candidates": [
+        {
+          "composite_score": 0.9197,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.89,
+              "value": 8.9,
+              "weight": 0.2,
+              "weighted_contribution": 0.178
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "elasticsearch"
+        },
+        {
+          "composite_score": 0.9157,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "meilisearch"
+        },
+        {
+          "composite_score": 0.9137,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "typesense"
+        },
+        {
+          "composite_score": 0.8907,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "exa"
+        },
+        {
+          "composite_score": 0.8887,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "tavily"
+        },
+        {
+          "composite_score": 0.8467,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.9,
+              "value": 9.0,
+              "weight": 0.2,
+              "weighted_contribution": 0.18
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "algolia"
+        },
+        {
+          "composite_score": 0.692,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.71,
+              "value": 7.1,
+              "weight": 0.2,
+              "weighted_contribution": 0.142
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.0,
+              "value": 0.003,
+              "weight": 0.25,
+              "weighted_contribution": 0.0
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "brave-search"
+        }
+      ],
+      "capability_id": "search.query",
+      "explanation_id": "rexp_0547e1578c95",
+      "human_summary": "brave-search selected over 6 other eligible candidate(s). Strongest factors: availability (0.300), latency (0.150). Strategy: balanced.",
+      "layer": 2,
+      "policy_active": false,
+      "strategy": "balanced",
+      "winner": {
+        "composite_score": 0.692,
+        "provider_id": "brave-search",
+        "selection_reason": "highest_composite_score_within_policy"
+      }
+    },
+    "receipt": {
+      "agent_id": "unknown",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:decbf1969a83b7c2",
+      "candidates_evaluated": 7,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 397,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T05:14:14.40412+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_c3a6cbca118d4e6a9492475e34527983",
+      "idempotency_key": null,
+      "interface": "dogfood-beacon-v2",
+      "layer": 2,
+      "org_id": null,
+      "previous_receipt_hash": "sha256:905697a39e820d72dc568195c1497c1e2631b9187d55df2626d7c816b49416ad",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:194957f98933a0a1506a545c1ea29838cdfb2a4540cdc24321d48c868467d107",
+      "receipt_id": "rcpt_3409cfa4bbd24e7e9e59b341",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:7ac316f5715bd8f452d4141eafb0072300bdc9100415874dfd53c16ffb548c8b",
+      "response_hash": null,
+      "rhumb_fee_usd": null,
+      "rhumb_overhead_ms": null,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": null,
+      "total_latency_ms": 884.2,
+      "winner_reason": "policy_preference_match",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "ok": true,
+  "policy": {
+    "before": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+        "supported_policy_fields": [
+          "pin",
+          "provider_preference",
+          "provider_deny",
+          "allow_only",
+          "max_cost_usd"
+        ]
+      },
+      "has_policy": false,
+      "organization_id": "org_aud3_verifier",
+      "policy": {
+        "allow_only": [],
+        "max_cost_usd": null,
+        "pin": null,
+        "provider_deny": [],
+        "provider_preference": []
+      },
+      "scope": "organization",
+      "updated_at": null
+    }
+  },
+  "receipt_chain": {
+    "broken_links": [],
+    "chain_intact": true,
+    "range": {
+      "end": 20,
+      "start": 1
+    },
+    "total_checked": 20,
+    "verified": 20
+  },
+  "started_at": 1775538844,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_c3a6cbca118d4e6a9492475e34527983 receipt=rcpt_3409cfa4bbd24e7e9e59b341; L1 provider=brave-search exec=exec_25ae1254919a49d1837d9b3c7243da79 receipt=rcpt_b7a2534a97a54e918729a253; billing_events=12; audit_events=6",
+  "trust": {
+    "providers": {
+      "data": {
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "providers": [
+          {
+            "an_score": 7.1,
+            "execution_count": 12,
+            "failure_count": 0,
+            "provider_slug": "brave-search",
+            "success_count": 12,
+            "success_rate_pct": 100.0,
+            "tier": "L3",
+            "total_charged_usd": 0.0,
+            "total_charged_usd_cents": 0
+          }
+        ],
+        "total_providers": 1
+      }
+    },
+    "summary": {
+      "data": {
+        "credit_purchase_count": 0,
+        "failed_executions": 0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "success_rate_pct": 100.0,
+        "successful_executions": 12,
+        "total_executions": 12,
+        "total_spend_usd": 0.0,
+        "total_spend_usd_cents": 0,
+        "trust_posture": {
+          "description": "Strong execution reliability with room for provider diversity.",
+          "label": "Good",
+          "level": "good"
+        },
+        "unique_capabilities_used": 1,
+        "unique_providers_used": 1,
+        "x402_payment_count": 0
+      }
+    }
+  }
+}

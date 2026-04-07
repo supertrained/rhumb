@@ -1259,6 +1259,10 @@ def _print_human(payload: dict[str, Any]) -> None:
         print(f"- url: {err.get('url')}")
 
 
+def _print_summary_only(payload: dict[str, Any]) -> None:
+    print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -1369,6 +1373,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--audit-export", action="store_true", help="Also hit POST /v2/audit/export?format=json")
     parser.add_argument("--read-limit", type=int, default=DEFAULT_MAX_READ_LIMIT, help="Limit for read endpoints")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
+    parser.add_argument("--summary-only", action="store_true", help="Print only the top-line summary")
     parser.add_argument("--json-out", help="Write the result payload to a file")
     return parser.parse_args(argv)
 
@@ -1428,7 +1433,9 @@ def main(argv: list[str] | None = None) -> int:
                 }
                 exit_code = 1
 
-    if args.json:
+    if args.summary_only:
+        _print_summary_only(payload)
+    elif args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         _print_human(payload)

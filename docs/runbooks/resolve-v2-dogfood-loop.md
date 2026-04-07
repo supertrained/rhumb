@@ -1,6 +1,6 @@
 # Runbook: Resolve v2 dogfood loop
 
-**Last updated:** 2026-04-02
+**Last updated:** 2026-04-07
 **Owner:** Pedro
 
 ## Purpose
@@ -172,6 +172,26 @@ Default freshness window:
 - `1080` minutes (18 hours)
 
 This mode reads the current `resolve-v2-dogfood-*-admin-latest.json` artifacts, checks whether each lane is still marked `ok`, verifies the receipt-chain flag, and fails the summary if an artifact is missing or stale.
+
+## Summary-only mode for recurring proof jobs
+
+For recurring cron lanes, prefer a single-line stdout summary instead of the full human report:
+
+```bash
+cd rhumb
+python3 scripts/resolve_v2_dogfood.py \
+  --profile keel \
+  --bootstrap-via-admin \
+  --summary-only \
+  --json-out artifacts/resolve-v2-dogfood-keel-admin-latest.json
+```
+
+The same pattern works for `helm`, `beacon`, and `--fleet-status`.
+
+Use this mode when the job's purpose is strictly mechanical proof refresh:
+- write or refresh the latest artifact
+- return one compact status line to cron history
+- avoid duplicating backlog / memory bookkeeping inside the recurring lane
 
 ## Policy smoke test
 

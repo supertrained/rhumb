@@ -1,0 +1,2082 @@
+{
+  "audit": {
+    "events": {
+      "data": {
+        "events": [
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "612e983c5d4d822f7c1a0c824f83dfe2fdb106dbbc5c9c7033233049deef578a",
+            "chain_sequence": 4,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2-l1",
+              "latency_ms": 522.0,
+              "upstream_status": 200
+            },
+            "event_id": "aud_3044f0f978704742",
+            "event_type": "execution.completed",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:57:51.018122+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "5e45fdc11249f87047a0f87eab93bd708625a78c62ec98059514ba2325a2fd1b",
+            "chain_sequence": 3,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2",
+              "latency_ms": 983.2,
+              "upstream_status": 200
+            },
+            "event_id": "aud_f76ab4aae0aa4306",
+            "event_type": "execution.completed",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:57:41.417361+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "cbcbf8db31033d60e7dcf63b16343b3465844054976229cf20f9f7550c1a28e8",
+            "chain_sequence": 2,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 512.9,
+              "upstream_status": 200
+            },
+            "event_id": "aud_245545b178c548c9",
+            "event_type": "execution.completed",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:50:51.926319+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "301244410de3eae5b05c6885e2cce49c09b0ab84b3211585b61a72a70a58415f",
+            "chain_sequence": 1,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 570.5,
+              "upstream_status": 200
+            },
+            "event_id": "aud_f6315c58128944b7",
+            "event_type": "execution.completed",
+            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T04:50:41.983945+00:00"
+          }
+        ],
+        "pagination": {
+          "has_more": false,
+          "limit": 10,
+          "offset": 0,
+          "total": 4
+        }
+      }
+    },
+    "status": {
+      "data": {
+        "chain_verified": true,
+        "earliest_event": "2026-04-07T04:50:41.983945+00:00",
+        "events_by_category": {
+          "execution": 4
+        },
+        "events_by_severity": {
+          "info": 4
+        },
+        "events_by_type": {
+          "execution.completed": 4
+        },
+        "latest_event": "2026-04-07T04:57:51.018122+00:00",
+        "latest_hash": "612e983c5d4d822f7c1a0c824f83dfe2fdb106dbbc5c9c7033233049deef578a",
+        "latest_sequence": 4,
+        "total_events": 4
+      }
+    }
+  },
+  "billing": {
+    "events": {
+      "data": {
+        "count": 8,
+        "events": [
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "8e08b0374063d4dcbede914e57c41bea9b845ecab0f8fb25bfb18d867f00fcde",
+            "event_id": "bevt_d055ef5ea44243b2",
+            "event_type": "execution.charged",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_e41012ac8e984b5eadfea150",
+            "timestamp": "2026-04-07T04:57:52.018860+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "ed3ba9f5a6fc40d6903f8a285c0af191967317626334253b5b28530e83584db5",
+            "event_id": "bevt_0763191fca254fbd",
+            "event_type": "execution.charged",
+            "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:57:51.014110+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "14a0c19ccfce3ad294ce945dfb590d2315e8093d4c4f1977d4d274b9edae9810",
+            "event_id": "bevt_d18c472786284fb3",
+            "event_type": "execution.charged",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+            "timestamp": "2026-04-07T04:57:42.472905+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "feeb99bd9fc14768c9acb8a6b6e091324c5a34f36a9ffe62ca27e2649b3ce48d",
+            "event_id": "bevt_b24b9abc51a84fb8",
+            "event_type": "execution.charged",
+            "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-helm-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:57:41.413882+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "06ac9de8c693cf52d0bc0101e7d495bc3d5744988dbb21eaccb80aad299e57b0",
+            "event_id": "bevt_80bdb1d60eb543b9",
+            "event_type": "execution.charged",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_8fa9039f92cc486288bad4ca",
+            "timestamp": "2026-04-07T04:50:52.899818+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "f61ac3809d69fa518a5debfb33cda42ca850530d700f327fc87480ccb04bf0fc",
+            "event_id": "bevt_680c70f502cf49df",
+            "event_type": "execution.charged",
+            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:50:51.922229+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "c752a8faa7c6dbf0c5283bc1f153eddbe69996b31ce2545f6308e5983e4127d2",
+            "event_id": "bevt_f8ac0a70e12440a7",
+            "event_type": "execution.charged",
+            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_f982bab918ff469eb7eb16f7",
+            "timestamp": "2026-04-07T04:50:43.472219+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "8b3a532f62d19811cbd28e25c9d570cd61f7f578a8fa687b0480dae505fd5d56",
+            "event_id": "bevt_72574ddf73914531",
+            "event_type": "execution.charged",
+            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T04:50:41.981846+00:00"
+          }
+        ],
+        "org_id": "org_aud3_verifier"
+      }
+    },
+    "stream_status": {
+      "data": {
+        "chain_verified": true,
+        "event_types": [
+          "execution.charged",
+          "execution.refunded",
+          "execution.failed_no_charge",
+          "credit.purchased",
+          "credit.expired",
+          "credit.adjusted",
+          "x402.payment_received",
+          "x402.settlement_completed",
+          "x402.settlement_failed",
+          "wallet.topup_completed",
+          "wallet.topup_failed",
+          "budget.threshold_warning",
+          "budget.limit_reached",
+          "budget.reset",
+          "auto_reload.triggered",
+          "auto_reload.failed"
+        ],
+        "latest_chain_hash": "8e08b0374063d4dcbede914e57c41bea9b845ecab0f8fb25bfb18d867f00fcde",
+        "stream_length": 8,
+        "structural_guarantees": [
+          "All billing events are immutable and chain-hashed",
+          "Event stream is append-only with SHA-256 chain integrity",
+          "Events capture full execution context (provider, capability, receipt)",
+          "Summaries aggregate across providers and capabilities"
+        ]
+      }
+    },
+    "summary": {
+      "data": {
+        "by_capability": {
+          "search.query": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "by_provider": {
+          "brave-search": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "credit_purchase_count": 0,
+        "events_count": 8,
+        "execution_count": 8,
+        "net_usd": 0.0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "total_charged_usd": 0.0,
+        "total_charged_usd_cents": 0,
+        "total_credited_usd": 0.0,
+        "total_credited_usd_cents": 0,
+        "x402_payment_count": 0
+      }
+    }
+  },
+  "capabilities": {
+    "_rhumb_v2": {
+      "api_version": "v2-alpha",
+      "compat_mode": "v1-translate",
+      "layer": 2
+    },
+    "items": [
+      {
+        "action": "report",
+        "description": "Generate a formatted accessibility audit report for a URL",
+        "domain": "accessibility",
+        "id": "accessibility.report",
+        "input_hint": "optional: parameters, filters",
+        "outcome": "Generated report",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "scan",
+        "description": "Run an automated accessibility audit against a URL or HTML snippet",
+        "domain": "accessibility",
+        "id": "accessibility.scan",
+        "input_hint": "target URL or content",
+        "outcome": "Scan results with findings",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "autocomplete",
+        "description": "Suggest address completions as a user types",
+        "domain": "address_verification",
+        "id": "address_verification.autocomplete",
+        "input_hint": "partial input text",
+        "outcome": "Completion suggestions",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.0,
+          "slug": "google-places",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "verify",
+        "description": "Validate and standardize a postal address",
+        "domain": "address_verification",
+        "id": "address_verification.verify",
+        "input_hint": "data or identity to verify",
+        "outcome": "Verification result (verified/not)",
+        "provider_count": 4,
+        "top_provider": {
+          "an_score": 8.1,
+          "slug": "lob",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "create_link",
+        "description": "Generate a trackable affiliate referral link for a partner",
+        "domain": "affiliate",
+        "id": "affiliate.create_link",
+        "input_hint": "target URL, optional: campaign",
+        "outcome": "Tracking link URL",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "get_commissions",
+        "description": "List pending or paid commission payouts for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_commissions",
+        "input_hint": "optional: date_range",
+        "outcome": "Commission records",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_stats",
+        "description": "Retrieve clicks, conversions, and revenue attribution for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_stats",
+        "input_hint": "optional: date_range, filters",
+        "outcome": "Statistics and metrics",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_status",
+        "description": "Check the status or output of a running agent",
+        "domain": "agent",
+        "id": "agent.get_status",
+        "input_hint": "sandbox_id",
+        "outcome": "Sandbox status including running state, resource usage, uptime",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "send_message",
+        "description": "Send a message or instruction to an active agent",
+        "domain": "agent",
+        "id": "agent.send_message",
+        "input_hint": "agent parameters",
+        "outcome": "Send a message or instruction to an active agent",
+        "provider_count": 2,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "spawn",
+        "description": "Create and start a new autonomous agent run",
+        "domain": "agent",
+        "id": "agent.spawn",
+        "input_hint": "template?, timeout_seconds?",
+        "outcome": "Sandbox ID with connection URL and status",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      }
+    ],
+    "limit": 10,
+    "offset": 0,
+    "total": 415
+  },
+  "config": {
+    "api_key_env": "RHUMB_DOGFOOD_API_KEY",
+    "api_key_preview": "rhumb_c54398\u2026cced",
+    "base_url": "https://api.rhumb.dev",
+    "bootstrap": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "agent_name": "Pedro AUD-3 Verifier",
+      "list_attempts": 1,
+      "mode": "rotated",
+      "organization_id": "org_aud3_verifier",
+      "service": "brave-search",
+      "service_access": "already_granted"
+    },
+    "capability": "search.query",
+    "credential_mode": "rhumb_managed",
+    "interface": "dogfood-helm",
+    "policy_max_cost_usd": null,
+    "policy_provider_preference": null,
+    "profile": "helm",
+    "provider": "brave-search",
+    "skip_layer1": false,
+    "v2_root": "https://api.rhumb.dev/v2"
+  },
+  "health": {
+    "compat_mode": "v1-translate",
+    "layer": 2,
+    "status": "ok",
+    "version": "2026-03-30"
+  },
+  "layer1": {
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "cost": {
+            "provider_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "credential_mode": "rhumb_managed",
+          "latency": {
+            "overhead_ms": 0.0,
+            "provider_ms": null,
+            "total_ms": 5313.0
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "category": "search",
+            "docs_url": "https://api.search.brave.com/app/#/documentation",
+            "id": "brave-search",
+            "name": "Brave Search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_e41012ac8e984b5eadfea150"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "cost": {
+            "markup_floor_usd": 0.0002,
+            "markup_rate": 0.08,
+            "provider_cost_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "explanation_id": "rexp_7118c73a4393",
+          "latency": {
+            "provider_ms": null,
+            "rhumb_overhead_ms": 0,
+            "total_ms": 5313
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "capability_used": "search.query",
+            "display_name": "Brave Search",
+            "id": "brave-search"
+          },
+          "receipt_id": "rcpt_e41012ac8e984b5eadfea150"
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+        "latency_ms": 522.0,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_e41012ac8e984b5eadfea150",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 18,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 19,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "API proxy auth budget telemetry patterns",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "April 24, 2025",
+                "description": "Follow DevOps Roadmap \ud83d\udc49\ud83c\udffd https://www.instagram.com/marceldempersMy DevOps Course \ud83d\udc49\ud83c\udffd https://marceldempers.devPatreon \ud83d\udc49\ud83c\udffdhttps://patreon.com/marceldempe",
+                "fetched_content_timestamp": 1775478279,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-04-24T11:40:21",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/bIxt1b0GOU4/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/iwKrkriH9Q8dwkFKFuUGHX_W8F6fc6tWhFfH7Y0K0_s/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9i/SXh0MWIwR09VNC9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "How OpenTelemetry Works - How to Collect Logs - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=bIxt1b0GOU4",
+                "video": {
+                  "creator": "That DevOps Guy",
+                  "duration": "34:36",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "September 25, 2024",
+                "description": "\u25ba\u25ba Check out our courses: https://bit.ly/cdmz-courses \u25ba\u25ba Support us on Patreon and get the source code: https://www.patreon.com/CodeMazeHi everyone. My name",
+                "fetched_content_timestamp": 1753748356,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2024-09-25T11:00:46",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/beyxILlWApY/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/1b8L_-99VcSW6HM-gLL4ktV19FQ1v2EcvbeqmVUEEec/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9i/ZXl4SUxsV0FwWS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Logging With OpenTelemetry in ASP.NET Core Web API - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=beyxILlWApY",
+                "video": {}
+              },
+              {
+                "age": "May 15, 2022",
+                "description": "Presented by Neeraj Poddar & Douglas Reid at IstioCon 2022.We have introduced the new Telemetry API in v1.11 which provides a flexible and uniform way for co...",
+                "fetched_content_timestamp": 1753964886,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2022-05-15T23:10:20",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2L6Htij1zGE/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/GiMYiB_8rRara4RovM3vTr-4ork-k_MbyVeOqio5lnc/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/TDZIdGlqMXpHRS9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "Understanding the new Istio Telemetry API - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2L6Htij1zGE",
+                "video": {
+                  "creator": "Istio",
+                  "duration": "29:54",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "August 3, 2025",
+                "description": "In this video, we are going to cover Instrumenting Flask API with OpenTelemetry and Exposing HTTP Metrics | Observability with Opentelemetry#devopshint #obse...",
+                "fetched_content_timestamp": 1754313330,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-03T12:50:13",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2o9zpvGWa2g/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/So-lacyBWPYaO9v6KAYs1vGbZ5jU4axxz4y_K_HJPkA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/bzl6cHZHV2EyZy9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "Instrumenting Flask API with OpenTelemetry and Exposing HTTP Metrics ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2o9zpvGWa2g",
+                "video": {
+                  "creator": "DevOps Hint",
+                  "duration": "15:52",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 8, 2025",
+                "description": "Here\u2019s the YouTube post tailored to your new OpenTelemetry video:\ud83c\udfa5 Hey, .NET Developers! Ready to take your APIs to the next level? In today's video, I\u2019ll ...",
+                "fetched_content_timestamp": 1759810972,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-02-08T10:12:39",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/0XODewl6AgM/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/fKv6tvVEeEMSfHmRtamQBWVfwifg-Xe0lttaMhVa7Zk/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8w/WE9EZXdsNkFnTS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Track and Monitor Your ASP.NET Core Minimal API with OpenTelemetry ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=0XODewl6AgM",
+                "video": {
+                  "creator": "Ottorino Bruni",
+                  "duration": "02:14",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "December 2, 2022",
+                "description": "Distributed systems, by nature, are complex and unpredictable. Failures and performance bottlenecks in such systems are inevitable\u2014and can be difficult to is...",
+                "fetched_content_timestamp": 1753850753,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2022-12-02T15:48:42",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/fOfw-gwOl6Q/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/jYIP5NTypo7gSLAK1kj5uAfPyFSmluUMAPrWYj9Zdk0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9m/T2Z3LWd3T2w2US9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "OpenTelemetry - the future of API observability - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=fOfw-gwOl6Q",
+                "video": {
+                  "creator": "Tyk API Management",
+                  "duration": "53:00",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "age": "June 27, 2025",
+                "description": "This article provides a solution: using Azure API Management (APIM) as a secure proxy that authenticates telemetry using a managed identity before forwarding it to Application Insights. This pattern restores observability while honoring your organization&#x27;s authentication policies.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/5U49g5VsF6RBgvXeHfdeiseInTiE2TbldgG66SUovLE/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMjQ4ZjY3MTc3/NjRlYzhlOWFlYjFl/YmM0YzQ5NDFhNjVl/NTIyNWJiMzE1YzBi/MWFmNWZjNWIzOWE0/YzE4ZWU1Mi90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v",
+                  "hostname": "techcommunity.microsoft.com",
+                  "netloc": "techcommunity.microsoft.com",
+                  "path": "  \u203a microsoft community hub  \u203a communities  \u203a products  \u203a azure  \u203a azure observability blog",
+                  "scheme": "https"
+                },
+                "page_age": "2025-06-27T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/5U49g5VsF6RBgvXeHfdeiseInTiE2TbldgG66SUovLE/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMjQ4ZjY3MTc3/NjRlYzhlOWFlYjFl/YmM0YzQ5NDFhNjVl/NTIyNWJiMzE1YzBi/MWFmNWZjNWIzOWE0/YzE4ZWU1Mi90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v",
+                  "long_name": "techcommunity.microsoft.com",
+                  "name": "Microsoft Community Hub",
+                  "url": "https://techcommunity.microsoft.com/blog/azureobservabilityblog/using-azure-api-management-as-a-proxy-for-application-insights-telemetry/4422236"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/images/bS00NDIyMjM2LVQ4VDRyVg?revision=15",
+                  "src": "https://imgs.search.brave.com/sCSRHRuALXhQopAsHPUmWNEC4Xeiu9i5sYPC7WKTVe0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v/dDUvcy9neGN1Zjg5/NzkyL2ltYWdlcy9i/UzAwTkRJeU1qTTJM/VlE0VkRSeVZnP3Jl/dmlzaW9uPTE1"
+                },
+                "title": "Using Azure API Management as a proxy for Application Insights Telemetry | Microsoft Community Hub",
+                "type": "search_result",
+                "url": "https://techcommunity.microsoft.com/blog/azureobservabilityblog/using-azure-api-management-as-a-proxy-for-application-insights-telemetry/4422236"
+              },
+              {
+                "age": "February 21, 2026",
+                "description": "Setup retention and index patterns to control cost. ... Powerful query capabilities for incidents. Good integration with dashboards. ... Cost and storage growth without sampling. What it measures for Proxy Firewall: Block rate, signature matches, DDoS events, TLS stats. Best-fit environment: Public-facing applications needing managed protection. ... Configure policies via console or API. Integrate telemetry with SIEM and monitoring.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/MgIe64bo-s7pI4vuuGJVW_iS4AClfseqYVUPDeqVTtY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwYmEzYmJl/MTllNjk3OGVmYzgw/NjAwYWQzMzU1NTBk/MTNkOTc4ZTI3Yjhk/NDBkZTZmMDA1NDc1/ZjRjMGYwYi9kZXZz/ZWNvcHNzY2hvb2wu/Y29tLw",
+                  "hostname": "devsecopsschool.com",
+                  "netloc": "devsecopsschool.com",
+                  "path": "  \u203a home  \u203a what is proxy firewall? meaning, architecture, examples, use cases, and how to measure it (2026 guide)",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-21T08:45:40",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/MgIe64bo-s7pI4vuuGJVW_iS4AClfseqYVUPDeqVTtY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwYmEzYmJl/MTllNjk3OGVmYzgw/NjAwYWQzMzU1NTBk/MTNkOTc4ZTI3Yjhk/NDBkZTZmMDA1NDc1/ZjRjMGYwYi9kZXZz/ZWNvcHNzY2hvb2wu/Y29tLw",
+                  "long_name": "devsecopsschool.com",
+                  "name": "DevSecOps School",
+                  "url": "https://devsecopsschool.com/blog/proxy-firewall/"
+                },
+                "subtype": "article",
+                "title": "What is Proxy Firewall? Meaning, Architecture, Examples, Use Cases, and How to Measure It (2026 Guide) - DevSecOps School",
+                "type": "search_result",
+                "url": "https://devsecopsschool.com/blog/proxy-firewall/"
+              },
+              {
+                "age": "2 weeks ago",
+                "description": "Client (Claude Code / Aider / Cursor) | | OpenAI/Anthropic-compatible request v +-------------------------------------------------------+ | RelayPlane Proxy (local) | |-------------------------------------------------------| | 1) Parse request | | 2) Cache check (exact or aggressive mode) | | \u2514\u2500 HIT \u2192 return cached response (skip provider) | | 3) Budget check (daily/hourly/per-request limits) | | \u2514\u2500 BREACH \u2192 block / warn / downgrade / alert | | 4) Anomaly detection (velocity, cost spike, loops) | | \u2514\u2500 DETECTED \u2192 alert + optional block | | 5) Auto-downgrade (if budget threshol",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/xxsA4YxzaR0cl-DBsH9-lpv2gsif3KMYgM87p26bs_o/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYWQyNWM1NjA5/ZjZmZjNlYzI2MDNk/N2VkNmJhYjE2MzZl/MDY5ZTMxMDUzZmY1/NmU3NWIzNWVmMjk0/NTBjMjJjZi9naXRo/dWIuY29tLw",
+                  "hostname": "github.com",
+                  "netloc": "github.com",
+                  "path": "\u203a RelayPlane  \u203a proxy",
+                  "scheme": "https"
+                },
+                "page_age": "2026-03-23T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/xxsA4YxzaR0cl-DBsH9-lpv2gsif3KMYgM87p26bs_o/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYWQyNWM1NjA5/ZjZmZjNlYzI2MDNk/N2VkNmJhYjE2MzZl/MDY5ZTMxMDUzZmY1/NmU3NWIzNWVmMjk0/NTBjMjJjZi9naXRo/dWIuY29tLw",
+                  "long_name": "github.com",
+                  "name": "GitHub",
+                  "url": "https://github.com/RelayPlane/proxy"
+                },
+                "subtype": "software",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://opengraph.githubassets.com/f4f340c9f41dfa79e02fea3b2428b6de47a4e75e4728ae39cdf42ae7efc62ddd/RelayPlane/proxy",
+                  "src": "https://imgs.search.brave.com/I0eq3EJqub4tGi1bObRmMdBM42DBQVPmcpOkMzpUpn0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vcGVu/Z3JhcGguZ2l0aHVi/YXNzZXRzLmNvbS9m/NGYzNDBjOWY0MWRm/YTc5ZTAyZmVhM2Iy/NDI4YjZkZTQ3YTRl/NzVlNDcyOGFlMzlj/ZGY0MmFlN2VmYzYy/ZGRkL1JlbGF5UGxh/bmUvcHJveHk"
+                },
+                "title": "GitHub - RelayPlane/proxy: Open source cost intelligence proxy for AI agents. Cut costs ~80% with smart model routing. Dashboard, policy engine, 11 providers. MIT licensed. \u00b7 GitHub",
+                "type": "search_result",
+                "url": "https://github.com/RelayPlane/proxy"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "15420",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 04:57:45 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200049-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "fQO2UpxDSMmtwA7o-_9nXA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775537932",
+        "x-request-id": "841be532-5810-45d2-84f5-2a7b89e11b8d",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-cost-usd": "0.003240",
+        "x-rhumb-layer": "1",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_e41012ac8e984b5eadfea150",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200049-BUR"
+      },
+      "request": {
+        "capability": "search.query",
+        "credential_mode": "rhumb_managed",
+        "idempotency_key": "dogfood-cfbf809fc0254db9badff962a4aa49e8",
+        "interface": "dogfood-helm",
+        "parameters": {
+          "numResults": 3,
+          "query": "API proxy auth budget telemetry patterns"
+        },
+        "policy": {
+          "max_cost_usd": 0.05
+        }
+      }
+    },
+    "provider": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "layer": 1
+      },
+      "an_score": null,
+      "callable": true,
+      "capabilities": [
+        {
+          "capability_id": "search.query",
+          "cost_currency": "USD",
+          "cost_per_call": 0.003,
+          "credential_modes": [
+            "byo",
+            "rhumb_managed"
+          ],
+          "free_tier_calls": 2000
+        }
+      ],
+      "category": "search",
+      "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+      "id": "brave-search",
+      "name": "Brave Search",
+      "pricing": {
+        "description": "provider_cost + max($0.0002, provider_cost \u00d7 0.08)",
+        "markup_floor_usd": 0.0002,
+        "markup_rate": 0.08,
+        "model": "passthrough_plus_markup"
+      },
+      "tier": null
+    },
+    "receipt": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:2241f04e44531710",
+      "candidates_evaluated": 1,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 396,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T04:57:51.222445+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_319d4ab6dc154547a5398adf3775bd0c",
+      "idempotency_key": "dogfood-cfbf809fc0254db9badff962a4aa49e8",
+      "interface": "dogfood-helm-v2-l1",
+      "layer": 1,
+      "org_id": "org_aud3_verifier",
+      "previous_receipt_hash": "sha256:18759925963406972db85499e434f7f7b63ffadf7418147882fc6614dbfef5e0",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:905697a39e820d72dc568195c1497c1e2631b9187d55df2626d7c816b49416ad",
+      "receipt_id": "rcpt_e41012ac8e984b5eadfea150",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:2232d09d2d2a77c14539acc319cf87abb8222ad1c4a95466a072f6e69ebe4693",
+      "response_hash": null,
+      "rhumb_fee_usd": 0.00024,
+      "rhumb_overhead_ms": 0,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": 0.00324,
+      "total_latency_ms": 5313,
+      "winner_reason": "agent_pinned_layer1",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "layer2": {
+    "estimate": {
+      "data": {
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "compat_mode": "v1-translate",
+          "layer": 2
+        },
+        "capability_id": "search.query",
+        "circuit_state": "closed",
+        "cost_estimate_usd": 0.003,
+        "credential_mode": "rhumb_managed",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "provider": "brave-search"
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "287",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 04:57:34 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200138-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "_OtlzWeOThOpGDbXLPU1MQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775537915",
+        "x-request-id": "6a77cc8f-a9b2-4e72-8eb7-ea3aeb3ebb83",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200138-BUR"
+      }
+    },
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "credential_mode": "rhumb_managed",
+          "layer": 2,
+          "provider": {
+            "an_score": null,
+            "category": null,
+            "docs_url": null,
+            "id": "brave-search",
+            "name": "brave-search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "estimated_cost_usd": 0.003,
+          "explanation_id": "rexp_d0d018495d92",
+          "layer": 2,
+          "policy_applied": true,
+          "policy_candidates": [
+            "algolia",
+            "brave-search",
+            "elasticsearch",
+            "exa",
+            "meilisearch",
+            "tavily",
+            "typesense"
+          ],
+          "policy_selected_reason": "policy_preference_match",
+          "policy_source": {
+            "has_account_policy": false,
+            "inline_fields": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "organization_fields": [],
+            "scope": "organization"
+          },
+          "policy_summary": {
+            "allow_only": [],
+            "candidate_providers": [
+              "algolia",
+              "brave-search",
+              "elasticsearch",
+              "exa",
+              "meilisearch",
+              "tavily",
+              "typesense"
+            ],
+            "controls": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "max_cost_usd": 0.05,
+            "pin": null,
+            "provider_deny": [],
+            "provider_preference": [
+              "brave-search"
+            ]
+          },
+          "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+          "selected_provider": "brave-search",
+          "translated_from": {
+            "idempotency_header_used": false,
+            "parameters": true,
+            "policy_allow_only": false,
+            "policy_pin": false,
+            "policy_provider_deny": false,
+            "policy_provider_preference": true
+          }
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+        "latency_ms": 983.2,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": true,
+                "type": "videos"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 18,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 19,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "API proxy auth budget telemetry patterns",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "videos": {
+            "mutated_by_goggles": false,
+            "results": [
+              {
+                "age": "April 24, 2025",
+                "description": "Follow DevOps Roadmap \ud83d\udc49\ud83c\udffd https://www.instagram.com/marceldempersMy DevOps Course \ud83d\udc49\ud83c\udffd https://marceldempers.devPatreon \ud83d\udc49\ud83c\udffdhttps://patreon.com/marceldempe",
+                "fetched_content_timestamp": 1775478279,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-04-24T11:40:21",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/bIxt1b0GOU4/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/iwKrkriH9Q8dwkFKFuUGHX_W8F6fc6tWhFfH7Y0K0_s/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9i/SXh0MWIwR09VNC9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "How OpenTelemetry Works - How to Collect Logs - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=bIxt1b0GOU4",
+                "video": {
+                  "creator": "That DevOps Guy",
+                  "duration": "34:36",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "September 25, 2024",
+                "description": "\u25ba\u25ba Check out our courses: https://bit.ly/cdmz-courses \u25ba\u25ba Support us on Patreon and get the source code: https://www.patreon.com/CodeMazeHi everyone. My name",
+                "fetched_content_timestamp": 1753748356,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2024-09-25T11:00:46",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/beyxILlWApY/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/1b8L_-99VcSW6HM-gLL4ktV19FQ1v2EcvbeqmVUEEec/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9i/ZXl4SUxsV0FwWS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Logging With OpenTelemetry in ASP.NET Core Web API - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=beyxILlWApY",
+                "video": {}
+              },
+              {
+                "age": "May 15, 2022",
+                "description": "Presented by Neeraj Poddar & Douglas Reid at IstioCon 2022.We have introduced the new Telemetry API in v1.11 which provides a flexible and uniform way for co...",
+                "fetched_content_timestamp": 1753964886,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2022-05-15T23:10:20",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2L6Htij1zGE/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/GiMYiB_8rRara4RovM3vTr-4ork-k_MbyVeOqio5lnc/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/TDZIdGlqMXpHRS9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "Understanding the new Istio Telemetry API - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2L6Htij1zGE",
+                "video": {
+                  "creator": "Istio",
+                  "duration": "29:54",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "August 3, 2025",
+                "description": "In this video, we are going to cover Instrumenting Flask API with OpenTelemetry and Exposing HTTP Metrics | Observability with Opentelemetry#devopshint #obse...",
+                "fetched_content_timestamp": 1754313330,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-08-03T12:50:13",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/2o9zpvGWa2g/hqdefault.jpg",
+                  "src": "https://imgs.search.brave.com/So-lacyBWPYaO9v6KAYs1vGbZ5jU4axxz4y_K_HJPkA/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8y/bzl6cHZHV2EyZy9o/cWRlZmF1bHQuanBn"
+                },
+                "title": "Instrumenting Flask API with OpenTelemetry and Exposing HTTP Metrics ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=2o9zpvGWa2g",
+                "video": {
+                  "creator": "DevOps Hint",
+                  "duration": "15:52",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "February 8, 2025",
+                "description": "Here\u2019s the YouTube post tailored to your new OpenTelemetry video:\ud83c\udfa5 Hey, .NET Developers! Ready to take your APIs to the next level? In today's video, I\u2019ll ...",
+                "fetched_content_timestamp": 1759810972,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2025-02-08T10:12:39",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/0XODewl6AgM/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/fKv6tvVEeEMSfHmRtamQBWVfwifg-Xe0lttaMhVa7Zk/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8w/WE9EZXdsNkFnTS9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "Track and Monitor Your ASP.NET Core Minimal API with OpenTelemetry ...",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=0XODewl6AgM",
+                "video": {
+                  "creator": "Ottorino Bruni",
+                  "duration": "02:14",
+                  "publisher": "YouTube"
+                }
+              },
+              {
+                "age": "December 2, 2022",
+                "description": "Distributed systems, by nature, are complex and unpredictable. Failures and performance bottlenecks in such systems are inevitable\u2014and can be difficult to is...",
+                "fetched_content_timestamp": 1753850753,
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v",
+                  "hostname": "www.youtube.com",
+                  "netloc": "youtube.com",
+                  "path": "\u203a watch",
+                  "scheme": "https"
+                },
+                "page_age": "2022-12-02T15:48:42",
+                "thumbnail": {
+                  "original": "https://i.ytimg.com/vi/fOfw-gwOl6Q/maxresdefault.jpg",
+                  "src": "https://imgs.search.brave.com/jYIP5NTypo7gSLAK1kj5uAfPyFSmluUMAPrWYj9Zdk0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9m/T2Z3LWd3T2w2US9t/YXhyZXNkZWZhdWx0/LmpwZw"
+                },
+                "title": "OpenTelemetry - the future of API observability - YouTube",
+                "type": "video_result",
+                "url": "https://www.youtube.com/watch?v=fOfw-gwOl6Q",
+                "video": {
+                  "creator": "Tyk API Management",
+                  "duration": "53:00",
+                  "publisher": "YouTube"
+                }
+              }
+            ],
+            "type": "videos"
+          },
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "age": "June 27, 2025",
+                "description": "This article provides a solution: using Azure API Management (APIM) as a secure proxy that authenticates telemetry using a managed identity before forwarding it to Application Insights. This pattern restores observability while honoring your organization&#x27;s authentication policies.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/5U49g5VsF6RBgvXeHfdeiseInTiE2TbldgG66SUovLE/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMjQ4ZjY3MTc3/NjRlYzhlOWFlYjFl/YmM0YzQ5NDFhNjVl/NTIyNWJiMzE1YzBi/MWFmNWZjNWIzOWE0/YzE4ZWU1Mi90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v",
+                  "hostname": "techcommunity.microsoft.com",
+                  "netloc": "techcommunity.microsoft.com",
+                  "path": "  \u203a microsoft community hub  \u203a communities  \u203a products  \u203a azure  \u203a azure observability blog",
+                  "scheme": "https"
+                },
+                "page_age": "2025-06-27T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/5U49g5VsF6RBgvXeHfdeiseInTiE2TbldgG66SUovLE/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMjQ4ZjY3MTc3/NjRlYzhlOWFlYjFl/YmM0YzQ5NDFhNjVl/NTIyNWJiMzE1YzBi/MWFmNWZjNWIzOWE0/YzE4ZWU1Mi90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v",
+                  "long_name": "techcommunity.microsoft.com",
+                  "name": "Microsoft Community Hub",
+                  "url": "https://techcommunity.microsoft.com/blog/azureobservabilityblog/using-azure-api-management-as-a-proxy-for-application-insights-telemetry/4422236"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/images/bS00NDIyMjM2LVQ4VDRyVg?revision=15",
+                  "src": "https://imgs.search.brave.com/sCSRHRuALXhQopAsHPUmWNEC4Xeiu9i5sYPC7WKTVe0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly90ZWNo/Y29tbXVuaXR5Lm1p/Y3Jvc29mdC5jb20v/dDUvcy9neGN1Zjg5/NzkyL2ltYWdlcy9i/UzAwTkRJeU1qTTJM/VlE0VkRSeVZnP3Jl/dmlzaW9uPTE1"
+                },
+                "title": "Using Azure API Management as a proxy for Application Insights Telemetry | Microsoft Community Hub",
+                "type": "search_result",
+                "url": "https://techcommunity.microsoft.com/blog/azureobservabilityblog/using-azure-api-management-as-a-proxy-for-application-insights-telemetry/4422236"
+              },
+              {
+                "age": "February 21, 2026",
+                "description": "Setup retention and index patterns to control cost. ... Powerful query capabilities for incidents. Good integration with dashboards. ... Cost and storage growth without sampling. What it measures for Proxy Firewall: Block rate, signature matches, DDoS events, TLS stats. Best-fit environment: Public-facing applications needing managed protection. ... Configure policies via console or API. Integrate telemetry with SIEM and monitoring.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/MgIe64bo-s7pI4vuuGJVW_iS4AClfseqYVUPDeqVTtY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwYmEzYmJl/MTllNjk3OGVmYzgw/NjAwYWQzMzU1NTBk/MTNkOTc4ZTI3Yjhk/NDBkZTZmMDA1NDc1/ZjRjMGYwYi9kZXZz/ZWNvcHNzY2hvb2wu/Y29tLw",
+                  "hostname": "devsecopsschool.com",
+                  "netloc": "devsecopsschool.com",
+                  "path": "  \u203a home  \u203a what is proxy firewall? meaning, architecture, examples, use cases, and how to measure it (2026 guide)",
+                  "scheme": "https"
+                },
+                "page_age": "2026-02-21T08:45:40",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/MgIe64bo-s7pI4vuuGJVW_iS4AClfseqYVUPDeqVTtY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwYmEzYmJl/MTllNjk3OGVmYzgw/NjAwYWQzMzU1NTBk/MTNkOTc4ZTI3Yjhk/NDBkZTZmMDA1NDc1/ZjRjMGYwYi9kZXZz/ZWNvcHNzY2hvb2wu/Y29tLw",
+                  "long_name": "devsecopsschool.com",
+                  "name": "DevSecOps School",
+                  "url": "https://devsecopsschool.com/blog/proxy-firewall/"
+                },
+                "subtype": "article",
+                "title": "What is Proxy Firewall? Meaning, Architecture, Examples, Use Cases, and How to Measure It (2026 Guide) - DevSecOps School",
+                "type": "search_result",
+                "url": "https://devsecopsschool.com/blog/proxy-firewall/"
+              },
+              {
+                "age": "2 weeks ago",
+                "description": "Client (Claude Code / Aider / Cursor) | | OpenAI/Anthropic-compatible request v +-------------------------------------------------------+ | RelayPlane Proxy (local) | |-------------------------------------------------------| | 1) Parse request | | 2) Cache check (exact or aggressive mode) | | \u2514\u2500 HIT \u2192 return cached response (skip provider) | | 3) Budget check (daily/hourly/per-request limits) | | \u2514\u2500 BREACH \u2192 block / warn / downgrade / alert | | 4) Anomaly detection (velocity, cost spike, loops) | | \u2514\u2500 DETECTED \u2192 alert + optional block | | 5) Auto-downgrade (if budget threshol",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/xxsA4YxzaR0cl-DBsH9-lpv2gsif3KMYgM87p26bs_o/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYWQyNWM1NjA5/ZjZmZjNlYzI2MDNk/N2VkNmJhYjE2MzZl/MDY5ZTMxMDUzZmY1/NmU3NWIzNWVmMjk0/NTBjMjJjZi9naXRo/dWIuY29tLw",
+                  "hostname": "github.com",
+                  "netloc": "github.com",
+                  "path": "\u203a RelayPlane  \u203a proxy",
+                  "scheme": "https"
+                },
+                "page_age": "2026-03-23T00:00:00",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/xxsA4YxzaR0cl-DBsH9-lpv2gsif3KMYgM87p26bs_o/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYWQyNWM1NjA5/ZjZmZjNlYzI2MDNk/N2VkNmJhYjE2MzZl/MDY5ZTMxMDUzZmY1/NmU3NWIzNWVmMjk0/NTBjMjJjZi9naXRo/dWIuY29tLw",
+                  "long_name": "github.com",
+                  "name": "GitHub",
+                  "url": "https://github.com/RelayPlane/proxy"
+                },
+                "subtype": "software",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://opengraph.githubassets.com/f4f340c9f41dfa79e02fea3b2428b6de47a4e75e4728ae39cdf42ae7efc62ddd/RelayPlane/proxy",
+                  "src": "https://imgs.search.brave.com/I0eq3EJqub4tGi1bObRmMdBM42DBQVPmcpOkMzpUpn0/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9vcGVu/Z3JhcGguZ2l0aHVi/YXNzZXRzLmNvbS9m/NGYzNDBjOWY0MWRm/YTc5ZTAyZmVhM2Iy/NDI4YjZkZTQ3YTRl/NzVlNDcyOGFlMzlj/ZGY0MmFlN2VmYzYy/ZGRkL1JlbGF5UGxh/bmUvcHJveHk"
+                },
+                "title": "GitHub - RelayPlane/proxy: Open source cost intelligence proxy for AI agents. Cut costs ~80% with smart model routing. Dashboard, policy engine, 11 providers. MIT licensed. \u00b7 GitHub",
+                "type": "search_result",
+                "url": "https://github.com/RelayPlane/proxy"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "15769",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 04:57:35 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200117-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "yV5-ois9SJOTPu5xLPU1MQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775537922",
+        "x-request-id": "fa13ff2d-fed2-45cb-aa2e-629e80b23f9f",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-layer": "2",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200117-BUR"
+      },
+      "request": {
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-helm",
+        "parameters": {
+          "numResults": 3,
+          "query": "API proxy auth budget telemetry patterns"
+        },
+        "policy": {
+          "max_cost_usd": 0.05,
+          "provider_preference": [
+            "brave-search"
+          ]
+        }
+      }
+    },
+    "explanation": {
+      "candidates": [
+        {
+          "composite_score": 0.9197,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.89,
+              "value": 8.9,
+              "weight": 0.2,
+              "weighted_contribution": 0.178
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "elasticsearch"
+        },
+        {
+          "composite_score": 0.9157,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "meilisearch"
+        },
+        {
+          "composite_score": 0.9137,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "typesense"
+        },
+        {
+          "composite_score": 0.8907,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "exa"
+        },
+        {
+          "composite_score": 0.8887,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "tavily"
+        },
+        {
+          "composite_score": 0.8467,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.9,
+              "value": 9.0,
+              "weight": 0.2,
+              "weighted_contribution": 0.18
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "algolia"
+        },
+        {
+          "composite_score": 0.692,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.71,
+              "value": 7.1,
+              "weight": 0.2,
+              "weighted_contribution": 0.142
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.0,
+              "value": 0.003,
+              "weight": 0.25,
+              "weighted_contribution": 0.0
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "brave-search"
+        }
+      ],
+      "capability_id": "search.query",
+      "explanation_id": "rexp_d0d018495d92",
+      "human_summary": "brave-search selected over 6 other eligible candidate(s). Strongest factors: availability (0.300), latency (0.150). Strategy: balanced.",
+      "layer": 2,
+      "policy_active": false,
+      "strategy": "balanced",
+      "winner": {
+        "composite_score": 0.692,
+        "provider_id": "brave-search",
+        "selection_reason": "highest_composite_score_within_policy"
+      }
+    },
+    "receipt": {
+      "agent_id": "unknown",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:d72676dfa714edb2",
+      "candidates_evaluated": 7,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 395,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T04:57:41.420811+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_8a7cffb29e8e4462b4383c6624fd3e6f",
+      "idempotency_key": null,
+      "interface": "dogfood-helm-v2",
+      "layer": 2,
+      "org_id": null,
+      "previous_receipt_hash": "sha256:72162d83feb8be7d619500e6efebd8406d20fcdab52e605df96f727a6a4c1385",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:18759925963406972db85499e434f7f7b63ffadf7418147882fc6614dbfef5e0",
+      "receipt_id": "rcpt_2aae5b66bdf14eadb9a3a3bc",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:2232d09d2d2a77c14539acc319cf87abb8222ad1c4a95466a072f6e69ebe4693",
+      "response_hash": null,
+      "rhumb_fee_usd": null,
+      "rhumb_overhead_ms": null,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": null,
+      "total_latency_ms": 983.2,
+      "winner_reason": "policy_preference_match",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "ok": true,
+  "policy": {
+    "before": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+        "supported_policy_fields": [
+          "pin",
+          "provider_preference",
+          "provider_deny",
+          "allow_only",
+          "max_cost_usd"
+        ]
+      },
+      "has_policy": false,
+      "organization_id": "org_aud3_verifier",
+      "policy": {
+        "allow_only": [],
+        "max_cost_usd": null,
+        "pin": null,
+        "provider_deny": [],
+        "provider_preference": []
+      },
+      "scope": "organization",
+      "updated_at": null
+    }
+  },
+  "receipt_chain": {
+    "broken_links": [],
+    "chain_intact": true,
+    "range": {
+      "end": 20,
+      "start": 1
+    },
+    "total_checked": 20,
+    "verified": 20
+  },
+  "started_at": 1775537851,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_8a7cffb29e8e4462b4383c6624fd3e6f receipt=rcpt_2aae5b66bdf14eadb9a3a3bc; L1 provider=brave-search exec=exec_319d4ab6dc154547a5398adf3775bd0c receipt=rcpt_e41012ac8e984b5eadfea150; billing_events=8; audit_events=4",
+  "trust": {
+    "providers": {
+      "data": {
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "providers": [
+          {
+            "an_score": 7.1,
+            "execution_count": 8,
+            "failure_count": 0,
+            "provider_slug": "brave-search",
+            "success_count": 8,
+            "success_rate_pct": 100.0,
+            "tier": "L3",
+            "total_charged_usd": 0.0,
+            "total_charged_usd_cents": 0
+          }
+        ],
+        "total_providers": 1
+      }
+    },
+    "summary": {
+      "data": {
+        "credit_purchase_count": 0,
+        "failed_executions": 0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "success_rate_pct": 100.0,
+        "successful_executions": 8,
+        "total_executions": 8,
+        "total_spend_usd": 0.0,
+        "total_spend_usd_cents": 0,
+        "trust_posture": {
+          "description": "Strong execution reliability with room for provider diversity.",
+          "label": "Good",
+          "level": "good"
+        },
+        "unique_capabilities_used": 1,
+        "unique_providers_used": 1,
+        "x402_payment_count": 0
+      }
+    }
+  }
+}

@@ -148,6 +148,21 @@ def test_build_summary_mentions_l1_and_l2_receipts():
     assert "audit_events=7" in summary
 
 
+def test_print_summary_only_emits_single_line(capsys):
+    resolve_v2_dogfood._print_summary_only(
+        {
+            "ok": True,
+            "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_l2 receipt=rcpt_l2",
+        }
+    )
+
+    captured = capsys.readouterr()
+    assert (
+        captured.out
+        == "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_l2 receipt=rcpt_l2\n"
+    )
+
+
 def test_apply_profile_defaults_sets_interface_and_parameters_from_profile():
     args = resolve_v2_dogfood.parse_args([])
 
@@ -158,6 +173,12 @@ def test_apply_profile_defaults_sets_interface_and_parameters_from_profile():
     assert profiled.provider == "brave-search"
     assert profiled.capability == "search.query"
     assert profiled.parameters_json == '{"query": "best MCP server distribution channels for developers", "numResults": 3}'
+
+
+def test_parse_args_accepts_summary_only_flag():
+    args = resolve_v2_dogfood.parse_args(["--summary-only"])
+
+    assert args.summary_only is True
 
 
 def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
