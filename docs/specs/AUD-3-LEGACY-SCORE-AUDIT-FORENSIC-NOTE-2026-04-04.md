@@ -39,6 +39,7 @@ Using the preserved Railway keyring and the live verifier logic (`build_score_au
 1. The anchored row is not reproducible from the preserved row payload.
 2. The exhaustive score sweep also produced no match.
 3. The gap is sharper than “missing `key_version`”. The preserved truth surface is insufficient to reconstruct the signed message.
+4. A follow-up recovery sweep on 2026-04-06 across tracked repo artifacts plus the likely Railway deployment-log window around `2026-04-03 12:30 PT` did **not** surface a preserved original signed payload or another higher-fidelity source for this row.
 
 ## Operational conclusion
 
