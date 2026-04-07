@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "resolve_v2_dogfood.py"
 
@@ -299,6 +299,47 @@ def test_provision_api_key_via_admin_retries_transient_list_failure_once():
     }
     assert mock_http.call_count == 4
     mock_sleep.assert_called_once_with(0.5)
+
+
+def test_provision_api_key_via_admin_retries_multiple_transient_list_failures_before_success():
+    args = resolve_v2_dogfood.argparse.Namespace(
+        base_url="https://api.rhumb.dev",
+        admin_key_env="RHUMB_ADMIN_SECRET",
+        bootstrap_org_id="org_verify",
+        bootstrap_agent_name="Verifier Agent",
+        bootstrap_service="brave-search",
+        timeout=30.0,
+    )
+
+    responses = iter([
+        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+    ])
+
+    with (
+        patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
+        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+        patch.object(resolve_v2_dogfood.time, "sleep") as mock_sleep,
+    ):
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+
+    assert api_key == "rhumb_rotated_key"
+    assert metadata == {
+        "organization_id": "org_verify",
+        "agent_name": "Verifier Agent",
+        "service": "brave-search",
+        "list_attempts": 4,
+        "mode": "rotated",
+        "agent_id": "agent_existing",
+        "service_access": "already_granted",
+    }
+    assert mock_http.call_count == 6
+    assert mock_sleep.call_args_list == [call(0.5), call(1.0), call(2.0)]
+
 
 
 def test_provision_api_key_via_admin_surfaces_http_status_and_detail_on_list_failure():
