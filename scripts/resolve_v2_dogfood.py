@@ -257,7 +257,10 @@ def provision_api_key_via_admin(
     )
     agents = list_resp.get("json")
     if list_resp.get("status") != 200 or not isinstance(agents, list):
-        raise RuntimeError(f"Admin agent list failed: {list_resp.get('detail')}")
+        detail = _extract_error_detail(list_resp)
+        raise RuntimeError(
+            f"Admin agent list failed ({list_resp.get('status')}): {detail}"
+        )
 
     existing_agent = next(
         (item for item in agents if item.get("name") == agent_name),
@@ -287,7 +290,10 @@ def provision_api_key_via_admin(
         agent_id = create_payload.get("agent_id")
         api_key = create_payload.get("api_key")
         if create_resp.get("status") != 200 or not agent_id or not api_key:
-            raise RuntimeError(f"Admin agent create failed: {create_resp.get('detail')}")
+            detail = _extract_error_detail(create_resp)
+            raise RuntimeError(
+                f"Admin agent create failed ({create_resp.get('status')}): {detail}"
+            )
         metadata.update({"mode": "created", "agent_id": agent_id})
     else:
         agent_id = existing_agent.get("agent_id")
@@ -301,7 +307,10 @@ def provision_api_key_via_admin(
         rotate_payload = rotate_resp.get("json") or {}
         api_key = rotate_payload.get("new_api_key")
         if rotate_resp.get("status") != 200 or not api_key:
-            raise RuntimeError(f"Admin agent rotate failed: {rotate_resp.get('detail')}")
+            detail = _extract_error_detail(rotate_resp)
+            raise RuntimeError(
+                f"Admin agent rotate failed ({rotate_resp.get('status')}): {detail}"
+            )
         metadata.update({"mode": "rotated", "agent_id": agent_id})
 
     if service:
@@ -313,7 +322,10 @@ def provision_api_key_via_admin(
             timeout=args.timeout,
         )
         if grant_resp.get("status") not in {200, 409}:
-            raise RuntimeError(f"Admin agent grant-access failed: {grant_resp.get('detail')}")
+            detail = _extract_error_detail(grant_resp)
+            raise RuntimeError(
+                f"Admin agent grant-access failed ({grant_resp.get('status')}): {detail}"
+            )
         metadata["service_access"] = "already_granted" if grant_resp.get("status") == 409 else "granted"
 
     return api_key, metadata

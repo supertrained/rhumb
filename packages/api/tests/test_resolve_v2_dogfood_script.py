@@ -259,3 +259,29 @@ def test_provision_api_key_via_admin_rotates_existing_agent_and_tolerates_existi
         "agent_id": "agent_existing",
         "service_access": "already_granted",
     }
+
+
+def test_provision_api_key_via_admin_surfaces_http_status_and_detail_on_list_failure():
+    args = resolve_v2_dogfood.argparse.Namespace(
+        base_url="https://api.rhumb.dev",
+        admin_key_env="RHUMB_ADMIN_SECRET",
+        bootstrap_org_id="org_verify",
+        bootstrap_agent_name="Verifier Agent",
+        bootstrap_service=None,
+        timeout=30.0,
+    )
+
+    with (
+        patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
+        patch.object(
+            resolve_v2_dogfood,
+            "_http_json",
+            return_value={"status": 401, "json": {"detail": "Invalid or missing admin key."}},
+        ),
+    ):
+        try:
+            resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+        except RuntimeError as exc:
+            assert str(exc) == "Admin agent list failed (401): Invalid or missing admin key."
+        else:  # pragma: no cover - defensive assertion
+            raise AssertionError("Expected RuntimeError on admin list failure")

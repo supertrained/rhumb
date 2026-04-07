@@ -1,0 +1,1833 @@
+{
+  "audit": {
+    "events": {
+      "data": {
+        "events": [
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "891078649bc154374e949470472bda4401e441635c15f7bc87885a44b6d193ad",
+            "chain_sequence": 6,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 488.5,
+              "upstream_status": 200
+            },
+            "event_id": "aud_8a69710d46c041a3",
+            "event_type": "execution.completed",
+            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:45:47.436340+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "800b9e7c72e3f738be792ee20b6c634de548ffdd4c8386d0f767d8a5b943b9de",
+            "chain_sequence": 5,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 577.0,
+              "upstream_status": 200
+            },
+            "event_id": "aud_eae13bfe0a9d4c46",
+            "event_type": "execution.completed",
+            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:45:37.367415+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "50c40047fc538219b41270d44d4d43edb407d7addbfb28bfe6a4c429923c55a8",
+            "chain_sequence": 4,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 473.9,
+              "upstream_status": 200
+            },
+            "event_id": "aud_0b8c441d1b3c4096",
+            "event_type": "execution.completed",
+            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:43:23.310059+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "4dc183684e37edd36c6f261a69faaf904a3abb5fc0b6c3fa73ec24f81b59598e",
+            "chain_sequence": 3,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 504.1,
+              "upstream_status": 200
+            },
+            "event_id": "aud_a73bd5d8b25a4f0a",
+            "event_type": "execution.completed",
+            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_262d46023c4a4c029dcef4093a57e22d",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:43:13.760333+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "3a4a99a279d5b376e86f33713a9d140717639070fcebb3dd4677541fbbbd41b0",
+            "chain_sequence": 2,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 472.8,
+              "upstream_status": 200
+            },
+            "event_id": "aud_996b23bd4888490e",
+            "event_type": "execution.completed",
+            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:42:48.087160+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "ae93cabaa6dc46a530c9972e8e7451b976018682f2716dd10027da38bc8011c1",
+            "chain_sequence": 1,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 929.4,
+              "upstream_status": 200
+            },
+            "event_id": "aud_f94c40802d4d4877",
+            "event_type": "execution.completed",
+            "execution_id": "exec_21afc4f952f04b6db7e0737403b6e8be",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_21afc4f952f04b6db7e0737403b6e8be",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-07T01:42:37.958977+00:00"
+          }
+        ],
+        "pagination": {
+          "has_more": false,
+          "limit": 10,
+          "offset": 0,
+          "total": 6
+        }
+      }
+    },
+    "status": {
+      "data": {
+        "chain_verified": true,
+        "earliest_event": "2026-04-07T01:42:37.958977+00:00",
+        "events_by_category": {
+          "execution": 6
+        },
+        "events_by_severity": {
+          "info": 6
+        },
+        "events_by_type": {
+          "execution.completed": 6
+        },
+        "latest_event": "2026-04-07T01:45:47.436340+00:00",
+        "latest_hash": "891078649bc154374e949470472bda4401e441635c15f7bc87885a44b6d193ad",
+        "latest_sequence": 6,
+        "total_events": 6
+      }
+    }
+  },
+  "billing": {
+    "events": {
+      "data": {
+        "count": 10,
+        "events": [
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "a0310c3cc1ce76dfa8cc512ee03edd6f9078ab652da32977bbdc744722082d88",
+            "event_id": "bevt_63cb6b8992b44458",
+            "event_type": "execution.charged",
+            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
+            "timestamp": "2026-04-07T01:45:48.498567+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "9bbc70544953307d6bc3ce4d37e22f08521851e17d26fff6abc2f77ecf6c99ae",
+            "event_id": "bevt_65f9d88c50ac4a40",
+            "event_type": "execution.charged",
+            "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T01:45:47.416757+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "b243e272b69cf778d828e7657a960478676a16c3498ae640567fdcbdc15c3a81",
+            "event_id": "bevt_382c7b3c6be240ca",
+            "event_type": "execution.charged",
+            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+            "timestamp": "2026-04-07T01:45:38.415761+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "fcc18e3f4b10a235cbbbc2ac58c2e057b55328e7ba45b4f14bfb8e54c34a197f",
+            "event_id": "bevt_aedb0cb343b545c1",
+            "event_type": "execution.charged",
+            "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T01:45:37.358697+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "198ba9971ab10f882ed9138a38b4fb0c0f370ac8d816c4dcb781fb149ab624f0",
+            "event_id": "bevt_6f556f6e93524f35",
+            "event_type": "execution.charged",
+            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_f45935673e1143c4abe7aff8",
+            "timestamp": "2026-04-07T01:43:24.368937+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "4d1095ca208b722fb249e06764fc2d5a80d7662697d076348d5c01cc300777c9",
+            "event_id": "bevt_9eaa773f83ad4a81",
+            "event_type": "execution.charged",
+            "execution_id": "exec_99d2b56301414eafbc9dbc8a07bfa52f",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T01:43:23.304344+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "05a6047da64bfb83ccba204098cd880ea824835708772112b2a868d59a79554f",
+            "event_id": "bevt_52256b1b4ef046cd",
+            "event_type": "execution.charged",
+            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_c794d45add7f4c84b4077a0e",
+            "timestamp": "2026-04-07T01:43:14.788458+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "a5913f78f3ecd7cc750cb84573b1344383ab88ed6d736947144f342702b2b376",
+            "event_id": "bevt_6cf4a4aac7c045b7",
+            "event_type": "execution.charged",
+            "execution_id": "exec_262d46023c4a4c029dcef4093a57e22d",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T01:43:13.741816+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "4b950c6399362405434d6ff38f4877388a73cf1bb55dc80307c359d94deb519a",
+            "event_id": "bevt_00020591d5214fcb",
+            "event_type": "execution.charged",
+            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_929fa734fcbc4cc08ca3aee4",
+            "timestamp": "2026-04-07T01:42:49.068460+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "74604256cbca5597e60fd2110728cd581ae30dd9bd274cdd2806c23fe8643370",
+            "event_id": "bevt_dae9a41c57a6413c",
+            "event_type": "execution.charged",
+            "execution_id": "exec_d6b86aa50110434a9de7ba71648da5d7",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-07T01:42:48.084209+00:00"
+          }
+        ],
+        "org_id": "org_aud3_verifier"
+      }
+    },
+    "stream_status": {
+      "data": {
+        "chain_verified": true,
+        "event_types": [
+          "execution.charged",
+          "execution.refunded",
+          "execution.failed_no_charge",
+          "credit.purchased",
+          "credit.expired",
+          "credit.adjusted",
+          "x402.payment_received",
+          "x402.settlement_completed",
+          "x402.settlement_failed",
+          "wallet.topup_completed",
+          "wallet.topup_failed",
+          "budget.threshold_warning",
+          "budget.limit_reached",
+          "budget.reset",
+          "auto_reload.triggered",
+          "auto_reload.failed"
+        ],
+        "latest_chain_hash": "a0310c3cc1ce76dfa8cc512ee03edd6f9078ab652da32977bbdc744722082d88",
+        "stream_length": 12,
+        "structural_guarantees": [
+          "All billing events are immutable and chain-hashed",
+          "Event stream is append-only with SHA-256 chain integrity",
+          "Events capture full execution context (provider, capability, receipt)",
+          "Summaries aggregate across providers and capabilities"
+        ]
+      }
+    },
+    "summary": {
+      "data": {
+        "by_capability": {
+          "search.query": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "by_provider": {
+          "brave-search": {
+            "charged_usd": 0.0,
+            "charged_usd_cents": 0
+          }
+        },
+        "credit_purchase_count": 0,
+        "events_count": 12,
+        "execution_count": 12,
+        "net_usd": 0.0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "total_charged_usd": 0.0,
+        "total_charged_usd_cents": 0,
+        "total_credited_usd": 0.0,
+        "total_credited_usd_cents": 0,
+        "x402_payment_count": 0
+      }
+    }
+  },
+  "capabilities": {
+    "_rhumb_v2": {
+      "api_version": "v2-alpha",
+      "compat_mode": "v1-translate",
+      "layer": 2
+    },
+    "items": [
+      {
+        "action": "report",
+        "description": "Generate a formatted accessibility audit report for a URL",
+        "domain": "accessibility",
+        "id": "accessibility.report",
+        "input_hint": "optional: parameters, filters",
+        "outcome": "Generated report",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "scan",
+        "description": "Run an automated accessibility audit against a URL or HTML snippet",
+        "domain": "accessibility",
+        "id": "accessibility.scan",
+        "input_hint": "target URL or content",
+        "outcome": "Scan results with findings",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "autocomplete",
+        "description": "Suggest address completions as a user types",
+        "domain": "address_verification",
+        "id": "address_verification.autocomplete",
+        "input_hint": "partial input text",
+        "outcome": "Completion suggestions",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.0,
+          "slug": "google-places",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "verify",
+        "description": "Validate and standardize a postal address",
+        "domain": "address_verification",
+        "id": "address_verification.verify",
+        "input_hint": "data or identity to verify",
+        "outcome": "Verification result (verified/not)",
+        "provider_count": 4,
+        "top_provider": {
+          "an_score": 8.1,
+          "slug": "lob",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "create_link",
+        "description": "Generate a trackable affiliate referral link for a partner",
+        "domain": "affiliate",
+        "id": "affiliate.create_link",
+        "input_hint": "target URL, optional: campaign",
+        "outcome": "Tracking link URL",
+        "provider_count": 4,
+        "top_provider": null
+      },
+      {
+        "action": "get_commissions",
+        "description": "List pending or paid commission payouts for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_commissions",
+        "input_hint": "optional: date_range",
+        "outcome": "Commission records",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_stats",
+        "description": "Retrieve clicks, conversions, and revenue attribution for an affiliate partner",
+        "domain": "affiliate",
+        "id": "affiliate.get_stats",
+        "input_hint": "optional: date_range, filters",
+        "outcome": "Statistics and metrics",
+        "provider_count": 3,
+        "top_provider": null
+      },
+      {
+        "action": "get_status",
+        "description": "Check the status or output of a running agent",
+        "domain": "agent",
+        "id": "agent.get_status",
+        "input_hint": "sandbox_id",
+        "outcome": "Sandbox status including running state, resource usage, uptime",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "send_message",
+        "description": "Send a message or instruction to an active agent",
+        "domain": "agent",
+        "id": "agent.send_message",
+        "input_hint": "agent parameters",
+        "outcome": "Send a message or instruction to an active agent",
+        "provider_count": 2,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      },
+      {
+        "action": "spawn",
+        "description": "Create and start a new autonomous agent run",
+        "domain": "agent",
+        "id": "agent.spawn",
+        "input_hint": "template?, timeout_seconds?",
+        "outcome": "Sandbox ID with connection URL and status",
+        "provider_count": 3,
+        "top_provider": {
+          "an_score": 8.8,
+          "slug": "inngest",
+          "tier_label": "Native"
+        }
+      }
+    ],
+    "limit": 10,
+    "offset": 0,
+    "total": 415
+  },
+  "config": {
+    "api_key_env": "RHUMB_DOGFOOD_API_KEY",
+    "api_key_preview": "rhumb_795b31\u20260f49",
+    "base_url": "https://api.rhumb.dev",
+    "bootstrap": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "agent_name": "Pedro AUD-3 Verifier",
+      "mode": "rotated",
+      "organization_id": "org_aud3_verifier",
+      "service": "brave-search",
+      "service_access": "already_granted"
+    },
+    "capability": "search.query",
+    "credential_mode": "rhumb_managed",
+    "interface": "dogfood-keel",
+    "policy_max_cost_usd": null,
+    "policy_provider_preference": null,
+    "profile": "keel",
+    "provider": "brave-search",
+    "skip_layer1": false,
+    "v2_root": "https://api.rhumb.dev/v2"
+  },
+  "health": {
+    "compat_mode": "v1-translate",
+    "layer": 2,
+    "status": "ok",
+    "version": "2026-03-30"
+  },
+  "layer1": {
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "cost": {
+            "provider_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "credential_mode": "rhumb_managed",
+          "latency": {
+            "overhead_ms": 0.0,
+            "provider_ms": null,
+            "total_ms": 5840.0
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "category": "search",
+            "docs_url": "https://api.search.brave.com/app/#/documentation",
+            "id": "brave-search",
+            "name": "Brave Search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_c1351ed534564e3bb527d1fd"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "cost": {
+            "markup_floor_usd": 0.0002,
+            "markup_rate": 0.08,
+            "provider_cost_usd": 0.003,
+            "rhumb_fee_usd": 0.00024,
+            "total_usd": 0.00324
+          },
+          "explanation_id": "rexp_412b49bc4bcd",
+          "latency": {
+            "provider_ms": null,
+            "rhumb_overhead_ms": 0,
+            "total_ms": 5840
+          },
+          "layer": 1,
+          "provider": {
+            "an_score": null,
+            "capability_used": "search.query",
+            "display_name": "Brave Search",
+            "id": "brave-search"
+          },
+          "receipt_id": "rcpt_c1351ed534564e3bb527d1fd"
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+        "latency_ms": 488.5,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "runtime-backed API review evidence best practices",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "description": "\u201cTax research requires <strong>synthesizing multiple documents to produce a final, cogent answer</strong>. We swapped GPT-4o for o1 and found that o1 was much better at reasoning over the interplay between documents to reach logical conclusions that were not ...",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/wwjL7FxKsYg9swL43bg5iIhK0Y9raP8LOGycO2vU7Z0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMTZhZDMxYzM0/MTU5ZDBmMDkyNGQ2/ZGIwYWQyNDBkMDBh/YmJkNzkzZTYzODI0/ZDQxZGRmYTVhNjAx/MDRkMDZlNi9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20v",
+                  "hostname": "developers.openai.com",
+                  "netloc": "developers.openai.com",
+                  "path": "\u203a api  \u203a docs  \u203a guides  \u203a reasoning-best-practices",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/wwjL7FxKsYg9swL43bg5iIhK0Y9raP8LOGycO2vU7Z0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMTZhZDMxYzM0/MTU5ZDBmMDkyNGQ2/ZGIwYWQyNDBkMDBh/YmJkNzkzZTYzODI0/ZDQxZGRmYTVhNjAx/MDRkMDZlNi9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20v",
+                  "long_name": "developers.openai.com",
+                  "name": "Openai",
+                  "url": "https://developers.openai.com/api/docs/guides/reasoning-best-practices"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://developers.openai.com/og/api/docs/guides/reasoning-best-practices.png",
+                  "src": "https://imgs.search.brave.com/utgqC_BjczBNrw3gr9tTMUqRQ8BxqCJBdULS1hajq5o/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20vb2cvYXBp/L2RvY3MvZ3VpZGVz/L3JlYXNvbmluZy1i/ZXN0LXByYWN0aWNl/cy5wbmc"
+                },
+                "title": "Reasoning best practices | OpenAI API",
+                "type": "search_result",
+                "url": "https://developers.openai.com/api/docs/guides/reasoning-best-practices"
+              },
+              {
+                "age": "June 8, 2025",
+                "description": "<strong>Use automated discovery tools: capture live traffic, scan repositories and configs, analyze gateway logs, and trace runtime behavior</strong>. These methods surface shadow and zombie APIs faster than manual reviews.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/9x5rchfqx5bvbE1R-mX3O6celIKGYG5F_lsdcnuRzn0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWRiMmE5YmY1/MGNkZTdjYTRkNmY3/YTFiOTgyYTc4OTI5/NDU1OTg0ZThlY2Uw/Nzg3Nzk1ZDFmZWZh/NjM0NjNlOC9hcHBz/ZW50aW5lbHMuYWkv",
+                  "hostname": "appsentinels.ai",
+                  "netloc": "appsentinels.ai",
+                  "path": "  \u203a home  \u203a blog  \u203a api audit checklist \u2013 a comprehensive guide for security leaders",
+                  "scheme": "https"
+                },
+                "page_age": "2025-06-08T17:17:49",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/9x5rchfqx5bvbE1R-mX3O6celIKGYG5F_lsdcnuRzn0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWRiMmE5YmY1/MGNkZTdjYTRkNmY3/YTFiOTgyYTc4OTI5/NDU1OTg0ZThlY2Uw/Nzg3Nzk1ZDFmZWZh/NjM0NjNlOC9hcHBz/ZW50aW5lbHMuYWkv",
+                  "long_name": "appsentinels.ai",
+                  "name": "AppSentinels",
+                  "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://res.cloudinary.com/dufh810os/images/f_auto,q_auto/v1760433530/API-audit-checklist-cover/API-audit-checklist-cover.webp?_i=AA",
+                  "src": "https://imgs.search.brave.com/bAm5kKRlNEl6p99K7uHDzk_6HYBeCu0VGqFO44uXmqY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9yZXMu/Y2xvdWRpbmFyeS5j/b20vZHVmaDgxMG9z/L2ltYWdlcy9mX2F1/dG8scV9hdXRvL3Yx/NzYwNDMzNTMwL0FQ/SS1hdWRpdC1jaGVj/a2xpc3QtY292ZXIv/QVBJLWF1ZGl0LWNo/ZWNrbGlzdC1jb3Zl/ci53ZWJwP19pPUFB"
+                },
+                "title": "API Audit Checklist 2025 | Secure Your APIs, Ensure Compliance & Stop Breaches",
+                "type": "search_result",
+                "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
+              },
+              {
+                "description": "<strong>Perform vulnerability scanning and penetration testing</strong>. Use an automated API scanner to test the source code and look for runtime errors, and employ periodic penetration testing to identify API vulnerabilities to more sophisticated, new, or novel attacks.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
+                  "hostname": "www.f5.com",
+                  "netloc": "f5.com",
+                  "path": "\u203a company  \u203a blog  \u203a api-security-checklist",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
+                  "long_name": "f5.com",
+                  "name": "F5",
+                  "url": "https://www.f5.com/company/blog/api-security-checklist"
+                },
+                "subtype": "generic",
+                "title": "API Security Checklist: Best Practices, Testing, and NIST",
+                "type": "search_result",
+                "url": "https://www.f5.com/company/blog/api-security-checklist"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "7447",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 01:45:41 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200060-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "keOhh5VUT1-AxkphLPU1MQ",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775526408",
+        "x-request-id": "07a98265-bd4c-4cb2-bc42-e8f62a5094a0",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-cost-usd": "0.003240",
+        "x-rhumb-layer": "1",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_c1351ed534564e3bb527d1fd",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200060-BUR"
+      },
+      "request": {
+        "capability": "search.query",
+        "credential_mode": "rhumb_managed",
+        "idempotency_key": "dogfood-e93c2ef1c00640a8b17f1adc0014e420",
+        "interface": "dogfood-keel",
+        "parameters": {
+          "numResults": 3,
+          "query": "runtime-backed API review evidence best practices"
+        },
+        "policy": {
+          "max_cost_usd": 0.05
+        }
+      }
+    },
+    "provider": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "layer": 1
+      },
+      "an_score": null,
+      "callable": true,
+      "capabilities": [
+        {
+          "capability_id": "search.query",
+          "cost_currency": "USD",
+          "cost_per_call": 0.003,
+          "credential_modes": [
+            "byo",
+            "rhumb_managed"
+          ],
+          "free_tier_calls": 2000
+        }
+      ],
+      "category": "search",
+      "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+      "id": "brave-search",
+      "name": "Brave Search",
+      "pricing": {
+        "description": "provider_cost + max($0.0002, provider_cost \u00d7 0.08)",
+        "markup_floor_usd": 0.0002,
+        "markup_rate": 0.08,
+        "model": "passthrough_plus_markup"
+      },
+      "tier": null
+    },
+    "receipt": {
+      "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:6ab65ffd10199850",
+      "candidates_evaluated": 1,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 386,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T01:45:47.642299+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_b5eff972a8fe4d72ada49a004e139fd2",
+      "idempotency_key": "dogfood-e93c2ef1c00640a8b17f1adc0014e420",
+      "interface": "dogfood-keel-v2-l1",
+      "layer": 1,
+      "org_id": "org_aud3_verifier",
+      "previous_receipt_hash": "sha256:5fd0a72b0a8a4d18331afa053c01c775f235b52dc44cf91d280c99d0206ae0da",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:f1811cfe1dd08284c410cb9901b4800f3cdf76ac2761e48b81dcb87ecd5faed1",
+      "receipt_id": "rcpt_c1351ed534564e3bb527d1fd",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
+      "response_hash": null,
+      "rhumb_fee_usd": 0.00024,
+      "rhumb_overhead_ms": 0,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": 0.00324,
+      "total_latency_ms": 5840,
+      "winner_reason": "agent_pinned_layer1",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "layer2": {
+    "estimate": {
+      "data": {
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "compat_mode": "v1-translate",
+          "layer": 2
+        },
+        "capability_id": "search.query",
+        "circuit_state": "closed",
+        "cost_estimate_usd": 0.003,
+        "credential_mode": "rhumb_managed",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "provider": "brave-search"
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "287",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 01:45:30 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200023-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "Dp6vvKHMST-AMqiOxtoGcA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775526391",
+        "x-request-id": "14d6dbca-5b4c-405c-8d45-ba0a53835548",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200023-BUR"
+      }
+    },
+    "execute": {
+      "data": {
+        "_rhumb": {
+          "credential_mode": "rhumb_managed",
+          "layer": 2,
+          "provider": {
+            "an_score": null,
+            "category": null,
+            "docs_url": null,
+            "id": "brave-search",
+            "name": "brave-search",
+            "tier": null
+          },
+          "receipt_id": "rcpt_0f199809894f4fecb544acd9"
+        },
+        "_rhumb_v2": {
+          "api_version": "v2-alpha",
+          "budget_applied": false,
+          "budget_summary": null,
+          "compat_mode": "v1-translate",
+          "estimated_cost_usd": 0.003,
+          "explanation_id": "rexp_ed3bf6bb9cda",
+          "layer": 2,
+          "policy_applied": true,
+          "policy_candidates": [
+            "algolia",
+            "brave-search",
+            "elasticsearch",
+            "exa",
+            "meilisearch",
+            "tavily",
+            "typesense"
+          ],
+          "policy_selected_reason": "policy_preference_match",
+          "policy_source": {
+            "has_account_policy": false,
+            "inline_fields": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "organization_fields": [],
+            "scope": "organization"
+          },
+          "policy_summary": {
+            "allow_only": [],
+            "candidate_providers": [
+              "algolia",
+              "brave-search",
+              "elasticsearch",
+              "exa",
+              "meilisearch",
+              "tavily",
+              "typesense"
+            ],
+            "controls": [
+              "provider_preference",
+              "max_cost_usd"
+            ],
+            "max_cost_usd": 0.05,
+            "pin": null,
+            "provider_deny": [],
+            "provider_preference": [
+              "brave-search"
+            ]
+          },
+          "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+          "selected_provider": "brave-search",
+          "translated_from": {
+            "idempotency_header_used": false,
+            "parameters": true,
+            "policy_allow_only": false,
+            "policy_pin": false,
+            "policy_provider_deny": false,
+            "policy_provider_preference": true
+          }
+        },
+        "capability_id": "search.query",
+        "credential_mode": "rhumb_managed",
+        "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+        "latency_ms": 577.0,
+        "provider_used": "brave-search",
+        "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+        "upstream_response": {
+          "mixed": {
+            "main": [
+              {
+                "all": false,
+                "index": 0,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 1,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 2,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 3,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 4,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 5,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 6,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 7,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 8,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 9,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 10,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 11,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 12,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 13,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 14,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 15,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 16,
+                "type": "web"
+              },
+              {
+                "all": false,
+                "index": 17,
+                "type": "web"
+              }
+            ],
+            "side": [],
+            "top": [],
+            "type": "mixed"
+          },
+          "query": {
+            "bad_results": false,
+            "city": "",
+            "country": "us",
+            "header_country": "",
+            "is_navigational": false,
+            "is_news_breaking": false,
+            "more_results_available": true,
+            "original": "runtime-backed API review evidence best practices",
+            "postal_code": "",
+            "should_fallback": false,
+            "show_strict_warning": false,
+            "spellcheck_off": false,
+            "state": ""
+          },
+          "type": "search",
+          "web": {
+            "family_friendly": true,
+            "results": [
+              {
+                "description": "\u201cTax research requires <strong>synthesizing multiple documents to produce a final, cogent answer</strong>. We swapped GPT-4o for o1 and found that o1 was much better at reasoning over the interplay between documents to reach logical conclusions that were not ...",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/wwjL7FxKsYg9swL43bg5iIhK0Y9raP8LOGycO2vU7Z0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMTZhZDMxYzM0/MTU5ZDBmMDkyNGQ2/ZGIwYWQyNDBkMDBh/YmJkNzkzZTYzODI0/ZDQxZGRmYTVhNjAx/MDRkMDZlNi9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20v",
+                  "hostname": "developers.openai.com",
+                  "netloc": "developers.openai.com",
+                  "path": "\u203a api  \u203a docs  \u203a guides  \u203a reasoning-best-practices",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/wwjL7FxKsYg9swL43bg5iIhK0Y9raP8LOGycO2vU7Z0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMTZhZDMxYzM0/MTU5ZDBmMDkyNGQ2/ZGIwYWQyNDBkMDBh/YmJkNzkzZTYzODI0/ZDQxZGRmYTVhNjAx/MDRkMDZlNi9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20v",
+                  "long_name": "developers.openai.com",
+                  "name": "Openai",
+                  "url": "https://developers.openai.com/api/docs/guides/reasoning-best-practices"
+                },
+                "subtype": "generic",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://developers.openai.com/og/api/docs/guides/reasoning-best-practices.png",
+                  "src": "https://imgs.search.brave.com/utgqC_BjczBNrw3gr9tTMUqRQ8BxqCJBdULS1hajq5o/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9kZXZl/bG9wZXJzLm9wZW5h/aS5jb20vb2cvYXBp/L2RvY3MvZ3VpZGVz/L3JlYXNvbmluZy1i/ZXN0LXByYWN0aWNl/cy5wbmc"
+                },
+                "title": "Reasoning best practices | OpenAI API",
+                "type": "search_result",
+                "url": "https://developers.openai.com/api/docs/guides/reasoning-best-practices"
+              },
+              {
+                "age": "June 8, 2025",
+                "description": "<strong>Use automated discovery tools: capture live traffic, scan repositories and configs, analyze gateway logs, and trace runtime behavior</strong>. These methods surface shadow and zombie APIs faster than manual reviews.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/9x5rchfqx5bvbE1R-mX3O6celIKGYG5F_lsdcnuRzn0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWRiMmE5YmY1/MGNkZTdjYTRkNmY3/YTFiOTgyYTc4OTI5/NDU1OTg0ZThlY2Uw/Nzg3Nzk1ZDFmZWZh/NjM0NjNlOC9hcHBz/ZW50aW5lbHMuYWkv",
+                  "hostname": "appsentinels.ai",
+                  "netloc": "appsentinels.ai",
+                  "path": "  \u203a home  \u203a blog  \u203a api audit checklist \u2013 a comprehensive guide for security leaders",
+                  "scheme": "https"
+                },
+                "page_age": "2025-06-08T17:17:49",
+                "profile": {
+                  "img": "https://imgs.search.brave.com/9x5rchfqx5bvbE1R-mX3O6celIKGYG5F_lsdcnuRzn0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWRiMmE5YmY1/MGNkZTdjYTRkNmY3/YTFiOTgyYTc4OTI5/NDU1OTg0ZThlY2Uw/Nzg3Nzk1ZDFmZWZh/NjM0NjNlOC9hcHBz/ZW50aW5lbHMuYWkv",
+                  "long_name": "appsentinels.ai",
+                  "name": "AppSentinels",
+                  "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
+                },
+                "subtype": "article",
+                "thumbnail": {
+                  "logo": false,
+                  "original": "https://res.cloudinary.com/dufh810os/images/f_auto,q_auto/v1760433530/API-audit-checklist-cover/API-audit-checklist-cover.webp?_i=AA",
+                  "src": "https://imgs.search.brave.com/bAm5kKRlNEl6p99K7uHDzk_6HYBeCu0VGqFO44uXmqY/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9yZXMu/Y2xvdWRpbmFyeS5j/b20vZHVmaDgxMG9z/L2ltYWdlcy9mX2F1/dG8scV9hdXRvL3Yx/NzYwNDMzNTMwL0FQ/SS1hdWRpdC1jaGVj/a2xpc3QtY292ZXIv/QVBJLWF1ZGl0LWNo/ZWNrbGlzdC1jb3Zl/ci53ZWJwP19pPUFB"
+                },
+                "title": "API Audit Checklist 2025 | Secure Your APIs, Ensure Compliance & Stop Breaches",
+                "type": "search_result",
+                "url": "https://appsentinels.ai/blog/blog-api-audit-checklist-a-comprehensive-guide-for-security-leaders/"
+              },
+              {
+                "description": "<strong>Perform vulnerability scanning and penetration testing</strong>. Use an automated API scanner to test the source code and look for runtime errors, and employ periodic penetration testing to identify API vulnerabilities to more sophisticated, new, or novel attacks.",
+                "family_friendly": true,
+                "is_live": false,
+                "is_source_both": false,
+                "is_source_local": false,
+                "language": "en",
+                "meta_url": {
+                  "favicon": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
+                  "hostname": "www.f5.com",
+                  "netloc": "f5.com",
+                  "path": "\u203a company  \u203a blog  \u203a api-security-checklist",
+                  "scheme": "https"
+                },
+                "profile": {
+                  "img": "https://imgs.search.brave.com/Jaj7oOedZJdtgnWpLB9ZVc7hfp_bROCjAhrE_4Rq5zM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGEzOGI3ZGQ2/NzBlZTdkYjczMGIw/ZTFhN2U5ZDk2NWYz/MWVlYTNmN2VhZjU4/Y2FlZDdjZTM4ZmE5/ZTIxNTgxZi93d3cu/ZjUuY29tLw",
+                  "long_name": "f5.com",
+                  "name": "F5",
+                  "url": "https://www.f5.com/company/blog/api-security-checklist"
+                },
+                "subtype": "generic",
+                "title": "API Security Checklist: Best Practices, Testing, and NIST",
+                "type": "search_result",
+                "url": "https://www.f5.com/company/blog/api-security-checklist"
+              }
+            ],
+            "type": "search"
+          }
+        },
+        "upstream_status": 200
+      },
+      "headers": {
+        "Connection": "close",
+        "Content-Length": "7796",
+        "content-type": "application/json",
+        "date": "Tue, 07 Apr 2026 01:45:31 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "railway-edge",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200057-BUR",
+        "x-railway-edge": "railway/us-west2",
+        "x-railway-request-id": "nRwsRiEUTua_B7al0_TJvA",
+        "x-ratelimit-limit": "120",
+        "x-ratelimit-remaining": "119",
+        "x-ratelimit-reset": "1775526398",
+        "x-request-id": "dcb46c4f-1e8a-42f0-ad0f-3b8ff78a9d1a",
+        "x-rhumb-compat": "v1-translate",
+        "x-rhumb-layer": "2",
+        "x-rhumb-provider": "brave-search",
+        "x-rhumb-receipt-id": "rcpt_0f199809894f4fecb544acd9",
+        "x-rhumb-version": "2026-03-30",
+        "x-served-by": "cache-bur-kbur8200057-BUR"
+      },
+      "request": {
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood-keel",
+        "parameters": {
+          "numResults": 3,
+          "query": "runtime-backed API review evidence best practices"
+        },
+        "policy": {
+          "max_cost_usd": 0.05,
+          "provider_preference": [
+            "brave-search"
+          ]
+        }
+      }
+    },
+    "explanation": {
+      "candidates": [
+        {
+          "composite_score": 0.9197,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.89,
+              "value": 8.9,
+              "weight": 0.2,
+              "weighted_contribution": 0.178
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "elasticsearch"
+        },
+        {
+          "composite_score": 0.9157,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "meilisearch"
+        },
+        {
+          "composite_score": 0.9137,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.9667,
+              "value": 0.0001,
+              "weight": 0.25,
+              "weighted_contribution": 0.2417
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "typesense"
+        },
+        {
+          "composite_score": 0.8907,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.87,
+              "value": 8.7,
+              "weight": 0.2,
+              "weighted_contribution": 0.174
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "exa"
+        },
+        {
+          "composite_score": 0.8887,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.86,
+              "value": 8.6,
+              "weight": 0.2,
+              "weighted_contribution": 0.172
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "tavily"
+        },
+        {
+          "composite_score": 0.8467,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.9,
+              "value": 9.0,
+              "weight": 0.2,
+              "weighted_contribution": 0.18
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 0.5,
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05
+            },
+            "estimated_cost": {
+              "normalized_score": 0.6667,
+              "value": 0.001,
+              "weight": 0.25,
+              "weighted_contribution": 0.1667
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "algolia"
+        },
+        {
+          "composite_score": 0.692,
+          "eligible": true,
+          "factors": {
+            "an_score": {
+              "normalized_score": 0.71,
+              "value": 7.1,
+              "weight": 0.2,
+              "weighted_contribution": 0.142
+            },
+            "availability": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.3,
+              "weighted_contribution": 0.3
+            },
+            "credential_mode": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1
+            },
+            "estimated_cost": {
+              "normalized_score": 0.0,
+              "value": 0.003,
+              "weight": 0.25,
+              "weighted_contribution": 0.0
+            },
+            "latency": {
+              "normalized_score": 1.0,
+              "value": 1.0,
+              "weight": 0.15,
+              "weighted_contribution": 0.15
+            }
+          },
+          "policy_checks": {
+            "allow_list_ok": true,
+            "circuit_healthy": true,
+            "cost_ceiling_ok": true,
+            "denied": false,
+            "pinned": false,
+            "quality_floor_ok": true
+          },
+          "provider_id": "brave-search"
+        }
+      ],
+      "capability_id": "search.query",
+      "explanation_id": "rexp_ed3bf6bb9cda",
+      "human_summary": "brave-search selected over 6 other eligible candidate(s). Strongest factors: availability (0.300), latency (0.150). Strategy: balanced.",
+      "layer": 2,
+      "policy_active": false,
+      "strategy": "balanced",
+      "winner": {
+        "composite_score": 0.692,
+        "provider_id": "brave-search",
+        "selection_reason": "highest_composite_score_within_policy"
+      }
+    },
+    "receipt": {
+      "agent_id": "unknown",
+      "attempt_number": 1,
+      "caller_ip_hash": "sha256:dacf3f4d33be55bc",
+      "candidates_evaluated": 7,
+      "capability_id": "search.query",
+      "capability_version": null,
+      "chain_sequence": 385,
+      "compat_mode": "v1-translate",
+      "created_at": "2026-04-07T01:45:37.383078+00:00",
+      "credential_mode": "rhumb_managed",
+      "credits_deducted": null,
+      "error_code": null,
+      "error_message": null,
+      "error_provider_raw": null,
+      "execution_id": "exec_20a5e33a8d1145749eca471531f0888c",
+      "idempotency_key": null,
+      "interface": "dogfood-keel-v2",
+      "layer": 2,
+      "org_id": null,
+      "previous_receipt_hash": "sha256:10439852bc5313f03e5365f062b098e971053bd13cee643ebe67f1e35f953097",
+      "provider_cost_usd": 0.003,
+      "provider_id": "brave-search",
+      "provider_latency_ms": null,
+      "provider_model": null,
+      "provider_name": "brave-search",
+      "provider_region": null,
+      "receipt_hash": "sha256:5fd0a72b0a8a4d18331afa053c01c775f235b52dc44cf91d280c99d0206ae0da",
+      "receipt_id": "rcpt_0f199809894f4fecb544acd9",
+      "receipt_version": "1.0",
+      "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
+      "response_hash": null,
+      "rhumb_fee_usd": null,
+      "rhumb_overhead_ms": null,
+      "router_version": "2026-03-30",
+      "status": "success",
+      "total_cost_usd": null,
+      "total_latency_ms": 577,
+      "winner_reason": "policy_preference_match",
+      "x402_network": null,
+      "x402_payer": null,
+      "x402_tx_hash": null
+    }
+  },
+  "ok": true,
+  "policy": {
+    "before": {
+      "_rhumb_v2": {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+        "supported_policy_fields": [
+          "pin",
+          "provider_preference",
+          "provider_deny",
+          "allow_only",
+          "max_cost_usd"
+        ]
+      },
+      "has_policy": false,
+      "organization_id": "org_aud3_verifier",
+      "policy": {
+        "allow_only": [],
+        "max_cost_usd": null,
+        "pin": null,
+        "provider_deny": [],
+        "provider_preference": []
+      },
+      "scope": "organization",
+      "updated_at": null
+    }
+  },
+  "receipt_chain": {
+    "broken_links": [],
+    "chain_intact": true,
+    "range": {
+      "end": 20,
+      "start": 1
+    },
+    "total_checked": 20,
+    "verified": 20
+  },
+  "started_at": 1775526327,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_20a5e33a8d1145749eca471531f0888c receipt=rcpt_0f199809894f4fecb544acd9; L1 provider=brave-search exec=exec_b5eff972a8fe4d72ada49a004e139fd2 receipt=rcpt_c1351ed534564e3bb527d1fd; billing_events=12; audit_events=6",
+  "trust": {
+    "providers": {
+      "data": {
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "providers": [
+          {
+            "an_score": 7.1,
+            "execution_count": 12,
+            "failure_count": 0,
+            "provider_slug": "brave-search",
+            "success_count": 12,
+            "success_rate_pct": 100.0,
+            "tier": "L3",
+            "total_charged_usd": 0.0,
+            "total_charged_usd_cents": 0
+          }
+        ],
+        "total_providers": 1
+      }
+    },
+    "summary": {
+      "data": {
+        "credit_purchase_count": 0,
+        "failed_executions": 0,
+        "org_id": "org_aud3_verifier",
+        "period": "all",
+        "success_rate_pct": 100.0,
+        "successful_executions": 12,
+        "total_executions": 12,
+        "total_spend_usd": 0.0,
+        "total_spend_usd_cents": 0,
+        "trust_posture": {
+          "description": "Strong execution reliability with room for provider diversity.",
+          "label": "Good",
+          "level": "good"
+        },
+        "unique_capabilities_used": 1,
+        "unique_providers_used": 1,
+        "x402_payment_count": 0
+      }
+    }
+  }
+}
