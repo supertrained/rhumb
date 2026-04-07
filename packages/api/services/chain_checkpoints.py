@@ -22,7 +22,10 @@ from services.chain_integrity import (
     get_signing_key_version,
 )
 from services.durable_event_persistence import get_event_outbox
-from services.score_audit_verification import describe_score_audit_entry_verification
+from services.score_audit_verification import (
+    SCORE_AUDIT_VERIFICATION_SELECT_FIELDS,
+    describe_score_audit_entry_verification,
+)
 
 
 def _parse_optional_timestamp(value: Any) -> datetime | None:
@@ -50,7 +53,7 @@ def _parse_optional_int(value: Any) -> int | None:
 
 async def _fetch_latest_score_audit_row() -> dict[str, Any] | None:
     rows = await supabase_fetch(
-        "score_audit_chain?select=entry_id,chain_hash,key_version,created_at"
+        f"score_audit_chain?select={SCORE_AUDIT_VERIFICATION_SELECT_FIELDS}"
         "&order=created_at.desc&limit=1"
     )
     if isinstance(rows, list) and rows and isinstance(rows[0], dict):
@@ -60,7 +63,7 @@ async def _fetch_latest_score_audit_row() -> dict[str, Any] | None:
 
 async def _fetch_latest_anchor_eligible_score_audit_row() -> dict[str, Any] | None:
     rows = await supabase_fetch(
-        "score_audit_chain?select=entry_id,chain_hash,key_version,created_at"
+        f"score_audit_chain?select={SCORE_AUDIT_VERIFICATION_SELECT_FIELDS}"
         "&order=created_at.desc&limit=25"
     )
     if isinstance(rows, list):
@@ -139,7 +142,7 @@ async def _fetch_score_audit_quarantined_tail(
 
     encoded = quote(timestamp.isoformat(), safe="")
     rows = await supabase_fetch(
-        "score_audit_chain?select=entry_id,key_version,created_at"
+        f"score_audit_chain?select={SCORE_AUDIT_VERIFICATION_SELECT_FIELDS}"
         f"&created_at=gt.{encoded}&order=created_at.asc"
     )
     if isinstance(rows, list):

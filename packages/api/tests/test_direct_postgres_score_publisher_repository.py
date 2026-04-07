@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import create_engine, text
 
 from db.repository import DirectPostgresScorePublisherRepository
+from services.chain_integrity import build_score_audit_payload, canonicalize_payload
 from services.scoring import ANScoreResult
 
 
@@ -54,6 +55,7 @@ def repository() -> DirectPostgresScorePublisherRepository:
                 "created_at TEXT NOT NULL, "
                 "chain_hash TEXT NOT NULL, "
                 "prev_hash TEXT NOT NULL, "
+                "payload_canonical_json TEXT, "
                 "key_version INTEGER"
                 ")"
             )
@@ -133,7 +135,7 @@ async def test_save_score_inserts_score_and_appends_audit_chain(
         audit_row = (
             conn.execute(
                 text(
-                    "SELECT service_slug, old_score, new_score, change_reason, prev_hash, chain_hash, key_version "
+                    "SELECT entry_id, service_slug, old_score, new_score, change_reason, created_at, prev_hash, chain_hash, payload_canonical_json, key_version "
                     "FROM score_audit_chain LIMIT 1"
                 )
             )
@@ -148,6 +150,7 @@ async def test_save_score_inserts_score_and_appends_audit_chain(
     assert audit_row["change_reason"] == "initial"
     assert audit_row["prev_hash"] == "0" * 64
     assert audit_row["chain_hash"]
+    assert audit_row["payload_canonical_json"] == canonicalize_payload(build_score_audit_payload(audit_row))
     assert audit_row["key_version"] == 1
 
 
@@ -168,7 +171,7 @@ async def test_save_score_updates_existing_row_and_chains_from_previous_hash(
         audit_rows = (
             conn.execute(
                 text(
-                    "SELECT old_score, new_score, change_reason, prev_hash, chain_hash, key_version "
+                    "SELECT entry_id, service_slug, old_score, new_score, change_reason, created_at, prev_hash, chain_hash, payload_canonical_json, key_version "
                     "FROM score_audit_chain ORDER BY created_at ASC"
                 )
             )
@@ -181,6 +184,8 @@ async def test_save_score_updates_existing_row_and_chains_from_previous_hash(
     assert audit_rows[1]["new_score"] == 9.0
     assert audit_rows[1]["change_reason"] == "recalculation"
     assert audit_rows[1]["prev_hash"] == audit_rows[0]["chain_hash"]
+    assert audit_rows[0]["payload_canonical_json"] == canonicalize_payload(build_score_audit_payload(audit_rows[0]))
+    assert audit_rows[1]["payload_canonical_json"] == canonicalize_payload(build_score_audit_payload(audit_rows[1]))
     assert audit_rows[0]["key_version"] == 1
     assert audit_rows[1]["key_version"] == 1
 

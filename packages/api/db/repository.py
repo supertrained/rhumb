@@ -22,6 +22,7 @@ from routes._supabase import (
 )
 from services.chain_integrity import (
     build_score_audit_payload,
+    canonicalize_payload,
     compute_chain_hmac,
     get_signing_key_version,
 )
@@ -340,6 +341,7 @@ class SupabaseScoreRepository:
                 "created_at": created_at,
             }
         )
+        payload_canonical_json = canonicalize_payload(audit_payload)
         key_version = get_signing_key_version()
         chain_hash = compute_chain_hmac(prev_hash, audit_payload, key_version=key_version)
 
@@ -349,6 +351,7 @@ class SupabaseScoreRepository:
                 **audit_payload,
                 "chain_hash": chain_hash,
                 "prev_hash": prev_hash,
+                "payload_canonical_json": payload_canonical_json,
                 "key_version": key_version,
             },
         )
@@ -602,6 +605,7 @@ class DirectPostgresScorePublisherRepository:
                         "created_at": created_at,
                     }
                 )
+                payload_canonical_json = canonicalize_payload(audit_payload)
                 key_version = get_signing_key_version()
                 chain_hash = compute_chain_hmac(
                     prev_hash,
@@ -612,15 +616,16 @@ class DirectPostgresScorePublisherRepository:
                 session.execute(
                     text(
                         "INSERT INTO score_audit_chain ("
-                        "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash, key_version"
+                        "entry_id, service_slug, old_score, new_score, change_reason, created_at, chain_hash, prev_hash, payload_canonical_json, key_version"
                         ") VALUES ("
-                        ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash, :key_version"
+                        ":entry_id, :service_slug, :old_score, :new_score, :change_reason, :created_at, :chain_hash, :prev_hash, :payload_canonical_json, :key_version"
                         ")"
                     ),
                     {
                         **audit_payload,
                         "chain_hash": chain_hash,
                         "prev_hash": prev_hash,
+                        "payload_canonical_json": payload_canonical_json,
                         "key_version": key_version,
                     },
                 )

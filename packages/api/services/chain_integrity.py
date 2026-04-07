@@ -207,6 +207,11 @@ def _canonicalize(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=_serialize)
 
 
+def canonicalize_payload(obj: Any) -> str:
+    """Public wrapper for the canonical JSON used by chain signing."""
+    return _canonicalize(obj)
+
+
 def compute_chain_hmac(
     prev_hash: str,
     payload: dict[str, Any],

@@ -9,6 +9,7 @@ import pytest
 
 from db.repository import SupabaseScoreRepository
 from routes._supabase import SupabaseWriteUnavailable
+from services.chain_integrity import build_score_audit_payload, canonicalize_payload
 from services.scoring import ANScoreResult
 
 
@@ -109,6 +110,7 @@ async def test_save_score_updates_existing_row_and_appends_audit_chain() -> None
     assert audit_payload["new_score"] == 8.9
     assert audit_payload["prev_hash"] == "abc123"
     assert audit_payload["chain_hash"]
+    assert audit_payload["payload_canonical_json"] == canonicalize_payload(build_score_audit_payload(audit_payload))
     assert audit_payload["key_version"] == 1
     assert mock_fetch.await_count == 3
 
