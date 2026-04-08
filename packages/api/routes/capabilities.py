@@ -218,6 +218,7 @@ def _score_capability_intent(query: str, capability: dict) -> int:
 
     tokens = normalized_query.split()
     blob_tokens = set(blob.split())
+    capability_id = str(capability.get("id") or "")
     id_text = _normalize_intent_text(capability.get("id"))
     domain_text = _normalize_intent_text(capability.get("domain"))
     action_text = _normalize_intent_text(capability.get("action"))
@@ -232,6 +233,22 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         or id_text.startswith("db ")
     ):
         score += 18
+
+    if capability_id == "db.query.read":
+        if any(token in {"db", "database", "postgres", "postgresql", "sql"} for token in tokens):
+            score += 30
+        if any(token in {"query", "read"} for token in tokens):
+            score += 12
+    elif capability_id == "db.schema.describe":
+        if any(token in {"db", "database", "postgres", "postgresql", "sql"} for token in tokens) and any(
+            token in {"schema", "table", "tables", "describe"} for token in tokens
+        ):
+            score += 30
+    elif capability_id == "db.row.get":
+        if any(token in {"db", "database", "postgres", "postgresql", "sql", "table"} for token in tokens) and any(
+            token in {"row", "rows", "record", "lookup", "get"} for token in tokens
+        ):
+            score += 30
 
     if normalized_query in id_text:
         score += 40

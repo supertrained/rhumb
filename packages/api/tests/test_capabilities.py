@@ -110,6 +110,14 @@ INTENT_CAPABILITIES = [
         "outcome": "CRM rows",
     },
     {
+        "id": "data_warehouse.query",
+        "domain": "data_warehouse",
+        "action": "query",
+        "description": "Query a warehouse table with SQL",
+        "input_hint": "sql, warehouse, filters",
+        "outcome": "Warehouse rows",
+    },
+    {
         "id": "db.query.read",
         "domain": "database",
         "action": "query_read",
