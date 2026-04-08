@@ -14,7 +14,8 @@
 - Product commit `59ac641` now closes the tighter `connection_ref` provenance branch: DB responses, failure envelopes, and human-readable summaries all carry the non-secret ref when available.
 - New bounded bridge slice is now in product too: hosted callers can mint short-lived signed DB vault tokens at `POST /v1/db/agent-vault/tokenize`, and DB execute accepts those caller-bound `connection_ref`-bound tokens on the blessed `agent_vault` path.
 - That hosted signed-token path is now green end-to-end in live proof: artifact `rhumb/artifacts/aud18-db-read-agent-vault-signed-token-proof-20260408T120733Z.json` shows token minting returns `200`, hosted `db.query.read` succeeds with `SELECT 1 AS ok`, and cross-`connection_ref` replay is rejected as `db_agent_token_invalid`.
-- Immediate next step: stop treating the bridge as the blocker and decide whether this live-proofed signed path is sufficient for the DB wedge or whether a deeper opaque/encrypted capability-token follow-on is still worth doing before widening.
+- That sequencing decision is now made in `docs/specs/AUD-18-AWS-S3-READ-FIRST-CONTRACT-2026-04-08.md`: the DB wedge is sufficiently proven, and the next AUD-18 rail is AWS S3 read-first (`object.list`, `object.head`, `object.get`) with read-only posture, bucket/prefix allowlists, bounded object size, and `byok` only for the first slice.
+- Immediate next step: implement the first AWS S3 read-first slice instead of doing more speculative DB bridge redesign.
 
 ### Product
 - **Site:** https://rhumb.dev — 23 blog posts, 9 comparisons, 4 autopsies, 2 guides, /compare + /autopsy landing pages, /quickstart, /glossary
