@@ -83,56 +83,84 @@ async def handle_db_execute(
     Called from the main execute_capability route when the capability_id
     is one of the three DB-read capabilities.
     """
+    start = time.perf_counter()
+    provider_used = "postgresql"
+    credential_mode = "byok"
+
     # Parse the request body
     try:
         body = await raw_request.json()
     except Exception:
-        return _error_response(
+        return await _failure_response(
+            raw_request=raw_request,
+            agent_id=agent_id,
+            org_id=org_id,
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
             code="db_request_invalid",
             message="Invalid JSON body",
             status_code=400,
+            started_at=start,
         )
 
-    credential_mode = body.get("credential_mode", "byok")
+    credential_mode = body.get("credential_mode", credential_mode)
     if credential_mode not in {"byok", "agent_vault"}:
-        return _error_response(
+        return await _failure_response(
+            raw_request=raw_request,
+            agent_id=agent_id,
+            org_id=org_id,
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
+            request_payload=body,
             code="db_credential_mode_invalid",
             message="DB capabilities support credential_mode 'byok' or 'agent_vault' only",
             status_code=400,
+            started_at=start,
         )
 
     dsn_override: str | None = None
     if credential_mode == "agent_vault":
         agent_token = raw_request.headers.get("x-agent-token")
         if not agent_token or not agent_token.strip():
-            return _error_response(
+            return await _failure_response(
+                raw_request=raw_request,
+                agent_id=agent_id,
+                org_id=org_id,
                 request_id=request_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                request_payload=body,
                 code="db_agent_token_required",
                 message="X-Agent-Token header required for agent_vault credential mode",
                 status_code=400,
+                started_at=start,
             )
         try:
             dsn_override = resolve_agent_vault_dsn(agent_token)
         except AgentVaultDsnError as exc:
-            return _error_response(
+            return await _failure_response(
+                raw_request=raw_request,
+                agent_id=agent_id,
+                org_id=org_id,
                 request_id=request_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                request_payload=body,
                 code="db_agent_token_invalid",
                 message=str(exc),
                 status_code=400,
+                started_at=start,
             )
-
-    start = time.perf_counter()
-    provider_used = "postgresql"
 
     try:
         if capability_id == "db.query.read":
@@ -163,65 +191,68 @@ async def handle_db_execute(
                 execution_id=execution_id,
             )
         else:
-            return _error_response(
+            return await _failure_response(
+                raw_request=raw_request,
+                agent_id=agent_id,
+                org_id=org_id,
                 request_id=request_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                request_payload=body,
                 code="db_capability_unknown",
                 message=f"Unknown DB capability: {capability_id}",
                 status_code=400,
+                started_at=start,
             )
     except ConnectionRefError as exc:
-        return _error_response(
+        return await _failure_response(
+            raw_request=raw_request,
+            agent_id=agent_id,
+            org_id=org_id,
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
+            request_payload=body,
             code="db_connection_ref_invalid",
             message=str(exc),
             status_code=400,
+            started_at=start,
         )
     except DbExecutorError as exc:
-        total_ms = round((time.perf_counter() - start) * 1000, 1)
-        await _emit_receipt(
-            execution_id=execution_id,
-            capability_id=capability_id,
-            status="failure",
+        return await _failure_response(
+            raw_request=raw_request,
             agent_id=agent_id,
             org_id=org_id,
-            credential_mode=credential_mode,
-            provider_used=provider_used,
-            raw_request=raw_request,
-            total_latency_ms=total_ms,
-            request_payload=body,
-            error_code=exc.code,
-            error_message=exc.message,
-        )
-        await _record_execution(
-            execution_id=execution_id,
-            agent_id=agent_id,
-            capability_id=capability_id,
-            credential_mode=credential_mode,
-            provider_used=provider_used,
-            success=False,
-            total_latency_ms=total_ms,
-            error_message=exc.message,
-        )
-        return _error_response(
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
+            request_payload=body,
             code=exc.code,
             message=exc.message,
             status_code=422,
+            started_at=start,
         )
     except ValidationError as exc:
-        return _error_response(
+        return await _failure_response(
+            raw_request=raw_request,
+            agent_id=agent_id,
+            org_id=org_id,
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
+            request_payload=body,
             code="db_request_validation_error",
             message=str(exc),
             status_code=422,
+            started_at=start,
         )
 
     total_ms = round((time.perf_counter() - start) * 1000, 1)
@@ -263,6 +294,7 @@ async def handle_db_execute(
         capability_id=capability_id,
         credential_mode=credential_mode,
         provider_used=provider_used,
+        upstream_status=200,
         success=True,
         total_latency_ms=total_ms,
         receipt_id=receipt.receipt_id if receipt else None,
@@ -375,6 +407,59 @@ async def _emit_receipt(
         return None
 
 
+async def _failure_response(
+    *,
+    raw_request: Request,
+    agent_id: str,
+    org_id: str | None,
+    request_id: str,
+    execution_id: str,
+    capability_id: str,
+    credential_mode: str,
+    provider_used: str,
+    code: str,
+    message: str,
+    status_code: int,
+    started_at: float,
+    request_payload: dict | None = None,
+) -> JSONResponse:
+    total_ms = round((time.perf_counter() - started_at) * 1000, 1)
+    receipt = await _emit_receipt(
+        execution_id=execution_id,
+        capability_id=capability_id,
+        status="failure",
+        agent_id=agent_id,
+        org_id=org_id,
+        credential_mode=credential_mode,
+        provider_used=provider_used,
+        raw_request=raw_request,
+        total_latency_ms=total_ms,
+        request_payload=request_payload,
+        error_code=code,
+        error_message=message,
+    )
+    await _record_execution(
+        execution_id=execution_id,
+        agent_id=agent_id,
+        capability_id=capability_id,
+        credential_mode=credential_mode,
+        provider_used=provider_used,
+        upstream_status=status_code,
+        success=False,
+        total_latency_ms=total_ms,
+        receipt_id=receipt.receipt_id if receipt else None,
+        error_message=message,
+    )
+    return _error_response(
+        request_id=request_id,
+        execution_id=execution_id,
+        capability_id=capability_id,
+        code=code,
+        message=message,
+        status_code=status_code,
+    )
+
+
 async def _record_execution(
     *,
     execution_id: str,
@@ -382,6 +467,7 @@ async def _record_execution(
     capability_id: str,
     credential_mode: str,
     provider_used: str,
+    upstream_status: int,
     success: bool,
     total_latency_ms: float,
     receipt_id: str | None = None,
@@ -397,7 +483,7 @@ async def _record_execution(
             "credential_mode": credential_mode,
             "method": "DIRECT",
             "path": f"/{capability_id}",
-            "upstream_status": 200 if success else 422,
+            "upstream_status": upstream_status,
             "success": success,
             "total_latency_ms": round(total_latency_ms, 1),
             "billing_status": "unbilled",

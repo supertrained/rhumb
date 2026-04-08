@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+from importlib import import_module
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -14,6 +14,10 @@ from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 
 FAKE_RHUMB_KEY = "rhumb_test_key_db_exec"
+
+
+postgres_read_executor = import_module("services.postgres_read_executor")
+db_execute_route = import_module("routes.db_execute")
 
 
 def _mock_agent() -> AgentIdentitySchema:
@@ -74,9 +78,7 @@ def _mock_billing_health():
 @pytest.fixture(autouse=True)
 def _mock_supabase_writes():
     """Mock all Supabase writes for DB execute tests."""
-    with (
-        patch("routes.db_execute.supabase_insert", new_callable=AsyncMock) as mock_insert,
-    ):
+    with patch.object(db_execute_route, "supabase_insert", new_callable=AsyncMock) as mock_insert:
         yield mock_insert
 
 
@@ -91,7 +93,7 @@ def _mock_receipt_service():
     mock_service = MagicMock()
     mock_service.create_receipt = AsyncMock(return_value=mock_receipt)
 
-    with patch("routes.db_execute.get_receipt_service", return_value=mock_service):
+    with patch.object(db_execute_route, "get_receipt_service", return_value=mock_service):
         yield mock_service
 
 
@@ -145,12 +147,37 @@ async def _fake_connect(dsn, **kwargs):
     await conn.close()
 
 
+def _assert_failure_audit(
+    mock_receipt_service,
+    mock_supabase_writes,
+    *,
+    status_code: int,
+    error_code: str,
+    credential_mode: str,
+    provider_used: str = "postgresql",
+) -> None:
+    mock_receipt_service.create_receipt.assert_called_once()
+    receipt_input = mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.status == "failure"
+    assert receipt_input.error_code == error_code
+    assert receipt_input.provider_id == provider_used
+    assert receipt_input.credential_mode == credential_mode
+
+    assert mock_supabase_writes.await_count == 1
+    table_name, payload = mock_supabase_writes.await_args.args
+    assert table_name == "capability_executions"
+    assert payload["upstream_status"] == status_code
+    assert payload["success"] is False
+    assert payload["credential_mode"] == credential_mode
+    assert payload["provider_used"] == provider_used
+
+
 @pytest.mark.asyncio
 async def test_db_query_read_success(app, monkeypatch) -> None:
     """POST /v1/capabilities/db.query.read/execute returns query results."""
     monkeypatch.setenv("RHUMB_DB_CONN_READER", "postgresql://localhost:5432/test")
 
-    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+    with patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect:
         cursor = FakeCursor(
             rows=[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}],
             description=[
@@ -208,8 +235,13 @@ async def test_db_execute_rejects_missing_api_key(app) -> None:
 
 
 @pytest.mark.asyncio
-async def test_db_execute_rejects_invalid_connection_ref(app, monkeypatch) -> None:
-    """Invalid connection_ref returns 400 with clear error."""
+async def test_db_execute_rejects_invalid_connection_ref(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Invalid connection_ref returns 400 and still records provenance."""
     monkeypatch.delenv("RHUMB_DB_CONN_BAD", raising=False)
 
     async with AsyncClient(
@@ -228,10 +260,22 @@ async def test_db_execute_rejects_invalid_connection_ref(app, monkeypatch) -> No
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_connection_ref_invalid"
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="db_connection_ref_invalid",
+        credential_mode="byok",
+    )
 
 
 @pytest.mark.asyncio
-async def test_db_execute_rejects_disabled_connection_ref_placeholder(app, monkeypatch) -> None:
+async def test_db_execute_rejects_disabled_connection_ref_placeholder(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
     """Disabled env placeholders should fail as connection_ref errors, not SQL errors."""
     monkeypatch.setenv("RHUMB_DB_CONN_READER", "disabled")
 
@@ -252,10 +296,22 @@ async def test_db_execute_rejects_disabled_connection_ref_placeholder(app, monke
     body = response.json()
     assert body["error"] == "db_connection_ref_invalid"
     assert "disabled or invalid" in body["message"]
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="db_connection_ref_invalid",
+        credential_mode="byok",
+    )
 
 
 @pytest.mark.asyncio
-async def test_db_execute_agent_vault_requires_token_header(app, monkeypatch) -> None:
+async def test_db_execute_agent_vault_requires_token_header(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
     """agent_vault DB execute requires X-Agent-Token header."""
     monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
 
@@ -277,6 +333,52 @@ async def test_db_execute_agent_vault_requires_token_header(app, monkeypatch) ->
     body = response.json()
     assert body["error"] == "db_agent_token_required"
     assert "X-Agent-Token" in body["message"]
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="db_agent_token_required",
+        credential_mode="agent_vault",
+    )
+
+
+@pytest.mark.asyncio
+async def test_db_execute_rejects_invalid_agent_vault_dsn(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Invalid agent_vault DSNs fail with audited 400 provenance."""
+    monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={
+                "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                "X-Agent-Token": "not-a-dsn",
+            },
+            json={
+                "connection_ref": "conn_reader",
+                "credential_mode": "agent_vault",
+                "query": "SELECT 1",
+            },
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "db_agent_token_invalid"
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="db_agent_token_invalid",
+        credential_mode="agent_vault",
+    )
 
 
 @pytest.mark.asyncio
@@ -285,7 +387,7 @@ async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
     monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
     token_dsn = "postgresql://reader:pass@localhost:5432/test"
 
-    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+    with patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect:
         cursor = FakeCursor(
             rows=[{"count": 1}],
             description=[SimpleNamespace(name="count", type_code="int8")],
@@ -318,6 +420,67 @@ async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_db_execute_validation_error_emits_failure_receipt_and_execution_row(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Pydantic validation errors are audited with a 422 execution status."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json={"connection_ref": "conn_reader"},
+        )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"] == "db_request_validation_error"
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=422,
+        error_code="db_request_validation_error",
+        credential_mode="byok",
+    )
+
+
+@pytest.mark.asyncio
+async def test_db_execute_invalid_json_emits_failure_receipt_and_execution_row(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Invalid JSON bodies are audited with the actual 400 status."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={
+                "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                "Content-Type": "application/json",
+            },
+            content="{",
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "db_request_invalid"
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="db_request_invalid",
+        credential_mode="byok",
+    )
+
+
+@pytest.mark.asyncio
 async def test_db_query_read_supabase_dsn_uses_supabase_provider(
     app,
     monkeypatch,
@@ -330,7 +493,7 @@ async def test_db_query_read_supabase_dsn_uses_supabase_provider(
         "postgresql://postgres:pass@db.abcdefghijklmnop.supabase.co:5432/postgres",
     )
 
-    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+    with patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect:
         cursor = FakeCursor(
             rows=[{"count": 1}],
             description=[SimpleNamespace(name="count", type_code="int8")],
@@ -391,7 +554,7 @@ async def test_db_execute_emits_receipt_on_success(app, monkeypatch, _mock_recei
     """Successful DB execution emits a chain-hashed receipt."""
     monkeypatch.setenv("RHUMB_DB_CONN_READER", "postgresql://localhost:5432/test")
 
-    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+    with patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect:
         cursor = FakeCursor(
             rows=[{"count": 42}],
             description=[SimpleNamespace(name="count", type_code="int8")],
