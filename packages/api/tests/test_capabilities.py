@@ -93,6 +93,30 @@ INTENT_CAPABILITIES = [
         "input_hint": "linkedin_url or email",
         "outcome": "Professional profile enrichment",
     },
+    {
+        "id": "audit.query",
+        "domain": "audit",
+        "action": "query",
+        "description": "Query audit log entries",
+        "input_hint": "filters, limit",
+        "outcome": "Audit events",
+    },
+    {
+        "id": "crm.query",
+        "domain": "crm",
+        "action": "query",
+        "description": "Query CRM records",
+        "input_hint": "object, filters",
+        "outcome": "CRM rows",
+    },
+    {
+        "id": "db.query.read",
+        "domain": "database",
+        "action": "query_read",
+        "description": "Execute a read-only SQL query against a PostgreSQL database",
+        "input_hint": "connection_ref, query, params",
+        "outcome": "Database rows",
+    },
 ]
 
 DB_DIRECT_CAPABILITY = {
@@ -220,6 +244,19 @@ async def test_list_capabilities_intent_search_matches_synonyms(app):
     assert scrape_items[0]["id"] == "scrape.extract"
     assert person_items
     assert person_items[0]["id"] == "data.enrich_person"
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_intent_search_prefers_postgres_query_for_db_read(app):
+    """Intent search should rank the DB direct wedge above generic query capabilities."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?search=postgres%20query")
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items
+    assert items[0]["id"] == "db.query.read"
 
 
 @pytest.mark.anyio

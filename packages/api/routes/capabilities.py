@@ -152,14 +152,19 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "audio": {"speech", "voice", "sound", "video"},
     "company": {"business", "organization", "org"},
     "crawl": {"scrape", "extract", "website", "web"},
+    "database": {"db", "postgres", "postgresql", "sql", "table", "schema", "query"},
+    "db": {"database", "postgres", "postgresql", "sql", "schema", "table", "query"},
     "extract": {"scrape", "crawl", "parse", "website", "webpage", "url"},
     "find": {"search", "lookup", "discover", "query"},
     "generate": {"create", "make", "write"},
     "image": {"images", "photo", "picture", "visual", "graphic"},
     "linkedin": {"profile", "professional", "person", "contact", "lead"},
     "person": {"people", "profile", "contact", "lead", "professional"},
+    "postgres": {"postgresql", "database", "db", "sql", "query", "schema"},
+    "postgresql": {"postgres", "database", "db", "sql", "query", "schema"},
     "scrape": {"extract", "crawl", "parse", "website", "webpage", "url"},
     "search": {"find", "lookup", "discover", "query"},
+    "sql": {"query", "database", "db", "postgres", "postgresql", "schema", "table"},
     "speech": {"audio", "voice", "sound"},
     "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
     "website": {"web", "webpage", "page", "site", "url", "html"},
@@ -216,9 +221,17 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     id_text = _normalize_intent_text(capability.get("id"))
     domain_text = _normalize_intent_text(capability.get("domain"))
     action_text = _normalize_intent_text(capability.get("action"))
+    db_terms = {"db", "database", "postgres", "postgresql", "sql", "schema", "table"}
 
     score = 0
     matched_groups = 0
+
+    if any(token in db_terms for token in tokens) and (
+        domain_text == "database"
+        or any(term in blob_tokens for term in db_terms)
+        or id_text.startswith("db ")
+    ):
+        score += 18
 
     if normalized_query in id_text:
         score += 40
@@ -242,6 +255,8 @@ def _score_capability_intent(query: str, capability: dict) -> int:
             score += 5
             if any(alias in id_text for alias in alias_hits):
                 score += 4
+            if any(alias in blob_tokens for alias in alias_hits):
+                score += 8
 
     if tokens and matched_groups == len(tokens):
         score += 24
