@@ -62,10 +62,14 @@ def _db_direct_top_provider() -> dict[str, str | None]:
 
 
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
+    hosted_posture_suffix = (
+        " Hosted Rhumb should use agent_vault; env-backed connection_ref setup is "
+        "self-hosted/internal only."
+    )
     notes = {
-        "db.query.read": "Direct read-only PostgreSQL query execution via connection_ref with classifier, timeout, and result caps.",
-        "db.schema.describe": "Direct PostgreSQL schema inspection via connection_ref with bounded schema, table, and column scope.",
-        "db.row.get": "Direct PostgreSQL row lookup via connection_ref with exact-match filters and bounded result scope.",
+        "db.query.read": "Direct read-only PostgreSQL query execution via connection_ref with classifier, timeout, and result caps." + hosted_posture_suffix,
+        "db.schema.describe": "Direct PostgreSQL schema inspection via connection_ref with bounded schema, table, and column scope." + hosted_posture_suffix,
+        "db.row.get": "Direct PostgreSQL row lookup via connection_ref with exact-match filters and bounded result scope." + hosted_posture_suffix,
     }
     return {
         "service_slug": _DB_DIRECT_PROVIDER_SLUG,
@@ -102,7 +106,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "auth_method": "connection_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "recommendation": "available",
-        "recommendation_reason": "Direct read-only PostgreSQL execution via connection_ref",
+        "recommendation_reason": "Direct read-only PostgreSQL execution. Hosted Rhumb uses agent_vault; env-backed connection_ref is self-hosted/internal only.",
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": False,
@@ -133,13 +137,13 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time.",
+                        "setup_hint": "Self-hosted/internal only: pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time. Hosted Rhumb should prefer agent_vault.",
                     },
                     {
                         "mode": "agent_vault",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Set credential_mode to 'agent_vault' and pass your PostgreSQL DSN as the X-Agent-Token header for this request (never stored).",
+                        "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass your PostgreSQL DSN as the X-Agent-Token header for this request. The DSN is treated as transient and never stored.",
                     }
                 ],
                 "any_configured": False,

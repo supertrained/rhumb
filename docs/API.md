@@ -123,6 +123,64 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `limit` is optional and can be used by clients to cap result count.
 
+## Direct DB-Read Capabilities (AUD-18 Wave 1)
+
+Rhumb now exposes three direct PostgreSQL read-first capabilities:
+- `db.query.read`
+- `db.schema.describe`
+- `db.row.get`
+
+These run through the normal capability surface:
+- `GET /v1/capabilities/{capability_id}`
+- `GET /v1/capabilities/{capability_id}/resolve`
+- `GET /v1/capabilities/{capability_id}/credential-modes`
+- `POST /v1/capabilities/{capability_id}/execute`
+
+### Hosted credential posture
+
+For **hosted Rhumb**, the only blessed DB credential path is `credential_mode="agent_vault"`.
+
+- `agent_vault` = pass a transient PostgreSQL DSN in the `X-Agent-Token` header for the request, never stored by Rhumb
+- `byok` = env-backed `connection_ref` resolution via `RHUMB_DB_<REF>` on the server, intended for self-hosted/internal operator-controlled deployments only
+
+Hosted env-backed `connection_ref` mode is intentionally disabled/hidden right now. If you are calling the hosted product, use `agent_vault`.
+
+### `POST /v1/capabilities/db.query.read/execute`
+
+Execute a bounded, read-only SQL query against the caller's PostgreSQL database.
+
+**Example request (hosted / `agent_vault`)**
+
+```bash
+curl -X POST http://localhost:8000/v1/capabilities/db.query.read/execute \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: postgresql://user:pass@db.example.com:5432/app" \
+  -d '{
+    "credential_mode": "agent_vault",
+    "connection_ref": "conn_app_read",
+    "query": "select id, email from users order by created_at desc limit 5"
+  }'
+```
+
+**Example response body**
+
+```json
+{
+  "data": {
+    "capability_id": "db.query.read",
+    "credential_mode": "agent_vault",
+    "provider_used": "postgresql",
+    "row_count": 5,
+    "rows": [
+      {"id": "u_123", "email": "ada@example.com"}
+    ]
+  },
+  "error": null
+}
+```
+
+`db.schema.describe` and `db.row.get` share the same hosted credential posture and execution endpoint shape.
+
 ## Pricing Endpoint
 
 ### `GET /v1/pricing`
