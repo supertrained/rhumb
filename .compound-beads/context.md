@@ -15,7 +15,7 @@
 - New bounded bridge slice is now in product too: hosted callers can mint short-lived signed DB vault tokens at `POST /v1/db/agent-vault/tokenize`, and DB execute accepts those caller-bound `connection_ref`-bound tokens on the blessed `agent_vault` path.
 - That hosted signed-token path is now green end-to-end in live proof: artifact `rhumb/artifacts/aud18-db-read-agent-vault-signed-token-proof-20260408T120733Z.json` shows token minting returns `200`, hosted `db.query.read` succeeds with `SELECT 1 AS ok`, and cross-`connection_ref` replay is rejected as `db_agent_token_invalid`.
 - That sequencing decision is now made in `docs/specs/AUD-18-AWS-S3-READ-FIRST-CONTRACT-2026-04-08.md`: the DB wedge is sufficiently proven, and the next AUD-18 rail is AWS S3 read-first (`object.list`, `object.head`, `object.get`) with read-only posture, bucket/prefix allowlists, bounded object size, and `byok` only for the first slice.
-- Immediate next step: implement the first AWS S3 read-first slice instead of doing more speculative DB bridge redesign.
+- Immediate next step: run the bounded hosted live proof bundle for the S3 slice (byok `storage_ref`, allowlisted bucket/prefix, bounded `object.get`), then decide whether to widen beyond S3 or move to the next read-first rail.
 
 ### Product
 - **Site:** https://rhumb.dev — 23 blog posts, 9 comparisons, 4 autopsies, 2 guides, /compare + /autopsy landing pages, /quickstart, /glossary
