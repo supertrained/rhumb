@@ -224,12 +224,15 @@ Bundle shape:
   "aws_access_key_id": "AKIA...",
   "aws_secret_access_key": "...",
   "region": "us-west-2",
+  "endpoint_url": "https://<optional-s3-compatible-endpoint>",
   "allowed_buckets": ["docs-bucket"],
   "allowed_prefixes": {
     "docs-bucket": ["reports/"]
   }
 }
 ```
+
+`endpoint_url` is optional. Use it only when you need an explicit S3-compatible endpoint override in a bounded operator-proof environment.
 
 Use `scripts/build_s3_storage_bundle.py` to generate and validate that bundle against the product runtime parser before setting it on Railway:
 

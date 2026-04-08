@@ -49,6 +49,8 @@ def get_s3_client(bundle: AwsS3StorageBundle) -> Any:
     }
     if bundle.aws_session_token:
         kwargs["aws_session_token"] = bundle.aws_session_token
+    if bundle.endpoint_url:
+        kwargs["endpoint_url"] = bundle.endpoint_url
     return boto3.client(**kwargs)
 
 
