@@ -136,6 +136,33 @@ DB_DIRECT_CAPABILITY = {
     "outcome": "Query results: column metadata + rows, bounded by row limit and timeout",
 }
 
+OBJECT_STORAGE_DIRECT_CAPABILITIES = [
+    {
+        "id": "object.list",
+        "domain": "object",
+        "action": "list",
+        "description": "List objects in an allowlisted AWS S3 bucket or prefix",
+        "input_hint": "storage_ref, bucket, prefix (optional)",
+        "outcome": "Object metadata list",
+    },
+    {
+        "id": "object.head",
+        "domain": "object",
+        "action": "head",
+        "description": "Fetch metadata for an allowlisted object in AWS S3",
+        "input_hint": "storage_ref, bucket, key",
+        "outcome": "Object metadata",
+    },
+    {
+        "id": "object.get",
+        "domain": "object",
+        "action": "get",
+        "description": "Fetch a bounded object body from AWS S3",
+        "input_hint": "storage_ref, bucket, key, max_bytes",
+        "outcome": "Bounded object body as text/base64",
+    },
+]
+
 
 def _mock_supabase(path: str):
     """Route supabase_fetch calls to sample data based on table name."""
@@ -192,6 +219,26 @@ def _mock_db_direct_supabase(path: str):
     return []
 
 
+def _mock_object_storage_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.object.list" in path:
+            return [OBJECT_STORAGE_DIRECT_CAPABILITIES[0]]
+        if "id=eq.object.head" in path:
+            return [OBJECT_STORAGE_DIRECT_CAPABILITIES[1]]
+        if "id=eq.object.get" in path:
+            return [OBJECT_STORAGE_DIRECT_CAPABILITIES[2]]
+        return list(OBJECT_STORAGE_DIRECT_CAPABILITIES)
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
 # ── Tests ──────────────────────────────────────────────────
 
 @pytest.mark.anyio
@@ -202,12 +249,11 @@ async def test_list_capabilities(app):
             resp = await client.get("/v1/capabilities")
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["total"] == 3
-    assert len(data["items"]) == 3
-    # Check structure
-    item = data["items"][0]
-    assert "id" in item
-    assert "domain" in item
+    assert data["total"] >= 3
+    assert len(data["items"]) >= 3
+
+    item = next(i for i in data["items"] if i["id"] == "email.send")
+    assert item["domain"] == "email"
     assert "provider_count" in item
     assert "top_provider" in item
 
@@ -393,6 +439,40 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
     assert "Self-hosted/internal only" in mode_data["providers"][0]["modes"][0]["setup_hint"]
     assert mode_data["providers"][0]["modes"][1]["mode"] == "agent_vault"
     assert "Hosted/default path" in mode_data["providers"][0]["modes"][1]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_object_storage_direct_capability_surfaces_synthetic_provider(app):
+    """S3 direct capabilities should expose a truthful synthetic aws-s3 provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_object_storage_direct_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/object.list")
+            resolve_resp = await client.get("/v1/capabilities/object.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/object.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "aws-s3"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "aws-s3"
+    assert get_data["providers"][0]["auth_method"] == "storage_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "aws-s3"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "aws-s3"
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "aws-s3"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "storage_ref" in mode_data["providers"][0]["modes"][0]["setup_hint"]
 
 
 @pytest.mark.anyio

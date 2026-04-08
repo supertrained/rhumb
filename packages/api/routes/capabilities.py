@@ -36,6 +36,10 @@ _DB_DIRECT_PROVIDER_SLUG = "postgresql"
 _DB_DIRECT_PROVIDER_NAME = "PostgreSQL"
 _DB_DIRECT_PROVIDER_CATEGORY = "database"
 _DB_DIRECT_CREDENTIAL_MODES = ["byok", "agent_vault"]
+_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG = "aws-s3"
+_OBJECT_STORAGE_DIRECT_PROVIDER_NAME = "AWS S3"
+_OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY = "storage_object"
+_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES = ["byok"]
 
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
@@ -53,9 +57,25 @@ def _is_db_direct_capability(capability_id: str) -> bool:
     }
 
 
+def _is_object_storage_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "object.list",
+        "object.head",
+        "object.get",
+    }
+
+
 def _db_direct_top_provider() -> dict[str, str | None]:
     return {
         "slug": _DB_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
+def _object_storage_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
         "an_score": None,
         "tier_label": "Direct",
     }
@@ -81,6 +101,30 @@ def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
         "auth_method": "connection_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
+    }
+
+
+def _object_storage_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "object.list": "Direct read-only AWS S3 object listing via storage_ref with bucket/prefix allowlists and bounded pagination.",
+        "object.head": "Direct AWS S3 object metadata fetch via storage_ref with bucket/prefix allowlists.",
+        "object.get": "Direct bounded AWS S3 object fetch via storage_ref with bucket/prefix allowlists and byte caps.",
+    }
+    return {
+        "service_slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
+        "service_name": _OBJECT_STORAGE_DIRECT_PROVIDER_NAME,
+        "category": _OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "storage_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
         "cost_per_call": None,
         "cost_currency": "USD",
         "free_tier_calls": None,
@@ -125,6 +169,42 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     }
 
 
+def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    provider = {
+        "service_slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
+        "service_name": _OBJECT_STORAGE_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "storage_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only AWS S3 execution via storage_ref with bucket/prefix allowlists and bounded byte limits.",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": False,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     return {
         "capability_id": capability_id,
@@ -152,6 +232,98 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     }
 
 
+def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
+                "auth_method": "storage_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": False,
+                        "setup_hint": "Pass a storage_ref that resolves to a RHUMB_STORAGE_<REF> JSON bundle with provider=aws-s3, region, credentials, allowed_buckets, and optional allowed_prefixes.",
+                    }
+                ],
+                "any_configured": False,
+            }
+        ],
+    }
+
+
+def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None:
+    db_records = {
+        "db.query.read": {
+            "id": "db.query.read",
+            "domain": "database",
+            "action": "query.read",
+            "description": "Direct read-only PostgreSQL query execution with bounded rows, timeout, and result size.",
+            "input_hint": "Provide connection_ref plus a read-only SQL query.",
+            "outcome": "Returns read-only query results with provider attribution.",
+        },
+        "db.schema.describe": {
+            "id": "db.schema.describe",
+            "domain": "database",
+            "action": "schema.describe",
+            "description": "Direct PostgreSQL schema inspection with bounded schema, table, and column scope.",
+            "input_hint": "Provide connection_ref and optional schemas/tables.",
+            "outcome": "Returns tables, columns, and optional relationships.",
+        },
+        "db.row.get": {
+            "id": "db.row.get",
+            "domain": "database",
+            "action": "row.get",
+            "description": "Direct PostgreSQL row lookup with exact-match filters and bounded result scope.",
+            "input_hint": "Provide connection_ref, table, and filters.",
+            "outcome": "Returns bounded matching rows from the requested table.",
+        },
+    }
+    object_storage_records = {
+        "object.list": {
+            "id": "object.list",
+            "domain": "storage",
+            "action": "list",
+            "description": "Direct read-only AWS S3 object listing with bucket and prefix allowlists.",
+            "input_hint": "Provide storage_ref, bucket, and optional prefix.",
+            "outcome": "Returns bounded object summaries for the allowed S3 location.",
+        },
+        "object.head": {
+            "id": "object.head",
+            "domain": "storage",
+            "action": "head",
+            "description": "Direct read-only AWS S3 object metadata fetch with bucket and prefix allowlists.",
+            "input_hint": "Provide storage_ref, bucket, and key.",
+            "outcome": "Returns object metadata like size, content type, and last modified timestamp.",
+        },
+        "object.get": {
+            "id": "object.get",
+            "domain": "storage",
+            "action": "get",
+            "description": "Direct read-only AWS S3 object fetch with bounded bytes and prefix allowlists.",
+            "input_hint": "Provide storage_ref, bucket, key, and optional byte range.",
+            "outcome": "Returns bounded object content as text or base64 with honest truncation state.",
+        },
+    }
+    return db_records.get(capability_id) or object_storage_records.get(capability_id)
+
+
+def _synthetic_capability_records() -> list[dict[str, object]]:
+    return [
+        record
+        for capability_id in [
+            "db.query.read",
+            "db.schema.describe",
+            "db.row.get",
+            "object.list",
+            "object.head",
+            "object.get",
+        ]
+        if (record := _synthetic_capability_record(capability_id)) is not None
+    ]
+
+
 _TOKEN_ALIASES: dict[str, set[str]] = {
     "audio": {"speech", "voice", "sound", "video"},
     "company": {"business", "organization", "org"},
@@ -166,6 +338,7 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "person": {"people", "profile", "contact", "lead", "professional"},
     "postgres": {"postgresql", "database", "db", "sql", "query", "schema"},
     "postgresql": {"postgres", "database", "db", "sql", "query", "schema"},
+    "s3": {"bucket", "object", "storage", "file", "aws"},
     "scrape": {"extract", "crawl", "parse", "website", "webpage", "url"},
     "search": {"find", "lookup", "discover", "query"},
     "sql": {"query", "database", "db", "postgres", "postgresql", "schema", "table"},
@@ -309,6 +482,11 @@ async def list_capabilities(
     if capabilities is None:
         return {"data": {"items": [], "total": 0, "limit": limit, "offset": offset}, "error": "Unable to load capabilities."}
 
+    existing_ids = {cap.get("id") for cap in capabilities}
+    for synthetic in _synthetic_capability_records():
+        if synthetic["id"] not in existing_ids:
+            capabilities.append(dict(synthetic))
+
     if domain:
         capabilities = [c for c in capabilities if c.get("domain") == domain]
 
@@ -398,6 +576,9 @@ async def list_capabilities(
         elif _is_db_direct_capability(cid):
             provider_count = 1
             top_provider = _db_direct_top_provider()
+        elif _is_object_storage_direct_capability(cid):
+            provider_count = 1
+            top_provider = _object_storage_direct_top_provider()
 
         items.append({
             "id": cid,
@@ -428,10 +609,15 @@ async def list_domains() -> dict:
     Useful for building domain navigation / filtering UIs.
     """
     capabilities = await supabase_fetch(
-        "capabilities?select=domain&order=domain.asc"
+        "capabilities?select=domain,id&order=domain.asc"
     )
     if capabilities is None:
         return {"data": {"domains": []}, "error": "Unable to load domains."}
+
+    existing_ids = {cap.get("id") for cap in capabilities}
+    for synthetic in _synthetic_capability_records():
+        if synthetic["id"] not in existing_ids:
+            capabilities.append({"id": synthetic["id"], "domain": synthetic["domain"]})
 
     # Count capabilities per domain
     domain_counts: dict[str, int] = {}
@@ -549,9 +735,12 @@ async def get_capability(capability_id: str, raw_request: Request):
         f"&select=id,domain,action,description,input_hint,outcome&limit=1"
     )
     if not caps:
-        return _capability_not_found(raw_request, capability_id)
-
-    cap = caps[0]
+        synthetic = _synthetic_capability_record(capability_id)
+        if synthetic is None:
+            return _capability_not_found(raw_request, capability_id)
+        cap = synthetic
+    else:
+        cap = caps[0]
 
     # Get all service mappings for this capability
     mappings = await supabase_fetch(
@@ -614,6 +803,8 @@ async def get_capability(capability_id: str, raw_request: Request):
 
     if not providers and _is_db_direct_capability(capability_id):
         providers = [_db_direct_provider_details(capability_id)]
+    if not providers and _is_object_storage_direct_capability(capability_id):
+        providers = [_object_storage_direct_provider_details(capability_id)]
 
     return {
         "data": {
@@ -644,7 +835,7 @@ async def resolve_capability(
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description&limit=1"
     )
-    if not caps:
+    if not caps and _synthetic_capability_record(capability_id) is None:
         return _capability_not_found(raw_request, capability_id)
 
     # Get service mappings
@@ -662,6 +853,11 @@ async def resolve_capability(
         if _is_db_direct_capability(capability_id):
             return {
                 "data": _db_direct_resolve_payload(capability_id),
+                "error": None,
+            }
+        if _is_object_storage_direct_capability(capability_id):
+            return {
+                "data": _object_storage_direct_resolve_payload(capability_id),
                 "error": None,
             }
         return {
@@ -841,7 +1037,7 @@ async def get_credential_modes(
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description&limit=1"
     )
-    if not caps:
+    if not caps and _synthetic_capability_record(capability_id) is None:
         return _capability_not_found(raw_request, capability_id)
 
     # Get provider mappings
@@ -853,6 +1049,11 @@ async def get_credential_modes(
         if _is_db_direct_capability(capability_id):
             return {
                 "data": _db_direct_credential_modes(capability_id),
+                "error": None,
+            }
+        if _is_object_storage_direct_capability(capability_id):
+            return {
+                "data": _object_storage_direct_credential_modes(capability_id),
                 "error": None,
             }
         return {
