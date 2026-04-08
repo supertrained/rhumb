@@ -18,7 +18,8 @@
 - Production seed migration `0161_object_storage_read_capabilities_seed.sql` is applied, so `/v1/capabilities/object.list`, `/object.head`, and `/object.get` resolve on `api.rhumb.dev`.
 - The direct S3 execute path is live now too. Latest proof artifact `artifacts/aud18-s3-hosted-proof-20260408T141121Z.json` shows `object.list`, `object.head`, `object.get`, and the denied-bucket case all routing into the storage rail and failing consistently as `400 storage_ref_invalid`.
 - Dogfood auth is repaired for this lane: the `Rhumb API Key - pedro-dogfood` verifier key was rotated for `aws-s3` and the 1Password item restored.
-- Immediate next step: set a real hosted `storage_ref` env bundle for the S3 proof target, then rerun the bounded hosted live proof bundle for the S3 slice (byok `storage_ref`, allowlisted bucket/prefix, bounded `object.get`) before deciding whether to widen beyond S3 or move to the next read-first rail.
+- No immediate object-storage bundle exists yet: 1Password does not contain an S3/R2-style access-key bundle for this proof lane, and the available Cloudflare tester token shows R2 is not enabled on that account yet (`403` / `10042`).
+- Immediate next step: source or create a real object-storage credential bundle plus bounded bucket/prefix, set a real hosted `storage_ref` env bundle for the S3 proof target, then rerun the bounded hosted live proof bundle for the S3 slice (byok `storage_ref`, allowlisted bucket/prefix, bounded `object.get`) before deciding whether to widen beyond S3 or move to the next read-first rail.
 
 ### Product
 - **Site:** https://rhumb.dev — 23 blog posts, 9 comparisons, 4 autopsies, 2 guides, /compare + /autopsy landing pages, /quickstart, /glossary
