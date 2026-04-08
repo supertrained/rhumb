@@ -36,6 +36,20 @@ def test_summarize_query_read_truncated() -> None:
     assert "(truncated)" in result
 
 
+def test_summarize_query_read_includes_connection_ref() -> None:
+    response = {
+        "connection_ref": "conn_reader",
+        "row_count_returned": 2,
+        "query_summary": {
+            "tables_referenced": ["users"],
+            "truncated": False,
+        },
+        "duration_ms": 12,
+    }
+    result = summarize_query_read(response)
+    assert result == "Read 2 row(s) from [users] via conn_reader in 12ms"
+
+
 def test_summarize_query_read_no_tables() -> None:
     response = {
         "row_count_returned": 1,
@@ -60,6 +74,18 @@ def test_summarize_schema_describe() -> None:
     assert result == "Described 3 table(s) in schema [public] in 30ms"
 
 
+def test_summarize_schema_describe_includes_connection_ref() -> None:
+    response = {
+        "connection_ref": "conn_reader",
+        "tables": [{"name": "users"}],
+        "schemas": ["public"],
+        "duration_ms": 30,
+        "truncated": False,
+    }
+    result = summarize_schema_describe(response)
+    assert result == "Described 1 table(s) in schema [public] via conn_reader in 30ms"
+
+
 def test_summarize_row_get() -> None:
     response = {
         "row_count_returned": 1,
@@ -69,6 +95,18 @@ def test_summarize_row_get() -> None:
     }
     result = summarize_row_get(response)
     assert result == "Got 1 row(s) from public.users in 5ms"
+
+
+def test_summarize_row_get_includes_connection_ref() -> None:
+    response = {
+        "connection_ref": "conn_reader",
+        "row_count_returned": 1,
+        "table": {"schema": "public", "name": "users"},
+        "duration_ms": 5,
+        "truncated": False,
+    }
+    result = summarize_row_get(response)
+    assert result == "Got 1 row(s) from public.users via conn_reader in 5ms"
 
 
 def test_summarize_row_get_truncated() -> None:

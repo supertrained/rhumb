@@ -84,6 +84,7 @@ async def test_execute_read_query_sets_read_only_session_and_truncates() -> None
     assert cursor.executions[2][0] == "SELECT id, email FROM public.users"
     assert response.query_summary.truncated is True
     assert response.provider_used == "supabase"
+    assert response.connection_ref == "conn_123"
     assert response.row_count_returned == 2
     assert response.rows == [
         {"id": 1, "email": "a@example.com"},
@@ -161,6 +162,7 @@ async def test_describe_schema_groups_columns_into_tables() -> None:
     )
 
     assert len(response.tables) == 1
+    assert response.connection_ref == "conn_123"
     assert response.tables[0].schema_name == "public"
     assert response.tables[0].name == "users"
     assert [column.name for column in response.tables[0].columns] == ["id", "email"]
@@ -197,6 +199,7 @@ async def test_get_rows_builds_safe_sql_and_truncates() -> None:
     select_sql, params = cursor.executions[2]
     assert select_sql == 'SELECT "id", "email" FROM "public"."users" WHERE "id" = %s LIMIT %s'
     assert params == ["user_1", 2]
+    assert response.connection_ref == "conn_123"
     assert response.truncated is True
     assert response.row_count_returned == 1
     assert response.columns_returned == ["id", "email"]

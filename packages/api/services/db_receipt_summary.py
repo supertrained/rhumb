@@ -12,10 +12,11 @@ def summarize_query_read(response: dict[str, Any]) -> str:
     tables = summary.get("tables_referenced", [])
     duration = response.get("duration_ms", 0)
     truncated = summary.get("truncated", False)
+    via = f" via {response['connection_ref']}" if response.get("connection_ref") else ""
 
     table_str = ", ".join(tables[:3]) if tables else "unknown"
     suffix = " (truncated)" if truncated else ""
-    return f"Read {row_count} row(s) from [{table_str}] in {duration}ms{suffix}"
+    return f"Read {row_count} row(s) from [{table_str}]{via} in {duration}ms{suffix}"
 
 
 def summarize_schema_describe(response: dict[str, Any]) -> str:
@@ -24,10 +25,11 @@ def summarize_schema_describe(response: dict[str, Any]) -> str:
     schemas = response.get("schemas", [])
     duration = response.get("duration_ms", 0)
     truncated = response.get("truncated", False)
+    via = f" via {response['connection_ref']}" if response.get("connection_ref") else ""
 
     schema_str = ", ".join(schemas[:3]) if schemas else "public"
     suffix = " (truncated)" if truncated else ""
-    return f"Described {table_count} table(s) in schema [{schema_str}] in {duration}ms{suffix}"
+    return f"Described {table_count} table(s) in schema [{schema_str}]{via} in {duration}ms{suffix}"
 
 
 def summarize_row_get(response: dict[str, Any]) -> str:
@@ -37,9 +39,10 @@ def summarize_row_get(response: dict[str, Any]) -> str:
     table_name = f"{table.get('schema', 'public')}.{table.get('name', '?')}"
     duration = response.get("duration_ms", 0)
     truncated = response.get("truncated", False)
+    via = f" via {response['connection_ref']}" if response.get("connection_ref") else ""
 
     suffix = " (truncated)" if truncated else ""
-    return f"Got {row_count} row(s) from {table_name} in {duration}ms{suffix}"
+    return f"Got {row_count} row(s) from {table_name}{via} in {duration}ms{suffix}"
 
 
 def summarize_db_execution(capability_id: str, response: dict[str, Any]) -> str:

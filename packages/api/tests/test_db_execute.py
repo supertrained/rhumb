@@ -205,8 +205,10 @@ async def test_db_query_read_success(app, monkeypatch) -> None:
     body = response.json()
     assert body["error"] is None
     assert body["data"]["capability_id"] == "db.query.read"
+    assert body["data"]["connection_ref"] == "conn_reader"
     assert body["data"]["receipt_id"] == "rcpt_test_db_00000001"
     assert "summary" in body
+    assert "via conn_reader" in body["summary"]
     assert "Read" in body["summary"]
 
 
@@ -260,6 +262,7 @@ async def test_db_execute_rejects_invalid_connection_ref(
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_connection_ref_invalid"
+    assert body["connection_ref"] == "conn_bad"
     _assert_failure_audit(
         _mock_receipt_service,
         _mock_supabase_writes,
@@ -295,6 +298,7 @@ async def test_db_execute_rejects_disabled_connection_ref_placeholder(
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_connection_ref_invalid"
+    assert body["connection_ref"] == "conn_reader"
     assert "disabled or invalid" in body["message"]
     _assert_failure_audit(
         _mock_receipt_service,
@@ -332,6 +336,7 @@ async def test_db_execute_agent_vault_requires_token_header(
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_agent_token_required"
+    assert body["connection_ref"] == "conn_reader"
     assert "X-Agent-Token" in body["message"]
     _assert_failure_audit(
         _mock_receipt_service,
@@ -372,6 +377,7 @@ async def test_db_execute_rejects_invalid_agent_vault_dsn(
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_agent_token_invalid"
+    assert body["connection_ref"] == "conn_reader"
     _assert_failure_audit(
         _mock_receipt_service,
         _mock_supabase_writes,
@@ -415,6 +421,7 @@ async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["credential_mode"] == "agent_vault"
+    assert body["connection_ref"] == "conn_reader"
     assert body["rows"] == [{"count": 1}]
     assert mock_connect.call_args[0][0] == token_dsn
 
@@ -439,6 +446,7 @@ async def test_db_execute_validation_error_emits_failure_receipt_and_execution_r
     assert response.status_code == 422
     body = response.json()
     assert body["error"] == "db_request_validation_error"
+    assert body["connection_ref"] == "conn_reader"
     _assert_failure_audit(
         _mock_receipt_service,
         _mock_supabase_writes,
@@ -471,6 +479,7 @@ async def test_db_execute_invalid_json_emits_failure_receipt_and_execution_row(
     assert response.status_code == 400
     body = response.json()
     assert body["error"] == "db_request_invalid"
+    assert "connection_ref" not in body
     _assert_failure_audit(
         _mock_receipt_service,
         _mock_supabase_writes,
@@ -516,6 +525,7 @@ async def test_db_query_read_supabase_dsn_uses_supabase_provider(
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["provider_used"] == "supabase"
+    assert body["connection_ref"] == "conn_reader"
 
     receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
     assert receipt_input.provider_id == "supabase"
@@ -547,6 +557,7 @@ async def test_db_execute_rejects_write_query(app, monkeypatch) -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["error"] == "db_query_not_read_only"
+    assert body["connection_ref"] == "conn_reader"
 
 
 @pytest.mark.asyncio

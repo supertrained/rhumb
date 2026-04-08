@@ -454,6 +454,7 @@ async def _failure_response(
         request_id=request_id,
         execution_id=execution_id,
         capability_id=capability_id,
+        connection_ref=(request_payload or {}).get("connection_ref"),
         code=code,
         message=message,
         status_code=status_code,
@@ -503,17 +504,18 @@ def _error_response(
     request_id: str,
     execution_id: str,
     capability_id: str,
+    connection_ref: str | None = None,
     code: str,
     message: str,
     status_code: int,
 ) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "error": code,
-            "message": message,
-            "capability_id": capability_id,
-            "execution_id": execution_id,
-            "request_id": request_id,
-        },
-    )
+    content = {
+        "error": code,
+        "message": message,
+        "capability_id": capability_id,
+        "execution_id": execution_id,
+        "request_id": request_id,
+    }
+    if connection_ref:
+        content["connection_ref"] = connection_ref
+    return JSONResponse(status_code=status_code, content=content)

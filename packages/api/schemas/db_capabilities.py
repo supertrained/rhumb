@@ -147,6 +147,7 @@ class DbQueryReadResponse(BaseModel):
     capability_id: Literal["db.query.read"]
     receipt_id: str
     execution_id: str
+    connection_ref: str
     bounded_by: DbQueryBounds
     query_summary: DbQuerySummary
     columns: list[DbColumnSchema] = Field(default_factory=list)
@@ -187,6 +188,7 @@ class DbSchemaDescribeResponse(BaseModel):
     capability_id: Literal["db.schema.describe"]
     receipt_id: str
     execution_id: str
+    connection_ref: str
     bounded_by: DbSchemaBounds
     schemas: list[str] = Field(default_factory=list)
     tables: list[DbTableSchema] = Field(default_factory=list)
@@ -259,6 +261,7 @@ class DbRowGetResponse(BaseModel):
     capability_id: Literal["db.row.get"]
     receipt_id: str
     execution_id: str
+    connection_ref: str
     bounded_by: DbRowGetBounds
     table: DbTableRef
     columns_returned: list[str] = Field(default_factory=list)

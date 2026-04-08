@@ -102,6 +102,7 @@ async def execute_read_query(
         capability_id="db.query.read",
         receipt_id=receipt_id,
         execution_id=execution_id,
+        connection_ref=request.connection_ref,
         bounded_by=DbQueryBounds(
             row_limit_applied=request.max_rows,
             timeout_ms_applied=request.timeout_ms,
@@ -207,6 +208,7 @@ async def describe_schema(
         capability_id="db.schema.describe",
         receipt_id=receipt_id,
         execution_id=execution_id,
+        connection_ref=request.connection_ref,
         bounded_by=DbSchemaBounds(
             schema_limit_applied=len(schemas),
             table_limit_applied=50,
@@ -275,6 +277,7 @@ async def get_rows(
         capability_id="db.row.get",
         receipt_id=receipt_id,
         execution_id=execution_id,
+        connection_ref=request.connection_ref,
         bounded_by=DbRowGetBounds(
             row_limit_applied=request.limit,
             column_limit_applied=len(columns_returned),
