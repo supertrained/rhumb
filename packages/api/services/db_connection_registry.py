@@ -79,7 +79,8 @@ def resolve_agent_vault_dsn(agent_token: str | None) -> str:
 def resolve_dsn(connection_ref: str) -> str:
     """Resolve a connection_ref to a PostgreSQL DSN.
 
-    Raises ConnectionRefError if the ref is malformed or unset.
+    Raises ConnectionRefError if the ref is malformed, unset, or configured
+    to a non-PostgreSQL placeholder value.
     """
     validate_connection_ref(connection_ref)
 
@@ -90,6 +91,15 @@ def resolve_dsn(connection_ref: str) -> str:
             f"No DSN configured for connection_ref '{connection_ref}' "
             f"(expected env var {env_key})"
         )
+
+    dsn = dsn.strip()
+    parsed = urlparse(dsn)
+    if parsed.scheme not in _ALLOWED_DSN_SCHEMES:
+        raise ConnectionRefError(
+            f"connection_ref '{connection_ref}' is configured via env '{env_key}' "
+            "but is disabled or invalid"
+        )
+
     return dsn
 
 

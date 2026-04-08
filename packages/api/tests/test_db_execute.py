@@ -231,6 +231,30 @@ async def test_db_execute_rejects_invalid_connection_ref(app, monkeypatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_db_execute_rejects_disabled_connection_ref_placeholder(app, monkeypatch) -> None:
+    """Disabled env placeholders should fail as connection_ref errors, not SQL errors."""
+    monkeypatch.setenv("RHUMB_DB_CONN_READER", "disabled")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json={
+                "connection_ref": "conn_reader",
+                "query": "SELECT 1",
+            },
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "db_connection_ref_invalid"
+    assert "disabled or invalid" in body["message"]
+
+
+@pytest.mark.asyncio
 async def test_db_execute_agent_vault_requires_token_header(app, monkeypatch) -> None:
     """agent_vault DB execute requires X-Agent-Token header."""
     monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)

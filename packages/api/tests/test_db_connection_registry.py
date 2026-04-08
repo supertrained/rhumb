@@ -27,6 +27,12 @@ def test_resolve_dsn_missing_env_raises(monkeypatch: pytest.MonkeyPatch) -> None
         resolve_dsn("conn_reader")
 
 
+def test_resolve_dsn_rejects_disabled_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RHUMB_DB_CONN_READER", "disabled")
+    with pytest.raises(ConnectionRefError, match="disabled or invalid"):
+        resolve_dsn("conn_reader")
+
+
 def test_resolve_dsn_rejects_invalid_identifier() -> None:
     with pytest.raises(ConnectionRefError, match="Invalid connection_ref"):
         resolve_dsn("conn;drop")
