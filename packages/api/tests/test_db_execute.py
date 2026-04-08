@@ -231,9 +231,9 @@ async def test_db_execute_rejects_invalid_connection_ref(app, monkeypatch) -> No
 
 
 @pytest.mark.asyncio
-async def test_db_execute_rejects_non_byok_credential_mode(app, monkeypatch) -> None:
-    """Wave 1 DB direct execute stays honest about BYOK-only credential resolution."""
-    monkeypatch.setenv("RHUMB_DB_CONN_READER", "postgresql://localhost:5432/test")
+async def test_db_execute_agent_vault_requires_token_header(app, monkeypatch) -> None:
+    """agent_vault DB execute requires X-Agent-Token header."""
+    monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -251,8 +251,46 @@ async def test_db_execute_rejects_non_byok_credential_mode(app, monkeypatch) -> 
 
     assert response.status_code == 400
     body = response.json()
-    assert body["error"] == "db_credential_mode_invalid"
-    assert "byok" in body["message"]
+    assert body["error"] == "db_agent_token_required"
+    assert "X-Agent-Token" in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
+    """agent_vault DB execute uses the DSN supplied in X-Agent-Token."""
+    monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
+    token_dsn = "postgresql://reader:pass@localhost:5432/test"
+
+    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+        cursor = FakeCursor(
+            rows=[{"count": 1}],
+            description=[SimpleNamespace(name="count", type_code="int8")],
+        )
+        conn = FakeConnection(cursor)
+        mock_connect.return_value = conn
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.post(
+                "/v1/capabilities/db.query.read/execute",
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": token_dsn,
+                },
+                json={
+                    "connection_ref": "conn_reader",
+                    "credential_mode": "agent_vault",
+                    "query": "SELECT 1",
+                },
+            )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["credential_mode"] == "agent_vault"
+    assert body["rows"] == [{"count": 1}]
+    assert mock_connect.call_args[0][0] == token_dsn
 
 
 @pytest.mark.asyncio

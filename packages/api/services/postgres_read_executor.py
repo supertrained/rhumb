@@ -342,6 +342,9 @@ def _raise_if_query_denied(classification: QueryClassification) -> None:
 def _map_db_exception(exc: Exception) -> DbExecutorError:
     message = str(exc)
     lower_message = message.lower()
+    # Avoid echoing raw DSNs or internal config strings in error envelopes.
+    if isinstance(exc, ValueError):
+        return DbExecutorError("db_query_invalid", "Invalid database connection settings")
     if "statement timeout" in lower_message or exc.__class__.__name__ == "QueryCanceled":
         return DbExecutorError("db_query_timeout", "Query exceeded the configured timeout")
     if isinstance(exc, (psycopg.OperationalError, psycopg.InterfaceError)):

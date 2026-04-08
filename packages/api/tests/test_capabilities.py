@@ -334,12 +334,13 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
 
     resolve_data = resolve_resp.json()["data"]
     assert resolve_data["providers"][0]["service_slug"] == "postgresql"
-    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok", "agent_vault"]
     assert resolve_data["execute_hint"]["preferred_provider"] == "postgresql"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "postgresql"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert mode_data["providers"][0]["modes"][1]["mode"] == "agent_vault"
 
 
 @pytest.mark.anyio

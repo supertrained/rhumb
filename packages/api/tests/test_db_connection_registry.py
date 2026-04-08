@@ -6,7 +6,13 @@ import os
 
 import pytest
 
-from services.db_connection_registry import ConnectionRefError, resolve_dsn
+from services.db_connection_registry import (
+    AgentVaultDsnError,
+    ConnectionRefError,
+    resolve_agent_vault_dsn,
+    resolve_dsn,
+    validate_connection_ref,
+)
 
 
 def test_resolve_dsn_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -38,3 +44,22 @@ def test_resolve_dsn_rejects_empty() -> None:
 def test_resolve_dsn_accepts_underscores(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RHUMB_DB_MY_APP_READ", "postgresql://localhost/myapp")
     assert resolve_dsn("my_app_read") == "postgresql://localhost/myapp"
+
+
+def test_validate_connection_ref_accepts_simple_value() -> None:
+    validate_connection_ref("conn_reader")
+
+
+def test_resolve_agent_vault_dsn_requires_token() -> None:
+    with pytest.raises(AgentVaultDsnError, match="X-Agent-Token"):
+        resolve_agent_vault_dsn(None)
+
+
+def test_resolve_agent_vault_dsn_rejects_non_postgres_scheme() -> None:
+    with pytest.raises(AgentVaultDsnError, match="postgresql"):
+        resolve_agent_vault_dsn("https://example.com")
+
+
+def test_resolve_agent_vault_dsn_accepts_postgres_url() -> None:
+    dsn = "postgresql://reader:pass@localhost:5432/app"
+    assert resolve_agent_vault_dsn(dsn) == dsn

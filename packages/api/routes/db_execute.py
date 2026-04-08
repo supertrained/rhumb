@@ -28,7 +28,13 @@ from schemas.db_capabilities import (
     DbRowGetRequest,
     DbSchemaDescribeRequest,
 )
-from services.db_connection_registry import ConnectionRefError, resolve_dsn
+from services.db_connection_registry import (
+    AgentVaultDsnError,
+    ConnectionRefError,
+    resolve_agent_vault_dsn,
+    resolve_dsn,
+    validate_connection_ref,
+)
 from services.db_receipt_summary import summarize_db_execution
 from services.postgres_read_executor import (
     DbExecutorError,
@@ -90,28 +96,50 @@ async def handle_db_execute(
             status_code=400,
         )
 
-    # Wave 1 keeps the credential bridge honest: connection_ref resolves
-    # to an operator-managed DSN, so only BYOK is live on this surface today.
     credential_mode = body.get("credential_mode", "byok")
-    if credential_mode != "byok":
+    if credential_mode not in {"byok", "agent_vault"}:
         return _error_response(
             request_id=request_id,
             execution_id=execution_id,
             capability_id=capability_id,
             code="db_credential_mode_invalid",
-            message="DB capabilities currently support credential_mode 'byok' only",
+            message="DB capabilities support credential_mode 'byok' or 'agent_vault' only",
             status_code=400,
         )
+
+    dsn_override: str | None = None
+    if credential_mode == "agent_vault":
+        agent_token = raw_request.headers.get("x-agent-token")
+        if not agent_token or not agent_token.strip():
+            return _error_response(
+                request_id=request_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                code="db_agent_token_required",
+                message="X-Agent-Token header required for agent_vault credential mode",
+                status_code=400,
+            )
+        try:
+            dsn_override = resolve_agent_vault_dsn(agent_token)
+        except AgentVaultDsnError as exc:
+            return _error_response(
+                request_id=request_id,
+                execution_id=execution_id,
+                capability_id=capability_id,
+                code="db_agent_token_invalid",
+                message=str(exc),
+                status_code=400,
+            )
 
     start = time.perf_counter()
 
     try:
         if capability_id == "db.query.read":
-            result = await _execute_query_read(body, credential_mode, execution_id)
+            result = await _execute_query_read(body, credential_mode, execution_id, dsn_override)
         elif capability_id == "db.schema.describe":
-            result = await _execute_schema_describe(body, credential_mode, execution_id)
+            result = await _execute_schema_describe(body, credential_mode, execution_id, dsn_override)
         elif capability_id == "db.row.get":
-            result = await _execute_row_get(body, credential_mode, execution_id)
+            result = await _execute_row_get(body, credential_mode, execution_id, dsn_override)
         else:
             return _error_response(
                 request_id=request_id,
@@ -228,9 +256,17 @@ async def _execute_query_read(
     body: dict[str, Any],
     credential_mode: str,
     execution_id: str,
+    dsn_override: str | None,
 ) -> Any:
     request = DbQueryReadRequest.model_validate(body)
-    dsn = resolve_dsn(request.connection_ref)
+    if credential_mode == "agent_vault":
+        # Keep connection_ref constraints consistent even though the DSN is
+        # supplied by the agent.
+        validate_connection_ref(request.connection_ref)
+        assert dsn_override is not None
+        dsn = dsn_override
+    else:
+        dsn = resolve_dsn(request.connection_ref)
     return await execute_read_query(
         request,
         credential_mode=credential_mode,
@@ -243,9 +279,15 @@ async def _execute_schema_describe(
     body: dict[str, Any],
     credential_mode: str,
     execution_id: str,
+    dsn_override: str | None,
 ) -> Any:
     request = DbSchemaDescribeRequest.model_validate(body)
-    dsn = resolve_dsn(request.connection_ref)
+    if credential_mode == "agent_vault":
+        validate_connection_ref(request.connection_ref)
+        assert dsn_override is not None
+        dsn = dsn_override
+    else:
+        dsn = resolve_dsn(request.connection_ref)
     return await describe_schema(
         request,
         credential_mode=credential_mode,
@@ -258,9 +300,15 @@ async def _execute_row_get(
     body: dict[str, Any],
     credential_mode: str,
     execution_id: str,
+    dsn_override: str | None,
 ) -> Any:
     request = DbRowGetRequest.model_validate(body)
-    dsn = resolve_dsn(request.connection_ref)
+    if credential_mode == "agent_vault":
+        validate_connection_ref(request.connection_ref)
+        assert dsn_override is not None
+        dsn = dsn_override
+    else:
+        dsn = resolve_dsn(request.connection_ref)
     return await get_rows(
         request,
         credential_mode=credential_mode,

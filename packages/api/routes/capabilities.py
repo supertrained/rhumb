@@ -35,7 +35,7 @@ router = APIRouter()
 _DB_DIRECT_PROVIDER_SLUG = "postgresql"
 _DB_DIRECT_PROVIDER_NAME = "PostgreSQL"
 _DB_DIRECT_PROVIDER_CATEGORY = "database"
-_DB_DIRECT_CREDENTIAL_MODES = ["byok"]
+_DB_DIRECT_CREDENTIAL_MODES = ["byok", "agent_vault"]
 
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
@@ -134,6 +134,12 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "available": True,
                         "configured": False,
                         "setup_hint": "Pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time.",
+                    },
+                    {
+                        "mode": "agent_vault",
+                        "available": True,
+                        "configured": False,
+                        "setup_hint": "Set credential_mode to 'agent_vault' and pass your PostgreSQL DSN as the X-Agent-Token header for this request (never stored).",
                     }
                 ],
                 "any_configured": False,
