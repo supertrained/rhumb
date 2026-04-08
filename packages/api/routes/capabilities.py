@@ -32,12 +32,114 @@ def _capability_not_found(raw_request: Request, capability_id: str) -> JSONRespo
 
 router = APIRouter()
 
+_DB_DIRECT_PROVIDER_SLUG = "postgresql"
+_DB_DIRECT_PROVIDER_NAME = "PostgreSQL"
+_DB_DIRECT_PROVIDER_CATEGORY = "database"
+_DB_DIRECT_CREDENTIAL_MODES = ["byok"]
+
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
     """Prefer hardcoded provider auth defaults over stale capability metadata."""
     proxy_slug = normalize_proxy_slug(service_slug)
     default_method = AuthInjector.default_method_for(proxy_slug)
     return default_method.value if default_method is not None else auth_method
+
+
+def _is_db_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "db.query.read",
+        "db.schema.describe",
+        "db.row.get",
+    }
+
+
+def _db_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _DB_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
+def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "db.query.read": "Direct read-only PostgreSQL query execution via connection_ref with classifier, timeout, and result caps.",
+        "db.schema.describe": "Direct PostgreSQL schema inspection via connection_ref with bounded schema, table, and column scope.",
+        "db.row.get": "Direct PostgreSQL row lookup via connection_ref with exact-match filters and bounded result scope.",
+    }
+    return {
+        "service_slug": _DB_DIRECT_PROVIDER_SLUG,
+        "service_name": _DB_DIRECT_PROVIDER_NAME,
+        "category": _DB_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "connection_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
+    }
+
+
+def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    provider = {
+        "service_slug": _DB_DIRECT_PROVIDER_SLUG,
+        "service_name": _DB_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "connection_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only PostgreSQL execution via connection_ref",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": False,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_DB_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _DB_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
+def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _DB_DIRECT_PROVIDER_SLUG,
+                "auth_method": "connection_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": False,
+                        "setup_hint": "Pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time.",
+                    }
+                ],
+                "any_configured": False,
+            }
+        ],
+    }
 
 
 _TOKEN_ALIASES: dict[str, set[str]] = {
@@ -251,6 +353,9 @@ async def list_capabilities(
                     "an_score": sc.get("aggregate_recommendation_score"),
                     "tier_label": sc.get("tier_label"),
                 }
+        elif _is_db_direct_capability(cid):
+            provider_count = 1
+            top_provider = _db_direct_top_provider()
 
         items.append({
             "id": cid,
@@ -465,6 +570,9 @@ async def get_capability(capability_id: str, raw_request: Request):
         # Sort providers by AN score descending (nulls last)
         providers.sort(key=lambda p: -(p.get("an_score") or 0))
 
+    if not providers and _is_db_direct_capability(capability_id):
+        providers = [_db_direct_provider_details(capability_id)]
+
     return {
         "data": {
             **cap,
@@ -509,6 +617,11 @@ async def resolve_capability(
 
     mappings = await supabase_fetch(mapping_path)
     if not mappings:
+        if _is_db_direct_capability(capability_id):
+            return {
+                "data": _db_direct_resolve_payload(capability_id),
+                "error": None,
+            }
         return {
             "data": {
                 "capability": capability_id,
@@ -695,6 +808,11 @@ async def get_credential_modes(
         f"&select=service_slug,credential_modes,auth_method"
     )
     if not mappings:
+        if _is_db_direct_capability(capability_id):
+            return {
+                "data": _db_direct_credential_modes(capability_id),
+                "error": None,
+            }
         return {
             "data": {"capability_id": capability_id, "providers": []},
             "error": None,

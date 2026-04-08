@@ -95,6 +95,15 @@ INTENT_CAPABILITIES = [
     },
 ]
 
+DB_DIRECT_CAPABILITY = {
+    "id": "db.query.read",
+    "domain": "database",
+    "action": "query_read",
+    "description": "Execute a read-only SQL query against a PostgreSQL database",
+    "input_hint": "connection_ref, query, params (optional), max_rows, timeout_ms",
+    "outcome": "Query results: column metadata + rows, bounded by row limit and timeout",
+}
+
 
 def _mock_supabase(path: str):
     """Route supabase_fetch calls to sample data based on table name."""
@@ -131,6 +140,22 @@ def _mock_intent_supabase(path: str):
     if path.startswith("scores?"):
         return []
     if path.startswith("services?"):
+        return []
+    return []
+
+
+def _mock_db_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.db.query.read" in path:
+            return [DB_DIRECT_CAPABILITY]
+        return [DB_DIRECT_CAPABILITY]
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
         return []
     return []
 
@@ -286,6 +311,35 @@ async def test_list_domains(app):
     for d in domains:
         assert "domain" in d
         assert "capability_count" in d
+
+
+@pytest.mark.anyio
+async def test_db_direct_capability_surfaces_synthetic_provider(app):
+    """DB direct capabilities should expose a truthful synthetic PostgreSQL provider."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/db.query.read")
+            resolve_resp = await client.get("/v1/capabilities/db.query.read/resolve")
+            modes_resp = await client.get("/v1/capabilities/db.query.read/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "postgresql"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "postgresql"
+    assert get_data["providers"][0]["auth_method"] == "connection_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "postgresql"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "postgresql"
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "postgresql"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
 
 
 @pytest.mark.anyio

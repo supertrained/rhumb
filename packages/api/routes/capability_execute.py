@@ -1192,6 +1192,31 @@ async def execute_capability(
             },
         )
 
+    # ── AUD-18: DB-read capability early dispatch ──────────────────
+    # DB capabilities bypass the proxy layer entirely — they execute
+    # directly against the agent's PostgreSQL via connection_ref.
+    from routes.db_execute import is_db_capability, handle_db_execute
+    if is_db_capability(capability_id):
+        execution_id = f"exec_{uuid.uuid4().hex}"
+        request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+        # DB capabilities require API key auth (no x402 anonymous)
+        if not x_rhumb_key:
+            raise HTTPException(
+                status_code=401,
+                detail="X-Rhumb-Key header required for database capability execution",
+            )
+        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        return await handle_db_execute(
+            capability_id=capability_id,
+            raw_request=raw_request,
+            agent_id=agent.agent_id,
+            org_id=agent.organization_id,
+            execution_id=execution_id,
+            request_id=request_id,
+        )
+
     capability = await _resolve_capability(capability_id)
     if capability is None:
         return _not_found_response(
