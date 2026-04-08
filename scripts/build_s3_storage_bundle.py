@@ -16,6 +16,9 @@ It validates the generated bundle against the product runtime parser before prin
 - JSON only (default)
 - exact `railway variables --set ...` command (`--railway`)
 - shell export form (`--shell`)
+
+For bounded public AWS proof targets, `--anonymous` builds an allowlisted bundle without
+access keys and tells the runtime to use unsigned reads.
 """
 
 from __future__ import annotations
@@ -57,6 +60,11 @@ def parse_args() -> argparse.Namespace:
         help="Allowed prefix in the form bucket=prefix/. Repeat as needed.",
     )
     parser.add_argument("--region", help="AWS region. Falls back to AWS_REGION or AWS_DEFAULT_REGION.")
+    parser.add_argument(
+        "--anonymous",
+        action="store_true",
+        help="Use unsigned anonymous reads for a bounded public AWS bucket",
+    )
     parser.add_argument("--access-key-id", help="AWS access key id. Falls back to env vars.")
     parser.add_argument("--secret-access-key", help="AWS secret access key. Falls back to env vars.")
     parser.add_argument("--session-token", help="Optional AWS session token. Falls back to AWS_SESSION_TOKEN.")
@@ -115,15 +123,18 @@ def _build_payload(args: argparse.Namespace) -> dict[str, object]:
 
     payload: dict[str, object] = {
         "provider": "aws-s3",
-        "aws_access_key_id": _required(access_key_id, "AWS access key id"),
-        "aws_secret_access_key": _required(secret_access_key, "AWS secret access key"),
         "region": _required(region, "AWS region"),
         "allowed_buckets": args.buckets,
     }
+    if args.anonymous:
+        payload["auth_mode"] = "anonymous"
+    else:
+        payload["aws_access_key_id"] = _required(access_key_id, "AWS access key id")
+        payload["aws_secret_access_key"] = _required(secret_access_key, "AWS secret access key")
     allowed_prefixes = _parse_prefix_specs(args.prefix, args.buckets)
     if allowed_prefixes:
         payload["allowed_prefixes"] = allowed_prefixes
-    if session_token:
+    if session_token and not args.anonymous:
         payload["aws_session_token"] = session_token
     if args.endpoint_url:
         payload["endpoint_url"] = args.endpoint_url.strip()

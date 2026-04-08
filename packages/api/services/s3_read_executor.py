@@ -34,6 +34,8 @@ class S3ExecutorError(RuntimeError):
 def get_s3_client(bundle: AwsS3StorageBundle) -> Any:
     try:
         import boto3
+        from botocore import UNSIGNED
+        from botocore.client import Config
     except ModuleNotFoundError as exc:  # pragma: no cover
         raise S3ExecutorError(
             code="s3_provider_unavailable",
@@ -41,14 +43,14 @@ def get_s3_client(bundle: AwsS3StorageBundle) -> Any:
             status_code=503,
         ) from exc
 
-    kwargs: dict[str, Any] = {
-        "service_name": "s3",
-        "region_name": bundle.region,
-        "aws_access_key_id": bundle.aws_access_key_id,
-        "aws_secret_access_key": bundle.aws_secret_access_key,
-    }
-    if bundle.aws_session_token:
-        kwargs["aws_session_token"] = bundle.aws_session_token
+    kwargs: dict[str, Any] = {"service_name": "s3", "region_name": bundle.region}
+    if bundle.auth_mode == "anonymous":
+        kwargs["config"] = Config(signature_version=UNSIGNED)
+    else:
+        kwargs["aws_access_key_id"] = bundle.aws_access_key_id
+        kwargs["aws_secret_access_key"] = bundle.aws_secret_access_key
+        if bundle.aws_session_token:
+            kwargs["aws_session_token"] = bundle.aws_session_token
     if bundle.endpoint_url:
         kwargs["endpoint_url"] = bundle.endpoint_url
     return boto3.client(**kwargs)

@@ -215,12 +215,14 @@ For the first S3 slice, Rhumb supports **`credential_mode="byok"` only**.
 - expected request handle: `storage_ref`
 - runtime resolution: env-backed `RHUMB_STORAGE_<REF>` bundle on the server
 - current posture: operator-controlled / self-hosted style proofing until a cleaner hosted vault shape exists
+- bounded public AWS buckets can also use `auth_mode: "anonymous"` for unsigned reads while still enforcing explicit bucket/prefix allowlists
 
 Bundle shape:
 
 ```json
 {
   "provider": "aws-s3",
+  "auth_mode": "access_key",
   "aws_access_key_id": "AKIA...",
   "aws_secret_access_key": "...",
   "region": "us-west-2",
@@ -233,6 +235,7 @@ Bundle shape:
 ```
 
 `endpoint_url` is optional. Use it only when you need an explicit S3-compatible endpoint override in a bounded operator-proof environment.
+`auth_mode` is optional and defaults to `"access_key"`. Set `"anonymous"` only for bounded public AWS proof targets where unsigned reads are intentional.
 
 Use `scripts/build_s3_storage_bundle.py` to generate and validate that bundle against the product runtime parser before setting it on Railway:
 
@@ -248,6 +251,18 @@ python3 scripts/build_s3_storage_bundle.py \
 ```
 
 That prints the exact `railway variables --set ...` command for `RHUMB_STORAGE_ST_DOCS`.
+
+For a bounded public AWS proof target, use `--anonymous` instead of access-key env vars:
+
+```bash
+python3 scripts/build_s3_storage_bundle.py \
+  --storage-ref st_docs \
+  --anonymous \
+  --region us-east-1 \
+  --bucket 1000genomes \
+  --prefix 1000genomes=1000G_2504_high_coverage/additional_698_related/ \
+  --railway
+```
 
 ### `POST /v1/capabilities/object.list/execute`
 

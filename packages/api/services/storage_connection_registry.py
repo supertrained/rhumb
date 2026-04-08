@@ -19,8 +19,9 @@ class StorageRefError(ValueError):
 class AwsS3StorageBundle:
     storage_ref: str
     provider: str
-    aws_access_key_id: str
-    aws_secret_access_key: str
+    auth_mode: str
+    aws_access_key_id: str | None
+    aws_secret_access_key: str | None
     region: str
     allowed_buckets: tuple[str, ...]
     allowed_prefixes: dict[str, tuple[str, ...]]
@@ -62,8 +63,17 @@ def resolve_storage_bundle(storage_ref: str) -> AwsS3StorageBundle:
             f"storage_ref '{storage_ref}' is configured via env '{env_key}' but provider is not aws-s3"
         )
 
-    access_key_id = _required_string(payload, "aws_access_key_id", storage_ref, env_key)
-    secret_access_key = _required_string(payload, "aws_secret_access_key", storage_ref, env_key)
+    auth_mode = str(payload.get("auth_mode") or "access_key").strip()
+    if auth_mode not in {"access_key", "anonymous"}:
+        raise StorageRefError(
+            f"storage_ref '{storage_ref}' is configured via env '{env_key}' but auth_mode must be 'access_key' or 'anonymous'"
+        )
+
+    access_key_id: str | None = None
+    secret_access_key: str | None = None
+    if auth_mode == "access_key":
+        access_key_id = _required_string(payload, "aws_access_key_id", storage_ref, env_key)
+        secret_access_key = _required_string(payload, "aws_secret_access_key", storage_ref, env_key)
     region = _required_string(payload, "region", storage_ref, env_key)
 
     allowed_buckets_raw = payload.get("allowed_buckets")
@@ -125,6 +135,7 @@ def resolve_storage_bundle(storage_ref: str) -> AwsS3StorageBundle:
     return AwsS3StorageBundle(
         storage_ref=storage_ref,
         provider=provider,
+        auth_mode=auth_mode,
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
         region=region,
