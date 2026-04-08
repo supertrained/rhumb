@@ -144,7 +144,12 @@ async def handle_db_execute(
                 started_at=start,
             )
         try:
-            dsn_override = resolve_agent_vault_dsn(agent_token)
+            dsn_override = resolve_agent_vault_dsn(
+                agent_token,
+                expected_connection_ref=body.get("connection_ref"),
+                expected_agent_id=agent_id,
+                expected_org_id=org_id,
+            )
         except AgentVaultDsnError as exc:
             return await _failure_response(
                 raw_request=raw_request,

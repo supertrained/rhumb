@@ -140,7 +140,7 @@ These run through the normal capability surface:
 
 For **hosted Rhumb**, the only blessed DB credential path is `credential_mode="agent_vault"`.
 
-- `agent_vault` = pass a transient PostgreSQL DSN in the `X-Agent-Token` header for the request, never stored by Rhumb
+- `agent_vault` = preferred: pass a short-lived signed `rhdbv1.` DB vault token in `X-Agent-Token`; compatibility fallback: pass a transient PostgreSQL DSN directly in `X-Agent-Token`, never stored by Rhumb
 - `byok` = env-backed `connection_ref` resolution via `RHUMB_DB_<REF>` on the server, intended for self-hosted/internal operator-controlled deployments only
 
 Hosted env-backed `connection_ref` mode is intentionally disabled/hidden right now. If you are calling the hosted product, use `agent_vault`.
@@ -149,12 +149,26 @@ Hosted env-backed `connection_ref` mode is intentionally disabled/hidden right n
 
 Execute a bounded, read-only SQL query against the caller's PostgreSQL database.
 
+### Signed token helper (trusted/operator flow)
+
+Use `scripts/build_db_agent_vault_token.py` to mint a short-lived signed `rhdbv1.` token bound to a `connection_ref` and, optionally, an `agent_id` / `org_id`.
+
+```bash
+python3 scripts/build_db_agent_vault_token.py \
+  --connection-ref conn_app_read \
+  --dsn 'postgresql://user:pass@db.example.com:5432/app' \
+  --agent-id agent_123 \
+  --org-id org_456
+```
+
+The script reads the signing secret from `RHUMB_DB_AGENT_VAULT_SECRET` first, then `AUTH_JWT_SECRET` / `RHUMB_ADMIN_SECRET` as fallbacks, matching the DB execute runtime.
+
 **Example request (hosted / `agent_vault`)**
 
 ```bash
 curl -X POST http://localhost:8000/v1/capabilities/db.query.read/execute \
   -H "Content-Type: application/json" \
-  -H "X-Agent-Token: postgresql://user:pass@db.example.com:5432/app" \
+  -H "X-Agent-Token: rhdbv1.eyJ..." \
   -d '{
     "credential_mode": "agent_vault",
     "connection_ref": "conn_app_read",

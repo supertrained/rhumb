@@ -143,7 +143,7 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "agent_vault",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass your PostgreSQL DSN as the X-Agent-Token header for this request. The DSN is treated as transient and never stored.",
+                        "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
                     }
                 ],
                 "any_configured": False,

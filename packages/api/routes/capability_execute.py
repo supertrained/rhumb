@@ -46,6 +46,10 @@ from routes.proxy import (
     normalize_slug,
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from schemas.db_capabilities import (
+    DbAgentVaultTokenizeRequest,
+    DbAgentVaultTokenizeResponse,
+)
 from services.audit_trail import AuditEventType, get_audit_trail
 from services.auto_reload import check_and_trigger_auto_reload
 from services.billing_events import BillingEventType, get_billing_event_stream
@@ -79,6 +83,7 @@ from services.receipt_service import (
 )
 from services.provider_attribution import build_attribution
 from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.db_connection_registry import AgentVaultDsnError, issue_agent_vault_dsn_token
 
 _budget_enforcer = BudgetEnforcer()
 _credit_deduction = CreditDeductionService()
@@ -674,6 +679,50 @@ class CapabilityExecuteRequest(BaseModel):
     )
     idempotency_key: Optional[str] = Field(None, description="Idempotency key to prevent duplicate execution")
     interface: str = Field("rest", description="Client interface (rest, mcp, cli, sdk)")
+
+
+@router.post("/db/agent-vault/tokenize")
+async def tokenize_db_agent_vault(
+    request: DbAgentVaultTokenizeRequest,
+    x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
+) -> dict:
+    """Exchange a raw PostgreSQL DSN for a short-lived opaque DB vault token.
+
+    This is a bridge away from repeatedly sending the raw DSN in X-Agent-Token.
+    The issued token is encrypted, bound to the authenticated agent, and scoped
+    to the provided connection_ref.
+    """
+    if not x_rhumb_key:
+        raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
+
+    agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    if agent is None:
+        raise HTTPException(status_code=401, detail="Invalid X-Rhumb-Key")
+
+    try:
+        issued_at = int(time.time())
+        token = issue_agent_vault_dsn_token(
+            request.dsn,
+            connection_ref=request.connection_ref,
+            agent_id=agent.agent_id,
+            org_id=agent.organization_id,
+            issued_at=issued_at,
+            ttl_seconds=request.ttl_seconds,
+        )
+    except AgentVaultDsnError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    response = DbAgentVaultTokenizeResponse(
+        token=token,
+        token_format="rhdbv1",
+        connection_ref=request.connection_ref,
+        ttl_seconds=request.ttl_seconds,
+        expires_at=issued_at + request.ttl_seconds,
+    )
+    return {
+        "data": response.model_dump(mode="json"),
+        "error": None,
+    }
 
 
 async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteRequest:

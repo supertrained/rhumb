@@ -23,6 +23,8 @@ DB_ROW_GET_MAX_FILTERS = 10
 DB_ROW_GET_MAX_COLUMNS = 50
 DB_ORDER_BY_MAX_COLUMNS = 3
 DB_REASON_MAX_CHARS = 300
+DB_AGENT_VAULT_TOKEN_DEFAULT_TTL_SECONDS = 300
+DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS = 3600
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -139,6 +141,24 @@ class DbQueryReadRequest(BaseModel):
         if len(value) > DB_QUERY_MAX_PARAMS:
             raise ValueError(f"params supports at most {DB_QUERY_MAX_PARAMS} bound values")
         return value
+
+
+class DbAgentVaultTokenizeRequest(BaseModel):
+    connection_ref: str = Field(..., min_length=1)
+    dsn: str = Field(..., min_length=1, max_length=4096)
+    ttl_seconds: int = Field(
+        DB_AGENT_VAULT_TOKEN_DEFAULT_TTL_SECONDS,
+        ge=1,
+        le=DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS,
+    )
+
+
+class DbAgentVaultTokenizeResponse(BaseModel):
+    token: str
+    token_format: Literal["rhdbv1"]
+    connection_ref: str
+    ttl_seconds: int = Field(..., ge=1, le=DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS)
+    expires_at: int = Field(..., ge=1)
 
 
 class DbQueryReadResponse(BaseModel):

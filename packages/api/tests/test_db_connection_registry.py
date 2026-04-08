@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from services.db_connection_registry import (
     AgentVaultDsnError,
     ConnectionRefError,
     detect_postgres_provider,
+    issue_agent_vault_dsn_token,
     resolve_agent_vault_dsn,
     resolve_dsn,
     validate_connection_ref,
@@ -70,6 +69,96 @@ def test_resolve_agent_vault_dsn_rejects_non_postgres_scheme() -> None:
 def test_resolve_agent_vault_dsn_accepts_postgres_url() -> None:
     dsn = "postgresql://reader:pass@localhost:5432/app"
     assert resolve_agent_vault_dsn(dsn) == dsn
+
+
+def test_issue_agent_vault_dsn_token_round_trips(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+
+    token = issue_agent_vault_dsn_token(
+        "postgresql://reader:pass@localhost:5432/app",
+        connection_ref="conn_reader",
+        agent_id="agent_123",
+        org_id="org_123",
+        issued_at=1_744_105_600,
+        ttl_seconds=300,
+    )
+
+    assert token.startswith("rhdbv1.")
+    assert resolve_agent_vault_dsn(
+        token,
+        connection_ref="conn_reader",
+        expected_agent_id="agent_123",
+        expected_org_id="org_123",
+        now=1_744_105_700,
+    ) == "postgresql://reader:pass@localhost:5432/app"
+
+
+def test_resolve_agent_vault_dsn_rejects_connection_ref_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+
+    token = issue_agent_vault_dsn_token(
+        "postgresql://reader:pass@localhost:5432/app",
+        connection_ref="conn_reader",
+        agent_id="agent_123",
+        org_id="org_123",
+        issued_at=1_744_105_600,
+        ttl_seconds=300,
+    )
+
+    with pytest.raises(AgentVaultDsnError, match="connection_ref"):
+        resolve_agent_vault_dsn(
+            token,
+            connection_ref="conn_other",
+            expected_agent_id="agent_123",
+            expected_org_id="org_123",
+            now=1_744_105_700,
+        )
+
+
+def test_resolve_agent_vault_dsn_rejects_agent_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+
+    token = issue_agent_vault_dsn_token(
+        "postgresql://reader:pass@localhost:5432/app",
+        connection_ref="conn_reader",
+        agent_id="agent_123",
+        org_id="org_123",
+        issued_at=1_744_105_600,
+        ttl_seconds=300,
+    )
+
+    with pytest.raises(AgentVaultDsnError, match="agent"):
+        resolve_agent_vault_dsn(
+            token,
+            connection_ref="conn_reader",
+            expected_agent_id="agent_other",
+            expected_org_id="org_123",
+            now=1_744_105_700,
+        )
+
+
+def test_resolve_agent_vault_dsn_rejects_expired_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+
+    monkeypatch.setattr("services.db_connection_registry.time.time", lambda: 1_744_105_600)
+    token = issue_agent_vault_dsn_token(
+        "postgresql://reader:pass@localhost:5432/app",
+        connection_ref="conn_reader",
+        agent_id="agent_123",
+        org_id="org_123",
+        ttl_seconds=60,
+    )
+
+    with pytest.raises(AgentVaultDsnError, match="expired"):
+        resolve_agent_vault_dsn(
+            token,
+            connection_ref="conn_reader",
+            expected_agent_id="agent_123",
+            expected_org_id="org_123",
+            now=1_744_105_700,
+        )
 
 
 def test_detect_postgres_provider_defaults_to_postgresql() -> None:
