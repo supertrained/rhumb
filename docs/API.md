@@ -195,6 +195,96 @@ curl -X POST http://localhost:8000/v1/capabilities/db.query.read/execute \
 
 `db.schema.describe` and `db.row.get` share the same hosted credential posture and execution endpoint shape.
 
+## Direct AWS S3 Read-First Capabilities (AUD-18 Wave 1)
+
+Rhumb now exposes three direct AWS S3 read-first capabilities:
+- `object.list`
+- `object.head`
+- `object.get`
+
+These run through the normal capability surface:
+- `GET /v1/capabilities/{capability_id}`
+- `GET /v1/capabilities/{capability_id}/resolve`
+- `GET /v1/capabilities/{capability_id}/credential-modes`
+- `POST /v1/capabilities/{capability_id}/execute`
+
+### Credential posture
+
+For the first S3 slice, Rhumb supports **`credential_mode="byok"` only**.
+
+- expected request handle: `storage_ref`
+- runtime resolution: env-backed `RHUMB_STORAGE_<REF>` bundle on the server
+- current posture: operator-controlled / self-hosted style proofing until a cleaner hosted vault shape exists
+
+Bundle shape:
+
+```json
+{
+  "provider": "aws-s3",
+  "aws_access_key_id": "AKIA...",
+  "aws_secret_access_key": "...",
+  "region": "us-west-2",
+  "allowed_buckets": ["docs-bucket"],
+  "allowed_prefixes": {
+    "docs-bucket": ["reports/"]
+  }
+}
+```
+
+Use `scripts/build_s3_storage_bundle.py` to generate and validate that bundle against the product runtime parser before setting it on Railway:
+
+```bash
+AWS_ACCESS_KEY_ID=... \
+AWS_SECRET_ACCESS_KEY=... \
+AWS_REGION=us-west-2 \
+python3 scripts/build_s3_storage_bundle.py \
+  --storage-ref st_docs \
+  --bucket docs-bucket \
+  --prefix docs-bucket=reports/ \
+  --railway
+```
+
+That prints the exact `railway variables --set ...` command for `RHUMB_STORAGE_ST_DOCS`.
+
+### `POST /v1/capabilities/object.list/execute`
+
+List objects within an allowlisted bucket/prefix.
+
+**Example request**
+
+```bash
+curl -X POST http://localhost:8000/v1/capabilities/object.list/execute \
+  -H "Content-Type: application/json" \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  -d '{
+    "credential_mode": "byok",
+    "storage_ref": "st_docs",
+    "bucket": "docs-bucket",
+    "prefix": "reports/",
+    "max_keys": 10
+  }'
+```
+
+### `POST /v1/capabilities/object.head/execute`
+
+Fetch metadata for one allowlisted object.
+
+### `POST /v1/capabilities/object.get/execute`
+
+Fetch a bounded object body for one allowlisted object.
+
+Use `scripts/s3_read_dogfood.py` for the full hosted proof bundle:
+
+```bash
+python3 scripts/s3_read_dogfood.py \
+  --storage-ref st_docs \
+  --bucket docs-bucket \
+  --prefix reports/ \
+  --key reports/daily.json \
+  --summary-only \
+  --json-out artifacts/aud18-s3-hosted-proof-<timestamp>.json
+```
+
 ## Pricing Endpoint
 
 ### `GET /v1/pricing`
