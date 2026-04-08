@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import time
-import uuid
 from typing import Any
 
 from fastapi import Request
@@ -31,6 +30,7 @@ from schemas.db_capabilities import (
 from services.db_connection_registry import (
     AgentVaultDsnError,
     ConnectionRefError,
+    detect_postgres_provider,
     resolve_agent_vault_dsn,
     resolve_dsn,
     validate_connection_ref,
@@ -132,14 +132,36 @@ async def handle_db_execute(
             )
 
     start = time.perf_counter()
+    provider_used = "postgresql"
 
     try:
         if capability_id == "db.query.read":
-            result = await _execute_query_read(body, credential_mode, execution_id, dsn_override)
+            request, dsn, provider_used = _prepare_query_read(body, credential_mode, dsn_override)
+            result = await execute_read_query(
+                request,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                dsn=dsn,
+                execution_id=execution_id,
+            )
         elif capability_id == "db.schema.describe":
-            result = await _execute_schema_describe(body, credential_mode, execution_id, dsn_override)
+            request, dsn, provider_used = _prepare_schema_describe(body, credential_mode, dsn_override)
+            result = await describe_schema(
+                request,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                dsn=dsn,
+                execution_id=execution_id,
+            )
         elif capability_id == "db.row.get":
-            result = await _execute_row_get(body, credential_mode, execution_id, dsn_override)
+            request, dsn, provider_used = _prepare_row_get(body, credential_mode, dsn_override)
+            result = await get_rows(
+                request,
+                credential_mode=credential_mode,
+                provider_used=provider_used,
+                dsn=dsn,
+                execution_id=execution_id,
+            )
         else:
             return _error_response(
                 request_id=request_id,
@@ -167,6 +189,7 @@ async def handle_db_execute(
             agent_id=agent_id,
             org_id=org_id,
             credential_mode=credential_mode,
+            provider_used=provider_used,
             raw_request=raw_request,
             total_latency_ms=total_ms,
             request_payload=body,
@@ -178,6 +201,7 @@ async def handle_db_execute(
             agent_id=agent_id,
             capability_id=capability_id,
             credential_mode=credential_mode,
+            provider_used=provider_used,
             success=False,
             total_latency_ms=total_ms,
             error_message=exc.message,
@@ -214,6 +238,7 @@ async def handle_db_execute(
         agent_id=agent_id,
         org_id=org_id,
         credential_mode=credential_mode,
+        provider_used=provider_used,
         raw_request=raw_request,
         total_latency_ms=total_ms,
         provider_latency_ms=response_dict.get("duration_ms"),
@@ -237,6 +262,7 @@ async def handle_db_execute(
         agent_id=agent_id,
         capability_id=capability_id,
         credential_mode=credential_mode,
+        provider_used=provider_used,
         success=True,
         total_latency_ms=total_ms,
         receipt_id=receipt.receipt_id if receipt else None,
@@ -252,69 +278,50 @@ async def handle_db_execute(
 # ── Internal helpers ──────────────────────────────────────────────
 
 
-async def _execute_query_read(
+def _prepare_query_read(
     body: dict[str, Any],
     credential_mode: str,
-    execution_id: str,
     dsn_override: str | None,
-) -> Any:
+) -> tuple[DbQueryReadRequest, str, str]:
     request = DbQueryReadRequest.model_validate(body)
+    dsn, provider_used = _resolve_request_dsn(request.connection_ref, credential_mode, dsn_override)
+    return request, dsn, provider_used
+
+
+def _prepare_schema_describe(
+    body: dict[str, Any],
+    credential_mode: str,
+    dsn_override: str | None,
+) -> tuple[DbSchemaDescribeRequest, str, str]:
+    request = DbSchemaDescribeRequest.model_validate(body)
+    dsn, provider_used = _resolve_request_dsn(request.connection_ref, credential_mode, dsn_override)
+    return request, dsn, provider_used
+
+
+def _prepare_row_get(
+    body: dict[str, Any],
+    credential_mode: str,
+    dsn_override: str | None,
+) -> tuple[DbRowGetRequest, str, str]:
+    request = DbRowGetRequest.model_validate(body)
+    dsn, provider_used = _resolve_request_dsn(request.connection_ref, credential_mode, dsn_override)
+    return request, dsn, provider_used
+
+
+def _resolve_request_dsn(
+    connection_ref: str,
+    credential_mode: str,
+    dsn_override: str | None,
+) -> tuple[str, str]:
     if credential_mode == "agent_vault":
         # Keep connection_ref constraints consistent even though the DSN is
         # supplied by the agent.
-        validate_connection_ref(request.connection_ref)
+        validate_connection_ref(connection_ref)
         assert dsn_override is not None
         dsn = dsn_override
     else:
-        dsn = resolve_dsn(request.connection_ref)
-    return await execute_read_query(
-        request,
-        credential_mode=credential_mode,
-        dsn=dsn,
-        execution_id=execution_id,
-    )
-
-
-async def _execute_schema_describe(
-    body: dict[str, Any],
-    credential_mode: str,
-    execution_id: str,
-    dsn_override: str | None,
-) -> Any:
-    request = DbSchemaDescribeRequest.model_validate(body)
-    if credential_mode == "agent_vault":
-        validate_connection_ref(request.connection_ref)
-        assert dsn_override is not None
-        dsn = dsn_override
-    else:
-        dsn = resolve_dsn(request.connection_ref)
-    return await describe_schema(
-        request,
-        credential_mode=credential_mode,
-        dsn=dsn,
-        execution_id=execution_id,
-    )
-
-
-async def _execute_row_get(
-    body: dict[str, Any],
-    credential_mode: str,
-    execution_id: str,
-    dsn_override: str | None,
-) -> Any:
-    request = DbRowGetRequest.model_validate(body)
-    if credential_mode == "agent_vault":
-        validate_connection_ref(request.connection_ref)
-        assert dsn_override is not None
-        dsn = dsn_override
-    else:
-        dsn = resolve_dsn(request.connection_ref)
-    return await get_rows(
-        request,
-        credential_mode=credential_mode,
-        dsn=dsn,
-        execution_id=execution_id,
-    )
+        dsn = resolve_dsn(connection_ref)
+    return dsn, detect_postgres_provider(dsn)
 
 
 async def _emit_receipt(
@@ -325,6 +332,7 @@ async def _emit_receipt(
     agent_id: str,
     org_id: str | None,
     credential_mode: str,
+    provider_used: str,
     raw_request: Request,
     total_latency_ms: float,
     provider_latency_ms: float | None = None,
@@ -340,7 +348,7 @@ async def _emit_receipt(
             capability_id=capability_id,
             status=status,
             agent_id=agent_id,
-            provider_id="postgresql",
+            provider_id=provider_used,
             credential_mode=credential_mode,
             layer=2,
             org_id=org_id,
@@ -373,6 +381,7 @@ async def _record_execution(
     agent_id: str,
     capability_id: str,
     credential_mode: str,
+    provider_used: str,
     success: bool,
     total_latency_ms: float,
     receipt_id: str | None = None,
@@ -384,7 +393,7 @@ async def _record_execution(
             "id": execution_id,
             "agent_id": agent_id,
             "capability_id": capability_id,
-            "provider_used": "postgresql",
+            "provider_used": provider_used,
             "credential_mode": credential_mode,
             "method": "DIRECT",
             "path": f"/{capability_id}",

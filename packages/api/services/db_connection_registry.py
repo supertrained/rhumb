@@ -28,6 +28,7 @@ _CONN_REF_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
 _AGENT_VAULT_DSN_MAX_CHARS = 4096
 _ALLOWED_DSN_SCHEMES = {"postgresql", "postgres"}
+_SUPABASE_HOST_SUFFIXES = (".supabase.co", ".supabase.com")
 
 
 class ConnectionRefError(ValueError):
@@ -90,3 +91,17 @@ def resolve_dsn(connection_ref: str) -> str:
             f"(expected env var {env_key})"
         )
     return dsn
+
+
+def detect_postgres_provider(dsn: str) -> str:
+    """Return provider attribution for a PostgreSQL-compatible DSN.
+
+    Supabase-backed Postgres uses distinct hostnames, for example
+    ``db.<project-ref>.supabase.co`` or ``*.pooler.supabase.com``.
+    If the hostname does not clearly indicate Supabase, default to the
+    generic ``postgresql`` attribution.
+    """
+    hostname = (urlparse(dsn).hostname or "").lower()
+    if hostname.endswith(_SUPABASE_HOST_SUFFIXES):
+        return "supabase"
+    return "postgresql"

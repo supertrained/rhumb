@@ -73,6 +73,7 @@ async def test_execute_read_query_sets_read_only_session_and_truncates() -> None
             max_rows=2,
         ),
         credential_mode="byok",
+        provider_used="supabase",
         connection_factory=lambda: fake_connection_factory(cursor),
         receipt_id="rcpt_123",
         execution_id="exec_123",
@@ -82,6 +83,7 @@ async def test_execute_read_query_sets_read_only_session_and_truncates() -> None
     assert cursor.executions[1][0] == "SET LOCAL statement_timeout = 5000"
     assert cursor.executions[2][0] == "SELECT id, email FROM public.users"
     assert response.query_summary.truncated is True
+    assert response.provider_used == "supabase"
     assert response.row_count_returned == 2
     assert response.rows == [
         {"id": 1, "email": "a@example.com"},

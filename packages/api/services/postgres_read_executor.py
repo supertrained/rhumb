@@ -69,6 +69,7 @@ async def execute_read_query(
     request: DbQueryReadRequest,
     *,
     credential_mode: str,
+    provider_used: str = "postgresql",
     connection_factory: ConnectionFactory | None = None,
     dsn: str | None = None,
     classifier: Classifier = classify_read_only_query,
@@ -96,7 +97,7 @@ async def execute_read_query(
     _enforce_result_size(rows)
 
     return DbQueryReadResponse(
-        provider_used="postgresql",
+        provider_used=provider_used,
         credential_mode=credential_mode,
         capability_id="db.query.read",
         receipt_id=receipt_id,
@@ -123,6 +124,7 @@ async def describe_schema(
     request: DbSchemaDescribeRequest,
     *,
     credential_mode: str,
+    provider_used: str = "postgresql",
     connection_factory: ConnectionFactory | None = None,
     dsn: str | None = None,
     receipt_id: str = "pending",
@@ -200,7 +202,7 @@ async def describe_schema(
         )
 
     return DbSchemaDescribeResponse(
-        provider_used="postgresql",
+        provider_used=provider_used,
         credential_mode=credential_mode,
         capability_id="db.schema.describe",
         receipt_id=receipt_id,
@@ -222,6 +224,7 @@ async def get_rows(
     request: DbRowGetRequest,
     *,
     credential_mode: str,
+    provider_used: str = "postgresql",
     connection_factory: ConnectionFactory | None = None,
     dsn: str | None = None,
     receipt_id: str = "pending",
@@ -267,7 +270,7 @@ async def get_rows(
     columns_returned = request.columns or columns
 
     return DbRowGetResponse(
-        provider_used="postgresql",
+        provider_used=provider_used,
         credential_mode=credential_mode,
         capability_id="db.row.get",
         receipt_id=receipt_id,

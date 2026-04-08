@@ -294,6 +294,52 @@ async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_db_query_read_supabase_dsn_uses_supabase_provider(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Supabase-backed Postgres DSNs are attributed as supabase end to end."""
+    monkeypatch.setenv(
+        "RHUMB_DB_CONN_READER",
+        "postgresql://postgres:pass@db.abcdefghijklmnop.supabase.co:5432/postgres",
+    )
+
+    with patch("services.postgres_read_executor.psycopg.AsyncConnection.connect") as mock_connect:
+        cursor = FakeCursor(
+            rows=[{"count": 1}],
+            description=[SimpleNamespace(name="count", type_code="int8")],
+        )
+        mock_connect.return_value = FakeConnection(cursor)
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.post(
+                "/v1/capabilities/db.query.read/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "connection_ref": "conn_reader",
+                    "query": "SELECT 1 as count",
+                },
+            )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["provider_used"] == "supabase"
+
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.provider_id == "supabase"
+
+    assert _mock_supabase_writes.await_count == 1
+    table_name, payload = _mock_supabase_writes.await_args.args
+    assert table_name == "capability_executions"
+    assert payload["provider_used"] == "supabase"
+
+
+@pytest.mark.asyncio
 async def test_db_execute_rejects_write_query(app, monkeypatch) -> None:
     """Write queries are blocked by the classifier."""
     monkeypatch.setenv("RHUMB_DB_CONN_READER", "postgresql://localhost:5432/test")
