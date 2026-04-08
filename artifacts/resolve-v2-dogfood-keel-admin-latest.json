@@ -7,87 +7,139 @@
             "action": "capability.execute",
             "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "category": "execution",
-            "chain_hash": "cbcbf8db31033d60e7dcf63b16343b3465844054976229cf20f9f7550c1a28e8",
+            "chain_hash": "4170a21fccf0a80ee132a330db5dd1f10c509f6fb2bea7b4283534ab03d319e4",
+            "chain_sequence": 4,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "latency_ms": 546.7,
+              "upstream_status": 200
+            },
+            "event_id": "aud_ddd20bab0cbc4c88",
+            "event_type": "execution.completed",
+            "execution_id": "exec_03909ee6b77d488584d6636b7d84b75e",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_03909ee6b77d488584d6636b7d84b75e",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-08T21:07:48.463168+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "010238f225027c26a148aa6ef356fcfa7c860d6e72aa96dead349ad1d85c89b3",
+            "chain_sequence": 3,
+            "detail": {
+              "billing_status": "unbilled",
+              "capability_id": "search.query",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "latency_ms": 545.6,
+              "upstream_status": 200
+            },
+            "event_id": "aud_adc7a80340ab468f",
+            "event_type": "execution.completed",
+            "execution_id": "exec_652a1d81998d4401b8f0701d354e385d",
+            "org_id": "org_aud3_verifier",
+            "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "resource_id": "exec_652a1d81998d4401b8f0701d354e385d",
+            "resource_type": "capability_execution",
+            "severity": "info",
+            "timestamp": "2026-04-08T21:07:38.767132+00:00"
+          },
+          {
+            "action": "capability.execute",
+            "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
+            "category": "execution",
+            "chain_hash": "d3b8c3ae900ec3c0bcf5aa31cbeb42e6a03b6d464eed44204d72f649eb4cbf4d",
             "chain_sequence": 2,
             "detail": {
               "billing_status": "unbilled",
               "capability_id": "search.query",
               "credential_mode": "rhumb_managed",
               "interface": "dogfood-keel-v2-l1",
-              "latency_ms": 512.9,
+              "latency_ms": 500.4,
               "upstream_status": 200
             },
-            "event_id": "aud_245545b178c548c9",
+            "event_id": "aud_a7e71616df0646a1",
             "event_type": "execution.completed",
-            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "execution_id": "exec_5a721b46b93b49ebaefddc44e62e895d",
             "org_id": "org_aud3_verifier",
             "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "resource_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "resource_id": "exec_5a721b46b93b49ebaefddc44e62e895d",
             "resource_type": "capability_execution",
             "severity": "info",
-            "timestamp": "2026-04-07T04:50:51.926319+00:00"
+            "timestamp": "2026-04-08T21:01:39.310853+00:00"
           },
           {
             "action": "capability.execute",
             "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "category": "execution",
-            "chain_hash": "301244410de3eae5b05c6885e2cce49c09b0ab84b3211585b61a72a70a58415f",
+            "chain_hash": "8df12c419d2ddfdca68357298036ed0e261f4ed757f3afa2710f0441db73d664",
             "chain_sequence": 1,
             "detail": {
               "billing_status": "unbilled",
               "capability_id": "search.query",
               "credential_mode": "rhumb_managed",
               "interface": "dogfood-keel-v2",
-              "latency_ms": 570.5,
+              "latency_ms": 1012.2,
               "upstream_status": 200
             },
-            "event_id": "aud_f6315c58128944b7",
+            "event_id": "aud_6f431c77c30c479b",
             "event_type": "execution.completed",
-            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "execution_id": "exec_d314a2e816d34497b775b76378914ad8",
             "org_id": "org_aud3_verifier",
             "principal": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "resource_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "resource_id": "exec_d314a2e816d34497b775b76378914ad8",
             "resource_type": "capability_execution",
             "severity": "info",
-            "timestamp": "2026-04-07T04:50:41.983945+00:00"
+            "timestamp": "2026-04-08T21:01:28.527420+00:00"
           }
         ],
         "pagination": {
           "has_more": false,
           "limit": 10,
           "offset": 0,
-          "total": 2
+          "total": 4
         }
       }
     },
     "status": {
       "data": {
         "chain_verified": true,
-        "earliest_event": "2026-04-07T04:50:41.983945+00:00",
+        "earliest_event": "2026-04-08T21:01:28.527420+00:00",
         "events_by_category": {
-          "execution": 2
+          "execution": 4
         },
         "events_by_severity": {
-          "info": 2
+          "info": 4
         },
         "events_by_type": {
-          "execution.completed": 2
+          "execution.completed": 4
         },
-        "latest_event": "2026-04-07T04:50:51.926319+00:00",
-        "latest_hash": "cbcbf8db31033d60e7dcf63b16343b3465844054976229cf20f9f7550c1a28e8",
-        "latest_sequence": 2,
-        "total_events": 2
+        "latest_event": "2026-04-08T21:07:48.463168+00:00",
+        "latest_hash": "4170a21fccf0a80ee132a330db5dd1f10c509f6fb2bea7b4283534ab03d319e4",
+        "latest_sequence": 4,
+        "total_events": 4
       }
     }
   },
   "billing": {
     "events": {
       "data": {
-        "count": 4,
+        "count": 8,
         "events": [
           {
             "amount_usd": 0.0,
@@ -95,18 +147,18 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "06ac9de8c693cf52d0bc0101e7d495bc3d5744988dbb21eaccb80aad299e57b0",
-            "event_id": "bevt_80bdb1d60eb543b9",
+            "chain_hash": "d31c4603b16b6c11fabd28b119ef9a93530ebdcfc70c84f62c88a3576f6d7147",
+            "event_id": "bevt_206e2d16dcd5402e",
             "event_type": "execution.charged",
-            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "execution_id": "exec_03909ee6b77d488584d6636b7d84b75e",
             "metadata": {
               "credential_mode": "rhumb_managed",
               "layer": 1
             },
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
-            "receipt_id": "rcpt_8fa9039f92cc486288bad4ca",
-            "timestamp": "2026-04-07T04:50:52.899818+00:00"
+            "receipt_id": "rcpt_4c582a41f19442efa1fd7046",
+            "timestamp": "2026-04-08T21:07:49.476276+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -114,10 +166,10 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "f61ac3809d69fa518a5debfb33cda42ca850530d700f327fc87480ccb04bf0fc",
-            "event_id": "bevt_680c70f502cf49df",
+            "chain_hash": "959d530e5f9819b96cd1b560697f9e1ffe0c0e43d3d4c5ee4b517f2e8e2ab1e7",
+            "event_id": "bevt_b6ca49d3738247a0",
             "event_type": "execution.charged",
-            "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
+            "execution_id": "exec_03909ee6b77d488584d6636b7d84b75e",
             "metadata": {
               "billing_status": "unbilled",
               "credential_mode": "rhumb_managed",
@@ -127,7 +179,7 @@
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "timestamp": "2026-04-07T04:50:51.922229+00:00"
+            "timestamp": "2026-04-08T21:07:48.459695+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -135,18 +187,18 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "c752a8faa7c6dbf0c5283bc1f153eddbe69996b31ce2545f6308e5983e4127d2",
-            "event_id": "bevt_f8ac0a70e12440a7",
+            "chain_hash": "b6079a45c92a264ce4a5daae7cf24f613ffecc72b1062eeeec0307dc9fae2091",
+            "event_id": "bevt_470758a22dec4cdd",
             "event_type": "execution.charged",
-            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "execution_id": "exec_652a1d81998d4401b8f0701d354e385d",
             "metadata": {
               "credential_mode": "rhumb_managed",
               "layer": 2
             },
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
-            "receipt_id": "rcpt_f982bab918ff469eb7eb16f7",
-            "timestamp": "2026-04-07T04:50:43.472219+00:00"
+            "receipt_id": "rcpt_dc41dca5f5934e2daaa1106d",
+            "timestamp": "2026-04-08T21:07:39.822768+00:00"
           },
           {
             "amount_usd": 0.0,
@@ -154,10 +206,10 @@
             "balance_after_usd": null,
             "balance_after_usd_cents": null,
             "capability_id": "search.query",
-            "chain_hash": "8b3a532f62d19811cbd28e25c9d570cd61f7f578a8fa687b0480dae505fd5d56",
-            "event_id": "bevt_72574ddf73914531",
+            "chain_hash": "0dd6bdcf2da303aadde72b9b8506dd329f88d566609e6643b34cf0390d056232",
+            "event_id": "bevt_71fe02c2a641495c",
             "event_type": "execution.charged",
-            "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+            "execution_id": "exec_652a1d81998d4401b8f0701d354e385d",
             "metadata": {
               "billing_status": "unbilled",
               "credential_mode": "rhumb_managed",
@@ -167,7 +219,87 @@
             "org_id": "org_aud3_verifier",
             "provider_slug": "brave-search",
             "receipt_id": null,
-            "timestamp": "2026-04-07T04:50:41.981846+00:00"
+            "timestamp": "2026-04-08T21:07:38.762963+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "993ba7da9e22c1efa96bc07f3f4a0b9d7d70ba8958472f6e576c14fe2d3a1ae4",
+            "event_id": "bevt_3cc9012cce0d4416",
+            "event_type": "execution.charged",
+            "execution_id": "exec_5a721b46b93b49ebaefddc44e62e895d",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 1
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_1fba270b82f94d54bcbd41da",
+            "timestamp": "2026-04-08T21:01:40.332286+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "26c7cfb17158090ef9051e1ba2c9980339e53a0ebe3f8af31337fbb1c0845585",
+            "event_id": "bevt_24fbad09a7cb4dca",
+            "event_type": "execution.charged",
+            "execution_id": "exec_5a721b46b93b49ebaefddc44e62e895d",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2-l1",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-08T21:01:39.305583+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "6887baba6a0d6f76d6125a61ccaec2685599f3d2c71d3e6877ec76cd1c98bafd",
+            "event_id": "bevt_328c6e4be6aa44ba",
+            "event_type": "execution.charged",
+            "execution_id": "exec_d314a2e816d34497b775b76378914ad8",
+            "metadata": {
+              "credential_mode": "rhumb_managed",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": "rcpt_f8cd51ca664d4eb688371ef3",
+            "timestamp": "2026-04-08T21:01:29.802728+00:00"
+          },
+          {
+            "amount_usd": 0.0,
+            "amount_usd_cents": 0,
+            "balance_after_usd": null,
+            "balance_after_usd_cents": null,
+            "capability_id": "search.query",
+            "chain_hash": "66a194eef07bd722cb4e657402ec016c5f994d8949d8828cf6af623ce7997e8b",
+            "event_id": "bevt_a58532c3dac44cf1",
+            "event_type": "execution.charged",
+            "execution_id": "exec_d314a2e816d34497b775b76378914ad8",
+            "metadata": {
+              "billing_status": "unbilled",
+              "credential_mode": "rhumb_managed",
+              "interface": "dogfood-keel-v2",
+              "layer": 2
+            },
+            "org_id": "org_aud3_verifier",
+            "provider_slug": "brave-search",
+            "receipt_id": null,
+            "timestamp": "2026-04-08T21:01:28.523340+00:00"
           }
         ],
         "org_id": "org_aud3_verifier"
@@ -194,8 +326,8 @@
           "auto_reload.triggered",
           "auto_reload.failed"
         ],
-        "latest_chain_hash": "06ac9de8c693cf52d0bc0101e7d495bc3d5744988dbb21eaccb80aad299e57b0",
-        "stream_length": 4,
+        "latest_chain_hash": "d31c4603b16b6c11fabd28b119ef9a93530ebdcfc70c84f62c88a3576f6d7147",
+        "stream_length": 8,
         "structural_guarantees": [
           "All billing events are immutable and chain-hashed",
           "Event stream is append-only with SHA-256 chain integrity",
@@ -219,8 +351,8 @@
           }
         },
         "credit_purchase_count": 0,
-        "events_count": 4,
-        "execution_count": 4,
+        "events_count": 8,
+        "execution_count": 8,
         "net_usd": 0.0,
         "org_id": "org_aud3_verifier",
         "period": "all",
@@ -362,16 +494,16 @@
     ],
     "limit": 10,
     "offset": 0,
-    "total": 415
+    "total": 421
   },
   "config": {
     "api_key_env": "RHUMB_DOGFOOD_API_KEY",
-    "api_key_preview": "rhumb_651a95\u2026ad16",
+    "api_key_preview": "rhumb_da2311\u2026fc03",
     "base_url": "https://api.rhumb.dev",
     "bootstrap": {
       "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
       "agent_name": "Pedro AUD-3 Verifier",
-      "list_attempts": 2,
+      "list_attempts": 1,
       "mode": "rotated",
       "organization_id": "org_aud3_verifier",
       "service": "brave-search",
@@ -406,7 +538,7 @@
           "latency": {
             "overhead_ms": 0.0,
             "provider_ms": null,
-            "total_ms": 5266.0
+            "total_ms": 5441.0
           },
           "layer": 1,
           "provider": {
@@ -417,7 +549,7 @@
             "name": "Brave Search",
             "tier": null
           },
-          "receipt_id": "rcpt_8fa9039f92cc486288bad4ca"
+          "receipt_id": "rcpt_4c582a41f19442efa1fd7046"
         },
         "_rhumb_v2": {
           "api_version": "v2-alpha",
@@ -431,11 +563,11 @@
             "rhumb_fee_usd": 0.00024,
             "total_usd": 0.00324
           },
-          "explanation_id": "rexp_bedb522cb15f",
+          "explanation_id": "rexp_d868383f30e9",
           "latency": {
             "provider_ms": null,
             "rhumb_overhead_ms": 0,
-            "total_ms": 5266
+            "total_ms": 5441
           },
           "layer": 1,
           "provider": {
@@ -444,14 +576,14 @@
             "display_name": "Brave Search",
             "id": "brave-search"
           },
-          "receipt_id": "rcpt_8fa9039f92cc486288bad4ca"
+          "receipt_id": "rcpt_4c582a41f19442efa1fd7046"
         },
         "capability_id": "search.query",
         "credential_mode": "rhumb_managed",
-        "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
-        "latency_ms": 512.9,
+        "execution_id": "exec_03909ee6b77d488584d6636b7d84b75e",
+        "latency_ms": 546.7,
         "provider_used": "brave-search",
-        "receipt_id": "rcpt_8fa9039f92cc486288bad4ca",
+        "receipt_id": "rcpt_4c582a41f19442efa1fd7046",
         "upstream_response": {
           "mixed": {
             "main": [
@@ -673,7 +805,7 @@
         "Connection": "close",
         "Content-Length": "8181",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 04:50:46 GMT",
+        "date": "Wed, 08 Apr 2026 21:07:42 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -681,25 +813,25 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200155-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200169-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "8GNe8KvdQAiYQEbcxtoGcA",
+        "x-railway-request-id": "nUHfAEH9Tf6XcecH2prcFg",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775537512",
-        "x-request-id": "f35f169a-79ef-4623-b937-6189062963e5",
+        "x-ratelimit-reset": "1775682529",
+        "x-request-id": "9089dccd-85f6-46e8-b440-a73f666c9c2c",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-cost-usd": "0.003240",
         "x-rhumb-layer": "1",
         "x-rhumb-provider": "brave-search",
-        "x-rhumb-receipt-id": "rcpt_8fa9039f92cc486288bad4ca",
+        "x-rhumb-receipt-id": "rcpt_4c582a41f19442efa1fd7046",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200155-BUR"
+        "x-served-by": "cache-bur-kbur8200169-BUR"
       },
       "request": {
         "capability": "search.query",
         "credential_mode": "rhumb_managed",
-        "idempotency_key": "dogfood-fa19fae16d4e4002a2a4806ec11673d1",
+        "idempotency_key": "dogfood-cd7aec5a90d74acbaec44d21253a9419",
         "interface": "dogfood-keel",
         "parameters": {
           "numResults": 3,
@@ -744,32 +876,32 @@
     "receipt": {
       "agent_id": "20d39264-ee04-4a0e-98cf-fe2acdea28d7",
       "attempt_number": 1,
-      "caller_ip_hash": "sha256:6ab65ffd10199850",
+      "caller_ip_hash": "sha256:4b13ea3ee688fe79",
       "candidates_evaluated": 1,
       "capability_id": "search.query",
       "capability_version": null,
-      "chain_sequence": 394,
+      "chain_sequence": 498,
       "compat_mode": "v1-translate",
-      "created_at": "2026-04-07T04:50:52.103596+00:00",
+      "created_at": "2026-04-08T21:07:48.658691+00:00",
       "credential_mode": "rhumb_managed",
       "credits_deducted": null,
       "error_code": null,
       "error_message": null,
       "error_provider_raw": null,
-      "execution_id": "exec_cbf4655488934fb0aca92068cdf7c58b",
-      "idempotency_key": "dogfood-fa19fae16d4e4002a2a4806ec11673d1",
+      "execution_id": "exec_03909ee6b77d488584d6636b7d84b75e",
+      "idempotency_key": "dogfood-cd7aec5a90d74acbaec44d21253a9419",
       "interface": "dogfood-keel-v2-l1",
       "layer": 1,
       "org_id": "org_aud3_verifier",
-      "previous_receipt_hash": "sha256:1b380cbf8c0e6e6c4fa099c46d13c4aa21f6db9e9868d0441738cec305126ae5",
+      "previous_receipt_hash": "sha256:1238b2238f32d0aff9b8e7ad72dec9a08293ca8073124ec621ba5392379df721",
       "provider_cost_usd": 0.003,
       "provider_id": "brave-search",
       "provider_latency_ms": null,
       "provider_model": null,
       "provider_name": "brave-search",
       "provider_region": null,
-      "receipt_hash": "sha256:72162d83feb8be7d619500e6efebd8406d20fcdab52e605df96f727a6a4c1385",
-      "receipt_id": "rcpt_8fa9039f92cc486288bad4ca",
+      "receipt_hash": "sha256:f09c0cacb3cf2c2cc80267fe6af512f4f39bf83c3a56ccf9ef7574c5f0a867da",
+      "receipt_id": "rcpt_4c582a41f19442efa1fd7046",
       "receipt_version": "1.0",
       "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
       "response_hash": null,
@@ -778,7 +910,7 @@
       "router_version": "2026-03-30",
       "status": "success",
       "total_cost_usd": 0.00324,
-      "total_latency_ms": 5266,
+      "total_latency_ms": 5441,
       "winner_reason": "agent_pinned_layer1",
       "x402_network": null,
       "x402_payer": null,
@@ -804,7 +936,7 @@
         "Connection": "close",
         "Content-Length": "287",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 04:50:34 GMT",
+        "date": "Wed, 08 Apr 2026 21:07:31 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -812,16 +944,16 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200045-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200052-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "hehJUAV-SAO5OvbbLPU1MQ",
+        "x-railway-request-id": "S58GyR2oTwibp5Ur-_9nXA",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775537496",
-        "x-request-id": "fde4f851-ebef-4de4-a240-4506507ec96a",
+        "x-ratelimit-reset": "1775682513",
+        "x-request-id": "e2f55039-a4f7-4b2a-8de2-c2380ebba966",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200045-BUR"
+        "x-served-by": "cache-bur-kbur8200052-BUR"
       }
     },
     "execute": {
@@ -837,7 +969,7 @@
             "name": "brave-search",
             "tier": null
           },
-          "receipt_id": "rcpt_f982bab918ff469eb7eb16f7"
+          "receipt_id": "rcpt_dc41dca5f5934e2daaa1106d"
         },
         "_rhumb_v2": {
           "api_version": "v2-alpha",
@@ -845,7 +977,7 @@
           "budget_summary": null,
           "compat_mode": "v1-translate",
           "estimated_cost_usd": 0.003,
-          "explanation_id": "rexp_2c7cd6a7070e",
+          "explanation_id": "rexp_b714cdd8fe5e",
           "layer": 2,
           "policy_applied": true,
           "policy_candidates": [
@@ -889,7 +1021,7 @@
               "brave-search"
             ]
           },
-          "receipt_id": "rcpt_f982bab918ff469eb7eb16f7",
+          "receipt_id": "rcpt_dc41dca5f5934e2daaa1106d",
           "selected_provider": "brave-search",
           "translated_from": {
             "idempotency_header_used": false,
@@ -902,10 +1034,10 @@
         },
         "capability_id": "search.query",
         "credential_mode": "rhumb_managed",
-        "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
-        "latency_ms": 570.5,
+        "execution_id": "exec_652a1d81998d4401b8f0701d354e385d",
+        "latency_ms": 545.6,
         "provider_used": "brave-search",
-        "receipt_id": "rcpt_f982bab918ff469eb7eb16f7",
+        "receipt_id": "rcpt_dc41dca5f5934e2daaa1106d",
         "upstream_response": {
           "mixed": {
             "main": [
@@ -1127,7 +1259,7 @@
         "Connection": "close",
         "Content-Length": "8530",
         "content-type": "application/json",
-        "date": "Tue, 07 Apr 2026 04:50:36 GMT",
+        "date": "Wed, 08 Apr 2026 21:07:33 GMT",
         "permissions-policy": "camera=(), microphone=(), geolocation=()",
         "referrer-policy": "strict-origin-when-cross-origin",
         "server": "railway-edge",
@@ -1135,19 +1267,19 @@
         "x-cache-hits": "0",
         "x-content-type-options": "nosniff",
         "x-frame-options": "DENY",
-        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200120-BUR",
+        "x-railway-cdn-edge": "fastly/cache-bur-kbur8200024-BUR",
         "x-railway-edge": "railway/us-west2",
-        "x-railway-request-id": "t6T2h33pR-O5Ut1O9I3ezw",
+        "x-railway-request-id": "FyW_yU4kTaeMaSZ82prcFg",
         "x-ratelimit-limit": "120",
         "x-ratelimit-remaining": "119",
-        "x-ratelimit-reset": "1775537503",
-        "x-request-id": "62118c4b-b325-4e34-bc8f-4e50aeac1ac4",
+        "x-ratelimit-reset": "1775682519",
+        "x-request-id": "551cbe18-3199-4358-8ede-c7db762ffdf3",
         "x-rhumb-compat": "v1-translate",
         "x-rhumb-layer": "2",
         "x-rhumb-provider": "brave-search",
-        "x-rhumb-receipt-id": "rcpt_f982bab918ff469eb7eb16f7",
+        "x-rhumb-receipt-id": "rcpt_dc41dca5f5934e2daaa1106d",
         "x-rhumb-version": "2026-03-30",
-        "x-served-by": "cache-bur-kbur8200120-BUR"
+        "x-served-by": "cache-bur-kbur8200024-BUR"
       },
       "request": {
         "credential_mode": "rhumb_managed",
@@ -1483,7 +1615,7 @@
         }
       ],
       "capability_id": "search.query",
-      "explanation_id": "rexp_2c7cd6a7070e",
+      "explanation_id": "rexp_b714cdd8fe5e",
       "human_summary": "brave-search selected over 6 other eligible candidate(s). Strongest factors: availability (0.300), latency (0.150). Strategy: balanced.",
       "layer": 2,
       "policy_active": false,
@@ -1497,32 +1629,32 @@
     "receipt": {
       "agent_id": "unknown",
       "attempt_number": 1,
-      "caller_ip_hash": "sha256:99e68e6fb6f98ae9",
+      "caller_ip_hash": "sha256:4b13ea3ee688fe79",
       "candidates_evaluated": 7,
       "capability_id": "search.query",
       "capability_version": null,
-      "chain_sequence": 393,
+      "chain_sequence": 497,
       "compat_mode": "v1-translate",
-      "created_at": "2026-04-07T04:50:41.986558+00:00",
+      "created_at": "2026-04-08T21:07:38.770932+00:00",
       "credential_mode": "rhumb_managed",
       "credits_deducted": null,
       "error_code": null,
       "error_message": null,
       "error_provider_raw": null,
-      "execution_id": "exec_964f49be92b04454b5f2944f479275f4",
+      "execution_id": "exec_652a1d81998d4401b8f0701d354e385d",
       "idempotency_key": null,
       "interface": "dogfood-keel-v2",
       "layer": 2,
       "org_id": null,
-      "previous_receipt_hash": "sha256:b41b2c278701add05a8bceec393d0ab2919027974205ee02ac27daf0ffa6ba06",
+      "previous_receipt_hash": "sha256:908958254a681097418537bb97973d7f5025f0679123288fb9ced4f480cf8b67",
       "provider_cost_usd": 0.003,
       "provider_id": "brave-search",
       "provider_latency_ms": null,
       "provider_model": null,
       "provider_name": "brave-search",
       "provider_region": null,
-      "receipt_hash": "sha256:1b380cbf8c0e6e6c4fa099c46d13c4aa21f6db9e9868d0441738cec305126ae5",
-      "receipt_id": "rcpt_f982bab918ff469eb7eb16f7",
+      "receipt_hash": "sha256:1238b2238f32d0aff9b8e7ad72dec9a08293ca8073124ec621ba5392379df721",
+      "receipt_id": "rcpt_dc41dca5f5934e2daaa1106d",
       "receipt_version": "1.0",
       "request_hash": "sha256:d607034fe04db967d8b3fb66b9ffcb5830a164ab6732b4dacd260af20fbf1945",
       "response_hash": null,
@@ -1531,7 +1663,7 @@
       "router_version": "2026-03-30",
       "status": "success",
       "total_cost_usd": null,
-      "total_latency_ms": 570.5,
+      "total_latency_ms": 545.6,
       "winner_reason": "policy_preference_match",
       "x402_network": null,
       "x402_payer": null,
@@ -1576,8 +1708,8 @@
     "total_checked": 20,
     "verified": 20
   },
-  "started_at": 1775537432,
-  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_964f49be92b04454b5f2944f479275f4 receipt=rcpt_f982bab918ff469eb7eb16f7; L1 provider=brave-search exec=exec_cbf4655488934fb0aca92068cdf7c58b receipt=rcpt_8fa9039f92cc486288bad4ca; billing_events=4; audit_events=2",
+  "started_at": 1775682449,
+  "summary": "Resolve v2 dogfood complete; L2 search.query via brave-search exec=exec_652a1d81998d4401b8f0701d354e385d receipt=rcpt_dc41dca5f5934e2daaa1106d; L1 provider=brave-search exec=exec_03909ee6b77d488584d6636b7d84b75e receipt=rcpt_4c582a41f19442efa1fd7046; billing_events=8; audit_events=4",
   "trust": {
     "providers": {
       "data": {
@@ -1586,10 +1718,10 @@
         "providers": [
           {
             "an_score": 7.1,
-            "execution_count": 4,
+            "execution_count": 8,
             "failure_count": 0,
             "provider_slug": "brave-search",
-            "success_count": 4,
+            "success_count": 8,
             "success_rate_pct": 100.0,
             "tier": "L3",
             "total_charged_usd": 0.0,
@@ -1606,8 +1738,8 @@
         "org_id": "org_aud3_verifier",
         "period": "all",
         "success_rate_pct": 100.0,
-        "successful_executions": 4,
-        "total_executions": 4,
+        "successful_executions": 8,
+        "total_executions": 8,
         "total_spend_usd": 0.0,
         "total_spend_usd_cents": 0,
         "trust_posture": {
