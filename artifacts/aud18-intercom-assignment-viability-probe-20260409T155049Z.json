@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-04-09T15:50:49.370320+00:00",
+  "workspace_probe": {
+    "region": "us",
+    "conversation_id": "215473840934085",
+    "actor_admin_id": "10336371"
+  },
+  "before": {
+    "status": 200,
+    "conversation": {
+      "conversation_id": "215473840934085",
+      "state": "open",
+      "open": true,
+      "read": false,
+      "admin_assignee_id": null,
+      "team_assignee_id": null,
+      "part_count": 1,
+      "source_part_type": null
+    }
+  },
+  "assignment_attempt": {
+    "status": 403,
+    "response_type": "error.list",
+    "conversation_id": null,
+    "message_type": null,
+    "assigned_to": null,
+    "error_type": "error.list",
+    "message": null,
+    "errors": [
+      {
+        "code": "action_forbidden",
+        "message": "This admin does not have Inbox access permissions"
+      }
+    ]
+  },
+  "after": {
+    "status": 200,
+    "conversation": {
+      "conversation_id": "215473840934085",
+      "state": "open",
+      "open": true,
+      "read": false,
+      "admin_assignee_id": null,
+      "team_assignee_id": null,
+      "part_count": 1,
+      "source_part_type": null
+    }
+  }
+}

@@ -26,6 +26,7 @@ def test_resolve_support_bundle_intercom(monkeypatch: pytest.MonkeyPatch) -> Non
                 "bearer_token": "secret-token",
                 "allowed_team_ids": [123],
                 "allowed_admin_ids": [456],
+                "allowed_conversation_ids": ["conv_1"],
                 "allow_internal_notes": False,
             }
         ),
@@ -36,6 +37,7 @@ def test_resolve_support_bundle_intercom(monkeypatch: pytest.MonkeyPatch) -> Non
     assert bundle.region == "us"
     assert bundle.allowed_team_ids == (123,)
     assert bundle.allowed_admin_ids == (456,)
+    assert bundle.allowed_conversation_ids == ("conv_1",)
     assert bundle.allow_internal_notes is False
 
     direct_bundle = resolve_intercom_support_bundle("sup_chat")
@@ -70,14 +72,43 @@ def test_conversation_in_scope_requires_all_constraints(monkeypatch: pytest.Monk
                 "bearer_token": "secret-token",
                 "allowed_team_ids": [123],
                 "allowed_admin_ids": [456],
+                "allowed_conversation_ids": ["conv_1"],
             }
         ),
     )
 
     bundle = resolve_intercom_support_bundle("sup_chat")
     assert conversation_in_scope(bundle, {"id": "conv_1", "team_assignee_id": 123, "admin_assignee_id": 456}) is True
+    assert conversation_in_scope(bundle, {"id": "conv_2", "team_assignee_id": 123, "admin_assignee_id": 456}) is False
     assert conversation_in_scope(bundle, {"id": "conv_1", "team_assignee_id": 999, "admin_assignee_id": 456}) is False
     assert conversation_in_scope(bundle, {"id": "conv_1", "team_assignee_id": 123, "admin_assignee_id": 999}) is False
+
+
+def test_conversation_in_scope_allows_exact_conversation_scope_without_assignment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_SUPPORT_SUP_CHAT",
+        json.dumps(
+            {
+                "provider": "intercom",
+                "region": "us",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret-token",
+                "allowed_conversation_ids": ["215473840934085"],
+            }
+        ),
+    )
+
+    bundle = resolve_intercom_support_bundle("sup_chat")
+    assert conversation_in_scope(
+        bundle,
+        {"id": "215473840934085", "team_assignee_id": None, "admin_assignee_id": None},
+    ) is True
+    assert conversation_in_scope(
+        bundle,
+        {"id": "215473840934086", "team_assignee_id": None, "admin_assignee_id": None},
+    ) is False
 
 
 def test_ensure_conversation_access_rejects_out_of_scope_conversation(monkeypatch: pytest.MonkeyPatch) -> None:

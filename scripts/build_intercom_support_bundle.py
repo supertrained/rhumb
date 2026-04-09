@@ -65,6 +65,16 @@ def _parse_id_list(values: list[str] | None) -> list[int]:
     return parsed
 
 
+def _parse_string_id_list(values: list[str] | None) -> list[str]:
+    parsed: list[str] = []
+    for value in values or []:
+        normalized = value.strip()
+        if not normalized:
+            continue
+        parsed.append(normalized)
+    return parsed
+
+
 def _parse_id_value(value: object) -> list[int]:
     if value is None or value == "":
         return []
@@ -77,6 +87,21 @@ def _parse_id_value(value: object) -> list[int]:
         return parsed
     parts = re.split(r"[\s,]+", str(value).strip())
     return [int(part) for part in parts if part]
+
+
+def _parse_string_id_value(value: object) -> list[str]:
+    if value is None or value == "":
+        return []
+    if isinstance(value, list):
+        parsed: list[str] = []
+        for item in value:
+            parsed.extend(_parse_string_id_value(item))
+        return parsed
+    text = str(value).strip()
+    if not text:
+        return []
+    parts = re.split(r"[\s,]+", text)
+    return [part for part in parts if part]
 
 
 def _parse_bool(value: object) -> bool | None:
@@ -149,6 +174,17 @@ def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
             ),
         )
     )
+    allowed_conversation_ids = _parse_string_id_value(
+        _first_value(
+            values,
+            (
+                "allowed_conversation_ids",
+                "allowed_conversation_id",
+                "conversation_ids",
+                "conversation_id",
+            ),
+        )
+    )
     allow_internal_notes = _parse_bool(
         _first_value(
             values,
@@ -165,6 +201,8 @@ def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
         defaults["allowed_team_ids"] = allowed_team_ids
     if allowed_admin_ids:
         defaults["allowed_admin_ids"] = allowed_admin_ids
+    if allowed_conversation_ids:
+        defaults["allowed_conversation_ids"] = allowed_conversation_ids
     if allow_internal_notes is not None:
         defaults["allow_internal_notes"] = allow_internal_notes
     return defaults
@@ -210,8 +248,15 @@ def _build_bundle(args: argparse.Namespace, *, sourced: dict[str, Any] | None = 
     allowed_admin_ids = _parse_id_list(args.allowed_admin_id) if args.allowed_admin_id else list(
         sourced.get("allowed_admin_ids") or []
     )
-    if not allowed_team_ids and not allowed_admin_ids:
-        raise ValueError("At least one --allowed-team-id or --allowed-admin-id is required")
+    allowed_conversation_ids = (
+        _parse_string_id_list(args.allowed_conversation_id)
+        if args.allowed_conversation_id
+        else list(sourced.get("allowed_conversation_ids") or [])
+    )
+    if not allowed_team_ids and not allowed_admin_ids and not allowed_conversation_ids:
+        raise ValueError(
+            "At least one --allowed-team-id, --allowed-admin-id, or --allowed-conversation-id is required"
+        )
 
     allow_internal_notes = bool(args.allow_internal_notes)
     if not args.allow_internal_notes and sourced.get("allow_internal_notes") is True:
@@ -224,6 +269,7 @@ def _build_bundle(args: argparse.Namespace, *, sourced: dict[str, Any] | None = 
         "bearer_token": bearer_token,
         "allowed_team_ids": allowed_team_ids,
         "allowed_admin_ids": allowed_admin_ids,
+        "allowed_conversation_ids": allowed_conversation_ids,
         "allow_internal_notes": allow_internal_notes,
     }
 
@@ -245,6 +291,7 @@ def _validate_bundle(ref: str, bundle: dict[str, object]) -> dict[str, object]:
         "region": resolved.region,
         "allowed_team_ids": list(resolved.allowed_team_ids),
         "allowed_admin_ids": list(resolved.allowed_admin_ids),
+        "allowed_conversation_ids": list(resolved.allowed_conversation_ids),
         "allow_internal_notes": resolved.allow_internal_notes,
     }
 
@@ -258,6 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--vault", default=DEFAULT_VAULT)
     parser.add_argument("--allowed-team-id", action="append")
     parser.add_argument("--allowed-admin-id", action="append")
+    parser.add_argument("--allowed-conversation-id", action="append")
     parser.add_argument("--allow-internal-notes", action="store_true")
     parser.add_argument("--format", choices=["json", "export", "railway"], default="json")
     return parser

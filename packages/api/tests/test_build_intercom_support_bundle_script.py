@@ -21,6 +21,7 @@ def test_extract_sop_defaults_reads_region_token_and_scope_fields() -> None:
                 {"label": "credential", "value": "intercom-secret"},
                 {"label": "allowed_team_ids", "value": "123, 456"},
                 {"label": "allowed_admin_id", "value": [77, "88"]},
+                {"label": "allowed_conversation_ids", "value": ["conv_1", 215473840934085]},
                 {"label": "allow_internal_notes", "value": "true"},
             ]
         }
@@ -31,6 +32,7 @@ def test_extract_sop_defaults_reads_region_token_and_scope_fields() -> None:
         "bearer_token": "intercom-secret",
         "allowed_team_ids": [123, 456],
         "allowed_admin_ids": [77, 88],
+        "allowed_conversation_ids": ["conv_1", "215473840934085"],
         "allow_internal_notes": True,
     }
 
@@ -56,6 +58,7 @@ def test_build_bundle_prefers_cli_overrides_over_item_defaults() -> None:
             "bearer_token": "sourced-token",
             "allowed_team_ids": [123],
             "allowed_admin_ids": [77],
+            "allowed_conversation_ids": ["conv_1"],
             "allow_internal_notes": True,
         },
     )
@@ -67,7 +70,36 @@ def test_build_bundle_prefers_cli_overrides_over_item_defaults() -> None:
         "bearer_token": "override-token",
         "allowed_team_ids": [999],
         "allowed_admin_ids": [77],
+        "allowed_conversation_ids": ["conv_1"],
         "allow_internal_notes": True,
+    }
+
+
+def test_build_bundle_allows_conversation_only_scope() -> None:
+    args = build_intercom_support_bundle.build_parser().parse_args(
+        [
+            "--support-ref",
+            "st_ic",
+            "--region",
+            "us",
+            "--bearer-token",
+            "secret-token",
+            "--allowed-conversation-id",
+            "215473840934085",
+        ]
+    )
+
+    bundle = build_intercom_support_bundle._build_bundle(args, sourced={})
+
+    assert bundle == {
+        "provider": "intercom",
+        "region": "us",
+        "auth_mode": "bearer_token",
+        "bearer_token": "secret-token",
+        "allowed_team_ids": [],
+        "allowed_admin_ids": [],
+        "allowed_conversation_ids": ["215473840934085"],
+        "allow_internal_notes": False,
     }
 
 

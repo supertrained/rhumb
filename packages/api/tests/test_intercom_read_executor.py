@@ -54,6 +54,7 @@ def _bundle(**overrides) -> IntercomSupportBundle:
         "bearer_token": "token-123",
         "allowed_team_ids": (12,),
         "allowed_admin_ids": (),
+        "allowed_conversation_ids": (),
         "allow_internal_notes": False,
     }
     data.update(overrides)
@@ -114,6 +115,30 @@ async def test_get_conversation_rejects_out_of_scope() -> None:
 
     assert exc.value.code == "support_conversation_scope_denied"
     assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_allows_exact_conversation_scope_when_unassigned() -> None:
+    request = ConversationGetRequest(support_ref="sup_chat", conversation_id="215473840934085")
+    bundle = _bundle(allowed_team_ids=(), allowed_conversation_ids=("215473840934085",))
+    client_factory = lambda **kwargs: MockAsyncClient(
+        responses={
+            "/conversations/215473840934085": MockResponse(
+                200,
+                {
+                    "id": "215473840934085",
+                    "team_assignee_id": None,
+                    "admin_assignee_id": None,
+                    "source": {"subject": "Allowed"},
+                },
+            )
+        }
+    )
+
+    response = await get_conversation(request, bundle=bundle, client_factory=client_factory)
+
+    assert response.conversation_id == "215473840934085"
+    assert response.title == "Allowed"
 
 
 @pytest.mark.asyncio

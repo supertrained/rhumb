@@ -39,6 +39,7 @@ class IntercomSupportBundle:
     bearer_token: str
     allowed_team_ids: tuple[int, ...]
     allowed_admin_ids: tuple[int, ...]
+    allowed_conversation_ids: tuple[str, ...]
     allow_internal_notes: bool
 
 
@@ -164,6 +165,7 @@ def ensure_internal_comments_allowed(
 def conversation_in_scope(bundle: IntercomSupportBundle, conversation: dict[str, Any]) -> bool:
     return conversation_is_allowed(
         bundle,
+        conversation_id=conversation.get("id"),
         team_assignee_id=_conversation_team_assignee_id(conversation),
         admin_assignee_id=_conversation_admin_assignee_id(conversation),
     )
@@ -172,9 +174,13 @@ def conversation_in_scope(bundle: IntercomSupportBundle, conversation: dict[str,
 def conversation_is_allowed(
     bundle: IntercomSupportBundle,
     *,
+    conversation_id: str | int | None,
     team_assignee_id: int | None,
     admin_assignee_id: int | None,
 ) -> bool:
+    normalized_conversation_id = _string_id_value(conversation_id)
+    if bundle.allowed_conversation_ids and normalized_conversation_id not in bundle.allowed_conversation_ids:
+        return False
     if bundle.allowed_team_ids and team_assignee_id not in bundle.allowed_team_ids:
         return False
     if bundle.allowed_admin_ids and admin_assignee_id not in bundle.allowed_admin_ids:
@@ -200,6 +206,7 @@ def ensure_conversation_access(
 
     if conversation_is_allowed(
         bundle,
+        conversation_id=conversation_id,
         team_assignee_id=resolved_team_id,
         admin_assignee_id=resolved_admin_id,
     ):
@@ -344,9 +351,15 @@ def _parse_intercom_bundle(
         env_key=env_key,
         field_name="allowed_admin_ids",
     )
-    if not allowed_team_ids and not allowed_admin_ids:
+    allowed_conversation_ids = _normalize_string_id_list(
+        payload.get("allowed_conversation_ids"),
+        support_ref=support_ref,
+        env_key=env_key,
+        field_name="allowed_conversation_ids",
+    )
+    if not allowed_team_ids and not allowed_admin_ids and not allowed_conversation_ids:
         raise SupportRefError(
-            f"support_ref '{support_ref}' is configured via env '{env_key}' but must declare at least one scope constraint via allowed_team_ids or allowed_admin_ids"
+            f"support_ref '{support_ref}' is configured via env '{env_key}' but must declare at least one scope constraint via allowed_team_ids, allowed_admin_ids, or allowed_conversation_ids"
         )
 
     allow_internal_notes = payload.get("allow_internal_notes", False)
@@ -363,6 +376,7 @@ def _parse_intercom_bundle(
         bearer_token=bearer_token,
         allowed_team_ids=allowed_team_ids,
         allowed_admin_ids=allowed_admin_ids,
+        allowed_conversation_ids=allowed_conversation_ids,
         allow_internal_notes=allow_internal_notes,
     )
 
@@ -406,6 +420,31 @@ def _normalize_id_list(
     return tuple(normalized)
 
 
+def _normalize_string_id_list(
+    values: object,
+    *,
+    support_ref: str,
+    env_key: str,
+    field_name: str,
+) -> tuple[str, ...]:
+    if values is None:
+        return ()
+    if not isinstance(values, list):
+        raise SupportRefError(
+            f"support_ref '{support_ref}' is configured via env '{env_key}' but field '{field_name}' must be a list"
+        )
+
+    normalized: list[str] = []
+    for value in values:
+        string_id = _string_id_value(value)
+        if string_id is None:
+            raise SupportRefError(
+                f"support_ref '{support_ref}' is configured via env '{env_key}' but field '{field_name}' contains an invalid id"
+            )
+        normalized.append(string_id)
+    return tuple(normalized)
+
+
 def _conversation_admin_assignee_id(conversation: dict[str, Any]) -> int | None:
     for key in ("admin_assignee_id", "assignee_id"):
         value = _id_value(conversation.get(key))
@@ -442,3 +481,10 @@ def _id_value(value: object) -> int | None:
         return int(value)
     except Exception:
         return None
+
+
+def _string_id_value(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
