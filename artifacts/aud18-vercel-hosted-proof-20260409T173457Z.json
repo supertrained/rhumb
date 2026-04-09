@@ -1,0 +1,191 @@
+{
+  "ok": true,
+  "generated_at": "2026-04-09T17:34:57.256769+00:00",
+  "base_url": "https://api.rhumb.dev",
+  "deployment_ref": "dep_rhumb",
+  "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+  "deployment_id": "dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63",
+  "denied_deployment_id": "dpl_3evXfwPoNSewbLVThSTGhdPg92pV",
+  "allowed_target": "production",
+  "denied_target": "preview",
+  "api_key_hint": "rhumb_5d...5256",
+  "results": [
+    {
+      "check": "deployment_list",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "vercel",
+          "credential_mode": "byok",
+          "capability_id": "deployment.list",
+          "receipt_id": "rcpt_f4f3ff225a1b4c6ebcadd885",
+          "execution_id": "exec_615fac5237d54935b73fd459734b3d57",
+          "deployment_ref": "dep_rhumb",
+          "deployments": [
+            {
+              "deployment_id": "dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63",
+              "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+              "project_name": "rhumb",
+              "target": "production",
+              "state": "ready",
+              "url": "https://rhumb-fb9nda85a-team-supertraineds-projects.vercel.app",
+              "created_at": 1775753886307,
+              "ready_at": 1775753926924,
+              "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+              "creator_username": "team-3607",
+              "aliases": []
+            },
+            {
+              "deployment_id": "dpl_9vCeRVx2sKrneMB2ngsQXK7dzzfx",
+              "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+              "project_name": "rhumb",
+              "target": "production",
+              "state": "ready",
+              "url": "https://rhumb-kfy4a8njs-team-supertraineds-projects.vercel.app",
+              "created_at": 1775751103527,
+              "ready_at": 1775751147876,
+              "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+              "creator_username": "team-3607",
+              "aliases": []
+            },
+            {
+              "deployment_id": "dpl_6ejjA8DMM6fmGJXWYvQHqtZ7rnJx",
+              "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+              "project_name": "rhumb",
+              "target": "production",
+              "state": "ready",
+              "url": "https://rhumb-9ah40fno6-team-supertraineds-projects.vercel.app",
+              "created_at": 1775750414684,
+              "ready_at": 1775750461850,
+              "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+              "creator_username": "team-3607",
+              "aliases": []
+            },
+            {
+              "deployment_id": "dpl_aRgJKFte7DnAxbTFfmtHnN5H12V9",
+              "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+              "project_name": "rhumb",
+              "target": "production",
+              "state": "ready",
+              "url": "https://rhumb-gdi4ay141-team-supertraineds-projects.vercel.app",
+              "created_at": 1775746278483,
+              "ready_at": 1775746321342,
+              "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+              "creator_username": "team-3607",
+              "aliases": []
+            },
+            {
+              "deployment_id": "dpl_GDxwwrhWynxUXfmbrvXJSohQVPJG",
+              "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+              "project_name": "rhumb",
+              "target": "production",
+              "state": "ready",
+              "url": "https://rhumb-5yk6lwds8-team-supertraineds-projects.vercel.app",
+              "created_at": 1775746115677,
+              "ready_at": 1775746158432,
+              "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+              "creator_username": "team-3607",
+              "aliases": []
+            }
+          ],
+          "deployment_count_returned": 5,
+          "has_more": true,
+          "next_page_after": 1775746115677
+        },
+        "summary": "Listed 5 Vercel deployments for scoped projects via deployment_ref dep_rhumb",
+        "error": null
+      },
+      "receipt_id": "rcpt_f4f3ff225a1b4c6ebcadd885",
+      "receipt_status": 404
+    },
+    {
+      "check": "deployment_get",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "vercel",
+          "credential_mode": "byok",
+          "capability_id": "deployment.get",
+          "receipt_id": "rcpt_8cfa57dad5674484bf9e94e9",
+          "execution_id": "exec_877048f0e5aa46a99d7d7140b134f69e",
+          "deployment_ref": "dep_rhumb",
+          "deployment_id": "dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63",
+          "project_id": "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf",
+          "project_name": "rhumb",
+          "target": "production",
+          "state": "ready",
+          "url": "https://rhumb-fb9nda85a-team-supertraineds-projects.vercel.app",
+          "created_at": 1775753886307,
+          "ready_at": 1775753926924,
+          "creator_id": "iauiYFw1iZEzYP9rB1Z08F4b",
+          "creator_username": "team-3607",
+          "aliases": [
+            "rhumb.dev",
+            "rhumb-orcin.vercel.app",
+            "rhumb-team-supertraineds-projects.vercel.app",
+            "rhumb-git-main-team-supertraineds-projects.vercel.app",
+            "www.rhumb.dev"
+          ],
+          "error_code": null,
+          "error_message": null
+        },
+        "summary": "Fetched Vercel deployment dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63 for rhumb via deployment_ref dep_rhumb",
+        "error": null
+      },
+      "receipt_id": "rcpt_8cfa57dad5674484bf9e94e9",
+      "receipt_status": 404
+    },
+    {
+      "check": "bad_deployment_ref_denial",
+      "ok": true,
+      "status": 400,
+      "error": "deployment_ref_invalid",
+      "payload_check": null,
+      "payload": {
+        "error": "deployment_ref_invalid",
+        "message": "No deployment bundle configured for deployment_ref 'dep_missing' (expected env var RHUMB_DEPLOYMENT_DEP_MISSING)",
+        "capability_id": "deployment.list",
+        "execution_id": "exec_7053d0b50b3b4eb683d36ec40fc3e511",
+        "request_id": "8683d8bc-ad30-4f39-a524-c824f55953ec",
+        "deployment_ref": "dep_missing"
+      }
+    },
+    {
+      "check": "out_of_scope_deployment_denial",
+      "ok": true,
+      "status": 403,
+      "error": "deployment_scope_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "deployment_scope_denied",
+        "message": "deployment_ref 'dep_rhumb' is not allowed to access deployment 'dpl_3evXfwPoNSewbLVThSTGhdPg92pV'",
+        "capability_id": "deployment.get",
+        "execution_id": "exec_4dbcd8b986044d1bab720d3139f695a1",
+        "request_id": "ac6d2681-714a-49f2-a384-3015dc8d66f2",
+        "deployment_ref": "dep_rhumb",
+        "deployment_id": "dpl_3evXfwPoNSewbLVThSTGhdPg92pV"
+      }
+    },
+    {
+      "check": "out_of_scope_target_denial",
+      "ok": true,
+      "status": 403,
+      "error": "deployment_target_scope_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "deployment_target_scope_denied",
+        "message": "deployment_ref 'dep_rhumb' is not allowed to access target 'preview'",
+        "capability_id": "deployment.list",
+        "execution_id": "exec_5647ec3908fd43589ae6873b694478ca",
+        "request_id": "538b8c00-7723-4823-b73c-64a9f1df49a5",
+        "deployment_ref": "dep_rhumb"
+      }
+    }
+  ]
+}
