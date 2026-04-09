@@ -3,6 +3,8 @@
 **Last updated:** 2026-04-07
 **Owner:** Pedro
 
+> **Scope note (2026-04-09):** This runbook intentionally exercises the `/v2` Resolve compatibility surface. It is not the public route-authority doc. For current public integration defaults, use `docs/API.md` plus `agent-capabilities.json`.
+
 ## Purpose
 
 Prove that the shipped Resolve v2 surface is still coherent under a real operator key.

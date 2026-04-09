@@ -6,6 +6,8 @@
 **Status:** v1.0 — Authoritative  
 **Date:** 2026-03-30
 
+> **Historical route-authority note (2026-04-09):** This panel document records the founding Resolve v2 architecture proposal. It is **not** the live route authority. Today, `agent-capabilities.json` publishes `https://api.rhumb.dev/v1` as the default public `api_base`, while `packages/api/app.py` still mounts specific Resolve route families under `/v2`. Use `docs/API.md` plus `agent-capabilities.json` for current integration defaults.
+
 ---
 
 ## Executive Summary

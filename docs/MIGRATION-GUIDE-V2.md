@@ -1,8 +1,10 @@
 # Rhumb Resolve v2 Migration Guide
 
+> **Status note (2026-04-09):** This document captures the Resolve v2 rollout plan and route family. It is **not** the current single source of truth for public integration defaults. The machine-readable public contract currently publishes `https://api.rhumb.dev/v1` as `api_base` in `agent-capabilities.json`, while `packages/api/app.py` still mounts specific Resolve surfaces under `/v2`. For live integration guidance, start with `docs/API.md` and `agent-capabilities.json`, then use this guide as historical rollout context.
+
 ## Overview
 
-Rhumb v2 (Resolve) adds three execution layers, deterministic recipes, and comprehensive observability infrastructure. **v1 is fully backward compatible** — nothing breaks. This guide explains what's new and how to adopt v2 features.
+Rhumb v2 (Resolve) adds three execution layers, deterministic recipes, and comprehensive observability infrastructure. **v1 is fully backward compatible** — nothing breaks. This guide explains the v2 rollout design and how those features were intended to layer onto the existing product surface.
 
 ## What's NOT changing
 
@@ -183,11 +185,11 @@ All 6 discovery tools and all 5 financial tools work identically.
 
 No configuration changes needed. No breaking API changes.
 
-## API version endpoints
+## Current route authority
 
-| Version | Base | Status |
-|---------|------|--------|
-| v1 | `https://api.rhumb.dev/v1` | Fully supported forever |
-| v2 | `https://api.rhumb.dev/v2` | New — all v2 features |
+| Surface | Base | Current truth |
+|---------|------|---------------|
+| Public machine-readable contract | `https://api.rhumb.dev/v1` | Start here for current public integration defaults (`agent-capabilities.json`) |
+| Resolve v2 compatibility / internal route family | `https://api.rhumb.dev/v2` | Still live for specific Resolve surfaces such as providers, recipes, receipts, trust, billing, and audit routes mounted in `packages/api/app.py` |
 
-v1 endpoints are not deprecated. They will never be removed (spec decision D3).
+Do not assume the live product moved wholesale from `/v1` to `/v2`. The current surface is mixed, and `docs/API.md` plus `agent-capabilities.json` remain the safest route-authority references.

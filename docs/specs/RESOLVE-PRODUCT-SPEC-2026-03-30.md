@@ -6,6 +6,8 @@
 **Status:** AUTHORITATIVE — Engineering-grade founding document  
 **Classification:** Internal — Pre-launch
 
+> **Historical route-authority note (2026-04-09):** This founding spec captures the 2026-03-30 Resolve v2 target architecture. It is **not** the live route authority. The current machine-readable public contract publishes `https://api.rhumb.dev/v1` as the default `api_base` in `agent-capabilities.json`, while `packages/api/app.py` still mounts a mixed live surface with specific Resolve families under `/v2`. Use `docs/API.md` plus `agent-capabilities.json` for current integration truth, and read this document as design history plus architecture intent.
+
 ---
 
 ## Executive Summary
