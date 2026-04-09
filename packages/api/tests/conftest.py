@@ -3,6 +3,7 @@
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Generator
 from unittest.mock import AsyncMock, patch
@@ -17,6 +18,7 @@ ADMIN_TEST_SECRET = "rhumb_test_admin_secret_0000"
 os.environ.setdefault("RHUMB_ADMIN_SECRET", ADMIN_TEST_SECRET)
 
 from app import app
+from middleware import rate_limit as rate_limit_middleware
 from middleware.rate_limit import RateLimitMiddleware
 
 
@@ -32,6 +34,16 @@ def _disable_durable_rate_limit(monkeypatch):
         return None
 
     monkeypatch.setattr(RateLimitMiddleware, "_get_durable", _no_durable)
+
+
+@pytest.fixture(autouse=True)
+def _reset_http_rate_limit_buckets():
+    """Keep the in-memory HTTP limiter from leaking counters across tests/files."""
+    rate_limit_middleware._buckets.clear()
+    rate_limit_middleware._last_cleanup = time.monotonic()
+    yield
+    rate_limit_middleware._buckets.clear()
+    rate_limit_middleware._last_cleanup = time.monotonic()
 
 
 # ── Bypass auth constants (shared across all proxy test files) ───────────────
