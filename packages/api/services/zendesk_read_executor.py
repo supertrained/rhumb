@@ -22,6 +22,7 @@ from schemas.support_capabilities import (
     normalize_custom_field_value,
 )
 from services.support_connection_registry import (
+    SupportRefError,
     ZendeskSupportBundle,
     ensure_internal_comments_allowed,
     ensure_ticket_access,
@@ -145,7 +146,15 @@ async def list_comments(
     receipt_id: str = "pending",
     execution_id: str = "pending",
 ) -> TicketListCommentsResponse:
-    ensure_internal_comments_allowed(bundle, include_internal=request.include_internal)
+    try:
+        ensure_internal_comments_allowed(bundle, include_internal=request.include_internal)
+    except SupportRefError as exc:
+        raise ZendeskExecutorError(
+            code="support_internal_comments_denied",
+            message=str(exc),
+            status_code=403,
+        ) from exc
+
     await _fetch_ticket(
         bundle,
         ticket_id=request.ticket_id,
@@ -221,12 +230,19 @@ async def _fetch_ticket(
             message="Zendesk ticket response was missing ticket payload",
             status_code=503,
         )
-    ensure_ticket_access(
-        bundle,
-        ticket_id=ticket_id,
-        group_id=_as_int(ticket.get("group_id")),
-        brand_id=_as_int(ticket.get("brand_id")),
-    )
+    try:
+        ensure_ticket_access(
+            bundle,
+            ticket_id=ticket_id,
+            group_id=_as_int(ticket.get("group_id")),
+            brand_id=_as_int(ticket.get("brand_id")),
+        )
+    except SupportRefError as exc:
+        raise ZendeskExecutorError(
+            code="support_ticket_scope_denied",
+            message=str(exc),
+            status_code=403,
+        ) from exc
     return ticket
 
 
@@ -371,7 +387,7 @@ def _ticket_allowed(bundle: ZendeskSupportBundle, ticket: dict[str, Any]) -> boo
             brand_id=_as_int(ticket.get("brand_id")),
         )
         return True
-    except Exception:
+    except SupportRefError:
         return False
 
 

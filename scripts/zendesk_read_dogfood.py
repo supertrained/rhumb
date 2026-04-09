@@ -33,7 +33,7 @@ DEFAULT_API_KEY_ITEM = "Rhumb API Key - pedro-dogfood"
 DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_SUPPORT_REF = "st_zd"
 DEFAULT_BAD_SUPPORT_REF = "st_missing"
-DEFAULT_SEARCH_QUERY = "sort_by:created_at order_by:desc"
+DEFAULT_SEARCH_QUERY = "status:open"
 DEFAULT_TIMEOUT = 60.0
 
 

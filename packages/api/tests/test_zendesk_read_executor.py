@@ -101,8 +101,11 @@ async def test_get_ticket_rejects_out_of_scope() -> None:
         }
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(ZendeskExecutorError) as exc:
         await get_ticket(request, bundle=bundle, client_factory=client_factory)
+
+    assert exc.value.code == "support_ticket_scope_denied"
+    assert exc.value.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -140,8 +143,11 @@ async def test_list_comments_rejects_internal_when_bundle_disallows() -> None:
     )
     bundle = _bundle(allow_internal_comments=False)
 
-    with pytest.raises(Exception):
+    with pytest.raises(ZendeskExecutorError) as exc:
         await list_comments(request, bundle=bundle, client_factory=lambda **kwargs: MockAsyncClient(responses={}))
+
+    assert exc.value.code == "support_internal_comments_denied"
+    assert exc.value.status_code == 403
 
 
 @pytest.mark.asyncio
