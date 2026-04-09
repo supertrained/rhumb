@@ -76,6 +76,7 @@ PROVIDERS: dict[str, ProviderConfig] = {
         ),
         browser_like_terms=("intercom",),
         generic_public_hosts=("app.intercom.com", "www.intercom.com", "intercom.com"),
+        hosted_capability_id="conversation.list",
     ),
 }
 
