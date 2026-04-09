@@ -1243,12 +1243,14 @@ async def execute_capability(
 
     # ── AUD-18: direct capability early dispatch ───────────────────
     # DB, storage, support, and deployment capabilities bypass the proxy layer entirely.
+    from routes.actions_execute import is_actions_capability, handle_actions_execute
     from routes.db_execute import is_db_capability, handle_db_execute
     from routes.deployment_execute import is_deployment_capability, handle_deployment_execute
     from routes.storage_execute import is_storage_capability, handle_storage_execute
     from routes.support_execute import is_support_capability, handle_support_execute
     if (
-        is_db_capability(capability_id)
+        is_actions_capability(capability_id)
+        or is_db_capability(capability_id)
         or is_deployment_capability(capability_id)
         or is_storage_capability(capability_id)
         or is_support_capability(capability_id)
@@ -1256,7 +1258,9 @@ async def execute_capability(
         execution_id = f"exec_{uuid.uuid4().hex}"
         request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
         if not x_rhumb_key:
-            if is_db_capability(capability_id):
+            if is_actions_capability(capability_id):
+                detail = "X-Rhumb-Key header required for GitHub Actions capability execution"
+            elif is_db_capability(capability_id):
                 detail = "X-Rhumb-Key header required for database capability execution"
             elif is_deployment_capability(capability_id):
                 detail = "X-Rhumb-Key header required for deployment capability execution"
@@ -1268,6 +1272,15 @@ async def execute_capability(
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        if is_actions_capability(capability_id):
+            return await handle_actions_execute(
+                capability_id=capability_id,
+                raw_request=raw_request,
+                agent_id=agent.agent_id,
+                org_id=agent.organization_id,
+                execution_id=execution_id,
+                request_id=request_id,
+            )
         if is_db_capability(capability_id):
             return await handle_db_execute(
                 capability_id=capability_id,

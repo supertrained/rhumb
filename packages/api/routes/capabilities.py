@@ -13,6 +13,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch
+from services.actions_connection_registry import has_any_actions_bundle_configured
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
@@ -46,6 +47,10 @@ _DEPLOYMENT_DIRECT_PROVIDER_SLUG = "vercel"
 _DEPLOYMENT_DIRECT_PROVIDER_NAME = "Vercel"
 _DEPLOYMENT_DIRECT_PROVIDER_CATEGORY = "deployment"
 _DEPLOYMENT_DIRECT_CREDENTIAL_MODES = ["byok"]
+_ACTIONS_DIRECT_PROVIDER_SLUG = "github"
+_ACTIONS_DIRECT_PROVIDER_NAME = "GitHub"
+_ACTIONS_DIRECT_PROVIDER_CATEGORY = "automation"
+_ACTIONS_DIRECT_CREDENTIAL_MODES = ["byok"]
 _ZENDESK_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
 _ZENDESK_SUPPORT_DIRECT_PROVIDER_NAME = "Zendesk"
 _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG = "intercom"
@@ -92,6 +97,13 @@ def _is_support_direct_capability(capability_id: str) -> bool:
         "conversation.list",
         "conversation.get",
         "conversation.list_parts",
+    }
+
+
+def _is_actions_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "workflow_run.list",
+        "workflow_run.get",
     }
 
 
@@ -151,6 +163,14 @@ def _deployment_direct_top_provider() -> dict[str, str | None]:
     }
 
 
+def _actions_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _ACTIONS_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
     hosted_posture_suffix = (
         " Hosted Rhumb should use agent_vault; env-backed connection_ref setup is "
@@ -160,6 +180,29 @@ def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
         "db.query.read": "Direct read-only PostgreSQL query execution via connection_ref with classifier, timeout, and result caps." + hosted_posture_suffix,
         "db.schema.describe": "Direct PostgreSQL schema inspection via connection_ref with bounded schema, table, and column scope." + hosted_posture_suffix,
         "db.row.get": "Direct PostgreSQL row lookup via connection_ref with exact-match filters and bounded result scope." + hosted_posture_suffix,
+    }
+
+
+def _actions_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "workflow_run.list": "Direct read-only GitHub Actions workflow-run listing via actions_ref with explicit repository scope and bounded metadata only.",
+        "workflow_run.get": "Direct read-only GitHub Actions workflow-run fetch via actions_ref with explicit repository scope and no logs or artifacts.",
+    }
+    return {
+        "service_slug": _ACTIONS_DIRECT_PROVIDER_SLUG,
+        "service_name": _ACTIONS_DIRECT_PROVIDER_NAME,
+        "category": _ACTIONS_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "actions_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_ACTIONS_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
     }
     return {
         "service_slug": _DB_DIRECT_PROVIDER_SLUG,
@@ -362,6 +405,43 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     }
 
 
+def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured = has_any_actions_bundle_configured("github")
+    provider = {
+        "service_slug": _ACTIONS_DIRECT_PROVIDER_SLUG,
+        "service_name": _ACTIONS_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_ACTIONS_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "actions_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only GitHub Actions workflow-run visibility via actions_ref with explicit repository scope and bounded metadata only.",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": configured,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_ACTIONS_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _ACTIONS_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_ACTIONS_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
 def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     provider_slug = _support_direct_provider_slug(capability_id)
     configured = has_any_support_bundle_configured(provider_slug)
@@ -470,6 +550,28 @@ def _deployment_direct_credential_modes(capability_id: str) -> dict[str, object]
     }
 
 
+def _actions_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured = has_any_actions_bundle_configured("github")
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _ACTIONS_DIRECT_PROVIDER_SLUG,
+                "auth_method": "actions_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": configured,
+                        "setup_hint": "Pass an actions_ref that resolves to a RHUMB_ACTIONS_<REF> JSON bundle with provider=github, auth_mode=bearer_token, bearer_token, and allowed_repositories.",
+                    }
+                ],
+                "any_configured": configured,
+            }
+        ],
+    }
+
+
 def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
     provider_slug = _support_direct_provider_slug(capability_id)
     configured = has_any_support_bundle_configured(provider_slug)
@@ -565,6 +667,24 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "outcome": "Returns one allowed Vercel deployment with bounded alias and error details.",
         },
     }
+    actions_records = {
+        "workflow_run.list": {
+            "id": "workflow_run.list",
+            "domain": "workflow_run",
+            "action": "list",
+            "description": "Direct read-only GitHub Actions workflow-run listing with explicit repository scope and bounded metadata.",
+            "input_hint": "Provide actions_ref, repository, and optional branch/status/event filters.",
+            "outcome": "Returns bounded GitHub Actions workflow-run summaries for the allowlisted repository.",
+        },
+        "workflow_run.get": {
+            "id": "workflow_run.get",
+            "domain": "workflow_run",
+            "action": "get",
+            "description": "Direct read-only GitHub Actions workflow-run fetch with explicit repository scope and no logs or artifacts.",
+            "input_hint": "Provide actions_ref, repository, and run_id.",
+            "outcome": "Returns one allowed GitHub Actions workflow run with bounded metadata only.",
+        },
+    }
     support_records = {
         "ticket.search": {
             "id": "ticket.search",
@@ -619,6 +739,7 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
         db_records.get(capability_id)
         or object_storage_records.get(capability_id)
         or deployment_records.get(capability_id)
+        or actions_records.get(capability_id)
         or support_records.get(capability_id)
     )
 
@@ -635,6 +756,8 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
             "object.get",
             "deployment.list",
             "deployment.get",
+            "workflow_run.list",
+            "workflow_run.get",
             "ticket.search",
             "ticket.get",
             "ticket.list_comments",
@@ -656,6 +779,7 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "extract": {"scrape", "crawl", "parse", "website", "webpage", "url"},
     "find": {"search", "lookup", "discover", "query"},
     "generate": {"create", "make", "write"},
+    "github": {"actions", "workflow", "run", "runs", "ci", "automation"},
     "image": {"images", "photo", "picture", "visual", "graphic"},
     "linkedin": {"profile", "professional", "person", "contact", "lead"},
     "person": {"people", "profile", "contact", "lead", "professional"},
@@ -670,6 +794,8 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "ticket": {"tickets", "support", "zendesk", "comment", "comments", "helpdesk"},
     "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
     "vercel": {"deploy", "deployment", "deployments", "preview", "production", "project"},
+    "workflow": {"workflow_run", "github", "actions", "run", "runs", "ci"},
+    "workflow_run": {"workflow", "github", "actions", "run", "runs", "ci"},
     "website": {"web", "webpage", "page", "site", "url", "html"},
     "webpage": {"web", "website", "page", "site", "url", "html"},
     "zendesk": {"support", "ticket", "tickets", "comment", "comments", "helpdesk"},
@@ -728,6 +854,7 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     action_text = _normalize_intent_text(capability.get("action"))
     db_terms = {"db", "database", "postgres", "postgresql", "sql", "schema", "table"}
     support_terms = {"support", "ticket", "tickets", "zendesk", "helpdesk", "comment", "comments"}
+    actions_terms = {"github", "actions", "workflow", "workflow_run", "run", "runs", "ci"}
 
     score = 0
     matched_groups = 0
@@ -743,6 +870,13 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         domain_text == "support"
         or any(term in blob_tokens for term in support_terms)
         or id_text.startswith("ticket ")
+    ):
+        score += 18
+
+    if any(token in actions_terms for token in tokens) and (
+        domain_text == "workflow run"
+        or any(term in blob_tokens for term in actions_terms)
+        or id_text.startswith("workflow run ")
     ):
         score += 18
 
@@ -774,6 +908,16 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     elif capability_id == "ticket.list_comments":
         if any(token in {"ticket", "tickets", "support", "zendesk"} for token in tokens) and any(
             token in {"comment", "comments", "reply", "replies", "notes"} for token in tokens
+        ):
+            score += 30
+    elif capability_id == "workflow_run.list":
+        if any(token in {"github", "actions", "workflow", "ci", "run", "runs"} for token in tokens):
+            score += 30
+        if any(token in {"list", "search", "recent"} for token in tokens):
+            score += 12
+    elif capability_id == "workflow_run.get":
+        if any(token in {"github", "actions", "workflow", "ci", "run", "runs"} for token in tokens) and any(
+            token in {"get", "fetch", "read", "lookup"} for token in tokens
         ):
             score += 30
 
@@ -935,6 +1079,9 @@ async def list_capabilities(
         elif _is_deployment_direct_capability(cid):
             provider_count = 1
             top_provider = _deployment_direct_top_provider()
+        elif _is_actions_direct_capability(cid):
+            provider_count = 1
+            top_provider = _actions_direct_top_provider()
 
         items.append({
             "id": cid,
@@ -1116,6 +1263,15 @@ async def get_capability(capability_id: str, raw_request: Request):
             },
             "error": None,
         }
+    if _is_actions_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_actions_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
 
     # Get all service mappings for this capability
     mappings = await supabase_fetch(
@@ -1182,6 +1338,8 @@ async def get_capability(capability_id: str, raw_request: Request):
         providers = [_object_storage_direct_provider_details(capability_id)]
     if not providers and _is_deployment_direct_capability(capability_id):
         providers = [_deployment_direct_provider_details(capability_id)]
+    if not providers and _is_actions_direct_capability(capability_id):
+        providers = [_actions_direct_provider_details(capability_id)]
 
     return {
         "data": {
@@ -1224,6 +1382,11 @@ async def resolve_capability(
             "data": _deployment_direct_resolve_payload(capability_id),
             "error": None,
         }
+    if _is_actions_direct_capability(capability_id):
+        return {
+            "data": _actions_direct_resolve_payload(capability_id),
+            "error": None,
+        }
 
     # Get service mappings
     mapping_path = (
@@ -1250,6 +1413,11 @@ async def resolve_capability(
         if _is_deployment_direct_capability(capability_id):
             return {
                 "data": _deployment_direct_resolve_payload(capability_id),
+                "error": None,
+            }
+        if _is_actions_direct_capability(capability_id):
+            return {
+                "data": _actions_direct_resolve_payload(capability_id),
                 "error": None,
             }
         return {
@@ -1441,6 +1609,11 @@ async def get_credential_modes(
             "data": _deployment_direct_credential_modes(capability_id),
             "error": None,
         }
+    if _is_actions_direct_capability(capability_id):
+        return {
+            "data": _actions_direct_credential_modes(capability_id),
+            "error": None,
+        }
 
     # Get provider mappings
     mappings = await supabase_fetch(
@@ -1461,6 +1634,11 @@ async def get_credential_modes(
         if _is_deployment_direct_capability(capability_id):
             return {
                 "data": _deployment_direct_credential_modes(capability_id),
+                "error": None,
+            }
+        if _is_actions_direct_capability(capability_id):
+            return {
+                "data": _actions_direct_credential_modes(capability_id),
                 "error": None,
             }
         return {
