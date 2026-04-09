@@ -42,10 +42,14 @@ Browser-profile evidence shows:
   - `Sign in with Apple`
   - `Sign in with Microsoft`
 - A Google-login attempt from the Rhumb browser profile surfaced HubSpot portal id `49739435` in the redirect state.
-- The available browser Google accounts include `team@getsupertrained.com`, but signing in with that Google account fails with:
+- The current browser Google chooser exposes:
+  - `tom@gloriascakeandcandysupplies.com`
+  - `team@getsupertrained.com`
+- It does **not** expose `tommeredith@supertrained.ai` as an already-signed browser Google identity.
+- The known Google workspace account `team@getsupertrained.com` still fails HubSpot account lookup with:
   - `That email address doesn't exist.`
 
-Interpretation: the known Google workspace account is not the same identity as the existing HubSpot login, even though HubSpot account history exists.
+Interpretation: the known browser Google identities are not the same as the existing HubSpot login, even though HubSpot account history exists.
 
 ### Shared vault truth
 
@@ -66,11 +70,19 @@ Trying to bootstrap a fresh free HubSpot account for `team@getsupertrained.com` 
 
 Interpretation: emergency fallback signup from the current network is temporarily rate-limited, so brute-forcing the signup path is the wrong move.
 
+## Recovery progress since this note started
+
+A clean password-recovery attempt for `tommeredith@supertrained.ai` now confirms two more facts:
+- HubSpot accepts the reset request for that identity and responds with `Help is on the way`
+- Gmail metadata for `tommeredith@supertrained.ai` receives `Reset your HubSpot Password` from `noreply@notifications.transactional.hubspot.com`
+
+Interpretation: the mailbox path is real and current. The remaining blocker is not whether HubSpot knows the account, it is finishing account access safely enough to mint a bounded private-app token.
+
 ## Best next step
 
 On the next clean pass, do exactly this:
 1. start from the existing-account path for `tommeredith@supertrained.ai`, not fresh signup
-2. attempt a single clean password-recovery or approved login recovery flow
+2. use the now-proven mailbox recovery path or a non-email-link credential path if one appears, but do **not** go back to new-signup churn
 3. once inside portal `49739435`, mint a bounded private-app token with only:
    - `crm.objects.contacts.read`
    - `crm.objects.deals.read`
