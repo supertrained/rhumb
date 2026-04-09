@@ -40,6 +40,10 @@ _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG = "aws-s3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_NAME = "AWS S3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY = "storage_object"
 _OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES = ["byok"]
+_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
+_SUPPORT_DIRECT_PROVIDER_NAME = "Zendesk"
+_SUPPORT_DIRECT_PROVIDER_CATEGORY = "support"
+_SUPPORT_DIRECT_CREDENTIAL_MODES = ["byok"]
 
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
@@ -65,6 +69,14 @@ def _is_object_storage_direct_capability(capability_id: str) -> bool:
     }
 
 
+def _is_support_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "ticket.search",
+        "ticket.get",
+        "ticket.list_comments",
+    }
+
+
 def _db_direct_top_provider() -> dict[str, str | None]:
     return {
         "slug": _DB_DIRECT_PROVIDER_SLUG,
@@ -76,6 +88,14 @@ def _db_direct_top_provider() -> dict[str, str | None]:
 def _object_storage_direct_top_provider() -> dict[str, str | None]:
     return {
         "slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
+def _support_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
         "an_score": None,
         "tier_label": "Direct",
     }
@@ -125,6 +145,30 @@ def _object_storage_direct_provider_details(capability_id: str) -> dict[str, obj
         "auth_method": "storage_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
+    }
+
+
+def _support_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "ticket.search": "Direct read-only Zendesk ticket search via support_ref with explicit brand/group scope and bounded results.",
+        "ticket.get": "Direct read-only Zendesk ticket fetch via support_ref with scope enforcement and bounded plain-text fields.",
+        "ticket.list_comments": "Direct read-only Zendesk ticket comment fetch via support_ref with public-comments-only default.",
+    }
+    return {
+        "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
+        "service_name": _SUPPORT_DIRECT_PROVIDER_NAME,
+        "category": _SUPPORT_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "support_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
         "cost_per_call": None,
         "cost_currency": "USD",
         "free_tier_calls": None,
@@ -205,6 +249,42 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
     }
 
 
+def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    provider = {
+        "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
+        "service_name": _SUPPORT_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "support_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only Zendesk execution via support_ref with explicit brand/group scope and public-comments-only default.",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": False,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_SUPPORT_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _SUPPORT_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     return {
         "capability_id": capability_id,
@@ -253,7 +333,29 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
     }
 
 
+def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
+                "auth_method": "support_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": False,
+                        "setup_hint": "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=zendesk, subdomain, auth_mode, credentials, and explicit allowed_group_ids and/or allowed_brand_ids.",
+                    }
+                ],
+                "any_configured": False,
+            }
+        ],
+    }
+
+
 def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None:
+
     db_records = {
         "db.query.read": {
             "id": "db.query.read",
@@ -306,7 +408,33 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "outcome": "Returns bounded object content as text or base64 with honest truncation state.",
         },
     }
-    return db_records.get(capability_id) or object_storage_records.get(capability_id)
+    support_records = {
+        "ticket.search": {
+            "id": "ticket.search",
+            "domain": "support",
+            "action": "search",
+            "description": "Direct read-only Zendesk ticket search with explicit scope limits and bounded results.",
+            "input_hint": "Provide support_ref, query, and optional limit/page_after.",
+            "outcome": "Returns bounded Zendesk ticket summaries with honest provider attribution.",
+        },
+        "ticket.get": {
+            "id": "ticket.get",
+            "domain": "support",
+            "action": "get",
+            "description": "Direct read-only Zendesk ticket fetch with scope enforcement and bounded plain-text fields.",
+            "input_hint": "Provide support_ref and ticket_id.",
+            "outcome": "Returns one allowed Zendesk ticket with bounded description and custom field values.",
+        },
+        "ticket.list_comments": {
+            "id": "ticket.list_comments",
+            "domain": "support",
+            "action": "list_comments",
+            "description": "Direct read-only Zendesk ticket comment fetch with public-comments-only default.",
+            "input_hint": "Provide support_ref, ticket_id, and optional include_internal/page_after.",
+            "outcome": "Returns bounded Zendesk ticket comments with honest visibility rules.",
+        },
+    }
+    return db_records.get(capability_id) or object_storage_records.get(capability_id) or support_records.get(capability_id)
 
 
 def _synthetic_capability_records() -> list[dict[str, object]]:
@@ -319,6 +447,9 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
             "object.list",
             "object.head",
             "object.get",
+            "ticket.search",
+            "ticket.get",
+            "ticket.list_comments",
         ]
         if (record := _synthetic_capability_record(capability_id)) is not None
     ]
@@ -343,9 +474,12 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "search": {"find", "lookup", "discover", "query"},
     "sql": {"query", "database", "db", "postgres", "postgresql", "schema", "table"},
     "speech": {"audio", "voice", "sound"},
+    "support": {"ticket", "tickets", "helpdesk", "zendesk", "comment", "comments"},
+    "ticket": {"tickets", "support", "zendesk", "comment", "comments", "helpdesk"},
     "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
     "website": {"web", "webpage", "page", "site", "url", "html"},
     "webpage": {"web", "website", "page", "site", "url", "html"},
+    "zendesk": {"support", "ticket", "tickets", "comment", "comments", "helpdesk"},
 }
 
 
@@ -400,6 +534,7 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     domain_text = _normalize_intent_text(capability.get("domain"))
     action_text = _normalize_intent_text(capability.get("action"))
     db_terms = {"db", "database", "postgres", "postgresql", "sql", "schema", "table"}
+    support_terms = {"support", "ticket", "tickets", "zendesk", "helpdesk", "comment", "comments"}
 
     score = 0
     matched_groups = 0
@@ -408,6 +543,13 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         domain_text == "database"
         or any(term in blob_tokens for term in db_terms)
         or id_text.startswith("db ")
+    ):
+        score += 18
+
+    if any(token in support_terms for token in tokens) and (
+        domain_text == "support"
+        or any(term in blob_tokens for term in support_terms)
+        or id_text.startswith("ticket ")
     ):
         score += 18
 
@@ -424,6 +566,21 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     elif capability_id == "db.row.get":
         if any(token in {"db", "database", "postgres", "postgresql", "sql", "table"} for token in tokens) and any(
             token in {"row", "rows", "record", "lookup", "get"} for token in tokens
+        ):
+            score += 30
+    elif capability_id == "ticket.search":
+        if any(token in {"support", "ticket", "tickets", "zendesk", "helpdesk"} for token in tokens):
+            score += 30
+        if any(token in {"search", "find", "lookup", "query"} for token in tokens):
+            score += 12
+    elif capability_id == "ticket.get":
+        if any(token in {"support", "ticket", "tickets", "zendesk", "helpdesk"} for token in tokens) and any(
+            token in {"get", "fetch", "read", "lookup"} for token in tokens
+        ):
+            score += 30
+    elif capability_id == "ticket.list_comments":
+        if any(token in {"ticket", "tickets", "support", "zendesk"} for token in tokens) and any(
+            token in {"comment", "comments", "reply", "replies", "notes"} for token in tokens
         ):
             score += 30
 
@@ -557,7 +714,10 @@ async def list_capabilities(
 
         # Find top provider by AN score
         top_provider = None
-        if provider_slugs:
+        if _is_support_direct_capability(cid):
+            provider_count = 1
+            top_provider = _support_direct_top_provider()
+        elif provider_slugs:
             best_slug = None
             best_score = -1.0
             for slug in provider_slugs:
@@ -742,6 +902,16 @@ async def get_capability(capability_id: str, raw_request: Request):
     else:
         cap = caps[0]
 
+    if _is_support_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_support_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
+
     # Get all service mappings for this capability
     mappings = await supabase_fetch(
         f"capability_services?capability_id=eq.{quote(capability_id)}"
@@ -837,6 +1007,11 @@ async def resolve_capability(
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
         return _capability_not_found(raw_request, capability_id)
+    if _is_support_direct_capability(capability_id):
+        return {
+            "data": _support_direct_resolve_payload(capability_id),
+            "error": None,
+        }
 
     # Get service mappings
     mapping_path = (
@@ -1039,6 +1214,11 @@ async def get_credential_modes(
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
         return _capability_not_found(raw_request, capability_id)
+    if _is_support_direct_capability(capability_id):
+        return {
+            "data": _support_direct_credential_modes(capability_id),
+            "error": None,
+        }
 
     # Get provider mappings
     mappings = await supabase_fetch(

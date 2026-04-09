@@ -239,6 +239,55 @@ def _mock_object_storage_direct_supabase(path: str):
     return []
 
 
+def _mock_support_direct_supabase(path: str):
+    support_capability = {
+        "id": "ticket.search",
+        "domain": "support",
+        "action": "search",
+        "description": "Search support tickets",
+        "input_hint": "support_ref, query",
+        "outcome": "Ticket summaries",
+    }
+    if path.startswith("capabilities?"):
+        if "id=eq.ticket.search" in path:
+            return [support_capability]
+        return [support_capability]
+    if path.startswith("capability_services?"):
+        return [
+            {
+                "capability_id": "ticket.search",
+                "service_slug": "intercom",
+                "credential_modes": ["byo"],
+                "auth_method": "oauth",
+                "endpoint_pattern": "/proxy/intercom",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "generic",
+                "is_primary": False,
+            },
+            {
+                "capability_id": "ticket.search",
+                "service_slug": "zendesk",
+                "credential_modes": ["byo"],
+                "auth_method": "api_token",
+                "endpoint_pattern": "/proxy/zendesk",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "generic",
+                "is_primary": True,
+            },
+        ]
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
 # ── Tests ──────────────────────────────────────────────────
 
 @pytest.mark.anyio
@@ -473,6 +522,40 @@ async def test_object_storage_direct_capability_surfaces_synthetic_provider(app)
     assert mode_data["providers"][0]["service_slug"] == "aws-s3"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "storage_ref" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_support_direct_capability_surfaces_synthetic_provider(app):
+    """Zendesk direct capabilities should expose a truthful synthetic provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_support_direct_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/ticket.search")
+            resolve_resp = await client.get("/v1/capabilities/ticket.search/resolve")
+            modes_resp = await client.get("/v1/capabilities/ticket.search/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "zendesk"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "zendesk"
+    assert get_data["providers"][0]["auth_method"] == "support_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "zendesk"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "zendesk"
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "zendesk"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "RHUMB_SUPPORT_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
 
 
 @pytest.mark.anyio

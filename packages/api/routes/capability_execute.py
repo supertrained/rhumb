@@ -1242,18 +1242,24 @@ async def execute_capability(
         )
 
     # ── AUD-18: direct capability early dispatch ───────────────────
-    # DB and storage capabilities bypass the proxy layer entirely.
+    # DB, storage, and support capabilities bypass the proxy layer entirely.
     from routes.db_execute import is_db_capability, handle_db_execute
     from routes.storage_execute import is_storage_capability, handle_storage_execute
-    if is_db_capability(capability_id) or is_storage_capability(capability_id):
+    from routes.support_execute import is_support_capability, handle_support_execute
+    if (
+        is_db_capability(capability_id)
+        or is_storage_capability(capability_id)
+        or is_support_capability(capability_id)
+    ):
         execution_id = f"exec_{uuid.uuid4().hex}"
         request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
         if not x_rhumb_key:
-            detail = (
-                "X-Rhumb-Key header required for database capability execution"
-                if is_db_capability(capability_id)
-                else "X-Rhumb-Key header required for storage capability execution"
-            )
+            if is_db_capability(capability_id):
+                detail = "X-Rhumb-Key header required for database capability execution"
+            elif is_storage_capability(capability_id):
+                detail = "X-Rhumb-Key header required for storage capability execution"
+            else:
+                detail = "X-Rhumb-Key header required for support capability execution"
             raise HTTPException(status_code=401, detail=detail)
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
@@ -1267,7 +1273,16 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        return await handle_storage_execute(
+        if is_storage_capability(capability_id):
+            return await handle_storage_execute(
+                capability_id=capability_id,
+                raw_request=raw_request,
+                agent_id=agent.agent_id,
+                org_id=agent.organization_id,
+                execution_id=execution_id,
+                request_id=request_id,
+            )
+        return await handle_support_execute(
             capability_id=capability_id,
             raw_request=raw_request,
             agent_id=agent.agent_id,
