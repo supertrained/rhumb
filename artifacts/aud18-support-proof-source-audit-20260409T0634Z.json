@@ -1,0 +1,1443 @@
+{
+  "generated_at": "2026-04-09T06:44:26.990016+00:00",
+  "vault": "OpenClaw Agents",
+  "browser_history": "/Volumes/tomme 4TB/.openclaw/browser/rhumb/user-data/Default/History",
+  "gmail_accounts": [
+    "tommeredith@supertrained.ai",
+    "tmeredith@simplaphi.com",
+    "tom.d.meredith@gmail.com"
+  ],
+  "providers": {
+    "zendesk": {
+      "vault": {
+        "ok": true,
+        "hits": [],
+        "hit_count": 0
+      },
+      "browser": {
+        "ok": true,
+        "hits": [
+          {
+            "url": "https://www.zendesk.com/register/",
+            "title": "Register",
+            "host": "www.zendesk.com",
+            "last_visit_time": 13418337182836114
+          }
+        ],
+        "hit_count": 1,
+        "hosts": [
+          "www.zendesk.com"
+        ],
+        "workspace_hosts": []
+      },
+      "gmail": {
+        "ok": true,
+        "accounts": [
+          {
+            "account": "tommeredith@supertrained.ai",
+            "ok": true,
+            "hit_count": 0,
+            "hits": []
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "ok": true,
+            "hit_count": 0,
+            "hits": []
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "ok": true,
+            "hit_count": 15,
+            "hits": [
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19d6ee66a6d5ef09",
+                "date": "2026-04-08 14:01",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "Request #792913_DO NOT REPLY: How would you rate the support you received?",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19d6dfa7f7bcbd93",
+                "date": "2026-04-08 09:43",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+                "labels": [
+                  "UNREAD",
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19d6d272925471f4",
+                "date": "2026-04-08 05:52",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+                "labels": [
+                  "UNREAD",
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19d68a7741b32b39",
+                "date": "2026-04-07 08:54",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+                "labels": [
+                  "UNREAD",
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19d503c630ab22a2",
+                "date": "2026-04-02 15:07",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+                "labels": [
+                  "UNREAD",
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1972336def6ca2b8",
+                "date": "2025-05-30 15:01",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "Request #684580_DO NOT REPLY: How would you rate the support you received?",
+                "labels": [
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "197224720154ead8",
+                "date": "2025-05-30 10:39",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1971f03616648ba5",
+                "date": "2025-05-29 19:26",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1971879d15baca29",
+                "date": "2025-05-28 12:58",
+                "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+                "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "rode"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1954879ad5c81846",
+                "date": "2025-02-27 09:34",
+                "from": "\"Luana Perez (Ergatta)\" <support@ergatta.zendesk.com>",
+                "subject": "[Ergatta] Re: Cancel Memebership",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "ergatta"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19547e754c8e8019",
+                "date": "2025-02-27 06:54",
+                "from": "\"Luana Perez (Ergatta)\" <support@ergatta.zendesk.com>",
+                "subject": "[Ergatta] Re: Cancel Memebership",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "ergatta"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1952e8e7f0276d8e",
+                "date": "2025-02-22 08:47",
+                "from": "\"Olive (Thrive Market)\" <support@thrivemarket.zendesk.com>",
+                "subject": "Thrive Market Support Re: Sierra Transfer: Conversation with Thomas Meredith [Customer ID: 632495]",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "thrivemarket"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "195205a4619fc071",
+                "date": "2025-02-19 14:35",
+                "from": "\"Erick Henderson (Ergatta)\" <support@ergatta.zendesk.com>",
+                "subject": "[Ergatta] Re: Cancel Memebership",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "ergatta"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "1951a939c3533a12",
+                "date": "2025-02-18 11:40",
+                "from": "Ergatta <support@ergatta.zendesk.com>",
+                "subject": "[Cancel Memebership] Ticket Received - 162581",
+                "labels": [
+                  "CATEGORY_UPDATES"
+                ],
+                "instances": [
+                  "ergatta"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "191cadbe6b765034",
+                "date": "2024-09-06 22:01",
+                "from": "\"Charle Jourdano Planos (Support)\" <read-all-orders-request@shopify.zendesk.com>",
+                "subject": "Re: Read all orders access request",
+                "labels": [
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "shopify"
+                ]
+              }
+            ]
+          }
+        ],
+        "hit_count": 15,
+        "hits": [
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19d6ee66a6d5ef09",
+            "date": "2026-04-08 14:01",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "Request #792913_DO NOT REPLY: How would you rate the support you received?",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19d6dfa7f7bcbd93",
+            "date": "2026-04-08 09:43",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+            "labels": [
+              "UNREAD",
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19d6d272925471f4",
+            "date": "2026-04-08 05:52",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+            "labels": [
+              "UNREAD",
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19d68a7741b32b39",
+            "date": "2026-04-07 08:54",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+            "labels": [
+              "UNREAD",
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19d503c630ab22a2",
+            "date": "2026-04-02 15:07",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Streamer X works on MacBook Pro but on Mac Studio only enumerates as \u201cStreamer X HDMI\u201d and reports USB serial HT0000000",
+            "labels": [
+              "UNREAD",
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1972336def6ca2b8",
+            "date": "2025-05-30 15:01",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "Request #684580_DO NOT REPLY: How would you rate the support you received?",
+            "labels": [
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "197224720154ead8",
+            "date": "2025-05-30 10:39",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1971f03616648ba5",
+            "date": "2025-05-29 19:26",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1971879d15baca29",
+            "date": "2025-05-28 12:58",
+            "from": "\"R\u00d8DE Microphones Service/Support\" <service@rode.zendesk.com>",
+            "subject": "[R\u00d8DE] Re: Call with Caller +1 (909) 896-8277",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "rode"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1954879ad5c81846",
+            "date": "2025-02-27 09:34",
+            "from": "\"Luana Perez (Ergatta)\" <support@ergatta.zendesk.com>",
+            "subject": "[Ergatta] Re: Cancel Memebership",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "ergatta"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19547e754c8e8019",
+            "date": "2025-02-27 06:54",
+            "from": "\"Luana Perez (Ergatta)\" <support@ergatta.zendesk.com>",
+            "subject": "[Ergatta] Re: Cancel Memebership",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "ergatta"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1952e8e7f0276d8e",
+            "date": "2025-02-22 08:47",
+            "from": "\"Olive (Thrive Market)\" <support@thrivemarket.zendesk.com>",
+            "subject": "Thrive Market Support Re: Sierra Transfer: Conversation with Thomas Meredith [Customer ID: 632495]",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "thrivemarket"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "195205a4619fc071",
+            "date": "2025-02-19 14:35",
+            "from": "\"Erick Henderson (Ergatta)\" <support@ergatta.zendesk.com>",
+            "subject": "[Ergatta] Re: Cancel Memebership",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "ergatta"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "1951a939c3533a12",
+            "date": "2025-02-18 11:40",
+            "from": "Ergatta <support@ergatta.zendesk.com>",
+            "subject": "[Cancel Memebership] Ticket Received - 162581",
+            "labels": [
+              "CATEGORY_UPDATES"
+            ],
+            "instances": [
+              "ergatta"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "191cadbe6b765034",
+            "date": "2024-09-06 22:01",
+            "from": "\"Charle Jourdano Planos (Support)\" <read-all-orders-request@shopify.zendesk.com>",
+            "subject": "Re: Read all orders access request",
+            "labels": [
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "shopify"
+            ]
+          }
+        ],
+        "instances": [
+          "rode",
+          "ergatta",
+          "thrivemarket",
+          "shopify"
+        ]
+      },
+      "summary": {
+        "provider": "zendesk",
+        "vault_hit_count": 0,
+        "browser_workspace_host_count": 0,
+        "browser_workspace_hosts": [],
+        "gmail_hit_count": 15,
+        "gmail_candidate_instances": [
+          "rode",
+          "ergatta",
+          "thrivemarket",
+          "shopify"
+        ],
+        "proof_material_ready": false,
+        "likely_blocked_on_credentials": true,
+        "assessment": "No vault-backed support credential bundle detected. Browser and Gmail may show provider traces or third-party instances, but they do not constitute operator-ready proof material."
+      }
+    },
+    "intercom": {
+      "vault": {
+        "ok": true,
+        "hits": [],
+        "hit_count": 0
+      },
+      "browser": {
+        "ok": true,
+        "hits": [
+          {
+            "url": "https://app.intercom.com/admins/sign_up/developer?developer=true&from_embercom_route=developer-signup&from_embercom=true",
+            "title": "Intercom | The easiest way to see and talk to your users",
+            "host": "app.intercom.com",
+            "last_visit_time": 13418335149893242
+          },
+          {
+            "url": "https://app.intercom.com/a/signup/teams",
+            "title": "Intercom",
+            "host": "app.intercom.com",
+            "last_visit_time": 13418335149712316
+          },
+          {
+            "url": "https://app.intercom.com/a/developer-signup",
+            "title": "Intercom | The easiest way to see and talk to your users",
+            "host": "app.intercom.com",
+            "last_visit_time": 13418335148312854
+          }
+        ],
+        "hit_count": 3,
+        "hosts": [
+          "app.intercom.com"
+        ],
+        "workspace_hosts": []
+      },
+      "gmail": {
+        "ok": true,
+        "accounts": [
+          {
+            "account": "tommeredith@supertrained.ai",
+            "ok": true,
+            "hit_count": 0,
+            "hits": []
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "ok": true,
+            "hit_count": 12,
+            "hits": [
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1931a1de28648f01",
+                "date": "2024-11-10 23:26",
+                "from": "\"Charlie from Captivate.fm\" <operator@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1931a1db22eecda6",
+                "date": "2024-11-10 23:26",
+                "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1930ac44b93b978b",
+                "date": "2024-11-07 23:54",
+                "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "193050f83ac9e623",
+                "date": "2024-11-06 21:18",
+                "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1921fe45075a5ea5",
+                "date": "2024-09-23 10:18",
+                "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "LIVE NOW: Massive New Product Reveal!",
+                "labels": [
+                  "CATEGORY_PROMOTIONS"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "192006b17beeb2e3",
+                "date": "2024-09-17 07:37",
+                "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Can\u2019t start a fire without a spark\u2026 Captivate product reveal LIVE!",
+                "labels": [
+                  "CATEGORY_PROMOTIONS",
+                  "UNREAD"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "191bd84c6cb98078",
+                "date": "2024-09-04 07:51",
+                "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Can\u2019t start a fire without a spark\u2026 Captivate product reveal LIVE!",
+                "labels": [
+                  "CATEGORY_PROMOTIONS",
+                  "UNREAD"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "191a4611d95a21f6",
+                "date": "2024-08-30 10:41",
+                "from": "\"Charlie from Captivate.fm\" <operator@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+                "labels": [
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "191a460ee0f51c7e",
+                "date": "2024-08-30 10:41",
+                "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+                "labels": [
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1919f5756ddf8599",
+                "date": "2024-08-29 11:13",
+                "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+                "labels": [
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "19199f8105c9573a",
+                "date": "2024-08-28 10:10",
+                "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+                "labels": [
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              },
+              {
+                "account": "tmeredith@simplaphi.com",
+                "id": "1915c7150060e6e7",
+                "date": "2024-08-16 11:26",
+                "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+                "subject": "Apple Podcasts FAQs answered",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL"
+                ],
+                "instances": [
+                  "captivatefm-2bb9d0b43957"
+                ]
+              }
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "ok": true,
+            "hit_count": 16,
+            "hits": [
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19c4cc10a3b07a56",
+                "date": "2026-02-11 04:50",
+                "from": "Nick from Manus <nick.lee@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: Downgrade and Refund request.",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19c41c61ba782aa5",
+                "date": "2026-02-09 01:40",
+                "from": "Nick from Manus <nick.lee@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: Downgrade and Refund request.",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19c3bfc3b1ecc467",
+                "date": "2026-02-07 22:41",
+                "from": "Dan from Manus <Dan@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: Downgrade and Refund request.",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19b11c910e293ba9",
+                "date": "2025-12-12 00:59",
+                "from": "Tatyana from SEObot <tatyana@seobot.intercom-mail.com>",
+                "subject": "Re: Hi there! You're speaking with Fin AI Agent. I'm well trained and r...",
+                "labels": [
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "seobot"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19b118d91c75297a",
+                "date": "2025-12-11 23:54",
+                "from": "Vitalik from SEObot <vitalik@seobot.intercom-mail.com>",
+                "subject": "Re: Hi there! You're speaking with Fin AI Agent. I'm well trained and r...",
+                "labels": [
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "seobot"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19aedaec083def24",
+                "date": "2025-12-05 00:44",
+                "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: hi at Liora, can I get more of a refund on this project... the bug ...",
+                "labels": [
+                  "UNREAD",
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19adce409dee1b89",
+                "date": "2025-12-01 18:28",
+                "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: hi at Liora, can I get more of a refund on this project... the bug ...",
+                "labels": [
+                  "CATEGORY_PROMOTIONS",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19ac4dcf3847000b",
+                "date": "2025-11-27 02:30",
+                "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I'm using your new feature to build a full web app, and I keep runn...",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a8fc225e92a4a8",
+                "date": "2025-11-16 19:00",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I was told to create a support ticket for increasing virtual machin...",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a8fbf7f72b41d3",
+                "date": "2025-11-16 18:58",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a8fbf750c3b7c0",
+                "date": "2025-11-16 18:58",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a843fba0b7c8ae",
+                "date": "2025-11-14 13:22",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a6b10f3b7ac027",
+                "date": "2025-11-09 16:01",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I'm using your new feature to build a full web app, and I keep runn...",
+                "labels": [
+                  "IMPORTANT",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a3538de8450bff",
+                "date": "2025-10-30 06:05",
+                "from": "\"\ud83e\udd16 PodPitch from PodPitch\" <fin@podpitch-21df69ea1761.intercom-mail.com>",
+                "subject": "Re: Hi there Tom! This is a bot speaking. I\u2019m here to answer your quest...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "podpitch-21df69ea1761"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "19a308b943019faa",
+                "date": "2025-10-29 08:17",
+                "from": "Mandy from PodPitch <mandy@podpitch-21df69ea1761.intercom-mail.com>",
+                "subject": "Re: Hi there Tom! This is a bot speaking. I\u2019m here to answer your quest...",
+                "labels": [
+                  "UNREAD",
+                  "CATEGORY_PERSONAL",
+                  "INBOX"
+                ],
+                "instances": [
+                  "podpitch-21df69ea1761"
+                ]
+              },
+              {
+                "account": "tom.d.meredith@gmail.com",
+                "id": "199e91b41ecac0c8",
+                "date": "2025-10-15 11:21",
+                "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+                "subject": "Re: I had a conversation that just kept talking to itself even after I ...",
+                "labels": [
+                  "CATEGORY_UPDATES",
+                  "INBOX"
+                ],
+                "instances": [
+                  "manus-93df2ee58c37"
+                ]
+              }
+            ]
+          }
+        ],
+        "hit_count": 28,
+        "hits": [
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1931a1de28648f01",
+            "date": "2024-11-10 23:26",
+            "from": "\"Charlie from Captivate.fm\" <operator@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1931a1db22eecda6",
+            "date": "2024-11-10 23:26",
+            "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1930ac44b93b978b",
+            "date": "2024-11-07 23:54",
+            "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "193050f83ac9e623",
+            "date": "2024-11-06 21:18",
+            "from": "\"Lester from Captivate.fm\" <lester.joson@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: I don't understand why an episode is set to draft. I can't figure o...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1921fe45075a5ea5",
+            "date": "2024-09-23 10:18",
+            "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "LIVE NOW: Massive New Product Reveal!",
+            "labels": [
+              "CATEGORY_PROMOTIONS"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "192006b17beeb2e3",
+            "date": "2024-09-17 07:37",
+            "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Can\u2019t start a fire without a spark\u2026 Captivate product reveal LIVE!",
+            "labels": [
+              "CATEGORY_PROMOTIONS",
+              "UNREAD"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "191bd84c6cb98078",
+            "date": "2024-09-04 07:51",
+            "from": "\"Mark from Captivate.fm\" <mark.asquith@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Can\u2019t start a fire without a spark\u2026 Captivate product reveal LIVE!",
+            "labels": [
+              "CATEGORY_PROMOTIONS",
+              "UNREAD"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "191a4611d95a21f6",
+            "date": "2024-08-30 10:41",
+            "from": "\"Charlie from Captivate.fm\" <operator@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+            "labels": [
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "191a460ee0f51c7e",
+            "date": "2024-08-30 10:41",
+            "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+            "labels": [
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1919f5756ddf8599",
+            "date": "2024-08-29 11:13",
+            "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+            "labels": [
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "19199f8105c9573a",
+            "date": "2024-08-28 10:10",
+            "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Re: Yesterday, I scheduled an episode to post on Friday, now I don't se...",
+            "labels": [
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tmeredith@simplaphi.com",
+            "id": "1915c7150060e6e7",
+            "date": "2024-08-16 11:26",
+            "from": "\"Danny from Captivate.fm\" <danny.brown@captivatefm-2bb9d0b43957.intercom-mail.com>",
+            "subject": "Apple Podcasts FAQs answered",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL"
+            ],
+            "instances": [
+              "captivatefm-2bb9d0b43957"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19c4cc10a3b07a56",
+            "date": "2026-02-11 04:50",
+            "from": "Nick from Manus <nick.lee@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: Downgrade and Refund request.",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19c41c61ba782aa5",
+            "date": "2026-02-09 01:40",
+            "from": "Nick from Manus <nick.lee@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: Downgrade and Refund request.",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19c3bfc3b1ecc467",
+            "date": "2026-02-07 22:41",
+            "from": "Dan from Manus <Dan@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: Downgrade and Refund request.",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19b11c910e293ba9",
+            "date": "2025-12-12 00:59",
+            "from": "Tatyana from SEObot <tatyana@seobot.intercom-mail.com>",
+            "subject": "Re: Hi there! You're speaking with Fin AI Agent. I'm well trained and r...",
+            "labels": [
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "seobot"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19b118d91c75297a",
+            "date": "2025-12-11 23:54",
+            "from": "Vitalik from SEObot <vitalik@seobot.intercom-mail.com>",
+            "subject": "Re: Hi there! You're speaking with Fin AI Agent. I'm well trained and r...",
+            "labels": [
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "seobot"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19aedaec083def24",
+            "date": "2025-12-05 00:44",
+            "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: hi at Liora, can I get more of a refund on this project... the bug ...",
+            "labels": [
+              "UNREAD",
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19adce409dee1b89",
+            "date": "2025-12-01 18:28",
+            "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: hi at Liora, can I get more of a refund on this project... the bug ...",
+            "labels": [
+              "CATEGORY_PROMOTIONS",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19ac4dcf3847000b",
+            "date": "2025-11-27 02:30",
+            "from": "Jimmy from Manus <jimmy@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I'm using your new feature to build a full web app, and I keep runn...",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a8fc225e92a4a8",
+            "date": "2025-11-16 19:00",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I was told to create a support ticket for increasing virtual machin...",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a8fbf7f72b41d3",
+            "date": "2025-11-16 18:58",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a8fbf750c3b7c0",
+            "date": "2025-11-16 18:58",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a843fba0b7c8ae",
+            "date": "2025-11-14 13:22",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I'm having issues with deploying the webapp I built in the new manus feature",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a6b10f3b7ac027",
+            "date": "2025-11-09 16:01",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I'm using your new feature to build a full web app, and I keep runn...",
+            "labels": [
+              "IMPORTANT",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a3538de8450bff",
+            "date": "2025-10-30 06:05",
+            "from": "\"\ud83e\udd16 PodPitch from PodPitch\" <fin@podpitch-21df69ea1761.intercom-mail.com>",
+            "subject": "Re: Hi there Tom! This is a bot speaking. I\u2019m here to answer your quest...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "podpitch-21df69ea1761"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "19a308b943019faa",
+            "date": "2025-10-29 08:17",
+            "from": "Mandy from PodPitch <mandy@podpitch-21df69ea1761.intercom-mail.com>",
+            "subject": "Re: Hi there Tom! This is a bot speaking. I\u2019m here to answer your quest...",
+            "labels": [
+              "UNREAD",
+              "CATEGORY_PERSONAL",
+              "INBOX"
+            ],
+            "instances": [
+              "podpitch-21df69ea1761"
+            ]
+          },
+          {
+            "account": "tom.d.meredith@gmail.com",
+            "id": "199e91b41ecac0c8",
+            "date": "2025-10-15 11:21",
+            "from": "Liora from Manus <liora-e72fc95517e2@manus-93df2ee58c37.intercom-mail.com>",
+            "subject": "Re: I had a conversation that just kept talking to itself even after I ...",
+            "labels": [
+              "CATEGORY_UPDATES",
+              "INBOX"
+            ],
+            "instances": [
+              "manus-93df2ee58c37"
+            ]
+          }
+        ],
+        "instances": [
+          "captivatefm-2bb9d0b43957",
+          "manus-93df2ee58c37",
+          "seobot",
+          "podpitch-21df69ea1761"
+        ]
+      },
+      "summary": {
+        "provider": "intercom",
+        "vault_hit_count": 0,
+        "browser_workspace_host_count": 0,
+        "browser_workspace_hosts": [],
+        "gmail_hit_count": 28,
+        "gmail_candidate_instances": [
+          "captivatefm-2bb9d0b43957",
+          "manus-93df2ee58c37",
+          "seobot",
+          "podpitch-21df69ea1761"
+        ],
+        "proof_material_ready": false,
+        "likely_blocked_on_credentials": true,
+        "assessment": "No vault-backed support credential bundle detected. Browser and Gmail may show provider traces or third-party instances, but they do not constitute operator-ready proof material."
+      }
+    }
+  },
+  "summary": [
+    {
+      "provider": "zendesk",
+      "vault_hit_count": 0,
+      "browser_workspace_host_count": 0,
+      "browser_workspace_hosts": [],
+      "gmail_hit_count": 15,
+      "gmail_candidate_instances": [
+        "rode",
+        "ergatta",
+        "thrivemarket",
+        "shopify"
+      ],
+      "proof_material_ready": false,
+      "likely_blocked_on_credentials": true,
+      "assessment": "No vault-backed support credential bundle detected. Browser and Gmail may show provider traces or third-party instances, but they do not constitute operator-ready proof material."
+    },
+    {
+      "provider": "intercom",
+      "vault_hit_count": 0,
+      "browser_workspace_host_count": 0,
+      "browser_workspace_hosts": [],
+      "gmail_hit_count": 28,
+      "gmail_candidate_instances": [
+        "captivatefm-2bb9d0b43957",
+        "manus-93df2ee58c37",
+        "seobot",
+        "podpitch-21df69ea1761"
+      ],
+      "proof_material_ready": false,
+      "likely_blocked_on_credentials": true,
+      "assessment": "No vault-backed support credential bundle detected. Browser and Gmail may show provider traces or third-party instances, but they do not constitute operator-ready proof material."
+    }
+  ]
+}

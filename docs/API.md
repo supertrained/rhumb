@@ -356,6 +356,8 @@ Bearer-token mode is also supported by the runtime parser:
 
 ### Helper + proof scripts
 
+- Audit local proof sources before claiming a hosted bundle exists:
+  - `python3 scripts/audit_support_proof_sources.py --provider zendesk --summary-only`
 - Build and validate the bundle:
   - `python3 scripts/build_zendesk_support_bundle.py --support-ref st_zd --subdomain acme --auth-mode api_token --email you@example.com --api-token "$ZD_API_TOKEN" --allowed-group-id 12345 --allowed-brand-id 67890 --railway`
 - Run the hosted proof loop once the bundle is set:

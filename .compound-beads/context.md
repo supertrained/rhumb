@@ -25,8 +25,9 @@
 - Operator follow-through is sharper now too:
   - `scripts/build_zendesk_support_bundle.py` builds bounded hosted support bundles
   - `scripts/zendesk_read_dogfood.py` now matches shipped denial semantics (`403 support_ticket_scope_denied`, `403 support_internal_comments_denied`) and no longer pretends a fake default ticket id proves scope denial
+  - `scripts/audit_support_proof_sources.py` now turns the proof-material discovery pass into a repeatable artifact across shared vault metadata, browser history, and Gmail metadata
   - latest rerun artifact `artifacts/aud18-zendesk-hosted-proof-20260409T0218Z-post-harness-fix.json` still fails honestly because hosted Rhumb does not yet have `RHUMB_SUPPORT_ST_ZD`
-  - shared-secret discovery is now sharper too: shared 1Password metadata search did not surface any Zendesk / Intercom / support-platform items or matching host URLs, Railway currently has no `RHUMB_SUPPORT_*` vars, and the `rhumb` browser profile only shows old public signup-page visits, not an existing support workspace login
+  - latest discovery artifact `artifacts/aud18-support-proof-source-audit-20260409T0634Z.json` confirms the blocker is still credential truth: no vault-backed Zendesk / Intercom items, no non-public workspace traces in the `rhumb` browser profile, and only third-party provider support threads in Gmail metadata
 - Current honest next step: source bounded Zendesk proof material, set hosted `RHUMB_SUPPORT_ST_ZD`, and rerun the first hosted proof bundle before widening to Intercom or any write/mutate support actions.
 
 ### Product
