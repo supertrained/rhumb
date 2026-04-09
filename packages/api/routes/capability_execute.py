@@ -1242,29 +1242,40 @@ async def execute_capability(
         )
 
     # ── AUD-18: direct capability early dispatch ───────────────────
-    # DB, storage, support, and deployment capabilities bypass the proxy layer entirely.
-    from routes.actions_execute import is_actions_capability, handle_actions_execute
-    from routes.db_execute import is_db_capability, handle_db_execute
-    from routes.deployment_execute import is_deployment_capability, handle_deployment_execute
-    from routes.storage_execute import is_storage_capability, handle_storage_execute
-    from routes.support_execute import is_support_capability, handle_support_execute
-    if (
-        is_actions_capability(capability_id)
-        or is_db_capability(capability_id)
-        or is_deployment_capability(capability_id)
-        or is_storage_capability(capability_id)
-        or is_support_capability(capability_id)
+    # These capabilities bypass the proxy layer entirely.
+    crm_capability_ids = frozenset({"crm.object.describe", "crm.record.search", "crm.record.get"})
+    actions_capability_ids = frozenset({"workflow_run.list", "workflow_run.get"})
+    db_capability_ids = frozenset({"db.query.read", "db.schema.describe", "db.row.get"})
+    deployment_capability_ids = frozenset({"deployment.list", "deployment.get"})
+    storage_capability_ids = frozenset({"object.list", "object.head", "object.get"})
+    support_capability_ids = frozenset({
+        "ticket.search",
+        "ticket.get",
+        "ticket.list_comments",
+        "conversation.list",
+        "conversation.get",
+        "conversation.list_parts",
+    })
+    if capability_id in (
+        crm_capability_ids
+        | actions_capability_ids
+        | db_capability_ids
+        | deployment_capability_ids
+        | storage_capability_ids
+        | support_capability_ids
     ):
         execution_id = f"exec_{uuid.uuid4().hex}"
         request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
         if not x_rhumb_key:
-            if is_actions_capability(capability_id):
+            if capability_id in crm_capability_ids:
+                detail = "X-Rhumb-Key header required for CRM capability execution"
+            elif capability_id in actions_capability_ids:
                 detail = "X-Rhumb-Key header required for GitHub Actions capability execution"
-            elif is_db_capability(capability_id):
+            elif capability_id in db_capability_ids:
                 detail = "X-Rhumb-Key header required for database capability execution"
-            elif is_deployment_capability(capability_id):
+            elif capability_id in deployment_capability_ids:
                 detail = "X-Rhumb-Key header required for deployment capability execution"
-            elif is_storage_capability(capability_id):
+            elif capability_id in storage_capability_ids:
                 detail = "X-Rhumb-Key header required for storage capability execution"
             else:
                 detail = "X-Rhumb-Key header required for support capability execution"
@@ -1272,7 +1283,20 @@ async def execute_capability(
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
-        if is_actions_capability(capability_id):
+        if capability_id in crm_capability_ids:
+            from routes.crm_execute import handle_crm_execute
+
+            return await handle_crm_execute(
+                capability_id=capability_id,
+                raw_request=raw_request,
+                agent_id=agent.agent_id,
+                org_id=agent.organization_id,
+                execution_id=execution_id,
+                request_id=request_id,
+            )
+        if capability_id in actions_capability_ids:
+            from routes.actions_execute import handle_actions_execute
+
             return await handle_actions_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
@@ -1281,7 +1305,9 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if is_db_capability(capability_id):
+        if capability_id in db_capability_ids:
+            from routes.db_execute import handle_db_execute
+
             return await handle_db_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
@@ -1290,7 +1316,9 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if is_deployment_capability(capability_id):
+        if capability_id in deployment_capability_ids:
+            from routes.deployment_execute import handle_deployment_execute
+
             return await handle_deployment_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
@@ -1299,7 +1327,9 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if is_storage_capability(capability_id):
+        if capability_id in storage_capability_ids:
+            from routes.storage_execute import handle_storage_execute
+
             return await handle_storage_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
@@ -1308,6 +1338,8 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
+        from routes.support_execute import handle_support_execute
+
         return await handle_support_execute(
             capability_id=capability_id,
             raw_request=raw_request,

@@ -163,6 +163,15 @@ OBJECT_STORAGE_DIRECT_CAPABILITIES = [
     },
 ]
 
+CRM_DIRECT_CAPABILITY = {
+    "id": "crm.record.search",
+    "domain": "crm",
+    "action": "record.search",
+    "description": "Search HubSpot CRM records with explicit object and property scope",
+    "input_hint": "crm_ref, object_type, property_names (optional), filters (optional), sorts (optional)",
+    "outcome": "CRM record summaries",
+}
+
 
 def _mock_supabase(path: str):
     """Route supabase_fetch calls to sample data based on table name."""
@@ -228,6 +237,22 @@ def _mock_object_storage_direct_supabase(path: str):
         if "id=eq.object.get" in path:
             return [OBJECT_STORAGE_DIRECT_CAPABILITIES[2]]
         return list(OBJECT_STORAGE_DIRECT_CAPABILITIES)
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
+def _mock_crm_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.crm.record.search" in path:
+            return [CRM_DIRECT_CAPABILITY]
+        return [CRM_DIRECT_CAPABILITY]
     if path.startswith("capability_services?"):
         return []
     if path.startswith("scores?"):
@@ -556,6 +581,41 @@ async def test_support_direct_capability_surfaces_synthetic_provider(app):
     assert mode_data["providers"][0]["service_slug"] == "zendesk"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "RHUMB_SUPPORT_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_crm_direct_capability_surfaces_synthetic_provider(app):
+    """HubSpot CRM direct capabilities should expose a truthful synthetic provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_crm_direct_supabase,
+    ), patch("routes.capabilities.has_any_crm_bundle_configured", return_value=True):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/crm.record.search")
+            resolve_resp = await client.get("/v1/capabilities/crm.record.search/resolve")
+            modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "hubspot"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "hubspot"
+    assert get_data["providers"][0]["auth_method"] == "crm_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "hubspot"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["configured"] is True
+    assert resolve_data["execute_hint"]["preferred_provider"] == "hubspot"
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "hubspot"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "RHUMB_CRM_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
 
 
 @pytest.mark.anyio
