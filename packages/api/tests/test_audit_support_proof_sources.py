@@ -95,7 +95,7 @@ def test_summarize_provider_marks_intercom_blocked_on_credentials_when_hosted_su
 
     summary = support_proof_audit.summarize_provider(
         provider,
-        vault={"hit_count": 0},
+        vault={"hit_count": 0, "bundle_ready_hit_count": 0},
         browser={"workspace_hosts": []},
         gmail={"hit_count": 2, "instances": ["example-workspace"]},
         hosted_surface={
@@ -109,7 +109,65 @@ def test_summarize_provider_marks_intercom_blocked_on_credentials_when_hosted_su
     assert summary["provider"] == "intercom"
     assert summary["hosted_surface_live"] is True
     assert summary["hosted_surface_configured"] is False
+    assert summary["vault_bundle_ready_hit_count"] == 0
     assert summary["proof_material_ready"] is False
     assert summary["likely_blocked_on_credentials"] is True
     assert "Hosted support surface is live" in summary["assessment"]
     assert "no vault-backed support credential bundle was detected" in summary["assessment"]
+
+
+def test_summarize_provider_keeps_intercom_blocked_when_only_login_item_exists() -> None:
+    provider = support_proof_audit.PROVIDERS["intercom"]
+
+    summary = support_proof_audit.summarize_provider(
+        provider,
+        vault={"hit_count": 1, "bundle_ready_hit_count": 0},
+        browser={"workspace_hosts": []},
+        gmail={"hit_count": 0, "instances": []},
+        hosted_surface={
+            "supported": True,
+            "live": True,
+            "resolve_configured": False,
+            "credential_modes_configured": False,
+        },
+    )
+
+    assert summary["vault_hit_count"] == 1
+    assert summary["vault_bundle_ready_hit_count"] == 0
+    assert summary["proof_material_ready"] is False
+    assert summary["likely_blocked_on_credentials"] is True
+    assert "candidate vault items now exist" in summary["assessment"]
+
+
+def test_audit_vault_marks_login_only_intercom_item_as_not_bundle_ready() -> None:
+    provider = support_proof_audit.PROVIDERS["intercom"]
+    list_payload = [
+        {
+            "id": "item123",
+            "title": "Intercom - Rhumb AUD-18 Admin Login",
+            "category": "LOGIN",
+            "urls": ["https://app.intercom.com"],
+            "tags": [],
+        }
+    ]
+    item_payload = {
+        "id": "item123",
+        "fields": [
+            {"label": "username", "value": "team@getsupertrained.com"},
+            {"label": "password", "value": "secret"},
+        ],
+        "urls": ["https://app.intercom.com"],
+    }
+
+    with patch.object(support_proof_audit, "_run_json", return_value=(list_payload, None)), patch.object(
+        support_proof_audit, "_load_vault_item", return_value=(item_payload, None)
+    ):
+        result = support_proof_audit.audit_vault(provider, "OpenClaw Agents", 25)
+
+    assert result["hit_count"] == 1
+    assert result["bundle_ready_hit_count"] == 0
+    assert result["hits"][0]["bundle_material_ready"] is False
+    assert result["hits"][0]["missing_bundle_fields"] == [
+        "region",
+        "allowed_team_ids_or_allowed_admin_ids",
+    ]

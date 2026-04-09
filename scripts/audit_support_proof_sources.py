@@ -135,26 +135,180 @@ def _dedupe_strings(values: Iterable[str]) -> list[str]:
     return ordered
 
 
+def _normalize_key(value: object) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+
+
+def _field_value_map(item: dict[str, Any]) -> dict[str, object]:
+    mapped: dict[str, object] = {}
+    for field in item.get("fields") or []:
+        if not isinstance(field, dict):
+            continue
+        value = field.get("value")
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        for key_name in ("id", "label", "name", "purpose"):
+            key = _normalize_key(field.get(key_name))
+            if key and key not in mapped:
+                mapped[key] = value
+    return mapped
+
+
+def _first_value(values: dict[str, object], aliases: tuple[str, ...]) -> object | None:
+    for alias in aliases:
+        key = _normalize_key(alias)
+        if key in values:
+            return values[key]
+    return None
+
+
+def _first_string(values: dict[str, object], aliases: tuple[str, ...]) -> str | None:
+    value = _first_value(values, aliases)
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _parse_id_value(value: object) -> list[int]:
+    if value is None or value == "":
+        return []
+    if isinstance(value, (int, float)):
+        return [int(value)]
+    if isinstance(value, list):
+        parsed: list[int] = []
+        for item in value:
+            parsed.extend(_parse_id_value(item))
+        return parsed
+    parts = re.split(r"[\s,]+", str(value).strip())
+    parsed: list[int] = []
+    for part in parts:
+        if not part:
+            continue
+        try:
+            parsed.append(int(part))
+        except ValueError:
+            continue
+    return parsed
+
+
+def _load_vault_item(item_id: str, vault: str) -> tuple[dict[str, Any] | None, str | None]:
+    payload, error = _run_json(["sop", "item", "get", item_id, "--vault", vault, "--format", "json"])
+    if error:
+        return None, error
+    if not isinstance(payload, dict):
+        return None, "unexpected item payload"
+    return payload, None
+
+
+def _intercom_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str]]:
+    values = _field_value_map(item)
+    missing: list[str] = []
+    if not _first_string(values, ("region", "workspace_region", "intercom_region")):
+        missing.append("region")
+    if not _first_string(
+        values,
+        ("bearer_token", "access_token", "token", "credential", "secret", "password"),
+    ):
+        missing.append("bearer_token")
+    team_ids = _parse_id_value(
+        _first_value(values, ("allowed_team_ids", "allowed_team_id", "team_ids", "team_id"))
+    )
+    admin_ids = _parse_id_value(
+        _first_value(
+            values,
+            (
+                "allowed_admin_ids",
+                "allowed_admin_id",
+                "admin_ids",
+                "admin_id",
+                "teammate_ids",
+                "teammate_id",
+            ),
+        )
+    )
+    if not team_ids and not admin_ids:
+        missing.append("allowed_team_ids_or_allowed_admin_ids")
+    return not missing, missing
+
+
+def _zendesk_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str]]:
+    values = _field_value_map(item)
+    missing: list[str] = []
+    if not _first_string(values, ("subdomain", "zendesk_subdomain", "workspace_subdomain", "zendesk_workspace")):
+        missing.append("subdomain")
+    if not _first_string(values, ("email", "username", "login", "account_email")):
+        missing.append("email")
+    if not _first_string(
+        values,
+        ("api_token", "api_key", "password", "bearer_token", "access_token", "credential", "token", "secret"),
+    ):
+        missing.append("api_token_or_bearer_token")
+    group_ids = _parse_id_value(
+        _first_value(values, ("allowed_group_ids", "allowed_group_id", "group_ids", "group_id"))
+    )
+    brand_ids = _parse_id_value(
+        _first_value(values, ("allowed_brand_ids", "allowed_brand_id", "brand_ids", "brand_id"))
+    )
+    if not group_ids and not brand_ids:
+        missing.append("allowed_group_ids_or_allowed_brand_ids")
+    return not missing, missing
+
+
+def _bundle_material_status(provider: ProviderConfig, item: dict[str, Any]) -> tuple[bool, list[str]]:
+    if provider.name == "intercom":
+        return _intercom_bundle_material(item)
+    if provider.name == "zendesk":
+        return _zendesk_bundle_material(item)
+    return False, ["unsupported_provider"]
+
+
 def audit_vault(provider: ProviderConfig, vault: str, max_hits: int) -> dict[str, Any]:
     payload, error = _run_json(["sop", "item", "list", "--vault", vault, "--format", "json"])
     if error:
         return {"ok": False, "error": error, "hits": []}
     hits: list[dict[str, Any]] = []
+    bundle_ready_hit_count = 0
     for item in payload or []:
         blob = json.dumps(item).lower()
         if not any(token in blob for token in provider.vault_tokens):
             continue
+        item_id = str(item.get("id") or "").strip()
+        item_detail = None
+        item_error = None
+        bundle_material_ready = False
+        missing_bundle_fields: list[str] = []
+        if item_id:
+            item_detail, item_error = _load_vault_item(item_id, vault)
+        if item_detail is not None:
+            bundle_material_ready, missing_bundle_fields = _bundle_material_status(provider, item_detail)
+        if bundle_material_ready:
+            bundle_ready_hit_count += 1
         hits.append(
             {
+                "id": item_id,
                 "title": item.get("title"),
                 "category": item.get("category"),
                 "urls": item.get("urls") or [],
                 "tags": item.get("tags") or [],
+                "bundle_material_ready": bundle_material_ready,
+                "missing_bundle_fields": missing_bundle_fields,
+                "item_error": item_error,
             }
         )
         if len(hits) >= max_hits:
             break
-    return {"ok": True, "hits": hits, "hit_count": len(hits)}
+    return {
+        "ok": True,
+        "hits": hits,
+        "hit_count": len(hits),
+        "bundle_ready_hit_count": bundle_ready_hit_count,
+    }
 
 
 def audit_browser_history(provider: ProviderConfig, history_db: Path, max_hits: int) -> dict[str, Any]:
@@ -338,9 +492,10 @@ def summarize_provider(
     hosted_surface: dict[str, Any],
 ) -> dict[str, Any]:
     vault_hit_count = int(vault.get("hit_count") or 0)
+    vault_bundle_ready_hit_count = int(vault.get("bundle_ready_hit_count") or 0)
     browser_workspace_hosts = browser.get("workspace_hosts") or []
     gmail_instances = gmail.get("instances") or []
-    proof_material_ready = vault_hit_count > 0
+    proof_material_ready = vault_bundle_ready_hit_count > 0
     likely_blocked = not proof_material_ready
     hosted_surface_live = bool(hosted_surface.get("live"))
     hosted_configured = bool(
@@ -352,16 +507,23 @@ def summarize_provider(
     elif not hosted_surface_live:
         blocker = "Hosted support surface is not fully live yet, so deploy truth still needs verification before credentials matter."
     elif likely_blocked:
-        blocker = (
-            "Hosted support surface is live, but no vault-backed support credential bundle was detected. Browser and Gmail may show provider traces or third-party instances, "
-            "but they do not constitute operator-ready proof material."
-        )
+        if vault_hit_count > 0:
+            blocker = (
+                "Hosted support surface is live, and candidate vault items now exist, but none currently contain the scoped credential-bundle fields required for hosted proof. "
+                "Browser and Gmail may show provider traces or third-party instances, but they do not constitute operator-ready proof material."
+            )
+        else:
+            blocker = (
+                "Hosted support surface is live, but no vault-backed support credential bundle was detected. Browser and Gmail may show provider traces or third-party instances, "
+                "but they do not constitute operator-ready proof material."
+            )
     else:
-        blocker = "Vault metadata shows at least one candidate support item; inspect the item fields before claiming proof readiness."
+        blocker = "Vault inspection found at least one support item with the scoped bundle fields required for hosted proof."
 
     return {
         "provider": provider.name,
         "vault_hit_count": vault_hit_count,
+        "vault_bundle_ready_hit_count": vault_bundle_ready_hit_count,
         "browser_workspace_host_count": len(browser_workspace_hosts),
         "browser_workspace_hosts": browser_workspace_hosts,
         "gmail_hit_count": int(gmail.get("hit_count") or 0),
