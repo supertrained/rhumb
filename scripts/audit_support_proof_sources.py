@@ -21,6 +21,8 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +38,7 @@ DEFAULT_GMAIL_ACCOUNTS = [
     "tmeredith@simplaphi.com",
     "tom.d.meredith@gmail.com",
 ]
+DEFAULT_API_BASE = "https://api.rhumb.dev"
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,7 @@ class ProviderConfig:
     gmail_sender_patterns: tuple[re.Pattern[str], ...]
     browser_like_terms: tuple[str, ...]
     generic_public_hosts: tuple[str, ...]
+    hosted_capability_id: str | None = None
 
 
 PROVIDERS: dict[str, ProviderConfig] = {
@@ -59,6 +63,7 @@ PROVIDERS: dict[str, ProviderConfig] = {
         ),
         browser_like_terms=("zendesk",),
         generic_public_hosts=("www.zendesk.com", "zendesk.com"),
+        hosted_capability_id="ticket.search",
     ),
     "intercom": ProviderConfig(
         name="intercom",
@@ -92,6 +97,24 @@ def _run_json(cmd: list[str]) -> tuple[Any | None, str | None]:
         return json.loads(stdout or "null"), None
     except json.JSONDecodeError as exc:
         return None, f"invalid JSON output: {exc}"
+
+
+def _fetch_json_url(url: str) -> tuple[int | None, Any | None, str | None]:
+    try:
+        with urllib.request.urlopen(url, timeout=20) as response:
+            status = response.status
+            body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        body = exc.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        return None, None, str(exc)
+
+    try:
+        payload = json.loads(body or "null")
+    except json.JSONDecodeError as exc:
+        return status, None, f"invalid JSON response from {url}: {exc}"
+    return status, payload, None
 
 
 def _host_from_url(url: str) -> str | None:
@@ -255,15 +278,81 @@ def audit_gmail(provider: ProviderConfig, accounts: list[str], max_hits: int) ->
     }
 
 
-def summarize_provider(provider: ProviderConfig, vault: dict[str, Any], browser: dict[str, Any], gmail: dict[str, Any]) -> dict[str, Any]:
+def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, Any]:
+    if not provider.hosted_capability_id:
+        return {
+            "ok": True,
+            "supported": False,
+            "reason": "provider has no direct hosted support rail to audit yet",
+        }
+
+    capability_id = provider.hosted_capability_id
+    get_status, get_payload, get_error = _fetch_json_url(f"{api_base}/v1/capabilities/{capability_id}")
+    resolve_status, resolve_payload, resolve_error = _fetch_json_url(
+        f"{api_base}/v1/capabilities/{capability_id}/resolve"
+    )
+    modes_status, modes_payload, modes_error = _fetch_json_url(
+        f"{api_base}/v1/capabilities/{capability_id}/credential-modes"
+    )
+
+    resolve_provider = None
+    if isinstance(resolve_payload, dict):
+        providers = ((resolve_payload.get("data") or {}).get("providers") or [])
+        resolve_provider = next(
+            (item for item in providers if item.get("service_slug") == provider.name),
+            providers[0] if providers else None,
+        )
+
+    mode_provider = None
+    if isinstance(modes_payload, dict):
+        providers = ((modes_payload.get("data") or {}).get("providers") or [])
+        mode_provider = next(
+            (item for item in providers if item.get("service_slug") == provider.name),
+            providers[0] if providers else None,
+        )
+
+    return {
+        "ok": all(error is None for error in (get_error, resolve_error, modes_error)),
+        "supported": True,
+        "capability_id": capability_id,
+        "get_status": get_status,
+        "resolve_status": resolve_status,
+        "credential_modes_status": modes_status,
+        "live": get_status == 200 and resolve_status == 200 and modes_status == 200,
+        "resolve_configured": bool((resolve_provider or {}).get("configured")),
+        "credential_modes_configured": bool((mode_provider or {}).get("any_configured")),
+        "errors": {
+            "get": get_error,
+            "resolve": resolve_error,
+            "credential_modes": modes_error,
+        },
+    }
+
+
+def summarize_provider(
+    provider: ProviderConfig,
+    vault: dict[str, Any],
+    browser: dict[str, Any],
+    gmail: dict[str, Any],
+    hosted_surface: dict[str, Any],
+) -> dict[str, Any]:
     vault_hit_count = int(vault.get("hit_count") or 0)
     browser_workspace_hosts = browser.get("workspace_hosts") or []
     gmail_instances = gmail.get("instances") or []
-    likely_blocked = vault_hit_count == 0
+    proof_material_ready = vault_hit_count > 0
+    likely_blocked = not proof_material_ready
+    hosted_surface_live = bool(hosted_surface.get("live"))
+    hosted_configured = bool(
+        hosted_surface.get("resolve_configured") or hosted_surface.get("credential_modes_configured")
+    )
 
-    if likely_blocked:
+    if not hosted_surface.get("supported"):
+        blocker = "No hosted direct support rail is published yet for this provider."
+    elif not hosted_surface_live:
+        blocker = "Hosted support surface is not fully live yet, so deploy truth still needs verification before credentials matter."
+    elif likely_blocked:
         blocker = (
-            "No vault-backed support credential bundle detected. Browser and Gmail may show provider traces or third-party instances, "
+            "Hosted support surface is live, but no vault-backed support credential bundle was detected. Browser and Gmail may show provider traces or third-party instances, "
             "but they do not constitute operator-ready proof material."
         )
     else:
@@ -276,7 +365,9 @@ def summarize_provider(provider: ProviderConfig, vault: dict[str, Any], browser:
         "browser_workspace_hosts": browser_workspace_hosts,
         "gmail_hit_count": int(gmail.get("hit_count") or 0),
         "gmail_candidate_instances": gmail_instances,
-        "proof_material_ready": vault_hit_count > 0,
+        "hosted_surface_live": hosted_surface_live,
+        "hosted_surface_configured": hosted_configured,
+        "proof_material_ready": proof_material_ready,
         "likely_blocked_on_credentials": likely_blocked,
         "assessment": blocker,
     }
@@ -287,6 +378,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider", choices=["zendesk", "intercom", "all"], default="all")
     parser.add_argument("--vault", default=DEFAULT_VAULT)
     parser.add_argument("--browser-history", type=Path, default=DEFAULT_HISTORY_DB)
+    parser.add_argument("--api-base", default=DEFAULT_API_BASE)
     parser.add_argument("--gmail-account", action="append", default=[])
     parser.add_argument("--max-hits", type=int, default=25)
     parser.add_argument("--json-out")
@@ -303,6 +395,7 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "vault": args.vault,
         "browser_history": str(args.browser_history),
+        "api_base": args.api_base,
         "gmail_accounts": accounts,
         "providers": {},
         "summary": [],
@@ -313,11 +406,13 @@ def main() -> int:
         vault = audit_vault(provider, args.vault, args.max_hits)
         browser = audit_browser_history(provider, args.browser_history, args.max_hits)
         gmail = audit_gmail(provider, accounts, args.max_hits)
-        summary = summarize_provider(provider, vault, browser, gmail)
+        hosted_surface = audit_hosted_surface(provider, args.api_base)
+        summary = summarize_provider(provider, vault, browser, gmail, hosted_surface)
         result["providers"][provider_name] = {
             "vault": vault,
             "browser": browser,
             "gmail": gmail,
+            "hosted_surface": hosted_surface,
             "summary": summary,
         }
         result["summary"].append(summary)
@@ -334,6 +429,8 @@ def main() -> int:
                 f"browser_workspace_hosts={summary['browser_workspace_host_count']} "
                 f"gmail_hits={summary['gmail_hit_count']} "
                 f"gmail_instances={','.join(summary['gmail_candidate_instances']) or '-'} "
+                f"hosted_live={summary['hosted_surface_live']} "
+                f"hosted_configured={summary['hosted_surface_configured']} "
                 f"proof_ready={summary['proof_material_ready']}"
             )
     else:

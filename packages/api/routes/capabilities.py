@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from routes._supabase import supabase_fetch
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
+from services.support_connection_registry import has_any_support_bundle_configured
 
 
 def _capability_not_found(raw_request: Request, capability_id: str) -> JSONResponse:
@@ -250,6 +251,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
 
 
 def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured = has_any_support_bundle_configured()
     provider = {
         "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
         "service_name": _SUPPORT_DIRECT_PROVIDER_NAME,
@@ -269,7 +271,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "recommendation_reason": "Direct read-only Zendesk execution via support_ref with explicit brand/group scope and public-comments-only default.",
         "circuit_state": "n/a",
         "available_for_execute": True,
-        "configured": False,
+        "configured": configured,
     }
     return {
         "capability": capability_id,
@@ -334,6 +336,7 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
 
 
 def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured = has_any_support_bundle_configured()
     return {
         "capability_id": capability_id,
         "providers": [
@@ -344,11 +347,11 @@ def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
                     {
                         "mode": "byok",
                         "available": True,
-                        "configured": False,
+                        "configured": configured,
                         "setup_hint": "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=zendesk, subdomain, auth_mode, credentials, and explicit allowed_group_ids and/or allowed_brand_ids.",
                     }
                 ],
-                "any_configured": False,
+                "any_configured": configured,
             }
         ],
     }

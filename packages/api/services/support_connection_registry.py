@@ -37,6 +37,19 @@ def validate_support_ref(support_ref: str) -> None:
         )
 
 
+def has_any_support_bundle_configured() -> bool:
+    for env_key in os.environ:
+        if not env_key.startswith("RHUMB_SUPPORT_"):
+            continue
+        support_ref = env_key.removeprefix("RHUMB_SUPPORT_").lower()
+        try:
+            resolve_support_bundle(support_ref)
+        except SupportRefError:
+            continue
+        return True
+    return False
+
+
 def resolve_support_bundle(support_ref: str) -> ZendeskSupportBundle:
     validate_support_ref(support_ref)
     env_key = f"RHUMB_SUPPORT_{support_ref.upper()}"
