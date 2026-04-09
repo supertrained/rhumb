@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from routes._supabase import supabase_fetch
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
+from services.deployment_connection_registry import has_any_deployment_bundle_configured
 from services.support_connection_registry import has_any_support_bundle_configured
 
 
@@ -41,6 +42,10 @@ _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG = "aws-s3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_NAME = "AWS S3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY = "storage_object"
 _OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES = ["byok"]
+_DEPLOYMENT_DIRECT_PROVIDER_SLUG = "vercel"
+_DEPLOYMENT_DIRECT_PROVIDER_NAME = "Vercel"
+_DEPLOYMENT_DIRECT_PROVIDER_CATEGORY = "deployment"
+_DEPLOYMENT_DIRECT_CREDENTIAL_MODES = ["byok"]
 _ZENDESK_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
 _ZENDESK_SUPPORT_DIRECT_PROVIDER_NAME = "Zendesk"
 _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG = "intercom"
@@ -69,6 +74,13 @@ def _is_object_storage_direct_capability(capability_id: str) -> bool:
         "object.list",
         "object.head",
         "object.get",
+    }
+
+
+def _is_deployment_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "deployment.list",
+        "deployment.get",
     }
 
 
@@ -131,6 +143,14 @@ def _support_direct_top_provider(capability_id: str) -> dict[str, str | None]:
     }
 
 
+def _deployment_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
     hosted_posture_suffix = (
         " Hosted Rhumb should use agent_vault; env-backed connection_ref setup is "
@@ -175,6 +195,29 @@ def _object_storage_direct_provider_details(capability_id: str) -> dict[str, obj
         "auth_method": "storage_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
+    }
+
+
+def _deployment_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "deployment.list": "Direct read-only Vercel deployment listing via deployment_ref with explicit project scope and optional target bounds.",
+        "deployment.get": "Direct read-only Vercel deployment fetch via deployment_ref with explicit project scope, optional target bounds, and bounded failure metadata.",
+    }
+    return {
+        "service_slug": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
+        "service_name": _DEPLOYMENT_DIRECT_PROVIDER_NAME,
+        "category": _DEPLOYMENT_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "deployment_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_DEPLOYMENT_DIRECT_CREDENTIAL_MODES),
         "cost_per_call": None,
         "cost_currency": "USD",
         "free_tier_calls": None,
@@ -282,6 +325,43 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
     }
 
 
+def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured = has_any_deployment_bundle_configured("vercel")
+    provider = {
+        "service_slug": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
+        "service_name": _DEPLOYMENT_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_DEPLOYMENT_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "deployment_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only Vercel deployment visibility via deployment_ref with explicit project scope and optional target limits.",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": configured,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_DEPLOYMENT_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_DEPLOYMENT_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
 def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     provider_slug = _support_direct_provider_slug(capability_id)
     configured = has_any_support_bundle_configured(provider_slug)
@@ -368,6 +448,28 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
     }
 
 
+def _deployment_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured = has_any_deployment_bundle_configured("vercel")
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
+                "auth_method": "deployment_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": configured,
+                        "setup_hint": "Pass a deployment_ref that resolves to a RHUMB_DEPLOYMENT_<REF> JSON bundle with provider=vercel, auth_mode=bearer_token, bearer_token, allowed_project_ids, and optional team_id/allowed_targets.",
+                    }
+                ],
+                "any_configured": configured,
+            }
+        ],
+    }
+
+
 def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
     provider_slug = _support_direct_provider_slug(capability_id)
     configured = has_any_support_bundle_configured(provider_slug)
@@ -445,6 +547,24 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "outcome": "Returns bounded object content as text or base64 with honest truncation state.",
         },
     }
+    deployment_records = {
+        "deployment.list": {
+            "id": "deployment.list",
+            "domain": "deployment",
+            "action": "list",
+            "description": "Direct read-only Vercel deployment listing with explicit project scope and optional target bounds.",
+            "input_hint": "Provide deployment_ref and optional project, target, state, and time filters.",
+            "outcome": "Returns bounded Vercel deployment summaries for the allowlisted scope.",
+        },
+        "deployment.get": {
+            "id": "deployment.get",
+            "domain": "deployment",
+            "action": "get",
+            "description": "Direct read-only Vercel deployment fetch with explicit project scope and bounded failure metadata.",
+            "input_hint": "Provide deployment_ref and deployment_id.",
+            "outcome": "Returns one allowed Vercel deployment with bounded alias and error details.",
+        },
+    }
     support_records = {
         "ticket.search": {
             "id": "ticket.search",
@@ -495,7 +615,12 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "outcome": "Returns bounded Intercom conversation parts with honest visibility rules.",
         },
     }
-    return db_records.get(capability_id) or object_storage_records.get(capability_id) or support_records.get(capability_id)
+    return (
+        db_records.get(capability_id)
+        or object_storage_records.get(capability_id)
+        or deployment_records.get(capability_id)
+        or support_records.get(capability_id)
+    )
 
 
 def _synthetic_capability_records() -> list[dict[str, object]]:
@@ -508,6 +633,8 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
             "object.list",
             "object.head",
             "object.get",
+            "deployment.list",
+            "deployment.get",
             "ticket.search",
             "ticket.get",
             "ticket.list_comments",
@@ -525,6 +652,7 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "crawl": {"scrape", "extract", "website", "web"},
     "database": {"db", "postgres", "postgresql", "sql", "table", "schema", "query"},
     "db": {"database", "postgres", "postgresql", "sql", "schema", "table", "query"},
+    "deployment": {"deploy", "deployments", "vercel", "preview", "production", "project"},
     "extract": {"scrape", "crawl", "parse", "website", "webpage", "url"},
     "find": {"search", "lookup", "discover", "query"},
     "generate": {"create", "make", "write"},
@@ -541,6 +669,7 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "support": {"ticket", "tickets", "helpdesk", "zendesk", "comment", "comments"},
     "ticket": {"tickets", "support", "zendesk", "comment", "comments", "helpdesk"},
     "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
+    "vercel": {"deploy", "deployment", "deployments", "preview", "production", "project"},
     "website": {"web", "webpage", "page", "site", "url", "html"},
     "webpage": {"web", "website", "page", "site", "url", "html"},
     "zendesk": {"support", "ticket", "tickets", "comment", "comments", "helpdesk"},
@@ -803,6 +932,9 @@ async def list_capabilities(
         elif _is_object_storage_direct_capability(cid):
             provider_count = 1
             top_provider = _object_storage_direct_top_provider()
+        elif _is_deployment_direct_capability(cid):
+            provider_count = 1
+            top_provider = _deployment_direct_top_provider()
 
         items.append({
             "id": cid,
@@ -975,6 +1107,15 @@ async def get_capability(capability_id: str, raw_request: Request):
             },
             "error": None,
         }
+    if _is_deployment_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_deployment_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
 
     # Get all service mappings for this capability
     mappings = await supabase_fetch(
@@ -1039,6 +1180,8 @@ async def get_capability(capability_id: str, raw_request: Request):
         providers = [_db_direct_provider_details(capability_id)]
     if not providers and _is_object_storage_direct_capability(capability_id):
         providers = [_object_storage_direct_provider_details(capability_id)]
+    if not providers and _is_deployment_direct_capability(capability_id):
+        providers = [_deployment_direct_provider_details(capability_id)]
 
     return {
         "data": {
@@ -1076,6 +1219,11 @@ async def resolve_capability(
             "data": _support_direct_resolve_payload(capability_id),
             "error": None,
         }
+    if _is_deployment_direct_capability(capability_id):
+        return {
+            "data": _deployment_direct_resolve_payload(capability_id),
+            "error": None,
+        }
 
     # Get service mappings
     mapping_path = (
@@ -1097,6 +1245,11 @@ async def resolve_capability(
         if _is_object_storage_direct_capability(capability_id):
             return {
                 "data": _object_storage_direct_resolve_payload(capability_id),
+                "error": None,
+            }
+        if _is_deployment_direct_capability(capability_id):
+            return {
+                "data": _deployment_direct_resolve_payload(capability_id),
                 "error": None,
             }
         return {
@@ -1283,6 +1436,11 @@ async def get_credential_modes(
             "data": _support_direct_credential_modes(capability_id),
             "error": None,
         }
+    if _is_deployment_direct_capability(capability_id):
+        return {
+            "data": _deployment_direct_credential_modes(capability_id),
+            "error": None,
+        }
 
     # Get provider mappings
     mappings = await supabase_fetch(
@@ -1298,6 +1456,11 @@ async def get_credential_modes(
         if _is_object_storage_direct_capability(capability_id):
             return {
                 "data": _object_storage_direct_credential_modes(capability_id),
+                "error": None,
+            }
+        if _is_deployment_direct_capability(capability_id):
+            return {
+                "data": _deployment_direct_credential_modes(capability_id),
                 "error": None,
             }
         return {

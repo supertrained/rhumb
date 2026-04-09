@@ -1242,12 +1242,14 @@ async def execute_capability(
         )
 
     # ── AUD-18: direct capability early dispatch ───────────────────
-    # DB, storage, and support capabilities bypass the proxy layer entirely.
+    # DB, storage, support, and deployment capabilities bypass the proxy layer entirely.
     from routes.db_execute import is_db_capability, handle_db_execute
+    from routes.deployment_execute import is_deployment_capability, handle_deployment_execute
     from routes.storage_execute import is_storage_capability, handle_storage_execute
     from routes.support_execute import is_support_capability, handle_support_execute
     if (
         is_db_capability(capability_id)
+        or is_deployment_capability(capability_id)
         or is_storage_capability(capability_id)
         or is_support_capability(capability_id)
     ):
@@ -1256,6 +1258,8 @@ async def execute_capability(
         if not x_rhumb_key:
             if is_db_capability(capability_id):
                 detail = "X-Rhumb-Key header required for database capability execution"
+            elif is_deployment_capability(capability_id):
+                detail = "X-Rhumb-Key header required for deployment capability execution"
             elif is_storage_capability(capability_id):
                 detail = "X-Rhumb-Key header required for storage capability execution"
             else:
@@ -1266,6 +1270,15 @@ async def execute_capability(
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
         if is_db_capability(capability_id):
             return await handle_db_execute(
+                capability_id=capability_id,
+                raw_request=raw_request,
+                agent_id=agent.agent_id,
+                org_id=agent.organization_id,
+                execution_id=execution_id,
+                request_id=request_id,
+            )
+        if is_deployment_capability(capability_id):
+            return await handle_deployment_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
                 agent_id=agent.agent_id,
