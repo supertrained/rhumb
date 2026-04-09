@@ -1,4 +1,4 @@
-"""Zendesk ticket read-first capability execution for AUD-18."""
+"""Support read-first capability execution for AUD-18."""
 
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ from pydantic import ValidationError
 
 from routes._supabase import supabase_insert
 from schemas.support_capabilities import (
+    ConversationGetRequest,
+    ConversationListPartsRequest,
+    ConversationListRequest,
     TicketGetRequest,
     TicketListCommentsRequest,
     TicketSearchRequest,
@@ -23,7 +26,17 @@ from services.receipt_service import (
     hash_request_payload,
     hash_response_payload,
 )
-from services.support_connection_registry import SupportRefError, resolve_support_bundle
+from services.support_connection_registry import (
+    SupportRefError,
+    resolve_intercom_support_bundle,
+    resolve_zendesk_support_bundle,
+)
+from services.intercom_read_executor import (
+    IntercomExecutorError,
+    get_conversation,
+    list_conversation_parts,
+    list_conversations,
+)
 from services.support_receipt_summary import summarize_support_execution
 from services.zendesk_read_executor import (
     ZendeskExecutorError,
@@ -34,11 +47,24 @@ from services.zendesk_read_executor import (
 
 logger = logging.getLogger(__name__)
 
-SUPPORT_CAPABILITY_IDS = frozenset({"ticket.search", "ticket.get", "ticket.list_comments"})
+SUPPORT_CAPABILITY_IDS = frozenset({
+    "ticket.search",
+    "ticket.get",
+    "ticket.list_comments",
+    "conversation.list",
+    "conversation.get",
+    "conversation.list_parts",
+})
 
 
 def is_support_capability(capability_id: str) -> bool:
     return capability_id in SUPPORT_CAPABILITY_IDS
+
+
+def _provider_for_capability(capability_id: str) -> str:
+    if capability_id.startswith("conversation."):
+        return "intercom"
+    return "zendesk"
 
 
 def _client_ip(raw_request: Request) -> str | None:
@@ -60,7 +86,7 @@ async def handle_support_execute(
     request_id: str,
 ) -> JSONResponse | dict:
     start = time.perf_counter()
-    provider_used = "zendesk"
+    provider_used = _provider_for_capability(capability_id)
     credential_mode = "byok"
 
     try:
@@ -102,16 +128,28 @@ async def handle_support_execute(
     try:
         if capability_id == "ticket.search":
             request = TicketSearchRequest.model_validate(body)
-            bundle = resolve_support_bundle(request.support_ref)
+            bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await search_tickets(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "ticket.get":
             request = TicketGetRequest.model_validate(body)
-            bundle = resolve_support_bundle(request.support_ref)
+            bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await get_ticket(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "ticket.list_comments":
             request = TicketListCommentsRequest.model_validate(body)
-            bundle = resolve_support_bundle(request.support_ref)
+            bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await list_comments(request, bundle=bundle, execution_id=execution_id)
+        elif capability_id == "conversation.list":
+            request = ConversationListRequest.model_validate(body)
+            bundle = resolve_intercom_support_bundle(request.support_ref)
+            result = await list_conversations(request, bundle=bundle, execution_id=execution_id)
+        elif capability_id == "conversation.get":
+            request = ConversationGetRequest.model_validate(body)
+            bundle = resolve_intercom_support_bundle(request.support_ref)
+            result = await get_conversation(request, bundle=bundle, execution_id=execution_id)
+        elif capability_id == "conversation.list_parts":
+            request = ConversationListPartsRequest.model_validate(body)
+            bundle = resolve_intercom_support_bundle(request.support_ref)
+            result = await list_conversation_parts(request, bundle=bundle, execution_id=execution_id)
         else:
             return await _failure_response(
                 raw_request=raw_request,
@@ -160,7 +198,7 @@ async def handle_support_execute(
             status_code=422,
             started_at=start,
         )
-    except ZendeskExecutorError as exc:
+    except (ZendeskExecutorError, IntercomExecutorError) as exc:
         return await _failure_response(
             raw_request=raw_request,
             agent_id=agent_id,

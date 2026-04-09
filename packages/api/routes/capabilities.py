@@ -41,8 +41,10 @@ _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG = "aws-s3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_NAME = "AWS S3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY = "storage_object"
 _OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES = ["byok"]
-_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
-_SUPPORT_DIRECT_PROVIDER_NAME = "Zendesk"
+_ZENDESK_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
+_ZENDESK_SUPPORT_DIRECT_PROVIDER_NAME = "Zendesk"
+_INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG = "intercom"
+_INTERCOM_SUPPORT_DIRECT_PROVIDER_NAME = "Intercom"
 _SUPPORT_DIRECT_PROVIDER_CATEGORY = "support"
 _SUPPORT_DIRECT_CREDENTIAL_MODES = ["byok"]
 
@@ -75,7 +77,34 @@ def _is_support_direct_capability(capability_id: str) -> bool:
         "ticket.search",
         "ticket.get",
         "ticket.list_comments",
+        "conversation.list",
+        "conversation.get",
+        "conversation.list_parts",
     }
+
+
+def _support_direct_provider_slug(capability_id: str) -> str:
+    if capability_id.startswith("conversation."):
+        return _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG
+    return _ZENDESK_SUPPORT_DIRECT_PROVIDER_SLUG
+
+
+def _support_direct_provider_name(capability_id: str) -> str:
+    if _support_direct_provider_slug(capability_id) == _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG:
+        return _INTERCOM_SUPPORT_DIRECT_PROVIDER_NAME
+    return _ZENDESK_SUPPORT_DIRECT_PROVIDER_NAME
+
+
+def _support_direct_recommendation_reason(capability_id: str) -> str:
+    if capability_id.startswith("conversation."):
+        return "Direct read-only Intercom execution via support_ref with explicit team/admin scope and customer-visible-by-default conversation parts."
+    return "Direct read-only Zendesk execution via support_ref with explicit brand/group scope and public-comments-only default."
+
+
+def _support_direct_setup_hint(capability_id: str) -> str:
+    if capability_id.startswith("conversation."):
+        return "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=intercom, region, auth_mode=bearer_token, bearer_token, and explicit allowed_team_ids and/or allowed_admin_ids."
+    return "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=zendesk, subdomain, auth_mode, credentials, and explicit allowed_group_ids and/or allowed_brand_ids."
 
 
 def _db_direct_top_provider() -> dict[str, str | None]:
@@ -94,9 +123,9 @@ def _object_storage_direct_top_provider() -> dict[str, str | None]:
     }
 
 
-def _support_direct_top_provider() -> dict[str, str | None]:
+def _support_direct_top_provider(capability_id: str) -> dict[str, str | None]:
     return {
-        "slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
+        "slug": _support_direct_provider_slug(capability_id),
         "an_score": None,
         "tier_label": "Direct",
     }
@@ -159,10 +188,13 @@ def _support_direct_provider_details(capability_id: str) -> dict[str, object]:
         "ticket.search": "Direct read-only Zendesk ticket search via support_ref with explicit brand/group scope and bounded results.",
         "ticket.get": "Direct read-only Zendesk ticket fetch via support_ref with scope enforcement and bounded plain-text fields.",
         "ticket.list_comments": "Direct read-only Zendesk ticket comment fetch via support_ref with public-comments-only default.",
+        "conversation.list": "Direct read-only Intercom conversation listing via support_ref with explicit team/admin scope and bounded results.",
+        "conversation.get": "Direct read-only Intercom conversation fetch via support_ref with scope enforcement and bounded plain-text source fields.",
+        "conversation.list_parts": "Direct read-only Intercom conversation parts fetch via support_ref with customer-visible-by-default notes handling.",
     }
     return {
-        "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
-        "service_name": _SUPPORT_DIRECT_PROVIDER_NAME,
+        "service_slug": _support_direct_provider_slug(capability_id),
+        "service_name": _support_direct_provider_name(capability_id),
         "category": _SUPPORT_DIRECT_PROVIDER_CATEGORY,
         "an_score": None,
         "tier": None,
@@ -251,10 +283,11 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
 
 
 def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
-    configured = has_any_support_bundle_configured()
+    provider_slug = _support_direct_provider_slug(capability_id)
+    configured = has_any_support_bundle_configured(provider_slug)
     provider = {
-        "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
-        "service_name": _SUPPORT_DIRECT_PROVIDER_NAME,
+        "service_slug": provider_slug,
+        "service_name": _support_direct_provider_name(capability_id),
         "an_score": None,
         "execution_score": None,
         "access_readiness_score": None,
@@ -268,7 +301,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "auth_method": "support_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "recommendation": "available",
-        "recommendation_reason": "Direct read-only Zendesk execution via support_ref with explicit brand/group scope and public-comments-only default.",
+        "recommendation_reason": _support_direct_recommendation_reason(capability_id),
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
@@ -276,10 +309,10 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     return {
         "capability": capability_id,
         "providers": [provider],
-        "fallback_chain": [_SUPPORT_DIRECT_PROVIDER_SLUG],
+        "fallback_chain": [provider_slug],
         "bundle_ids": [],
         "execute_hint": {
-            "preferred_provider": _SUPPORT_DIRECT_PROVIDER_SLUG,
+            "preferred_provider": provider_slug,
             "endpoint_pattern": provider["endpoint_pattern"],
             "estimated_cost_usd": None,
             "credential_modes": list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
@@ -336,19 +369,20 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
 
 
 def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
-    configured = has_any_support_bundle_configured()
+    provider_slug = _support_direct_provider_slug(capability_id)
+    configured = has_any_support_bundle_configured(provider_slug)
     return {
         "capability_id": capability_id,
         "providers": [
             {
-                "service_slug": _SUPPORT_DIRECT_PROVIDER_SLUG,
+                "service_slug": provider_slug,
                 "auth_method": "support_ref",
                 "modes": [
                     {
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=zendesk, subdomain, auth_mode, credentials, and explicit allowed_group_ids and/or allowed_brand_ids.",
+                        "setup_hint": _support_direct_setup_hint(capability_id),
                     }
                 ],
                 "any_configured": configured,
@@ -436,6 +470,30 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "input_hint": "Provide support_ref, ticket_id, and optional include_internal/page_after.",
             "outcome": "Returns bounded Zendesk ticket comments with honest visibility rules.",
         },
+        "conversation.list": {
+            "id": "conversation.list",
+            "domain": "support",
+            "action": "list",
+            "description": "Direct read-only Intercom conversation listing with explicit scope limits and bounded results.",
+            "input_hint": "Provide support_ref and optional limit/page_after/state filters.",
+            "outcome": "Returns bounded Intercom conversation summaries with honest provider attribution.",
+        },
+        "conversation.get": {
+            "id": "conversation.get",
+            "domain": "support",
+            "action": "get",
+            "description": "Direct read-only Intercom conversation fetch with scope enforcement and bounded source fields.",
+            "input_hint": "Provide support_ref and conversation_id.",
+            "outcome": "Returns one allowed Intercom conversation with bounded plain-text source content.",
+        },
+        "conversation.list_parts": {
+            "id": "conversation.list_parts",
+            "domain": "support",
+            "action": "list_parts",
+            "description": "Direct read-only Intercom conversation parts fetch with customer-visible-by-default note handling.",
+            "input_hint": "Provide support_ref, conversation_id, and optional include_internal/page_after.",
+            "outcome": "Returns bounded Intercom conversation parts with honest visibility rules.",
+        },
     }
     return db_records.get(capability_id) or object_storage_records.get(capability_id) or support_records.get(capability_id)
 
@@ -453,6 +511,9 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
             "ticket.search",
             "ticket.get",
             "ticket.list_comments",
+            "conversation.list",
+            "conversation.get",
+            "conversation.list_parts",
         ]
         if (record := _synthetic_capability_record(capability_id)) is not None
     ]
@@ -719,7 +780,7 @@ async def list_capabilities(
         top_provider = None
         if _is_support_direct_capability(cid):
             provider_count = 1
-            top_provider = _support_direct_top_provider()
+            top_provider = _support_direct_top_provider(cid)
         elif provider_slugs:
             best_slug = None
             best_score = -1.0
