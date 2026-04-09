@@ -303,6 +303,84 @@ python3 scripts/s3_read_dogfood.py \
   --json-out artifacts/aud18-s3-hosted-proof-<timestamp>.json
 ```
 
+## Direct Zendesk Ticket Read-First Capabilities (AUD-18 Wave 1)
+
+Rhumb now exposes three direct Zendesk ticket read-first capabilities:
+
+- `ticket.search`
+- `ticket.get`
+- `ticket.list_comments`
+
+These run through the normal capability surface:
+
+- `POST /v1/capabilities/ticket.search/execute`
+- `POST /v1/capabilities/ticket.get/execute`
+- `POST /v1/capabilities/ticket.list_comments/execute`
+
+### Credential posture
+
+For the first Zendesk slice, only `credential_mode="byok"` is supported.
+
+Requests must include a `support_ref` that resolves on the server to an env-backed bundle:
+
+- `RHUMB_SUPPORT_<REF>`
+
+Bundle shape:
+
+```json
+{
+  "provider": "zendesk",
+  "subdomain": "acme",
+  "auth_mode": "api_token",
+  "email": "operator@example.com",
+  "api_token": "zd_api_token",
+  "allowed_group_ids": [12345],
+  "allowed_brand_ids": [67890],
+  "allow_internal_comments": false
+}
+```
+
+Bearer-token mode is also supported by the runtime parser:
+
+```json
+{
+  "provider": "zendesk",
+  "subdomain": "acme",
+  "auth_mode": "bearer_token",
+  "bearer_token": "zd_bearer_token",
+  "allowed_group_ids": [12345],
+  "allowed_brand_ids": [67890],
+  "allow_internal_comments": false
+}
+```
+
+### Helper + proof scripts
+
+- Build and validate the bundle:
+  - `python3 scripts/build_zendesk_support_bundle.py --support-ref st_zd --subdomain acme --auth-mode api_token --email you@example.com --api-token "$ZD_API_TOKEN" --allowed-group-id 12345 --allowed-brand-id 67890 --railway`
+- Run the hosted proof loop once the bundle is set:
+  - `python3 scripts/zendesk_read_dogfood.py --support-ref st_zd --ticket-id 123 --comments-ticket-id 123 --denied-ticket-id 456`
+
+### Example request
+
+```bash
+curl -X POST http://localhost:8000/v1/capabilities/ticket.get/execute \
+  -H "Content-Type: application/json" \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  -d '{
+    "credential_mode": "byok",
+    "support_ref": "st_zd",
+    "ticket_id": 12345
+  }'
+```
+
+The runtime enforces:
+
+- group/brand scope via the `support_ref` bundle
+- public-comments-only by default
+- bounded search and comment limits
+- honest provider attribution as `zendesk`
+
 ## Pricing Endpoint
 
 ### `GET /v1/pricing`

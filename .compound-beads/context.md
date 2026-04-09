@@ -6,20 +6,28 @@
 ## Current State
 
 ### 2026-04-08 AUD-18 Snapshot
-- Primary lane is `AUD-18`, not callable freshness or `AUD-3` recovery.
-- Hosted DB posture is now explicit: env-backed `connection_ref` stays self-hosted/internal only, and hosted Rhumb blesses `credential_mode=agent_vault` for DB reads.
-- Product guidance/hints are aligned in `55fdb94`.
-- First DB `agent_vault` bridge-hardening slice shipped in `d206e31`: DB direct execute now emits failure receipts and records `capability_executions` rows for early request/validation failures instead of dropping them.
-- Hosted failure proof artifact `rhumb/artifacts/aud18-db-read-hosted-failure-proof-20260408T100200Z.json` is green on `api.rhumb.dev` for malformed JSON, missing or invalid `X-Agent-Token`, disabled hosted `connection_ref`, and request-validation failure paths.
-- Product commit `59ac641` now closes the tighter `connection_ref` provenance branch: DB responses, failure envelopes, and human-readable summaries all carry the non-secret ref when available.
-- New bounded bridge slice is now in product too: hosted callers can mint short-lived signed DB vault tokens at `POST /v1/db/agent-vault/tokenize`, and DB execute accepts those caller-bound `connection_ref`-bound tokens on the blessed `agent_vault` path.
-- That hosted signed-token path is now green end-to-end in live proof: artifact `rhumb/artifacts/aud18-db-read-agent-vault-signed-token-proof-20260408T120733Z.json` shows token minting returns `200`, hosted `db.query.read` succeeds with `SELECT 1 AS ok`, and cross-`connection_ref` replay is rejected as `db_agent_token_invalid`.
-- That sequencing decision is now made in `docs/specs/AUD-18-AWS-S3-READ-FIRST-CONTRACT-2026-04-08.md`: the DB wedge is sufficiently proven, and the next AUD-18 rail is AWS S3 read-first (`object.list`, `object.head`, `object.get`) with read-only posture, bucket/prefix allowlists, bounded object size, and `byok` only for the first slice.
-- Production seed migration `0161_object_storage_read_capabilities_seed.sql` is applied, so `/v1/capabilities/object.list`, `/object.head`, and `/object.get` resolve on `api.rhumb.dev`.
-- The direct S3 execute path is live now too. Latest proof artifact `artifacts/aud18-s3-hosted-proof-20260408T141121Z.json` shows `object.list`, `object.head`, `object.get`, and the denied-bucket case all routing into the storage rail and failing consistently as `400 storage_ref_invalid`.
-- Dogfood auth is repaired for this lane: the `Rhumb API Key - pedro-dogfood` verifier key was rotated for `aws-s3` and the 1Password item restored.
-- No immediate object-storage bundle exists yet: 1Password does not contain an S3/R2-style access-key bundle for this proof lane, and the available Cloudflare tester token shows R2 is not enabled on that account yet (`403` / `10042`).
-- Immediate next step: source or create a real object-storage credential bundle plus bounded bucket/prefix, set a real hosted `storage_ref` env bundle for the S3 proof target, then rerun the bounded hosted live proof bundle for the S3 slice (byok `storage_ref`, allowlisted bucket/prefix, bounded `object.get`) before deciding whether to widen beyond S3 or move to the next read-first rail.
+- Primary lane is still `AUD-18`, not callable freshness and not `AUD-3` recovery.
+- DB read-first is proven enough, including hosted `agent_vault` and the signed `rhdbv1` bridge proof (`rhumb/artifacts/aud18-db-read-agent-vault-signed-token-proof-20260408T120733Z.json`).
+- First hosted S3 proof bundle is also green enough (`rhumb/artifacts/aud18-s3-hosted-proof-20260408T2315Z-public-aws.json`).
+- The next bounded AUD-18 rail is now locked as **Zendesk ticket read-first**. Decision: `docs/specs/AUD-18-NEXT-READ-FIRST-RAIL-DECISION-2026-04-08.md`. Contract: `docs/specs/AUD-18-ZENDESK-TICKET-READ-FIRST-CONTRACT-2026-04-08.md`.
+- First Zendesk implementation slice is now scaffolded in product code:
+  - `packages/api/services/support_connection_registry.py` for env-backed `support_ref` bundle resolution via `RHUMB_SUPPORT_<REF>`
+  - `packages/api/routes/support_execute.py` for direct execute handling of `ticket.search`, `ticket.get`, and `ticket.list_comments`
+  - `packages/api/services/zendesk_support_executor.py` for bounded Zendesk reads with scope enforcement and public-comments-only defaults
+  - `packages/api/routes/capability_execute.py` wired to early-dispatch the support rail
+  - `packages/api/routes/capabilities.py` now resolves those three capabilities to the direct Zendesk rail instead of blurring them into generic support mappings
+- Focused verification is green for the new slice:
+  - `packages/api/tests/test_support_connection_registry.py`
+  - `packages/api/tests/test_zendesk_support_executor.py`
+  - `packages/api/tests/test_support_execute.py`
+  - `packages/api/tests/test_support_capability_registry.py`
+  - `packages/api/tests/test_capabilities.py`
+- Operator follow-through is sharper now too:
+  - `scripts/build_zendesk_support_bundle.py` builds bounded hosted support bundles
+  - `scripts/zendesk_read_dogfood.py` now matches shipped denial semantics (`403 support_ticket_scope_denied`, `403 support_internal_comments_denied`) and no longer pretends a fake default ticket id proves scope denial
+  - latest rerun artifact `artifacts/aud18-zendesk-hosted-proof-20260409T0218Z-post-harness-fix.json` still fails honestly because hosted Rhumb does not yet have `RHUMB_SUPPORT_ST_ZD`
+  - shared-secret discovery is now sharper too: shared 1Password metadata search did not surface any Zendesk / Intercom / support-platform items or matching host URLs, Railway currently has no `RHUMB_SUPPORT_*` vars, and the `rhumb` browser profile only shows old public signup-page visits, not an existing support workspace login
+- Current honest next step: source bounded Zendesk proof material, set hosted `RHUMB_SUPPORT_ST_ZD`, and rerun the first hosted proof bundle before widening to Intercom or any write/mutate support actions.
 
 ### Product
 - **Site:** https://rhumb.dev — 23 blog posts, 9 comparisons, 4 autopsies, 2 guides, /compare + /autopsy landing pages, /quickstart, /glossary
