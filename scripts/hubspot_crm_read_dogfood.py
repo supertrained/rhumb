@@ -87,6 +87,113 @@ def _fetch_receipt(*, root: str, headers: dict[str, str], timeout: float, receip
     return _request_json(method="GET", url=url, headers=headers, payload=None, timeout=timeout)
 
 
+def _first_provider(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None
+    for provider in providers:
+        if isinstance(provider, dict) and provider.get("service_slug") == "hubspot":
+            return provider
+    return None
+
+
+def _first_credential_mode(payload: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None, None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None, None
+    for provider in providers:
+        if not isinstance(provider, dict) or provider.get("service_slug") != "hubspot":
+            continue
+        modes = provider.get("modes")
+        if not isinstance(modes, list):
+            return provider, None
+        for mode in modes:
+            if isinstance(mode, dict) and mode.get("mode") == "byok":
+                return provider, mode
+        return provider, None
+    return None, None
+
+
+def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
+    resolve = _request_json(
+        method="GET",
+        url=f"{root}/v1/capabilities/crm.record.search/resolve",
+        headers={},
+        payload=None,
+        timeout=timeout,
+    )
+    credential_modes = _request_json(
+        method="GET",
+        url=f"{root}/v1/capabilities/crm.record.search/credential-modes",
+        headers={},
+        payload=None,
+        timeout=timeout,
+    )
+
+    resolve_provider = _first_provider(resolve.get("json"))
+    modes_provider, byok_mode = _first_credential_mode(credential_modes.get("json"))
+
+    resolve_ok = (
+        resolve.get("status") == 200
+        and isinstance(resolve_provider, dict)
+        and resolve_provider.get("available_for_execute") is True
+    )
+    credential_modes_ok = (
+        credential_modes.get("status") == 200
+        and isinstance(modes_provider, dict)
+        and isinstance(byok_mode, dict)
+        and byok_mode.get("available") is True
+    )
+
+    resolve_configured = bool(resolve_provider.get("configured")) if isinstance(resolve_provider, dict) else False
+    mode_configured = bool(byok_mode.get("configured")) if isinstance(byok_mode, dict) else False
+    configured = resolve_configured and mode_configured
+
+    results = [
+        {
+            "check": "crm_record_search_resolve_surface",
+            "ok": resolve_ok,
+            "status": resolve.get("status"),
+            "error": None if resolve_ok else "crm_capability_unavailable",
+            "payload_check": None if resolve_ok else "missing_hubspot_provider_or_execute_hint",
+            "payload": resolve.get("json"),
+        },
+        {
+            "check": "crm_record_search_credential_modes_surface",
+            "ok": credential_modes_ok,
+            "status": credential_modes.get("status"),
+            "error": None if credential_modes_ok else "crm_credential_modes_unavailable",
+            "payload_check": None if credential_modes_ok else "missing_hubspot_byok_mode",
+            "payload": credential_modes.get("json"),
+        },
+        {
+            "check": "crm_bundle_configured",
+            "ok": configured,
+            "status": 200 if resolve.get("status") == 200 and credential_modes.get("status") == 200 else None,
+            "error": None if configured else "crm_bundle_unconfigured",
+            "payload_check": None if configured else "configured_false",
+            "payload": {
+                "resolve_configured": resolve_configured,
+                "credential_mode_configured": mode_configured,
+            },
+        },
+    ]
+
+    return {
+        "configured": configured,
+        "available_for_execute": bool(resolve_provider.get("available_for_execute")) if isinstance(resolve_provider, dict) else False,
+        "resolve": resolve,
+        "credential_modes": credential_modes,
+        "results": results,
+    }
+
+
 def _make_describe_success_check(*, crm_ref: str, object_type: str, property_names: tuple[str, ...]) -> PayloadCheck:
     def _check(payload: Any) -> tuple[bool, str | None]:
         data = _extract_data(payload)
@@ -235,7 +342,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bad-crm-ref", default=DEFAULT_BAD_CRM_REF)
     parser.add_argument("--object-type", default=DEFAULT_OBJECT_TYPE)
     parser.add_argument("--denied-object-type", default=DEFAULT_DENIED_OBJECT_TYPE)
-    parser.add_argument("--record-id", required=True)
+    parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--record-id")
     parser.add_argument("--denied-record-id")
     parser.add_argument("--not-found-record-id", default=DEFAULT_NOT_FOUND_RECORD_ID)
     parser.add_argument("--property-name", action="append", default=[])
@@ -251,18 +359,82 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _write_artifact(*, args: argparse.Namespace, artifact: dict[str, Any], ok: bool, results: list[dict[str, Any]]) -> int:
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-hubspot-crm-hosted-proof-{_now_slug()}.json"
+    artifact_path.write_text(json.dumps(artifact, indent=2))
+    print(str(artifact_path))
+    print(
+        json.dumps(
+            {
+                "ok": ok,
+                "checks": [
+                    {
+                        "check": item["check"],
+                        "status": item["status"],
+                        "error": item.get("error"),
+                        "payload_check": item.get("payload_check"),
+                    }
+                    for item in results
+                ],
+            },
+            indent=2,
+        )
+    )
+    return 0 if ok else 1
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
+    if not args.preflight_only and not args.record_id:
+        parser.error("--record-id is required unless --preflight-only is used")
+
     if bool(args.search_filter_property) != bool(args.search_filter_value):
         parser.error("--search-filter-property and --search-filter-value must be passed together")
+
+    root = args.base_url.rstrip("/")
+    preflight = _run_preflight(root=root, timeout=args.timeout)
+    results: list[dict[str, Any]] = list(preflight["results"])
+
+    if args.preflight_only or not preflight["configured"]:
+        ok = all(item["ok"] for item in results)
+        artifact = {
+            "ok": ok,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "mode": "preflight_only" if args.preflight_only else "blocked_preflight",
+            "base_url": root,
+            "crm_ref": args.crm_ref,
+            "bad_crm_ref": args.bad_crm_ref,
+            "object_type": args.object_type,
+            "denied_object_type": args.denied_object_type,
+            "record_id": args.record_id,
+            "denied_record_id": args.denied_record_id,
+            "not_found_record_id": args.not_found_record_id,
+            "property_names": list(dict.fromkeys([item.strip().lower() for item in args.property_name if item.strip()])),
+            "denied_property": args.denied_property,
+            "query": args.query,
+            "search_filter": {
+                "property": args.search_filter_property,
+                "operator": args.search_filter_operator if args.search_filter_property else None,
+                "value": args.search_filter_value,
+            },
+            "api_key_hint": _mask(args.api_key or os.environ.get("RHUMB_API_KEY")),
+            "preflight": {
+                "configured": preflight["configured"],
+                "available_for_execute": preflight["available_for_execute"],
+                "resolve": preflight["resolve"],
+                "credential_modes": preflight["credential_modes"],
+            },
+            "results": results,
+        }
+        return _write_artifact(args=args, artifact=artifact, ok=ok, results=results)
 
     api_key = (args.api_key or os.environ.get("RHUMB_API_KEY") or "").strip()
     if not api_key:
         raise SystemExit("Pass --api-key or set RHUMB_API_KEY")
 
-    root = args.base_url.rstrip("/")
     headers = {
         "Content-Type": "application/json",
         "X-Rhumb-Key": api_key,
@@ -411,7 +583,6 @@ def main() -> int:
             )
         )
 
-    results: list[dict[str, Any]] = []
     for name, url, payload, expected_status, expected_error, payload_check, fetch_receipt in checks:
         response = _request_json(
             method="POST",
@@ -458,28 +629,14 @@ def main() -> int:
         "results": results,
     }
 
-    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-hubspot-crm-hosted-proof-{_now_slug()}.json"
-    artifact_path.write_text(json.dumps(artifact, indent=2))
-    print(str(artifact_path))
-    print(
-        json.dumps(
-            {
-                "ok": ok,
-                "checks": [
-                    {
-                        "check": item["check"],
-                        "status": item["status"],
-                        "error": item.get("error"),
-                        "payload_check": item.get("payload_check"),
-                    }
-                    for item in results
-                ],
-            },
-            indent=2,
-        )
-    )
-    return 0 if ok else 1
+    artifact["mode"] = "full"
+    artifact["preflight"] = {
+        "configured": preflight["configured"],
+        "available_for_execute": preflight["available_for_execute"],
+        "resolve": preflight["resolve"],
+        "credential_modes": preflight["credential_modes"],
+    }
+    return _write_artifact(args=args, artifact=artifact, ok=ok, results=results)
 
 
 if __name__ == "__main__":
