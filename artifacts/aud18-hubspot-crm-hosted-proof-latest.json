@@ -1,0 +1,411 @@
+{
+  "ok": true,
+  "generated_at": "2026-04-10T03:08:28.240440+00:00",
+  "base_url": "https://api.rhumb.dev",
+  "crm_ref": "hs_contacts_read",
+  "bad_crm_ref": "hs_missing",
+  "object_type": "contacts",
+  "denied_object_type": "deals",
+  "record_id": "119674278194",
+  "denied_record_id": null,
+  "not_found_record_id": "999999999999999",
+  "property_names": [
+    "email",
+    "firstname",
+    "lastname",
+    "hs_object_id",
+    "createdate"
+  ],
+  "denied_property": "notes_last_updated",
+  "query": null,
+  "search_filter": {
+    "property": "email",
+    "operator": "EQ",
+    "value": "andrejsjagi@gmail.com"
+  },
+  "api_key_hint": "rhumb_5d...5256",
+  "results": [
+    {
+      "check": "crm_record_search_resolve_surface",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "capability": "crm.record.search",
+          "providers": [
+            {
+              "service_slug": "hubspot",
+              "service_name": "HubSpot",
+              "an_score": null,
+              "execution_score": null,
+              "access_readiness_score": null,
+              "tier": null,
+              "tier_label": "Direct",
+              "confidence": null,
+              "cost_per_call": null,
+              "cost_currency": "USD",
+              "free_tier_calls": null,
+              "credential_modes": [
+                "byok"
+              ],
+              "auth_method": "crm_ref",
+              "endpoint_pattern": "POST /v1/capabilities/crm.record.search/execute",
+              "recommendation": "available",
+              "recommendation_reason": "Direct read-only HubSpot CRM execution via crm_ref with explicit object/property scope and optional record/search/sort allowlists.",
+              "circuit_state": "n/a",
+              "available_for_execute": true,
+              "configured": true
+            }
+          ],
+          "fallback_chain": [
+            "hubspot"
+          ],
+          "bundle_ids": [],
+          "execute_hint": {
+            "preferred_provider": "hubspot",
+            "endpoint_pattern": "POST /v1/capabilities/crm.record.search/execute",
+            "estimated_cost_usd": null,
+            "credential_modes": [
+              "byok"
+            ]
+          }
+        },
+        "error": null
+      }
+    },
+    {
+      "check": "crm_record_search_credential_modes_surface",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "capability_id": "crm.record.search",
+          "providers": [
+            {
+              "service_slug": "hubspot",
+              "auth_method": "crm_ref",
+              "modes": [
+                {
+                  "mode": "byok",
+                  "available": true,
+                  "configured": true,
+                  "setup_hint": "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+                }
+              ],
+              "any_configured": true
+            }
+          ]
+        },
+        "error": null
+      }
+    },
+    {
+      "check": "crm_bundle_configured",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "resolve_configured": true,
+        "credential_mode_configured": true
+      }
+    },
+    {
+      "check": "crm_object_describe",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "hubspot",
+          "credential_mode": "byok",
+          "capability_id": "crm.object.describe",
+          "receipt_id": "rcpt_11f45d53864a411890e56242",
+          "execution_id": "exec_0f174153f7ea40a6a18bf8c9b8e32718",
+          "crm_ref": "hs_contacts_read",
+          "object_type": "contacts",
+          "portal_id": "49739435",
+          "label": "Contact",
+          "plural_label": "Contacts",
+          "primary_display_property": "email",
+          "required_properties": [],
+          "properties": [
+            {
+              "name": "email",
+              "label": "Email",
+              "type": "string",
+              "field_type": "text",
+              "searchable": true,
+              "sortable": true,
+              "read_only": true,
+              "archived": false
+            },
+            {
+              "name": "firstname",
+              "label": "First Name",
+              "type": "string",
+              "field_type": "text",
+              "searchable": false,
+              "sortable": true,
+              "read_only": true,
+              "archived": false
+            },
+            {
+              "name": "lastname",
+              "label": "Last Name",
+              "type": "string",
+              "field_type": "text",
+              "searchable": false,
+              "sortable": true,
+              "read_only": true,
+              "archived": false
+            },
+            {
+              "name": "hs_object_id",
+              "label": "Record ID",
+              "type": "number",
+              "field_type": "number",
+              "searchable": false,
+              "sortable": true,
+              "read_only": true,
+              "archived": false
+            },
+            {
+              "name": "createdate",
+              "label": "Create Date",
+              "type": "datetime",
+              "field_type": "date",
+              "searchable": false,
+              "sortable": true,
+              "read_only": true,
+              "archived": false
+            }
+          ],
+          "property_count_returned": 5
+        },
+        "summary": "Described HubSpot contacts schema via crm_ref hs_contacts_read",
+        "error": null
+      },
+      "receipt_id": "rcpt_11f45d53864a411890e56242",
+      "receipt_status": 404
+    },
+    {
+      "check": "crm_record_search",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "hubspot",
+          "credential_mode": "byok",
+          "capability_id": "crm.record.search",
+          "receipt_id": "rcpt_82ffa461dd4c494e868ac7a1",
+          "execution_id": "exec_95bff77f6a204fd0a522feec6dc01cc0",
+          "crm_ref": "hs_contacts_read",
+          "object_type": "contacts",
+          "records": [
+            {
+              "record_id": "119674278194",
+              "archived": false,
+              "created_at": "2025-06-17T17:39:59.359Z",
+              "updated_at": "2026-04-09T16:05:23.971Z",
+              "properties": {
+                "email": "andrejsjagi@gmail.com",
+                "firstname": "ZenQ",
+                "lastname": "Andrej",
+                "hs_object_id": "119674278194",
+                "createdate": "2025-06-17T17:39:59.359Z"
+              }
+            }
+          ],
+          "record_count_returned": 1,
+          "next_after": null
+        },
+        "summary": "Found 1 HubSpot contact via crm_ref hs_contacts_read",
+        "error": null
+      },
+      "receipt_id": "rcpt_82ffa461dd4c494e868ac7a1",
+      "receipt_status": 404
+    },
+    {
+      "check": "crm_record_get",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "hubspot",
+          "credential_mode": "byok",
+          "capability_id": "crm.record.get",
+          "receipt_id": "rcpt_9186d101703a40d1871fd0bb",
+          "execution_id": "exec_025fa290526f4cc095be686df5b599e9",
+          "crm_ref": "hs_contacts_read",
+          "object_type": "contacts",
+          "record_id": "119674278194",
+          "archived": false,
+          "created_at": "2025-06-17T17:39:59.359Z",
+          "updated_at": "2026-04-09T16:05:23.971Z",
+          "properties": {
+            "email": "andrejsjagi@gmail.com",
+            "firstname": "ZenQ",
+            "lastname": "Andrej",
+            "hs_object_id": "119674278194",
+            "createdate": "2025-06-17T17:39:59.359Z"
+          }
+        },
+        "summary": "Fetched HubSpot contact 119674278194 via crm_ref hs_contacts_read",
+        "error": null
+      },
+      "receipt_id": "rcpt_9186d101703a40d1871fd0bb",
+      "receipt_status": 404
+    },
+    {
+      "check": "bad_crm_ref_denial",
+      "ok": true,
+      "status": 400,
+      "error": "crm_ref_invalid",
+      "payload_check": null,
+      "payload": {
+        "error": "crm_ref_invalid",
+        "message": "No crm bundle configured for crm_ref 'hs_missing' (expected env var RHUMB_CRM_HS_MISSING)",
+        "capability_id": "crm.object.describe",
+        "execution_id": "exec_1c7930d3d8fa412ca0834bd121acd4ef",
+        "request_id": "27b0b7b3-b826-4cce-9add-e9d2da38dfb7",
+        "crm_ref": "hs_missing",
+        "object_type": "contacts"
+      }
+    },
+    {
+      "check": "out_of_scope_object_type_denial",
+      "ok": true,
+      "status": 403,
+      "error": "crm_object_scope_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "crm_object_scope_denied",
+        "message": "crm_ref 'hs_contacts_read' is not allowed to access object_type 'deals'",
+        "capability_id": "crm.object.describe",
+        "execution_id": "exec_085fffa8cd23402883806d7f501c7c89",
+        "request_id": "fa7fc0d8-15bf-4990-9b45-17c17e201b30",
+        "crm_ref": "hs_contacts_read",
+        "object_type": "deals"
+      }
+    },
+    {
+      "check": "out_of_scope_property_denial",
+      "ok": true,
+      "status": 403,
+      "error": "crm_property_scope_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "crm_property_scope_denied",
+        "message": "crm_ref 'hs_contacts_read' is not allowed to access property 'notes_last_updated' for object_type 'contacts'",
+        "capability_id": "crm.record.get",
+        "execution_id": "exec_2ce522f3b7c04d0886e609ad932bd9fe",
+        "request_id": "5f3e6e54-b044-4817-90f4-e809ca8a2862",
+        "crm_ref": "hs_contacts_read",
+        "object_type": "contacts",
+        "record_id": "119674278194"
+      }
+    },
+    {
+      "check": "crm_record_not_found_denial",
+      "ok": true,
+      "status": 404,
+      "error": "crm_record_not_found",
+      "payload_check": null,
+      "payload": {
+        "error": "crm_record_not_found",
+        "message": "HubSpot CRM record '999999999999999' not found",
+        "capability_id": "crm.record.get",
+        "execution_id": "exec_a379515e504d4e138cea76cca55e98bc",
+        "request_id": "98bb2abf-8cc2-4296-8ad4-93f62c432951",
+        "crm_ref": "hs_contacts_read",
+        "object_type": "contacts",
+        "record_id": "999999999999999"
+      }
+    }
+  ],
+  "mode": "full",
+  "preflight": {
+    "configured": true,
+    "available_for_execute": true,
+    "resolve": {
+      "status": 200,
+      "json": {
+        "data": {
+          "capability": "crm.record.search",
+          "providers": [
+            {
+              "service_slug": "hubspot",
+              "service_name": "HubSpot",
+              "an_score": null,
+              "execution_score": null,
+              "access_readiness_score": null,
+              "tier": null,
+              "tier_label": "Direct",
+              "confidence": null,
+              "cost_per_call": null,
+              "cost_currency": "USD",
+              "free_tier_calls": null,
+              "credential_modes": [
+                "byok"
+              ],
+              "auth_method": "crm_ref",
+              "endpoint_pattern": "POST /v1/capabilities/crm.record.search/execute",
+              "recommendation": "available",
+              "recommendation_reason": "Direct read-only HubSpot CRM execution via crm_ref with explicit object/property scope and optional record/search/sort allowlists.",
+              "circuit_state": "n/a",
+              "available_for_execute": true,
+              "configured": true
+            }
+          ],
+          "fallback_chain": [
+            "hubspot"
+          ],
+          "bundle_ids": [],
+          "execute_hint": {
+            "preferred_provider": "hubspot",
+            "endpoint_pattern": "POST /v1/capabilities/crm.record.search/execute",
+            "estimated_cost_usd": null,
+            "credential_modes": [
+              "byok"
+            ]
+          }
+        },
+        "error": null
+      }
+    },
+    "credential_modes": {
+      "status": 200,
+      "json": {
+        "data": {
+          "capability_id": "crm.record.search",
+          "providers": [
+            {
+              "service_slug": "hubspot",
+              "auth_method": "crm_ref",
+              "modes": [
+                {
+                  "mode": "byok",
+                  "available": true,
+                  "configured": true,
+                  "setup_hint": "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+                }
+              ],
+              "any_configured": true
+            }
+          ]
+        },
+        "error": null
+      }
+    }
+  }
+}
