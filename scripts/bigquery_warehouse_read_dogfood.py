@@ -32,6 +32,9 @@ DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_ROWS = 10
 DEFAULT_TIMEOUT_MS = 10000
 DEFAULT_BYTES_BREACH_CAP = 1
+_BIGQUERY_DIRECT_SCOPES = (
+    "https://www.googleapis.com/auth/bigquery.readonly",
+)
 
 
 PayloadCheck = Callable[[Any], Tuple[bool, Optional[str]]]
@@ -469,7 +472,7 @@ def _service_account_access_token(service_account_info: dict[str, Any], *, timeo
     header = {"alg": "RS256", "typ": "JWT"}
     claim_set = {
         "iss": client_email,
-        "scope": "https://www.googleapis.com/auth/bigquery.readonly",
+        "scope": " ".join(_BIGQUERY_DIRECT_SCOPES),
         "aud": token_uri,
         "iat": issued_at,
         "exp": issued_at + 3600,
@@ -496,6 +499,73 @@ def _service_account_access_token(service_account_info: dict[str, Any], *, timeo
     if not access_token:
         raise RuntimeError("access_token_missing")
     return access_token
+
+
+def _authorized_user_access_token(authorized_user_info: dict[str, Any], *, timeout: float) -> str:
+    refresh_token = str(authorized_user_info.get("refresh_token") or "").strip()
+    client_id = str(authorized_user_info.get("client_id") or "").strip()
+    client_secret = str(authorized_user_info.get("client_secret") or "").strip()
+    token_uri = str(authorized_user_info.get("token_uri") or "https://oauth2.googleapis.com/token").strip()
+    if not refresh_token or not client_id or not client_secret:
+        raise RuntimeError("authorized_user_credentials_incomplete")
+
+    response = _request_form_json(
+        url=token_uri,
+        payload={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": client_id,
+            "client_secret": client_secret,
+        },
+        timeout=timeout,
+    )
+    token_payload = response.get("json")
+    if response.get("status") != 200 or not isinstance(token_payload, dict):
+        raise RuntimeError(f"authorized_user_refresh_failed:{response.get('status')}")
+    access_token = str(token_payload.get("access_token") or "").strip()
+    if not access_token:
+        raise RuntimeError("authorized_user_access_token_missing")
+    return access_token
+
+
+def _impersonated_service_account_access_token(bundle: Any, *, timeout: float) -> str:
+    authorized_user_info = getattr(bundle, "authorized_user_info", None)
+    service_account_email = str(getattr(bundle, "service_account_email", None) or "").strip()
+    if not isinstance(authorized_user_info, dict):
+        raise RuntimeError("authorized_user_credentials_incomplete")
+    if not service_account_email:
+        raise RuntimeError("service_account_email_missing")
+
+    source_access_token = _authorized_user_access_token(authorized_user_info, timeout=timeout)
+    response = _google_request_json(
+        method="POST",
+        url=(
+            "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/"
+            f"{urllib.parse.quote(service_account_email, safe='')}:generateAccessToken"
+        ),
+        access_token=source_access_token,
+        timeout=timeout,
+        payload={"scope": list(_BIGQUERY_DIRECT_SCOPES)},
+    )
+    token_payload = response.get("json")
+    if response.get("status") != 200 or not isinstance(token_payload, dict):
+        raise RuntimeError(f"impersonated_token_exchange_failed:{response.get('status')}")
+    access_token = str(token_payload.get("accessToken") or "").strip()
+    if not access_token:
+        raise RuntimeError("impersonated_access_token_missing")
+    return access_token
+
+
+def _access_token_for_bundle(bundle: Any, *, timeout: float) -> str:
+    auth_mode = str(getattr(bundle, "auth_mode", "") or "").strip().lower()
+    if auth_mode == "service_account_json":
+        service_account_info = getattr(bundle, "service_account_info", None)
+        if not isinstance(service_account_info, dict):
+            raise RuntimeError("service_account_credentials_incomplete")
+        return _service_account_access_token(service_account_info, timeout=timeout)
+    if auth_mode == "service_account_impersonation":
+        return _impersonated_service_account_access_token(bundle, timeout=timeout)
+    raise RuntimeError(f"unsupported_auth_mode:{auth_mode or 'missing'}")
 
 
 def _google_request_json(
@@ -690,7 +760,7 @@ def _run_direct_bigquery_query(
     max_bytes_billed: int,
     timeout: float,
 ) -> dict[str, Any]:
-    access_token = _service_account_access_token(bundle.service_account_info, timeout=timeout)
+    access_token = _access_token_for_bundle(bundle, timeout=timeout)
     base = f"https://bigquery.googleapis.com/bigquery/v2/projects/{urllib.parse.quote(bundle.billing_project_id, safe='')}"
     execute = _google_request_json(
         method="POST",

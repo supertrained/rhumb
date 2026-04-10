@@ -6,6 +6,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -200,3 +201,51 @@ def test_compare_query_parity_normalizes_bigquery_rest_scalars() -> None:
 
     assert ok is True
     assert note is None
+
+
+def test_access_token_for_bundle_uses_impersonation_mode(monkeypatch) -> None:
+    bundle = SimpleNamespace(auth_mode="service_account_impersonation")
+    monkeypatch.setattr(
+        bigquery_warehouse_read_dogfood,
+        "_impersonated_service_account_access_token",
+        lambda passed_bundle, timeout: f"impersonated:{passed_bundle.auth_mode}:{timeout}",
+    )
+
+    token = bigquery_warehouse_read_dogfood._access_token_for_bundle(bundle, timeout=7.5)
+
+    assert token == "impersonated:service_account_impersonation:7.5"
+
+
+def test_impersonated_service_account_access_token_calls_iamcredentials(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    bundle = SimpleNamespace(
+        authorized_user_info={
+            "client_id": "cid",
+            "client_secret": "csecret",
+            "refresh_token": "rtok",
+        },
+        service_account_email="rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com",
+    )
+
+    monkeypatch.setattr(
+        bigquery_warehouse_read_dogfood,
+        "_authorized_user_access_token",
+        lambda authorized_user_info, timeout: "source-access-token",
+    )
+
+    def fake_google_request_json(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"status": 200, "json": {"accessToken": "impersonated-access-token"}}
+
+    monkeypatch.setattr(bigquery_warehouse_read_dogfood, "_google_request_json", fake_google_request_json)
+
+    token = bigquery_warehouse_read_dogfood._impersonated_service_account_access_token(bundle, timeout=9.0)
+
+    assert token == "impersonated-access-token"
+    assert captured["method"] == "POST"
+    assert captured["access_token"] == "source-access-token"
+    assert captured["payload"] == {"scope": list(bigquery_warehouse_read_dogfood._BIGQUERY_DIRECT_SCOPES)}
+    assert captured["url"] == (
+        "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/"
+        "rhumb-bq-proof-read%40rhumb-490802.iam.gserviceaccount.com:generateAccessToken"
+    )

@@ -796,11 +796,59 @@ def _provider_error(
             message=not_found_message,
             status_code=404,
         )
+    auth_message = _auth_failure_message(exc)
+    if auth_message is not None:
+        return WarehouseExecutorError(
+            code="warehouse_provider_unavailable",
+            message=auth_message,
+            status_code=503,
+        )
     return WarehouseExecutorError(
         code="warehouse_provider_unavailable",
         message=default_message,
         status_code=503,
     )
+
+
+def _auth_failure_message(exc: Exception) -> str | None:
+    chain = _exception_chain(exc)
+    messages = [str(item).lower() for item in chain]
+    names = [item.__class__.__name__.lower() for item in chain]
+    combined = "\n".join(messages)
+
+    if "restricted_client" in combined or "invalid_scope" in combined:
+        return (
+            "BigQuery authentication failed because the authorized-user OAuth client "
+            "is not registered for the required BigQuery or cloud-platform scopes"
+        )
+    if (
+        "invalid_rapt" in combined
+        or "reauthentication required" in combined
+        or "cannot prompt during non-interactive execution" in combined
+    ):
+        return (
+            "BigQuery authentication failed because the authorized-user OAuth token "
+            "now requires interactive reauthentication"
+        )
+    if "serviceaccounts.getaccesstoken" in combined or "iam.serviceaccounttokencreator" in combined:
+        return (
+            "BigQuery authentication failed because the source identity cannot impersonate "
+            "the configured service account"
+        )
+    if any("refresherror" in name for name in names) or "credential" in combined or "oauth" in combined or "reauth" in combined:
+        return "BigQuery authentication failed while refreshing the configured credentials"
+    return None
+
+
+def _exception_chain(exc: Exception) -> list[Exception]:
+    chain: list[Exception] = []
+    current: Exception | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return chain
 
 
 def _is_timeout_error(exc: Exception) -> bool:
@@ -857,14 +905,16 @@ class _GoogleBigQueryAdapter:
         timeout_ms: int,
     ) -> _DryRunResult:
         query_parameters = _build_query_parameters(params, bigquery_module=self._bigquery)
-        config = self._bigquery.QueryJobConfig(
-            dry_run=True,
-            use_legacy_sql=False,
-            use_query_cache=False,
-            maximum_bytes_billed=max_bytes_billed,
-            job_timeout_ms=timeout_ms,
-            query_parameters=query_parameters or None,
-        )
+        config_kwargs = {
+            "dry_run": True,
+            "use_legacy_sql": False,
+            "use_query_cache": False,
+            "maximum_bytes_billed": max_bytes_billed,
+            "job_timeout_ms": timeout_ms,
+        }
+        if query_parameters:
+            config_kwargs["query_parameters"] = query_parameters
+        config = self._bigquery.QueryJobConfig(**config_kwargs)
         job = self._client.query(query, job_config=config)
         return _DryRunResult(bytes_estimate=int(getattr(job, "total_bytes_processed", 0) or 0))
 
@@ -878,14 +928,16 @@ class _GoogleBigQueryAdapter:
         max_results: int,
     ) -> _ExecuteResult:
         query_parameters = _build_query_parameters(params, bigquery_module=self._bigquery)
-        config = self._bigquery.QueryJobConfig(
-            dry_run=False,
-            use_legacy_sql=False,
-            use_query_cache=False,
-            maximum_bytes_billed=max_bytes_billed,
-            job_timeout_ms=timeout_ms,
-            query_parameters=query_parameters or None,
-        )
+        config_kwargs = {
+            "dry_run": False,
+            "use_legacy_sql": False,
+            "use_query_cache": False,
+            "maximum_bytes_billed": max_bytes_billed,
+            "job_timeout_ms": timeout_ms,
+        }
+        if query_parameters:
+            config_kwargs["query_parameters"] = query_parameters
+        config = self._bigquery.QueryJobConfig(**config_kwargs)
         job = self._client.query(query, job_config=config)
         iterator = job.result(max_results=max_results, timeout=max(timeout_ms / 1000.0, 1.0))
         rows = [dict(row.items()) for row in iterator]

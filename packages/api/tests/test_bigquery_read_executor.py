@@ -9,7 +9,13 @@ from types import SimpleNamespace
 import pytest
 
 from schemas.warehouse_capabilities import WarehouseQueryReadRequest, WarehouseSchemaDescribeRequest
-from services.bigquery_read_executor import WarehouseExecutorError, _get_client, describe_schema, execute_read_query
+from services.bigquery_read_executor import (
+    WarehouseExecutorError,
+    _GoogleBigQueryAdapter,
+    _get_client,
+    describe_schema,
+    execute_read_query,
+)
 from services.warehouse_connection_registry import BigQueryWarehouseBundle
 
 
@@ -291,6 +297,60 @@ def test_get_client_builds_impersonated_bigquery_client(monkeypatch: pytest.Monk
     assert adapter._client is not None
 
 
+def test_google_bigquery_adapter_omits_query_parameters_when_params_are_missing() -> None:
+    state: dict[str, object] = {}
+
+    class FakeQueryJobConfig:
+        def __init__(self, **kwargs: object) -> None:
+            state.setdefault("configs", []).append(kwargs)
+
+    class FakeClient:
+        def query(self, query: str, job_config: object):
+            state.setdefault("queries", []).append({"query": query, "job_config": job_config})
+            return SimpleNamespace(
+                total_bytes_processed=123,
+                total_bytes_billed=45,
+                schema=[SimpleNamespace(name="status", field_type="STRING", mode="NULLABLE")],
+                result=lambda max_results, timeout: [SimpleNamespace(items=lambda: [("status", "ok")])],
+            )
+
+    bigquery_module = SimpleNamespace(QueryJobConfig=FakeQueryJobConfig)
+    adapter = _GoogleBigQueryAdapter(FakeClient(), bigquery_module=bigquery_module)
+
+    dry_run = adapter.dry_run_query(
+        query="SELECT status FROM proj.analytics.events LIMIT 1",
+        params=None,
+        max_bytes_billed=1000,
+        timeout_ms=5000,
+    )
+    execute = adapter.execute_query(
+        query="SELECT status FROM proj.analytics.events LIMIT 1",
+        params=None,
+        max_bytes_billed=1000,
+        timeout_ms=5000,
+        max_results=2,
+    )
+
+    assert dry_run.bytes_estimate == 123
+    assert execute.bytes_billed == 45
+    assert state["configs"] == [
+        {
+            "dry_run": True,
+            "use_legacy_sql": False,
+            "use_query_cache": False,
+            "maximum_bytes_billed": 1000,
+            "job_timeout_ms": 5000,
+        },
+        {
+            "dry_run": False,
+            "use_legacy_sql": False,
+            "use_query_cache": False,
+            "maximum_bytes_billed": 1000,
+            "job_timeout_ms": 5000,
+        },
+    ]
+
+
 @pytest.mark.asyncio
 async def test_execute_read_query_rejects_select_star_as_request_invalid() -> None:
     request = WarehouseQueryReadRequest(
@@ -451,3 +511,79 @@ async def test_describe_schema_maps_missing_objects_to_404() -> None:
 
     assert exc.value.code == "warehouse_object_not_found"
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_execute_read_query_surfaces_restricted_client_auth_failure() -> None:
+    class RestrictedClient(FakeClient):
+        def dry_run_query(self, *, query: str, params, max_bytes_billed: int, timeout_ms: int):
+            raise Exception(
+                "restricted_client: Unregistered scope(s) in the request: https://www.googleapis.com/auth/bigquery"
+            )
+
+    request = WarehouseQueryReadRequest(
+        warehouse_ref="bq_main",
+        query="SELECT user_id FROM proj.analytics.events LIMIT 1",
+    )
+
+    with pytest.raises(WarehouseExecutorError) as exc:
+        await execute_read_query(
+            request,
+            bundle=_bundle(),
+            client_factory=lambda _bundle: RestrictedClient(),
+        )
+
+    assert exc.value.code == "warehouse_provider_unavailable"
+    assert exc.value.status_code == 503
+    assert exc.value.message == (
+        "BigQuery authentication failed because the authorized-user OAuth client "
+        "is not registered for the required BigQuery or cloud-platform scopes"
+    )
+
+
+@pytest.mark.asyncio
+async def test_describe_schema_surfaces_restricted_client_auth_failure() -> None:
+    class RestrictedClient(FakeClient):
+        def get_dataset(self, dataset_ref: str):
+            raise Exception(
+                "restricted_client: Unregistered scope(s) in the request: https://www.googleapis.com/auth/bigquery"
+            )
+
+    with pytest.raises(WarehouseExecutorError) as exc:
+        await describe_schema(
+            WarehouseSchemaDescribeRequest(warehouse_ref="bq_main"),
+            bundle=_bundle(),
+            client_factory=lambda _bundle: RestrictedClient(),
+        )
+
+    assert exc.value.code == "warehouse_provider_unavailable"
+    assert exc.value.status_code == 503
+    assert exc.value.message == (
+        "BigQuery authentication failed because the authorized-user OAuth client "
+        "is not registered for the required BigQuery or cloud-platform scopes"
+    )
+
+
+@pytest.mark.asyncio
+async def test_describe_schema_surfaces_nested_invalid_scope_auth_failure() -> None:
+    class InvalidScopeClient(FakeClient):
+        def get_dataset(self, dataset_ref: str):
+            cause = Exception("invalid_scope: Bad Request")
+            try:
+                raise cause
+            except Exception as inner:
+                raise RuntimeError("credential refresh failed") from inner
+
+    with pytest.raises(WarehouseExecutorError) as exc:
+        await describe_schema(
+            WarehouseSchemaDescribeRequest(warehouse_ref="bq_main"),
+            bundle=_bundle(),
+            client_factory=lambda _bundle: InvalidScopeClient(),
+        )
+
+    assert exc.value.code == "warehouse_provider_unavailable"
+    assert exc.value.status_code == 503
+    assert exc.value.message == (
+        "BigQuery authentication failed because the authorized-user OAuth client "
+        "is not registered for the required BigQuery or cloud-platform scopes"
+    )
