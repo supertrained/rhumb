@@ -36,6 +36,7 @@ Browser-profile evidence shows:
 
 ### Login discovery details
 
+- The Rhumb browser profile now lands directly on a remembered-account login state for `tommeredith@supertrained.ai`; the email is already selected before any fresh lookup.
 - Entering `tommeredith@supertrained.ai` on HubSpot login resolves to a real account flow and offers:
   - `Sign in with Google`
   - `Sign in with password`
@@ -46,10 +47,18 @@ Browser-profile evidence shows:
   - `tom@gloriascakeandcandysupplies.com`
   - `team@getsupertrained.com`
 - It does **not** expose `tommeredith@supertrained.ai` as an already-signed browser Google identity.
+- A direct Microsoft SSO probe for `tommeredith@supertrained.ai` returns `We couldn't find an account with that username.`
 - The known Google workspace account `team@getsupertrained.com` still fails HubSpot account lookup with:
   - `That email address doesn't exist.`
 
 Interpretation: the known browser Google identities are not the same as the existing HubSpot login, even though HubSpot account history exists.
+
+### Saved-credential truth is now sharper
+
+- The Rhumb browser profile's Chromium `Login Data` store currently contains **zero** HubSpot saved-login entries.
+- A direct macOS Keychain probe for `app.hubspot.com` also returns no matching internet-password item.
+
+Interpretation: there is no local password-manager shortcut to recover this account from the current machine state. The viable paths are narrowed to mailbox recovery or a not-currently-signed-in identity provider.
 
 ### Shared vault truth
 
@@ -75,6 +84,13 @@ Interpretation: emergency fallback signup from the current network is temporaril
 A clean password-recovery attempt for `tommeredith@supertrained.ai` now confirms two more facts:
 - HubSpot accepts the reset request for that identity and responds with `Help is on the way`
 - Gmail metadata for `tommeredith@supertrained.ai` receives `Reset your HubSpot Password` from `noreply@notifications.transactional.hubspot.com`
+- The refreshed proof-source audit artifact at `rhumb/artifacts/aud18-crm-proof-source-audit-20260410T0118Z.json` stays honest about the final blocker:
+  - `vault_hits=0`
+  - `bundle_ready=0`
+  - `saved_logins=0`
+  - `reset_hits=1`
+  - `hosted_live=True`
+  - `hosted_configured=False`
 
 Interpretation: the mailbox path is real and current. The remaining blocker is not whether HubSpot knows the account, it is finishing account access safely enough to mint a bounded private-app token.
 

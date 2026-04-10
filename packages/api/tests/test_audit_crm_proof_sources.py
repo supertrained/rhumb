@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sqlite3
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -102,6 +103,7 @@ def test_summarize_provider_mentions_password_reset_path_when_mail_exists() -> N
         provider,
         vault={"hit_count": 0, "bundle_ready_hit_count": 0},
         browser={"workspace_hosts": [], "portal_ids": ["49739435"]},
+        browser_saved_logins={"hit_count": 0, "usernames": []},
         gmail={"hit_count": 2, "instances": [], "password_reset_hit_count": 1},
         hosted_surface={
             "supported": True,
@@ -115,9 +117,11 @@ def test_summarize_provider_mentions_password_reset_path_when_mail_exists() -> N
     assert summary["hosted_surface_live"] is True
     assert summary["hosted_surface_configured"] is False
     assert summary["password_reset_hit_count"] == 1
+    assert summary["browser_saved_login_hit_count"] == 0
     assert summary["proof_material_ready"] is False
     assert summary["likely_blocked_on_credentials"] is True
     assert "password-reset mail is reaching the known mailbox" in summary["assessment"]
+    assert "no saved HubSpot login entry" in summary["assessment"]
 
 
 def test_audit_vault_marks_login_only_hubspot_item_as_not_bundle_ready() -> None:
@@ -152,3 +156,32 @@ def test_audit_vault_marks_login_only_hubspot_item_as_not_bundle_ready() -> None
         "allowed_object_types",
         "allowed_properties_by_object",
     ]
+
+
+def test_audit_browser_saved_logins_reports_matching_hubspot_entries(tmp_path: Path) -> None:
+    provider = crm_proof_audit.PROVIDERS["hubspot"]
+    login_db = tmp_path / "Login Data"
+    conn = sqlite3.connect(login_db)
+    try:
+        conn.execute(
+            "CREATE TABLE logins (origin_url TEXT, action_url TEXT, username_value TEXT, date_created INTEGER)"
+        )
+        conn.execute(
+            "INSERT INTO logins VALUES (?, ?, ?, ?)",
+            ("https://app.hubspot.com/login", "", "tommeredith@supertrained.ai", 123456),
+        )
+        conn.execute(
+            "INSERT INTO logins VALUES (?, ?, ?, ?)",
+            ("https://x.com/i/flow/login", "", "tommeredith@supertrained.ai", 123455),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    result = crm_proof_audit.audit_browser_saved_logins(provider, login_db, 25)
+
+    assert result["ok"] is True
+    assert result["hit_count"] == 1
+    assert result["hosts"] == ["app.hubspot.com"]
+    assert result["usernames"] == ["tommeredith@supertrained.ai"]
+    assert result["hits"][0]["host"] == "app.hubspot.com"

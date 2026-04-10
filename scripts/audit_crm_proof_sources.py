@@ -32,6 +32,7 @@ from typing import Any, Iterable
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS_DIR = ROOT / "artifacts"
 DEFAULT_HISTORY_DB = Path("/Volumes/tomme 4TB/.openclaw/browser/rhumb/user-data/Default/History")
+DEFAULT_LOGIN_DATA_DB = Path("/Volumes/tomme 4TB/.openclaw/browser/rhumb/user-data/Default/Login Data")
 DEFAULT_VAULT = "OpenClaw Agents"
 DEFAULT_GMAIL_ACCOUNTS = [
     "tommeredith@supertrained.ai",
@@ -399,6 +400,63 @@ def audit_browser_history(provider: ProviderConfig, history_db: Path, max_hits: 
     }
 
 
+def audit_browser_saved_logins(provider: ProviderConfig, login_data_db: Path, max_hits: int) -> dict[str, Any]:
+    if not login_data_db.exists():
+        return {"ok": False, "error": f"login DB not found at {login_data_db}", "hits": []}
+
+    with tempfile.TemporaryDirectory(prefix="crm-proof-logins-") as tmpdir:
+        copy_path = Path(tmpdir) / "Login Data.sqlite"
+        shutil.copy2(login_data_db, copy_path)
+        conn = sqlite3.connect(copy_path)
+        try:
+            where = " OR ".join(
+                [
+                    "lower(origin_url) LIKE ?",
+                    "lower(action_url) LIKE ?",
+                    "lower(username_value) LIKE ?",
+                ]
+                * len(provider.browser_like_terms)
+            )
+            params: list[str] = []
+            for term in provider.browser_like_terms:
+                like = f"%{term.lower()}%"
+                params.extend([like, like, like])
+            rows = conn.execute(
+                f"SELECT origin_url, action_url, username_value, date_created FROM logins WHERE {where} ORDER BY date_created DESC LIMIT ?",
+                [*params, max_hits],
+            ).fetchall()
+        finally:
+            conn.close()
+
+    hits: list[dict[str, Any]] = []
+    hosts: list[str] = []
+    usernames: list[str] = []
+    for origin_url, action_url, username_value, date_created in rows:
+        host = _host_from_url(origin_url or "") or _host_from_url(action_url or "")
+        if host:
+            hosts.append(host)
+        username = str(username_value or "").strip()
+        if username:
+            usernames.append(username)
+        hits.append(
+            {
+                "origin_url": origin_url,
+                "action_url": action_url,
+                "host": host,
+                "username": username,
+                "date_created": date_created,
+            }
+        )
+
+    return {
+        "ok": True,
+        "hits": hits,
+        "hit_count": len(hits),
+        "hosts": _dedupe_strings(hosts),
+        "usernames": _dedupe_strings(usernames),
+    }
+
+
 def _extract_sender_instances(provider: ProviderConfig, sender: str) -> list[str]:
     values: list[str] = []
     for pattern in provider.gmail_sender_patterns:
@@ -537,12 +595,15 @@ def summarize_provider(
     provider: ProviderConfig,
     vault: dict[str, Any],
     browser: dict[str, Any],
+    browser_saved_logins: dict[str, Any],
     gmail: dict[str, Any],
     hosted_surface: dict[str, Any],
 ) -> dict[str, Any]:
     vault_hit_count = int(vault.get("hit_count") or 0)
     vault_bundle_ready_hit_count = int(vault.get("bundle_ready_hit_count") or 0)
     browser_workspace_hosts = browser.get("workspace_hosts") or []
+    browser_saved_login_hits = int(browser_saved_logins.get("hit_count") or 0)
+    browser_saved_login_usernames = browser_saved_logins.get("usernames") or []
     gmail_instances = gmail.get("instances") or []
     password_reset_hit_count = int(gmail.get("password_reset_hit_count") or 0)
     proof_material_ready = vault_bundle_ready_hit_count > 0
@@ -569,6 +630,9 @@ def summarize_provider(
     else:
         blocker = "Vault inspection found at least one HubSpot item with the scoped bundle fields required for hosted proof."
 
+    if likely_blocked and browser_saved_login_hits == 0:
+        blocker += " The rhumb browser profile also exposes no saved HubSpot login entry, so password-manager recovery is not a viable local shortcut."
+
     return {
         "provider": provider.name,
         "vault_hit_count": vault_hit_count,
@@ -576,6 +640,8 @@ def summarize_provider(
         "browser_workspace_host_count": len(browser_workspace_hosts),
         "browser_workspace_hosts": browser_workspace_hosts,
         "browser_portal_ids": browser.get("portal_ids") or [],
+        "browser_saved_login_hit_count": browser_saved_login_hits,
+        "browser_saved_login_usernames": browser_saved_login_usernames,
         "gmail_hit_count": int(gmail.get("hit_count") or 0),
         "gmail_candidate_instances": gmail_instances,
         "password_reset_hit_count": password_reset_hit_count,
@@ -592,6 +658,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider", choices=["hubspot", "all"], default="all")
     parser.add_argument("--vault", default=DEFAULT_VAULT)
     parser.add_argument("--browser-history", type=Path, default=DEFAULT_HISTORY_DB)
+    parser.add_argument("--browser-login-data", type=Path, default=DEFAULT_LOGIN_DATA_DB)
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
     parser.add_argument("--gmail-account", action="append", default=[])
     parser.add_argument("--max-hits", type=int, default=25)
@@ -609,6 +676,7 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "vault": args.vault,
         "browser_history": str(args.browser_history),
+        "browser_login_data": str(args.browser_login_data),
         "api_base": args.api_base,
         "gmail_accounts": accounts,
         "providers": {},
@@ -619,12 +687,14 @@ def main() -> int:
         provider = PROVIDERS[provider_name]
         vault = audit_vault(provider, args.vault, args.max_hits)
         browser = audit_browser_history(provider, args.browser_history, args.max_hits)
+        browser_saved_logins = audit_browser_saved_logins(provider, args.browser_login_data, args.max_hits)
         gmail = audit_gmail(provider, accounts, args.max_hits)
         hosted_surface = audit_hosted_surface(provider, args.api_base)
-        summary = summarize_provider(provider, vault, browser, gmail, hosted_surface)
+        summary = summarize_provider(provider, vault, browser, browser_saved_logins, gmail, hosted_surface)
         result["providers"][provider_name] = {
             "vault": vault,
             "browser": browser,
+            "browser_saved_logins": browser_saved_logins,
             "gmail": gmail,
             "hosted_surface": hosted_surface,
             "summary": summary,
@@ -643,6 +713,7 @@ def main() -> int:
                 f"bundle_ready={summary['vault_bundle_ready_hit_count']} "
                 f"browser_workspace_hosts={summary['browser_workspace_host_count']} "
                 f"portal_ids={','.join(summary['browser_portal_ids']) or '-'} "
+                f"saved_logins={summary['browser_saved_login_hit_count']} "
                 f"gmail_hits={summary['gmail_hit_count']} "
                 f"reset_hits={summary['password_reset_hit_count']} "
                 f"hosted_live={summary['hosted_surface_live']} "
