@@ -850,18 +850,19 @@ def _canonical_columns(columns: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _canonical_scalar(value: Any, field_type: str) -> Any:
     if value is None:
         return None
-    if field_type == "BOOL":
+    normalized_type = str(field_type or "").strip().upper()
+    if normalized_type == "BOOL":
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() == "true"
-    if field_type == "INT64":
+    if normalized_type in {"INT64", "INTEGER"}:
         if isinstance(value, bool):
             return value
         try:
             return int(value)
         except Exception:
             return value
-    if field_type == "FLOAT64":
+    if normalized_type in {"FLOAT64", "FLOAT", "NUMERIC", "BIGNUMERIC"}:
         try:
             return float(value)
         except Exception:

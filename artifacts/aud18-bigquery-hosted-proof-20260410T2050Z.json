@@ -1,0 +1,470 @@
+{
+  "generated_at": "2026-04-10T20:50:59.240692+00:00",
+  "base_url": "https://api.rhumb.dev",
+  "warehouse_ref": "bq_analytics_read",
+  "bad_warehouse_ref": "bq_missing",
+  "query": "SELECT status, COUNT(*) AS order_count FROM `rhumb-490802.analytics_sandbox.orders` GROUP BY status ORDER BY order_count DESC LIMIT 10",
+  "params": null,
+  "api_key_hint": "rhumb_00...f74f",
+  "preflight": {
+    "configured": true,
+    "available_for_execute": true,
+    "resolve": {
+      "status": 200,
+      "json": {
+        "data": {
+          "capability": "warehouse.query.read",
+          "providers": [
+            {
+              "service_slug": "bigquery",
+              "service_name": "BigQuery",
+              "an_score": null,
+              "execution_score": null,
+              "access_readiness_score": null,
+              "tier": null,
+              "tier_label": "Direct",
+              "confidence": null,
+              "cost_per_call": null,
+              "cost_currency": "USD",
+              "free_tier_calls": null,
+              "credential_modes": [
+                "byok"
+              ],
+              "auth_method": "warehouse_ref",
+              "endpoint_pattern": "POST /v1/capabilities/warehouse.query.read/execute",
+              "recommendation": "available",
+              "recommendation_reason": "Direct read-only BigQuery execution via warehouse_ref with byok service-account JSON bundles, dry-run-before-run enforcement, and explicit dataset/table allowlists.",
+              "circuit_state": "n/a",
+              "available_for_execute": true,
+              "configured": true
+            }
+          ],
+          "fallback_chain": [
+            "bigquery"
+          ],
+          "bundle_ids": [],
+          "execute_hint": {
+            "preferred_provider": "bigquery",
+            "endpoint_pattern": "POST /v1/capabilities/warehouse.query.read/execute",
+            "estimated_cost_usd": null,
+            "credential_modes": [
+              "byok"
+            ]
+          }
+        },
+        "error": null
+      }
+    },
+    "credential_modes": {
+      "status": 200,
+      "json": {
+        "data": {
+          "capability_id": "warehouse.query.read",
+          "providers": [
+            {
+              "service_slug": "bigquery",
+              "auth_method": "warehouse_ref",
+              "modes": [
+                {
+                  "mode": "byok",
+                  "available": true,
+                  "configured": true,
+                  "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode set to either service_account_json or service_account_impersonation, the matching credential payload, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs."
+                }
+              ],
+              "any_configured": true
+            }
+          ]
+        },
+        "error": null
+      }
+    }
+  },
+  "ok": true,
+  "mode": "full",
+  "schema_dataset_refs": [
+    "rhumb-490802.analytics_sandbox"
+  ],
+  "schema_table_refs": [
+    "rhumb-490802.analytics_sandbox.orders"
+  ],
+  "denied_table_ref": "rhumb-490802.analytics_sandbox.orders__denied",
+  "missing_allowed_table_ref": null,
+  "max_rows": 10,
+  "timeout_ms": 10000,
+  "bytes_breach_cap": 1,
+  "local_bundle": {
+    "warehouse_ref": "bq_analytics_read",
+    "provider": "bigquery",
+    "auth_mode": "service_account_impersonation",
+    "billing_project_id": "rhumb-490802",
+    "location": "US",
+    "allowed_dataset_refs": [
+      "rhumb-490802.analytics_sandbox"
+    ],
+    "allowed_table_refs": [
+      "rhumb-490802.analytics_sandbox.orders"
+    ],
+    "max_bytes_billed": 50000000,
+    "max_rows_returned": 50,
+    "max_result_bytes": 262144,
+    "statement_timeout_ms": 10000,
+    "require_partition_filter_for_table_refs": []
+  },
+  "results": [
+    {
+      "check": "warehouse_query_read_resolve_surface",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "capability": "warehouse.query.read",
+          "providers": [
+            {
+              "service_slug": "bigquery",
+              "service_name": "BigQuery",
+              "an_score": null,
+              "execution_score": null,
+              "access_readiness_score": null,
+              "tier": null,
+              "tier_label": "Direct",
+              "confidence": null,
+              "cost_per_call": null,
+              "cost_currency": "USD",
+              "free_tier_calls": null,
+              "credential_modes": [
+                "byok"
+              ],
+              "auth_method": "warehouse_ref",
+              "endpoint_pattern": "POST /v1/capabilities/warehouse.query.read/execute",
+              "recommendation": "available",
+              "recommendation_reason": "Direct read-only BigQuery execution via warehouse_ref with byok service-account JSON bundles, dry-run-before-run enforcement, and explicit dataset/table allowlists.",
+              "circuit_state": "n/a",
+              "available_for_execute": true,
+              "configured": true
+            }
+          ],
+          "fallback_chain": [
+            "bigquery"
+          ],
+          "bundle_ids": [],
+          "execute_hint": {
+            "preferred_provider": "bigquery",
+            "endpoint_pattern": "POST /v1/capabilities/warehouse.query.read/execute",
+            "estimated_cost_usd": null,
+            "credential_modes": [
+              "byok"
+            ]
+          }
+        },
+        "error": null
+      }
+    },
+    {
+      "check": "warehouse_query_read_credential_modes_surface",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "capability_id": "warehouse.query.read",
+          "providers": [
+            {
+              "service_slug": "bigquery",
+              "auth_method": "warehouse_ref",
+              "modes": [
+                {
+                  "mode": "byok",
+                  "available": true,
+                  "configured": true,
+                  "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode set to either service_account_json or service_account_impersonation, the matching credential payload, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs."
+                }
+              ],
+              "any_configured": true
+            }
+          ]
+        },
+        "error": null
+      }
+    },
+    {
+      "check": "warehouse_bundle_configured",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "resolve_configured": true,
+        "credential_mode_configured": true
+      }
+    },
+    {
+      "check": "warehouse_schema_describe",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "bigquery",
+          "credential_mode": "byok",
+          "capability_id": "warehouse.schema.describe",
+          "receipt_id": "rcpt_13d65e5ca30f46589dc38c07",
+          "execution_id": "exec_a67c6d78a0a24ee8a5ca5d84bea01a56",
+          "warehouse_ref": "bq_analytics_read",
+          "billing_project_id": "rhumb-490802",
+          "location": "US",
+          "bounded_by": {
+            "dataset_limit_applied": 1,
+            "table_limit_applied": 1,
+            "column_limit_applied": 500
+          },
+          "datasets": [
+            {
+              "project_id": "rhumb-490802",
+              "dataset_id": "analytics_sandbox"
+            }
+          ],
+          "tables": [
+            {
+              "table_ref": "rhumb-490802.analytics_sandbox.orders",
+              "table_type": "table",
+              "columns": [
+                {
+                  "name": "order_id",
+                  "type": "STRING",
+                  "nullable": true,
+                  "mode": "NULLABLE"
+                },
+                {
+                  "name": "customer_email",
+                  "type": "STRING",
+                  "nullable": true,
+                  "mode": "NULLABLE"
+                },
+                {
+                  "name": "amount_cents",
+                  "type": "INTEGER",
+                  "nullable": true,
+                  "mode": "NULLABLE"
+                },
+                {
+                  "name": "created_at",
+                  "type": "TIMESTAMP",
+                  "nullable": true,
+                  "mode": "NULLABLE"
+                },
+                {
+                  "name": "status",
+                  "type": "STRING",
+                  "nullable": true,
+                  "mode": "NULLABLE"
+                }
+              ]
+            }
+          ],
+          "table_count_returned": 1,
+          "truncated": false,
+          "duration_ms": 853
+        },
+        "summary": "Described 1 warehouse table(s) in [rhumb-490802.analytics_sandbox] via bq_analytics_read in 853ms",
+        "error": null
+      },
+      "receipt_id": "rcpt_13d65e5ca30f46589dc38c07",
+      "receipt_status": 404
+    },
+    {
+      "check": "warehouse_query_read",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "data": {
+          "provider_used": "bigquery",
+          "credential_mode": "byok",
+          "capability_id": "warehouse.query.read",
+          "receipt_id": "rcpt_2c37c1468d104b77864f8d3d",
+          "execution_id": "exec_dbd1aa003bc34bf48baa08bbee9d953b",
+          "warehouse_ref": "bq_analytics_read",
+          "billing_project_id": "rhumb-490802",
+          "location": "US",
+          "bounded_by": {
+            "row_limit_applied": 10,
+            "timeout_ms_applied": 10000,
+            "max_bytes_billed_applied": 50000000,
+            "result_bytes_limit_applied": 262144
+          },
+          "query_summary": {
+            "statement_type": "select",
+            "tables_referenced": [
+              "rhumb-490802.analytics_sandbox.orders"
+            ],
+            "dry_run_performed": true,
+            "dry_run_bytes_processed": 24,
+            "truncated": false
+          },
+          "columns": [
+            {
+              "name": "status",
+              "type": "STRING",
+              "nullable": true,
+              "mode": "NULLABLE"
+            },
+            {
+              "name": "order_count",
+              "type": "INTEGER",
+              "nullable": true,
+              "mode": "NULLABLE"
+            }
+          ],
+          "rows": [
+            {
+              "status": "shipped",
+              "order_count": 1
+            },
+            {
+              "status": "pending",
+              "order_count": 1
+            },
+            {
+              "status": "paid",
+              "order_count": 1
+            }
+          ],
+          "row_count_returned": 3,
+          "truncated": false,
+          "dry_run_bytes_estimate": 24,
+          "actual_bytes_billed": 10485760,
+          "duration_ms": 1634
+        },
+        "summary": "Read 3 warehouse row(s) from [rhumb-490802.analytics_sandbox.orders] via bq_analytics_read in 1634ms",
+        "error": null
+      },
+      "receipt_id": "rcpt_2c37c1468d104b77864f8d3d",
+      "receipt_status": 404
+    },
+    {
+      "check": "bad_warehouse_ref_denial",
+      "ok": true,
+      "status": 400,
+      "error": "warehouse_ref_invalid",
+      "payload_check": null,
+      "payload": {
+        "error": "warehouse_ref_invalid",
+        "message": "No warehouse bundle configured for warehouse_ref 'bq_missing' (expected env var RHUMB_WAREHOUSE_BQ_MISSING)",
+        "capability_id": "warehouse.schema.describe",
+        "execution_id": "exec_93ebfafccfd94556a751faa4ce60f037",
+        "request_id": "64b234a1-9910-4f68-8c58-17a634ceebbf",
+        "warehouse_ref": "bq_missing"
+      }
+    },
+    {
+      "check": "out_of_scope_table_denial",
+      "ok": true,
+      "status": 403,
+      "error": "warehouse_scope_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "warehouse_scope_denied",
+        "message": "warehouse_ref 'bq_analytics_read' is not allowed to access table 'rhumb-490802.analytics_sandbox.orders__denied'",
+        "capability_id": "warehouse.schema.describe",
+        "execution_id": "exec_72d57905f23741448904bc4f7774a6bc",
+        "request_id": "5b7cc577-2a69-48b1-875a-a62aac6f3025",
+        "warehouse_ref": "bq_analytics_read"
+      }
+    },
+    {
+      "check": "warehouse_query_not_read_only_denial",
+      "ok": true,
+      "status": 422,
+      "error": "warehouse_query_not_read_only",
+      "payload_check": null,
+      "payload": {
+        "error": "warehouse_query_not_read_only",
+        "message": "Only read-only SELECT statements are allowed",
+        "capability_id": "warehouse.query.read",
+        "execution_id": "exec_39f3d29517e74cc9a2a4754bdd760e29",
+        "request_id": "db79d92c-424d-4397-8f86-156a3deb457d",
+        "warehouse_ref": "bq_analytics_read"
+      }
+    },
+    {
+      "check": "warehouse_query_multi_statement_denial",
+      "ok": true,
+      "status": 422,
+      "error": "warehouse_query_multi_statement_denied",
+      "payload_check": null,
+      "payload": {
+        "error": "warehouse_query_multi_statement_denied",
+        "message": "Only a single SELECT statement is allowed",
+        "capability_id": "warehouse.query.read",
+        "execution_id": "exec_4f83490b1e7a4daf86808a46c9a5e6e1",
+        "request_id": "5b8b809f-080f-4c13-9f5e-76929e3f0e1f",
+        "warehouse_ref": "bq_analytics_read"
+      }
+    },
+    {
+      "check": "warehouse_bytes_cap_denial",
+      "ok": true,
+      "status": 422,
+      "error": "warehouse_bytes_limit_exceeded",
+      "payload_check": null,
+      "payload": {
+        "error": "warehouse_bytes_limit_exceeded",
+        "message": "BigQuery dry run exceeded the configured bytes cap for this warehouse_ref",
+        "capability_id": "warehouse.query.read",
+        "execution_id": "exec_7aa63ef82d0340e6b43232fe300c2016",
+        "request_id": "3ac6edb1-e30c-4728-be54-c57a757e4f0f",
+        "warehouse_ref": "bq_analytics_read"
+      }
+    },
+    {
+      "check": "direct_bigquery_query_parity",
+      "ok": true,
+      "status": 200,
+      "error": null,
+      "payload_check": null,
+      "payload": {
+        "columns": [
+          {
+            "name": "status",
+            "type": "STRING",
+            "mode": "NULLABLE",
+            "nullable": true,
+            "description": null
+          },
+          {
+            "name": "order_count",
+            "type": "INTEGER",
+            "mode": "NULLABLE",
+            "nullable": true,
+            "description": null
+          }
+        ],
+        "rows": [
+          {
+            "status": "shipped",
+            "order_count": "1"
+          },
+          {
+            "status": "pending",
+            "order_count": "1"
+          },
+          {
+            "status": "paid",
+            "order_count": "1"
+          }
+        ],
+        "row_count_returned": 3,
+        "actual_bytes_billed": "10485760",
+        "job_id": "job_qKUSa2MhDktOZ-qODixmsNPxI9Sk",
+        "location": "US",
+        "billing_project_id": "rhumb-490802"
+      }
+    }
+  ]
+}

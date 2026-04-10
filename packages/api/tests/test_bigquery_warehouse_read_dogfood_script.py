@@ -181,9 +181,10 @@ def test_compare_query_parity_normalizes_bigquery_rest_scalars() -> None:
             "columns": [
                 {"name": "user_id", "type": "INT64", "mode": "NULLABLE"},
                 {"name": "active", "type": "BOOL", "mode": "NULLABLE"},
+                {"name": "order_count", "type": "INTEGER", "mode": "NULLABLE"},
             ],
             "rows": [
-                {"user_id": 42, "active": True},
+                {"user_id": 42, "active": True, "order_count": 1},
             ],
         }
     }
@@ -191,9 +192,10 @@ def test_compare_query_parity_normalizes_bigquery_rest_scalars() -> None:
         "columns": [
             {"name": "user_id", "type": "INT64", "mode": "NULLABLE"},
             {"name": "active", "type": "BOOL", "mode": "NULLABLE"},
+            {"name": "order_count", "type": "INTEGER", "mode": "NULLABLE"},
         ],
         "rows": [
-            {"user_id": "42", "active": "true"},
+            {"user_id": "42", "active": "true", "order_count": "1"},
         ],
     }
 
