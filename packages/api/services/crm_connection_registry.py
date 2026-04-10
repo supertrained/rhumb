@@ -1,4 +1,4 @@
-"""crm_ref registry helpers for AUD-18 HubSpot CRM read-first execution."""
+"""crm_ref registry helpers for AUD-18 CRM read-first execution."""
 
 from __future__ import annotations
 
@@ -6,11 +6,13 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 _CRM_REF_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _OBJECT_TYPE_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 _PROPERTY_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 _RECORD_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
+_SALESFORCE_API_VERSION_RE = re.compile(r"^v?[0-9]{2}\.0$")
 
 
 class CrmRefError(ValueError):
@@ -18,18 +20,34 @@ class CrmRefError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
-class HubSpotCrmBundle:
+class CrmBundleBase:
     crm_ref: str
     provider: str
     auth_mode: str
-    private_app_token: str
-    portal_id: str | None
     allowed_object_types: tuple[str, ...]
     allowed_properties_by_object: dict[str, tuple[str, ...]]
     default_properties_by_object: dict[str, tuple[str, ...]]
     searchable_properties_by_object: dict[str, tuple[str, ...]]
     sortable_properties_by_object: dict[str, tuple[str, ...]]
     allowed_record_ids_by_object: dict[str, tuple[str, ...]]
+
+
+@dataclass(frozen=True, slots=True)
+class HubSpotCrmBundle(CrmBundleBase):
+    private_app_token: str
+    portal_id: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class SalesforceCrmBundle(CrmBundleBase):
+    client_id: str
+    client_secret: str
+    refresh_token: str
+    auth_base_url: str
+    api_version: str
+
+
+CrmBundle = HubSpotCrmBundle | SalesforceCrmBundle
 
 
 def validate_crm_ref(crm_ref: str) -> None:
@@ -55,7 +73,7 @@ def has_any_crm_bundle_configured(provider: str | None = None) -> bool:
     return False
 
 
-def resolve_crm_bundle(crm_ref: str) -> HubSpotCrmBundle:
+def resolve_crm_bundle(crm_ref: str) -> CrmBundle:
     validate_crm_ref(crm_ref)
     env_key = f"RHUMB_CRM_{crm_ref.upper()}"
     raw_bundle = os.environ.get(env_key)
@@ -77,22 +95,14 @@ def resolve_crm_bundle(crm_ref: str) -> HubSpotCrmBundle:
         )
 
     provider = str(payload.get("provider") or "").strip().lower()
-    if provider != "hubspot":
+    if provider not in {"hubspot", "salesforce"}:
         raise CrmRefError(
-            f"crm_ref '{crm_ref}' is configured via env '{env_key}' but provider must be 'hubspot'"
+            f"crm_ref '{crm_ref}' is configured via env '{env_key}' but provider must be one of: hubspot, salesforce"
         )
-
-    auth_mode = str(payload.get("auth_mode") or "").strip().lower()
-    if auth_mode != "private_app_token":
-        raise CrmRefError(
-            f"crm_ref '{crm_ref}' is configured via env '{env_key}' but auth_mode must be 'private_app_token'"
-        )
-
-    private_app_token = _required_string(payload, "private_app_token", crm_ref=crm_ref, env_key=env_key)
-    portal_id = _optional_string(payload.get("portal_id"))
 
     allowed_object_types = _object_type_tuple(
         payload.get("allowed_object_types"),
+        provider=provider,
         field_name="allowed_object_types",
     )
     if not allowed_object_types:
@@ -102,6 +112,7 @@ def resolve_crm_bundle(crm_ref: str) -> HubSpotCrmBundle:
 
     allowed_properties_by_object = _properties_map(
         payload.get("allowed_properties_by_object"),
+        provider=provider,
         field_name="allowed_properties_by_object",
     )
     missing_allowed_property_maps = [
@@ -117,18 +128,22 @@ def resolve_crm_bundle(crm_ref: str) -> HubSpotCrmBundle:
 
     default_properties_by_object = _properties_map(
         payload.get("default_properties_by_object"),
+        provider=provider,
         field_name="default_properties_by_object",
     )
     searchable_properties_by_object = _properties_map(
         payload.get("searchable_properties_by_object"),
+        provider=provider,
         field_name="searchable_properties_by_object",
     )
     sortable_properties_by_object = _properties_map(
         payload.get("sortable_properties_by_object"),
+        provider=provider,
         field_name="sortable_properties_by_object",
     )
     allowed_record_ids_by_object = _record_ids_map(
         payload.get("allowed_record_ids_by_object"),
+        provider=provider,
         field_name="allowed_record_ids_by_object",
     )
 
@@ -156,28 +171,57 @@ def resolve_crm_bundle(crm_ref: str) -> HubSpotCrmBundle:
             field_name=field_name,
         )
 
-    return HubSpotCrmBundle(
-        crm_ref=crm_ref,
-        provider=provider,
-        auth_mode=auth_mode,
-        private_app_token=private_app_token,
-        portal_id=portal_id,
-        allowed_object_types=allowed_object_types,
-        allowed_properties_by_object=allowed_properties_by_object,
-        default_properties_by_object=default_properties_by_object,
-        searchable_properties_by_object=searchable_properties_by_object,
-        sortable_properties_by_object=sortable_properties_by_object,
-        allowed_record_ids_by_object=allowed_record_ids_by_object,
+    auth_mode = str(payload.get("auth_mode") or "").strip().lower()
+    common_kwargs = {
+        "crm_ref": crm_ref,
+        "provider": provider,
+        "auth_mode": auth_mode,
+        "allowed_object_types": allowed_object_types,
+        "allowed_properties_by_object": allowed_properties_by_object,
+        "default_properties_by_object": default_properties_by_object,
+        "searchable_properties_by_object": searchable_properties_by_object,
+        "sortable_properties_by_object": sortable_properties_by_object,
+        "allowed_record_ids_by_object": allowed_record_ids_by_object,
+    }
+    if provider == "hubspot":
+        if auth_mode != "private_app_token":
+            raise CrmRefError(
+                f"crm_ref '{crm_ref}' is configured via env '{env_key}' but auth_mode must be 'private_app_token'"
+            )
+        return HubSpotCrmBundle(
+            private_app_token=_required_string(
+                payload,
+                "private_app_token",
+                crm_ref=crm_ref,
+                env_key=env_key,
+            ),
+            portal_id=_optional_string(payload.get("portal_id")),
+            **common_kwargs,
+        )
+
+    if auth_mode != "connected_app_refresh_token":
+        raise CrmRefError(
+            "crm_ref "
+            f"'{crm_ref}' is configured via env '{env_key}' but auth_mode must be "
+            "'connected_app_refresh_token'"
+        )
+    return SalesforceCrmBundle(
+        client_id=_required_string(payload, "client_id", crm_ref=crm_ref, env_key=env_key),
+        client_secret=_required_string(payload, "client_secret", crm_ref=crm_ref, env_key=env_key),
+        refresh_token=_required_string(payload, "refresh_token", crm_ref=crm_ref, env_key=env_key),
+        auth_base_url=_salesforce_auth_base_url(payload.get("auth_base_url")),
+        api_version=_salesforce_api_version(payload.get("api_version")),
+        **common_kwargs,
     )
 
 
-def object_type_is_allowed(bundle: HubSpotCrmBundle, object_type: str | None) -> bool:
-    normalized = _normalize_object_type(object_type)
+def object_type_is_allowed(bundle: CrmBundle, object_type: str | None) -> bool:
+    normalized = _normalize_object_type(object_type, provider=bundle.provider)
     return normalized is not None and normalized in bundle.allowed_object_types
 
 
-def ensure_object_type_allowed(bundle: HubSpotCrmBundle, object_type: str | None) -> str:
-    normalized = _normalize_object_type(object_type)
+def ensure_object_type_allowed(bundle: CrmBundle, object_type: str | None) -> str:
+    normalized = _normalize_object_type(object_type, provider=bundle.provider)
     if normalized is None:
         raise CrmRefError(f"crm_ref '{bundle.crm_ref}' requires an explicit object_type")
     if normalized not in bundle.allowed_object_types:
@@ -187,31 +231,31 @@ def ensure_object_type_allowed(bundle: HubSpotCrmBundle, object_type: str | None
     return normalized
 
 
-def allowed_properties_for_object(bundle: HubSpotCrmBundle, object_type: str) -> tuple[str, ...]:
+def allowed_properties_for_object(bundle: CrmBundle, object_type: str) -> tuple[str, ...]:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     return bundle.allowed_properties_by_object.get(normalized_object_type, ())
 
 
-def default_properties_for_object(bundle: HubSpotCrmBundle, object_type: str) -> tuple[str, ...]:
+def default_properties_for_object(bundle: CrmBundle, object_type: str) -> tuple[str, ...]:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     configured = bundle.default_properties_by_object.get(normalized_object_type)
     return configured if configured else allowed_properties_for_object(bundle, normalized_object_type)
 
 
-def searchable_properties_for_object(bundle: HubSpotCrmBundle, object_type: str) -> tuple[str, ...]:
+def searchable_properties_for_object(bundle: CrmBundle, object_type: str) -> tuple[str, ...]:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     configured = bundle.searchable_properties_by_object.get(normalized_object_type)
     return configured if configured else allowed_properties_for_object(bundle, normalized_object_type)
 
 
-def sortable_properties_for_object(bundle: HubSpotCrmBundle, object_type: str) -> tuple[str, ...]:
+def sortable_properties_for_object(bundle: CrmBundle, object_type: str) -> tuple[str, ...]:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     configured = bundle.sortable_properties_by_object.get(normalized_object_type)
     return configured if configured else allowed_properties_for_object(bundle, normalized_object_type)
 
 
 def ensure_properties_allowed(
-    bundle: HubSpotCrmBundle,
+    bundle: CrmBundle,
     object_type: str,
     properties: list[str] | tuple[str, ...],
 ) -> tuple[str, ...]:
@@ -220,7 +264,7 @@ def ensure_properties_allowed(
     normalized_properties: list[str] = []
     seen: set[str] = set()
     for property_name in properties:
-        normalized_property = _normalize_property_name(property_name)
+        normalized_property = _normalize_property_name(property_name, provider=bundle.provider)
         if normalized_property is None:
             raise CrmRefError("property_names entries must be non-empty strings")
         if normalized_property not in allowed:
@@ -234,7 +278,7 @@ def ensure_properties_allowed(
 
 
 def effective_properties_for_object(
-    bundle: HubSpotCrmBundle,
+    bundle: CrmBundle,
     object_type: str,
     property_names: list[str] | tuple[str, ...] | None,
 ) -> tuple[str, ...]:
@@ -245,7 +289,7 @@ def effective_properties_for_object(
 
 
 def ensure_search_filter_properties_allowed(
-    bundle: HubSpotCrmBundle,
+    bundle: CrmBundle,
     object_type: str,
     property_names: list[str] | tuple[str, ...],
 ) -> tuple[str, ...]:
@@ -253,7 +297,7 @@ def ensure_search_filter_properties_allowed(
     allowed = set(searchable_properties_for_object(bundle, normalized_object_type))
     normalized_properties: list[str] = []
     for property_name in property_names:
-        normalized_property = _normalize_property_name(property_name)
+        normalized_property = _normalize_property_name(property_name, provider=bundle.provider)
         if normalized_property is None:
             raise CrmRefError("filter property names must be non-empty strings")
         if normalized_property not in allowed:
@@ -265,7 +309,7 @@ def ensure_search_filter_properties_allowed(
 
 
 def ensure_sort_properties_allowed(
-    bundle: HubSpotCrmBundle,
+    bundle: CrmBundle,
     object_type: str,
     property_names: list[str] | tuple[str, ...],
 ) -> tuple[str, ...]:
@@ -273,7 +317,7 @@ def ensure_sort_properties_allowed(
     allowed = set(sortable_properties_for_object(bundle, normalized_object_type))
     normalized_properties: list[str] = []
     for property_name in property_names:
-        normalized_property = _normalize_property_name(property_name)
+        normalized_property = _normalize_property_name(property_name, provider=bundle.provider)
         if normalized_property is None:
             raise CrmRefError("sort property names must be non-empty strings")
         if normalized_property not in allowed:
@@ -284,7 +328,7 @@ def ensure_sort_properties_allowed(
     return tuple(normalized_properties)
 
 
-def record_id_is_allowed(bundle: HubSpotCrmBundle, object_type: str, record_id: str | None) -> bool:
+def record_id_is_allowed(bundle: CrmBundle, object_type: str, record_id: str | None) -> bool:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     normalized_record_id = _normalize_record_id(record_id)
     if normalized_record_id is None:
@@ -295,7 +339,7 @@ def record_id_is_allowed(bundle: HubSpotCrmBundle, object_type: str, record_id: 
     return normalized_record_id in allowed_record_ids
 
 
-def ensure_record_allowed(bundle: HubSpotCrmBundle, object_type: str, record_id: str | None) -> str:
+def ensure_record_allowed(bundle: CrmBundle, object_type: str, record_id: str | None) -> str:
     normalized_object_type = ensure_object_type_allowed(bundle, object_type)
     normalized_record_id = _normalize_record_id(record_id)
     if normalized_record_id is None:
@@ -323,21 +367,21 @@ def _optional_string(value: object) -> str | None:
     return text or None
 
 
-def _normalize_object_type(value: object) -> str | None:
+def _normalize_object_type(value: object, *, provider: str) -> str | None:
     text = _optional_string(value)
     if text is None:
         return None
-    normalized = text.lower()
+    normalized = text.lower() if provider == "hubspot" else text
     if not _OBJECT_TYPE_RE.fullmatch(normalized):
         raise CrmRefError(f"object_type '{text}' is not valid")
     return normalized
 
 
-def _normalize_property_name(value: object) -> str | None:
+def _normalize_property_name(value: object, *, provider: str) -> str | None:
     text = _optional_string(value)
     if text is None:
         return None
-    normalized = text.lower()
+    normalized = text.lower() if provider == "hubspot" else text
     if not _PROPERTY_RE.fullmatch(normalized):
         raise CrmRefError(f"property '{text}' is not valid")
     return normalized
@@ -352,7 +396,7 @@ def _normalize_record_id(value: object) -> str | None:
     return text
 
 
-def _object_type_tuple(value: object, *, field_name: str) -> tuple[str, ...]:
+def _object_type_tuple(value: object, *, provider: str, field_name: str) -> tuple[str, ...]:
     if value is None:
         return ()
     if not isinstance(value, list):
@@ -360,7 +404,7 @@ def _object_type_tuple(value: object, *, field_name: str) -> tuple[str, ...]:
     items: list[str] = []
     seen: set[str] = set()
     for item in value:
-        normalized = _normalize_object_type(item)
+        normalized = _normalize_object_type(item, provider=provider)
         if normalized is None:
             raise CrmRefError(f"{field_name} entries must be non-empty object_type strings")
         if normalized not in seen:
@@ -369,14 +413,14 @@ def _object_type_tuple(value: object, *, field_name: str) -> tuple[str, ...]:
     return tuple(items)
 
 
-def _properties_map(value: object, *, field_name: str) -> dict[str, tuple[str, ...]]:
+def _properties_map(value: object, *, provider: str, field_name: str) -> dict[str, tuple[str, ...]]:
     if value is None:
         return {}
     if not isinstance(value, dict):
         raise CrmRefError(f"{field_name} must be an object keyed by object_type")
     normalized: dict[str, tuple[str, ...]] = {}
     for raw_object_type, raw_properties in value.items():
-        object_type = _normalize_object_type(raw_object_type)
+        object_type = _normalize_object_type(raw_object_type, provider=provider)
         if object_type is None:
             raise CrmRefError(f"{field_name} object_type keys must be non-empty strings")
         if not isinstance(raw_properties, list):
@@ -384,7 +428,7 @@ def _properties_map(value: object, *, field_name: str) -> dict[str, tuple[str, .
         properties: list[str] = []
         seen: set[str] = set()
         for raw_property in raw_properties:
-            property_name = _normalize_property_name(raw_property)
+            property_name = _normalize_property_name(raw_property, provider=provider)
             if property_name is None:
                 raise CrmRefError(f"{field_name}.{object_type} entries must be non-empty property names")
             if property_name not in seen:
@@ -396,14 +440,19 @@ def _properties_map(value: object, *, field_name: str) -> dict[str, tuple[str, .
     return normalized
 
 
-def _record_ids_map(value: object, *, field_name: str) -> dict[str, tuple[str, ...]]:
+def _record_ids_map(
+    value: object,
+    *,
+    provider: str,
+    field_name: str,
+) -> dict[str, tuple[str, ...]]:
     if value is None:
         return {}
     if not isinstance(value, dict):
         raise CrmRefError(f"{field_name} must be an object keyed by object_type")
     normalized: dict[str, tuple[str, ...]] = {}
     for raw_object_type, raw_record_ids in value.items():
-        object_type = _normalize_object_type(raw_object_type)
+        object_type = _normalize_object_type(raw_object_type, provider=provider)
         if object_type is None:
             raise CrmRefError(f"{field_name} object_type keys must be non-empty strings")
         if not isinstance(raw_record_ids, list):
@@ -448,3 +497,18 @@ def _ensure_map_values_subset(
             raise CrmRefError(
                 f"{field_name}.{object_type} contains properties outside allowed_properties_by_object: {extra_list}"
             )
+
+
+def _salesforce_auth_base_url(value: object) -> str:
+    text = _optional_string(value) or "https://login.salesforce.com"
+    parsed = urlparse(text)
+    if parsed.scheme != "https" or not parsed.netloc or parsed.path not in {"", "/"}:
+        raise CrmRefError("auth_base_url must be an https origin such as https://login.salesforce.com")
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _salesforce_api_version(value: object) -> str:
+    text = _optional_string(value) or "v61.0"
+    if not _SALESFORCE_API_VERSION_RE.fullmatch(text):
+        raise CrmRefError("api_version must look like v61.0")
+    return text if text.startswith("v") else f"v{text}"

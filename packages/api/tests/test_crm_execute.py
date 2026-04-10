@@ -96,19 +96,20 @@ def _assert_failure_audit(
     status_code: int,
     error_code: str,
     credential_mode: str = "byok",
+    provider_id: str = "unknown",
 ) -> None:
     mock_receipt_service.create_receipt.assert_called_once()
     receipt_input = mock_receipt_service.create_receipt.call_args[0][0]
     assert receipt_input.status == "failure"
     assert receipt_input.error_code == error_code
-    assert receipt_input.provider_id == "hubspot"
+    assert receipt_input.provider_id == provider_id
     assert receipt_input.credential_mode == credential_mode
 
     table_name, payload = mock_supabase_writes.await_args.args
     assert table_name == "capability_executions"
     assert payload["upstream_status"] == status_code
     assert payload["success"] is False
-    assert payload["provider_used"] == "hubspot"
+    assert payload["provider_used"] == provider_id
 
 
 @pytest.mark.asyncio
@@ -147,7 +148,7 @@ async def test_crm_record_search_success(app, monkeypatch) -> None:
         next_after=None,
     )
 
-    with patch.object(crm_execute_route, "search_records", new=AsyncMock(return_value=response_model)):
+    with patch.object(crm_execute_route, "search_hubspot_records", new=AsyncMock(return_value=response_model)):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/v1/capabilities/crm.record.search/execute",
@@ -195,6 +196,7 @@ async def test_crm_record_search_rejects_missing_crm_ref_env(
         _mock_supabase_writes,
         status_code=400,
         error_code="crm_ref_invalid",
+        provider_id="unknown",
     )
 
 
@@ -238,6 +240,7 @@ async def test_crm_record_search_rejects_non_byok_credential_mode(
         status_code=400,
         error_code="crm_credential_mode_invalid",
         credential_mode="agent_vault",
+        provider_id="unknown",
     )
 
 
@@ -280,6 +283,7 @@ async def test_crm_record_search_validation_error_maps_to_request_invalid(
         _mock_supabase_writes,
         status_code=400,
         error_code="crm_request_invalid",
+        provider_id="unknown",
     )
 
 
@@ -322,4 +326,62 @@ async def test_crm_record_search_rejects_nested_filter_group_shape(
         _mock_supabase_writes,
         status_code=400,
         error_code="crm_request_invalid",
+        provider_id="unknown",
     )
+
+
+@pytest.mark.asyncio
+async def test_crm_record_search_salesforce_success(app, monkeypatch) -> None:
+    monkeypatch.setenv(
+        "RHUMB_CRM_SF_MAIN",
+        json.dumps(
+            {
+                "provider": "salesforce",
+                "auth_mode": "connected_app_refresh_token",
+                "client_id": "client-123",
+                "client_secret": "secret-123",
+                "refresh_token": "refresh-123",
+                "allowed_object_types": ["Account"],
+                "allowed_properties_by_object": {"Account": ["Name"]},
+            }
+        ),
+    )
+
+    response_model = CrmRecordSearchResponse(
+        provider_used="salesforce",
+        credential_mode="byok",
+        capability_id="crm.record.search",
+        receipt_id="pending",
+        execution_id="pending",
+        crm_ref="sf_main",
+        object_type="Account",
+        records=[
+            HubSpotCrmRecordSummary(
+                record_id="001ABC000000123XYZ",
+                archived=False,
+                created_at="2026-04-09T17:00:00Z",
+                updated_at="2026-04-09T17:01:00Z",
+                properties={"Name": "Acme"},
+            )
+        ],
+        record_count_returned=1,
+        next_after=None,
+    )
+
+    with patch.object(crm_execute_route, "search_salesforce_records", new=AsyncMock(return_value=response_model)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/crm.record.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "crm_ref": "sf_main",
+                    "object_type": "Account",
+                },
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["crm_ref"] == "sf_main"
+    assert body["data"]["provider_used"] == "salesforce"
+    assert body["summary"] == "Found 1 Salesforce Account via crm_ref sf_main"

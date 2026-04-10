@@ -598,22 +598,26 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
             modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
 
     list_item = list_resp.json()["data"]["items"][0]
-    assert list_item["provider_count"] == 1
+    assert list_item["provider_count"] == 2
     assert list_item["top_provider"]["slug"] == "hubspot"
 
     get_data = get_resp.json()["data"]
-    assert get_data["provider_count"] == 1
+    assert get_data["provider_count"] == 2
     assert get_data["providers"][0]["service_slug"] == "hubspot"
+    assert get_data["providers"][1]["service_slug"] == "salesforce"
     assert get_data["providers"][0]["auth_method"] == "crm_ref"
 
     resolve_data = resolve_resp.json()["data"]
     assert resolve_data["providers"][0]["service_slug"] == "hubspot"
+    assert resolve_data["providers"][1]["service_slug"] == "salesforce"
     assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
     assert resolve_data["providers"][0]["configured"] is True
+    assert resolve_data["providers"][1]["configured"] is True
     assert resolve_data["execute_hint"]["preferred_provider"] == "hubspot"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "hubspot"
+    assert mode_data["providers"][1]["service_slug"] == "salesforce"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "RHUMB_CRM_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
 

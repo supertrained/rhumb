@@ -1,4 +1,4 @@
-"""HubSpot CRM capability request/response schemas for the AUD-18 read-first wedge."""
+"""CRM capability request/response schemas for the AUD-18 read-first wedge."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ SUPPORTED_FILTER_OPERATORS = frozenset({
 })
 
 CredentialMode = Literal["byok"]
-ProviderUsed = Literal["hubspot"]
+ProviderUsed = Literal["hubspot", "salesforce"]
 ScalarValue = str | int | float | bool | None
 
 
@@ -54,13 +54,13 @@ class CrmObjectDescribeRequest(CrmBaseModel):
     @field_validator("object_type")
     @classmethod
     def _normalize_object_type(cls, value: str) -> str:
-        normalized = value.strip().lower()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("object_type must not be empty")
         return normalized
 
 
-class HubSpotCrmPropertyDescriptor(CrmBaseModel):
+class CrmPropertyDescriptor(CrmBaseModel):
     name: str = Field(..., min_length=1, max_length=CRM_PROPERTY_NAME_MAX_CHARS)
     label: str | None = Field(default=None, max_length=CRM_TEXT_MAX_CHARS)
     type: str | None = Field(default=None, max_length=CRM_TEXT_MAX_CHARS)
@@ -84,7 +84,7 @@ class CrmObjectDescribeResponse(CrmBaseModel):
     plural_label: str | None = Field(default=None, max_length=CRM_TEXT_MAX_CHARS)
     primary_display_property: str | None = Field(default=None, max_length=CRM_PROPERTY_NAME_MAX_CHARS)
     required_properties: list[str] = Field(default_factory=list)
-    properties: list[HubSpotCrmPropertyDescriptor] = Field(default_factory=list)
+    properties: list[CrmPropertyDescriptor] = Field(default_factory=list)
     property_count_returned: int = Field(..., ge=0, le=CRM_DESCRIBE_PROPERTY_MAX)
 
 
@@ -96,7 +96,7 @@ class CrmRecordSearchFilter(CrmBaseModel):
     @field_validator("property")
     @classmethod
     def _normalize_property(cls, value: str) -> str:
-        normalized = value.strip().lower()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("property must not be empty")
         return normalized
@@ -128,7 +128,7 @@ class CrmRecordSort(CrmBaseModel):
     @field_validator("property")
     @classmethod
     def _normalize_property(cls, value: str) -> str:
-        normalized = value.strip().lower()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("property must not be empty")
         return normalized
@@ -148,7 +148,7 @@ class CrmRecordSearchRequest(CrmBaseModel):
     @field_validator("object_type")
     @classmethod
     def _normalize_object_type(cls, value: str) -> str:
-        normalized = value.strip().lower()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("object_type must not be empty")
         return normalized
@@ -175,7 +175,7 @@ class CrmRecordSearchRequest(CrmBaseModel):
         return _normalize_property_list(value)
 
 
-class HubSpotCrmRecordSummary(CrmBaseModel):
+class CrmRecordSummary(CrmBaseModel):
     record_id: str = Field(..., min_length=1, max_length=CRM_RECORD_ID_MAX_CHARS)
     archived: bool = False
     created_at: str | None = Field(default=None, max_length=CRM_TEXT_MAX_CHARS)
@@ -191,7 +191,7 @@ class CrmRecordSearchResponse(CrmBaseModel):
     execution_id: str
     crm_ref: str
     object_type: str
-    records: list[HubSpotCrmRecordSummary] = Field(default_factory=list)
+    records: list[CrmRecordSummary] = Field(default_factory=list)
     record_count_returned: int = Field(..., ge=0, le=CRM_MAX_LIMIT)
     next_after: str | None = None
 
@@ -206,7 +206,7 @@ class CrmRecordGetRequest(CrmBaseModel):
     @field_validator("object_type")
     @classmethod
     def _normalize_object_type(cls, value: str) -> str:
-        normalized = value.strip().lower()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("object_type must not be empty")
         return normalized
@@ -253,7 +253,7 @@ def _normalize_property_list(value: list[str] | None) -> list[str] | None:
     normalized: list[str] = []
     seen: set[str] = set()
     for item in value:
-        candidate = item.strip().lower()
+        candidate = item.strip()
         if not candidate:
             raise ValueError("property_names entries must not be empty")
         if len(candidate) > CRM_PROPERTY_NAME_MAX_CHARS:
@@ -262,3 +262,7 @@ def _normalize_property_list(value: list[str] | None) -> list[str] | None:
             seen.add(candidate)
             normalized.append(candidate)
     return normalized
+
+
+HubSpotCrmPropertyDescriptor = CrmPropertyDescriptor
+HubSpotCrmRecordSummary = CrmRecordSummary

@@ -8,6 +8,7 @@ import pytest
 
 from services.crm_connection_registry import (
     CrmRefError,
+    SalesforceCrmBundle,
     effective_properties_for_object,
     ensure_properties_allowed,
     ensure_record_allowed,
@@ -40,6 +41,32 @@ VALID_BUNDLE = {
     },
 }
 
+VALID_SALESFORCE_BUNDLE = {
+    "provider": "salesforce",
+    "auth_mode": "connected_app_refresh_token",
+    "client_id": "client-123",
+    "client_secret": "secret-123",
+    "refresh_token": "refresh-123",
+    "auth_base_url": "https://test.salesforce.com",
+    "api_version": "v61.0",
+    "allowed_object_types": ["Account"],
+    "allowed_properties_by_object": {
+        "Account": ["Name", "Industry", "CreatedDate", "LastModifiedDate"],
+    },
+    "default_properties_by_object": {
+        "Account": ["Name", "Industry"],
+    },
+    "searchable_properties_by_object": {
+        "Account": ["Name"],
+    },
+    "sortable_properties_by_object": {
+        "Account": ["CreatedDate"],
+    },
+    "allowed_record_ids_by_object": {
+        "Account": ["001ABC000000123XYZ"],
+    },
+}
+
 
 def test_resolve_crm_bundle_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RHUMB_CRM_HS_MAIN", json.dumps(VALID_BUNDLE))
@@ -66,6 +93,46 @@ def test_resolve_crm_bundle_requires_allowed_properties_for_every_object(
 
     with pytest.raises(CrmRefError, match="missing entries for: deals"):
         resolve_crm_bundle("hs_main")
+
+
+def test_resolve_salesforce_bundle_from_env_preserves_exact_api_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_CRM_SF_MAIN", json.dumps(VALID_SALESFORCE_BUNDLE))
+
+    bundle = resolve_crm_bundle("sf_main")
+
+    assert isinstance(bundle, SalesforceCrmBundle)
+    assert bundle.provider == "salesforce"
+    assert bundle.auth_mode == "connected_app_refresh_token"
+    assert bundle.auth_base_url == "https://test.salesforce.com"
+    assert bundle.api_version == "v61.0"
+    assert bundle.allowed_object_types == ("Account",)
+    assert bundle.allowed_properties_by_object["Account"] == (
+        "Name",
+        "Industry",
+        "CreatedDate",
+        "LastModifiedDate",
+    )
+
+
+def test_salesforce_scope_helpers_enforce_exact_object_and_field_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_CRM_SF_MAIN", json.dumps(VALID_SALESFORCE_BUNDLE))
+
+    bundle = resolve_crm_bundle("sf_main")
+
+    assert effective_properties_for_object(bundle, "Account", None) == ("Name", "Industry")
+
+    with pytest.raises(CrmRefError, match="object_type 'account'"):
+        effective_properties_for_object(bundle, "account", None)
+
+    with pytest.raises(CrmRefError, match="property 'name'"):
+        ensure_properties_allowed(bundle, "Account", ["name"])
+
+    with pytest.raises(CrmRefError, match="record_id '001ABC000000999XYZ'"):
+        ensure_record_allowed(bundle, "Account", "001ABC000000999XYZ")
 
 
 def test_resolve_crm_bundle_rejects_default_properties_outside_allowlist(
@@ -117,7 +184,8 @@ def test_crm_scope_helpers_enforce_properties_and_record_ids(
 def test_has_any_crm_bundle_configured_filters_invalid_or_wrong_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RHUMB_CRM_BAD", "not-json")
     monkeypatch.setenv("RHUMB_CRM_HS_MAIN", json.dumps(VALID_BUNDLE))
+    monkeypatch.setenv("RHUMB_CRM_SF_MAIN", json.dumps(VALID_SALESFORCE_BUNDLE))
 
     assert has_any_crm_bundle_configured() is True
     assert has_any_crm_bundle_configured("hubspot") is True
-    assert has_any_crm_bundle_configured("salesforce") is False
+    assert has_any_crm_bundle_configured("salesforce") is True

@@ -1,4 +1,4 @@
-"""HubSpot CRM read-first capability execution for AUD-18."""
+"""CRM read-first capability execution for AUD-18."""
 
 from __future__ import annotations
 
@@ -16,13 +16,25 @@ from schemas.crm_capabilities import (
     CrmRecordGetRequest,
     CrmRecordSearchRequest,
 )
-from services.crm_connection_registry import CrmRefError, resolve_crm_bundle
+from services.crm_connection_registry import (
+    CrmBundle,
+    CrmRefError,
+    HubSpotCrmBundle,
+    SalesforceCrmBundle,
+    resolve_crm_bundle,
+)
 from services.crm_receipt_summary import summarize_crm_execution
 from services.hubspot_crm_read_executor import (
     HubSpotCrmExecutorError,
-    describe_object,
-    get_record,
-    search_records,
+    describe_object as describe_hubspot_object,
+    get_record as get_hubspot_record,
+    search_records as search_hubspot_records,
+)
+from services.salesforce_crm_read_executor import (
+    SalesforceCrmExecutorError,
+    describe_object as describe_salesforce_object,
+    get_record as get_salesforce_record,
+    search_records as search_salesforce_records,
 )
 from services.receipt_service import (
     ReceiptInput,
@@ -64,7 +76,7 @@ async def handle_crm_execute(
     request_id: str,
 ) -> JSONResponse | dict:
     start = time.perf_counter()
-    provider_used = "hubspot"
+    provider_used = "unknown"
     credential_mode = "byok"
 
     try:
@@ -122,15 +134,18 @@ async def handle_crm_execute(
         if capability_id == "crm.object.describe":
             request = CrmObjectDescribeRequest.model_validate(body)
             bundle = resolve_crm_bundle(request.crm_ref)
-            result = await describe_object(request, bundle=bundle, execution_id=execution_id)
+            provider_used = bundle.provider
+            result = await _execute_describe(request=request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "crm.record.search":
             request = CrmRecordSearchRequest.model_validate(body)
             bundle = resolve_crm_bundle(request.crm_ref)
-            result = await search_records(request, bundle=bundle, execution_id=execution_id)
+            provider_used = bundle.provider
+            result = await _execute_search(request=request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "crm.record.get":
             request = CrmRecordGetRequest.model_validate(body)
             bundle = resolve_crm_bundle(request.crm_ref)
-            result = await get_record(request, bundle=bundle, execution_id=execution_id)
+            provider_used = bundle.provider
+            result = await _execute_get(request=request, bundle=bundle, execution_id=execution_id)
         else:
             return await _failure_response(
                 raw_request=raw_request,
@@ -179,7 +194,7 @@ async def handle_crm_execute(
             status_code=400,
             started_at=start,
         )
-    except HubSpotCrmExecutorError as exc:
+    except (HubSpotCrmExecutorError, SalesforceCrmExecutorError) as exc:
         return await _failure_response(
             raw_request=raw_request,
             agent_id=agent_id,
@@ -232,6 +247,45 @@ async def handle_crm_execute(
     )
 
     return {"data": response_dict, "summary": summary, "error": None}
+
+
+async def _execute_describe(
+    *,
+    request: CrmObjectDescribeRequest,
+    bundle: CrmBundle,
+    execution_id: str,
+):
+    if isinstance(bundle, HubSpotCrmBundle):
+        return await describe_hubspot_object(request, bundle=bundle, execution_id=execution_id)
+    if isinstance(bundle, SalesforceCrmBundle):
+        return await describe_salesforce_object(request, bundle=bundle, execution_id=execution_id)
+    raise RuntimeError(f"Unsupported CRM bundle provider '{bundle.provider}'")
+
+
+async def _execute_search(
+    *,
+    request: CrmRecordSearchRequest,
+    bundle: CrmBundle,
+    execution_id: str,
+):
+    if isinstance(bundle, HubSpotCrmBundle):
+        return await search_hubspot_records(request, bundle=bundle, execution_id=execution_id)
+    if isinstance(bundle, SalesforceCrmBundle):
+        return await search_salesforce_records(request, bundle=bundle, execution_id=execution_id)
+    raise RuntimeError(f"Unsupported CRM bundle provider '{bundle.provider}'")
+
+
+async def _execute_get(
+    *,
+    request: CrmRecordGetRequest,
+    bundle: CrmBundle,
+    execution_id: str,
+):
+    if isinstance(bundle, HubSpotCrmBundle):
+        return await get_hubspot_record(request, bundle=bundle, execution_id=execution_id)
+    if isinstance(bundle, SalesforceCrmBundle):
+        return await get_salesforce_record(request, bundle=bundle, execution_id=execution_id)
+    raise RuntimeError(f"Unsupported CRM bundle provider '{bundle.provider}'")
 
 
 async def _emit_receipt(

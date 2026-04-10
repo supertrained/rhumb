@@ -57,8 +57,10 @@ _ACTIONS_DIRECT_PROVIDER_SLUG = "github"
 _ACTIONS_DIRECT_PROVIDER_NAME = "GitHub"
 _ACTIONS_DIRECT_PROVIDER_CATEGORY = "automation"
 _ACTIONS_DIRECT_CREDENTIAL_MODES = ["byok"]
-_CRM_DIRECT_PROVIDER_SLUG = "hubspot"
-_CRM_DIRECT_PROVIDER_NAME = "HubSpot"
+_CRM_HUBSPOT_DIRECT_PROVIDER_SLUG = "hubspot"
+_CRM_HUBSPOT_DIRECT_PROVIDER_NAME = "HubSpot"
+_CRM_SALESFORCE_DIRECT_PROVIDER_SLUG = "salesforce"
+_CRM_SALESFORCE_DIRECT_PROVIDER_NAME = "Salesforce"
 _CRM_DIRECT_PROVIDER_CATEGORY = "crm"
 _CRM_DIRECT_CREDENTIAL_MODES = ["byok"]
 _ZENDESK_SUPPORT_DIRECT_PROVIDER_SLUG = "zendesk"
@@ -205,11 +207,26 @@ def _actions_direct_top_provider() -> dict[str, str | None]:
 
 
 def _crm_direct_top_provider() -> dict[str, str | None]:
+    preferred_slug = _crm_direct_provider_order()[0]
     return {
-        "slug": _CRM_DIRECT_PROVIDER_SLUG,
+        "slug": preferred_slug,
         "an_score": None,
         "tier_label": "Direct",
     }
+
+
+def _crm_direct_provider_order() -> list[str]:
+    hubspot_configured = has_any_crm_bundle_configured("hubspot")
+    salesforce_configured = has_any_crm_bundle_configured("salesforce")
+    if salesforce_configured and not hubspot_configured:
+        return [_CRM_SALESFORCE_DIRECT_PROVIDER_SLUG, _CRM_HUBSPOT_DIRECT_PROVIDER_SLUG]
+    return [_CRM_HUBSPOT_DIRECT_PROVIDER_SLUG, _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG]
+
+
+def _crm_direct_provider_name(provider_slug: str) -> str:
+    if provider_slug == _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG:
+        return _CRM_SALESFORCE_DIRECT_PROVIDER_NAME
+    return _CRM_HUBSPOT_DIRECT_PROVIDER_NAME
 
 
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
@@ -286,15 +303,29 @@ def _actions_direct_provider_details(capability_id: str) -> dict[str, object]:
     }
 
 
-def _crm_direct_provider_details(capability_id: str) -> dict[str, object]:
-    notes = {
-        "crm.object.describe": "Direct read-only HubSpot CRM object property describe via crm_ref with explicit object and property scope.",
-        "crm.record.search": "Direct read-only HubSpot CRM record search via crm_ref with explicit object/property scope, a bounded simple filters list, and at most two sorts.",
-        "crm.record.get": "Direct read-only HubSpot CRM record fetch via crm_ref with explicit object/property scope and optional exact record allowlists.",
+def _crm_direct_provider_details(capability_id: str) -> list[dict[str, object]]:
+    return [
+        _crm_direct_provider_detail(capability_id, provider_slug)
+        for provider_slug in _crm_direct_provider_order()
+    ]
+
+
+def _crm_direct_provider_detail(capability_id: str, provider_slug: str) -> dict[str, object]:
+    notes_by_provider = {
+        _CRM_HUBSPOT_DIRECT_PROVIDER_SLUG: {
+            "crm.object.describe": "Direct read-only HubSpot CRM object property describe via crm_ref with explicit object and property scope.",
+            "crm.record.search": "Direct read-only HubSpot CRM record search via crm_ref with explicit object/property scope, a bounded simple filters list, and at most two sorts.",
+            "crm.record.get": "Direct read-only HubSpot CRM record fetch via crm_ref with explicit object/property scope and optional exact record allowlists.",
+        },
+        _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG: {
+            "crm.object.describe": "Direct read-only Salesforce object describe via crm_ref with exact object and field allowlists.",
+            "crm.record.search": "Direct read-only Salesforce record search via crm_ref with exact object/field scope, generated provider-side query clauses, and no caller-supplied SOQL or SOSL.",
+            "crm.record.get": "Direct read-only Salesforce record fetch via crm_ref with exact object/field scope and optional exact record allowlists.",
+        },
     }
     return {
-        "service_slug": _CRM_DIRECT_PROVIDER_SLUG,
-        "service_name": _CRM_DIRECT_PROVIDER_NAME,
+        "service_slug": provider_slug,
+        "service_name": _crm_direct_provider_name(provider_slug),
         "category": _CRM_DIRECT_PROVIDER_CATEGORY,
         "an_score": None,
         "tier": None,
@@ -305,8 +336,8 @@ def _crm_direct_provider_details(capability_id: str) -> dict[str, object]:
         "cost_per_call": None,
         "cost_currency": "USD",
         "free_tier_calls": None,
-        "notes": notes.get(capability_id),
-        "is_primary": True,
+        "notes": notes_by_provider[provider_slug].get(capability_id),
+        "is_primary": provider_slug == _crm_direct_provider_order()[0],
     }
 
 
@@ -568,36 +599,42 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 
 
 def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
-    configured = has_any_crm_bundle_configured("hubspot")
-    provider = {
-        "service_slug": _CRM_DIRECT_PROVIDER_SLUG,
-        "service_name": _CRM_DIRECT_PROVIDER_NAME,
-        "an_score": None,
-        "execution_score": None,
-        "access_readiness_score": None,
-        "tier": None,
-        "tier_label": "Direct",
-        "confidence": None,
-        "cost_per_call": None,
-        "cost_currency": "USD",
-        "free_tier_calls": None,
-        "credential_modes": list(_CRM_DIRECT_CREDENTIAL_MODES),
-        "auth_method": "crm_ref",
-        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
-        "recommendation": "available",
-        "recommendation_reason": "Direct read-only HubSpot CRM execution via crm_ref with explicit object/property scope and optional record/search/sort allowlists.",
-        "circuit_state": "n/a",
-        "available_for_execute": True,
-        "configured": configured,
-    }
+    providers = []
+    for provider_slug in _crm_direct_provider_order():
+        providers.append({
+            "service_slug": provider_slug,
+            "service_name": _crm_direct_provider_name(provider_slug),
+            "an_score": None,
+            "execution_score": None,
+            "access_readiness_score": None,
+            "tier": None,
+            "tier_label": "Direct",
+            "confidence": None,
+            "cost_per_call": None,
+            "cost_currency": "USD",
+            "free_tier_calls": None,
+            "credential_modes": list(_CRM_DIRECT_CREDENTIAL_MODES),
+            "auth_method": "crm_ref",
+            "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+            "recommendation": "available",
+            "recommendation_reason": (
+                "Direct read-only Salesforce CRM execution via crm_ref with exact object/field scope, generated bounded SOQL, and optional record allowlists."
+                if provider_slug == _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG
+                else "Direct read-only HubSpot CRM execution via crm_ref with explicit object/property scope and optional record/search/sort allowlists."
+            ),
+            "circuit_state": "n/a",
+            "available_for_execute": True,
+            "configured": has_any_crm_bundle_configured(provider_slug),
+        })
+    preferred_provider = providers[0]
     return {
         "capability": capability_id,
-        "providers": [provider],
-        "fallback_chain": [_CRM_DIRECT_PROVIDER_SLUG],
+        "providers": providers,
+        "fallback_chain": [provider["service_slug"] for provider in providers],
         "bundle_ids": [],
         "execute_hint": {
-            "preferred_provider": _CRM_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
+            "preferred_provider": preferred_provider["service_slug"],
+            "endpoint_pattern": preferred_provider["endpoint_pattern"],
             "estimated_cost_usd": None,
             "credential_modes": list(_CRM_DIRECT_CREDENTIAL_MODES),
         },
@@ -757,23 +794,27 @@ def _actions_direct_credential_modes(capability_id: str) -> dict[str, object]:
 
 
 def _crm_direct_credential_modes(capability_id: str) -> dict[str, object]:
-    configured = has_any_crm_bundle_configured("hubspot")
     return {
         "capability_id": capability_id,
         "providers": [
             {
-                "service_slug": _CRM_DIRECT_PROVIDER_SLUG,
+                "service_slug": provider_slug,
                 "auth_method": "crm_ref",
                 "modes": [
                     {
                         "mode": "byok",
                         "available": True,
-                        "configured": configured,
-                        "setup_hint": "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps.",
+                        "configured": has_any_crm_bundle_configured(provider_slug),
+                        "setup_hint": (
+                            "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=salesforce, auth_mode=connected_app_refresh_token, client_id, client_secret, refresh_token, optional auth_base_url/api_version, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+                            if provider_slug == _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG
+                            else "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+                        ),
                     }
                 ],
-                "any_configured": configured,
+                "any_configured": has_any_crm_bundle_configured(provider_slug),
             }
+            for provider_slug in _crm_direct_provider_order()
         ],
     }
 
@@ -914,25 +955,25 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "id": "crm.object.describe",
             "domain": "crm",
             "action": "object.describe",
-            "description": "Direct read-only HubSpot CRM object property describe with explicit object and property scope.",
+            "description": "Direct read-only CRM object property describe with provider-scoped object and field allowlists.",
             "input_hint": "Provide crm_ref and object_type.",
-            "outcome": "Returns the allowlisted HubSpot CRM property metadata for the requested object.",
+            "outcome": "Returns the allowlisted CRM property metadata for the requested object.",
         },
         "crm.record.search": {
             "id": "crm.record.search",
             "domain": "crm",
             "action": "record.search",
-            "description": "Direct read-only HubSpot CRM record search with explicit object/property scope and bounded results.",
+            "description": "Direct read-only CRM record search with provider-scoped filters, exact allowlists, and bounded results.",
             "input_hint": "Provide crm_ref, object_type, and optional query, property_names, up to 5 filters, and up to 2 sorts.",
-            "outcome": "Returns bounded HubSpot CRM record summaries for the allowlisted scope.",
+            "outcome": "Returns bounded CRM record summaries for the allowlisted scope.",
         },
         "crm.record.get": {
             "id": "crm.record.get",
             "domain": "crm",
             "action": "record.get",
-            "description": "Direct read-only HubSpot CRM record fetch with explicit object/property scope and optional exact record allowlists.",
+            "description": "Direct read-only CRM record fetch with exact object/property scope and optional exact record allowlists.",
             "input_hint": "Provide crm_ref, object_type, and record_id.",
-            "outcome": "Returns one allowed HubSpot CRM record with bounded property values only.",
+            "outcome": "Returns one allowed CRM record with bounded property values only.",
         },
     }
     support_records = {
@@ -1029,7 +1070,7 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
 _TOKEN_ALIASES: dict[str, set[str]] = {
     "audio": {"speech", "voice", "sound", "video"},
     "company": {"business", "organization", "org"},
-    "crm": {"hubspot", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "object", "objects"},
+    "crm": {"hubspot", "salesforce", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "object", "objects", "account", "accounts"},
     "crawl": {"scrape", "extract", "website", "web"},
     "database": {"db", "postgres", "postgresql", "sql", "table", "schema", "query"},
     "db": {"database", "postgres", "postgresql", "sql", "schema", "table", "query"},
@@ -1039,6 +1080,7 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "generate": {"create", "make", "write"},
     "github": {"actions", "workflow", "run", "runs", "ci", "automation"},
     "hubspot": {"crm", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "object", "objects"},
+    "salesforce": {"crm", "record", "records", "contact", "contacts", "lead", "leads", "account", "accounts", "opportunity", "opportunities", "object", "objects"},
     "image": {"images", "photo", "picture", "visual", "graphic"},
     "linkedin": {"profile", "professional", "person", "contact", "lead"},
     "person": {"people", "profile", "contact", "lead", "professional"},
@@ -1118,7 +1160,7 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     warehouse_terms = {"warehouse", "bigquery", "bq", "sql", "analytics", "dataset", "table", "schema"}
     support_terms = {"support", "ticket", "tickets", "zendesk", "helpdesk", "comment", "comments"}
     actions_terms = {"github", "actions", "workflow", "workflow_run", "run", "runs", "ci"}
-    crm_terms = {"crm", "hubspot", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "object", "objects"}
+    crm_terms = {"crm", "hubspot", "salesforce", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "lead", "leads", "account", "accounts", "object", "objects"}
 
     score = 0
     matched_groups = 0
@@ -1209,17 +1251,17 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         ):
             score += 30
     elif capability_id == "crm.object.describe":
-        if any(token in {"crm", "hubspot", "object", "schema", "properties", "property"} for token in tokens):
+        if any(token in {"crm", "hubspot", "salesforce", "object", "schema", "properties", "property"} for token in tokens):
             score += 30
         if any(token in {"describe", "inspect", "metadata"} for token in tokens):
             score += 12
     elif capability_id == "crm.record.search":
-        if any(token in {"crm", "hubspot", "record", "records", "contact", "company", "deal"} for token in tokens):
+        if any(token in {"crm", "hubspot", "salesforce", "record", "records", "contact", "company", "deal", "lead", "account", "opportunity"} for token in tokens):
             score += 30
         if any(token in {"search", "find", "query", "list"} for token in tokens):
             score += 12
     elif capability_id == "crm.record.get":
-        if any(token in {"crm", "hubspot", "record", "contact", "company", "deal"} for token in tokens):
+        if any(token in {"crm", "hubspot", "salesforce", "record", "contact", "company", "deal", "lead", "account", "opportunity"} for token in tokens):
             score += 30
         if any(token in {"get", "fetch", "read", "lookup"} for token in tokens):
             score += 12
@@ -1389,7 +1431,7 @@ async def list_capabilities(
             provider_count = 1
             top_provider = _actions_direct_top_provider()
         elif _is_crm_direct_capability(cid):
-            provider_count = 1
+            provider_count = len(_crm_direct_provider_order())
             top_provider = _crm_direct_top_provider()
 
         items.append({
@@ -1591,11 +1633,12 @@ async def get_capability(capability_id: str, raw_request: Request):
             "error": None,
         }
     if _is_crm_direct_capability(capability_id):
+        providers = _crm_direct_provider_details(capability_id)
         return {
             "data": {
                 **cap,
-                "providers": [_crm_direct_provider_details(capability_id)],
-                "provider_count": 1,
+                "providers": providers,
+                "provider_count": len(providers),
             },
             "error": None,
         }
@@ -1670,7 +1713,7 @@ async def get_capability(capability_id: str, raw_request: Request):
     if not providers and _is_actions_direct_capability(capability_id):
         providers = [_actions_direct_provider_details(capability_id)]
     if not providers and _is_crm_direct_capability(capability_id):
-        providers = [_crm_direct_provider_details(capability_id)]
+        providers = _crm_direct_provider_details(capability_id)
 
     return {
         "data": {
