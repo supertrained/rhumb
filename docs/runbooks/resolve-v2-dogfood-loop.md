@@ -97,6 +97,7 @@ Then rerun without `--dry-run` in a human-attended shell to complete the Google 
 - run `gcloud auth application-default login --client-id-file=...` with the requested scopes
 - verify that the resulting ADC file is `type=authorized_user` for the intended OAuth client
 - print the exact `build_bigquery_warehouse_bundle.py` follow-on command when you provide the bounded warehouse flags above
+- print the exact one-shot proof command that rebuilds `RHUMB_WAREHOUSE_<REF>` from the refreshed ADC and runs `bigquery_warehouse_read_dogfood.py` against hosted Rhumb
 
 This helper does **not** update 1Password automatically. Use it to mint/verify the refresh-capable ADC first, then decide whether to store the resulting `authorized_user_json` back into the source item or feed the ADC path directly into the bundle builder.
 

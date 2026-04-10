@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -193,3 +195,50 @@ def test_build_bundle_requires_dataset_and_table_scope() -> None:
 
     with pytest.raises(ValueError, match="At least one --allowed-dataset-ref is required"):
         build_bigquery_warehouse_bundle._build_bundle(args, sourced={})
+
+
+def test_main_env_value_outputs_compact_json(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(build_bigquery_warehouse_bundle, "_validate_bundle", lambda ref, bundle: {})
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "build_bigquery_warehouse_bundle.py",
+            "--warehouse-ref",
+            "bq_main",
+            "--billing-project-id",
+            "proj",
+            "--location",
+            "US",
+            "--service-account-json",
+            '{"type":"service_account","project_id":"proj","client_email":"svc@proj.iam.gserviceaccount.com","private_key":"-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n"}',
+            "--allowed-dataset-ref",
+            "proj.analytics",
+            "--allowed-table-ref",
+            "proj.analytics.events",
+            "--format",
+            "env-value",
+        ],
+    )
+
+    exit_code = build_bigquery_warehouse_bundle.main()
+
+    assert exit_code == 0
+    assert capsys.readouterr().out.strip() == json.dumps(
+        {
+            "provider": "bigquery",
+            "auth_mode": "service_account_json",
+            "billing_project_id": "proj",
+            "location": "US",
+            "allowed_dataset_refs": ["proj.analytics"],
+            "allowed_table_refs": ["proj.analytics.events"],
+            "service_account_json": {
+                "type": "service_account",
+                "project_id": "proj",
+                "client_email": "svc@proj.iam.gserviceaccount.com",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+            },
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )

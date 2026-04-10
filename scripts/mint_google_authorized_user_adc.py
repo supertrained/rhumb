@@ -14,6 +14,8 @@ This helper intentionally avoids printing secret values. It can:
   requested OAuth client
 - print a ready follow-on `build_bigquery_warehouse_bundle.py` command when
   warehouse bundle flags are supplied
+- print a one-shot hosted proof command that rebuilds the bounded warehouse env
+  from the refreshed ADC and runs `bigquery_warehouse_read_dogfood.py`
 
 By default this command is interactive and expects a human-attended browser
 login. Use `--dry-run --json` when you only want the generated plan/command.
@@ -45,6 +47,8 @@ DEFAULT_GCLOUD_FALLBACK = Path.home() / "google-cloud-sdk" / "bin" / "gcloud"
 DEFAULT_CLIENT_TYPE = "installed"
 DEFAULT_AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token"
+DEFAULT_PROOF_BASE_URL = "https://api.rhumb.dev"
+DEFAULT_PROOF_LIMIT = 5
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -246,6 +250,63 @@ def _build_bundle_command_hint(args: argparse.Namespace, adc_path: Path) -> str 
     return shlex.join(command)
 
 
+def _default_proof_query(table_ref: str) -> str:
+    return f"SELECT * FROM `{table_ref}` LIMIT {DEFAULT_PROOF_LIMIT}"
+
+
+def _build_proof_command_hint(args: argparse.Namespace, adc_path: Path) -> str | None:
+    if not (
+        args.warehouse_ref
+        and args.service_account_email
+        and args.billing_project_id
+        and args.location
+        and args.allowed_dataset_ref
+        and args.allowed_table_ref
+    ):
+        return None
+
+    env_key = f"RHUMB_WAREHOUSE_{args.warehouse_ref.upper()}"
+    build_command = [
+        sys.executable,
+        str(ROOT / "scripts" / "build_bigquery_warehouse_bundle.py"),
+        "--warehouse-ref",
+        args.warehouse_ref,
+        "--auth-mode",
+        "service_account_impersonation",
+        "--authorized-user-json-file",
+        str(adc_path),
+        "--service-account-email",
+        args.service_account_email,
+        "--billing-project-id",
+        args.billing_project_id,
+        "--location",
+        args.location,
+    ]
+    for dataset_ref in args.allowed_dataset_ref:
+        build_command.extend(["--allowed-dataset-ref", dataset_ref])
+    for table_ref in args.allowed_table_ref:
+        build_command.extend(["--allowed-table-ref", table_ref])
+    build_command.extend(["--format", "env-value"])
+
+    proof_command = [
+        sys.executable,
+        str(ROOT / "scripts" / "bigquery_warehouse_read_dogfood.py"),
+        "--base-url",
+        args.proof_base_url,
+        "--warehouse-ref",
+        args.warehouse_ref,
+        "--query",
+        args.proof_query or _default_proof_query(args.allowed_table_ref[0]),
+        "--json-out",
+        str(ROOT / "artifacts" / f"aud18-bigquery-hosted-proof-{_now_slug()}.json"),
+    ]
+
+    return (
+        f'export {env_key}="$({shlex.join(build_command)})" '
+        f"&& {shlex.join(proof_command)}"
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Mint or refresh a Google ADC authorized-user JSON for bounded Rhumb operator flows."
@@ -265,6 +326,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--json-out")
+    parser.add_argument("--proof-base-url", default=DEFAULT_PROOF_BASE_URL)
+    parser.add_argument("--proof-query")
 
     # Optional bounded follow-on hints for AUD-18 BigQuery.
     parser.add_argument("--warehouse-ref")
@@ -304,6 +367,7 @@ def _build_plan(args: argparse.Namespace) -> dict[str, Any]:
         no_browser=args.no_browser,
     )
     bundle_command = _build_bundle_command_hint(args, adc_path)
+    proof_command = _build_proof_command_hint(args, adc_path)
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -332,6 +396,7 @@ def _build_plan(args: argparse.Namespace) -> dict[str, Any]:
             "backup_dir": str(backup_dir or (adc_path.parent / 'backups')),
         },
         "bundle_command": bundle_command,
+        "proof_command": proof_command,
     }
 
 
@@ -354,6 +419,9 @@ def _emit_summary(summary: dict[str, Any], *, as_json: bool, json_out: str | Non
     bundle_command = summary.get("bundle_command")
     if bundle_command:
         print(f"- follow-on bundle command: {bundle_command}")
+    proof_command = summary.get("proof_command")
+    if proof_command:
+        print(f"- follow-on proof command: {proof_command}")
 
 
 def main(argv: list[str] | None = None) -> int:

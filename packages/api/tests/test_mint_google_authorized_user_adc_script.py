@@ -144,6 +144,38 @@ def test_build_bundle_command_hint_requires_bounded_bigquery_fields() -> None:
     assert "--warehouse-ref bq_analytics_read" in command
 
 
+def test_build_proof_command_hint_chains_bundle_builder_and_dogfood_runner() -> None:
+    args = mint_google_authorized_user_adc.build_parser().parse_args(
+        [
+            "--warehouse-ref",
+            "bq_analytics_read",
+            "--service-account-email",
+            "svc@rhumb-490802.iam.gserviceaccount.com",
+            "--billing-project-id",
+            "rhumb-490802",
+            "--location",
+            "US",
+            "--allowed-dataset-ref",
+            "rhumb-490802.analytics_sandbox",
+            "--allowed-table-ref",
+            "rhumb-490802.analytics_sandbox.orders",
+        ]
+    )
+
+    command = mint_google_authorized_user_adc._build_proof_command_hint(
+        args,
+        Path("/tmp/application_default_credentials.json"),
+    )
+
+    assert command is not None
+    assert 'export RHUMB_WAREHOUSE_BQ_ANALYTICS_READ="$(' in command
+    assert "build_bigquery_warehouse_bundle.py" in command
+    assert "--format env-value" in command
+    assert "bigquery_warehouse_read_dogfood.py" in command
+    assert "--base-url https://api.rhumb.dev" in command
+    assert "SELECT * FROM `rhumb-490802.analytics_sandbox.orders` LIMIT 5" in command
+
+
 def test_build_plan_includes_safe_gcloud_summary(tmp_path) -> None:
     fallback = tmp_path / "google-cloud-sdk" / "bin" / "gcloud"
     fallback.parent.mkdir(parents=True)
@@ -188,3 +220,6 @@ def test_build_plan_includes_safe_gcloud_summary(tmp_path) -> None:
     assert plan["gcloud"]["path"] == str(fallback)
     assert "application-default login" in plan["gcloud"]["command"]
     assert plan["bundle_command"] is not None
+    assert plan["proof_command"] is not None
+    assert "build_bigquery_warehouse_bundle.py" in plan["proof_command"]
+    assert "bigquery_warehouse_read_dogfood.py" in plan["proof_command"]

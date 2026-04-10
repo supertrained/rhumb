@@ -6,6 +6,7 @@ via `sop item get --format json`. CLI flags always win over item-derived values.
 
 Prints either:
 - raw JSON bundle
+- a compact env-safe JSON value
 - a shell export command
 - the exact `railway variables --set ...` command
 
@@ -584,7 +585,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--schema-dataset-limit", type=int)
     parser.add_argument("--schema-table-limit", type=int)
     parser.add_argument("--schema-column-limit", type=int)
-    parser.add_argument("--format", choices=["json", "export", "railway"], default="json")
+    parser.add_argument("--format", choices=["json", "env-value", "export", "railway"], default="json")
     return parser
 
 
@@ -609,6 +610,8 @@ def main() -> int:
     raw = json.dumps(bundle, separators=(",", ":"), sort_keys=True)
     if args.format == "json":
         print(json.dumps(bundle, indent=2, sort_keys=True))
+    elif args.format == "env-value":
+        print(raw)
     elif args.format == "export":
         print(f"export {env_key}={shlex.quote(raw)}")
     else:
