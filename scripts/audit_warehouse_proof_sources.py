@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -38,6 +39,22 @@ ARTIFACTS_DIR = ROOT / "artifacts"
 DEFAULT_HISTORY_DB = Path("/Volumes/tomme 4TB/.openclaw/browser/rhumb/user-data/Default/History")
 DEFAULT_LOGIN_DATA_DB = Path("/Volumes/tomme 4TB/.openclaw/browser/rhumb/user-data/Default/Login Data")
 DEFAULT_VAULT = "OpenClaw Agents"
+DEFAULT_LOCAL_FILE_SCAN_ROOTS = [
+    Path("/Users/tom/Downloads"),
+    Path("/Users/tom/Desktop"),
+    Path("/Users/tom/Documents"),
+    Path("/Users/tom/.config"),
+    Path("/Volumes/tomme 4TB/.openclaw"),
+]
+LOCAL_FILE_SCAN_MAX_BYTES = 2_000_000
+LOCAL_FILE_SCAN_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    "node_modules",
+    "browser",
+}
 DEFAULT_GMAIL_ACCOUNTS = [
     "tommeredith@supertrained.ai",
     "tmeredith@simplaphi.com",
@@ -752,6 +769,84 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
     }
 
 
+def audit_local_tooling() -> dict[str, Any]:
+    gcloud_path = shutil.which("gcloud")
+    return {
+        "ok": True,
+        "gcloud_installed": bool(gcloud_path),
+        "gcloud_path": gcloud_path,
+    }
+
+
+def audit_local_service_account_files(
+    roots: list[Path],
+    candidate_project_ids: list[str],
+    max_hits: int,
+) -> dict[str, Any]:
+    hits: list[dict[str, Any]] = []
+    project_ids: list[str] = []
+    scanned_file_count = 0
+    candidate_project_hit_count = 0
+    unrelated_service_account_hit_count = 0
+
+    for root in roots:
+        if not root.exists():
+            continue
+        stop_scan = False
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [name for name in dirnames if name not in LOCAL_FILE_SCAN_SKIP_DIRS]
+            for filename in filenames:
+                if not filename.lower().endswith(".json"):
+                    continue
+                path = Path(dirpath) / filename
+                scanned_file_count += 1
+                try:
+                    if path.stat().st_size > LOCAL_FILE_SCAN_MAX_BYTES:
+                        continue
+                    payload = json.loads(path.read_text())
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                if str(payload.get("type") or "").strip().lower() != "service_account":
+                    continue
+
+                project_id = str(payload.get("project_id") or "").strip()
+                project_ids.append(project_id)
+                candidate_project_match = bool(project_id and project_id in candidate_project_ids)
+                if candidate_project_match:
+                    candidate_project_hit_count += 1
+                else:
+                    unrelated_service_account_hit_count += 1
+                hits.append(
+                    {
+                        "path": str(path),
+                        "project_id": project_id or None,
+                        "private_key_present": bool(payload.get("private_key")),
+                        "private_key_id_present": bool(payload.get("private_key_id")),
+                        "candidate_project_match": candidate_project_match,
+                    }
+                )
+                if len(hits) >= max_hits:
+                    stop_scan = True
+                    break
+            if stop_scan:
+                break
+        if stop_scan:
+            break
+
+    return {
+        "ok": True,
+        "roots": [str(root) for root in roots],
+        "scanned_file_count": scanned_file_count,
+        "hit_count": len(hits),
+        "candidate_project_hit_count": candidate_project_hit_count,
+        "unrelated_service_account_hit_count": unrelated_service_account_hit_count,
+        "project_ids": _dedupe_strings(project_ids),
+        "hits": hits,
+    }
+
+
 def summarize_provider(
     provider: ProviderConfig,
     vault: dict[str, Any],
@@ -759,6 +854,8 @@ def summarize_provider(
     browser_saved_logins: dict[str, Any],
     gmail: dict[str, Any],
     hosted_surface: dict[str, Any],
+    local_tooling: dict[str, Any],
+    local_service_account_files: dict[str, Any],
 ) -> dict[str, Any]:
     vault_hit_count = int(vault.get("hit_count") or 0)
     vault_bundle_ready_hit_count = int(vault.get("bundle_ready_hit_count") or 0)
@@ -774,6 +871,10 @@ def summarize_provider(
     likely_blocked = not proof_material_ready
     hosted_surface_live = bool(hosted_surface.get("live"))
     hosted_configured = bool(hosted_surface.get("configured"))
+    gcloud_installed = bool(local_tooling.get("gcloud_installed"))
+    local_service_account_hit_count = int(local_service_account_files.get("hit_count") or 0)
+    local_candidate_project_hit_count = int(local_service_account_files.get("candidate_project_hit_count") or 0)
+    local_service_account_project_ids = local_service_account_files.get("project_ids") or []
 
     candidate_project_ids = _dedupe_strings(
         [*vault_project_ids, *browser_project_ids, *gmail_project_ids]
@@ -803,6 +904,10 @@ def summarize_provider(
         blocker += f" Candidate project ids surfaced during the audit: {', '.join(candidate_project_ids)}."
     if likely_blocked and candidate_accounts:
         blocker += f" Candidate operator or service accounts surfaced during the audit: {', '.join(candidate_accounts)}."
+    if likely_blocked and local_service_account_hit_count and not local_candidate_project_hit_count:
+        blocker += " Local file scan found service-account JSON on this machine, but none matched the candidate project ids surfaced for this provider."
+    if likely_blocked and not gcloud_installed:
+        blocker += " Direct local GCP minting is also blocked on this machine right now because `gcloud` is not installed."
 
     return {
         "provider": provider.name,
@@ -820,6 +925,10 @@ def summarize_provider(
         "gmail_candidate_accounts": gmail_candidate_accounts,
         "hosted_surface_live": hosted_surface_live,
         "hosted_surface_configured": hosted_configured,
+        "gcloud_installed": gcloud_installed,
+        "local_service_account_hit_count": local_service_account_hit_count,
+        "local_service_account_candidate_project_hit_count": local_candidate_project_hit_count,
+        "local_service_account_project_ids": local_service_account_project_ids,
         "proof_material_ready": proof_material_ready,
         "likely_blocked_on_credentials": likely_blocked,
         "assessment": blocker,
@@ -834,6 +943,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--browser-login-data", type=Path, default=DEFAULT_LOGIN_DATA_DB)
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
     parser.add_argument("--gmail-account", action="append", default=[])
+    parser.add_argument("--local-file-scan-root", action="append", default=[])
+    parser.add_argument("--skip-local-file-scan", action="store_true")
     parser.add_argument("--max-hits", type=int, default=25)
     parser.add_argument("--json-out")
     parser.add_argument("--summary-only", action="store_true")
@@ -844,6 +955,7 @@ def main() -> int:
     args = build_parser().parse_args()
     providers = [args.provider] if args.provider != "all" else list(PROVIDERS.keys())
     accounts = args.gmail_account or DEFAULT_GMAIL_ACCOUNTS
+    local_file_scan_roots = [Path(root) for root in (args.local_file_scan_root or [])] or DEFAULT_LOCAL_FILE_SCAN_ROOTS
 
     result: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -852,6 +964,7 @@ def main() -> int:
         "browser_login_data": str(args.browser_login_data),
         "api_base": args.api_base,
         "gmail_accounts": accounts,
+        "local_file_scan_roots": [str(root) for root in local_file_scan_roots],
         "providers": {},
         "summary": [],
     }
@@ -863,13 +976,37 @@ def main() -> int:
         browser_saved_logins = audit_browser_saved_logins(provider, args.browser_login_data, args.max_hits)
         gmail = audit_gmail(provider, accounts, args.max_hits)
         hosted_surface = audit_hosted_surface(provider, args.api_base)
-        summary = summarize_provider(provider, vault, browser, browser_saved_logins, gmail, hosted_surface)
+        local_tooling = audit_local_tooling()
+        candidate_project_ids = _dedupe_strings(
+            [
+                *(vault.get("project_ids") or []),
+                *(browser.get("project_ids") or []),
+                *(gmail.get("project_ids") or []),
+            ]
+        )
+        local_service_account_files = (
+            {"ok": True, "roots": [], "scanned_file_count": 0, "hit_count": 0, "candidate_project_hit_count": 0, "unrelated_service_account_hit_count": 0, "project_ids": [], "hits": []}
+            if args.skip_local_file_scan
+            else audit_local_service_account_files(local_file_scan_roots, candidate_project_ids, args.max_hits)
+        )
+        summary = summarize_provider(
+            provider,
+            vault,
+            browser,
+            browser_saved_logins,
+            gmail,
+            hosted_surface,
+            local_tooling,
+            local_service_account_files,
+        )
         result["providers"][provider_name] = {
             "vault": vault,
             "browser": browser,
             "browser_saved_logins": browser_saved_logins,
             "gmail": gmail,
             "hosted_surface": hosted_surface,
+            "local_tooling": local_tooling,
+            "local_service_account_files": local_service_account_files,
             "summary": summary,
         }
         result["summary"].append(summary)
@@ -891,6 +1028,9 @@ def main() -> int:
                 f"browser_projects={','.join(summary['browser_project_ids']) or '-'} "
                 f"gmail_hits={summary['gmail_hit_count']} "
                 f"gmail_projects={','.join(summary['gmail_project_ids']) or '-'} "
+                f"local_sa_hits={summary['local_service_account_hit_count']} "
+                f"local_sa_candidate_hits={summary['local_service_account_candidate_project_hit_count']} "
+                f"gcloud_installed={summary['gcloud_installed']} "
                 f"hosted_live={summary['hosted_surface_live']} "
                 f"hosted_configured={summary['hosted_surface_configured']} "
                 f"proof_ready={summary['proof_material_ready']}"

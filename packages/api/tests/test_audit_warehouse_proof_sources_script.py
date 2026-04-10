@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -106,6 +107,14 @@ def test_summarize_provider_mentions_candidate_projects_and_accounts() -> None:
             "live": True,
             "configured": False,
         },
+        local_tooling={
+            "gcloud_installed": False,
+        },
+        local_service_account_files={
+            "hit_count": 1,
+            "candidate_project_hit_count": 0,
+            "project_ids": ["snowthere"],
+        },
     )
 
     assert summary["proof_material_ready"] is False
@@ -113,3 +122,42 @@ def test_summarize_provider_mentions_candidate_projects_and_accounts() -> None:
     assert "rhumb-490802" in summary["assessment"]
     assert "rhumb-sandbox" in summary["assessment"]
     assert "team@getsupertrained.com" in summary["assessment"]
+    assert "Local file scan found service-account JSON" in summary["assessment"]
+    assert "gcloud" in summary["assessment"]
+
+
+def test_audit_local_service_account_files_distinguishes_candidate_project_hits(tmp_path: Path) -> None:
+    matching = tmp_path / "rhumb-service-account.json"
+    matching.write_text(
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "rhumb-490802",
+                "private_key_id": "abc123",
+                "private_key": "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n",
+            }
+        )
+    )
+    unrelated = tmp_path / "snowthere-service-account.json"
+    unrelated.write_text(
+        json.dumps(
+            {
+                "type": "service_account",
+                "project_id": "snowthere",
+                "private_key_id": "def456",
+                "private_key": "-----BEGIN PRIVATE KEY-----\\ndef\\n-----END PRIVATE KEY-----\\n",
+            }
+        )
+    )
+    not_service_account = tmp_path / "other.json"
+    not_service_account.write_text(json.dumps({"hello": "world"}))
+
+    result = warehouse_audit.audit_local_service_account_files([tmp_path], ["rhumb-490802"], max_hits=10)
+
+    assert result["scanned_file_count"] == 3
+    assert result["hit_count"] == 2
+    assert result["candidate_project_hit_count"] == 1
+    assert result["unrelated_service_account_hit_count"] == 1
+    assert set(result["project_ids"]) == {"rhumb-490802", "snowthere"}
+    assert any(hit["candidate_project_match"] is True for hit in result["hits"])
+    assert any(hit["candidate_project_match"] is False for hit in result["hits"])
