@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-04-10T15:05:21.199901+00:00",
+  "mode": "dry_run",
+  "oauth_client": {
+    "source_item": "Rhumb - Google OAuth",
+    "vault": "OpenClaw Agents",
+    "client_type": "installed",
+    "client_id_length": 71,
+    "client_secret_length": 35,
+    "account": "team@getsupertrained.com",
+    "project_id": "rhumb-490802"
+  },
+  "gcloud": {
+    "path": "/Volumes/tomme 4TB/google-cloud-sdk/bin/gcloud",
+    "adc_path": "/Volumes/tomme 4TB/.config/gcloud/application_default_credentials.json",
+    "client_id_file": "/var/folders/1m/h294t_qx0kd_rbhw8dlwgh_00000gn/T/rhumb-google-oauth-client.json",
+    "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/bigquery"
+    ],
+    "disable_quota_project": true,
+    "no_browser": false,
+    "command": "'/Volumes/tomme 4TB/google-cloud-sdk/bin/gcloud' auth application-default login --client-id-file=/var/folders/1m/h294t_qx0kd_rbhw8dlwgh_00000gn/T/rhumb-google-oauth-client.json --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/bigquery --disable-quota-project",
+    "env": {
+      "CLOUDSDK_PYTHON": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3"
+    }
+  },
+  "adc_backup": {
+    "would_backup": true,
+    "backup_dir": "/Volumes/tomme 4TB/.config/gcloud/backups"
+  },
+  "bundle_command": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3 '/Volumes/tomme 4TB/.openclaw/workspace-rhumb-lead/rhumb/scripts/build_bigquery_warehouse_bundle.py' --warehouse-ref bq_analytics_read --auth-mode service_account_impersonation --authorized-user-json-file '/Volumes/tomme 4TB/.config/gcloud/application_default_credentials.json' --service-account-email rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com --billing-project-id rhumb-490802 --location US --allowed-dataset-ref rhumb-490802.analytics_sandbox --allowed-table-ref rhumb-490802.analytics_sandbox.orders"
+}

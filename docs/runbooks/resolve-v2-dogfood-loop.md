@@ -71,7 +71,36 @@ python3 scripts/resolve_v2_dogfood.py \
   --json
 ```
 
-### 2) Use the product repo Python env
+### 2) Refresh a custom Google authorized-user ADC when the BigQuery impersonation lane is blocked on OAuth material
+
+When the warehouse read-first blocker is a missing refresh-capable `authorized_user_json` for the Rhumb Google OAuth client, use the dedicated helper first.
+
+Dry-run it to inspect the exact `gcloud auth application-default login` command and the follow-on bundle command without touching local ADC:
+
+```bash
+cd rhumb
+python3 scripts/mint_google_authorized_user_adc.py \
+  --from-sop-item "Rhumb - Google OAuth" \
+  --warehouse-ref bq_analytics_read \
+  --service-account-email rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com \
+  --billing-project-id rhumb-490802 \
+  --location US \
+  --allowed-dataset-ref rhumb-490802.analytics_sandbox \
+  --allowed-table-ref rhumb-490802.analytics_sandbox.orders \
+  --dry-run \
+  --json
+```
+
+Then rerun without `--dry-run` in a human-attended shell to complete the Google login flow. The helper will:
+- source `client_id` + `client_secret` from the shared 1Password item via `sop`
+- back up the current `~/.config/gcloud/application_default_credentials.json` if present
+- run `gcloud auth application-default login --client-id-file=...` with the requested scopes
+- verify that the resulting ADC file is `type=authorized_user` for the intended OAuth client
+- print the exact `build_bigquery_warehouse_bundle.py` follow-on command when you provide the bounded warehouse flags above
+
+This helper does **not** update 1Password automatically. Use it to mint/verify the refresh-capable ADC first, then decide whether to store the resulting `authorized_user_json` back into the source item or feed the ADC path directly into the bundle builder.
+
+### 3) Use the product repo Python env
 
 ```bash
 cd rhumb
