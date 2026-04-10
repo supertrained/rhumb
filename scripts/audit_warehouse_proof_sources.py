@@ -310,6 +310,73 @@ def _extract_service_account_json(
     return None
 
 
+
+def _extract_authorized_user_json(
+    item: dict[str, Any],
+    values: dict[str, object],
+    embedded_bundle: dict[str, Any],
+) -> dict[str, Any] | None:
+    candidates: list[object] = [
+        _first_value(
+            values,
+            (
+                "authorized_user_json",
+                "google_authorized_user_json",
+                "oauth_authorized_user_json",
+                "oauth_credentials_json",
+            ),
+        ),
+        embedded_bundle.get("authorized_user_json"),
+        item.get("notesPlain"),
+    ]
+
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        try:
+            parsed = _parse_json_object(candidate, label="authorized user JSON")
+        except (ValueError, json.JSONDecodeError):
+            continue
+        if str(parsed.get("type") or "").strip().lower() == "authorized_user":
+            return parsed
+
+    client_id = _first_string(values, ("client_id",))
+    client_secret = _first_string(values, ("client_secret",))
+    refresh_token = _first_string(
+        values,
+        (
+            "refresh_token",
+            "oauth_refresh_token",
+            "google_refresh_token",
+            "credential",
+        ),
+    )
+    if not client_id or not client_secret or not refresh_token:
+        return None
+
+    synthesized: dict[str, Any] = {
+        "type": "authorized_user",
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refresh_token,
+    }
+    token_uri = _first_string(values, ("token_uri",)) or str(embedded_bundle.get("token_uri") or "").strip() or None
+    quota_project_id = _first_string(
+        values,
+        ("quota_project_id", "billing_project_id", "project_id", "gcp_project_id", "bigquery_project_id"),
+    ) or str(
+        embedded_bundle.get("quota_project_id")
+        or embedded_bundle.get("billing_project_id")
+        or embedded_bundle.get("project_id")
+        or ""
+    ).strip() or None
+    if token_uri:
+        synthesized["token_uri"] = token_uri
+    if quota_project_id:
+        synthesized["quota_project_id"] = quota_project_id
+    return synthesized
+
+
 def _extract_project_ids(text: str | None) -> list[str]:
     if not text:
         return []
@@ -351,7 +418,25 @@ def _extract_emails(text: str | None) -> list[str]:
 def _bigquery_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str], dict[str, Any]]:
     values = _field_value_map(item)
     embedded_bundle = _extract_embedded_bundle(item, values)
+    explicit_auth_mode = (
+        _first_string(values, ("auth_mode", "authentication_mode"))
+        or str(embedded_bundle.get("auth_mode") or "").strip()
+        or None
+    )
     service_account_json = _extract_service_account_json(item, values, embedded_bundle)
+    authorized_user_json = _extract_authorized_user_json(item, values, embedded_bundle)
+    service_account_email = (
+        _first_string(
+            values,
+            (
+                "service_account_email",
+                "impersonated_service_account_email",
+                "target_service_account_email",
+            ),
+        )
+        or str(embedded_bundle.get("service_account_email") or "").strip()
+        or None
+    )
 
     billing_project_id = (
         _first_string(values, ("billing_project_id", "project_id", "gcp_project_id", "bigquery_project_id"))
@@ -370,9 +455,28 @@ def _bigquery_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str], di
         or embedded_bundle.get("allowed_table_refs")
     )
 
+    has_google_oauth_material = all(
+        _first_string(values, aliases)
+        for aliases in (("client_id",), ("client_secret",), ("project_id",), ("account",))
+    )
+    auth_mode = str(explicit_auth_mode or "").strip().lower()
+    if not auth_mode:
+        if authorized_user_json is not None or service_account_email or has_google_oauth_material:
+            auth_mode = "service_account_impersonation"
+        elif service_account_json is not None:
+            auth_mode = "service_account_json"
+        else:
+            auth_mode = "service_account_json"
+
     missing: list[str] = []
-    if service_account_json is None:
-        missing.append("service_account_json")
+    if auth_mode == "service_account_impersonation":
+        if authorized_user_json is None:
+            missing.append("authorized_user_json")
+        if not service_account_email:
+            missing.append("service_account_email")
+    else:
+        if service_account_json is None:
+            missing.append("service_account_json")
     if not billing_project_id:
         missing.append("billing_project_id")
     if not location:
@@ -387,6 +491,8 @@ def _bigquery_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str], di
         project_ids.append(billing_project_id)
     if service_account_json and service_account_json.get("project_id"):
         project_ids.append(str(service_account_json.get("project_id")))
+    if authorized_user_json and authorized_user_json.get("quota_project_id"):
+        project_ids.append(str(authorized_user_json.get("quota_project_id")))
     for key in (
         "project_id",
         "gcp_project_id",
@@ -405,12 +511,17 @@ def _bigquery_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str], di
     accounts: list[str] = []
     if service_account_json and service_account_json.get("client_email"):
         accounts.append(str(service_account_json.get("client_email")))
+    if service_account_email:
+        accounts.append(service_account_email)
     for key in (
         "account",
         "owner_email",
         "email",
         "username",
         "client_email",
+        "service_account_email",
+        "impersonated_service_account_email",
+        "target_service_account_email",
         "notesplain",
         "notes_plain",
         "notes",
@@ -418,17 +529,15 @@ def _bigquery_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str], di
         accounts.extend(_extract_emails(str(values.get(key) or "")))
     accounts.extend(_extract_emails(str(item.get("notesPlain") or "")))
 
-    has_google_oauth_material = all(
-        _first_string(values, aliases)
-        for aliases in (("client_id",), ("client_secret",), ("project_id",), ("account",))
-    )
-
     details = {
         "project_ids": _dedupe_strings([value.lower() for value in project_ids if value]),
         "candidate_accounts": _dedupe_strings([value.lower() for value in accounts if value]),
+        "auth_mode": auth_mode,
         "has_service_account_json": service_account_json is not None,
+        "has_authorized_user_json": authorized_user_json is not None,
         "has_embedded_bundle_json": bool(embedded_bundle),
         "has_google_oauth_material": has_google_oauth_material,
+        "service_account_email": service_account_email,
         "billing_project_id": billing_project_id,
         "location": location,
         "allowed_dataset_refs": allowed_dataset_refs,
@@ -495,9 +604,12 @@ def audit_vault(provider: ProviderConfig, vault: str, max_hits: int) -> dict[str
                 "missing_bundle_fields": missing_bundle_fields,
                 "project_ids": details.get("project_ids") or [],
                 "candidate_accounts": details.get("candidate_accounts") or [],
+                "auth_mode": details.get("auth_mode"),
                 "has_service_account_json": bool(details.get("has_service_account_json")),
+                "has_authorized_user_json": bool(details.get("has_authorized_user_json")),
                 "has_embedded_bundle_json": bool(details.get("has_embedded_bundle_json")),
                 "has_google_oauth_material": bool(details.get("has_google_oauth_material")),
+                "service_account_email": details.get("service_account_email"),
                 "billing_project_id": details.get("billing_project_id"),
                 "location": details.get("location"),
                 "allowed_dataset_refs": details.get("allowed_dataset_refs") or [],
@@ -889,12 +1001,12 @@ def summarize_provider(
         blocker = "Hosted warehouse surface is not fully live yet, so deploy truth still needs verification before credentials matter."
     elif likely_blocked and vault_hit_count > 0:
         blocker = (
-            "Hosted warehouse surface is live, and candidate Google/GCP vault items exist, but none currently contain the scoped BigQuery service-account bundle fields required for hosted proof. "
+            "Hosted warehouse surface is live, and candidate Google/GCP vault items exist, but none currently contain the scoped BigQuery auth bundle fields required for hosted proof. "
             "Browser, login, and Gmail traces may show project or account history, but they do not constitute operator-ready proof material."
         )
     elif likely_blocked:
         blocker = (
-            "Hosted warehouse surface is live, but no vault-backed BigQuery service-account bundle was detected. "
+            "Hosted warehouse surface is live, but no vault-backed BigQuery auth bundle was detected. "
             "Browser, login, and Gmail traces may show project or account history, but they do not constitute operator-ready proof material."
         )
     else:

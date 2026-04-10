@@ -74,6 +74,35 @@ def test_extract_sop_defaults_accepts_impersonation_bundle_note() -> None:
     assert defaults["authorized_user_json"]["refresh_token"] == "refresh-token"
 
 
+def test_extract_sop_defaults_builds_authorized_user_json_from_split_fields() -> None:
+    defaults = build_bigquery_warehouse_bundle._extract_sop_defaults(
+        {
+            "notesPlain": "",
+            "fields": [
+                {"label": "client_id", "value": "client-id.apps.googleusercontent.com"},
+                {"label": "client_secret", "value": "client-secret"},
+                {"label": "credential", "value": "refresh-token"},
+                {"label": "service_account_email", "value": "svc@proj.iam.gserviceaccount.com"},
+                {"label": "project_id", "value": "proj"},
+                {"label": "location", "value": "US"},
+                {"label": "allowed_dataset_refs", "value": "proj.analytics"},
+                {"label": "allowed_table_refs", "value": "proj.analytics.events"},
+            ],
+        }
+    )
+
+    assert defaults["auth_mode"] == "service_account_impersonation"
+    assert defaults["authorized_user_json"] == {
+        "type": "authorized_user",
+        "client_id": "client-id.apps.googleusercontent.com",
+        "client_secret": "client-secret",
+        "refresh_token": "refresh-token",
+        "quota_project_id": "proj",
+    }
+    assert defaults["service_account_email"] == "svc@proj.iam.gserviceaccount.com"
+    assert defaults["billing_project_id"] == "proj"
+
+
 def test_build_bundle_prefers_cli_overrides_over_item_defaults() -> None:
     args = build_bigquery_warehouse_bundle.build_parser().parse_args(
         [

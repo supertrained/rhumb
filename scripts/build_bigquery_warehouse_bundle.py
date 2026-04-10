@@ -169,16 +169,11 @@ def _extract_embedded_bundle(item: dict[str, Any], values: dict[str, object]) ->
     return {}
 
 
-def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
-    values = _field_value_map(item)
-    embedded_bundle = _extract_embedded_bundle(item, values)
-    explicit_auth_mode = (
-        _first_string(values, ("auth_mode", "authentication_mode"))
-        or str(embedded_bundle.get("auth_mode") or "").strip()
-        or None
-    )
-
-    service_account_json = None
+def _extract_service_account_json(
+    item: dict[str, Any],
+    values: dict[str, object],
+    embedded_bundle: dict[str, Any],
+) -> dict[str, Any] | None:
     for candidate in (
         _first_value(
             values,
@@ -201,10 +196,15 @@ def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
         except ValueError:
             continue
         if str(parsed.get("type") or "").strip().lower() == "service_account":
-            service_account_json = parsed
-            break
+            return parsed
+    return None
 
-    authorized_user_json = None
+
+def _extract_authorized_user_json(
+    item: dict[str, Any],
+    values: dict[str, object],
+    embedded_bundle: dict[str, Any],
+) -> dict[str, Any] | None:
     for candidate in (
         _first_value(
             values,
@@ -225,8 +225,56 @@ def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
         except ValueError:
             continue
         if str(parsed.get("type") or "").strip().lower() == "authorized_user":
-            authorized_user_json = parsed
-            break
+            return parsed
+
+    client_id = _first_string(values, ("client_id",))
+    client_secret = _first_string(values, ("client_secret",))
+    refresh_token = _first_string(
+        values,
+        (
+            "refresh_token",
+            "oauth_refresh_token",
+            "google_refresh_token",
+            "credential",
+        ),
+    )
+    if not client_id or not client_secret or not refresh_token:
+        return None
+
+    synthesized: dict[str, Any] = {
+        "type": "authorized_user",
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": refresh_token,
+    }
+    token_uri = _first_string(values, ("token_uri",)) or str(embedded_bundle.get("token_uri") or "").strip() or None
+    quota_project_id = _first_string(
+        values,
+        ("quota_project_id", "billing_project_id", "project_id", "gcp_project_id", "bigquery_project_id"),
+    ) or str(
+        embedded_bundle.get("quota_project_id")
+        or embedded_bundle.get("billing_project_id")
+        or embedded_bundle.get("project_id")
+        or ""
+    ).strip() or None
+    if token_uri:
+        synthesized["token_uri"] = token_uri
+    if quota_project_id:
+        synthesized["quota_project_id"] = quota_project_id
+    return synthesized
+
+
+def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
+    values = _field_value_map(item)
+    embedded_bundle = _extract_embedded_bundle(item, values)
+    explicit_auth_mode = (
+        _first_string(values, ("auth_mode", "authentication_mode"))
+        or str(embedded_bundle.get("auth_mode") or "").strip()
+        or None
+    )
+
+    service_account_json = _extract_service_account_json(item, values, embedded_bundle)
+    authorized_user_json = _extract_authorized_user_json(item, values, embedded_bundle)
 
     defaults: dict[str, Any] = {}
     auth_mode = explicit_auth_mode

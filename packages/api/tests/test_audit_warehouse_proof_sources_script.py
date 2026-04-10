@@ -45,6 +45,36 @@ def test_bigquery_bundle_material_accepts_embedded_bundle_note() -> None:
     assert details["candidate_accounts"] == ["rhumb-bq-read@rhumb-sandbox.iam.gserviceaccount.com"]
 
 
+def test_bigquery_bundle_material_accepts_split_field_impersonation_material() -> None:
+    ready, missing, details = warehouse_audit._bigquery_bundle_material(
+        {
+            "notesPlain": "",
+            "fields": [
+                {"label": "client_id", "value": "client-id.apps.googleusercontent.com"},
+                {"label": "client_secret", "value": "secret"},
+                {"label": "credential", "value": "refresh-token"},
+                {"label": "project_id", "value": "rhumb-490802"},
+                {"label": "account", "value": "team@getsupertrained.com"},
+                {"label": "service_account_email", "value": "rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com"},
+                {"label": "location", "value": "US"},
+                {"label": "allowed_dataset_refs", "value": "rhumb-490802.analytics_sandbox"},
+                {"label": "allowed_table_refs", "value": "rhumb-490802.analytics_sandbox.orders"},
+            ],
+        }
+    )
+
+    assert ready is True
+    assert missing == []
+    assert details["auth_mode"] == "service_account_impersonation"
+    assert details["has_authorized_user_json"] is True
+    assert details["service_account_email"] == "rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com"
+    assert details["project_ids"] == ["rhumb-490802"]
+    assert details["candidate_accounts"] == [
+        "rhumb-bq-proof-read@rhumb-490802.iam.gserviceaccount.com",
+        "team@getsupertrained.com",
+    ]
+
+
 def test_bigquery_bundle_material_flags_google_oauth_hint_without_bundle() -> None:
     ready, missing, details = warehouse_audit._bigquery_bundle_material(
         {
@@ -61,11 +91,13 @@ def test_bigquery_bundle_material_flags_google_oauth_hint_without_bundle() -> No
 
     assert ready is False
     assert missing == [
-        "service_account_json",
+        "authorized_user_json",
+        "service_account_email",
         "location",
         "allowed_dataset_refs",
         "allowed_table_refs",
     ]
+    assert details["auth_mode"] == "service_account_impersonation"
     assert details["has_google_oauth_material"] is True
     assert details["project_ids"] == ["rhumb-490802"]
     assert details["candidate_accounts"] == ["team@getsupertrained.com"]
