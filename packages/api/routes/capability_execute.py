@@ -1246,6 +1246,7 @@ async def execute_capability(
     crm_capability_ids = frozenset({"crm.object.describe", "crm.record.search", "crm.record.get"})
     actions_capability_ids = frozenset({"workflow_run.list", "workflow_run.get"})
     db_capability_ids = frozenset({"db.query.read", "db.schema.describe", "db.row.get"})
+    warehouse_capability_ids = frozenset({"warehouse.query.read", "warehouse.schema.describe"})
     deployment_capability_ids = frozenset({"deployment.list", "deployment.get"})
     storage_capability_ids = frozenset({"object.list", "object.head", "object.get"})
     support_capability_ids = frozenset({
@@ -1260,6 +1261,7 @@ async def execute_capability(
         crm_capability_ids
         | actions_capability_ids
         | db_capability_ids
+        | warehouse_capability_ids
         | deployment_capability_ids
         | storage_capability_ids
         | support_capability_ids
@@ -1273,6 +1275,8 @@ async def execute_capability(
                 detail = "X-Rhumb-Key header required for GitHub Actions capability execution"
             elif capability_id in db_capability_ids:
                 detail = "X-Rhumb-Key header required for database capability execution"
+            elif capability_id in warehouse_capability_ids:
+                detail = "X-Rhumb-Key header required for warehouse capability execution"
             elif capability_id in deployment_capability_ids:
                 detail = "X-Rhumb-Key header required for deployment capability execution"
             elif capability_id in storage_capability_ids:
@@ -1309,6 +1313,17 @@ async def execute_capability(
             from routes.db_execute import handle_db_execute
 
             return await handle_db_execute(
+                capability_id=capability_id,
+                raw_request=raw_request,
+                agent_id=agent.agent_id,
+                org_id=agent.organization_id,
+                execution_id=execution_id,
+                request_id=request_id,
+            )
+        if capability_id in warehouse_capability_ids:
+            from routes.warehouse_execute import handle_warehouse_execute
+
+            return await handle_warehouse_execute(
                 capability_id=capability_id,
                 raw_request=raw_request,
                 agent_id=agent.agent_id,

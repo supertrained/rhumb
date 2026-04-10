@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from routes._supabase import supabase_fetch
 from services.actions_connection_registry import has_any_actions_bundle_configured
 from services.crm_connection_registry import has_any_crm_bundle_configured
+from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
@@ -40,6 +41,10 @@ _DB_DIRECT_PROVIDER_SLUG = "postgresql"
 _DB_DIRECT_PROVIDER_NAME = "PostgreSQL"
 _DB_DIRECT_PROVIDER_CATEGORY = "database"
 _DB_DIRECT_CREDENTIAL_MODES = ["byok", "agent_vault"]
+_WAREHOUSE_DIRECT_PROVIDER_SLUG = "bigquery"
+_WAREHOUSE_DIRECT_PROVIDER_NAME = "BigQuery"
+_WAREHOUSE_DIRECT_PROVIDER_CATEGORY = "warehouse"
+_WAREHOUSE_DIRECT_CREDENTIAL_MODES = ["byok"]
 _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG = "aws-s3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_NAME = "AWS S3"
 _OBJECT_STORAGE_DIRECT_PROVIDER_CATEGORY = "storage_object"
@@ -76,6 +81,13 @@ def _is_db_direct_capability(capability_id: str) -> bool:
         "db.query.read",
         "db.schema.describe",
         "db.row.get",
+    }
+
+
+def _is_warehouse_direct_capability(capability_id: str) -> bool:
+    return capability_id in {
+        "warehouse.query.read",
+        "warehouse.schema.describe",
     }
 
 
@@ -152,6 +164,14 @@ def _db_direct_top_provider() -> dict[str, str | None]:
     }
 
 
+def _warehouse_direct_top_provider() -> dict[str, str | None]:
+    return {
+        "slug": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
 def _object_storage_direct_top_provider() -> dict[str, str | None]:
     return {
         "slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
@@ -212,6 +232,29 @@ def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
         "auth_method": "connection_ref",
         "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
         "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": notes.get(capability_id),
+        "is_primary": True,
+    }
+
+
+def _warehouse_direct_provider_details(capability_id: str) -> dict[str, object]:
+    notes = {
+        "warehouse.query.read": "Direct read-only BigQuery query execution via warehouse_ref with dry-run enforcement, an explicit single-table allowlist, and bounded rows, bytes, and result size.",
+        "warehouse.schema.describe": "Direct bounded BigQuery dataset and table schema inspection via warehouse_ref with explicit dataset/table allowlists and no SQL execution.",
+    }
+    return {
+        "service_slug": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
+        "service_name": _WAREHOUSE_DIRECT_PROVIDER_NAME,
+        "category": _WAREHOUSE_DIRECT_PROVIDER_CATEGORY,
+        "an_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "auth_method": "warehouse_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "credential_modes": list(_WAREHOUSE_DIRECT_CREDENTIAL_MODES),
         "cost_per_call": None,
         "cost_currency": "USD",
         "free_tier_calls": None,
@@ -373,6 +416,43 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             "endpoint_pattern": provider["endpoint_pattern"],
             "estimated_cost_usd": None,
             "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
+        },
+    }
+
+
+def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured = has_any_warehouse_bundle_configured("bigquery")
+    provider = {
+        "service_slug": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
+        "service_name": _WAREHOUSE_DIRECT_PROVIDER_NAME,
+        "an_score": None,
+        "execution_score": None,
+        "access_readiness_score": None,
+        "tier": None,
+        "tier_label": "Direct",
+        "confidence": None,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "credential_modes": list(_WAREHOUSE_DIRECT_CREDENTIAL_MODES),
+        "auth_method": "warehouse_ref",
+        "endpoint_pattern": f"POST /v1/capabilities/{capability_id}/execute",
+        "recommendation": "available",
+        "recommendation_reason": "Direct read-only BigQuery execution via warehouse_ref with byok service-account JSON bundles, dry-run-before-run enforcement, and explicit dataset/table allowlists.",
+        "circuit_state": "n/a",
+        "available_for_execute": True,
+        "configured": configured,
+    }
+    return {
+        "capability": capability_id,
+        "providers": [provider],
+        "fallback_chain": [_WAREHOUSE_DIRECT_PROVIDER_SLUG],
+        "bundle_ids": [],
+        "execute_hint": {
+            "preferred_provider": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
+            "endpoint_pattern": provider["endpoint_pattern"],
+            "estimated_cost_usd": None,
+            "credential_modes": list(_WAREHOUSE_DIRECT_CREDENTIAL_MODES),
         },
     }
 
@@ -589,6 +669,28 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     }
 
 
+def _warehouse_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured = has_any_warehouse_bundle_configured("bigquery")
+    return {
+        "capability_id": capability_id,
+        "providers": [
+            {
+                "service_slug": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
+                "auth_method": "warehouse_ref",
+                "modes": [
+                    {
+                        "mode": "byok",
+                        "available": True,
+                        "configured": configured,
+                        "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode=service_account_json, service_account_json, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs.",
+                    }
+                ],
+                "any_configured": configured,
+            }
+        ],
+    }
+
+
 def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, object]:
     return {
         "capability_id": capability_id,
@@ -725,6 +827,24 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
             "description": "Direct PostgreSQL row lookup with exact-match filters and bounded result scope.",
             "input_hint": "Provide connection_ref, table, and filters.",
             "outcome": "Returns bounded matching rows from the requested table.",
+        },
+    }
+    warehouse_records = {
+        "warehouse.query.read": {
+            "id": "warehouse.query.read",
+            "domain": "warehouse",
+            "action": "query.read",
+            "description": "Direct read-only BigQuery query execution with mandatory dry-run validation, explicit allowlists, and bounded rows, bytes, and result size.",
+            "input_hint": "Provide warehouse_ref, a single-table read-only SELECT query, and optional params.",
+            "outcome": "Returns bounded BigQuery query results with provider attribution and dry-run metadata.",
+        },
+        "warehouse.schema.describe": {
+            "id": "warehouse.schema.describe",
+            "domain": "warehouse",
+            "action": "schema.describe",
+            "description": "Direct BigQuery schema inspection with explicit dataset and table allowlists and bounded table and column scope.",
+            "input_hint": "Provide warehouse_ref and optional dataset_refs or table_refs.",
+            "outcome": "Returns bounded BigQuery table and column metadata for the allowlisted scope.",
         },
     }
     object_storage_records = {
@@ -867,6 +987,7 @@ def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None
     }
     return (
         db_records.get(capability_id)
+        or warehouse_records.get(capability_id)
         or object_storage_records.get(capability_id)
         or deployment_records.get(capability_id)
         or actions_records.get(capability_id)
@@ -882,6 +1003,8 @@ def _synthetic_capability_records() -> list[dict[str, object]]:
             "db.query.read",
             "db.schema.describe",
             "db.row.get",
+            "warehouse.query.read",
+            "warehouse.schema.describe",
             "object.list",
             "object.head",
             "object.get",
@@ -930,6 +1053,9 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "ticket": {"tickets", "support", "zendesk", "comment", "comments", "helpdesk"},
     "transcribe": {"transcription", "captions", "subtitle", "audio", "speech", "voice"},
     "vercel": {"deploy", "deployment", "deployments", "preview", "production", "project"},
+    "warehouse": {"bigquery", "bq", "sql", "analytics", "dataset", "datasets", "table", "tables", "query", "schema"},
+    "bigquery": {"warehouse", "bq", "sql", "analytics", "dataset", "datasets", "table", "tables", "query", "schema"},
+    "bq": {"warehouse", "bigquery", "sql", "analytics", "dataset", "datasets", "table", "tables", "query", "schema"},
     "workflow": {"workflow_run", "github", "actions", "run", "runs", "ci"},
     "workflow_run": {"workflow", "github", "actions", "run", "runs", "ci"},
     "website": {"web", "webpage", "page", "site", "url", "html"},
@@ -989,6 +1115,7 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     domain_text = _normalize_intent_text(capability.get("domain"))
     action_text = _normalize_intent_text(capability.get("action"))
     db_terms = {"db", "database", "postgres", "postgresql", "sql", "schema", "table"}
+    warehouse_terms = {"warehouse", "bigquery", "bq", "sql", "analytics", "dataset", "table", "schema"}
     support_terms = {"support", "ticket", "tickets", "zendesk", "helpdesk", "comment", "comments"}
     actions_terms = {"github", "actions", "workflow", "workflow_run", "run", "runs", "ci"}
     crm_terms = {"crm", "hubspot", "record", "records", "contact", "contacts", "deal", "deals", "company", "companies", "object", "objects"}
@@ -1000,6 +1127,13 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         domain_text == "database"
         or any(term in blob_tokens for term in db_terms)
         or id_text.startswith("db ")
+    ):
+        score += 18
+
+    if any(token in warehouse_terms for token in tokens) and (
+        domain_text == "warehouse"
+        or any(term in blob_tokens for term in warehouse_terms)
+        or id_text.startswith("warehouse ")
     ):
         score += 18
 
@@ -1028,6 +1162,16 @@ def _score_capability_intent(query: str, capability: dict) -> int:
         if any(token in {"db", "database", "postgres", "postgresql", "sql"} for token in tokens):
             score += 30
         if any(token in {"query", "read"} for token in tokens):
+            score += 12
+    elif capability_id == "warehouse.query.read":
+        if any(token in {"warehouse", "bigquery", "bq", "sql", "analytics"} for token in tokens):
+            score += 30
+        if any(token in {"query", "read", "select"} for token in tokens):
+            score += 12
+    elif capability_id == "warehouse.schema.describe":
+        if any(token in {"warehouse", "bigquery", "bq", "sql", "analytics"} for token in tokens):
+            score += 30
+        if any(token in {"schema", "describe", "dataset", "datasets", "table", "tables"} for token in tokens):
             score += 12
     elif capability_id == "db.schema.describe":
         if any(token in {"db", "database", "postgres", "postgresql", "sql"} for token in tokens) and any(
@@ -1232,6 +1376,9 @@ async def list_capabilities(
         elif _is_db_direct_capability(cid):
             provider_count = 1
             top_provider = _db_direct_top_provider()
+        elif _is_warehouse_direct_capability(cid):
+            provider_count = 1
+            top_provider = _warehouse_direct_top_provider()
         elif _is_object_storage_direct_capability(cid):
             provider_count = 1
             top_provider = _object_storage_direct_top_provider()
@@ -1416,6 +1563,15 @@ async def get_capability(capability_id: str, raw_request: Request):
             },
             "error": None,
         }
+    if _is_warehouse_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_warehouse_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
     if _is_deployment_direct_capability(capability_id):
         return {
             "data": {
@@ -1505,6 +1661,8 @@ async def get_capability(capability_id: str, raw_request: Request):
 
     if not providers and _is_db_direct_capability(capability_id):
         providers = [_db_direct_provider_details(capability_id)]
+    if not providers and _is_warehouse_direct_capability(capability_id):
+        providers = [_warehouse_direct_provider_details(capability_id)]
     if not providers and _is_object_storage_direct_capability(capability_id):
         providers = [_object_storage_direct_provider_details(capability_id)]
     if not providers and _is_deployment_direct_capability(capability_id):
@@ -1550,6 +1708,11 @@ async def resolve_capability(
             "data": _support_direct_resolve_payload(capability_id),
             "error": None,
         }
+    if _is_warehouse_direct_capability(capability_id):
+        return {
+            "data": _warehouse_direct_resolve_payload(capability_id),
+            "error": None,
+        }
     if _is_deployment_direct_capability(capability_id):
         return {
             "data": _deployment_direct_resolve_payload(capability_id),
@@ -1581,6 +1744,11 @@ async def resolve_capability(
         if _is_db_direct_capability(capability_id):
             return {
                 "data": _db_direct_resolve_payload(capability_id),
+                "error": None,
+            }
+        if _is_warehouse_direct_capability(capability_id):
+            return {
+                "data": _warehouse_direct_resolve_payload(capability_id),
                 "error": None,
             }
         if _is_object_storage_direct_capability(capability_id):
@@ -1787,6 +1955,11 @@ async def get_credential_modes(
             "data": _support_direct_credential_modes(capability_id),
             "error": None,
         }
+    if _is_warehouse_direct_capability(capability_id):
+        return {
+            "data": _warehouse_direct_credential_modes(capability_id),
+            "error": None,
+        }
     if _is_deployment_direct_capability(capability_id):
         return {
             "data": _deployment_direct_credential_modes(capability_id),
@@ -1812,6 +1985,11 @@ async def get_credential_modes(
         if _is_db_direct_capability(capability_id):
             return {
                 "data": _db_direct_credential_modes(capability_id),
+                "error": None,
+            }
+        if _is_warehouse_direct_capability(capability_id):
+            return {
+                "data": _warehouse_direct_credential_modes(capability_id),
                 "error": None,
             }
         if _is_object_storage_direct_capability(capability_id):
