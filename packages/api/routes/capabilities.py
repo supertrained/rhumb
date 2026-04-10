@@ -682,7 +682,7 @@ def _warehouse_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode=service_account_json, service_account_json, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs.",
+                        "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode set to either service_account_json or service_account_impersonation, the matching credential payload, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs.",
                     }
                 ],
                 "any_configured": configured,

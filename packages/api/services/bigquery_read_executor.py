@@ -110,6 +110,10 @@ _PARTITION_FILTER_RE = re.compile(
     """,
     re.IGNORECASE | re.VERBOSE,
 )
+_BIGQUERY_AUTH_SCOPES = (
+    "https://www.googleapis.com/auth/bigquery",
+    "https://www.googleapis.com/auth/cloud-platform",
+)
 
 
 @dataclass(slots=True)
@@ -438,23 +442,67 @@ def _get_client(
         ) from exc
 
     try:
-        from google.oauth2 import service_account
-    except ImportError as exc:  # pragma: no cover - environment dependent
-        raise WarehouseExecutorError(
-            code="warehouse_provider_unavailable",
-            message="Google service-account dependency is not installed",
-            status_code=503,
-        ) from exc
-
-    try:
-        credentials = service_account.Credentials.from_service_account_info(
-            bundle.service_account_info
-        )
-        project_id = bundle.billing_project_id or credentials.project_id
+        project_id = bundle.billing_project_id
         if not project_id:
             raise WarehouseExecutorError(
                 code="warehouse_ref_invalid",
                 message="warehouse_ref bundle is missing a billing_project_id",
+                status_code=400,
+            )
+        if bundle.auth_mode == "service_account_json":
+            try:
+                from google.oauth2 import service_account
+            except ImportError as exc:  # pragma: no cover - environment dependent
+                raise WarehouseExecutorError(
+                    code="warehouse_provider_unavailable",
+                    message="Google service-account dependency is not installed",
+                    status_code=503,
+                ) from exc
+            if bundle.service_account_info is None:
+                raise WarehouseExecutorError(
+                    code="warehouse_ref_invalid",
+                    message="warehouse_ref bundle is missing service_account_json credentials",
+                    status_code=400,
+                )
+            credentials = service_account.Credentials.from_service_account_info(
+                bundle.service_account_info
+            )
+            project_id = project_id or credentials.project_id
+        elif bundle.auth_mode == "service_account_impersonation":
+            try:
+                from google.auth import impersonated_credentials
+                from google.oauth2 import credentials as authorized_user_credentials
+            except ImportError as exc:  # pragma: no cover - environment dependent
+                raise WarehouseExecutorError(
+                    code="warehouse_provider_unavailable",
+                    message="Google impersonation dependency is not installed",
+                    status_code=503,
+                ) from exc
+            if bundle.authorized_user_info is None:
+                raise WarehouseExecutorError(
+                    code="warehouse_ref_invalid",
+                    message="warehouse_ref bundle is missing authorized_user_json credentials",
+                    status_code=400,
+                )
+            if not bundle.service_account_email:
+                raise WarehouseExecutorError(
+                    code="warehouse_ref_invalid",
+                    message="warehouse_ref bundle is missing service_account_email",
+                    status_code=400,
+                )
+            source_credentials = authorized_user_credentials.Credentials.from_authorized_user_info(
+                bundle.authorized_user_info,
+                scopes=list(_BIGQUERY_AUTH_SCOPES),
+            )
+            credentials = impersonated_credentials.Credentials(
+                source_credentials=source_credentials,
+                target_principal=bundle.service_account_email,
+                target_scopes=list(_BIGQUERY_AUTH_SCOPES),
+            )
+        else:
+            raise WarehouseExecutorError(
+                code="warehouse_ref_invalid",
+                message=f"warehouse_ref bundle auth_mode '{bundle.auth_mode}' is not supported",
                 status_code=400,
             )
         return _GoogleBigQueryAdapter(

@@ -172,6 +172,11 @@ def _extract_embedded_bundle(item: dict[str, Any], values: dict[str, object]) ->
 def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
     values = _field_value_map(item)
     embedded_bundle = _extract_embedded_bundle(item, values)
+    explicit_auth_mode = (
+        _first_string(values, ("auth_mode", "authentication_mode"))
+        or str(embedded_bundle.get("auth_mode") or "").strip()
+        or None
+    )
 
     service_account_json = None
     for candidate in (
@@ -199,9 +204,68 @@ def _extract_sop_defaults(item: dict[str, Any]) -> dict[str, Any]:
             service_account_json = parsed
             break
 
+    authorized_user_json = None
+    for candidate in (
+        _first_value(
+            values,
+            (
+                "authorized_user_json",
+                "google_authorized_user_json",
+                "oauth_authorized_user_json",
+                "oauth_credentials_json",
+            ),
+        ),
+        embedded_bundle.get("authorized_user_json"),
+        item.get("notesPlain"),
+    ):
+        if candidate is None:
+            continue
+        try:
+            parsed = _parse_json_object(candidate, label="authorized user JSON")
+        except ValueError:
+            continue
+        if str(parsed.get("type") or "").strip().lower() == "authorized_user":
+            authorized_user_json = parsed
+            break
+
     defaults: dict[str, Any] = {}
+    auth_mode = explicit_auth_mode
+    if not auth_mode:
+        if authorized_user_json and (
+            _first_string(
+                values,
+                (
+                    "service_account_email",
+                    "impersonated_service_account_email",
+                    "target_service_account_email",
+                ),
+            )
+            or str(embedded_bundle.get("service_account_email") or "").strip()
+        ):
+            auth_mode = "service_account_impersonation"
+        elif service_account_json:
+            auth_mode = "service_account_json"
+    if auth_mode:
+        defaults["auth_mode"] = auth_mode
     if service_account_json:
         defaults["service_account_json"] = service_account_json
+    if authorized_user_json:
+        defaults["authorized_user_json"] = authorized_user_json
+
+    service_account_email = (
+        _first_string(
+            values,
+            (
+                "service_account_email",
+                "impersonated_service_account_email",
+                "target_service_account_email",
+            ),
+        )
+        or str(embedded_bundle.get("service_account_email") or "").strip()
+        or None
+    )
+    if service_account_email:
+        defaults["service_account_email"] = service_account_email
 
     billing_project_id = (
         _first_string(values, ("billing_project_id", "project_id", "gcp_project_id", "bigquery_project_id"))
@@ -302,9 +366,52 @@ def _service_account_json_from_args(args: argparse.Namespace, sourced: dict[str,
     )
 
 
+def _authorized_user_json_from_args(args: argparse.Namespace, sourced: dict[str, Any]) -> dict[str, Any]:
+    if args.authorized_user_json_file:
+        try:
+            return _parse_json_object(
+                Path(args.authorized_user_json_file).read_text(),
+                label="--authorized-user-json-file",
+            )
+        except OSError as exc:
+            raise ValueError(f"Unable to read --authorized-user-json-file: {exc}") from exc
+    if args.authorized_user_json:
+        return _parse_json_object(args.authorized_user_json, label="--authorized-user-json")
+    sourced_value = sourced.get("authorized_user_json")
+    if sourced_value is not None:
+        return _parse_json_object(sourced_value, label="authorized user JSON")
+    raise ValueError(
+        "--authorized-user-json or --authorized-user-json-file is required unless it can be inferred from --from-sop-item"
+    )
+
+
+def _service_account_email_from_args(args: argparse.Namespace, sourced: dict[str, Any]) -> str:
+    value = str(args.service_account_email or sourced.get("service_account_email") or "").strip()
+    if not value:
+        raise ValueError(
+            "--service-account-email is required for auth_mode service_account_impersonation unless it can be inferred from --from-sop-item"
+        )
+    return value
+
+
+def _resolve_auth_mode(args: argparse.Namespace, sourced: dict[str, Any]) -> str:
+    explicit = str(args.auth_mode or sourced.get("auth_mode") or "").strip().lower()
+    if explicit:
+        return explicit
+    if (
+        args.authorized_user_json
+        or args.authorized_user_json_file
+        or args.service_account_email
+        or sourced.get("authorized_user_json") is not None
+        or sourced.get("service_account_email") is not None
+    ):
+        return "service_account_impersonation"
+    return "service_account_json"
+
+
 def _build_bundle(args: argparse.Namespace, *, sourced: dict[str, Any] | None = None) -> dict[str, Any]:
     sourced = sourced or {}
-    service_account_json = _service_account_json_from_args(args, sourced)
+    auth_mode = _resolve_auth_mode(args, sourced)
 
     billing_project_id = str(args.billing_project_id or sourced.get("billing_project_id") or "").strip()
     if not billing_project_id:
@@ -344,13 +451,19 @@ def _build_bundle(args: argparse.Namespace, *, sourced: dict[str, Any] | None = 
 
     bundle: dict[str, Any] = {
         "provider": "bigquery",
-        "auth_mode": "service_account_json",
-        "service_account_json": service_account_json,
+        "auth_mode": auth_mode,
         "billing_project_id": billing_project_id,
         "location": location,
         "allowed_dataset_refs": allowed_dataset_refs,
         "allowed_table_refs": allowed_table_refs,
     }
+    if auth_mode == "service_account_json":
+        bundle["service_account_json"] = _service_account_json_from_args(args, sourced)
+    elif auth_mode == "service_account_impersonation":
+        bundle["authorized_user_json"] = _authorized_user_json_from_args(args, sourced)
+        bundle["service_account_email"] = _service_account_email_from_args(args, sourced)
+    else:
+        raise ValueError(f"Unsupported auth mode: {auth_mode}")
     if require_partition_filter_for_table_refs:
         bundle["require_partition_filter_for_table_refs"] = require_partition_filter_for_table_refs
 
@@ -403,10 +516,14 @@ def _validate_bundle(ref: str, bundle: dict[str, Any]) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--warehouse-ref", required=True)
+    parser.add_argument("--auth-mode", choices=["service_account_json", "service_account_impersonation"])
     parser.add_argument("--billing-project-id")
     parser.add_argument("--location")
     parser.add_argument("--service-account-json")
     parser.add_argument("--service-account-json-file")
+    parser.add_argument("--authorized-user-json")
+    parser.add_argument("--authorized-user-json-file")
+    parser.add_argument("--service-account-email")
     parser.add_argument("--from-sop-item")
     parser.add_argument("--vault", default=DEFAULT_VAULT)
     parser.add_argument("--allowed-dataset-ref", action="append")

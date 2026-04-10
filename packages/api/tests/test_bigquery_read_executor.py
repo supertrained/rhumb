@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+import types
 from types import SimpleNamespace
 
 import pytest
 
 from schemas.warehouse_capabilities import WarehouseQueryReadRequest, WarehouseSchemaDescribeRequest
-from services.bigquery_read_executor import WarehouseExecutorError, describe_schema, execute_read_query
+from services.bigquery_read_executor import WarehouseExecutorError, _get_client, describe_schema, execute_read_query
 from services.warehouse_connection_registry import BigQueryWarehouseBundle
 
 
@@ -92,6 +94,41 @@ def _bundle(**overrides) -> BigQueryWarehouseBundle:
     return BigQueryWarehouseBundle(**data)
 
 
+def _install_fake_google_modules(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    bigquery_module: object,
+    service_account_module: object | None = None,
+    authorized_user_credentials_module: object | None = None,
+    impersonated_credentials_module: object | None = None,
+) -> None:
+    google_module = types.ModuleType("google")
+    cloud_module = types.ModuleType("google.cloud")
+    oauth2_module = types.ModuleType("google.oauth2")
+    auth_module = types.ModuleType("google.auth")
+
+    setattr(cloud_module, "bigquery", bigquery_module)
+    setattr(google_module, "cloud", cloud_module)
+    setattr(google_module, "oauth2", oauth2_module)
+    setattr(google_module, "auth", auth_module)
+
+    monkeypatch.setitem(sys.modules, "google", google_module)
+    monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
+    monkeypatch.setitem(sys.modules, "google.cloud.bigquery", bigquery_module)
+    monkeypatch.setitem(sys.modules, "google.oauth2", oauth2_module)
+    monkeypatch.setitem(sys.modules, "google.auth", auth_module)
+
+    if service_account_module is not None:
+        setattr(oauth2_module, "service_account", service_account_module)
+        monkeypatch.setitem(sys.modules, "google.oauth2.service_account", service_account_module)
+    if authorized_user_credentials_module is not None:
+        setattr(oauth2_module, "credentials", authorized_user_credentials_module)
+        monkeypatch.setitem(sys.modules, "google.oauth2.credentials", authorized_user_credentials_module)
+    if impersonated_credentials_module is not None:
+        setattr(auth_module, "impersonated_credentials", impersonated_credentials_module)
+        monkeypatch.setitem(sys.modules, "google.auth.impersonated_credentials", impersonated_credentials_module)
+
+
 @pytest.mark.asyncio
 async def test_execute_read_query_enforces_dry_run_and_contract_response() -> None:
     client = FakeClient()
@@ -127,6 +164,131 @@ async def test_execute_read_query_enforces_dry_run_and_contract_response() -> No
     assert response.query_summary.tables_referenced == ["proj.analytics.events"]
     assert response.bounded_by.row_limit_applied == 2
     assert response.bounded_by.timeout_ms_applied == 5000
+
+
+def test_get_client_builds_service_account_bigquery_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    state: dict[str, object] = {}
+
+    class FakeBigQueryClient:
+        def __init__(self, *, project: str, credentials: object, location: str) -> None:
+            state["client_kwargs"] = {
+                "project": project,
+                "credentials": credentials,
+                "location": location,
+            }
+
+    bigquery_module = types.ModuleType("google.cloud.bigquery")
+    setattr(bigquery_module, "Client", FakeBigQueryClient)
+
+    class FakeServiceAccountCredentials:
+        project_id = "creds-project"
+
+        @classmethod
+        def from_service_account_info(cls, info: dict[str, object]) -> object:
+            state["service_account_info"] = info
+            return cls()
+
+    service_account_module = types.ModuleType("google.oauth2.service_account")
+    setattr(service_account_module, "Credentials", FakeServiceAccountCredentials)
+
+    _install_fake_google_modules(
+        monkeypatch,
+        bigquery_module=bigquery_module,
+        service_account_module=service_account_module,
+    )
+
+    adapter = _get_client(_bundle(), client_factory=None)
+
+    assert state["service_account_info"] == _bundle().service_account_info
+    assert state["client_kwargs"] == {
+        "project": "proj",
+        "credentials": state["client_kwargs"]["credentials"],
+        "location": "US",
+    }
+    assert adapter._client is not None
+
+
+def test_get_client_builds_impersonated_bigquery_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    state: dict[str, object] = {}
+
+    class FakeBigQueryClient:
+        def __init__(self, *, project: str, credentials: object, location: str) -> None:
+            state["client_kwargs"] = {
+                "project": project,
+                "credentials": credentials,
+                "location": location,
+            }
+
+    bigquery_module = types.ModuleType("google.cloud.bigquery")
+    setattr(bigquery_module, "Client", FakeBigQueryClient)
+
+    class FakeAuthorizedUserCredentials:
+        @classmethod
+        def from_authorized_user_info(cls, info: dict[str, object], scopes: list[str]) -> object:
+            state["authorized_user_info"] = info
+            state["authorized_user_scopes"] = list(scopes)
+            return SimpleNamespace(kind="source_credentials")
+
+    authorized_user_module = types.ModuleType("google.oauth2.credentials")
+    setattr(authorized_user_module, "Credentials", FakeAuthorizedUserCredentials)
+
+    class FakeImpersonatedCredentials:
+        def __init__(
+            self,
+            *,
+            source_credentials: object,
+            target_principal: str,
+            target_scopes: list[str],
+        ) -> None:
+            state["impersonation_kwargs"] = {
+                "source_credentials": source_credentials,
+                "target_principal": target_principal,
+                "target_scopes": list(target_scopes),
+            }
+
+    impersonated_credentials_module = types.ModuleType("google.auth.impersonated_credentials")
+    setattr(impersonated_credentials_module, "Credentials", FakeImpersonatedCredentials)
+
+    _install_fake_google_modules(
+        monkeypatch,
+        bigquery_module=bigquery_module,
+        authorized_user_credentials_module=authorized_user_module,
+        impersonated_credentials_module=impersonated_credentials_module,
+    )
+
+    bundle = _bundle(
+        auth_mode="service_account_impersonation",
+        service_account_info=None,
+        authorized_user_info={
+            "type": "authorized_user",
+            "client_id": "client-id",
+            "client_secret": "client-secret",
+            "refresh_token": "refresh-token",
+        },
+        service_account_email="rhumb-warehouse@proj.iam.gserviceaccount.com",
+    )
+
+    adapter = _get_client(bundle, client_factory=None)
+
+    assert state["authorized_user_info"] == bundle.authorized_user_info
+    assert state["authorized_user_scopes"] == [
+        "https://www.googleapis.com/auth/bigquery",
+        "https://www.googleapis.com/auth/cloud-platform",
+    ]
+    assert state["impersonation_kwargs"] == {
+        "source_credentials": state["impersonation_kwargs"]["source_credentials"],
+        "target_principal": "rhumb-warehouse@proj.iam.gserviceaccount.com",
+        "target_scopes": [
+            "https://www.googleapis.com/auth/bigquery",
+            "https://www.googleapis.com/auth/cloud-platform",
+        ],
+    }
+    assert state["client_kwargs"] == {
+        "project": "proj",
+        "credentials": state["client_kwargs"]["credentials"],
+        "location": "US",
+    }
+    assert adapter._client is not None
 
 
 @pytest.mark.asyncio

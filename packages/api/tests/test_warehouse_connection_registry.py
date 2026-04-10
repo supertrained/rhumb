@@ -34,6 +34,26 @@ def _bundle_payload(**overrides):
     return payload
 
 
+def _impersonation_bundle_payload(**overrides):
+    payload = {
+        "provider": "bigquery",
+        "auth_mode": "service_account_impersonation",
+        "authorized_user_json": {
+            "type": "authorized_user",
+            "client_id": "client-id",
+            "client_secret": "client-secret",
+            "refresh_token": "refresh-token",
+        },
+        "service_account_email": "rhumb@example.iam.gserviceaccount.com",
+        "billing_project_id": "proj",
+        "location": "US",
+        "allowed_dataset_refs": ["proj.analytics"],
+        "allowed_table_refs": ["proj.analytics.events"],
+    }
+    payload.update(overrides)
+    return payload
+
+
 def test_resolve_warehouse_bundle_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "RHUMB_WAREHOUSE_BQ_MAIN",
@@ -85,6 +105,33 @@ def test_resolve_warehouse_bundle_accepts_legacy_aliases(monkeypatch: pytest.Mon
     assert bundle.max_rows_returned == 75
     assert bundle.max_result_bytes == 120000
     assert bundle.statement_timeout_ms == 12000
+
+
+def test_resolve_warehouse_bundle_accepts_service_account_impersonation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "RHUMB_WAREHOUSE_BQ_MAIN",
+        json.dumps(_impersonation_bundle_payload()),
+    )
+
+    bundle = resolve_warehouse_bundle("bq_main")
+
+    assert bundle.auth_mode == "service_account_impersonation"
+    assert bundle.service_account_info is None
+    assert bundle.authorized_user_info is not None
+    assert bundle.authorized_user_info["refresh_token"] == "refresh-token"
+    assert bundle.service_account_email == "rhumb@example.iam.gserviceaccount.com"
+
+
+def test_resolve_warehouse_bundle_requires_service_account_email_for_impersonation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_WAREHOUSE_BQ_MAIN",
+        json.dumps(_impersonation_bundle_payload(service_account_email=None)),
+    )
+
+    with pytest.raises(WarehouseRefError, match="field 'service_account_email' is missing"):
+        resolve_warehouse_bundle("bq_main")
 
 
 def test_resolve_warehouse_bundle_requires_location(monkeypatch: pytest.MonkeyPatch) -> None:

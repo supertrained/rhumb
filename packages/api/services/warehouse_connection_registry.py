@@ -37,7 +37,9 @@ class BigQueryWarehouseBundle:
     warehouse_ref: str
     provider: str
     auth_mode: str
-    service_account_info: dict[str, Any] = field(repr=False)
+    service_account_info: dict[str, Any] | None = field(default=None, repr=False)
+    authorized_user_info: dict[str, Any] | None = field(default=None, repr=False)
+    service_account_email: str | None = None
     billing_project_id: str | None = None
     location: str | None = None
     allowed_dataset_refs: tuple[str, ...] = ()
@@ -135,21 +137,40 @@ def resolve_warehouse_bundle(warehouse_ref: str) -> BigQueryWarehouseBundle:
         )
 
     auth_mode = str(payload.get("auth_mode") or "").strip().lower()
-    if auth_mode != "service_account_json":
+    if auth_mode not in {"service_account_json", "service_account_impersonation"}:
         raise WarehouseRefError(
-            f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but auth_mode must be 'service_account_json'"
+            f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but auth_mode must be 'service_account_json' or 'service_account_impersonation'"
         )
 
-    service_account_info = _service_account_info(
-        payload.get("service_account_json"),
-        warehouse_ref=warehouse_ref,
-        env_key=env_key,
-    )
-    billing_project_id = _optional_string(
-        payload.get("billing_project_id")
-        or payload.get("project_id")
-        or service_account_info.get("project_id")
-    )
+    service_account_info: dict[str, Any] | None = None
+    authorized_user_info: dict[str, Any] | None = None
+    service_account_email: str | None = None
+    if auth_mode == "service_account_json":
+        service_account_info = _service_account_info(
+            payload.get("service_account_json"),
+            warehouse_ref=warehouse_ref,
+            env_key=env_key,
+        )
+        billing_project_id = _optional_string(
+            payload.get("billing_project_id")
+            or payload.get("project_id")
+            or service_account_info.get("project_id")
+        )
+    else:
+        authorized_user_info = _authorized_user_info(
+            payload.get("authorized_user_json"),
+            warehouse_ref=warehouse_ref,
+            env_key=env_key,
+        )
+        service_account_email = _optional_string(payload.get("service_account_email"))
+        if not service_account_email:
+            raise WarehouseRefError(
+                f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'service_account_email' is missing"
+            )
+        billing_project_id = _optional_string(
+            payload.get("billing_project_id")
+            or payload.get("project_id")
+        )
     if not billing_project_id:
         raise WarehouseRefError(
             f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but must declare billing_project_id"
@@ -255,6 +276,8 @@ def resolve_warehouse_bundle(warehouse_ref: str) -> BigQueryWarehouseBundle:
         provider=provider,
         auth_mode=auth_mode,
         service_account_info=service_account_info,
+        authorized_user_info=authorized_user_info,
+        service_account_email=service_account_email,
         billing_project_id=billing_project_id,
         location=location,
         allowed_dataset_refs=allowed_dataset_refs,
@@ -324,23 +347,12 @@ def _service_account_info(
     warehouse_ref: str,
     env_key: str,
 ) -> dict[str, Any]:
-    payload: object = value
-    if isinstance(value, str):
-        text = value.strip()
-        if not text:
-            payload = None
-        else:
-            try:
-                payload = json.loads(text)
-            except Exception as exc:
-                raise WarehouseRefError(
-                    f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'service_account_json' is not valid JSON"
-                ) from exc
-
-    if not isinstance(payload, dict):
-        raise WarehouseRefError(
-            f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'service_account_json' must be a JSON object"
-        )
+    payload = _json_object_field(
+        value,
+        warehouse_ref=warehouse_ref,
+        env_key=env_key,
+        field_name="service_account_json",
+    )
 
     sa_type = str(payload.get("type") or "").strip().lower()
     if sa_type != "service_account":
@@ -354,6 +366,59 @@ def _service_account_info(
     if not _optional_string(payload.get("private_key")):
         raise WarehouseRefError(
             f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'service_account_json.private_key' is missing"
+        )
+    return dict(payload)
+
+
+def _authorized_user_info(
+    value: object,
+    *,
+    warehouse_ref: str,
+    env_key: str,
+) -> dict[str, Any]:
+    payload = _json_object_field(
+        value,
+        warehouse_ref=warehouse_ref,
+        env_key=env_key,
+        field_name="authorized_user_json",
+    )
+
+    auth_type = str(payload.get("type") or "").strip().lower()
+    if auth_type != "authorized_user":
+        raise WarehouseRefError(
+            f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'authorized_user_json.type' must be 'authorized_user'"
+        )
+    for required_field in ("client_id", "client_secret", "refresh_token"):
+        if not _optional_string(payload.get(required_field)):
+            raise WarehouseRefError(
+                f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field 'authorized_user_json.{required_field}' is missing"
+            )
+    return dict(payload)
+
+
+def _json_object_field(
+    value: object,
+    *,
+    warehouse_ref: str,
+    env_key: str,
+    field_name: str,
+) -> dict[str, Any]:
+    payload: object = value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            payload = None
+        else:
+            try:
+                payload = json.loads(text)
+            except Exception as exc:
+                raise WarehouseRefError(
+                    f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field '{field_name}' is not valid JSON"
+                ) from exc
+
+    if not isinstance(payload, dict):
+        raise WarehouseRefError(
+            f"warehouse_ref '{warehouse_ref}' is configured via env '{env_key}' but field '{field_name}' must be a JSON object"
         )
     return dict(payload)
 
