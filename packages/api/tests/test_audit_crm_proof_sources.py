@@ -23,6 +23,12 @@ def test_hubspot_provider_declares_hosted_capability_id() -> None:
     assert provider.hosted_capability_id == "crm.record.search"
 
 
+def test_salesforce_provider_declares_hosted_capability_id() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+
+    assert provider.hosted_capability_id == "crm.record.search"
+
+
 def test_audit_hosted_surface_marks_hubspot_live_when_capability_endpoints_are_live() -> None:
     provider = crm_proof_audit.PROVIDERS["hubspot"]
 
@@ -158,6 +164,75 @@ def test_audit_vault_marks_login_only_hubspot_item_as_not_bundle_ready() -> None
     ]
 
 
+def test_audit_vault_marks_salesforce_item_without_scope_fields_as_not_bundle_ready() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+    list_payload = [
+        {
+            "id": "sf-item-123",
+            "title": "Salesforce Connected App",
+            "category": "API_CREDENTIAL",
+            "urls": ["https://login.salesforce.com"],
+            "tags": [],
+        }
+    ]
+    item_payload = {
+        "id": "sf-item-123",
+        "fields": [
+            {"label": "client_id", "value": "client-id"},
+            {"label": "client_secret", "value": "client-secret"},
+            {"label": "refresh_token", "value": "refresh-token"},
+        ],
+        "urls": ["https://login.salesforce.com"],
+    }
+
+    with patch.object(crm_proof_audit, "_run_json", return_value=(list_payload, None)), patch.object(
+        crm_proof_audit, "_load_vault_item", return_value=(item_payload, None)
+    ):
+        result = crm_proof_audit.audit_vault(provider, "OpenClaw Agents", 25)
+
+    assert result["hit_count"] == 1
+    assert result["bundle_ready_hit_count"] == 0
+    assert result["hits"][0]["bundle_material_ready"] is False
+    assert result["hits"][0]["missing_bundle_fields"] == [
+        "allowed_object_types",
+        "allowed_properties_by_object",
+    ]
+
+
+def test_audit_vault_marks_scoped_salesforce_item_as_bundle_ready() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+    list_payload = [
+        {
+            "id": "sf-item-456",
+            "title": "Salesforce CRM Read",
+            "category": "API_CREDENTIAL",
+            "urls": ["https://login.salesforce.com"],
+            "tags": [],
+        }
+    ]
+    item_payload = {
+        "id": "sf-item-456",
+        "fields": [
+            {"label": "client_id", "value": "client-id"},
+            {"label": "client_secret", "value": "client-secret"},
+            {"label": "refresh_token", "value": "refresh-token"},
+            {"label": "allowed_object_types", "value": "Account"},
+            {"label": "allowed_properties_Account", "value": "Name, Website"},
+        ],
+        "urls": ["https://login.salesforce.com"],
+    }
+
+    with patch.object(crm_proof_audit, "_run_json", return_value=(list_payload, None)), patch.object(
+        crm_proof_audit, "_load_vault_item", return_value=(item_payload, None)
+    ):
+        result = crm_proof_audit.audit_vault(provider, "OpenClaw Agents", 25)
+
+    assert result["hit_count"] == 1
+    assert result["bundle_ready_hit_count"] == 1
+    assert result["hits"][0]["bundle_material_ready"] is True
+    assert result["hits"][0]["missing_bundle_fields"] == []
+
+
 def test_audit_browser_saved_logins_reports_matching_hubspot_entries(tmp_path: Path) -> None:
     provider = crm_proof_audit.PROVIDERS["hubspot"]
     login_db = tmp_path / "Login Data"
@@ -185,3 +260,28 @@ def test_audit_browser_saved_logins_reports_matching_hubspot_entries(tmp_path: P
     assert result["hosts"] == ["app.hubspot.com"]
     assert result["usernames"] == ["tommeredith@supertrained.ai"]
     assert result["hits"][0]["host"] == "app.hubspot.com"
+
+
+def test_summarize_provider_mentions_salesforce_connected_app_bundle_when_blocked() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+
+    summary = crm_proof_audit.summarize_provider(
+        provider,
+        vault={"hit_count": 0, "bundle_ready_hit_count": 0},
+        browser={"workspace_hosts": [], "portal_ids": []},
+        browser_saved_logins={"hit_count": 0, "usernames": []},
+        gmail={"hit_count": 0, "instances": [], "password_reset_hit_count": 0},
+        hosted_surface={
+            "supported": True,
+            "live": True,
+            "resolve_configured": False,
+            "credential_modes_configured": False,
+        },
+    )
+
+    assert summary["provider"] == "salesforce"
+    assert summary["proof_material_ready"] is False
+    assert summary["likely_blocked_on_credentials"] is True
+    assert "no vault-backed scoped Salesforce bundle was detected" in summary["assessment"]
+    assert "Connected App refresh-token bundle" in summary["assessment"]
+    assert "no saved Salesforce login entry" in summary["assessment"]

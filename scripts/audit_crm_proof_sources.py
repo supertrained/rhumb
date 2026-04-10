@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit local proof-source signals for CRM rails like HubSpot.
+"""Audit local proof-source signals for CRM rails like HubSpot and Salesforce.
 
 This is an operator helper for AUD-18. It turns the repeated manual discovery pass into
 an evidence-backed artifact by scanning:
@@ -64,6 +64,26 @@ PROVIDERS: dict[str, ProviderConfig] = {
         ),
         browser_like_terms=("hubspot",),
         generic_public_hosts=("app.hubspot.com", "developers.hubspot.com", "www.hubspot.com", "legal.hubspot.com", "accounts.google.com"),
+        hosted_capability_id="crm.record.search",
+    ),
+    "salesforce": ProviderConfig(
+        name="salesforce",
+        vault_tokens=("salesforce", "force.com"),
+        gmail_query='salesforce OR from:(*@salesforce.com) OR from:(*@force.com) OR subject:(salesforce OR force.com)',
+        gmail_sender_patterns=(
+            re.compile(r"@([a-z0-9-]+)\.salesforce\.com", re.I),
+            re.compile(r"@([a-z0-9-]+)\.force\.com", re.I),
+        ),
+        browser_like_terms=("salesforce", "force.com"),
+        generic_public_hosts=(
+            "salesforce.com",
+            "www.salesforce.com",
+            "login.salesforce.com",
+            "test.salesforce.com",
+            "developer.salesforce.com",
+            "help.salesforce.com",
+            "accounts.google.com",
+        ),
         hosted_capability_id="crm.record.search",
     ),
 }
@@ -300,6 +320,86 @@ def _hubspot_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str]]:
     return not missing, missing
 
 
+def _salesforce_bundle_material(item: dict[str, Any]) -> tuple[bool, list[str]]:
+    values = _field_value_map(item)
+    missing: list[str] = []
+
+    if not _first_string(
+        values,
+        ("client_id", "consumer_key", "connected_app_client_id"),
+    ):
+        missing.append("client_id")
+    if not _first_string(
+        values,
+        ("client_secret", "consumer_secret", "connected_app_client_secret"),
+    ):
+        missing.append("client_secret")
+    if not _first_string(
+        values,
+        ("refresh_token", "token", "credential", "secret", "password"),
+    ):
+        missing.append("refresh_token")
+
+    allowed_object_types = _parse_string_list(
+        _first_value(values, ("allowed_object_types", "object_types", "object_type")),
+        normalize=_normalize_object_type,
+    )
+    if not allowed_object_types:
+        missing.append("allowed_object_types")
+
+    allowed_properties_by_object = _merge_scoped_maps(
+        _parse_object_map_value(
+            _first_value(values, ("allowed_properties_by_object",)),
+            value_normalizer=_normalize_property_name,
+        ),
+        _collect_prefixed_scoped_fields(
+            values,
+            prefixes=("allowed_properties_",),
+            value_normalizer=_normalize_property_name,
+        ),
+    )
+    if not allowed_properties_by_object:
+        missing.append("allowed_properties_by_object")
+    elif allowed_object_types:
+        missing_objects = [
+            object_type for object_type in allowed_object_types if object_type not in allowed_properties_by_object
+        ]
+        if missing_objects:
+            missing.append("allowed_properties_by_object_for_all_allowed_object_types")
+
+    return not missing, missing
+
+
+def _bundle_material(provider: ProviderConfig, item: dict[str, Any]) -> tuple[bool, list[str]]:
+    if provider.name == "hubspot":
+        return _hubspot_bundle_material(item)
+    if provider.name == "salesforce":
+        return _salesforce_bundle_material(item)
+    return False, ["provider_bundle_material_checker_missing"]
+
+
+def _provider_bundle_label(provider: ProviderConfig) -> str:
+    if provider.name == "hubspot":
+        return "bounded private-app token bundle"
+    if provider.name == "salesforce":
+        return "bounded Connected App refresh-token bundle"
+    return "bounded CRM proof bundle"
+
+
+def _provider_display_name(provider: ProviderConfig) -> str:
+    if provider.name == "hubspot":
+        return "HubSpot"
+    if provider.name == "salesforce":
+        return "Salesforce"
+    return provider.name.capitalize()
+
+
+def _provider_recovery_label(provider: ProviderConfig) -> str:
+    if provider.name == "hubspot":
+        return "password-reset mail"
+    return "provider recovery mail"
+
+
 def audit_vault(provider: ProviderConfig, vault: str, max_hits: int) -> dict[str, Any]:
     payload, error = _run_json(["sop", "item", "list", "--vault", vault, "--format", "json"])
     if error:
@@ -319,7 +419,7 @@ def audit_vault(provider: ProviderConfig, vault: str, max_hits: int) -> dict[str
         if item_id:
             item_detail, item_error = _load_vault_item(item_id, vault)
         if item_detail is not None:
-            bundle_material_ready, missing_bundle_fields = _hubspot_bundle_material(item_detail)
+            bundle_material_ready, missing_bundle_fields = _bundle_material(provider, item_detail)
         if bundle_material_ready:
             bundle_ready_hit_count += 1
         hits.append(
@@ -499,7 +599,7 @@ def audit_gmail(provider: ProviderConfig, accounts: list[str], max_hits: int) ->
             sender = str(message.get("from") or "")
             subject = str(message.get("subject") or "")
             joined = f"{sender} {subject}".lower()
-            if provider.name not in joined and "hubspot" not in joined:
+            if not any(term in joined for term in provider.browser_like_terms):
                 continue
             hit = {
                 "account": account,
@@ -612,6 +712,9 @@ def summarize_provider(
     hosted_configured = bool(
         hosted_surface.get("resolve_configured") or hosted_surface.get("credential_modes_configured")
     )
+    provider_label = _provider_display_name(provider)
+    bundle_label = _provider_bundle_label(provider)
+    recovery_label = _provider_recovery_label(provider)
 
     if not hosted_surface.get("supported"):
         blocker = "No hosted direct CRM rail is published yet for this provider."
@@ -619,19 +722,23 @@ def summarize_provider(
         blocker = "Hosted CRM surface is not fully live yet, so deploy truth still needs verification before credentials matter."
     elif likely_blocked and password_reset_hit_count > 0:
         blocker = (
-            "Hosted CRM surface is live, and password-reset mail is reaching the known mailbox, but no vault-backed scoped HubSpot bundle was detected yet. "
-            "Account recovery path is real; the remaining blocker is converting that access into a bounded private-app token bundle without relying on stale or absent saved credentials."
+            f"Hosted CRM surface is live, and {recovery_label} is reaching the known mailbox, but no vault-backed scoped {provider_label} bundle was detected yet. "
+            f"Account recovery path is real; the remaining blocker is converting that access into a {bundle_label} without relying on stale or absent saved credentials."
         )
     elif likely_blocked:
         blocker = (
-            "Hosted CRM surface is live, but no vault-backed scoped HubSpot bundle was detected. Browser and Gmail may show account history or recovery paths, "
-            "but they do not constitute operator-ready proof material."
+            f"Hosted CRM surface is live, but no vault-backed scoped {provider_label} bundle was detected. Browser and Gmail may show account history or recovery paths, "
+            f"but they do not constitute operator-ready proof material. The remaining blocker is sourcing a {bundle_label}."
         )
     else:
-        blocker = "Vault inspection found at least one HubSpot item with the scoped bundle fields required for hosted proof."
+        blocker = (
+            f"Vault inspection found at least one {provider_label} item with the scoped bundle fields required for hosted proof."
+        )
 
     if likely_blocked and browser_saved_login_hits == 0:
-        blocker += " The rhumb browser profile also exposes no saved HubSpot login entry, so password-manager recovery is not a viable local shortcut."
+        blocker += (
+            f" The rhumb browser profile also exposes no saved {provider_label} login entry, so password-manager recovery is not a viable local shortcut."
+        )
 
     return {
         "provider": provider.name,
@@ -655,7 +762,7 @@ def summarize_provider(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Audit local CRM proof-source signals")
-    parser.add_argument("--provider", choices=["hubspot", "all"], default="all")
+    parser.add_argument("--provider", choices=["hubspot", "salesforce", "all"], default="all")
     parser.add_argument("--vault", default=DEFAULT_VAULT)
     parser.add_argument("--browser-history", type=Path, default=DEFAULT_HISTORY_DB)
     parser.add_argument("--browser-login-data", type=Path, default=DEFAULT_LOGIN_DATA_DB)
