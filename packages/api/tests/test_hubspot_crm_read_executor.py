@@ -92,13 +92,10 @@ async def test_describe_object_returns_contract_fields() -> None:
     bundle = _bundle()
     client_factory = RecordingClientFactory(
         {
-            ("GET", "/crm/v3/schemas/contacts"): MockResponse(
+            ("GET", "/crm/v3/properties/contacts"): MockResponse(
                 200,
                 {
-                    "labels": {"singular": "Contact", "plural": "Contacts"},
-                    "primaryDisplayProperty": "email",
-                    "requiredProperties": ["email"],
-                    "properties": [
+                    "results": [
                         {"name": "email", "label": "Email", "type": "string", "fieldType": "text"},
                         {"name": "firstname", "label": "First name", "type": "string", "fieldType": "text"},
                         {"name": "notes_last_updated", "label": "Ignored", "type": "string", "fieldType": "text"},
@@ -114,7 +111,7 @@ async def test_describe_object_returns_contract_fields() -> None:
     assert response.label == "Contact"
     assert response.plural_label == "Contacts"
     assert response.primary_display_property == "email"
-    assert response.required_properties == ["email"]
+    assert response.required_properties == []
     assert response.property_count_returned == 2
     assert [prop.name for prop in response.properties] == ["email", "firstname"]
     assert response.properties[0].searchable is True

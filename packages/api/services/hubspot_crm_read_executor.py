@@ -42,6 +42,28 @@ HubSpotClientFactory = Callable[..., Any]
 
 _HUBSPOT_BASE_URL = "https://api.hubapi.com"
 _MAX_ERROR_TEXT_CHARS = 500
+_OBJECT_METADATA_FALLBACKS: dict[str, dict[str, str]] = {
+    "contacts": {
+        "label": "Contact",
+        "plural_label": "Contacts",
+        "primary_display_property": "email",
+    },
+    "companies": {
+        "label": "Company",
+        "plural_label": "Companies",
+        "primary_display_property": "name",
+    },
+    "deals": {
+        "label": "Deal",
+        "plural_label": "Deals",
+        "primary_display_property": "dealname",
+    },
+    "tickets": {
+        "label": "Ticket",
+        "plural_label": "Tickets",
+        "primary_display_property": "subject",
+    },
+}
 
 
 @dataclass(slots=True)
@@ -73,7 +95,7 @@ async def describe_object(
 
     payload = await _hubspot_request_json(
         "GET",
-        f"/crm/v3/schemas/{quote(object_type, safe='')}",
+        f"/crm/v3/properties/{quote(object_type, safe='')}",
         bundle=bundle,
         params=None,
         json_body=None,
@@ -115,7 +137,13 @@ async def describe_object(
         if property_name in descriptors_by_name
     ]
 
-    singular_label, plural_label = _schema_labels(payload)
+    singular_label, plural_label = _schema_labels(payload, object_type=object_type)
+    primary_display_property = _primary_display_property(
+        payload,
+        object_type=object_type,
+        allowed_properties=allowed_properties,
+        descriptors=descriptors,
+    )
     return CrmObjectDescribeResponse(
         provider_used="hubspot",
         credential_mode="byok",
@@ -127,9 +155,7 @@ async def describe_object(
         portal_id=bundle.portal_id,
         label=singular_label,
         plural_label=plural_label,
-        primary_display_property=_clean_property_name(
-            payload.get("primaryDisplayProperty") or payload.get("primary_display_property")
-        ),
+        primary_display_property=primary_display_property,
         required_properties=_property_name_list(
             payload.get("requiredProperties") or payload.get("required_properties")
         ),
@@ -394,6 +420,8 @@ def _serialize_sort(sort: CrmRecordSort) -> str:
 def _schema_properties(payload: dict[str, Any]) -> list[dict[str, Any]]:
     properties = payload.get("properties")
     if not isinstance(properties, list):
+        properties = payload.get("results")
+    if not isinstance(properties, list):
         raise HubSpotCrmExecutorError(
             code="crm_provider_unavailable",
             message="HubSpot CRM schema response was missing properties",
@@ -402,11 +430,37 @@ def _schema_properties(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in properties if isinstance(item, dict)]
 
 
-def _schema_labels(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+def _schema_labels(payload: dict[str, Any], *, object_type: str) -> tuple[str | None, str | None]:
     labels = payload.get("labels")
     if isinstance(labels, dict):
-        return _clean_text(labels.get("singular")), _clean_text(labels.get("plural"))
-    return _clean_text(payload.get("label")), _clean_text(payload.get("pluralLabel"))
+        singular = _clean_text(labels.get("singular"))
+        plural = _clean_text(labels.get("plural"))
+        if singular or plural:
+            return singular, plural
+    singular = _clean_text(payload.get("label"))
+    plural = _clean_text(payload.get("pluralLabel"))
+    if singular or plural:
+        return singular, plural
+    fallback = _OBJECT_METADATA_FALLBACKS.get(object_type, {})
+    return _clean_text(fallback.get("label")), _clean_text(fallback.get("plural_label"))
+
+
+def _primary_display_property(
+    payload: dict[str, Any],
+    *,
+    object_type: str,
+    allowed_properties: tuple[str, ...],
+    descriptors: list[HubSpotCrmPropertyDescriptor],
+) -> str | None:
+    explicit = _clean_property_name(payload.get("primaryDisplayProperty") or payload.get("primary_display_property"))
+    if explicit:
+        return explicit
+    fallback = _clean_property_name(_OBJECT_METADATA_FALLBACKS.get(object_type, {}).get("primary_display_property"))
+    if fallback and fallback in allowed_properties:
+        return fallback
+    if descriptors:
+        return descriptors[0].name
+    return allowed_properties[0] if allowed_properties else None
 
 
 def _build_record_summary(item: dict[str, Any], *, property_names: tuple[str, ...]) -> HubSpotCrmRecordSummary:
