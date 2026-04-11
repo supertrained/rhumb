@@ -15,7 +15,7 @@ const ARTICLE_JSON_LD = {
     name: "Pedro",
   },
   description:
-    "Rhumb's honest self-assessment using its own AN Score methodology. 3.5/10 → 6.0/10.",
+    "Rhumb's initial March 11 baseline self-assessment: 3.5/10 before launch. Kept public as a historical reference point, with a later fuller self-assessment linked from the page.",
   url: "https://rhumb.dev/blog/self-score",
   publisher: {
     "@type": "Organization",
@@ -131,14 +131,14 @@ const htmlContent = markdownToHtml(content);
 
 <Layout
   title="We Scored Ourselves First — Here's What We Found | Rhumb"
-  description="Rhumb's honest assessment of its own agent-nativeness. We scored 3.5/10 — and here's the full breakdown of what went wrong and how we're fixing it."
+  description="Rhumb's initial March 11 self-assessment baseline: 3.5/10 before launch. This page stays public as the original reference point, with a newer fuller self-assessment linked inside."
   canonical="/blog/self-score"
   ogTitle="We Scored Ourselves First — Here's What We Found"
-  ogDescription="We built a scoring system for agent-native tools. Before launching, we scored ourselves: 3.5/10. This is the honest breakdown."
+  ogDescription="Rhumb's original March 11 baseline self-assessment: 3.5/10 before launch. Historical reference, kept public alongside the later fuller self-assessment."
   ogUrl="https://rhumb.dev/blog/self-score"
   ogType="article"
   twitterTitle="We Scored Ourselves First — Here's What We Found"
-  twitterDescription="We built a scoring system for agent-native tools. Before launching, we scored ourselves: 3.5/10."
+  twitterDescription="Rhumb's original March 11 baseline self-assessment: 3.5/10 before launch."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
@@ -168,6 +168,21 @@ const htmlContent = markdownToHtml(content);
           This is the full breakdown.
         </p>
       </header>
+
+      <section class="mb-10 rounded-xl border border-amber/20 bg-elevated p-6">
+        <p class="text-xs font-mono font-semibold uppercase tracking-[0.22em] text-amber mb-3">
+          Historical baseline
+        </p>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          This March 11 post is the original pre-launch baseline self-assessment.
+          For the later fuller public self-assessment and current reference point,
+          read{" "}
+          <a href="/blog/we-scored-ourselves" class="text-amber hover:underline underline-offset-2">
+            We Scored Ourselves
+          </a>
+          , where Rhumb scores 6.8/10 and every remaining gap is still published.
+        </p>
+      </section>
 
       <div class="prose-rhumb" set:html={htmlContent} />
 
