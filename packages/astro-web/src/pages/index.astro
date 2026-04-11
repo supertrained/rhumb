@@ -35,7 +35,7 @@ const HOME_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    `Rhumb scores ${serviceCount} services for AI agent compatibility. Compare APIs, browse failure modes, and access neutral rankings via REST or MCP.`,
+    `Rhumb gives agents one key for managed superpowers, then secure bridges into real systems when the workflow needs them. Underneath, Rhumb scores ${serviceCount} services for honest agent-compatibility discovery.`,
   logo: "https://rhumb.dev/favicon.ico",
 };
 
@@ -49,11 +49,11 @@ const stats = [
 ---
 
 <Layout
-  title="Rhumb | Discover APIs built for agents"
-  description={`Rhumb scores ${serviceCount} services for AI agent compatibility. Compare APIs, browse failure modes, and access neutral rankings via REST or MCP.`}
+  title="Rhumb | One key, many superpowers"
+  description={`Rhumb gives agents one key for managed superpowers, then secure bridges into real systems when the workflow needs them. Underneath, Rhumb scores ${serviceCount} services for honest discovery.`}
   canonical="https://rhumb.dev/"
-  ogTitle="Rhumb — Most APIs weren't built for agents"
-  ogDescription={`${serviceCount} services scored for AI agent compatibility. Neutral scores, real failure modes, zero-signup access. Browse, query via REST API, or connect via MCP.`}
+  ogTitle="Rhumb — One key, many superpowers"
+  ogDescription={`Start with managed agent superpowers, then bring your systems only when the workflow needs them. ${serviceCount} services scored underneath with honest execution boundaries.`}
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
 >
@@ -67,25 +67,35 @@ const stats = [
       ></div>
 
       <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
-        <div class="animate-fade-up flex items-center gap-2 mb-6">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">{serviceCount} scored services for agent compatibility</span>
+        <div class="animate-fade-up flex items-center gap-3 mb-6 flex-wrap">
+          <span class="inline-flex items-center gap-2 rounded-full border border-amber/25 bg-amber/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
+            Resolve by Rhumb
+          </span>
+          <span class="text-xs font-mono text-slate-500 uppercase tracking-widest">{serviceCount} scored services behind the trust layer</span>
         </div>
 
-        <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.05] tracking-tight max-w-3xl">
-          Most APIs weren't built for agents. Now you know which ones were.
+        <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.03] tracking-tight max-w-4xl">
+          One key, many superpowers.
         </h1>
 
-        <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">
-          Rhumb measures execution reliability and access readiness for every
-          service your agent might call. Best current fit: {PUBLIC_TRUTH.beachheadLabel}.
-          Neutral scores. Real failure mode data. Zero-signup discovery via MCP or REST API.
+        <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-300 max-w-3xl leading-relaxed">
+          Start with Rhumb-managed capabilities for research, scraping, generation, verification, enrichment, and utility workflows. Then bring your CRM, support, data, and ops systems only when the workflow needs them.
         </p>
+        <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
+          Underneath that, Rhumb still measures execution reliability and access readiness so discovery stays honest even when execution is narrower today. Best current fit: {PUBLIC_TRUTH.beachheadLabel}.
+        </p>
+
+        <div class="animate-fade-up animate-delay-300 mt-6 flex flex-wrap gap-2 max-w-3xl">
+          <span class="rounded-full border border-amber/20 bg-amber/5 px-3 py-1.5 text-xs font-mono text-amber/90">Managed superpowers</span>
+          <span class="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs font-mono text-emerald-300">Secure bridges</span>
+          <span class="rounded-full border border-slate-700 bg-surface/70 px-3 py-1.5 text-xs font-mono text-slate-300">Discovery-backed trust</span>
+        </div>
 
         <form
           action="/search"
           method="get"
-          class="animate-fade-up animate-delay-300 mt-8 flex flex-col sm:flex-row gap-3 max-w-xl"
+          class="animate-fade-up animate-delay-300 mt-8 flex flex-col sm:flex-row gap-3 max-w-2xl"
         >
           <div class="relative flex-1">
             <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
@@ -100,7 +110,7 @@ const stats = [
               aria-label="Search services"
               name="q"
               type="search"
-              placeholder="Search services (e.g. payments API)"
+              placeholder="Search capabilities, systems, or services"
               class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-surface border border-slate-700 text-slate-100 placeholder-slate-500 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20 transition-all duration-200"
             />
           </div>
@@ -114,6 +124,12 @@ const stats = [
 
         <div class="animate-fade-up animate-delay-400 mt-5 flex flex-wrap gap-3">
           <a
+            href="/resolve"
+            class="px-5 py-2.5 rounded-lg border border-amber/30 bg-amber/10 text-sm text-amber hover:bg-amber/15 transition-colors duration-200 font-medium"
+          >
+            See Resolve &rarr;
+          </a>
+          <a
             href="/leaderboard"
             class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors duration-200 font-medium"
           >
@@ -122,7 +138,7 @@ const stats = [
           <CopyInstall client:load command="npx rhumb-mcp" />
         </div>
 
-        <div class="animate-fade-up animate-delay-400 mt-8 grid gap-4 md:grid-cols-2 max-w-4xl">
+        <div class="animate-fade-up animate-delay-400 mt-8 grid gap-4 md:grid-cols-3 max-w-5xl">
           <div class="rounded-2xl border border-emerald-500/20 bg-surface/70 p-5">
             <p class="text-xs font-mono uppercase tracking-widest text-emerald-300 mb-2">Best fit today</p>
             <p class="text-sm text-slate-300 leading-6">
@@ -130,7 +146,13 @@ const stats = [
             </p>
           </div>
           <div class="rounded-2xl border border-amber/20 bg-surface/70 p-5">
-            <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">Current execution boundary</p>
+            <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">Resolve promise</p>
+            <p class="text-sm text-slate-300 leading-6">
+              Give an agent one key for many superpowers, then connect your own systems only when the workflow needs them.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-700 bg-surface/70 p-5">
+            <p class="text-xs font-mono uppercase tracking-widest text-slate-300 mb-2">Current execution boundary</p>
             <p class="text-sm text-slate-300 leading-6">
               Discovery is broader than execution today: Rhumb indexes {PUBLIC_TRUTH.servicesLabel} scored services and {PUBLIC_TRUTH.capabilitiesLabel} capability definitions, but current governed execution is concentrated in {PUBLIC_TRUTH.callableProvidersLabel} callable providers. Layer 3 is live but the public recipe catalog is still intentionally sparse.
             </p>

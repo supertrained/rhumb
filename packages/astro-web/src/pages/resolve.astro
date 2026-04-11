@@ -1,0 +1,264 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
+
+const managedFamilies = [
+  "web search + live research",
+  "scraping, capture, and extraction",
+  "image generation + media transforms",
+  "document parse, OCR, and structured extraction",
+  "email verification + deliverability checks",
+  "people, company, and ICP enrichment",
+  "candidate discovery + sourcing",
+  "classification, summarization, and analysis",
+  "translation, transcription, and content transforms",
+  "monitoring, routing, and utility workflows",
+];
+
+const systemBridges = [
+  "CRM and support systems",
+  "Slack, GitHub, and internal collaboration tools",
+  "databases, warehouses, and object storage",
+  "deployments, CI, and control-plane systems",
+  "operator-owned APIs and internal business tools",
+];
+
+const promisePoints = [
+  {
+    title: "One key, many superpowers",
+    body:
+      "Start with Rhumb-managed capabilities so an agent can search, extract, generate, verify, enrich, and route work without you provisioning a pile of vendor accounts first.",
+  },
+  {
+    title: "Bring your systems only when needed",
+    body:
+      "When the job touches your CRM, warehouse, Slack, GitHub, or internal tools, switch to BYOK or Agent Vault and keep control of your own systems of record.",
+  },
+  {
+    title: "One surface, not a tool graveyard",
+    body:
+      "Agents discover capabilities, resolve the right provider, estimate cost, and execute through the same Resolve surface instead of learning a new integration for every task.",
+  },
+];
+
+const modes = [
+  {
+    name: "Rhumb-managed",
+    label: "Default magic",
+    description:
+      "Best for zero-config utility capabilities where Rhumb can own the provider account and expose the capability as the product.",
+  },
+  {
+    name: "BYOK",
+    label: "Your systems",
+    description:
+      "Use when the capability touches your account data, workspace, or production systems and you want direct control over the upstream credential.",
+  },
+  {
+    name: "Agent Vault",
+    label: "Agent-native custody",
+    description:
+      "Use when the credential should stay in agent-controlled storage and be injected only at execution time.",
+  },
+];
+
+const resolveJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Resolve | Rhumb",
+  url: "https://rhumb.dev/resolve",
+  description:
+    "Resolve gives agents one key for managed superpowers, then secure bridges into operator-owned systems when the workflow needs them.",
+};
+---
+
+<Layout
+  title="Resolve | One key, many superpowers"
+  description="Resolve gives agents one key for managed superpowers, then secure bridges into operator-owned systems when the workflow needs them."
+  canonical="/resolve"
+  ogTitle="Resolve | One key, many superpowers"
+  ogDescription="Give your agent Resolve once, unlock managed superpowers instantly, then bring your own systems only when the workflow needs them."
+  ogUrl="https://rhumb.dev/resolve"
+  jsonLd={resolveJsonLd}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-[420px] pointer-events-none" style="background: radial-gradient(circle at 20% 20%, rgba(245,158,11,0.12), transparent 38%), radial-gradient(circle at 80% 10%, rgba(16,185,129,0.08), transparent 34%), radial-gradient(circle at 50% 100%, rgba(148,163,184,0.08), transparent 42%);"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
+        <div class="max-w-4xl">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.3em] mb-4">Resolve</p>
+          <h1 class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.02] tracking-tight max-w-4xl">
+            One key, many superpowers.
+          </h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Resolve is the access layer that gives agents a broad, managed capability surface out of the box, then lets operators bring their own systems in only when the workflow actually needs them.
+          </p>
+          <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+            The promise is simple: <span class="text-slate-200">managed superpowers first, secure bridges second</span>.
+          </p>
+
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="/quickstart" class="px-5 py-3 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200">
+              Start with Resolve &rarr;
+            </a>
+            <a href="/docs#resolve-mental-model" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+              Open mental model
+            </a>
+            <a href="/capabilities" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+              Browse capabilities
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-12 grid gap-4 lg:grid-cols-3">
+          {promisePoints.map((item) => (
+            <div class="rounded-2xl border border-slate-800 bg-surface/85 p-6 backdrop-blur-sm">
+              <p class="text-xs font-mono uppercase tracking-[0.25em] text-slate-500 mb-3">{item.title}</p>
+              <p class="text-sm leading-6 text-slate-300">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Product promise</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Start with managed magic. Bring your systems only on the boundary.</h2>
+          <div class="mt-6 space-y-4 text-slate-300 leading-7">
+            <p>
+              Start with a managed capability layer that feels like agent superpowers. Search the web, scrape pages, generate images, validate emails, enrich people and companies, find candidates, classify documents, transform media, and more, all through one surface.
+            </p>
+            <p>
+              Then, when the workflow crosses into your actual business systems, connect only the systems that matter. CRM, support, GitHub, Slack, databases, warehouses, storage, and internal APIs stay under your control through BYOK or Agent Vault.
+            </p>
+            <p>
+              Agents can use Resolve as a wide capability layer on its own, or as the bridge between broad managed capabilities and tightly-scoped operator-owned systems.
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-500/20 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.25em] mb-3">Default mental model</p>
+          <div class="space-y-5">
+            <div>
+              <p class="text-sm font-semibold text-slate-100">1. Ask for the capability</p>
+              <p class="mt-1 text-sm leading-6 text-slate-400">Think in jobs to be done, not vendor APIs.</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-100">2. Use managed mode first</p>
+              <p class="mt-1 text-sm leading-6 text-slate-400">If Rhumb can provide the capability directly, the agent should not need separate upstream accounts.</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-100">3. Connect systems only on the boundary</p>
+              <p class="mt-1 text-sm leading-6 text-slate-400">Bring BYOK or Agent Vault only when the workflow touches your own data, permissions, or production systems.</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-100">4. Keep one operational surface</p>
+              <p class="mt-1 text-sm leading-6 text-slate-400">Discover, resolve, estimate, and execute through the same Resolve interface.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-y border-slate-800 bg-surface/45">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="rounded-3xl border border-slate-800 bg-navy/70 p-7 sm:p-8">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Lane 1</p>
+            <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Managed superpowers</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              Broad, zero-config capabilities where Rhumb owns the provider accounts and the capability itself is the product.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              {managedFamilies.map((item) => (
+                <span class="rounded-full border border-amber/20 bg-amber/5 px-3 py-1.5 text-xs font-mono text-amber/90">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div class="rounded-3xl border border-slate-800 bg-navy/70 p-7 sm:p-8">
+            <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.25em] mb-3">Lane 2</p>
+            <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Secure bridges into your systems</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              Tight, scoped access when the job needs your data, your permissions, or your production environment.
+            </p>
+            <ul class="mt-6 space-y-3">
+              {systemBridges.map((item) => (
+                <li class="flex items-start gap-3 text-sm leading-6 text-slate-300">
+                  <span class="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-300"></span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
+        <div class="max-w-3xl">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">Credential model</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Three modes, one trust story</h2>
+          <p class="mt-3 text-sm leading-6 text-slate-400">
+            Resolve should not force every capability through the same trust model. Managed capabilities, BYOK, and Agent Vault each exist for a reason.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-4 md:grid-cols-3">
+          {modes.map((mode) => (
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <p class="text-xs font-mono uppercase tracking-[0.22em] text-slate-500 mb-2">{mode.label}</p>
+              <h3 class="font-display font-semibold text-xl text-slate-100">{mode.name}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{mode.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 pb-16">
+      <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Honest current state</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">The promise is bigger than today’s launchable surface.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            {PUBLIC_TRUTH.beachheadSummary}
+          </p>
+          <p class="mt-3 text-sm leading-6 text-slate-400">
+            {PUBLIC_TRUTH.callableRealitySummary}
+          </p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">Why this matters</p>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100">For operators</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">Fewer vendor accounts to provision up front, fewer keys scattered across tools, and a clearer path to controlled system access only where it matters.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100">For agents</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">A much broader useful action surface on day one, with the option to reach into customer-owned systems without abandoning the same interface.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100">For product</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">Managed superpowers create the magical first experience. Secure bridges create depth, retention, and operational legitimacy.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100">For launch</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">The win condition is not raw connector count. It is whether an agent feels suddenly more capable after getting Resolve once.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

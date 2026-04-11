@@ -3,6 +3,7 @@ import { useState } from "react";
 const NAV_LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/capabilities", label: "Capabilities" },
+  { href: "/resolve", label: "Resolve" },
   { href: "/search", label: "Search" },
   { href: "/docs", label: "Docs" },
   { href: "/glossary", label: "Glossary" },
