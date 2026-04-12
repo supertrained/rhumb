@@ -1,0 +1,160 @@
+{
+  "generated_at": "2026-04-12T06:47:37.172581+00:00",
+  "vault": "OpenClaw Agents",
+  "bundle_item": {
+    "title": "Salesforce CRM Bundle - sf_main",
+    "vault": "OpenClaw Agents",
+    "ok": true,
+    "exists": true,
+    "category": "API_CREDENTIAL",
+    "required_fields": {
+      "client_id": true,
+      "client_secret": true,
+      "refresh_token": true,
+      "auth_base_url": true,
+      "redirect_uri": true,
+      "connected_app": true,
+      "account": true,
+      "instance_url": true,
+      "allowed_object_types": true,
+      "allowed_properties_by_object": true,
+      "record_id": true
+    },
+    "missing_required_fields": [],
+    "bundle_material_ready": true
+  },
+  "login_item": {
+    "title": "Salesforce Developer Edition - AUD-18 sf_main",
+    "vault": "OpenClaw Agents",
+    "ok": true,
+    "exists": true,
+    "category": "LOGIN",
+    "has_username": true,
+    "has_password": true,
+    "has_security_answer": true,
+    "urls": [
+      "login",
+      "setup",
+      "org"
+    ]
+  },
+  "temp_root": "/tmp",
+  "residue_scan": {
+    "files_considered": 10,
+    "high_risk_paths": [],
+    "findings": [
+      {
+        "path": "/tmp/astro-build-aud27.log",
+        "size_bytes": 30198,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/bq_impersonation_bundle.json",
+        "size_bytes": 935,
+        "salesforce_markers": [],
+        "secret_markers": [
+          "refresh_token",
+          "client_secret",
+          "authorized_user_json"
+        ],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/content-desk-docs.json",
+        "size_bytes": 674664,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/op-salesforce-field-scan.err",
+        "size_bytes": 0,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/op-salesforce-field-scan.out",
+        "size_bytes": 190,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/recover_memory_2026_04_11.txt",
+        "size_bytes": 23219,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/rhumb-google-oauth-client.json",
+        "size_bytes": 443,
+        "salesforce_markers": [],
+        "secret_markers": [
+          "client_secret"
+        ],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/rhumb_railway_vars.json",
+        "size_bytes": 6370,
+        "salesforce_markers": [],
+        "secret_markers": [
+          "client_secret"
+        ],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/run_sf_hosted_proof.sh",
+        "size_bytes": 569,
+        "salesforce_markers": [
+          "salesforce",
+          "sf_main"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      },
+      {
+        "path": "/tmp/sf_detail_inspect.js",
+        "size_bytes": 1138,
+        "salesforce_markers": [
+          "salesforce"
+        ],
+        "secret_markers": [],
+        "high_risk": false
+      }
+    ]
+  },
+  "cleanup": {
+    "requested": true,
+    "available": true,
+    "cleaned_paths": [
+      "/tmp/cron_0900.err",
+      "/tmp/cron_tasks_20260407.err",
+      "/tmp/cron_tasks_hb.err",
+      "/tmp/cron_tasks_heartbeat.err",
+      "/tmp/cron_tasks_latest.err",
+      "/tmp/cron_tasks_now.err",
+      "/tmp/cron_tasks_now2.err",
+      "/tmp/op_salesforce_field_scan.py",
+      "/tmp/query_sf_accounts.py",
+      "/tmp/railway_set_sf_main.sh",
+      "/tmp/salesforce_bootstrap_metadata_scan.py"
+    ],
+    "errors": []
+  },
+  "overall_ok": true
+}
