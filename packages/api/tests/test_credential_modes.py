@@ -74,6 +74,7 @@ async def test_credential_modes_unknown_capability(app):
     body = resp.json()
     assert body["error"] == "capability_not_found"
     assert "nonexistent.action" in body["message"]
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent.action"
 
 
 @pytest.mark.anyio

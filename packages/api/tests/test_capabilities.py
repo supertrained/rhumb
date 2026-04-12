@@ -428,6 +428,25 @@ async def test_get_capability_not_found(app):
     assert body["error"] == "capability_not_found"
     assert "nonexistent" in body["message"]
     assert "resolution" in body
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent"
+
+
+@pytest.mark.anyio
+async def test_get_capability_not_found_suggests_capability_for_tool_alias(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?id=eq."):
+            return []
+        return _mock_intent_supabase(path)
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/Nano%20Banana%20Pro")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=Nano%20Banana%20Pro"
+    assert body["suggested_capabilities"][0]["id"] == "ai.generate_image"
 
 
 @pytest.mark.anyio
@@ -545,6 +564,7 @@ async def test_resolve_capability_not_found(app):
     assert body["error"] == "capability_not_found"
     assert "nonexistent" in body["message"]
     assert "resolution" in body
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent"
 
 
 @pytest.mark.anyio

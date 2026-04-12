@@ -23,17 +23,23 @@ from services.deployment_connection_registry import has_any_deployment_bundle_co
 from services.support_connection_registry import has_any_support_bundle_configured
 
 
-def _capability_not_found(raw_request: Request, capability_id: str) -> JSONResponse:
+async def _capability_not_found(raw_request: Request, capability_id: str) -> JSONResponse:
     """Return a standardized 404 for missing capabilities."""
     request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+    search_url = f"/v1/capabilities?search={quote(capability_id)}"
+    content: dict[str, Any] = {
+        "error": "capability_not_found",
+        "message": f"No capability found with id '{capability_id}'",
+        "resolution": "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+        "request_id": request_id,
+        "search_url": search_url,
+    }
+    suggestions = await _suggested_capabilities(capability_id)
+    if suggestions:
+        content["suggested_capabilities"] = suggestions
     return JSONResponse(
         status_code=404,
-        content={
-            "error": "capability_not_found",
-            "message": f"No capability found with id '{capability_id}'",
-            "resolution": "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
-            "request_id": request_id,
-        },
+        content=content,
     )
 
 router = APIRouter()
@@ -1484,6 +1490,57 @@ def _score_capability_intent(query: str, capability: dict) -> int:
     return score
 
 
+def _rank_capability_suggestions(query: str, capabilities: list[dict], *, limit: int = 3) -> list[dict]:
+    ranked: list[tuple[int, dict]] = []
+    seen_ids: set[str] = set()
+
+    for capability in capabilities:
+        capability_id = str(capability.get("id") or "")
+        if not capability_id or capability_id in seen_ids:
+            continue
+        score = _score_capability_intent(query, capability)
+        if score <= 0:
+            continue
+        ranked.append((score, capability))
+        seen_ids.add(capability_id)
+
+    ranked.sort(
+        key=lambda item: (
+            -item[0],
+            item[1].get("domain") or "",
+            item[1].get("action") or "",
+            item[1].get("id") or "",
+        )
+    )
+    return [capability for _, capability in ranked[:limit]]
+
+
+async def _suggested_capabilities(query: str, *, limit: int = 3) -> list[dict[str, str]]:
+    normalized_query = _normalize_intent_text(query)
+    if not normalized_query:
+        return []
+
+    path = "capabilities?select=id,domain,action,description,input_hint,outcome&order=domain.asc,action.asc"
+    capabilities = await _cached_fetch("capabilities", path)
+    if capabilities is None:
+        capabilities = []
+
+    existing_ids = {cap.get("id") for cap in capabilities}
+    for synthetic in _synthetic_capability_records():
+        if synthetic["id"] not in existing_ids:
+            capabilities.append(dict(synthetic))
+
+    suggestions = _rank_capability_suggestions(query, capabilities, limit=limit)
+    return [
+        {
+            "id": str(suggestion.get("id") or ""),
+            "description": str(suggestion.get("description") or ""),
+        }
+        for suggestion in suggestions
+        if suggestion.get("id")
+    ]
+
+
 @router.get("/capabilities")
 async def list_capabilities(
     domain: str | None = Query(default=None, description="Filter by domain (e.g. 'email', 'payment')"),
@@ -1786,7 +1843,7 @@ async def get_capability(capability_id: str, raw_request: Request):
     if not caps:
         synthetic = _synthetic_capability_record(capability_id)
         if synthetic is None:
-            return _capability_not_found(raw_request, capability_id)
+            return await _capability_not_found(raw_request, capability_id)
         cap = synthetic
     else:
         cap = caps[0]
@@ -1947,7 +2004,7 @@ async def resolve_capability(
         f"&select=id,domain,action,description&limit=1"
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
-        return _capability_not_found(raw_request, capability_id)
+        return await _capability_not_found(raw_request, capability_id)
 
     synthetic_direct_payload = _synthetic_direct_resolve_payload(capability_id)
     if synthetic_direct_payload is not None:
@@ -2147,7 +2204,7 @@ async def get_credential_modes(
         f"&select=id,domain,action,description&limit=1"
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
-        return _capability_not_found(raw_request, capability_id)
+        return await _capability_not_found(raw_request, capability_id)
     if _is_support_direct_capability(capability_id):
         return {
             "data": _support_direct_credential_modes(capability_id),
