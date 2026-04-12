@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
+const TRACKING_TIMEOUT_MS = 800;
 const ALLOWED_EVENTS = new Set([
   "provider_click",
   "docs_click",
@@ -45,6 +46,45 @@ function isAllowedDestination(destinationUrl: string): boolean {
   );
 }
 
+type TrackOutboundClickArgs = {
+  destinationUrl: string;
+  eventType: string;
+  serviceSlug: string | null;
+  pagePath: string | null;
+  sourceSurface: string;
+  utmParams: Record<string, string | null>;
+};
+
+async function trackOutboundClick({
+  destinationUrl,
+  eventType,
+  serviceSlug,
+  pagePath,
+  sourceSurface,
+  utmParams,
+}: TrackOutboundClickArgs): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/clicks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Rhumb-Client": "web",
+      },
+      body: JSON.stringify({
+        event_type: eventType,
+        destination_url: destinationUrl,
+        service_slug: serviceSlug,
+        page_path: pagePath,
+        source_surface: sourceSurface,
+        ...utmParams,
+      }),
+      signal: AbortSignal.timeout(TRACKING_TIMEOUT_MS),
+    });
+  } catch {
+    // Tracking must never block the outbound redirect.
+  }
+}
+
 export const GET: APIRoute = async ({ url, request }) => {
   const destinationUrl = url.searchParams.get("to");
   const eventType = url.searchParams.get("event");
@@ -71,28 +111,14 @@ export const GET: APIRoute = async ({ url, request }) => {
 
   const utmParams = extractUtmParams(referer);
 
-  // Fire-and-forget tracking POST
-  try {
-    fetch(`${API_BASE}/clicks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Rhumb-Client": "web",
-      },
-      body: JSON.stringify({
-        event_type: eventType,
-        destination_url: destinationUrl,
-        service_slug: serviceSlug,
-        page_path: inferredPagePath,
-        source_surface: sourceSurface,
-        ...utmParams,
-      }),
-    }).catch(() => {
-      // Tracking must never block the outbound redirect.
-    });
-  } catch {
-    // Tracking must never block the outbound redirect.
-  }
+  await trackOutboundClick({
+    destinationUrl,
+    eventType,
+    serviceSlug,
+    pagePath: inferredPagePath,
+    sourceSurface,
+    utmParams,
+  });
 
   return new Response(null, {
     status: 307,
