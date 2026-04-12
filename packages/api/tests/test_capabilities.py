@@ -358,6 +358,19 @@ async def test_list_capabilities_intent_search_matches_spaced_queries(app):
 
 
 @pytest.mark.anyio
+async def test_list_capabilities_intent_search_matches_tool_name_aliases(app):
+    """Tool-name queries should map back to capabilities instead of requiring provider/model literacy."""
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?search=Nano%20Banana%20Pro")
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items
+    assert items[0]["id"] == "ai.generate_image"
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_intent_search_matches_synonyms(app):
     """Intent-style searches should bridge common agent language like website/LinkedIn."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):

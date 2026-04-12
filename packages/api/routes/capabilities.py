@@ -1268,6 +1268,17 @@ _TOKEN_ALIASES: dict[str, set[str]] = {
     "zendesk": {"support", "ticket", "tickets", "comment", "comments", "helpdesk"},
 }
 
+_CAPABILITY_SEARCH_ALIASES: dict[str, tuple[str, ...]] = {
+    "ai.generate_image": (
+        "nano banana",
+        "nano banana pro",
+        "nano banana 2",
+        "gemini 3 pro image",
+        "gemini 3 1 flash image",
+        "imagen 4",
+    ),
+}
+
 
 def _normalize_intent_text(value: str | None) -> str:
     if not value:
@@ -1292,6 +1303,13 @@ def _expanded_query_terms(term: str) -> set[str]:
     return {token for token in expanded if token}
 
 
+def _capability_search_alias_blob(capability_id: str | None) -> str:
+    if not capability_id:
+        return ""
+    aliases = _CAPABILITY_SEARCH_ALIASES.get(capability_id, ())
+    return _normalize_intent_text(" ".join(aliases))
+
+
 def _build_capability_search_blob(capability: dict) -> str:
     parts = [
         capability.get("id"),
@@ -1300,6 +1318,7 @@ def _build_capability_search_blob(capability: dict) -> str:
         capability.get("description"),
         capability.get("input_hint"),
         capability.get("outcome"),
+        _capability_search_alias_blob(str(capability.get("id") or "")),
     ]
     return _normalize_intent_text(" ".join(part for part in parts if part))
 
