@@ -114,6 +114,7 @@ SAMPLE_CAP = [
 
 SAMPLE_MAPPINGS = [
     {
+        "capability_id": "email.send",
         "service_slug": "sendgrid",
         "credential_modes": ["byo"],
         "auth_method": "api_key",
@@ -123,6 +124,7 @@ SAMPLE_MAPPINGS = [
         "free_tier_calls": 100,
     },
     {
+        "capability_id": "email.send",
         "service_slug": "resend",
         "credential_modes": ["byo"],
         "auth_method": "api_key",
@@ -145,6 +147,7 @@ SAMPLE_SERVICE_DOMAIN = [
 
 MANAGED_SAMPLE_MAPPINGS = [
     {
+        "capability_id": "email.send",
         "service_slug": "sendgrid",
         "credential_modes": ["byo"],
         "auth_method": "api_key",
@@ -154,6 +157,7 @@ MANAGED_SAMPLE_MAPPINGS = [
         "free_tier_calls": 100,
     },
     {
+        "capability_id": "email.send",
         "service_slug": "resend",
         "credential_modes": ["byo", "rhumb_managed"],
         "auth_method": "api_key",
@@ -1919,6 +1923,35 @@ async def test_estimate_unknown_capability_suggests_capability_for_tool_alias(ap
     assert body["error"] == "capability_not_found"
     assert body["search_url"] == "/v1/capabilities?search=Nano%20Banana%20Pro"
     assert body["suggested_capabilities"][0]["id"] == "ai.generate_image"
+
+
+@pytest.mark.anyio
+async def test_estimate_unknown_capability_suggests_capability_for_provider_alias(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?id=eq.Resend"):
+            return []
+        return _mock_supabase(path)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/Resend/execute/estimate")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=Resend"
+    assert body["suggested_capabilities"][0]["id"] == "email.send"
 
 
 @pytest.mark.anyio

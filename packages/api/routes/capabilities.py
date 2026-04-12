@@ -1327,6 +1327,77 @@ def _normalize_intent_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", value.lower())).strip()
 
 
+async def _provider_aliases_by_capability() -> dict[str, str]:
+    mappings = await _cached_fetch(
+        "capability_services",
+        "capability_services?select=capability_id,service_slug",
+    )
+    if not mappings:
+        return {}
+
+    service_slugs = sorted(
+        {
+            str(mapping.get("service_slug") or "").strip()
+            for mapping in mappings
+            if str(mapping.get("service_slug") or "").strip()
+        }
+    )
+    service_names_by_slug: dict[str, str] = {}
+    if service_slugs:
+        slug_filter = ",".join(f'"{slug}"' for slug in service_slugs)
+        services = await _cached_fetch(
+            "services",
+            f"services?slug=in.({slug_filter})&select=slug,name",
+        )
+        if services:
+            for service in services:
+                slug = str(service.get("slug") or "").strip()
+                name = str(service.get("name") or "").strip()
+                if slug and name:
+                    service_names_by_slug[slug] = name
+
+    aliases_by_capability: dict[str, set[str]] = {}
+    for mapping in mappings:
+        capability_id = str(mapping.get("capability_id") or "").strip()
+        service_slug = str(mapping.get("service_slug") or "").strip()
+        if not capability_id or not service_slug:
+            continue
+
+        aliases = aliases_by_capability.setdefault(capability_id, set())
+        aliases.add(service_slug)
+        if service_name := service_names_by_slug.get(service_slug):
+            aliases.add(service_name)
+
+    return {
+        capability_id: _normalize_intent_text(" ".join(sorted(aliases)))
+        for capability_id, aliases in aliases_by_capability.items()
+        if aliases
+    }
+
+
+async def _enrich_capabilities_with_provider_aliases(capabilities: list[dict]) -> list[dict]:
+    if not capabilities:
+        return capabilities
+
+    aliases_by_capability = await _provider_aliases_by_capability()
+    if not aliases_by_capability:
+        return capabilities
+
+    enriched: list[dict] = []
+    for capability in capabilities:
+        capability_id = str(capability.get("id") or "")
+        provider_aliases = aliases_by_capability.get(capability_id)
+        if not provider_aliases:
+            enriched.append(capability)
+            continue
+
+        enriched_capability = dict(capability)
+        enriched_capability["provider_aliases"] = provider_aliases
+        enriched.append(enriched_capability)
+
+    return enriched
+
+
 def _term_variants(term: str) -> set[str]:
     variants = {term}
     if len(term) > 3 and term.endswith("s"):
@@ -1352,6 +1423,14 @@ def _capability_search_alias_blob(capability_id: str | None) -> str:
 
 
 def _build_capability_search_blob(capability: dict) -> str:
+    provider_aliases = capability.get("provider_aliases")
+    if isinstance(provider_aliases, (list, tuple, set)):
+        provider_alias_blob = _normalize_intent_text(
+            " ".join(str(alias) for alias in provider_aliases if alias)
+        )
+    else:
+        provider_alias_blob = _normalize_intent_text(str(provider_aliases or ""))
+
     parts = [
         capability.get("id"),
         capability.get("domain"),
@@ -1360,6 +1439,7 @@ def _build_capability_search_blob(capability: dict) -> str:
         capability.get("input_hint"),
         capability.get("outcome"),
         _capability_search_alias_blob(str(capability.get("id") or "")),
+        provider_alias_blob,
     ]
     return _normalize_intent_text(" ".join(part for part in parts if part))
 
@@ -1565,6 +1645,8 @@ async def _suggested_capabilities(query: str, *, limit: int = 3) -> list[dict[st
         if synthetic["id"] not in existing_ids:
             capabilities.append(dict(synthetic))
 
+    capabilities = await _enrich_capabilities_with_provider_aliases(capabilities)
+
     suggestions = _rank_capability_suggestions(query, capabilities, limit=limit)
     return [
         {
@@ -1606,6 +1688,7 @@ async def list_capabilities(
         capabilities = [c for c in capabilities if c.get("domain") == domain]
 
     if search:
+        capabilities = await _enrich_capabilities_with_provider_aliases(capabilities)
         ranked: list[tuple[int, dict]] = []
         for capability in capabilities:
             intent_score = _score_capability_intent(search, capability)

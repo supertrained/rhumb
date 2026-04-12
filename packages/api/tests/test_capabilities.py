@@ -188,6 +188,8 @@ def _mock_supabase(path: str):
             return SAMPLE_MAPPINGS
         if "capability_id=in." in path:
             return SAMPLE_MAPPINGS
+        if "select=capability_id,service_slug" in path:
+            return SAMPLE_MAPPINGS
         return []
     if path.startswith("scores?"):
         return SAMPLE_SCORES
@@ -447,6 +449,35 @@ async def test_get_capability_not_found_suggests_capability_for_tool_alias(app):
     assert body["error"] == "capability_not_found"
     assert body["search_url"] == "/v1/capabilities?search=Nano%20Banana%20Pro"
     assert body["suggested_capabilities"][0]["id"] == "ai.generate_image"
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_search_matches_provider_alias(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities", params={"search": "resend"})
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items[0]["id"] == "email.send"
+
+
+@pytest.mark.anyio
+async def test_get_capability_not_found_suggests_capability_for_provider_alias(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?id=eq.Resend"):
+            return []
+        return _mock_supabase(path)
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/Resend")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=Resend"
+    assert body["suggested_capabilities"][0]["id"] == "email.send"
 
 
 @pytest.mark.anyio
