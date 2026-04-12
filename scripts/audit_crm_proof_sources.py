@@ -400,48 +400,124 @@ def _provider_recovery_label(provider: ProviderConfig) -> str:
     return "provider recovery mail"
 
 
-def audit_vault(provider: ProviderConfig, vault: str, max_hits: int) -> dict[str, Any]:
+def _item_urls(item: dict[str, Any]) -> list[str]:
+    urls: list[str] = []
+    for raw_url in item.get("urls") or []:
+        if isinstance(raw_url, dict):
+            for key in ("href", "url"):
+                value = str(raw_url.get(key) or "").strip()
+                if value:
+                    urls.append(value)
+        else:
+            value = str(raw_url or "").strip()
+            if value:
+                urls.append(value)
+    return urls
+
+
+def _vault_metadata_signal(provider: ProviderConfig, item: dict[str, Any]) -> bool:
+    blob = json.dumps(
+        {
+            "title": item.get("title"),
+            "tags": item.get("tags") or [],
+            "urls": _item_urls(item),
+        }
+    ).lower()
+    return any(token in blob for token in provider.vault_tokens)
+
+
+def _vault_detail_signal(provider: ProviderConfig, item: dict[str, Any]) -> bool:
+    values = _field_value_map(item)
+    fragments: list[str] = [
+        str(item.get("title") or ""),
+        " ".join(str(tag or "") for tag in item.get("tags") or []),
+        " ".join(_item_urls(item)),
+    ]
+    for alias in (
+        "instance_url",
+        "login_url",
+        "auth_base_url",
+        "auth_url",
+        "domain",
+        "issuer",
+        "audience",
+        "site",
+        "host",
+        "subdomain",
+    ):
+        value = _first_string(values, (alias,))
+        if value:
+            fragments.append(value)
+    blob = " ".join(fragment for fragment in fragments if fragment).lower()
+    return any(token in blob for token in provider.vault_tokens)
+
+
+def audit_vault(
+    provider: ProviderConfig,
+    vault: str,
+    max_hits: int,
+    *,
+    scan_all_items: bool = False,
+) -> dict[str, Any]:
     payload, error = _run_json(["sop", "item", "list", "--vault", vault, "--format", "json"])
     if error:
         return {"ok": False, "error": error, "hits": []}
 
     hits: list[dict[str, Any]] = []
+    hit_count = 0
     bundle_ready_hit_count = 0
+    items_scanned = 0
+    truncated = False
     for item in payload or []:
-        blob = json.dumps(item).lower()
-        if not any(token in blob for token in provider.vault_tokens):
+        metadata_signal = _vault_metadata_signal(provider, item)
+        if not scan_all_items and not metadata_signal:
             continue
+
+        items_scanned += 1
         item_id = str(item.get("id") or "").strip()
         item_detail = None
         item_error = None
         bundle_material_ready = False
         missing_bundle_fields: list[str] = []
+        detail_signal = False
         if item_id:
             item_detail, item_error = _load_vault_item(item_id, vault)
         if item_detail is not None:
             bundle_material_ready, missing_bundle_fields = _bundle_material(provider, item_detail)
+            detail_signal = _vault_detail_signal(provider, item_detail)
+
+        provider_signal = metadata_signal or detail_signal
+        if not provider_signal and not bundle_material_ready:
+            continue
+
+        hit_count += 1
         if bundle_material_ready:
             bundle_ready_hit_count += 1
-        hits.append(
-            {
-                "id": item_id,
-                "title": item.get("title"),
-                "category": item.get("category"),
-                "urls": item.get("urls") or [],
-                "tags": item.get("tags") or [],
-                "bundle_material_ready": bundle_material_ready,
-                "missing_bundle_fields": missing_bundle_fields,
-                "item_error": item_error,
-            }
-        )
-        if len(hits) >= max_hits:
-            break
+
+        record = {
+            "id": item_id,
+            "title": item.get("title"),
+            "category": item.get("category"),
+            "urls": item.get("urls") or [],
+            "tags": item.get("tags") or [],
+            "provider_signal": provider_signal,
+            "bundle_material_ready": bundle_material_ready,
+            "missing_bundle_fields": missing_bundle_fields,
+            "item_error": item_error,
+        }
+        if len(hits) < max_hits:
+            hits.append(record)
+        else:
+            truncated = True
 
     return {
         "ok": True,
         "hits": hits,
-        "hit_count": len(hits),
+        "hit_count": hit_count,
         "bundle_ready_hit_count": bundle_ready_hit_count,
+        "items_scanned": items_scanned,
+        "scan_all_items": scan_all_items,
+        "truncated": truncated,
     }
 
 
@@ -769,6 +845,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
     parser.add_argument("--gmail-account", action="append", default=[])
     parser.add_argument("--max-hits", type=int, default=25)
+    parser.add_argument("--scan-all-vault-items", action="store_true")
     parser.add_argument("--json-out")
     parser.add_argument("--summary-only", action="store_true")
     return parser
@@ -786,13 +863,14 @@ def main() -> int:
         "browser_login_data": str(args.browser_login_data),
         "api_base": args.api_base,
         "gmail_accounts": accounts,
+        "scan_all_vault_items": args.scan_all_vault_items,
         "providers": {},
         "summary": [],
     }
 
     for provider_name in providers:
         provider = PROVIDERS[provider_name]
-        vault = audit_vault(provider, args.vault, args.max_hits)
+        vault = audit_vault(provider, args.vault, args.max_hits, scan_all_items=args.scan_all_vault_items)
         browser = audit_browser_history(provider, args.browser_history, args.max_hits)
         browser_saved_logins = audit_browser_saved_logins(provider, args.browser_login_data, args.max_hits)
         gmail = audit_gmail(provider, accounts, args.max_hits)

@@ -679,6 +679,75 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     }
 
 
+def _synthetic_direct_resolve_payload(capability_id: str) -> dict[str, object] | None:
+    if _is_db_direct_capability(capability_id):
+        return _db_direct_resolve_payload(capability_id)
+    if _is_warehouse_direct_capability(capability_id):
+        return _warehouse_direct_resolve_payload(capability_id)
+    if _is_object_storage_direct_capability(capability_id):
+        return _object_storage_direct_resolve_payload(capability_id)
+    if _is_deployment_direct_capability(capability_id):
+        return _deployment_direct_resolve_payload(capability_id)
+    if _is_actions_direct_capability(capability_id):
+        return _actions_direct_resolve_payload(capability_id)
+    if _is_crm_direct_capability(capability_id):
+        return _crm_direct_resolve_payload(capability_id)
+    if _is_support_direct_capability(capability_id):
+        return _support_direct_resolve_payload(capability_id)
+    return None
+
+
+def _apply_direct_resolve_credential_mode_filter(
+    payload: dict[str, object],
+    credential_mode: str | None,
+) -> dict[str, object]:
+    if not credential_mode:
+        return payload
+
+    providers = payload.get("providers")
+    if not isinstance(providers, list):
+        return payload
+
+    filtered_providers = [
+        provider
+        for provider in providers
+        if isinstance(provider, dict) and credential_mode in (provider.get("credential_modes") or [])
+    ]
+    if len(filtered_providers) == len(providers):
+        return payload
+
+    filtered_payload = dict(payload)
+    filtered_payload["providers"] = filtered_providers
+    filtered_payload["fallback_chain"] = [
+        str(provider.get("service_slug"))
+        for provider in filtered_providers
+        if provider.get("service_slug")
+    ]
+
+    execute_hint = payload.get("execute_hint")
+    if not filtered_providers:
+        filtered_payload["execute_hint"] = None
+        return filtered_payload
+
+    if isinstance(execute_hint, dict):
+        preferred_slug = execute_hint.get("preferred_provider")
+        preferred_provider = next(
+            (
+                provider
+                for provider in filtered_providers
+                if provider.get("service_slug") == preferred_slug
+            ),
+            filtered_providers[0],
+        )
+        filtered_payload["execute_hint"] = {
+            **execute_hint,
+            "preferred_provider": preferred_provider.get("service_slug"),
+            "endpoint_pattern": preferred_provider.get("endpoint_pattern"),
+        }
+
+    return filtered_payload
+
+
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     return {
         "capability_id": capability_id,
@@ -1746,29 +1815,14 @@ async def resolve_capability(
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
         return _capability_not_found(raw_request, capability_id)
-    if _is_support_direct_capability(capability_id):
+
+    synthetic_direct_payload = _synthetic_direct_resolve_payload(capability_id)
+    if synthetic_direct_payload is not None:
         return {
-            "data": _support_direct_resolve_payload(capability_id),
-            "error": None,
-        }
-    if _is_warehouse_direct_capability(capability_id):
-        return {
-            "data": _warehouse_direct_resolve_payload(capability_id),
-            "error": None,
-        }
-    if _is_deployment_direct_capability(capability_id):
-        return {
-            "data": _deployment_direct_resolve_payload(capability_id),
-            "error": None,
-        }
-    if _is_actions_direct_capability(capability_id):
-        return {
-            "data": _actions_direct_resolve_payload(capability_id),
-            "error": None,
-        }
-    if _is_crm_direct_capability(capability_id):
-        return {
-            "data": _crm_direct_resolve_payload(capability_id),
+            "data": _apply_direct_resolve_credential_mode_filter(
+                synthetic_direct_payload,
+                credential_mode,
+            ),
             "error": None,
         }
 
@@ -1784,36 +1838,6 @@ async def resolve_capability(
 
     mappings = await supabase_fetch(mapping_path)
     if not mappings:
-        if _is_db_direct_capability(capability_id):
-            return {
-                "data": _db_direct_resolve_payload(capability_id),
-                "error": None,
-            }
-        if _is_warehouse_direct_capability(capability_id):
-            return {
-                "data": _warehouse_direct_resolve_payload(capability_id),
-                "error": None,
-            }
-        if _is_object_storage_direct_capability(capability_id):
-            return {
-                "data": _object_storage_direct_resolve_payload(capability_id),
-                "error": None,
-            }
-        if _is_deployment_direct_capability(capability_id):
-            return {
-                "data": _deployment_direct_resolve_payload(capability_id),
-                "error": None,
-            }
-        if _is_actions_direct_capability(capability_id):
-            return {
-                "data": _actions_direct_resolve_payload(capability_id),
-                "error": None,
-            }
-        if _is_crm_direct_capability(capability_id):
-            return {
-                "data": _crm_direct_resolve_payload(capability_id),
-                "error": None,
-            }
         return {
             "data": {
                 "capability": capability_id,

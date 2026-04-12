@@ -229,8 +229,98 @@ def test_audit_vault_marks_scoped_salesforce_item_as_bundle_ready() -> None:
 
     assert result["hit_count"] == 1
     assert result["bundle_ready_hit_count"] == 1
+    assert result["hits"][0]["provider_signal"] is True
     assert result["hits"][0]["bundle_material_ready"] is True
     assert result["hits"][0]["missing_bundle_fields"] == []
+
+
+def test_audit_vault_scan_all_items_finds_hidden_salesforce_bundle() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+    list_payload = [
+        {
+            "id": "x-oauth-123",
+            "title": "X API - pedrorhumb (OAuth 1.0a)",
+            "category": "API_CREDENTIAL",
+            "urls": [],
+            "tags": [],
+        },
+        {
+            "id": "generic-crm-456",
+            "title": "CRM Read Bundle",
+            "category": "API_CREDENTIAL",
+            "urls": [],
+            "tags": [],
+        },
+    ]
+    detail_payloads = {
+        "x-oauth-123": {
+            "id": "x-oauth-123",
+            "fields": [
+                {"label": "consumer_key", "value": "x-client-id"},
+                {"label": "consumer_secret", "value": "x-client-secret"},
+            ],
+            "urls": [],
+        },
+        "generic-crm-456": {
+            "id": "generic-crm-456",
+            "fields": [
+                {"label": "client_id", "value": "client-id"},
+                {"label": "client_secret", "value": "client-secret"},
+                {"label": "refresh_token", "value": "refresh-token"},
+                {"label": "allowed_object_types", "value": "Account"},
+                {"label": "allowed_properties_Account", "value": "Name, Website"},
+                {"label": "login_url", "value": "https://login.salesforce.com"},
+            ],
+            "urls": [],
+        },
+    }
+
+    with patch.object(crm_proof_audit, "_run_json", return_value=(list_payload, None)), patch.object(
+        crm_proof_audit,
+        "_load_vault_item",
+        side_effect=lambda item_id, vault: (detail_payloads[item_id], None),
+    ):
+        result = crm_proof_audit.audit_vault(provider, "OpenClaw Agents", 25, scan_all_items=True)
+
+    assert result["items_scanned"] == 2
+    assert result["scan_all_items"] is True
+    assert result["hit_count"] == 1
+    assert result["bundle_ready_hit_count"] == 1
+    assert result["hits"][0]["title"] == "CRM Read Bundle"
+    assert result["hits"][0]["provider_signal"] is True
+    assert result["hits"][0]["bundle_material_ready"] is True
+
+
+def test_audit_vault_scan_all_items_ignores_unrelated_oauth_items_without_salesforce_signal() -> None:
+    provider = crm_proof_audit.PROVIDERS["salesforce"]
+    list_payload = [
+        {
+            "id": "x-oauth-123",
+            "title": "X API - pedrorhumb (OAuth 1.0a)",
+            "category": "API_CREDENTIAL",
+            "urls": [],
+            "tags": [],
+        }
+    ]
+    item_payload = {
+        "id": "x-oauth-123",
+        "fields": [
+            {"label": "consumer_key", "value": "x-client-id"},
+            {"label": "consumer_secret", "value": "x-client-secret"},
+            {"label": "refresh_token", "value": "refresh-token"},
+        ],
+        "urls": [],
+    }
+
+    with patch.object(crm_proof_audit, "_run_json", return_value=(list_payload, None)), patch.object(
+        crm_proof_audit, "_load_vault_item", return_value=(item_payload, None)
+    ):
+        result = crm_proof_audit.audit_vault(provider, "OpenClaw Agents", 25, scan_all_items=True)
+
+    assert result["items_scanned"] == 1
+    assert result["hit_count"] == 0
+    assert result["bundle_ready_hit_count"] == 0
+    assert result["hits"] == []
 
 
 def test_audit_browser_saved_logins_reports_matching_hubspot_entries(tmp_path: Path) -> None:

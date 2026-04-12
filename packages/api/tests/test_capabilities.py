@@ -516,6 +516,29 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
 
 
 @pytest.mark.anyio
+async def test_db_direct_resolve_respects_credential_mode_filter(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            supported = await client.get(
+                "/v1/capabilities/db.query.read/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+            unsupported = await client.get(
+                "/v1/capabilities/db.query.read/resolve",
+                params={"credential_mode": "rhumb_managed"},
+            )
+
+    supported_data = supported.json()["data"]
+    assert supported_data["providers"][0]["service_slug"] == "postgresql"
+    assert supported_data["execute_hint"]["preferred_provider"] == "postgresql"
+
+    unsupported_data = unsupported.json()["data"]
+    assert unsupported_data["providers"] == []
+    assert unsupported_data["fallback_chain"] == []
+    assert unsupported_data["execute_hint"] is None
+
+
+@pytest.mark.anyio
 async def test_object_storage_direct_capability_surfaces_synthetic_provider(app):
     """S3 direct capabilities should expose a truthful synthetic aws-s3 provider."""
     with patch(

@@ -97,3 +97,33 @@ async def test_crm_direct_capability_shows_configured_when_valid_bundle_exists(a
     assert mode_data["providers"][0]["modes"][0]["configured"] is True
     assert mode_data["providers"][0]["any_configured"] is True
     assert mode_data["providers"][1]["modes"][0]["configured"] is False
+
+
+@pytest.mark.anyio
+async def test_crm_direct_resolve_respects_credential_mode_filter(app):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_empty,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            supported = await client.get(
+                "/v1/capabilities/crm.record.search/resolve",
+                params={"credential_mode": "byok"},
+            )
+            unsupported = await client.get(
+                "/v1/capabilities/crm.record.search/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+
+    supported_data = supported.json()["data"]
+    assert [provider["service_slug"] for provider in supported_data["providers"]] == [
+        "hubspot",
+        "salesforce",
+    ]
+    assert supported_data["execute_hint"]["preferred_provider"] == "hubspot"
+
+    unsupported_data = unsupported.json()["data"]
+    assert unsupported_data["providers"] == []
+    assert unsupported_data["fallback_chain"] == []
+    assert unsupported_data["execute_hint"] is None
