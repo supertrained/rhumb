@@ -699,6 +699,33 @@ def _synthetic_direct_resolve_payload(capability_id: str) -> dict[str, object] |
     return None
 
 
+def _credential_mode_aliases(credential_mode: str | None) -> set[str]:
+    normalized = str(credential_mode or "").strip().lower()
+    if not normalized:
+        return set()
+    aliases = {normalized}
+    if normalized in {"byo", "byok"}:
+        aliases.update({"byo", "byok"})
+    return aliases
+
+
+def _supports_requested_credential_mode(
+    supported_modes: object,
+    credential_mode: str | None,
+) -> bool:
+    requested_modes = _credential_mode_aliases(credential_mode)
+    if not requested_modes:
+        return True
+    if not isinstance(supported_modes, list):
+        return False
+    normalized_supported = {
+        str(mode).strip().lower()
+        for mode in supported_modes
+        if str(mode).strip()
+    }
+    return bool(normalized_supported & requested_modes)
+
+
 def _apply_direct_resolve_credential_mode_filter(
     payload: dict[str, object],
     credential_mode: str | None,
@@ -713,7 +740,8 @@ def _apply_direct_resolve_credential_mode_filter(
     filtered_providers = [
         provider
         for provider in providers
-        if isinstance(provider, dict) and credential_mode in (provider.get("credential_modes") or [])
+        if isinstance(provider, dict)
+        and _supports_requested_credential_mode(provider.get("credential_modes"), credential_mode)
     ]
     if len(filtered_providers) == len(providers):
         return payload
@@ -1800,7 +1828,7 @@ async def get_capability(capability_id: str, raw_request: Request):
 async def resolve_capability(
     capability_id: str,
     raw_request: Request,
-    credential_mode: str | None = Query(default=None, description="Filter by credential mode (byo, rhumb_managed, agent_vault)"),
+    credential_mode: str | None = Query(default=None, description="Filter by credential mode (byo/byok, rhumb_managed, agent_vault)"),
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Resolve a capability to ranked providers with health-aware recommendations.
@@ -1834,11 +1862,14 @@ async def resolve_capability(
         f"&select=service_slug,credential_modes,auth_method,endpoint_pattern,"
         f"cost_per_call,cost_currency,free_tier_calls,notes"
     )
-    if credential_mode:
-        # Filter by credential mode using array contains
-        mapping_path += f"&credential_modes=cs.{{{quote(credential_mode)}}}"
 
     mappings = await supabase_fetch(mapping_path)
+    if credential_mode:
+        mappings = [
+            mapping
+            for mapping in mappings
+            if _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
+        ]
     if not mappings:
         return {
             "data": {

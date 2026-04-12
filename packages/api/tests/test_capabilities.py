@@ -435,6 +435,21 @@ async def test_resolve_capability(app):
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_accepts_byok_alias_for_byo_mappings(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "byok"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "sendgrid"]
+    assert data["execute_hint"]["preferred_provider"] == "resend"
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_not_found(app):
     """GET /v1/capabilities/nonexistent/resolve returns 404 with standardized envelope."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
@@ -523,6 +538,10 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
                 "/v1/capabilities/db.query.read/resolve",
                 params={"credential_mode": "agent_vault"},
             )
+            supported_alias = await client.get(
+                "/v1/capabilities/db.query.read/resolve",
+                params={"credential_mode": "byo"},
+            )
             unsupported = await client.get(
                 "/v1/capabilities/db.query.read/resolve",
                 params={"credential_mode": "rhumb_managed"},
@@ -531,6 +550,10 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
     supported_data = supported.json()["data"]
     assert supported_data["providers"][0]["service_slug"] == "postgresql"
     assert supported_data["execute_hint"]["preferred_provider"] == "postgresql"
+
+    supported_alias_data = supported_alias.json()["data"]
+    assert supported_alias_data["providers"][0]["service_slug"] == "postgresql"
+    assert supported_alias_data["execute_hint"]["preferred_provider"] == "postgresql"
 
     unsupported_data = unsupported.json()["data"]
     assert unsupported_data["providers"] == []
