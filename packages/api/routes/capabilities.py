@@ -848,6 +848,41 @@ def _mapped_provider_is_configured(
     return False
 
 
+def _provider_can_back_execute_hint(provider: dict[str, object]) -> bool:
+    return bool(provider.get("available_for_execute") and provider.get("endpoint_pattern"))
+
+
+def _execute_hint_from_provider(provider: dict[str, object]) -> dict[str, object]:
+    return {
+        "preferred_provider": provider["service_slug"],
+        "endpoint_pattern": provider.get("endpoint_pattern"),
+        "estimated_cost_usd": provider.get("cost_per_call"),
+        "credential_modes": provider.get("credential_modes", ["byok"]),
+    }
+
+
+def _pick_mapped_execute_hint(providers: list[dict[str, object]]) -> dict[str, object] | None:
+    configured_provider = next(
+        (
+            provider
+            for provider in providers
+            if provider.get("configured") and _provider_can_back_execute_hint(provider)
+        ),
+        None,
+    )
+    if configured_provider is not None:
+        return _execute_hint_from_provider(configured_provider)
+
+    fallback_provider = next(
+        (provider for provider in providers if _provider_can_back_execute_hint(provider)),
+        None,
+    )
+    if fallback_provider is not None:
+        return _execute_hint_from_provider(fallback_provider)
+
+    return None
+
+
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
     return {
         "capability_id": capability_id,
@@ -2160,17 +2195,7 @@ async def resolve_capability(
     )
     bundle_ids = list({r["bundle_id"] for r in bundle_rows}) if bundle_rows else []
 
-    # Build execute_hint from the top-ranked available provider
-    execute_hint = None
-    for p in providers:
-        if p.get("available_for_execute") and p.get("endpoint_pattern"):
-            execute_hint = {
-                "preferred_provider": p["service_slug"],
-                "endpoint_pattern": p["endpoint_pattern"],
-                "estimated_cost_usd": p.get("cost_per_call"),
-                "credential_modes": p.get("credential_modes", ["byok"]),
-            }
-            break
+    execute_hint = _pick_mapped_execute_hint(providers)
 
     return {
         "data": {
