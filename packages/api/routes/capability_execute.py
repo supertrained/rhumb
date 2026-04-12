@@ -179,6 +179,102 @@ async def _capability_not_found_response(raw_request: Request, capability_id: st
     return await _capability_not_found(raw_request, capability_id)
 
 
+def _capability_resolve_url(capability_id: str, *, credential_mode: str | None = None) -> str:
+    """Build a resolve URL that helps callers inspect provider options for a capability."""
+    url = f"/v1/capabilities/{quote(capability_id, safe='')}/resolve"
+    if credential_mode:
+        url += f"?credential_mode={quote(credential_mode, safe='')}"
+    return url
+
+
+def _provider_option_summaries(mappings: list[dict]) -> list[dict[str, Any]]:
+    """Return stable provider summaries for recovery/error responses."""
+    options: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for mapping in mappings:
+        provider = str(mapping.get("service_slug") or "").strip()
+        if not provider or provider in seen:
+            continue
+        modes = _parse_credential_modes(mapping.get("credential_modes") or ["byo"]) or ["byo"]
+        options.append(
+            {
+                "provider": provider,
+                "credential_modes": modes,
+            }
+        )
+        seen.add(provider)
+    return options
+
+
+def _matching_provider_mapping(mappings: list[dict], provider: str | None) -> dict | None:
+    """Return the mapping row for a requested provider slug, if present."""
+    if not provider:
+        return None
+    return next(
+        (
+            mapping
+            for mapping in mappings
+            if _service_slug_matches(mapping.get("service_slug"), provider)
+        ),
+        None,
+    )
+
+
+def _managed_provider_unavailable_response(
+    raw_request: Request,
+    *,
+    capability_id: str,
+    mappings: list[dict],
+    requested_provider: str | None,
+    available_managed_mappings: list[dict] | None = None,
+) -> JSONResponse:
+    """Return a structured 503 with managed-provider alternatives when available."""
+    request_id = getattr(raw_request.state, "request_id", None) or f"req_{uuid.uuid4().hex[:12]}"
+    requested_mapping = _matching_provider_mapping(mappings, requested_provider)
+    available_providers = _provider_option_summaries(available_managed_mappings or [])
+
+    if requested_provider:
+        content: dict[str, Any] = {
+            "error": "provider_not_available",
+            "message": (
+                f"Provider '{requested_provider}' is not available for capability "
+                f"'{capability_id}' with credential_mode 'rhumb_managed'"
+            ),
+            "resolution": (
+                "Retry without provider to auto-select a managed provider, choose one "
+                "of the available managed providers, or switch to credential_mode: byo "
+                "if you want to use your own API key."
+            ),
+            "credential_mode": "rhumb_managed",
+            "requested_provider": requested_provider,
+            "available_providers": available_providers,
+            "resolve_url": _capability_resolve_url(capability_id, credential_mode="rhumb_managed"),
+            "request_id": request_id,
+        }
+        requested_modes = _parse_credential_modes(
+            requested_mapping.get("credential_modes") if requested_mapping else []
+        )
+        if requested_modes:
+            content["requested_provider_credential_modes"] = requested_modes
+        return JSONResponse(status_code=503, content=content)
+
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": "managed_provider_unavailable",
+            "message": f"No managed providers available for capability '{capability_id}'",
+            "resolution": (
+                "Retry with credential_mode: byo using your own API key, or inspect the "
+                "resolve surface for currently supported providers."
+            ),
+            "credential_mode": "rhumb_managed",
+            "available_providers": available_providers,
+            "resolve_url": _capability_resolve_url(capability_id, credential_mode="rhumb_managed"),
+            "request_id": request_id,
+        },
+    )
+
+
 def _billing_unavailable_response(
     raw_request: Request,
     *,
@@ -1652,6 +1748,21 @@ async def execute_capability(
             mappings=cap_services,
             requested_provider=request.provider,
         )
+        if selected_mapping is None:
+            fallback_managed_mapping = None
+            if request.provider:
+                fallback_managed_mapping = await _resolve_managed_provider_mapping(
+                    capability_id=capability_id,
+                    mappings=cap_services,
+                    requested_provider=None,
+                )
+            return _managed_provider_unavailable_response(
+                raw_request,
+                capability_id=capability_id,
+                mappings=cap_services,
+                requested_provider=request.provider,
+                available_managed_mappings=[fallback_managed_mapping] if fallback_managed_mapping else [],
+            )
 
     # 0. Pre-execution budget/credit reservation estimate
     cost_estimate = _extract_cost_usd(selected_mapping)
@@ -3142,16 +3253,19 @@ async def estimate_capability(
             requested_provider=provider,
         )
         if chosen is None:
+            fallback_managed_mapping = None
             if provider:
-                raise HTTPException(
-                    status_code=503,
-                    detail=(
-                        f"No managed execution path for '{capability_id}' via '{provider}'"
-                    ),
+                fallback_managed_mapping = await _resolve_managed_provider_mapping(
+                    capability_id=capability_id,
+                    mappings=mappings,
+                    requested_provider=None,
                 )
-            raise HTTPException(
-                status_code=503,
-                detail=f"No managed providers available for capability '{capability_id}'",
+            return _managed_provider_unavailable_response(
+                raw_request,
+                capability_id=capability_id,
+                mappings=mappings,
+                requested_provider=provider,
+                available_managed_mappings=[fallback_managed_mapping] if fallback_managed_mapping else [],
             )
     elif provider:
         chosen = next(

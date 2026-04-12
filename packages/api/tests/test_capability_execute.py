@@ -841,6 +841,13 @@ async def test_estimate_explicit_rhumb_managed_uses_managed_mapping(app):
 async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
     """Explicit rhumb_managed estimates should fail fast for non-managed providers."""
 
+    managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
+
+    async def mock_resolve_managed(capability_id: str, mappings: list[dict], requested_provider: str | None):
+        if requested_provider is None:
+            return managed_mapping
+        return None
+
     with (
         patch(
             "routes.capability_execute.supabase_fetch",
@@ -850,7 +857,7 @@ async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
         patch(
             "routes.capability_execute._resolve_managed_provider_mapping",
             new_callable=AsyncMock,
-            return_value=None,
+            side_effect=mock_resolve_managed,
         ) as mock_resolve_managed,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -861,8 +868,93 @@ async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
             )
 
     assert resp.status_code == 503
-    assert resp.json()["detail"] == "No managed execution path for 'email.send' via 'sendgrid'"
-    mock_resolve_managed.assert_awaited_once()
+    body = resp.json()
+    assert body["error"] == "provider_not_available"
+    assert body["credential_mode"] == "rhumb_managed"
+    assert body["requested_provider"] == "sendgrid"
+    assert body["requested_provider_credential_modes"] == ["byo"]
+    assert body["available_providers"][0]["provider"] == "resend"
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=rhumb_managed"
+    assert mock_resolve_managed.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_execute_explicit_rhumb_managed_rejects_unmanaged_provider_with_alternatives(app):
+    """Explicit managed execute should surface the available managed fallback provider."""
+
+    managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
+
+    async def mock_resolve_managed(capability_id: str, mappings: list[dict], requested_provider: str | None):
+        if requested_provider is None:
+            return managed_mapping
+        return None
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_with_managed_option,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            side_effect=mock_resolve_managed,
+        ) as mock_resolve_managed,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"] == "provider_not_available"
+    assert body["credential_mode"] == "rhumb_managed"
+    assert body["requested_provider"] == "sendgrid"
+    assert body["requested_provider_credential_modes"] == ["byo"]
+    assert body["available_providers"][0]["provider"] == "resend"
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=rhumb_managed"
+    assert mock_resolve_managed.await_count == 2
+
+
+@pytest.mark.anyio
+async def test_execute_explicit_rhumb_managed_without_any_config_surfaces_byo_fallback(app):
+    """Explicit managed execute should fail honestly when no managed path exists at all."""
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "credential_mode": "rhumb_managed",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"] == "managed_provider_unavailable"
+    assert body["credential_mode"] == "rhumb_managed"
+    assert body["available_providers"] == []
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=rhumb_managed"
 
 
 @pytest.mark.anyio
