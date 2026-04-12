@@ -443,7 +443,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [_DB_DIRECT_PROVIDER_SLUG],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": _DB_DIRECT_PROVIDER_SLUG,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -480,7 +480,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [_WAREHOUSE_DIRECT_PROVIDER_SLUG],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -516,7 +516,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -553,7 +553,7 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [_DEPLOYMENT_DIRECT_PROVIDER_SLUG],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -590,7 +590,7 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [_ACTIONS_DIRECT_PROVIDER_SLUG],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": _ACTIONS_DIRECT_PROVIDER_SLUG,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -633,7 +633,7 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": providers,
         "fallback_chain": [provider["service_slug"] for provider in providers],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": preferred_provider["service_slug"],
             "endpoint_pattern": preferred_provider["endpoint_pattern"],
@@ -671,7 +671,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "capability": capability_id,
         "providers": [provider],
         "fallback_chain": [provider_slug],
-        "bundle_ids": [],
+        "related_bundles": [],
         "execute_hint": {
             "preferred_provider": provider_slug,
             "endpoint_pattern": provider["endpoint_pattern"],
@@ -699,12 +699,49 @@ def _synthetic_direct_resolve_payload(capability_id: str) -> dict[str, object] |
     return None
 
 
-def _credential_mode_aliases(credential_mode: str | None) -> set[str]:
+def _empty_resolve_payload(capability_id: str) -> dict[str, object]:
+    return {
+        "capability": capability_id,
+        "providers": [],
+        "fallback_chain": [],
+        "related_bundles": [],
+        "execute_hint": None,
+    }
+
+
+def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
     normalized = str(credential_mode or "").strip().lower()
+    if not normalized:
+        return None
+    if normalized == "byo":
+        return "byok"
+    return normalized
+
+
+def _canonicalize_credential_modes(
+    credential_modes: object,
+    *,
+    default: tuple[str, ...] = ("byok",),
+) -> list[str]:
+    raw_modes = credential_modes if isinstance(credential_modes, list) and credential_modes else list(default)
+    normalized_modes: list[str] = []
+    seen: set[str] = set()
+    for mode in raw_modes:
+        normalized = _canonicalize_credential_mode(str(mode))
+        if normalized and normalized not in seen:
+            normalized_modes.append(normalized)
+            seen.add(normalized)
+    if normalized_modes:
+        return normalized_modes
+    return list(default)
+
+
+def _credential_mode_aliases(credential_mode: str | None) -> set[str]:
+    normalized = _canonicalize_credential_mode(credential_mode)
     if not normalized:
         return set()
     aliases = {normalized}
-    if normalized in {"byo", "byok"}:
+    if normalized == "byok":
         aliases.update({"byo", "byok"})
     return aliases
 
@@ -718,11 +755,9 @@ def _supports_requested_credential_mode(
         return True
     if not isinstance(supported_modes, list):
         return False
-    normalized_supported = {
-        str(mode).strip().lower()
-        for mode in supported_modes
-        if str(mode).strip()
-    }
+    normalized_supported = set()
+    for mode in supported_modes:
+        normalized_supported.update(_credential_mode_aliases(str(mode)))
     return bool(normalized_supported & requested_modes)
 
 
@@ -776,6 +811,28 @@ def _apply_direct_resolve_credential_mode_filter(
         }
 
     return filtered_payload
+
+
+def _has_proxy_credential_configured(service_slug: str, auth_method: str) -> bool:
+    try:
+        from services.proxy_credentials import get_credential_store
+        store = get_credential_store()
+        return store.get_credential(service_slug, auth_method) is not None
+    except Exception:
+        return False
+
+
+def _mapped_provider_is_configured(
+    credential_modes: object,
+    *,
+    byok_configured: bool,
+) -> bool:
+    normalized_modes = _canonicalize_credential_modes(credential_modes)
+    if "rhumb_managed" in normalized_modes:
+        return True
+    if "byok" in normalized_modes:
+        return byok_configured
+    return False
 
 
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
@@ -1781,6 +1838,7 @@ async def get_capability(capability_id: str, raw_request: Request):
         for m in mappings:
             slug = m["service_slug"]
             sc = scores_by_slug.get(slug, {})
+            auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
             providers.append({
                 "service_slug": slug,
                 "service_name": names_by_slug.get(slug, slug),
@@ -1788,9 +1846,11 @@ async def get_capability(capability_id: str, raw_request: Request):
                 "an_score": sc.get("aggregate_recommendation_score"),
                 "tier": sc.get("tier"),
                 "tier_label": sc.get("tier_label"),
-                "auth_method": m.get("auth_method"),
+                "auth_method": auth_method,
                 "endpoint_pattern": m.get("endpoint_pattern"),
-                "credential_modes": m.get("credential_modes", ["byo"]),
+                "credential_modes": _canonicalize_credential_modes(
+                    m.get("credential_modes") or ["byo"]
+                ),
                 "cost_per_call": float(m["cost_per_call"]) if m.get("cost_per_call") is not None else None,
                 "cost_currency": m.get("cost_currency", "USD"),
                 "free_tier_calls": m.get("free_tier_calls"),
@@ -1871,14 +1931,7 @@ async def resolve_capability(
             if _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
         ]
     if not mappings:
-        return {
-            "data": {
-                "capability": capability_id,
-                "providers": [],
-                "fallback_chain": [],
-            },
-            "error": None,
-        }
+        return {"data": _empty_resolve_payload(capability_id), "error": None}
 
     # Get scores for all mapped services
     slugs = [m["service_slug"] for m in mappings]
@@ -1914,6 +1967,8 @@ async def resolve_capability(
         sc = scores_by_slug.get(slug, {})
         an_score = sc.get("aggregate_recommendation_score")
         tier = sc.get("tier")
+        auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
+        credential_modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byo"])
 
         # Determine recommendation
         recommendation = "available"
@@ -1952,16 +2007,9 @@ async def resolve_capability(
         except Exception:
             pass  # proxy not initialized or breaker not available
 
-        # Check if agent has credentials configured for this provider (BYO mode)
-        byo_configured = False
-        try:
-            from services.proxy_credentials import get_credential_store
-            store = get_credential_store()
-            auth_key = m.get("auth_method", "api_key")
-            cred_value = store.get_credential(slug, auth_key)
-            byo_configured = cred_value is not None
-        except Exception:
-            pass
+        byok_configured = False
+        if "byok" in credential_modes:
+            byok_configured = _has_proxy_credential_configured(slug, auth_method)
 
         providers.append({
             "service_slug": slug,
@@ -1975,14 +2023,17 @@ async def resolve_capability(
             "cost_per_call": float(cost) if cost is not None else None,
             "cost_currency": m.get("cost_currency", "USD"),
             "free_tier_calls": free_tier,
-            "credential_modes": m.get("credential_modes", ["byo"]),
-            "auth_method": m.get("auth_method"),
+            "credential_modes": credential_modes,
+            "auth_method": auth_method,
             "endpoint_pattern": m.get("endpoint_pattern"),
             "recommendation": recommendation,
             "recommendation_reason": reason,
             "circuit_state": circuit_state,
             "available_for_execute": available_for_execute,
-            "configured": byo_configured,
+            "configured": _mapped_provider_is_configured(
+                credential_modes,
+                byok_configured=byok_configured,
+            ),
         })
 
     # Sort: preferred first, then by AN score descending
@@ -2014,7 +2065,7 @@ async def resolve_capability(
                 "preferred_provider": p["service_slug"],
                 "endpoint_pattern": p["endpoint_pattern"],
                 "estimated_cost_usd": p.get("cost_per_call"),
-                "credential_modes": p.get("credential_modes", ["byo"]),
+                "credential_modes": p.get("credential_modes", ["byok"]),
             }
             break
 
@@ -2121,22 +2172,18 @@ async def get_credential_modes(
     providers = []
     for m in mappings:
         slug = m["service_slug"]
-        modes = m.get("credential_modes", ["byo"])
+        modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byo"])
         auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
 
-        byo_configured = False
-        try:
-            from services.proxy_credentials import get_credential_store
-            store = get_credential_store()
-            byo_configured = store.get_credential(slug, auth_method) is not None
-        except Exception:
-            pass
+        byok_configured = False
+        if "byok" in modes:
+            byok_configured = _has_proxy_credential_configured(slug, auth_method)
 
         mode_details = []
         for mode in modes:
             detail = {"mode": mode, "available": True, "configured": False}
-            if mode == "byo":
-                detail["configured"] = byo_configured
+            if mode == "byok":
+                detail["configured"] = byok_configured
                 detail["setup_hint"] = (
                     f"Set RHUMB_CREDENTIAL_{slug.upper().replace('-', '_')}_{auth_method.upper()} "
                     f"environment variable or configure via proxy credentials"

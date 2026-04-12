@@ -401,6 +401,7 @@ async def test_get_capability(app):
     # Providers should be sorted by AN score descending
     scores = [p["an_score"] for p in data["providers"] if p["an_score"] is not None]
     assert scores == sorted(scores, reverse=True)
+    assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
 
 
 @pytest.mark.anyio
@@ -431,6 +432,9 @@ async def test_resolve_capability(app):
     first = data["providers"][0]
     assert first["service_slug"] == "resend"
     assert first["recommendation"] == "preferred"
+    assert first["credential_modes"] == ["byok"]
+    assert data["execute_hint"]["credential_modes"] == ["byok"]
+    assert data["related_bundles"] == ["prospect.enrich_and_verify"]
     assert "recommendation_reason" in first
 
 
@@ -446,7 +450,75 @@ async def test_resolve_capability_accepts_byok_alias_for_byo_mappings(app):
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "sendgrid"]
+    assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
     assert data["execute_hint"]["preferred_provider"] == "resend"
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+
+    assert resp.status_code == 200
+    assert resp.json()["data"] == {
+        "capability": "email.send",
+        "providers": [],
+        "fallback_chain": [],
+        "related_bundles": [],
+        "execute_hint": None,
+    }
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_marks_rhumb_managed_provider_configured(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "ai.generate_text",
+                "domain": "ai",
+                "action": "generate_text",
+                "description": "Generate text",
+            }]
+        if path.startswith("capability_services?"):
+            return [{
+                "service_slug": "anthropic",
+                "credential_modes": ["rhumb_managed", "byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /v1/messages",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": None,
+            }]
+        if path.startswith("scores?"):
+            return [{
+                "service_slug": "anthropic",
+                "aggregate_recommendation_score": 8.5,
+                "execution_score": 8.5,
+                "access_readiness_score": 8.5,
+                "tier": "L4",
+                "tier_label": "Native",
+                "confidence": 0.9,
+            }]
+        if path.startswith("services?"):
+            return [{"slug": "anthropic", "name": "Anthropic"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/ai.generate_text/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["credential_modes"] == ["rhumb_managed", "byok"]
+    assert data["providers"][0]["configured"] is True
+    assert data["execute_hint"]["credential_modes"] == ["rhumb_managed", "byok"]
 
 
 @pytest.mark.anyio
@@ -516,6 +588,8 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
     resolve_data = resolve_resp.json()["data"]
     assert resolve_data["providers"][0]["service_slug"] == "postgresql"
     assert resolve_data["providers"][0]["credential_modes"] == ["byok", "agent_vault"]
+    assert resolve_data["related_bundles"] == []
+    assert "bundle_ids" not in resolve_data
     assert resolve_data["providers"][0]["recommendation_reason"] == (
         "Direct read-only PostgreSQL execution. Hosted Rhumb uses agent_vault; "
         "env-backed connection_ref is self-hosted/internal only."

@@ -8,6 +8,7 @@ Tests:
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -51,7 +52,7 @@ async def test_credential_modes_returns_modes_per_provider(app):
     resend = data["providers"][0]
     assert resend["service_slug"] == "resend"
     assert len(resend["modes"]) == 2
-    assert resend["modes"][0]["mode"] == "byo"
+    assert resend["modes"][0]["mode"] == "byok"
     assert resend["modes"][1]["mode"] == "agent_vault"
     assert "setup_hint" in resend["modes"][0]
 
@@ -69,9 +70,10 @@ async def test_credential_modes_unknown_capability(app):
                 headers={"X-Rhumb-Key": "test"},
             )
 
-    assert resp.status_code == 200
-    assert resp.json()["data"] is None
-    assert "not found" in resp.json()["error"]
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert "nonexistent.action" in body["message"]
 
 
 @pytest.mark.anyio
@@ -100,7 +102,7 @@ async def test_credential_modes_shows_configured_for_byo(app, monkeypatch):
     data = resp.json()["data"]
     resend = data["providers"][0]
     byo_mode = resend["modes"][0]
-    assert byo_mode["mode"] == "byo"
+    assert byo_mode["mode"] == "byok"
     assert byo_mode["configured"] is True
     assert resend["any_configured"] is True
 
@@ -133,6 +135,7 @@ async def test_credential_modes_prefers_hardcoded_twilio_basic_auth(app, monkeyp
     twilio = resp.json()["data"]["providers"][0]
     byo_mode = twilio["modes"][0]
     assert twilio["auth_method"] == "basic_auth"
+    assert byo_mode["mode"] == "byok"
     assert byo_mode["configured"] is True
     assert "TWILIO_BASIC_AUTH" in byo_mode["setup_hint"]
 
@@ -166,8 +169,8 @@ async def test_agent_credentials_requires_auth(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         resp = await c.get("/v1/agent/credentials")
 
-    assert resp.status_code == 200
-    assert resp.json()["error"] is not None
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "X-Rhumb-Key header required"
 
 
 @pytest.mark.anyio
@@ -187,7 +190,15 @@ async def test_agent_credentials_returns_status(app, monkeypatch):
             ]
         return []
 
-    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch):
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             resp = await c.get(
                 "/v1/agent/credentials",
