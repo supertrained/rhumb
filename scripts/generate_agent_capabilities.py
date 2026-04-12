@@ -151,7 +151,7 @@ def build_agent_capabilities() -> dict:
             "domains": 50,
             "categories": public_truth["categories"],
             "providers_with_execution": public_truth["callableProviders"],
-            "credential_modes": ["byo", "rhumb_managed", "agent_vault"],
+            "credential_modes": ["byok", "rhumb_managed", "agent_vault"],
         },
         "scoring": {
             "methodology": "https://rhumb.dev/methodology",
@@ -275,7 +275,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - {public_truth['categoriesLabel']} categories
 - {public_truth['callableProvidersLabel']} callable providers
 - {public_truth['mcpToolsLabel']} MCP tools
-- 3 credential modes: BYO, Rhumb-managed, Agent Vault
+- 3 credential modes: BYOK, Rhumb-managed, Agent Vault
 
 ## Honest current state
 - Discovery breadth is wider than execution breadth
@@ -300,7 +300,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 ## Auth paths
 1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
 2. x402 / USDC: no signup, pay per call, send X-Payment header
-3. BYO credentials: pass your own upstream API keys
+3. BYOK credentials: pass your own upstream API keys
 
 ## MCP tools ({public_truth['mcpToolsLabel']} total)
 Discovery: {', '.join(GROUPS[0][3])}

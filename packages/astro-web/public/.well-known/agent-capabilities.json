@@ -128,7 +128,7 @@
     "categories": 92,
     "providers_with_execution": 16,
     "credential_modes": [
-      "byo",
+      "byok",
       "rhumb_managed",
       "agent_vault"
     ]

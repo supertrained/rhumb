@@ -20,7 +20,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - 92 categories
 - 16 callable providers
 - 21 MCP tools
-- 3 credential modes: BYO, Rhumb-managed, Agent Vault
+- 3 credential modes: BYOK, Rhumb-managed, Agent Vault
 
 ## Honest current state
 - Discovery breadth is wider than execution breadth
@@ -45,7 +45,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 ## Auth paths
 1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
 2. x402 / USDC: no signup, pay per call, send X-Payment header
-3. BYO credentials: pass your own upstream API keys
+3. BYOK credentials: pass your own upstream API keys
 
 ## MCP tools (21 total)
 Discovery: find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability

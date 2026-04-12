@@ -55,7 +55,7 @@ const ENDPOINTS = [
     "providers": [
       {
         "service_slug": "resend",
-        "credential_modes": ["byo", "rhumb_managed"],
+        "credential_modes": ["byok", "rhumb_managed"],
         "cost_per_call": 0.001
       }
     ]
@@ -76,10 +76,17 @@ const ENDPOINTS = [
         "service_slug": "resend",
         "recommendation": "preferred",
         "cost_per_call": 0.001,
-        "credential_modes": ["byo", "rhumb_managed"]
+        "credential_modes": ["byok", "rhumb_managed"]
       }
     ],
-    "fallback_chain": ["resend", "sendgrid"]
+    "fallback_chain": ["resend", "sendgrid"],
+    "related_bundles": [],
+    "execute_hint": {
+      "preferred_provider": "resend",
+      "endpoint_pattern": "/emails",
+      "estimated_cost_usd": 0.001,
+      "credential_modes": ["rhumb_managed", "byok"]
+    }
   },
   "error": null
 }`,
@@ -206,6 +213,7 @@ const MCP_TOOLS = [
         </h1>
         <p class="text-lg text-slate-400 leading-relaxed mb-6">
           Use Rhumb for discovery, capability routing, pricing, and execution. Discovery reads are open.
+          Start with one key for Rhumb-managed superpowers, then bring BYOK or Agent Vault only when the workflow needs your own systems.
           Execution supports governed API keys, wallet-prefunded API keys, BYOK credential passthrough,
           or <code class="font-mono text-amber text-base">X-Payment</code> for x402 per-call auth.
         </p>

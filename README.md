@@ -89,7 +89,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 | Mode | How it works |
 |------|-------------|
-| **BYO** | Bring your own API key — Rhumb routes, you authenticate |
+| **BYOK** | Bring your own API key — Rhumb routes, you authenticate |
 | **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |
 | **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |
 
@@ -103,7 +103,8 @@ Treat broader multi-system business automation as future scope, not the current 
 - **Service** = vendor Rhumb evaluates and compares
 - **Capability** = executable action like `email.send`
 - **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
-- **Layer 2 is the default path** — discover a Service, choose a Capability, estimate, then execute
+- **Layer 2 is the default path** — give your agent one key, discover a Service, choose a Capability, estimate, then execute
+- **Start with managed superpowers first** — bring BYOK or Agent Vault only when the workflow touches your own systems
 - **Default auth for repeat traffic** = governed API key or wallet-prefunded API key
 - **Use x402** when zero-signup per-call payment matters more than repeat throughput
 

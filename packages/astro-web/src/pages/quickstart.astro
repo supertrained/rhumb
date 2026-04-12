@@ -223,15 +223,38 @@ print(data["an_score"])  # 8.1`}</code></pre>
       <section class="mb-16">
         <div class="flex items-center gap-3 mb-6">
           <span class="flex items-center justify-center w-8 h-8 rounded-full bg-amber/10 text-amber font-mono font-bold text-sm">3</span>
-          <h2 class="font-display font-bold text-2xl text-slate-100">Execute capabilities</h2>
+          <h2 class="font-display font-bold text-2xl text-slate-100">Execute through one key first</h2>
         </div>
 
         <p class="text-slate-400 mb-6">
-          To actually <em>do</em> things through APIs (send emails, create records, charge cards), start with the default production path: discover a Service, choose a Capability, estimate the call, then execute through Layer 2 with <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code>. Use x402 only when zero-signup per-call payment is the point.
+          For the cleanest first paid success, start with a Rhumb-managed capability behind <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code>. Prove the managed Layer 2 path first, then bring BYOK or Agent Vault only when the workflow crosses into your CRM, support, data, or ops systems.
         </p>
 
+        <div class="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] mb-6">
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Lowest-heroics first win</p>
+            <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# 1) Resolve a managed capability
+curl "${API}/capabilities/search.query/resolve"
+
+# 2) Estimate before paying
+curl "${API}/capabilities/search.query/execute/estimate"
+
+# 3) Execute through Layer 2 with one key
+curl -X POST "${API}/capabilities/search.query/execute" \
+  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"body": {"query": "best CRM for seed-stage B2B SaaS", "max_results": 5}}'`}</code></pre>
+          </div>
+          <div class="bg-surface border border-amber/20 rounded-lg p-5">
+            <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Bring bridges later</p>
+            <p class="text-sm text-slate-300 leading-6">
+              Keep the same Resolve flow when you move into Salesforce, HubSpot, Zendesk, Postgres, GitHub, or other operator-owned systems. The change is the credential mode, not the product mental model.
+            </p>
+          </div>
+        </div>
+
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
-          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Recommended sequence</p>
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Same flow, different capability</p>
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# 1) Discover the capability you need
 curl "${API}/capabilities?search=email"
 
