@@ -172,6 +172,13 @@ def _not_found_response(
     )
 
 
+async def _capability_not_found_response(raw_request: Request, capability_id: str) -> JSONResponse:
+    """Reuse the capability-registry 404 envelope so execute surfaces share suggestions/search links."""
+    from routes.capabilities import _capability_not_found
+
+    return await _capability_not_found(raw_request, capability_id)
+
+
 def _billing_unavailable_response(
     raw_request: Request,
     *,
@@ -1167,15 +1174,7 @@ async def discover_execute_capability(
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
-        return _not_found_response(
-            raw_request,
-            error="capability_not_found",
-            message=f"No capability found with id '{capability_id}'",
-            resolution=(
-                "Browse capabilities at GET /v1/capabilities or use "
-                "discover_capabilities MCP tool"
-            ),
-        )
+        return await _capability_not_found_response(raw_request, capability_id)
 
     payment_trace = (
         inspect_x_payment_header(x_payment)
@@ -1366,15 +1365,7 @@ async def execute_capability(
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
-        return _not_found_response(
-            raw_request,
-            error="capability_not_found",
-            message=f"No capability found with id '{capability_id}'",
-            resolution=(
-                "Browse capabilities at GET /v1/capabilities or use "
-                "discover_capabilities MCP tool"
-            ),
-        )
+        return await _capability_not_found_response(raw_request, capability_id)
 
     request = await _parse_execute_request(raw_request)
 
@@ -3094,6 +3085,7 @@ async def execute_capability(
 @router.get("/capabilities/{capability_id}/execute/estimate")
 async def estimate_capability(
     capability_id: str,
+    raw_request: Request,
     provider: Optional[str] = Query(None, description="Provider slug"),
     credential_mode: str = Query(
         "auto",
@@ -3103,7 +3095,7 @@ async def estimate_capability(
         ),
     ),
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
-) -> dict:
+) -> Any:
     """Dry-run cost estimate — returns provider selection, cost, and circuit state without executing.
 
     API key is optional. Without an API key the response still includes
@@ -3125,7 +3117,7 @@ async def estimate_capability(
 
     cap = await _resolve_capability(capability_id)
     if cap is None:
-        raise HTTPException(status_code=404, detail=f"Capability '{capability_id}' not found")
+        return await _capability_not_found_response(raw_request, capability_id)
 
     mappings = await _get_capability_services(capability_id)
     if not mappings:

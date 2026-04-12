@@ -207,6 +207,25 @@ def _mock_supabase_with_managed_option(path: str):
     return _mock_supabase(path)
 
 
+def _mock_tool_alias_supabase(path: str):
+    """Return a minimal capability set that lets tool-name aliases suggest canonical capabilities."""
+    if path.startswith("capabilities?"):
+        if "id=eq.Nano%20Banana%20Pro" in path:
+            return []
+        if "select=id,domain,action,description,input_hint,outcome" in path:
+            return [
+                {
+                    "id": "ai.generate_image",
+                    "domain": "ai",
+                    "action": "generate_image",
+                    "description": "Generate images from prompts",
+                    "input_hint": "Prompt or reference image",
+                    "outcome": "Generated image",
+                }
+            ]
+    return _mock_supabase(path)
+
+
 def _make_mock_response(status_code: int = 202, json_body: dict | None = None):
     """Create a mock httpx.Response."""
     resp = MagicMock(spec=httpx.Response)
@@ -446,14 +465,11 @@ async def test_unknown_capability_returns_404_before_payment_flow(app):
             )
 
     assert resp.status_code == 404
-    assert resp.json() == {
-        "error": "capability_not_found",
-        "message": "No capability found with id 'nonexistent'",
-        "resolution": (
-            "Browse capabilities at GET /v1/capabilities or use " "discover_capabilities MCP tool"
-        ),
-        "request_id": "req-capability-404",
-    }
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["message"] == "No capability found with id 'nonexistent'"
+    assert body["request_id"] == "req-capability-404"
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent"
 
 
 @pytest.mark.anyio
@@ -610,14 +626,37 @@ async def test_execute_unknown_capability(app):
 
     assert resp.status_code == 404
     body = resp.json()
-    assert body == {
-        "error": "capability_not_found",
-        "message": "No capability found with id 'nonexistent'",
-        "resolution": (
-            "Browse capabilities at GET /v1/capabilities or use " "discover_capabilities MCP tool"
+    assert body["error"] == "capability_not_found"
+    assert body["message"] == "No capability found with id 'nonexistent'"
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent"
+
+
+@pytest.mark.anyio
+async def test_execute_unknown_capability_suggests_capability_for_tool_alias(app):
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_tool_alias_supabase,
         ),
-        "request_id": body["request_id"],
-    }
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_tool_alias_supabase,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/Nano%20Banana%20Pro/execute",
+                json={"method": "POST", "path": "/foo", "body": {}},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=Nano%20Banana%20Pro"
+    assert body["suggested_capabilities"][0]["id"] == "ai.generate_image"
 
 
 @pytest.mark.anyio
@@ -1752,6 +1791,31 @@ async def test_execute_get_unknown_capability_404(app):
     assert resp.status_code == 404
     body = resp.json()
     assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=nonexistent"
+
+
+@pytest.mark.anyio
+async def test_estimate_unknown_capability_suggests_capability_for_tool_alias(app):
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_tool_alias_supabase,
+        ),
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_tool_alias_supabase,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/Nano%20Banana%20Pro/execute/estimate")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=Nano%20Banana%20Pro"
+    assert body["suggested_capabilities"][0]["id"] == "ai.generate_image"
 
 
 @pytest.mark.anyio
