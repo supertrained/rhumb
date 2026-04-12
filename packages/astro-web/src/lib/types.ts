@@ -117,6 +117,14 @@ export type LaunchDashboardCtrRow = {
   ctr: number | null;
 };
 
+export type LaunchDashboardExecutionTrendRow = {
+  period: string;
+  total: number;
+  successful: number;
+  failed: number;
+  successRate: number | null;
+};
+
 export type LaunchDashboardViewModel = {
   window: "24h" | "7d" | "launch";
   startAt: string;
@@ -147,6 +155,22 @@ export type LaunchDashboardViewModel = {
       github: number;
       contact: number;
     };
+    latestActivityAt: string | null;
+  };
+  funnel: {
+    queries: number;
+    serviceViews: number;
+    providerClicks: number;
+    executeAttempts: number;
+    successfulExecutes: number;
+  };
+  executions: {
+    total: number;
+    successful: number;
+    failed: number;
+    successRate: number | null;
+    topCapabilities: LaunchDashboardCount[];
+    successTrend: LaunchDashboardExecutionTrendRow[];
     latestActivityAt: string | null;
   };
 };

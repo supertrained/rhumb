@@ -244,6 +244,8 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const coverage = isRecord(data.coverage) ? data.coverage : {};
   const queries = isRecord(data.queries) ? data.queries : {};
   const clicks = isRecord(data.clicks) ? data.clicks : {};
+  const funnel = isRecord(data.funnel) ? data.funnel : {};
+  const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
 
   const providerCtr = asItems(clicks.provider_ctr).map((row) => ({
@@ -251,6 +253,14 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     clicks: asNumber(row.clicks) ?? 0,
     views: asNumber(row.views) ?? 0,
     ctr: asNumber(row.ctr),
+  }));
+
+  const successTrend = asItems(executions.success_trend).map((row) => ({
+    period: asString(row.period) ?? "unknown",
+    total: asNumber(row.total) ?? 0,
+    successful: asNumber(row.successful) ?? 0,
+    failed: asNumber(row.failed) ?? 0,
+    successRate: asNumber(row.success_rate),
   }));
 
   const window = asString(data.window);
@@ -298,6 +308,22 @@ export function parseLaunchDashboardResponse(payload: unknown) {
         contact: asNumber(disputeClicks.contact) ?? 0,
       },
       latestActivityAt: asString(clicks.latest_activity_at),
+    },
+    funnel: {
+      queries: asNumber(funnel.queries) ?? 0,
+      serviceViews: asNumber(funnel.service_views) ?? 0,
+      providerClicks: asNumber(funnel.provider_clicks) ?? 0,
+      executeAttempts: asNumber(funnel.execute_attempts) ?? 0,
+      successfulExecutes: asNumber(funnel.successful_executes) ?? 0,
+    },
+    executions: {
+      total: asNumber(executions.total) ?? 0,
+      successful: asNumber(executions.successful) ?? 0,
+      failed: asNumber(executions.failed) ?? 0,
+      successRate: asNumber(executions.success_rate),
+      topCapabilities: parseDashboardCounts(executions.top_capabilities),
+      successTrend,
+      latestActivityAt: asString(executions.latest_activity_at),
     },
   };
 }

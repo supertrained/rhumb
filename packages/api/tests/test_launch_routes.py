@@ -86,6 +86,19 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
                     "page_path": "/providers",
                 },
             ]
+        if path.startswith("capability_executions?"):
+            return [
+                {
+                    "executed_at": "2026-03-13T07:30:00Z",
+                    "capability_id": "search.query",
+                    "success": True,
+                },
+                {
+                    "executed_at": "2026-03-13T08:30:00Z",
+                    "capability_id": "crm.record.search",
+                    "success": False,
+                },
+            ]
         if path == "services?select=slug":
             return [{"slug": "stripe"}, {"slug": "square"}]
         raise AssertionError(f"Unexpected path: {path}")
@@ -102,6 +115,14 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
     assert payload["queries"]["machine_total"] == 1
     assert payload["clicks"]["provider_clicks"] == 1
     assert payload["clicks"]["dispute_clicks"]["github"] == 1
+    assert payload["executions"]["total"] == 2
+    assert payload["executions"]["successful"] == 1
+    assert payload["executions"]["failed"] == 1
+    assert payload["executions"]["top_capabilities"] == [
+        {"key": "search.query", "count": 1},
+        {"key": "crm.record.search", "count": 1},
+    ]
+    assert payload["funnel"]["execute_attempts"] == 2
 
 
 def test_build_launch_dashboard_sanitizes_top_searches_and_client_keys() -> None:
@@ -118,6 +139,7 @@ def test_build_launch_dashboard_sanitizes_top_searches_and_client_keys() -> None
             },
         ],
         click_events=[],
+        execution_rows=[],
         service_rows=[{"slug": "stripe"}],
         window="launch",
         now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
@@ -160,6 +182,18 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
                 "page_path": "/service/stripe",
             }
         ],
+        execution_rows=[
+            {
+                "executed_at": "2026-03-13T04:00:00Z",
+                "capability_id": "search.query",
+                "success": True,
+            },
+            {
+                "executed_at": "2026-03-13T05:00:00Z",
+                "capability_id": "search.query",
+                "success": False,
+            },
+        ],
         service_rows=[{"slug": "stripe"}],
         window="launch",
         now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
@@ -172,4 +206,13 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
       "clicks": 1,
       "views": 2,
       "ctr": 0.5,
+    }
+    assert dashboard["executions"]["success_rate"] == 0.5
+    assert dashboard["executions"]["top_capabilities"] == [{"key": "search.query", "count": 2}]
+    assert dashboard["funnel"] == {
+        "queries": 2,
+        "service_views": 2,
+        "provider_clicks": 1,
+        "execute_attempts": 2,
+        "successful_executes": 1,
     }

@@ -106,11 +106,16 @@ async def get_launch_dashboard(
         "click_events?select=created_at,event_type,service_slug,destination_domain,source_surface,page_path"
         "&order=created_at.desc&limit=5000"
     )
+    executions = await supabase_fetch(
+        "capability_executions?select=executed_at,capability_id,success"
+        "&order=executed_at.desc&limit=5000"
+    )
     services = await supabase_fetch("services?select=slug")
 
     data = build_launch_dashboard(
         query_logs=query_logs or [],
         click_events=click_events or [],
+        execution_rows=executions or [],
         service_rows=services or [],
         window=window,
     )

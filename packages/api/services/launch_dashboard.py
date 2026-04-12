@@ -62,6 +62,20 @@ def _safe_label(value: Any, *, max_length: int = 120) -> str | None:
     return None
 
 
+def _to_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def _execution_period(created_at: datetime, *, window: str) -> str:
+    if window == "24h":
+        return created_at.strftime("%Y-%m-%dT%H:00:00Z")
+    return created_at.strftime("%Y-%m-%d")
+
+
 def _client_key(row: dict[str, Any]) -> str | None:
     agent_id = _safe_label(row.get("agent_id"))
     if agent_id:
@@ -78,6 +92,7 @@ def build_launch_dashboard(
     *,
     query_logs: Iterable[dict[str, Any]],
     click_events: Iterable[dict[str, Any]],
+    execution_rows: Iterable[dict[str, Any]],
     service_rows: Iterable[dict[str, Any]],
     window: str,
     now: datetime | None = None,
@@ -99,6 +114,13 @@ def build_launch_dashboard(
         if created_at is None or created_at < start_at:
             continue
         click_rows.append({**row, "_created_at": created_at})
+
+    filtered_execution_rows = []
+    for row in execution_rows:
+        executed_at = _parse_timestamp(row.get("executed_at"))
+        if executed_at is None or executed_at < start_at:
+            continue
+        filtered_execution_rows.append({**row, "_executed_at": executed_at})
 
     by_source = Counter[str]()
     by_query_type = Counter[str]()
@@ -139,6 +161,9 @@ def build_launch_dashboard(
     provider_clicks_by_service = Counter[str]()
     dispute_clicks_by_type = Counter[str]()
     clicks_by_surface = Counter[str]()
+    top_capabilities = Counter[str]()
+    success_trend: dict[str, dict[str, Any]] = {}
+    successful_executions = 0
 
     for row in click_rows:
         event_type = str(row.get("event_type") or "unknown")
@@ -154,6 +179,23 @@ def build_launch_dashboard(
 
         if event_type in {"dispute_click", "github_dispute_click", "contact_click"}:
             dispute_clicks_by_type[event_type] += 1
+
+    for row in filtered_execution_rows:
+        capability_id = _safe_label(row.get("capability_id"), max_length=80) or "unknown"
+        top_capabilities[capability_id] += 1
+
+        period = _execution_period(row["_executed_at"], window=window)
+        bucket = success_trend.setdefault(
+            period,
+            {"period": period, "total": 0, "successful": 0, "failed": 0},
+        )
+        bucket["total"] += 1
+
+        if _to_bool(row.get("success")):
+            successful_executions += 1
+            bucket["successful"] += 1
+        else:
+            bucket["failed"] += 1
 
     service_views = Counter[str]()
     for row in query_rows:
@@ -188,9 +230,22 @@ def build_launch_dashboard(
     machine_queries = sum(
         count for source, count in by_source.items() if source in {"api_direct", "cli", "mcp", "unknown_agent"}
     )
+    failed_executions = len(filtered_execution_rows) - successful_executions
 
     latest_query_at = max((row["_created_at"] for row in query_rows), default=None)
     latest_click_at = max((row["_created_at"] for row in click_rows), default=None)
+    latest_execution_at = max((row["_executed_at"] for row in filtered_execution_rows), default=None)
+
+    execution_trend_rows = []
+    for period in sorted(success_trend):
+        bucket = success_trend[period]
+        total = bucket["total"]
+        execution_trend_rows.append(
+            {
+                **bucket,
+                "success_rate": round(bucket["successful"] / total, 4) if total else None,
+            }
+        )
 
     return {
         "window": window,
@@ -223,5 +278,25 @@ def build_launch_dashboard(
                 "contact": dispute_clicks_by_type.get("contact_click", 0),
             },
             "latest_activity_at": latest_click_at.isoformat() if latest_click_at else None,
+        },
+        "funnel": {
+            "queries": len(query_rows),
+            "service_views": sum(service_views.values()),
+            "provider_clicks": sum(provider_clicks.values()),
+            "execute_attempts": len(filtered_execution_rows),
+            "successful_executes": successful_executions,
+        },
+        "executions": {
+            "total": len(filtered_execution_rows),
+            "successful": successful_executions,
+            "failed": failed_executions,
+            "success_rate": (
+                round(successful_executions / len(filtered_execution_rows), 4)
+                if filtered_execution_rows
+                else None
+            ),
+            "top_capabilities": _top_counts(top_capabilities, limit=5),
+            "success_trend": execution_trend_rows,
+            "latest_activity_at": latest_execution_at.isoformat() if latest_execution_at else None,
         },
     }
