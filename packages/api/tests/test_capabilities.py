@@ -608,7 +608,7 @@ async def test_support_direct_capability_surfaces_synthetic_provider(app):
 
 @pytest.mark.anyio
 async def test_crm_direct_capability_surfaces_synthetic_provider(app):
-    """HubSpot CRM direct capabilities should expose a truthful synthetic provider."""
+    """Configured CRM direct capabilities should surface Salesforce first when it is available."""
     with patch(
         "routes.capabilities.supabase_fetch",
         new_callable=AsyncMock,
@@ -622,25 +622,25 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
 
     list_item = list_resp.json()["data"]["items"][0]
     assert list_item["provider_count"] == 2
-    assert list_item["top_provider"]["slug"] == "hubspot"
+    assert list_item["top_provider"]["slug"] == "salesforce"
 
     get_data = get_resp.json()["data"]
     assert get_data["provider_count"] == 2
-    assert get_data["providers"][0]["service_slug"] == "hubspot"
-    assert get_data["providers"][1]["service_slug"] == "salesforce"
+    assert get_data["providers"][0]["service_slug"] == "salesforce"
+    assert get_data["providers"][1]["service_slug"] == "hubspot"
     assert get_data["providers"][0]["auth_method"] == "crm_ref"
 
     resolve_data = resolve_resp.json()["data"]
-    assert resolve_data["providers"][0]["service_slug"] == "hubspot"
-    assert resolve_data["providers"][1]["service_slug"] == "salesforce"
+    assert resolve_data["providers"][0]["service_slug"] == "salesforce"
+    assert resolve_data["providers"][1]["service_slug"] == "hubspot"
     assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
     assert resolve_data["providers"][0]["configured"] is True
     assert resolve_data["providers"][1]["configured"] is True
-    assert resolve_data["execute_hint"]["preferred_provider"] == "hubspot"
+    assert resolve_data["execute_hint"]["preferred_provider"] == "salesforce"
 
     mode_data = modes_resp.json()["data"]
-    assert mode_data["providers"][0]["service_slug"] == "hubspot"
-    assert mode_data["providers"][1]["service_slug"] == "salesforce"
+    assert mode_data["providers"][0]["service_slug"] == "salesforce"
+    assert mode_data["providers"][1]["service_slug"] == "hubspot"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "RHUMB_CRM_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
 

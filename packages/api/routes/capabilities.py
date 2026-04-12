@@ -218,8 +218,10 @@ def _crm_direct_top_provider() -> dict[str, str | None]:
 def _crm_direct_provider_order() -> list[str]:
     hubspot_configured = has_any_crm_bundle_configured("hubspot")
     salesforce_configured = has_any_crm_bundle_configured("salesforce")
-    if salesforce_configured and not hubspot_configured:
+    if salesforce_configured:
         return [_CRM_SALESFORCE_DIRECT_PROVIDER_SLUG, _CRM_HUBSPOT_DIRECT_PROVIDER_SLUG]
+    if hubspot_configured:
+        return [_CRM_HUBSPOT_DIRECT_PROVIDER_SLUG, _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG]
     return [_CRM_HUBSPOT_DIRECT_PROVIDER_SLUG, _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG]
 
 

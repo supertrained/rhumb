@@ -24,6 +24,22 @@ VALID_HUBSPOT_BUNDLE = json.dumps(
     }
 )
 
+VALID_SALESFORCE_BUNDLE = json.dumps(
+    {
+        "provider": "salesforce",
+        "auth_mode": "connected_app_refresh_token",
+        "client_id": "client-123",
+        "client_secret": "secret-123",
+        "refresh_token": "refresh-123",
+        "auth_base_url": "https://login.salesforce.com",
+        "api_version": "v61.0",
+        "allowed_object_types": ["Account"],
+        "allowed_properties_by_object": {
+            "Account": ["Id", "Name", "CreatedDate", "LastModifiedDate"],
+        },
+    }
+)
+
 
 async def _mock_supabase_empty(_path: str):
     return []
@@ -97,6 +113,54 @@ async def test_crm_direct_capability_shows_configured_when_valid_bundle_exists(a
     assert mode_data["providers"][0]["modes"][0]["configured"] is True
     assert mode_data["providers"][0]["any_configured"] is True
     assert mode_data["providers"][1]["modes"][0]["configured"] is False
+
+
+@pytest.mark.anyio
+async def test_crm_direct_capability_prefers_salesforce_when_salesforce_bundle_exists(app):
+    with patch.dict(
+        os.environ,
+        {
+            "RHUMB_CRM_HS_MAIN": VALID_HUBSPOT_BUNDLE,
+            "RHUMB_CRM_SF_MAIN": VALID_SALESFORCE_BUNDLE,
+        },
+        clear=False,
+    ):
+        with patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_empty,
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                list_resp = await client.get("/v1/capabilities")
+                get_resp = await client.get("/v1/capabilities/crm.record.search")
+                resolve_resp = await client.get("/v1/capabilities/crm.record.search/resolve")
+                modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
+
+    list_item = next(item for item in list_resp.json()["data"]["items"] if item["id"] == "crm.record.search")
+    assert list_item["top_provider"]["slug"] == "salesforce"
+
+    get_data = get_resp.json()["data"]
+    assert [provider["service_slug"] for provider in get_data["providers"]] == [
+        "salesforce",
+        "hubspot",
+    ]
+
+    resolve_data = resolve_resp.json()["data"]
+    assert [provider["service_slug"] for provider in resolve_data["providers"]] == [
+        "salesforce",
+        "hubspot",
+    ]
+    assert resolve_data["providers"][0]["configured"] is True
+    assert resolve_data["providers"][1]["configured"] is True
+    assert resolve_data["execute_hint"]["preferred_provider"] == "salesforce"
+
+    mode_data = modes_resp.json()["data"]
+    assert [provider["service_slug"] for provider in mode_data["providers"]] == [
+        "salesforce",
+        "hubspot",
+    ]
+    assert mode_data["providers"][0]["any_configured"] is True
+    assert mode_data["providers"][1]["any_configured"] is True
 
 
 @pytest.mark.anyio
