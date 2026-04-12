@@ -566,6 +566,41 @@ async def test_list_domains(app):
 
 
 @pytest.mark.anyio
+async def test_capabilities_list_preserves_direct_fallback_during_catalog_outage(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, return_value=None):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "temporarily unavailable" in body["error"].lower()
+    ids = {item["id"] for item in body["data"]["items"]}
+    assert "db.query.read" in ids
+    assert "crm.record.search" in ids
+
+
+@pytest.mark.anyio
+async def test_mapped_capability_resolve_uses_cached_catalog_during_outage(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+            warm_resp = await client.get("/v1/capabilities/email.send/resolve")
+
+        with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, return_value=None):
+            degraded_resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert warm_resp.status_code == 200
+    assert degraded_resp.status_code == 200
+
+    warm_data = warm_resp.json()["data"]
+    degraded_data = degraded_resp.json()["data"]
+
+    assert degraded_data["providers"] == warm_data["providers"]
+    assert degraded_data["fallback_chain"] == warm_data["fallback_chain"]
+    assert degraded_data["related_bundles"] == warm_data["related_bundles"]
+    assert degraded_data["execute_hint"] == warm_data["execute_hint"]
+
+
+@pytest.mark.anyio
 async def test_db_direct_capability_surfaces_synthetic_provider(app):
     """DB direct capabilities should expose a truthful synthetic PostgreSQL provider."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):

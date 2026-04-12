@@ -122,8 +122,13 @@ async def cached_query(
             return cached_value
         raise
 
-    if result is not None:
-        _SUPABASE_CACHE.set(key, result, ttl=ttl)
+    if result is None:
+        cached_value = _SUPABASE_CACHE.get(key)
+        if cached_value is not None:
+            return cached_value
+        return None
+
+    _SUPABASE_CACHE.set(key, result, ttl=ttl)
     return result
 
 

@@ -7,9 +7,14 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Query
 
-from routes._supabase import supabase_fetch
+from routes._supabase import cached_query, supabase_fetch
 
 router = APIRouter()
+_READ_CACHE_TTL_SECONDS = 60.0
+
+
+async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
+    return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
 
 
 @router.get("/leaderboard/{category}")
@@ -26,13 +31,14 @@ async def get_leaderboard(
     Returns leaderboard items ranked by aggregate AN Score.
     """
     # Get services in this category
-    services = await supabase_fetch(
+    services = await _cached_fetch(
+        "services",
         f"services?category=eq.{quote(category)}&select=slug,name"
     )
 
     if not services:
         # Check if category exists at all
-        all_services = await supabase_fetch("services?select=category")
+        all_services = await _cached_fetch("services", "services?select=category")
         if all_services:
             categories = sorted(set(s["category"] for s in all_services))
             return {
@@ -49,7 +55,8 @@ async def get_leaderboard(
     slug_filter = ",".join(f'"{s}"' for s in slugs)
 
     # Get scores for all services in category
-    scores = await supabase_fetch(
+    scores = await _cached_fetch(
+        "scores",
         f"scores?service_slug=in.({slug_filter})"
         f"&order=aggregate_recommendation_score.desc.nullslast"
         f"&limit={limit * 2}"  # fetch extra to handle dedup
@@ -113,7 +120,7 @@ async def list_categories() -> dict:
     Categories with zero scored services are excluded.
     """
     # Count by category using scored services only
-    scores_data = await supabase_fetch("scores?select=service_slug")
+    scores_data = await _cached_fetch("scores", "scores?select=service_slug")
     if scores_data is None:
         return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
 
@@ -121,7 +128,7 @@ async def list_categories() -> dict:
     if not scored_slugs:
         return {"data": {"categories": [], "total": 0}, "error": None}
 
-    data = await supabase_fetch("services?select=slug,category")
+    data = await _cached_fetch("services", "services?select=slug,category")
     if data is None:
         return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
 

@@ -7,12 +7,13 @@ This module provides discovery, resolution, and bundle endpoints.
 from __future__ import annotations
 
 import re
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-from routes._supabase import supabase_fetch
+from routes._supabase import cached_query, supabase_fetch
 from services.actions_connection_registry import has_any_actions_bundle_configured
 from services.crm_connection_registry import has_any_crm_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
@@ -36,6 +37,12 @@ def _capability_not_found(raw_request: Request, capability_id: str) -> JSONRespo
     )
 
 router = APIRouter()
+_READ_CACHE_TTL_SECONDS = 60.0
+_DEGRADED_DISCOVERY_ERROR = "Capability catalog temporarily unavailable; showing direct capability fallback where possible."
+
+
+async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
+    return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
 
 _DB_DIRECT_PROVIDER_SLUG = "postgresql"
 _DB_DIRECT_PROVIDER_NAME = "PostgreSQL"
@@ -1473,9 +1480,11 @@ async def list_capabilities(
     # intent-style queries like "generate image" or "scrape website" can
     # match dotted/underscored IDs and related descriptions.
     path = "capabilities?select=id,domain,action,description,input_hint,outcome&order=domain.asc,action.asc"
-    capabilities = await supabase_fetch(path)
+    capabilities = await _cached_fetch("capabilities", path)
+    degraded_error = None
     if capabilities is None:
-        return {"data": {"items": [], "total": 0, "limit": limit, "offset": offset}, "error": "Unable to load capabilities."}
+        capabilities = []
+        degraded_error = _DEGRADED_DISCOVERY_ERROR
 
     existing_ids = {cap.get("id") for cap in capabilities}
     for synthetic in _synthetic_capability_records():
@@ -1506,13 +1515,17 @@ async def list_capabilities(
     page = capabilities[offset : offset + limit]
 
     if not page:
-        return {"data": {"items": [], "total": total, "limit": limit, "offset": offset}, "error": None}
+        return {
+            "data": {"items": [], "total": total, "limit": limit, "offset": offset},
+            "error": degraded_error,
+        }
 
     # Get provider counts and top providers for this page
     cap_ids = [c["id"] for c in page]
     cap_filter = ",".join(f'"{cid}"' for cid in cap_ids)
 
-    mappings = await supabase_fetch(
+    mappings = await _cached_fetch(
+        "capability_services",
         f"capability_services?capability_id=in.({cap_filter})"
         f"&select=capability_id,service_slug"
     )
@@ -1521,7 +1534,8 @@ async def list_capabilities(
     if mappings:
         service_slugs = list({m["service_slug"] for m in mappings})
         slug_filter = ",".join(f'"{s}"' for s in service_slugs)
-        scores = await supabase_fetch(
+        scores = await _cached_fetch(
+            "scores",
             f"scores?service_slug=in.({slug_filter})"
             f"&select=service_slug,aggregate_recommendation_score,tier_label"
             f"&order=aggregate_recommendation_score.desc.nullslast"
@@ -1608,7 +1622,7 @@ async def list_capabilities(
             "limit": limit,
             "offset": offset,
         },
-        "error": None,
+        "error": degraded_error,
     }
 
 
@@ -1618,11 +1632,14 @@ async def list_domains() -> dict:
 
     Useful for building domain navigation / filtering UIs.
     """
-    capabilities = await supabase_fetch(
+    capabilities = await _cached_fetch(
+        "capabilities",
         "capabilities?select=domain,id&order=domain.asc"
     )
+    degraded_error = None
     if capabilities is None:
-        return {"data": {"domains": []}, "error": "Unable to load domains."}
+        capabilities = []
+        degraded_error = _DEGRADED_DISCOVERY_ERROR
 
     existing_ids = {cap.get("id") for cap in capabilities}
     for synthetic in _synthetic_capability_records():
@@ -1640,7 +1657,7 @@ async def list_domains() -> dict:
         for d, c in sorted(domain_counts.items())
     ]
 
-    return {"data": {"domains": domains}, "error": None}
+    return {"data": {"domains": domains}, "error": degraded_error}
 
 
 @router.get("/capabilities/bundles")
@@ -1664,7 +1681,7 @@ async def list_bundles(
             f"description.ilike.{encoded})"
         )
 
-    bundles = await supabase_fetch(path)
+    bundles = await _cached_fetch("capability_bundles", path)
     if bundles is None:
         return {"data": {"bundles": []}, "error": "Unable to load bundles."}
 
@@ -1674,7 +1691,8 @@ async def list_bundles(
     # Get bundle-capability mappings
     bundle_ids = [b["id"] for b in bundles]
     bid_filter = ",".join(f'"{bid}"' for bid in bundle_ids)
-    mappings = await supabase_fetch(
+    mappings = await _cached_fetch(
+        "bundle_capabilities",
         f"bundle_capabilities?bundle_id=in.({bid_filter})"
         f"&select=bundle_id,capability_id,sequence_order"
         f"&order=sequence_order.asc"
@@ -1716,7 +1734,8 @@ async def list_rhumb_managed() -> dict:
     if managed:
         cap_ids = list({m["capability_id"] for m in managed})
         cap_filter = ",".join(f'"{c}"' for c in cap_ids)
-        caps = await supabase_fetch(
+        caps = await _cached_fetch(
+            "capabilities",
             f"capabilities?id=in.({cap_filter})"
             f"&select=id,domain,action,description"
         )
@@ -1740,7 +1759,8 @@ async def list_rhumb_managed() -> dict:
 @router.get("/capabilities/{capability_id}")
 async def get_capability(capability_id: str, raw_request: Request):
     """Get a single capability with full provider details."""
-    caps = await supabase_fetch(
+    caps = await _cached_fetch(
+        "capabilities",
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description,input_hint,outcome&limit=1"
     )
@@ -1800,7 +1820,8 @@ async def get_capability(capability_id: str, raw_request: Request):
         }
 
     # Get all service mappings for this capability
-    mappings = await supabase_fetch(
+    mappings = await _cached_fetch(
+        "capability_services",
         f"capability_services?capability_id=eq.{quote(capability_id)}"
         f"&select=service_slug,credential_modes,auth_method,endpoint_pattern,"
         f"cost_per_call,cost_currency,free_tier_calls,notes,is_primary"
@@ -1812,12 +1833,14 @@ async def get_capability(capability_id: str, raw_request: Request):
         slugs = [m["service_slug"] for m in mappings]
         slug_filter = ",".join(f'"{s}"' for s in slugs)
 
-        scores = await supabase_fetch(
+        scores = await _cached_fetch(
+            "scores",
             f"scores?service_slug=in.({slug_filter})"
             f"&select=service_slug,aggregate_recommendation_score,tier,tier_label"
             f"&order=aggregate_recommendation_score.desc.nullslast"
         )
-        services = await supabase_fetch(
+        services = await _cached_fetch(
+            "services",
             f"services?slug=in.({slug_filter})&select=slug,name,category"
         )
 
@@ -1899,7 +1922,8 @@ async def resolve_capability(
     """
     agent_id = x_rhumb_key or "anonymous"
     # Verify capability exists
-    caps = await supabase_fetch(
+    caps = await _cached_fetch(
+        "capabilities",
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description&limit=1"
     )
@@ -1923,7 +1947,7 @@ async def resolve_capability(
         f"cost_per_call,cost_currency,free_tier_calls,notes"
     )
 
-    mappings = await supabase_fetch(mapping_path)
+    mappings = await _cached_fetch("capability_services", mapping_path)
     if credential_mode:
         mappings = [
             mapping
@@ -1937,14 +1961,16 @@ async def resolve_capability(
     slugs = [m["service_slug"] for m in mappings]
     slug_filter = ",".join(f'"{s}"' for s in slugs)
 
-    scores = await supabase_fetch(
+    scores = await _cached_fetch(
+        "scores",
         f"scores?service_slug=in.({slug_filter})"
         f"&select=service_slug,aggregate_recommendation_score,execution_score,"
         f"access_readiness_score,tier,tier_label,confidence"
         f"&order=aggregate_recommendation_score.desc.nullslast"
     )
 
-    services = await supabase_fetch(
+    services = await _cached_fetch(
+        "services",
         f"services?slug=in.({slug_filter})&select=slug,name"
     )
 
@@ -2051,7 +2077,8 @@ async def resolve_capability(
     ][:3]
 
     # Check for relevant bundles
-    bundle_rows = await supabase_fetch(
+    bundle_rows = await _cached_fetch(
+        "bundle_capabilities",
         f"bundle_capabilities?capability_id=eq.{quote(capability_id)}"
         f"&select=bundle_id"
     )
@@ -2095,7 +2122,8 @@ async def get_credential_modes(
     agent_id = x_rhumb_key or "anonymous"
 
     # Verify capability
-    caps = await supabase_fetch(
+    caps = await _cached_fetch(
+        "capabilities",
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description&limit=1"
     )
@@ -2128,7 +2156,8 @@ async def get_credential_modes(
         }
 
     # Get provider mappings
-    mappings = await supabase_fetch(
+    mappings = await _cached_fetch(
+        "capability_services",
         f"capability_services?capability_id=eq.{quote(capability_id)}"
         f"&select=service_slug,credential_modes,auth_method"
     )
@@ -2278,7 +2307,8 @@ async def get_agent_credentials(
     agent_id = agent.agent_id
 
     # Get all capability-service mappings
-    all_mappings = await supabase_fetch(
+    all_mappings = await _cached_fetch(
+        "capability_services",
         "capability_services?select=capability_id,service_slug,credential_modes,auth_method"
         "&order=capability_id.asc"
     )

@@ -1,8 +1,11 @@
 """Test leaderboard and search endpoints."""
 
 import pytest
+import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote
+from unittest.mock import AsyncMock, patch
 
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -11,35 +14,173 @@ from routes.leaderboard import get_leaderboard, list_categories
 from routes.search import search_services
 
 
+_SERVICES = [
+    {
+        "slug": "resend",
+        "name": "Resend",
+        "category": "email",
+        "description": "Transactional email API",
+    },
+    {
+        "slug": "postmark",
+        "name": "Postmark",
+        "category": "email",
+        "description": "Email delivery for apps",
+    },
+    {
+        "slug": "stripe",
+        "name": "Stripe",
+        "category": "payments",
+        "description": "Accept payments API",
+    },
+]
+
+_SCORE_ROWS = [
+    {
+        "service_slug": "resend",
+        "aggregate_recommendation_score": 8.8,
+        "execution_score": 8.6,
+        "access_readiness_score": 8.7,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.92,
+    },
+    {
+        "service_slug": "postmark",
+        "aggregate_recommendation_score": 8.1,
+        "execution_score": 7.9,
+        "access_readiness_score": 8.0,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.88,
+    },
+    {
+        "service_slug": "stripe",
+        "aggregate_recommendation_score": 8.2,
+        "execution_score": 8.0,
+        "access_readiness_score": 8.1,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.9,
+    },
+]
+
+
+def _parse_in_filter(path: str, key: str) -> set[str] | None:
+    match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", unquote(path))
+    if not match:
+        return None
+    raw_values = match.group(1)
+    values = {
+        part.strip().strip('"')
+        for part in raw_values.split(",")
+        if part.strip()
+    }
+    return values
+
+
+def _extract_category(path: str) -> str | None:
+    match = re.search(r"category=eq\.([^&]+)", unquote(path))
+    return match.group(1) if match else None
+
+
+def _extract_search_query(path: str) -> str | None:
+    match = re.search(r"\.ilike\.\*([^*]+)\*", unquote(path))
+    return match.group(1).lower() if match else None
+
+
+def _service_matches_query(service: dict, query: str) -> bool:
+    haystacks = [
+        service["slug"],
+        service["name"],
+        service["category"],
+        service["description"],
+    ]
+    query = query.lower()
+    return any(query in value.lower() for value in haystacks)
+
+
+def _mock_catalog_supabase(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?category=eq."):
+        category = _extract_category(decoded)
+        return [
+            {"slug": service["slug"], "name": service["name"]}
+            for service in _SERVICES
+            if service["category"] == category
+        ]
+
+    if decoded.startswith("services?select=category"):
+        return [{"category": service["category"]} for service in _SERVICES]
+
+    if decoded.startswith("services?select=slug,category"):
+        return [
+            {"slug": service["slug"], "category": service["category"]}
+            for service in _SERVICES
+        ]
+
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [service for service in _SERVICES if service["slug"] in slugs]
+
+    if decoded.startswith("services?or=("):
+        query = _extract_search_query(decoded)
+        if not query:
+            return []
+        return [service for service in _SERVICES if _service_matches_query(service, query)]
+
+    if decoded.startswith("scores?select=service_slug"):
+        return [{"service_slug": row["service_slug"]} for row in _SCORE_ROWS]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _SCORE_ROWS if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return list(_SCORE_ROWS)
+
+    return []
+
+
+@pytest.fixture
+def mock_catalog_supabase():
+    with (
+        patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_catalog_supabase),
+        patch("routes.search.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_catalog_supabase),
+    ):
+        yield
+
+
 @pytest.mark.asyncio
-async def test_list_categories():
+async def test_list_categories(mock_catalog_supabase):
     """Test /leaderboard endpoint lists all categories."""
     result = await list_categories()
     assert result["error"] is None
     assert "data" in result
     assert "categories" in result["data"]
     assert isinstance(result["data"]["categories"], list)
-    assert result["data"]["total"] >= 0
+    assert result["data"]["total"] == 2
 
 
 @pytest.mark.asyncio
-async def test_get_leaderboard_email():
+async def test_get_leaderboard_email(mock_catalog_supabase):
     """Test /leaderboard/email returns email services."""
     result = await get_leaderboard("email", limit=5)
     assert result["error"] is None
     assert result["data"]["category"] == "email"
     assert isinstance(result["data"]["items"], list)
     assert result["data"]["count"] <= 5
-    
-    if result["data"]["items"]:
-        item = result["data"]["items"][0]
-        assert "service_slug" in item
-        assert "score" in item
-        assert "tier" in item
+    assert {item["service_slug"] for item in result["data"]["items"]} == {"resend", "postmark"}
+
+    item = result["data"]["items"][0]
+    assert "service_slug" in item
+    assert "score" in item
+    assert "tier" in item
 
 
 @pytest.mark.asyncio
-async def test_get_leaderboard_invalid_category():
+async def test_get_leaderboard_invalid_category(mock_catalog_supabase):
     """Test /leaderboard/{invalid} returns error."""
     result = await get_leaderboard("nonexistent-category")
     assert result["error"] is not None
@@ -47,26 +188,25 @@ async def test_get_leaderboard_invalid_category():
 
 
 @pytest.mark.asyncio
-async def test_get_leaderboard_limit():
+async def test_get_leaderboard_limit(mock_catalog_supabase):
     """Test /leaderboard limit parameter works."""
-    result = await get_leaderboard("email", limit=3)
-    assert result["data"]["count"] <= 3
+    result = await get_leaderboard("email", limit=1)
+    assert result["data"]["count"] <= 1
 
 
 @pytest.mark.asyncio
-async def test_search_by_slug():
+async def test_search_by_slug(mock_catalog_supabase):
     """Test search by service slug."""
     result = await search_services("stripe")
     assert result["error"] is None
     assert len(result["data"]["results"]) > 0
-    
-    # Stripe should be in results
+
     slugs = [r["service_slug"] for r in result["data"]["results"]]
     assert "stripe" in slugs
 
 
 @pytest.mark.asyncio
-async def test_search_by_name():
+async def test_search_by_name(mock_catalog_supabase):
     """Test search by service name."""
     result = await search_services("Stripe")
     assert result["error"] is None
@@ -74,35 +214,35 @@ async def test_search_by_name():
 
 
 @pytest.mark.asyncio
-async def test_search_by_category():
+async def test_search_by_category(mock_catalog_supabase):
     """Test search by category."""
     result = await search_services("email")
     assert result["error"] is None
-    # Should return email services
     results = result["data"]["results"]
-    assert len(results) > 0
+    assert len(results) == 2
+    assert all(item["category"] == "email" for item in results)
 
 
 @pytest.mark.asyncio
-async def test_search_empty_query():
+async def test_search_empty_query(mock_catalog_supabase):
     """Test search with empty query returns error."""
     result = await search_services("")
     assert result["error"] is not None
 
 
 @pytest.mark.asyncio
-async def test_search_limit():
+async def test_search_limit(mock_catalog_supabase):
     """Test search limit parameter works."""
-    result = await search_services("api", limit=5)
-    assert len(result["data"]["results"]) <= 5
+    result = await search_services("api", limit=1)
+    assert len(result["data"]["results"]) <= 1
 
 
 @pytest.mark.asyncio
-async def test_search_results_have_scores():
+async def test_search_results_have_scores(mock_catalog_supabase):
     """Test search results include score data."""
     result = await search_services("stripe")
     assert len(result["data"]["results"]) > 0
-    
+
     item = result["data"]["results"][0]
     assert "an_score" in item
     assert "tier" in item
@@ -110,8 +250,8 @@ async def test_search_results_have_scores():
 
 
 @pytest.mark.asyncio
-async def test_search_result_schema():
-    """Search result items have the expected schema fields (replaces removed _load_dataset test)."""
+async def test_search_result_schema(mock_catalog_supabase):
+    """Search result items have the expected schema fields."""
     result = await search_services("stripe")
     assert result["error"] is None
     if result["data"]["results"]:
@@ -122,16 +262,40 @@ async def test_search_result_schema():
 
 
 @pytest.mark.asyncio
-async def test_get_service_categories():
-    """Test category listing works via list_categories (replaces removed _get_service_categories)."""
+async def test_search_uses_stale_cache_during_catalog_outage():
+    with patch("routes.search.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_catalog_supabase):
+        warm = await search_services("stripe")
+
+    with patch("routes.search.supabase_fetch", new_callable=AsyncMock, return_value=None):
+        degraded = await search_services("stripe")
+
+    assert warm["error"] is None
+    assert degraded["error"] is None
+    assert degraded["data"]["results"] == warm["data"]["results"]
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_uses_stale_cache_during_catalog_outage():
+    with patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_catalog_supabase):
+        warm = await get_leaderboard("email", limit=5)
+
+    with patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, return_value=None):
+        degraded = await get_leaderboard("email", limit=5)
+
+    assert warm["error"] is None
+    assert degraded["error"] is None
+    assert degraded["data"]["items"] == warm["data"]["items"]
+    assert degraded["data"]["count"] == warm["data"]["count"]
+
+
+@pytest.mark.asyncio
+async def test_get_service_categories(mock_catalog_supabase):
+    """Test category listing works via list_categories."""
     result = await list_categories()
-    # list_categories returns {"data": {"categories": [...], "total": N}, "error": None}
     assert result["error"] is None
     categories = result["data"]["categories"]
     assert isinstance(categories, list)
-    # Each category entry has slug + service_count
-    if categories:
-        assert all("slug" in c and "service_count" in c for c in categories)
+    assert all("slug" in c and "service_count" in c for c in categories)
 
 
 if __name__ == "__main__":
