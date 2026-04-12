@@ -165,55 +165,69 @@ const displayName = score.serviceSlug
   .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
   .join(" ");
 const pagePath = `/service/${score.serviceSlug}`;
-const disputeHref = buildTrackedOutboundHref({
-  destinationUrl: `mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`,
-  eventType: "dispute_click",
-  serviceSlug: score.serviceSlug,
-  pagePath,
-  sourceSurface: "service_page",
-});
+
+type ServiceOutboundLink = {
+  key: "official_site" | "docs" | "openapi" | "mcp_server";
+  label: string;
+  destinationUrl: string;
+  eventType: "provider_click" | "docs_click";
+};
+
+function buildDisputeHref(sourceSurface: string): string {
+  return buildTrackedOutboundHref({
+    destinationUrl: `mailto:team@supertrained.ai?subject=Score%20dispute%3A%20${encodeURIComponent(score.serviceSlug)}&body=Service%3A%20${encodeURIComponent(score.serviceSlug)}%0ACurrentScore%3A%20${score.aggregateRecommendationScore}%0A%0APlease%20describe%20what%20you%20believe%20is%20incorrect%20and%20include%20evidence%20(API%20docs%2C%20changelog%20links%2C%20error%20samples).`,
+    eventType: "dispute_click",
+    serviceSlug: score.serviceSlug,
+    pagePath,
+    sourceSurface,
+  });
+}
+
+function buildOutboundHref(link: ServiceOutboundLink, sourceSurface: string): string {
+  return buildTrackedOutboundHref({
+    destinationUrl: link.destinationUrl,
+    eventType: link.eventType,
+    serviceSlug: score.serviceSlug,
+    pagePath,
+    sourceSurface,
+  });
+}
+
+const heroDisputeHref = buildDisputeHref("service_page_hero");
+const sidebarDisputeHref = buildDisputeHref("service_page_sidebar");
+
 const outboundLinks = [
   score.baseUrl ? {
+    key: "official_site",
     label: "Official site",
-    href: buildTrackedOutboundHref({
-      destinationUrl: score.baseUrl,
-      eventType: "provider_click",
-      serviceSlug: score.serviceSlug,
-      pagePath,
-      sourceSurface: "service_page",
-    }),
+    destinationUrl: score.baseUrl,
+    eventType: "provider_click",
   } : null,
   score.docsUrl ? {
+    key: "docs",
     label: "Docs",
-    href: buildTrackedOutboundHref({
-      destinationUrl: score.docsUrl,
-      eventType: "docs_click",
-      serviceSlug: score.serviceSlug,
-      pagePath,
-      sourceSurface: "service_page",
-    }),
+    destinationUrl: score.docsUrl,
+    eventType: "docs_click",
   } : null,
   score.openapiUrl ? {
+    key: "openapi",
     label: "OpenAPI",
-    href: buildTrackedOutboundHref({
-      destinationUrl: score.openapiUrl,
-      eventType: "docs_click",
-      serviceSlug: score.serviceSlug,
-      pagePath,
-      sourceSurface: "service_page",
-    }),
+    destinationUrl: score.openapiUrl,
+    eventType: "docs_click",
   } : null,
   score.mcpServerUrl ? {
+    key: "mcp_server",
     label: "MCP server",
-    href: buildTrackedOutboundHref({
-      destinationUrl: score.mcpServerUrl,
-      eventType: "provider_click",
-      serviceSlug: score.serviceSlug,
-      pagePath,
-      sourceSurface: "service_page",
-    }),
+    destinationUrl: score.mcpServerUrl,
+    eventType: "provider_click",
   } : null,
-].filter((item): item is { label: string; href: string } => item !== null);
+].filter((item): item is ServiceOutboundLink => item !== null);
+
+const primaryProviderLink = outboundLinks.find((link) => link.eventType === "provider_click") ?? null;
+const primaryDocsLink = outboundLinks.find((link) => link.eventType === "docs_click") ?? null;
+const secondaryOutboundLinks = outboundLinks.filter(
+  (link) => link !== primaryProviderLink && link !== primaryDocsLink,
+);
 
 // Guide content
 let guideContent: string | null = null;
@@ -257,6 +271,32 @@ const dimensions: DimensionBarData[] = [
     label: "Aggregate AN Score",
     value: score.aggregateRecommendationScore,
     description: "Composite score: 70% execution + 30% access readiness.",
+  },
+];
+
+const severityPriority = ["critical", "high", "medium", "low"] as const;
+const highestFailureSeverity = severityPriority.find((severity) =>
+  score.activeFailures.some((failure) => failure.severity === severity),
+);
+const failureSummary = score.activeFailures.length === 0
+  ? "No active failures listed"
+  : `${score.activeFailures.length} active failure mode${score.activeFailures.length === 1 ? "" : "s"}${highestFailureSeverity ? ` · highest ${highestFailureSeverity}` : ""}`;
+
+const heroStats = [
+  {
+    label: "Evidence",
+    value: score.evidenceTierLabel,
+    detail: evidenceDetail,
+  },
+  {
+    label: "Freshness",
+    value: freshnessLabel(score),
+    detail: score.lastEvaluated || score.calculatedAt ? formatDate(score.lastEvaluated ?? score.calculatedAt) : "Needs another pass",
+  },
+  {
+    label: "Failures",
+    value: score.activeFailures.length === 0 ? "Clear" : `${score.activeFailures.length}`,
+    detail: failureSummary,
   },
 ];
 ---
@@ -331,6 +371,86 @@ const dimensions: DimensionBarData[] = [
                 {score.explanation}
               </p>
             )}
+
+            <section class="mt-6 rounded-2xl border border-amber/20 bg-gradient-to-br from-surface via-surface to-elevated p-5 shadow-[0_0_0_1px_rgba(251,191,36,0.04)]">
+              <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div class="max-w-2xl">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-amber/80">
+                    Verify before you commit
+                  </p>
+                  <h2 class="mt-3 font-display text-xl font-semibold tracking-tight text-slate-100 sm:text-2xl">
+                    Trust read first, source links second, build decision third.
+                  </h2>
+                  <p class="mt-3 text-sm leading-relaxed text-slate-400 sm:text-[15px]">
+                    Use this page to sanity-check {displayName} quickly. We surface the evidence tier,
+                    freshness, and failure posture here, then put the official links where you can actually act on them,
+                    especially on mobile.
+                  </p>
+
+                  <div class="mt-5 flex flex-wrap gap-3">
+                    <a
+                      href="/quickstart"
+                      class="inline-flex items-center justify-center rounded-xl bg-amber px-4 py-2.5 text-sm font-semibold text-navy transition-colors hover:bg-amber-dark"
+                    >
+                      Try through Rhumb
+                    </a>
+                    {primaryProviderLink && (
+                      <a
+                        href={buildOutboundHref(primaryProviderLink, "service_page_hero")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center rounded-xl border border-amber/30 bg-amber/10 px-4 py-2.5 text-sm font-semibold text-amber transition-colors hover:border-amber/60 hover:bg-amber/15"
+                      >
+                        Open {primaryProviderLink.label}
+                      </a>
+                    )}
+                    {primaryDocsLink && (
+                      <a
+                        href={buildOutboundHref(primaryDocsLink, "service_page_hero")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:text-white"
+                      >
+                        Open {primaryDocsLink.label}
+                      </a>
+                    )}
+                  </div>
+
+                  <div class="mt-4 flex flex-wrap gap-3 text-sm text-slate-400">
+                    <a href="/methodology" class="transition-colors hover:text-amber">Methodology</a>
+                    <a href="/trust" class="transition-colors hover:text-amber">Trust process</a>
+                    <a href="/blog/we-scored-ourselves" class="transition-colors hover:text-amber">Current self-assessment</a>
+                    <a href={heroDisputeHref} class="transition-colors hover:text-amber">Dispute this score</a>
+                  </div>
+
+                  {secondaryOutboundLinks.length > 0 && (
+                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-[0.18em] text-slate-500">
+                      <span>Also check</span>
+                      {secondaryOutboundLinks.map((link) => (
+                        <a
+                          href={buildOutboundHref(link, "service_page_hero")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="rounded-full border border-slate-800 bg-slate-900/70 px-2.5 py-1 text-[10px] text-slate-300 transition-colors hover:border-amber/40 hover:text-amber"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-3 lg:w-[22rem] lg:grid-cols-1">
+                  {heroStats.map((stat) => (
+                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+                      <p class="text-[10px] font-mono uppercase tracking-[0.24em] text-slate-500">{stat.label}</p>
+                      <p class="mt-2 text-sm font-semibold text-slate-100">{stat.value}</p>
+                      <p class="mt-1 text-xs leading-relaxed text-slate-500">{stat.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -577,29 +697,10 @@ const dimensions: DimensionBarData[] = [
 
       <!-- Right column: alternatives + meta -->
       <div class="space-y-6">
-        {outboundLinks.length > 0 && (
-          <section class="bg-surface border border-slate-800 rounded-xl p-5">
-            <p class="text-xs font-mono text-slate-500 mb-3">Official links</p>
-            <div class="space-y-2 text-sm">
-              {outboundLinks.map((link) => (
-                <a
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="flex items-center justify-between text-slate-300 hover:text-amber transition-colors"
-                >
-                  <span>{link.label}</span>
-                  <span class="text-xs font-mono text-slate-600">open</span>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
         <!-- Trust / provenance -->
         <section class="bg-surface border border-amber/20 rounded-xl p-5">
           <p class="text-xs font-mono text-amber uppercase tracking-[0.24em] mb-3">
-            Trust &amp; provenance
+            Trust shortcuts
           </p>
           <div class="space-y-3 text-sm leading-relaxed text-slate-400">
             {score.evidenceTier === "verified" ? (
@@ -630,7 +731,7 @@ const dimensions: DimensionBarData[] = [
               Current self-assessment &rarr;
             </a>
             <a
-              href={disputeHref}
+              href={sidebarDisputeHref}
               class="text-slate-300 hover:text-amber transition-colors"
             >
               Dispute this score &rarr;
@@ -691,7 +792,7 @@ const dimensions: DimensionBarData[] = [
         <!-- Dispute score -->
         <div class="text-center pt-2">
           <a
-            href={disputeHref}
+            href={sidebarDisputeHref}
             class="text-xs text-slate-600 hover:text-amber transition-colors"
           >
             Dispute this score &rarr;
