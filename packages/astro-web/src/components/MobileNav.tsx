@@ -6,7 +6,7 @@ const NAV_LINKS = [
   { href: "/resolve", label: "Resolve" },
   { href: "/search", label: "Search" },
   { href: "/docs", label: "Docs" },
-  { href: "/glossary", label: "Glossary" },
+  { href: "/trust", label: "Trust" },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
 ];

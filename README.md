@@ -248,10 +248,11 @@ Node 24+ recommended (`.nvmrc` included).
 
 Every score is disputable. If you believe a score is inaccurate:
 
-1. [Open a GitHub issue](https://github.com/supertrained/rhumb/issues/new) with evidence
-2. Or email [providers@supertrained.ai](mailto:providers@supertrained.ai)
+1. Read the public provider guide at [rhumb.dev/providers](https://rhumb.dev/providers)
+2. [Open the score-dispute GitHub template](https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md) with evidence
+3. Or email [providers@supertrained.ai](mailto:providers@supertrained.ai?subject=Score%20Dispute) for a private path
 
-Negative findings remain visible. Rhumb does not accept payment to change scores.
+We target an initial response within 5 business days. Negative findings remain visible. Rhumb does not accept payment to change scores.
 
 ---
 

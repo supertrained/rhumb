@@ -13,6 +13,20 @@ export const PUBLIC_TRUTH = {
   beachheadLabel: "research, extraction, generation, and narrow enrichment",
   beachheadSummary:
     "Current launchable scope: research, extraction, generation, and narrow enrichment — not general business-agent automation.",
+  trustOverviewUrl: "https://rhumb.dev/trust",
+  methodologyUrl: "https://rhumb.dev/methodology",
+  providersUrl: "https://rhumb.dev/providers",
+  llmsUrl: "https://rhumb.dev/llms.txt",
+  publicAgentCapabilitiesUrl: "https://rhumb.dev/.well-known/agent-capabilities.json",
+  currentSelfAssessmentUrl: "https://rhumb.dev/blog/we-scored-ourselves",
+  historicalSelfAssessmentUrl: "https://rhumb.dev/blog/self-score",
+  publicDisputeTemplateUrl:
+    "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
+  publicDisputesUrl:
+    "https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22",
+  privateDisputesEmail: "providers@supertrained.ai",
+  privateDisputeMailto: "mailto:providers@supertrained.ai?subject=Score%20Dispute",
+  disputeResponseSlaBusinessDays: 5,
   catalogRealitySummary:
     "Discovery breadth: 1,038 scored services and 415 capability definitions. Current execution-ready surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
   callableRealitySummary:

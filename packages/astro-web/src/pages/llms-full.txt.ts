@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getServices, getCategories, getLeaderboard } from '../lib/api';
+import { PUBLIC_TRUTH } from '../lib/public-truth';
 
 export const GET: APIRoute = async () => {
   const [services, categories] = await Promise.all([
@@ -84,16 +85,23 @@ Each service has an evidence tier indicating the depth of evaluation:
 - **Pending**: not yet evaluated
 
 ## Trust & Methodology
-- Full methodology: https://rhumb.dev/methodology
-- Trust policy: https://rhumb.dev/trust
+- Trust overview: ${PUBLIC_TRUTH.trustOverviewUrl}
+- Full methodology: ${PUBLIC_TRUTH.methodologyUrl}
+- Current self-assessment: ${PUBLIC_TRUTH.currentSelfAssessmentUrl}
+- Historical baseline: ${PUBLIC_TRUTH.historicalSelfAssessmentUrl}
+- Provider guide and dispute process: ${PUBLIC_TRUTH.providersUrl}
+- Public dispute template: ${PUBLIC_TRUTH.publicDisputeTemplateUrl}
+- Public dispute log: ${PUBLIC_TRUTH.publicDisputesUrl}
+- Private disputes: ${PUBLIC_TRUTH.privateDisputeMailto}
+- Dispute response target: ${PUBLIC_TRUTH.disputeResponseSlaBusinessDays} business days
 - Glossary: https://rhumb.dev/glossary
 - About the team: https://rhumb.dev/about
-- Score disputes: providers@supertrained.ai or GitHub issues
 
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
 - MCP: npx rhumb-mcp@latest
+- Public agent capabilities: ${PUBLIC_TRUTH.publicAgentCapabilitiesUrl}
 - Twitter: https://x.com/pedrorhumb
 `;
 

@@ -151,18 +151,27 @@ the specific friction of a tool before integrating.
 - Three credential modes: BYOK, Rhumb-Managed, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
 
+## Trust and disputes
+- Trust overview: ${PUBLIC_TRUTH.trustOverviewUrl}
+- Methodology: ${PUBLIC_TRUTH.methodologyUrl}
+- Current self-assessment: ${PUBLIC_TRUTH.currentSelfAssessmentUrl}
+- Historical baseline: ${PUBLIC_TRUTH.historicalSelfAssessmentUrl}
+- Provider guide and dispute process: ${PUBLIC_TRUTH.providersUrl}
+- Public dispute template: ${PUBLIC_TRUTH.publicDisputeTemplateUrl}
+- Public dispute log: ${PUBLIC_TRUTH.publicDisputesUrl}
+- Private disputes: ${PUBLIC_TRUTH.privateDisputeMailto}
+- Dispute response target: ${PUBLIC_TRUTH.disputeResponseSlaBusinessDays} business days
+
 ## Extended Context
-- Full methodology: https://rhumb.dev/methodology
-- Trust and provenance: https://rhumb.dev/trust
 - Glossary: https://rhumb.dev/glossary
 - About the team: https://rhumb.dev/about
-- Score disputes: https://rhumb.dev/providers or providers@supertrained.ai
 - Extended version: https://rhumb.dev/llms-full.txt
 
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
 - MCP Server: npx rhumb-mcp@latest
+- Public agent capabilities: ${PUBLIC_TRUTH.publicAgentCapabilitiesUrl}
 `;
 
   return new Response(content, {

@@ -67,10 +67,19 @@ Operations: routing, usage_telemetry
 - Execution: prepaid credits or x402 per-call
 - Free tier: 1,000 calls/month
 
+## Trust and disputes
+- Trust overview: https://rhumb.dev/trust
+- Methodology: https://rhumb.dev/methodology
+- Current self-assessment: https://rhumb.dev/blog/we-scored-ourselves
+- Historical baseline: https://rhumb.dev/blog/self-score
+- Provider guide and dispute process: https://rhumb.dev/providers
+- Public dispute template: https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md
+- Public dispute log: https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22
+- Private disputes: mailto:providers@supertrained.ai?subject=Score%20Dispute
+- Dispute response target: 5 business days
+
 ## Links
 - Quickstart: https://rhumb.dev/quickstart
-- Methodology: https://rhumb.dev/methodology
-- Trust: https://rhumb.dev/trust
 - Pricing: https://rhumb.dev/pricing
 - Blog: https://rhumb.dev/blog
 - GitHub: https://github.com/supertrained/rhumb

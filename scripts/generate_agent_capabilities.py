@@ -92,6 +92,18 @@ def load_public_truth() -> dict[str, int | str]:
         "domainsLabel",
         "beachheadLabel",
         "beachheadSummary",
+        "trustOverviewUrl",
+        "methodologyUrl",
+        "providersUrl",
+        "llmsUrl",
+        "publicAgentCapabilitiesUrl",
+        "currentSelfAssessmentUrl",
+        "historicalSelfAssessmentUrl",
+        "publicDisputeTemplateUrl",
+        "publicDisputesUrl",
+        "privateDisputesEmail",
+        "privateDisputeMailto",
+        "disputeResponseSlaBusinessDays",
     ]:
         match = re.search(rf"{re.escape(key)}:\s*(\d+|\"[^\"]+\")", text)
         if not match:
@@ -154,12 +166,15 @@ def build_agent_capabilities() -> dict:
             "credential_modes": ["byok", "rhumb_managed", "agent_vault"],
         },
         "scoring": {
-            "methodology": "https://rhumb.dev/methodology",
+            "methodology": public_truth["methodologyUrl"],
             "dimensions": 20,
             "axes": {
-                "execution": {"weight": 0.45, "dimensions": 17},
-                "access": {"weight": 0.40, "dimensions": 6},
-                "autonomy": {"weight": 0.15, "dimensions": 3},
+                "execution": {
+                    "weight": 0.70,
+                    "dimensions": 13,
+                    "includes_autonomy_dimensions": 3,
+                },
+                "access": {"weight": 0.30, "dimensions": 7},
             },
             "tiers": {
                 "L4_Native": "8.0-10.0",
@@ -167,6 +182,20 @@ def build_agent_capabilities() -> dict:
                 "L2_Developing": "4.0-5.9",
                 "L1_Emerging": "0.0-3.9",
             },
+        },
+        "trust": {
+            "overview": public_truth["trustOverviewUrl"],
+            "methodology": public_truth["methodologyUrl"],
+            "provider_guide": public_truth["providersUrl"],
+            "machine_readable_docs": public_truth["llmsUrl"],
+            "agent_capabilities": public_truth["publicAgentCapabilitiesUrl"],
+            "current_self_assessment": public_truth["currentSelfAssessmentUrl"],
+            "historical_self_assessment": public_truth["historicalSelfAssessmentUrl"],
+            "public_dispute_template": public_truth["publicDisputeTemplateUrl"],
+            "public_dispute_log": public_truth["publicDisputesUrl"],
+            "private_dispute_email": public_truth["privateDisputesEmail"],
+            "private_dispute_mailto": public_truth["privateDisputeMailto"],
+            "dispute_response_sla_business_days": public_truth["disputeResponseSlaBusinessDays"],
         },
         "pricing": {
             "discovery": "free",
@@ -176,11 +205,12 @@ def build_agent_capabilities() -> dict:
         },
         "links": {
             "quickstart": "https://rhumb.dev/quickstart",
-            "trust": "https://rhumb.dev/trust",
-            "methodology": "https://rhumb.dev/methodology",
+            "trust": public_truth["trustOverviewUrl"],
+            "methodology": public_truth["methodologyUrl"],
+            "providers": public_truth["providersUrl"],
             "blog": "https://rhumb.dev/blog",
             "github": "https://github.com/supertrained/rhumb",
-            "disputes": "https://github.com/supertrained/rhumb/issues",
+            "disputes": public_truth["providersUrl"],
         },
     }
 
@@ -322,14 +352,23 @@ Operations: {', '.join(GROUPS[3][3])}
 - Execution: prepaid credits or x402 per-call
 - Free tier: 1,000 calls/month
 
+## Trust and disputes
+- Trust overview: {public_truth['trustOverviewUrl']}
+- Methodology: {public_truth['methodologyUrl']}
+- Current self-assessment: {public_truth['currentSelfAssessmentUrl']}
+- Historical baseline: {public_truth['historicalSelfAssessmentUrl']}
+- Provider guide and dispute process: {public_truth['providersUrl']}
+- Public dispute template: {public_truth['publicDisputeTemplateUrl']}
+- Public dispute log: {public_truth['publicDisputesUrl']}
+- Private disputes: {public_truth['privateDisputeMailto']}
+- Dispute response target: {public_truth['disputeResponseSlaBusinessDays']} business days
+
 ## Links
 - Quickstart: https://rhumb.dev/quickstart
-- Methodology: https://rhumb.dev/methodology
-- Trust: https://rhumb.dev/trust
 - Pricing: https://rhumb.dev/pricing
 - Blog: https://rhumb.dev/blog
 - GitHub: https://github.com/supertrained/rhumb
-- Public agent capabilities: https://rhumb.dev/.well-known/agent-capabilities.json""" + "\n"
+- Public agent capabilities: {public_truth['publicAgentCapabilitiesUrl']}""" + "\n"
 
 
 def replace_managed_block(text: str, start_marker: str, end_marker: str, body: str) -> str:

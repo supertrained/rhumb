@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const FAQ_JSON_LD = {
   "@context": "https://schema.org",
@@ -26,7 +27,7 @@ const FAQ_JSON_LD = {
       name: "Can I dispute a Rhumb score?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. File a dispute via GitHub issue or email providers@supertrained.ai. Every dispute is reviewed and the outcome is public.",
+        text: "Yes. File a dispute via Rhumb's public GitHub issue template or private provider email path. Every dispute is reviewed, we target a response within 5 business days, and public outcomes are visible on GitHub.",
       },
     },
   ],
@@ -231,20 +232,23 @@ const TIERS = [
           <ul class="space-y-3 text-sm text-slate-400 leading-relaxed">
             <li>
               <strong class="text-slate-200">llms.txt:</strong>{" "}
-              <a href="/llms.txt" class="text-amber hover:underline underline-offset-2">
+              <a href={PUBLIC_TRUTH.llmsUrl} class="text-amber hover:underline underline-offset-2">
                 discover the available routes and tools
               </a>
             </li>
             <li>
               <strong class="text-slate-200">Docs:</strong>{" "}
+              <a href={PUBLIC_TRUTH.publicAgentCapabilitiesUrl} class="text-amber hover:underline underline-offset-2">
+                agent capabilities JSON
+              </a>{" "}and{" "}
               <a href="/docs" class="text-amber hover:underline underline-offset-2">
                 API and MCP usage
               </a>{" "}
-              for programmatic retrieval of scores, alternatives, and failure modes
+              for programmatic retrieval of scores, alternatives, failure modes, and trust context
             </li>
             <li>
               <strong class="text-slate-200">Service pages:</strong> each score page links back to methodology,
-              trust, self-score, and dispute flow so provenance is visible at
+              trust, current self-assessment, and dispute flow so provenance is visible at
               the moment of evaluation
             </li>
           </ul>
@@ -437,20 +441,29 @@ const TIERS = [
         </p>
         <div class="flex flex-wrap gap-3">
           <a
-            href="https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md"
+            href={PUBLIC_TRUTH.publicDisputeTemplateUrl}
             target="_blank"
             rel="noopener noreferrer"
             class="inline-flex px-4 py-2 rounded-lg bg-elevated border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
           >
-            Open a GitHub issue &rarr;
+            Open a public dispute &rarr;
           </a>
           <a
-            href="mailto:providers@supertrained.ai?subject=Score%20Dispute"
+            href={PUBLIC_TRUTH.privateDisputeMailto}
             class="inline-flex px-4 py-2 rounded-lg bg-elevated border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
           >
             Email privately &rarr;
           </a>
+          <a
+            href={PUBLIC_TRUTH.providersUrl}
+            class="inline-flex px-4 py-2 rounded-lg bg-elevated border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
+          >
+            Read the dispute process &rarr;
+          </a>
         </div>
+        <p class="text-slate-500 text-xs leading-relaxed mt-4">
+          We target an initial response within {PUBLIC_TRUTH.disputeResponseSlaBusinessDays} business days and keep public outcomes visible on GitHub.
+        </p>
       </section>
     </div>
   </div>

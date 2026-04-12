@@ -138,16 +138,13 @@
     "dimensions": 20,
     "axes": {
       "execution": {
-        "weight": 0.45,
-        "dimensions": 17
+        "weight": 0.7,
+        "dimensions": 13,
+        "includes_autonomy_dimensions": 3
       },
       "access": {
-        "weight": 0.4,
-        "dimensions": 6
-      },
-      "autonomy": {
-        "weight": 0.15,
-        "dimensions": 3
+        "weight": 0.3,
+        "dimensions": 7
       }
     },
     "tiers": {
@@ -156,6 +153,20 @@
       "L2_Developing": "4.0-5.9",
       "L1_Emerging": "0.0-3.9"
     }
+  },
+  "trust": {
+    "overview": "https://rhumb.dev/trust",
+    "methodology": "https://rhumb.dev/methodology",
+    "provider_guide": "https://rhumb.dev/providers",
+    "machine_readable_docs": "https://rhumb.dev/llms.txt",
+    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
+    "current_self_assessment": "https://rhumb.dev/blog/we-scored-ourselves",
+    "historical_self_assessment": "https://rhumb.dev/blog/self-score",
+    "public_dispute_template": "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
+    "public_dispute_log": "https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22",
+    "private_dispute_email": "providers@supertrained.ai",
+    "private_dispute_mailto": "mailto:providers@supertrained.ai?subject=Score%20Dispute",
+    "dispute_response_sla_business_days": 5
   },
   "pricing": {
     "discovery": "free",
@@ -167,8 +178,9 @@
     "quickstart": "https://rhumb.dev/quickstart",
     "trust": "https://rhumb.dev/trust",
     "methodology": "https://rhumb.dev/methodology",
+    "providers": "https://rhumb.dev/providers",
     "blog": "https://rhumb.dev/blog",
     "github": "https://github.com/supertrained/rhumb",
-    "disputes": "https://github.com/supertrained/rhumb/issues"
+    "disputes": "https://rhumb.dev/providers"
   }
 }

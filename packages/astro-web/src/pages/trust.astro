@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const TRUST_JSON_LD = {
   "@context": "https://schema.org",
@@ -58,24 +59,28 @@ const TRUST_JSON_LD = {
           <ul class="space-y-3 text-sm text-slate-400 leading-relaxed">
             <li>
               <strong class="text-slate-200">Method:</strong>{" "}
-              <a href="/methodology" class="text-amber hover:underline underline-offset-2">
+              <a href={PUBLIC_TRUTH.methodologyUrl} class="text-amber hover:underline underline-offset-2">
                 published methodology
               </a>
             </li>
             <li>
               <strong class="text-slate-200">Self-audit:</strong>{" "}
-              <a href="/blog/we-scored-ourselves" class="text-amber hover:underline underline-offset-2">
+              <a href={PUBLIC_TRUTH.currentSelfAssessmentUrl} class="text-amber hover:underline underline-offset-2">
                 current self-assessment
+              </a>
+              {" "}and{" "}
+              <a href={PUBLIC_TRUTH.historicalSelfAssessmentUrl} class="text-amber hover:underline underline-offset-2">
+                historical baseline
               </a>
             </li>
             <li>
               <strong class="text-slate-200">Machine-readable entry point:</strong>{" "}
-              <a href="/llms.txt" class="text-amber hover:underline underline-offset-2">
+              <a href={PUBLIC_TRUTH.llmsUrl} class="text-amber hover:underline underline-offset-2">
                 llms.txt
               </a>{" "}
               and{" "}
-              <a href="/docs" class="text-amber hover:underline underline-offset-2">
-                docs
+              <a href={PUBLIC_TRUTH.publicAgentCapabilitiesUrl} class="text-amber hover:underline underline-offset-2">
+                agent capabilities JSON
               </a>
             </li>
             <li>
@@ -85,8 +90,11 @@ const TRUST_JSON_LD = {
               </a>
             </li>
             <li>
-              <strong class="text-slate-200">Dispute path:</strong> public GitHub issue or provider email,
-              both linked below
+              <strong class="text-slate-200">Dispute path:</strong>{" "}
+              <a href={PUBLIC_TRUTH.providersUrl} class="text-amber hover:underline underline-offset-2">
+                provider guide
+              </a>{" "}
+              with public GitHub template, private email path, and a {PUBLIC_TRUTH.disputeResponseSlaBusinessDays}-business-day response target
             </li>
           </ul>
         </div>
@@ -129,14 +137,14 @@ const TRUST_JSON_LD = {
                 </strong>{" "}
                 baseline before launch, then later published a fuller{" "}
                 <a
-                  href="/blog/we-scored-ourselves"
+                  href={PUBLIC_TRUTH.currentSelfAssessmentUrl}
                   class="text-amber hover:underline underline-offset-2"
                 >
                   6.8/10 (L3 Fluent) self-assessment
                 </a>
                 . The original{" "}
                 <a
-                  href="/blog/self-score"
+                  href={PUBLIC_TRUTH.historicalSelfAssessmentUrl}
                   class="text-amber hover:underline underline-offset-2"
                 >
                   March 11 baseline
@@ -159,7 +167,7 @@ const TRUST_JSON_LD = {
               <p class="text-slate-400 text-sm leading-relaxed">
                 Our{" "}
                 <a
-                  href="/methodology"
+                  href={PUBLIC_TRUTH.methodologyUrl}
                   class="text-amber hover:underline underline-offset-2"
                 >
                   scoring methodology
@@ -192,22 +200,30 @@ const TRUST_JSON_LD = {
               <p class="text-slate-400 text-sm leading-relaxed">
                 Disagree with a score? File a dispute via{" "}
                 <a
-                  href="https://github.com/supertrained/rhumb/issues/new"
+                  href={PUBLIC_TRUTH.publicDisputeTemplateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-amber hover:underline underline-offset-2"
                 >
-                  GitHub issue
+                  GitHub issue template
                 </a>{" "}
                 or{" "}
                 <a
-                  href="mailto:providers@supertrained.ai?subject=Score%20Dispute"
+                  href={PUBLIC_TRUTH.privateDisputeMailto}
                   class="text-amber hover:underline underline-offset-2"
                 >
                   email
                 </a>
-                . Every dispute is reviewed, and outcomes are public. We
-                don&#39;t hide from criticism — we use it to improve.
+                . Every dispute is reviewed, we aim to respond within {PUBLIC_TRUTH.disputeResponseSlaBusinessDays} business days, and public outcomes live on{" "}
+                <a
+                  href={PUBLIC_TRUTH.publicDisputesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-amber hover:underline underline-offset-2"
+                >
+                  GitHub
+                </a>
+                . We don&#39;t hide from criticism — we use it to improve.
               </p>
             </div>
           </div>
