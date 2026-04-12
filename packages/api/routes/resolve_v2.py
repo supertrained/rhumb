@@ -154,7 +154,7 @@ class V2CapabilityExecuteRequest(BaseModel):
     )
     credential_mode: str = Field(
         default="auto",
-        description="Credential mode (auto, byok, rhumb_managed, agent_vault).",
+        description="Credential mode (auto, byok, rhumb_managed, agent_vault; legacy byo accepted).",
     )
     idempotency_key: str | None = Field(
         default=None,
@@ -171,6 +171,26 @@ def _compat_headers() -> dict[str, str]:
         "X-Rhumb-Version": _COMPAT_VERSION,
         "X-Rhumb-Compat": _COMPAT_MODE,
     }
+
+
+def _canonicalize_credential_mode(credential_mode: str | None) -> str:
+    """Normalize legacy credential-mode aliases for the compat surface."""
+    return v1_execute._canonicalize_credential_mode(credential_mode) or "auto"
+
+
+def _extract_error_fields(body: Any) -> tuple[str | None, str | None]:
+    """Tolerate both structured and x402-style string error payloads."""
+    if not isinstance(body, dict):
+        return None, None
+    error = body.get("error")
+    if isinstance(error, dict):
+        return error.get("code"), error.get("message")
+    if isinstance(error, str):
+        message = body.get("detail")
+        if not isinstance(message, str):
+            message = body.get("resolution") if isinstance(body.get("resolution"), str) else None
+        return error, message
+    return None, None
 
 
 def _forward_request_headers(raw_request: Request) -> dict[str, str]:
@@ -554,21 +574,29 @@ async def put_policy_v2(
 async def estimate_capability_v2(
     capability_id: str,
     raw_request: Request,
-    credential_mode: str = Query("auto"),
+    credential_mode: str = Query(
+        "auto",
+        description="Credential mode (auto, byok, rhumb_managed, agent_vault; legacy byo accepted).",
+    ),
     provider: str | None = Query(default=None),
 ) -> JSONResponse:
+    canonical_credential_mode = _canonicalize_credential_mode(credential_mode)
     estimate_response = await _forward_internal(
         raw_request,
         method="GET",
         path=f"/v1/capabilities/{capability_id}/execute/estimate",
         params={
-            "credential_mode": credential_mode,
+            "credential_mode": canonical_credential_mode,
             **({"provider": provider} if provider else {}),
         },
     )
 
     body = estimate_response.json()
     if estimate_response.status_code == 200 and isinstance(body.get("data"), dict):
+        if body["data"].get("credential_mode") is not None:
+            body["data"]["credential_mode"] = _canonicalize_credential_mode(
+                body["data"].get("credential_mode")
+            )
         body["data"]["_rhumb_v2"] = {
             "api_version": "v2-alpha",
             "compat_mode": _COMPAT_MODE,
@@ -589,6 +617,7 @@ async def execute_capability_v2(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
+    canonical_credential_mode = _canonicalize_credential_mode(payload.credential_mode)
     agent = None
     account_policy = None
     if raw_request.headers.get("X-Rhumb-Key"):
@@ -609,7 +638,7 @@ async def execute_capability_v2(
         method="GET",
         path=f"/v1/capabilities/{capability_id}/execute/estimate",
         params={
-            "credential_mode": payload.credential_mode,
+            "credential_mode": canonical_credential_mode,
             **({"provider": preferred_provider} if preferred_provider else {}),
         },
     )
@@ -663,7 +692,7 @@ async def execute_capability_v2(
 
     v1_payload: dict[str, Any] = {
         "provider": selected_provider,
-        "credential_mode": payload.credential_mode,
+        "credential_mode": canonical_credential_mode,
         "idempotency_key": payload.idempotency_key or x_rhumb_idempotency_key,
         "interface": f"{payload.interface}-v2",
         "body": payload.parameters,
@@ -684,18 +713,25 @@ async def execute_capability_v2(
 
     # ── Receipt creation ─────────────────────────────────────────────
     execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
+    effective_credential_mode = canonical_credential_mode
+    if execution_data.get("credential_mode") is not None:
+        effective_credential_mode = _canonicalize_credential_mode(
+            execution_data.get("credential_mode")
+        )
+        execution_data["credential_mode"] = effective_credential_mode
     execution_id = execution_data.get("execution_id", "")
     is_success = execute_response.status_code == 200
 
     receipt_id: str | None = None
     try:
+        error_code, error_message = _extract_error_fields(body)
         receipt_input = ReceiptInput(
             execution_id=execution_id or f"v2-compat-{int(time.time())}",
             capability_id=capability_id,
             status="success" if is_success else "failure",
             agent_id=execution_data.get("agent_id", "unknown"),
             provider_id=selected_provider or "unknown",
-            credential_mode=payload.credential_mode,
+            credential_mode=effective_credential_mode,
             layer=2,
             org_id=execution_data.get("org_id"),
             caller_ip_hash=hash_caller_ip(raw_request.client.host if raw_request.client else None),
@@ -718,8 +754,8 @@ async def execute_capability_v2(
             interface=f"{payload.interface}-v2",
             compat_mode=_COMPAT_MODE,
             idempotency_key=payload.idempotency_key or x_rhumb_idempotency_key,
-            error_code=body.get("error", {}).get("code") if not is_success else None,
-            error_message=body.get("error", {}).get("message") if not is_success else None,
+            error_code=error_code if not is_success else None,
+            error_message=error_message if not is_success else None,
         )
         receipt = await get_receipt_service().create_receipt(receipt_input)
         receipt_id = receipt.receipt_id
@@ -776,7 +812,7 @@ async def execute_capability_v2(
             layer=2,
             receipt_id=receipt_id,
             cost_provider_usd=float(estimated_cost) if estimated_cost else None,
-            credential_mode=payload.credential_mode,
+            credential_mode=effective_credential_mode,
         )
         attribution_headers = attribution.to_response_headers()
     except Exception:
@@ -835,7 +871,7 @@ async def execute_capability_v2(
                 execution_id=execution_id,
                 capability_id=capability_id,
                 provider_slug=selected_provider,
-                metadata={"layer": 2, "credential_mode": payload.credential_mode or "auto"},
+                metadata={"layer": 2, "credential_mode": effective_credential_mode},
             )
         elif _billing_org and not is_success:
             get_billing_event_stream().emit(

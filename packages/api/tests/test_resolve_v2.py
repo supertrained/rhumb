@@ -64,6 +64,62 @@ def _mock_v2_budget_enforcer():
         yield mock_enforcer
 
 
+@pytest.fixture(autouse=True)
+def _mock_v1_execute_runtime_seams():
+    mock_rate_limiter = MagicMock()
+    mock_rate_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+
+    mock_kill_switch_registry = MagicMock()
+    mock_kill_switch_registry.is_blocked.return_value = (False, None)
+
+    with (
+        patch("routes.capability_execute._get_rate_limiter", new=AsyncMock(return_value=mock_rate_limiter)),
+        patch("routes.capability_execute.init_kill_switch_registry", new=AsyncMock(return_value=mock_kill_switch_registry)),
+        patch("routes.capability_execute.check_billing_health", new=AsyncMock(return_value=(True, None))),
+        patch("routes.capability_execute.supabase_insert_required", new=AsyncMock(return_value=True)),
+        patch("routes.capability_execute.supabase_patch_required", new=AsyncMock(return_value=True)),
+        patch(
+            "routes.capability_execute._budget_enforcer.check_and_decrement",
+            new=AsyncMock(
+                return_value=BudgetStatus(
+                    allowed=True,
+                    remaining_usd=None,
+                    budget_usd=None,
+                    spent_usd=None,
+                    period=None,
+                    hard_limit=None,
+                    alert_threshold_pct=None,
+                    alert_fired=None,
+                )
+            ),
+        ),
+        patch("routes.capability_execute._budget_enforcer.release", new=AsyncMock(return_value=None)),
+        patch(
+            "routes.capability_execute._credit_deduction.deduct",
+            new=AsyncMock(
+                return_value=SimpleNamespace(
+                    allowed=True,
+                    remaining_cents=10_000,
+                    reason=None,
+                    billing_unavailable=False,
+                )
+            ),
+        ),
+        patch(
+            "routes.capability_execute._credit_deduction.release",
+            new=AsyncMock(
+                return_value=SimpleNamespace(
+                    released=True,
+                    remaining_cents=10_000,
+                    reason=None,
+                    billing_unavailable=False,
+                )
+            ),
+        ),
+    ):
+        yield
+
+
 SAMPLE_CAP = [
     {
         "id": "email.send",
@@ -227,7 +283,7 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     assert body["error"] is None
     data = body["data"]
     assert data["provider_used"] == "sendgrid"
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert data["upstream_status"] == 202
     assert data["_rhumb_v2"]["compat_mode"] == "v1-translate"
     assert data["_rhumb_v2"]["selected_provider"] == "sendgrid"
@@ -283,7 +339,7 @@ async def test_v2_execute_uses_single_canonical_receipt_id_and_skips_v1_receipt(
         patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
         patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=SimpleNamespace(decision=None, all_mappings=[], eligible_mappings=[]))),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
-        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)) as mock_build_attribution,
         patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_test")),
         patch("routes.resolve_v2.store_explanation"),
     ):
@@ -307,7 +363,11 @@ async def test_v2_execute_uses_single_canonical_receipt_id_and_skips_v1_receipt(
     assert data["_rhumb"]["receipt_id"] == "rcpt_v2_canonical"
 
     execute_call = mock_forward.await_args_list[1]
+    estimate_call = mock_forward.await_args_list[0]
+    assert estimate_call.kwargs["params"]["credential_mode"] == "byok"
+    assert execute_call.kwargs["json_body"]["credential_mode"] == "byok"
     assert execute_call.kwargs["extra_headers"] == {"X-Rhumb-Skip-Receipt": "true"}
+    assert mock_build_attribution.await_args.kwargs["credential_mode"] == "byok"
 
 
 @pytest.mark.anyio
