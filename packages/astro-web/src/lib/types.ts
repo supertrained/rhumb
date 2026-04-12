@@ -125,6 +125,18 @@ export type LaunchDashboardExecutionTrendRow = {
   successRate: number | null;
 };
 
+export type LaunchDashboardFunnelTransitionRow = {
+  fromStage: string;
+  toStage: string;
+  fromCount: number;
+  toCount: number;
+  progressedCount: number;
+  dropoffCount: number;
+  dropoffRate: number | null;
+  conversionRate: number | null;
+  overflowCount: number;
+};
+
 export type LaunchDashboardViewModel = {
   window: "24h" | "7d" | "launch";
   startAt: string;
@@ -163,11 +175,18 @@ export type LaunchDashboardViewModel = {
     providerClicks: number;
     executeAttempts: number;
     successfulExecutes: number;
+    stageTransitions: LaunchDashboardFunnelTransitionRow[];
+    biggestDropoff: LaunchDashboardFunnelTransitionRow | null;
   };
   executions: {
     total: number;
     successful: number;
     failed: number;
+    uniqueCallers: number;
+    firstTimeCallers: number;
+    repeatCallers: number;
+    repeatCallerRate: number | null;
+    topInterfaces: LaunchDashboardCount[];
     successRate: number | null;
     topCapabilities: LaunchDashboardCount[];
     successTrend: LaunchDashboardExecutionTrendRow[];

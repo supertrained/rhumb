@@ -31,6 +31,10 @@ function formatPeriodLabel(value: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : formatTimestamp(value);
 }
 
+function formatStageLabel(value: string): string {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 const key = Astro.url.searchParams.get("key") ?? "";
 const windowParam = (Astro.url.searchParams.get("window") ?? "7d") as "24h" | "7d" | "launch";
 
@@ -277,35 +281,99 @@ const windowLinks: Array<{ value: "24h" | "7d" | "launch"; label: string }> = [
               </ul>
             </div>
           </div>
+
+          <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3">
+              <p class="text-xs font-mono text-slate-500">Unique callers</p>
+              <p class="mt-2 text-2xl font-display font-bold text-slate-100">{dashboard.executions.uniqueCallers}</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3">
+              <p class="text-xs font-mono text-slate-500">First-time callers</p>
+              <p class="mt-2 text-2xl font-display font-bold text-slate-100">{dashboard.executions.firstTimeCallers}</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3">
+              <p class="text-xs font-mono text-slate-500">Repeat callers</p>
+              <p class="mt-2 text-2xl font-display font-bold text-slate-100">{dashboard.executions.repeatCallers}</p>
+            </div>
+            <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3">
+              <p class="text-xs font-mono text-slate-500">Repeat caller rate</p>
+              <p class="mt-2 text-2xl font-display font-bold text-slate-100">{formatPct(dashboard.executions.repeatCallerRate)}</p>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <p class="text-xs font-mono text-slate-500">Top execution interfaces</p>
+            <ul class="mt-3 space-y-2 text-sm">
+              {dashboard.executions.topInterfaces.map((row) => (
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>{row.key}</span>
+                  <span class="font-mono text-slate-500">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         <section class="rounded-xl border border-slate-800 bg-surface p-6">
           <h2 class="font-display text-lg text-slate-100 font-semibold">Operator funnel</h2>
           <p class="mt-1 text-sm text-slate-500">
-            Rough launch path from discovery to successful execution.
+            Rough launch path from discovery to successful execution, with drop-off attribution.
           </p>
-          <ul class="mt-5 space-y-3 text-sm">
-            <li class="flex items-center justify-between text-slate-300">
-              <span>Queries</span>
-              <span class="font-mono text-slate-500">{dashboard.funnel.queries}</span>
-            </li>
-            <li class="flex items-center justify-between text-slate-300">
-              <span>Service views</span>
-              <span class="font-mono text-slate-500">{dashboard.funnel.serviceViews}</span>
-            </li>
-            <li class="flex items-center justify-between text-slate-300">
-              <span>Provider clicks</span>
-              <span class="font-mono text-slate-500">{dashboard.funnel.providerClicks}</span>
-            </li>
-            <li class="flex items-center justify-between text-slate-300">
-              <span>Execute attempts</span>
-              <span class="font-mono text-slate-500">{dashboard.funnel.executeAttempts}</span>
-            </li>
-            <li class="flex items-center justify-between text-slate-300">
-              <span>Successful executes</span>
-              <span class="font-mono text-slate-500">{dashboard.funnel.successfulExecutes}</span>
-            </li>
-          </ul>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <div>
+              <ul class="space-y-3 text-sm">
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>Queries</span>
+                  <span class="font-mono text-slate-500">{dashboard.funnel.queries}</span>
+                </li>
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>Service views</span>
+                  <span class="font-mono text-slate-500">{dashboard.funnel.serviceViews}</span>
+                </li>
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>Provider clicks</span>
+                  <span class="font-mono text-slate-500">{dashboard.funnel.providerClicks}</span>
+                </li>
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>Execute attempts</span>
+                  <span class="font-mono text-slate-500">{dashboard.funnel.executeAttempts}</span>
+                </li>
+                <li class="flex items-center justify-between text-slate-300">
+                  <span>Successful executes</span>
+                  <span class="font-mono text-slate-500">{dashboard.funnel.successfulExecutes}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <p class="text-xs font-mono text-slate-500">Stage drop-off</p>
+              <ul class="mt-3 space-y-2 text-sm">
+                {dashboard.funnel.stageTransitions.map((row) => (
+                  <li class="rounded-lg border border-slate-800 bg-navy px-3 py-2 text-slate-300">
+                    <div class="flex items-center justify-between gap-3">
+                      <span>{formatStageLabel(row.fromStage)} → {formatStageLabel(row.toStage)}</span>
+                      <span class="font-mono text-slate-500">{formatPct(row.conversionRate)}</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Drop-off {row.dropoffCount}, overflow {row.overflowCount}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              {dashboard.funnel.biggestDropoff && (
+                <div class="mt-4 rounded-lg border border-amber/20 bg-amber/5 px-4 py-3 text-sm">
+                  <p class="text-xs font-mono text-amber">Biggest drop-off</p>
+                  <p class="mt-2 text-slate-200">
+                    {formatStageLabel(dashboard.funnel.biggestDropoff.fromStage)} → {formatStageLabel(dashboard.funnel.biggestDropoff.toStage)}
+                  </p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    {dashboard.funnel.biggestDropoff.dropoffCount} lost, {formatPct(dashboard.funnel.biggestDropoff.dropoffRate)} drop-off rate
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
       </div>
     </div>

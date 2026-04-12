@@ -107,7 +107,7 @@ async def get_launch_dashboard(
         "&order=created_at.desc&limit=5000"
     )
     executions = await supabase_fetch(
-        "capability_executions?select=executed_at,capability_id,success"
+        "capability_executions?select=executed_at,capability_id,success,agent_id,interface"
         "&order=executed_at.desc&limit=5000"
     )
     services = await supabase_fetch("services?select=slug")

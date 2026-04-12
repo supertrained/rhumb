@@ -92,11 +92,22 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
                     "executed_at": "2026-03-13T07:30:00Z",
                     "capability_id": "search.query",
                     "success": True,
+                    "agent_id": "agent-alpha",
+                    "interface": "mcp",
                 },
                 {
                     "executed_at": "2026-03-13T08:30:00Z",
                     "capability_id": "crm.record.search",
                     "success": False,
+                    "agent_id": "agent-alpha",
+                    "interface": "mcp",
+                },
+                {
+                    "executed_at": "2026-03-13T09:00:00Z",
+                    "capability_id": "ai.generate_image",
+                    "success": True,
+                    "agent_id": "agent-beta",
+                    "interface": "api",
                 },
             ]
         if path == "services?select=slug":
@@ -115,14 +126,35 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
     assert payload["queries"]["machine_total"] == 1
     assert payload["clicks"]["provider_clicks"] == 1
     assert payload["clicks"]["dispute_clicks"]["github"] == 1
-    assert payload["executions"]["total"] == 2
-    assert payload["executions"]["successful"] == 1
+    assert payload["executions"]["total"] == 3
+    assert payload["executions"]["successful"] == 2
     assert payload["executions"]["failed"] == 1
+    assert payload["executions"]["unique_callers"] == 2
+    assert payload["executions"]["first_time_callers"] == 1
+    assert payload["executions"]["repeat_callers"] == 1
+    assert payload["executions"]["repeat_caller_rate"] == 0.5
+    assert payload["executions"]["top_interfaces"] == [
+        {"key": "mcp", "count": 2},
+        {"key": "api", "count": 1},
+    ]
     assert payload["executions"]["top_capabilities"] == [
         {"key": "search.query", "count": 1},
         {"key": "crm.record.search", "count": 1},
+        {"key": "ai.generate_image", "count": 1},
     ]
-    assert payload["funnel"]["execute_attempts"] == 2
+    assert payload["funnel"]["execute_attempts"] == 3
+    assert payload["funnel"]["successful_executes"] == 2
+    assert payload["funnel"]["biggest_dropoff"] == {
+        "from_stage": "queries",
+        "to_stage": "service_views",
+        "from_count": 2,
+        "to_count": 1,
+        "progressed_count": 1,
+        "dropoff_count": 1,
+        "dropoff_rate": 0.5,
+        "conversion_rate": 0.5,
+        "overflow_count": 0,
+    }
 
 
 def test_build_launch_dashboard_sanitizes_top_searches_and_client_keys() -> None:
@@ -187,11 +219,15 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
                 "executed_at": "2026-03-13T04:00:00Z",
                 "capability_id": "search.query",
                 "success": True,
+                "agent_id": "mcp-agent-1",
+                "interface": "mcp",
             },
             {
                 "executed_at": "2026-03-13T05:00:00Z",
                 "capability_id": "search.query",
                 "success": False,
+                "agent_id": "mcp-agent-1",
+                "interface": "mcp",
             },
         ],
         service_rows=[{"slug": "stripe"}],
@@ -208,6 +244,11 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
       "ctr": 0.5,
     }
     assert dashboard["executions"]["success_rate"] == 0.5
+    assert dashboard["executions"]["unique_callers"] == 1
+    assert dashboard["executions"]["first_time_callers"] == 0
+    assert dashboard["executions"]["repeat_callers"] == 1
+    assert dashboard["executions"]["repeat_caller_rate"] == 1.0
+    assert dashboard["executions"]["top_interfaces"] == [{"key": "mcp", "count": 2}]
     assert dashboard["executions"]["top_capabilities"] == [{"key": "search.query", "count": 2}]
     assert dashboard["funnel"] == {
         "queries": 2,
@@ -215,4 +256,61 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
         "provider_clicks": 1,
         "execute_attempts": 2,
         "successful_executes": 1,
+        "stage_transitions": [
+            {
+                "from_stage": "queries",
+                "to_stage": "service_views",
+                "from_count": 2,
+                "to_count": 2,
+                "progressed_count": 2,
+                "dropoff_count": 0,
+                "dropoff_rate": 0.0,
+                "conversion_rate": 1.0,
+                "overflow_count": 0,
+            },
+            {
+                "from_stage": "service_views",
+                "to_stage": "provider_clicks",
+                "from_count": 2,
+                "to_count": 1,
+                "progressed_count": 1,
+                "dropoff_count": 1,
+                "dropoff_rate": 0.5,
+                "conversion_rate": 0.5,
+                "overflow_count": 0,
+            },
+            {
+                "from_stage": "provider_clicks",
+                "to_stage": "execute_attempts",
+                "from_count": 1,
+                "to_count": 2,
+                "progressed_count": 1,
+                "dropoff_count": 0,
+                "dropoff_rate": 0.0,
+                "conversion_rate": 1.0,
+                "overflow_count": 1,
+            },
+            {
+                "from_stage": "execute_attempts",
+                "to_stage": "successful_executes",
+                "from_count": 2,
+                "to_count": 1,
+                "progressed_count": 1,
+                "dropoff_count": 1,
+                "dropoff_rate": 0.5,
+                "conversion_rate": 0.5,
+                "overflow_count": 0,
+            },
+        ],
+        "biggest_dropoff": {
+            "from_stage": "service_views",
+            "to_stage": "provider_clicks",
+            "from_count": 2,
+            "to_count": 1,
+            "progressed_count": 1,
+            "dropoff_count": 1,
+            "dropoff_rate": 0.5,
+            "conversion_rate": 0.5,
+            "overflow_count": 0,
+        },
     }

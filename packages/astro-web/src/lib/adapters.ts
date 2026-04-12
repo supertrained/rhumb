@@ -255,6 +255,24 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     ctr: asNumber(row.ctr),
   }));
 
+  const parseFunnelTransition = (row: unknown) => {
+    if (!isRecord(row)) {
+      return null;
+    }
+
+    return {
+      fromStage: asString(row.from_stage) ?? "unknown",
+      toStage: asString(row.to_stage) ?? "unknown",
+      fromCount: asNumber(row.from_count) ?? 0,
+      toCount: asNumber(row.to_count) ?? 0,
+      progressedCount: asNumber(row.progressed_count) ?? 0,
+      dropoffCount: asNumber(row.dropoff_count) ?? 0,
+      dropoffRate: asNumber(row.dropoff_rate),
+      conversionRate: asNumber(row.conversion_rate),
+      overflowCount: asNumber(row.overflow_count) ?? 0,
+    };
+  };
+
   const successTrend = asItems(executions.success_trend).map((row) => ({
     period: asString(row.period) ?? "unknown",
     total: asNumber(row.total) ?? 0,
@@ -262,6 +280,10 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     failed: asNumber(row.failed) ?? 0,
     successRate: asNumber(row.success_rate),
   }));
+  const stageTransitions = asItems(funnel.stage_transitions)
+    .map(parseFunnelTransition)
+    .filter((row): row is NonNullable<ReturnType<typeof parseFunnelTransition>> => row !== null);
+  const biggestDropoff = parseFunnelTransition(funnel.biggest_dropoff);
 
   const window = asString(data.window);
   const startAt = asString(data.start_at);
@@ -315,11 +337,18 @@ export function parseLaunchDashboardResponse(payload: unknown) {
       providerClicks: asNumber(funnel.provider_clicks) ?? 0,
       executeAttempts: asNumber(funnel.execute_attempts) ?? 0,
       successfulExecutes: asNumber(funnel.successful_executes) ?? 0,
+      stageTransitions,
+      biggestDropoff,
     },
     executions: {
       total: asNumber(executions.total) ?? 0,
       successful: asNumber(executions.successful) ?? 0,
       failed: asNumber(executions.failed) ?? 0,
+      uniqueCallers: asNumber(executions.unique_callers) ?? 0,
+      firstTimeCallers: asNumber(executions.first_time_callers) ?? 0,
+      repeatCallers: asNumber(executions.repeat_callers) ?? 0,
+      repeatCallerRate: asNumber(executions.repeat_caller_rate),
+      topInterfaces: parseDashboardCounts(executions.top_interfaces),
       successRate: asNumber(executions.success_rate),
       topCapabilities: parseDashboardCounts(executions.top_capabilities),
       successTrend,

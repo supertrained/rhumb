@@ -88,6 +88,35 @@ def _client_key(row: dict[str, Any]) -> str | None:
     return None
 
 
+def _execution_caller_key(row: dict[str, Any]) -> str | None:
+    agent_id = _safe_label(row.get("agent_id"))
+    if agent_id:
+        return f"agent:{agent_id}"
+
+    interface = _safe_label(row.get("interface"), max_length=40)
+    if interface:
+        return f"interface:{interface}"
+
+    return None
+
+
+def _build_funnel_transition(from_stage: str, to_stage: str, *, from_count: int, to_count: int) -> dict[str, Any]:
+    progressed_count = min(from_count, to_count)
+    dropoff_count = max(from_count - to_count, 0)
+    overflow_count = max(to_count - from_count, 0)
+    return {
+        "from_stage": from_stage,
+        "to_stage": to_stage,
+        "from_count": from_count,
+        "to_count": to_count,
+        "progressed_count": progressed_count,
+        "dropoff_count": dropoff_count,
+        "dropoff_rate": round(dropoff_count / from_count, 4) if from_count else None,
+        "conversion_rate": round(progressed_count / from_count, 4) if from_count else None,
+        "overflow_count": overflow_count,
+    }
+
+
 def build_launch_dashboard(
     *,
     query_logs: Iterable[dict[str, Any]],
@@ -162,6 +191,8 @@ def build_launch_dashboard(
     dispute_clicks_by_type = Counter[str]()
     clicks_by_surface = Counter[str]()
     top_capabilities = Counter[str]()
+    execution_callers = Counter[str]()
+    executions_by_interface = Counter[str]()
     success_trend: dict[str, dict[str, Any]] = {}
     successful_executions = 0
 
@@ -183,6 +214,13 @@ def build_launch_dashboard(
     for row in filtered_execution_rows:
         capability_id = _safe_label(row.get("capability_id"), max_length=80) or "unknown"
         top_capabilities[capability_id] += 1
+
+        caller_key = _execution_caller_key(row)
+        if caller_key:
+            execution_callers[caller_key] += 1
+
+        interface = _safe_label(row.get("interface"), max_length=40) or "unknown"
+        executions_by_interface[interface] += 1
 
         period = _execution_period(row["_executed_at"], window=window)
         bucket = success_trend.setdefault(
@@ -231,6 +269,9 @@ def build_launch_dashboard(
         count for source, count in by_source.items() if source in {"api_direct", "cli", "mcp", "unknown_agent"}
     )
     failed_executions = len(filtered_execution_rows) - successful_executions
+    unique_execution_callers = len(execution_callers)
+    repeat_execution_callers = sum(1 for count in execution_callers.values() if count > 1)
+    first_time_execution_callers = unique_execution_callers - repeat_execution_callers
 
     latest_query_at = max((row["_created_at"] for row in query_rows), default=None)
     latest_click_at = max((row["_created_at"] for row in click_rows), default=None)
@@ -246,6 +287,25 @@ def build_launch_dashboard(
                 "success_rate": round(bucket["successful"] / total, 4) if total else None,
             }
         )
+
+    funnel_stage_counts = {
+        "queries": len(query_rows),
+        "service_views": sum(service_views.values()),
+        "provider_clicks": sum(provider_clicks.values()),
+        "execute_attempts": len(filtered_execution_rows),
+        "successful_executes": successful_executions,
+    }
+    funnel_transitions = [
+        _build_funnel_transition("queries", "service_views", from_count=funnel_stage_counts["queries"], to_count=funnel_stage_counts["service_views"]),
+        _build_funnel_transition("service_views", "provider_clicks", from_count=funnel_stage_counts["service_views"], to_count=funnel_stage_counts["provider_clicks"]),
+        _build_funnel_transition("provider_clicks", "execute_attempts", from_count=funnel_stage_counts["provider_clicks"], to_count=funnel_stage_counts["execute_attempts"]),
+        _build_funnel_transition("execute_attempts", "successful_executes", from_count=funnel_stage_counts["execute_attempts"], to_count=funnel_stage_counts["successful_executes"]),
+    ]
+    biggest_dropoff = max(
+        funnel_transitions,
+        key=lambda row: (row["dropoff_count"], row["dropoff_rate"] or 0.0),
+        default=None,
+    )
 
     return {
         "window": window,
@@ -280,16 +340,23 @@ def build_launch_dashboard(
             "latest_activity_at": latest_click_at.isoformat() if latest_click_at else None,
         },
         "funnel": {
-            "queries": len(query_rows),
-            "service_views": sum(service_views.values()),
-            "provider_clicks": sum(provider_clicks.values()),
-            "execute_attempts": len(filtered_execution_rows),
-            "successful_executes": successful_executions,
+            **funnel_stage_counts,
+            "stage_transitions": funnel_transitions,
+            "biggest_dropoff": biggest_dropoff,
         },
         "executions": {
             "total": len(filtered_execution_rows),
             "successful": successful_executions,
             "failed": failed_executions,
+            "unique_callers": unique_execution_callers,
+            "first_time_callers": first_time_execution_callers,
+            "repeat_callers": repeat_execution_callers,
+            "repeat_caller_rate": (
+                round(repeat_execution_callers / unique_execution_callers, 4)
+                if unique_execution_callers
+                else None
+            ),
+            "top_interfaces": _top_counts(executions_by_interface, limit=5),
             "success_rate": (
                 round(successful_executions / len(filtered_execution_rows), 4)
                 if filtered_execution_rows
