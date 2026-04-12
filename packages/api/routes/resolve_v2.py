@@ -154,7 +154,7 @@ class V2CapabilityExecuteRequest(BaseModel):
     )
     credential_mode: str = Field(
         default="auto",
-        description="Credential mode (auto, byo, rhumb_managed, agent_vault).",
+        description="Credential mode (auto, byok, rhumb_managed, agent_vault).",
     )
     idempotency_key: str | None = Field(
         default=None,

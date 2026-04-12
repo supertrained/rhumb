@@ -370,7 +370,7 @@ async def test_execute_supports_query_envelope_and_top_level_body(app):
                 "/v1/capabilities/email.send/execute",
                 params={
                     "provider": "sendgrid",
-                    "credential_mode": "byo",
+                    "credential_mode": "byok",
                     "method": "POST",
                     "path": "/v3/mail/send",
                 },
@@ -381,7 +381,7 @@ async def test_execute_supports_query_envelope_and_top_level_body(app):
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["provider_used"] == "sendgrid"
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert data["upstream_status"] == 202
 
     request_call = mock_pool.acquire.return_value.request.await_args
@@ -711,7 +711,7 @@ async def test_estimate_endpoint(app):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v1/capabilities/email.send/execute/estimate",
-                params={"provider": "sendgrid", "credential_mode": "byo"},
+                params={"provider": "sendgrid", "credential_mode": "byok"},
                 headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
             )
 
@@ -721,7 +721,7 @@ async def test_estimate_endpoint(app):
     assert data["provider"] == "sendgrid"
     assert data["cost_estimate_usd"] == 0.01
     assert data["circuit_state"] == "closed"
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert resp.json()["error"] is None
 
 
@@ -770,7 +770,7 @@ async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["provider"] == "brave-search"
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert data["endpoint_pattern"] == "GET /res/v1/web/search"
     assert resp.json()["error"] is None
 
@@ -876,7 +876,7 @@ async def test_estimate_explicit_rhumb_managed_rejects_unmanaged_provider(app):
     assert body["error"] == "provider_not_available"
     assert body["credential_mode"] == "rhumb_managed"
     assert body["requested_provider"] == "sendgrid"
-    assert body["requested_provider_credential_modes"] == ["byo"]
+    assert body["requested_provider_credential_modes"] == ["byok"]
     assert body["available_providers"][0]["provider"] == "resend"
     assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=rhumb_managed"
     assert mock_resolve_managed.await_count == 2
@@ -921,7 +921,7 @@ async def test_execute_explicit_rhumb_managed_rejects_unmanaged_provider_with_al
     assert body["error"] == "provider_not_available"
     assert body["credential_mode"] == "rhumb_managed"
     assert body["requested_provider"] == "sendgrid"
-    assert body["requested_provider_credential_modes"] == ["byo"]
+    assert body["requested_provider_credential_modes"] == ["byok"]
     assert body["available_providers"][0]["provider"] == "resend"
     assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=rhumb_managed"
     assert mock_resolve_managed.await_count == 2
@@ -1576,7 +1576,7 @@ async def test_auto_resolves_to_byo_when_no_config(app):
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert data["provider_used"] == "resend"
     mock_resolve_managed.assert_awaited_once()
 
@@ -1619,7 +1619,7 @@ async def test_explicit_byo_overrides_auto(app):
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["credential_mode"] == "byo"
+    assert data["credential_mode"] == "byok"
     assert data["provider_used"] == "sendgrid"
     mock_resolve_managed.assert_not_awaited()
 
@@ -1788,8 +1788,8 @@ async def test_execute_requires_auth_header(app):
     assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
     assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
     assert body["available_providers"] == [
-        {"provider": "sendgrid", "credential_modes": ["byo"]},
-        {"provider": "resend", "credential_modes": ["byo"]},
+        {"provider": "sendgrid", "credential_modes": ["byok"]},
+        {"provider": "resend", "credential_modes": ["byok"]},
     ]
 
 

@@ -2066,7 +2066,7 @@ async def get_capability(capability_id: str, raw_request: Request):
                 "auth_method": auth_method,
                 "endpoint_pattern": m.get("endpoint_pattern"),
                 "credential_modes": _canonicalize_credential_modes(
-                    m.get("credential_modes") or ["byo"]
+                    m.get("credential_modes") or ["byok"]
                 ),
                 "cost_per_call": float(m["cost_per_call"]) if m.get("cost_per_call") is not None else None,
                 "cost_currency": m.get("cost_currency", "USD"),
@@ -2105,7 +2105,7 @@ async def get_capability(capability_id: str, raw_request: Request):
 async def resolve_capability(
     capability_id: str,
     raw_request: Request,
-    credential_mode: str | None = Query(default=None, description="Filter by credential mode (byo/byok, rhumb_managed, agent_vault)"),
+    credential_mode: str | None = Query(default=None, description="Filter by credential mode (byok, rhumb_managed, agent_vault; legacy byo accepted)"),
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Resolve a capability to ranked providers with health-aware recommendations.
@@ -2188,7 +2188,7 @@ async def resolve_capability(
         an_score = sc.get("aggregate_recommendation_score")
         tier = sc.get("tier")
         auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
-        credential_modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byo"])
+        credential_modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byok"])
 
         # Determine recommendation
         recommendation = "available"
@@ -2385,7 +2385,7 @@ async def get_credential_modes(
     providers = []
     for m in mappings:
         slug = m["service_slug"]
-        modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byo"])
+        modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byok"])
         auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
 
         byok_configured = False

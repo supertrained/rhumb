@@ -81,6 +81,16 @@ def _mock_billing_health():
         yield
 
 
+@pytest.fixture(autouse=True)
+def _mock_managed_provider_budget():
+    with patch(
+        "services.upstream_budget.claim_provider_budget",
+        new_callable=AsyncMock,
+        return_value=(True, None),
+    ):
+        yield
+
+
 # ── RhumbManagedExecutor unit tests ────────────────────────────
 
 
@@ -294,10 +304,20 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
 
     async def mock_fetch(path):
         call_log.append(("fetch", path))
-        if "capabilities?" in path and "id=eq." in path:
+        if path.startswith("capabilities?") and "id=eq." in path:
             return [
                 {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
             ]
+        if "capability_services?" in path:
+            return [{
+                "service_slug": "resend",
+                "credential_modes": ["rhumb_managed"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }]
         if "rhumb_managed_capabilities?" in path:
             return [
                 {
@@ -343,6 +363,7 @@ async def test_execute_rhumb_managed_mode(app, monkeypatch):
 
     with (
         patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -374,10 +395,34 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
     monkeypatch.setenv("RHUMB_CREDENTIAL_RESEND_API_KEY", "re_SECRET_VALUE_12345")
 
     async def mock_fetch(path):
-        if "capabilities?" in path and "id=eq." in path:
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Managed email send",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/emails",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
+        if path.startswith("capabilities?") and "id=eq." in path:
             return [
                 {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
             ]
+        if "capability_services?" in path:
+            return [{
+                "service_slug": "resend",
+                "credential_modes": ["rhumb_managed"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }]
         return []
 
     # Mock executor to return a result that we can inspect for leakage
@@ -403,6 +448,7 @@ async def test_execute_rhumb_managed_no_credential_leakage(app, monkeypatch):
 
     with (
         patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -424,10 +470,20 @@ async def test_execute_rhumb_managed_missing_env_var(app, monkeypatch):
     monkeypatch.delenv("RHUMB_CREDENTIAL_RESEND_API_KEY", raising=False)
 
     async def mock_cap_fetch(path):
-        if "capabilities?" in path and "id=eq." in path:
+        if path.startswith("capabilities?") and "id=eq." in path:
             return [
                 {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
             ]
+        if "capability_services?" in path:
+            return [{
+                "service_slug": "resend",
+                "credential_modes": ["rhumb_managed"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }]
         return []
 
     async def mock_managed_fetch(path):
@@ -470,7 +526,7 @@ async def test_execute_byo_still_requires_method_path(app):
     """BYO mode execution still requires method and path."""
 
     async def mock_fetch(path):
-        if "capabilities?" in path and "id=eq." in path:
+        if path.startswith("capabilities?") and "id=eq." in path:
             return [
                 {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
             ]
@@ -493,10 +549,34 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
     """Managed mode does not require method/path — uses defaults from config."""
 
     async def mock_fetch(path):
-        if "capabilities?" in path and "id=eq." in path:
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "email.send",
+                    "service_slug": "resend",
+                    "description": "Managed email send",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_RESEND_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/emails",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
+        if path.startswith("capabilities?") and "id=eq." in path:
             return [
                 {"id": "email.send", "domain": "email", "action": "send", "description": "Send"}
             ]
+        if "capability_services?" in path:
+            return [{
+                "service_slug": "resend",
+                "credential_modes": ["rhumb_managed"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }]
         return []
 
     async def mock_execute(
@@ -521,6 +601,7 @@ async def test_execute_managed_omits_method_path(app, monkeypatch):
 
     with (
         patch("routes.capability_execute.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
         patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

@@ -182,8 +182,9 @@ async def _capability_not_found_response(raw_request: Request, capability_id: st
 def _capability_resolve_url(capability_id: str, *, credential_mode: str | None = None) -> str:
     """Build a resolve URL that helps callers inspect provider options for a capability."""
     url = f"/v1/capabilities/{quote(capability_id, safe='')}/resolve"
-    if credential_mode:
-        url += f"?credential_mode={quote(credential_mode, safe='')}"
+    normalized_mode = _canonicalize_credential_mode(credential_mode)
+    if normalized_mode:
+        url += f"?credential_mode={quote(normalized_mode, safe='')}"
     return url
 
 
@@ -198,8 +199,9 @@ def _capability_estimate_url(
     params: list[tuple[str, str]] = []
     if provider:
         params.append(("provider", provider))
-    if credential_mode:
-        params.append(("credential_mode", credential_mode))
+    normalized_mode = _canonicalize_credential_mode(credential_mode)
+    if normalized_mode:
+        params.append(("credential_mode", normalized_mode))
     if params:
         url += f"?{urlencode(params)}"
     return url
@@ -213,7 +215,7 @@ def _provider_option_summaries(mappings: list[dict]) -> list[dict[str, Any]]:
         provider = str(mapping.get("service_slug") or "").strip()
         if not provider or provider in seen:
             continue
-        modes = _parse_credential_modes(mapping.get("credential_modes") or ["byo"]) or ["byo"]
+        modes = _parse_credential_modes(mapping.get("credential_modes") or ["byok"]) or ["byok"]
         options.append(
             {
                 "provider": provider,
@@ -301,7 +303,7 @@ def _managed_provider_unavailable_response(
             ),
             "resolution": (
                 "Retry without provider to auto-select a managed provider, choose one "
-                "of the available managed providers, or switch to credential_mode: byo "
+                "of the available managed providers, or switch to credential_mode: byok "
                 "if you want to use your own API key."
             ),
             "credential_mode": "rhumb_managed",
@@ -323,7 +325,7 @@ def _managed_provider_unavailable_response(
             "error": "managed_provider_unavailable",
             "message": f"No managed providers available for capability '{capability_id}'",
             "resolution": (
-                "Retry with credential_mode: byo using your own API key, or inspect the "
+                "Retry with credential_mode: byok using your own API key, or inspect the "
                 "resolve surface for currently supported providers."
             ),
             "credential_mode": "rhumb_managed",
@@ -840,15 +842,15 @@ class CapabilityExecuteRequest(BaseModel):
     """Payload for POST /v1/capabilities/{capability_id}/execute."""
 
     provider: Optional[str] = Field(None, description="Provider slug (omit for auto-select)")
-    method: Optional[str] = Field(None, description="HTTP method (GET, POST, etc.) — required for byo/agent_vault, optional for rhumb_managed")
-    path: Optional[str] = Field(None, description="Provider API path (e.g. /v3/mail/send) — required for byo/agent_vault, optional for rhumb_managed")
+    method: Optional[str] = Field(None, description="HTTP method (GET, POST, etc.) — required for byok/agent_vault, optional for rhumb_managed")
+    path: Optional[str] = Field(None, description="Provider API path (e.g. /v3/mail/send) — required for byok/agent_vault, optional for rhumb_managed")
     body: Optional[dict] = Field(None, description="Request body (provider-native)")
     params: Optional[dict] = Field(None, description="Query parameters")
     credential_mode: str = Field(
         "auto",
         description=(
-            "Credential mode (auto, byo, rhumb_managed, agent_vault). "
-            "'auto' uses rhumb_managed when available, falls back to byo."
+            "Credential mode (auto, byok, rhumb_managed, agent_vault). "
+            "'auto' uses rhumb_managed when available, falls back to byok."
         ),
     )
     idempotency_key: Optional[str] = Field(None, description="Idempotency key to prevent duplicate execution")
@@ -937,7 +939,9 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
     raw_body = await raw_request.body()
     if not raw_body or not raw_body.strip():
         try:
-            return CapabilityExecuteRequest.model_validate(query_overrides)
+            request = CapabilityExecuteRequest.model_validate(query_overrides)
+            request.credential_mode = _canonicalize_credential_mode(request.credential_mode) or "auto"
+            return request
         except ValidationError as exc:
             raise RequestValidationError(exc.errors()) from exc
 
@@ -963,7 +967,9 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
             payload.setdefault(key, value)
 
     try:
-        return CapabilityExecuteRequest.model_validate(payload)
+        request = CapabilityExecuteRequest.model_validate(payload)
+        request.credential_mode = _canonicalize_credential_mode(request.credential_mode) or "auto"
+        return request
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
 
@@ -1175,14 +1181,29 @@ async def _resolve_managed_provider_mapping(
     )
 
 
+def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
+    """Normalize legacy credential-mode aliases to the public vocabulary."""
+    normalized = str(credential_mode or "").strip().lower()
+    if not normalized:
+        return None
+    if normalized == "byo":
+        return "byok"
+    return normalized
+
+
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
     """Normalize credential_modes from Supabase into a list of strings."""
     if isinstance(raw_modes, str):
-        return [mode.strip() for mode in raw_modes.split(",") if mode.strip()]
+        return [
+            normalized
+            for mode in raw_modes.split(",")
+            for normalized in [_canonicalize_credential_mode(mode)]
+            if normalized
+        ]
     if isinstance(raw_modes, (list, tuple, set)):
         parsed_modes: list[str] = []
         for mode in raw_modes:
-            normalized = str(mode).strip()
+            normalized = _canonicalize_credential_mode(str(mode))
             if normalized:
                 parsed_modes.append(normalized)
         return parsed_modes
@@ -1196,8 +1217,9 @@ async def _resolve_auto_credential_mode(
     requested_provider: Optional[str],
 ) -> tuple[str, dict | None]:
     """Resolve auto mode to rhumb_managed when an active managed config exists."""
-    if credential_mode != "auto":
-        return credential_mode, None
+    normalized_mode = _canonicalize_credential_mode(credential_mode) or "auto"
+    if normalized_mode != "auto":
+        return normalized_mode, None
 
     candidate_mappings = [
         mapping
@@ -1218,7 +1240,7 @@ async def _resolve_auto_credential_mode(
             requested_provider=requested_provider,
         )
 
-    resolved_mode = "rhumb_managed" if managed_mapping is not None else "byo"
+    resolved_mode = "rhumb_managed" if managed_mapping is not None else "byok"
     logger.info(
         "credential_mode auto-resolved to %s for capability %s",
         resolved_mode,
@@ -1755,8 +1777,8 @@ async def execute_capability(
             status_code=503,
             content={
                 "error": "managed_execution_suspended",
-                "message": "Managed credential execution is temporarily suspended. Use your own API key (credential_mode: byo) to continue.",
-                "resolution": "Check https://rhumb.dev/status for updates or switch to BYO credentials",
+                "message": "Managed credential execution is temporarily suspended. Use your own API key (credential_mode: byok) to continue.",
+                "resolution": "Check https://rhumb.dev/status for updates or switch to byok credentials",
                 "request_id": f"req_{uuid.uuid4().hex[:12]}",
             },
         )
@@ -1768,7 +1790,7 @@ async def execute_capability(
             raise HTTPException(
                 status_code=429,
                 detail="Daily managed execution limit exceeded (200/day). "
-                       "Consider using BYO credentials for higher volume.",
+                       "Consider using byok credentials for higher volume.",
                 headers={"Retry-After": "3600"},
             )
 
@@ -1794,11 +1816,11 @@ async def execute_capability(
         if not request.method or not request.path:
             raise HTTPException(
                 status_code=400,
-                detail="method and path are required for byo credential mode",
+                detail="method and path are required for byok credential mode",
             )
 
     selected_mapping: dict | None = None
-    if request.credential_mode == "byo":
+    if request.credential_mode == "byok":
         selected_mapping = await _select_provider_mapping(
             mappings=cap_services,
             requested_provider=request.provider,
@@ -2627,9 +2649,9 @@ async def execute_capability(
                         ),
                         "message": budget_reason,
                         "resolution": (
-                            "Retry after the managed budget authority is restored, or use credential_mode: byo with your own API key if you need an immediate bypass"
+                            "Retry after the managed budget authority is restored, or use credential_mode: byok with your own API key if you need an immediate bypass"
                             if authority_unavailable
-                            else "Switch to credential_mode: byo with your own API key, or try again after budget reset"
+                            else "Switch to credential_mode: byok with your own API key, or try again after budget reset"
                         ),
                         "request_id": f"req_{uuid.uuid4().hex[:12]}",
                     },
@@ -3292,8 +3314,8 @@ async def estimate_capability(
     credential_mode: str = Query(
         "auto",
         description=(
-            "Credential mode (auto, byo, rhumb_managed, agent_vault). "
-            "'auto' uses rhumb_managed when available, falls back to byo."
+            "Credential mode (auto, byok, rhumb_managed, agent_vault). "
+            "'auto' uses rhumb_managed when available, falls back to byok."
         ),
     ),
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
@@ -3328,6 +3350,7 @@ async def estimate_capability(
             detail=f"No providers configured for capability '{capability_id}'",
         )
 
+    credential_mode = _canonicalize_credential_mode(credential_mode) or "auto"
     requested_credential_mode = credential_mode
     credential_mode, managed_mapping = await _resolve_auto_credential_mode(
         capability_id=capability_id,

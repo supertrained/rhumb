@@ -276,6 +276,43 @@ def _mock_identity_store():
         yield mock_store
 
 
+@pytest.fixture(autouse=True)
+def _mock_rate_limiter():
+    """Keep x402 route tests off the real durable rate-limiter path."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    with patch(
+        "routes.capability_execute._get_rate_limiter",
+        new_callable=AsyncMock,
+        return_value=mock_limiter,
+    ):
+        yield mock_limiter
+
+
+@pytest.fixture(autouse=True)
+def _mock_kill_switch_registry():
+    """Default x402 route tests to an authoritative non-blocking kill-switch registry."""
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with patch(
+        "routes.capability_execute.init_kill_switch_registry",
+        new_callable=AsyncMock,
+        return_value=mock_registry,
+    ):
+        yield mock_registry
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_insert():
+    """Keep x402 route tests off the real execution control-plane write path."""
+    with patch(
+        "routes.capability_execute.supabase_insert_required",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        yield
+
+
 def _make_budget_denied():
     """Return a BudgetCheckResult that denies execution."""
     from services.budget_enforcer import BudgetCheckResult
@@ -406,10 +443,10 @@ async def test_budget_402_embeds_payment_request_metadata(app):
     assert body["paymentRequestId"] == "pr_budget_123"
     exact_opt = next(a for a in body["accepts"] if a["scheme"] == "exact")
     assert exact_opt["extra"]["paymentRequestId"] == "pr_budget_123"
-    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byo"
-    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byo"
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byok"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok"
     assert body["requested_provider"] == "sendgrid"
-    assert body["requested_provider_credential_modes"] == ["byo"]
+    assert body["requested_provider_credential_modes"] == ["byok"]
 
 
 @pytest.mark.anyio
@@ -477,9 +514,9 @@ async def test_credit_402_has_x402_format(app):
     assert body["x402Version"] == 1
     assert body["error"] == "Insufficient org credits"
     assert "accepts" in body
-    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byo"
-    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byo"
-    assert body["available_providers"] == [{"provider": "sendgrid", "credential_modes": ["byo"]}]
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byok"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok"
+    assert body["available_providers"] == [{"provider": "sendgrid", "credential_modes": ["byok"]}]
 
 
 @pytest.mark.anyio

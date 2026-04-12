@@ -110,7 +110,7 @@ class L1ExecuteRequest(BaseModel):
     )
     credential_mode: str = Field(
         default="auto",
-        description="Credential mode (auto, byo, rhumb_managed, agent_vault).",
+        description="Credential mode (auto, byok, rhumb_managed, agent_vault).",
     )
     policy: L1ProviderPolicy | None = Field(
         default=None,
