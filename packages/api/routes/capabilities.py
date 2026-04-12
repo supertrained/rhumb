@@ -2474,7 +2474,7 @@ async def get_agent_credentials(
 ) -> dict:
     """Return the agent's full credential status.
 
-    Shows which services have BYO credentials configured, which capabilities
+    Shows which services have BYOK credentials configured, which capabilities
     those credentials unlock, and which capabilities need credentials.
 
     Requires a valid API key — this endpoint exposes Rhumb's managed
