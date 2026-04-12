@@ -133,6 +133,26 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
     assert payload["executions"]["first_time_callers"] == 1
     assert payload["executions"]["repeat_callers"] == 1
     assert payload["executions"]["repeat_caller_rate"] == 0.5
+    assert payload["executions"]["caller_cohorts"] == {
+        "first_time": {
+            "attempts": 2,
+            "successful": 2,
+            "failed": 0,
+            "success_rate": 1.0,
+        },
+        "repeat": {
+            "attempts": 1,
+            "successful": 0,
+            "failed": 1,
+            "success_rate": 0.0,
+        },
+        "unattributed": {
+            "attempts": 0,
+            "successful": 0,
+            "failed": 0,
+            "success_rate": None,
+        },
+    }
     assert payload["executions"]["top_interfaces"] == [
         {"key": "mcp", "count": 2},
         {"key": "api", "count": 1},
@@ -248,6 +268,26 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
     assert dashboard["executions"]["first_time_callers"] == 0
     assert dashboard["executions"]["repeat_callers"] == 1
     assert dashboard["executions"]["repeat_caller_rate"] == 1.0
+    assert dashboard["executions"]["caller_cohorts"] == {
+        "first_time": {
+            "attempts": 1,
+            "successful": 1,
+            "failed": 0,
+            "success_rate": 1.0,
+        },
+        "repeat": {
+            "attempts": 1,
+            "successful": 0,
+            "failed": 1,
+            "success_rate": 0.0,
+        },
+        "unattributed": {
+            "attempts": 0,
+            "successful": 0,
+            "failed": 0,
+            "success_rate": None,
+        },
+    }
     assert dashboard["executions"]["top_interfaces"] == [{"key": "mcp", "count": 2}]
     assert dashboard["executions"]["top_capabilities"] == [{"key": "search.query", "count": 2}]
     assert dashboard["funnel"] == {
@@ -312,5 +352,56 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
             "dropoff_rate": 0.5,
             "conversion_rate": 0.5,
             "overflow_count": 0,
+        },
+    }
+
+
+def test_build_launch_dashboard_tracks_unattributed_execution_attempts() -> None:
+    dashboard = build_launch_dashboard(
+        query_logs=[],
+        click_events=[],
+        execution_rows=[
+            {
+                "executed_at": "2026-03-13T04:00:00Z",
+                "capability_id": "search.query",
+                "success": True,
+                "agent_id": None,
+                "interface": None,
+            },
+            {
+                "executed_at": "2026-03-13T05:00:00Z",
+                "capability_id": "search.query",
+                "success": False,
+                "agent_id": "agent-1",
+                "interface": "mcp",
+            },
+        ],
+        service_rows=[{"slug": "stripe"}],
+        window="launch",
+        now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
+    )
+
+    assert dashboard["executions"]["total"] == 2
+    assert dashboard["executions"]["unique_callers"] == 1
+    assert dashboard["executions"]["first_time_callers"] == 1
+    assert dashboard["executions"]["repeat_callers"] == 0
+    assert dashboard["executions"]["caller_cohorts"] == {
+        "first_time": {
+            "attempts": 1,
+            "successful": 0,
+            "failed": 1,
+            "success_rate": 0.0,
+        },
+        "repeat": {
+            "attempts": 0,
+            "successful": 0,
+            "failed": 0,
+            "success_rate": None,
+        },
+        "unattributed": {
+            "attempts": 1,
+            "successful": 1,
+            "failed": 0,
+            "success_rate": 1.0,
         },
     }

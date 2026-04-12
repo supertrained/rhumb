@@ -125,6 +125,13 @@ export type LaunchDashboardExecutionTrendRow = {
   successRate: number | null;
 };
 
+export type LaunchDashboardExecutionCohort = {
+  attempts: number;
+  successful: number;
+  failed: number;
+  successRate: number | null;
+};
+
 export type LaunchDashboardFunnelTransitionRow = {
   fromStage: string;
   toStage: string;
@@ -186,6 +193,11 @@ export type LaunchDashboardViewModel = {
     firstTimeCallers: number;
     repeatCallers: number;
     repeatCallerRate: number | null;
+    callerCohorts: {
+      firstTime: LaunchDashboardExecutionCohort;
+      repeat: LaunchDashboardExecutionCohort;
+      unattributed: LaunchDashboardExecutionCohort;
+    };
     topInterfaces: LaunchDashboardCount[];
     successRate: number | null;
     topCapabilities: LaunchDashboardCount[];

@@ -247,6 +247,20 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const funnel = isRecord(data.funnel) ? data.funnel : {};
   const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
+  const callerCohorts = isRecord(executions.caller_cohorts) ? executions.caller_cohorts : {};
+
+  const parseExecutionCohort = (row: unknown) => {
+    if (!isRecord(row)) {
+      return { attempts: 0, successful: 0, failed: 0, successRate: null };
+    }
+
+    return {
+      attempts: asNumber(row.attempts) ?? 0,
+      successful: asNumber(row.successful) ?? 0,
+      failed: asNumber(row.failed) ?? 0,
+      successRate: asNumber(row.success_rate),
+    };
+  };
 
   const providerCtr = asItems(clicks.provider_ctr).map((row) => ({
     service_slug: asString(row.service_slug) ?? "unknown",
@@ -348,6 +362,11 @@ export function parseLaunchDashboardResponse(payload: unknown) {
       firstTimeCallers: asNumber(executions.first_time_callers) ?? 0,
       repeatCallers: asNumber(executions.repeat_callers) ?? 0,
       repeatCallerRate: asNumber(executions.repeat_caller_rate),
+      callerCohorts: {
+        firstTime: parseExecutionCohort(callerCohorts.first_time),
+        repeat: parseExecutionCohort(callerCohorts.repeat),
+        unattributed: parseExecutionCohort(callerCohorts.unattributed),
+      },
       topInterfaces: parseDashboardCounts(executions.top_interfaces),
       successRate: asNumber(executions.success_rate),
       topCapabilities: parseDashboardCounts(executions.top_capabilities),

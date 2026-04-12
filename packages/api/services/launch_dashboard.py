@@ -195,6 +195,12 @@ def build_launch_dashboard(
     executions_by_interface = Counter[str]()
     success_trend: dict[str, dict[str, Any]] = {}
     successful_executions = 0
+    first_time_execution_attempts = 0
+    first_time_execution_successes = 0
+    repeat_execution_attempts = 0
+    repeat_execution_successes = 0
+    unattributed_execution_attempts = 0
+    unattributed_execution_successes = 0
 
     for row in click_rows:
         event_type = str(row.get("event_type") or "unknown")
@@ -211,7 +217,8 @@ def build_launch_dashboard(
         if event_type in {"dispute_click", "github_dispute_click", "contact_click"}:
             dispute_clicks_by_type[event_type] += 1
 
-    for row in filtered_execution_rows:
+    execution_caller_attempts = Counter[str]()
+    for row in sorted(filtered_execution_rows, key=lambda row: row["_executed_at"]):
         capability_id = _safe_label(row.get("capability_id"), max_length=80) or "unknown"
         top_capabilities[capability_id] += 1
 
@@ -229,11 +236,29 @@ def build_launch_dashboard(
         )
         bucket["total"] += 1
 
-        if _to_bool(row.get("success")):
+        success = _to_bool(row.get("success"))
+        if success:
             successful_executions += 1
             bucket["successful"] += 1
         else:
             bucket["failed"] += 1
+
+        if caller_key is None:
+            unattributed_execution_attempts += 1
+            if success:
+                unattributed_execution_successes += 1
+            continue
+
+        if execution_caller_attempts[caller_key] == 0:
+            first_time_execution_attempts += 1
+            if success:
+                first_time_execution_successes += 1
+        else:
+            repeat_execution_attempts += 1
+            if success:
+                repeat_execution_successes += 1
+
+        execution_caller_attempts[caller_key] += 1
 
     service_views = Counter[str]()
     for row in query_rows:
@@ -356,6 +381,38 @@ def build_launch_dashboard(
                 if unique_execution_callers
                 else None
             ),
+            "caller_cohorts": {
+                "first_time": {
+                    "attempts": first_time_execution_attempts,
+                    "successful": first_time_execution_successes,
+                    "failed": first_time_execution_attempts - first_time_execution_successes,
+                    "success_rate": (
+                        round(first_time_execution_successes / first_time_execution_attempts, 4)
+                        if first_time_execution_attempts
+                        else None
+                    ),
+                },
+                "repeat": {
+                    "attempts": repeat_execution_attempts,
+                    "successful": repeat_execution_successes,
+                    "failed": repeat_execution_attempts - repeat_execution_successes,
+                    "success_rate": (
+                        round(repeat_execution_successes / repeat_execution_attempts, 4)
+                        if repeat_execution_attempts
+                        else None
+                    ),
+                },
+                "unattributed": {
+                    "attempts": unattributed_execution_attempts,
+                    "successful": unattributed_execution_successes,
+                    "failed": unattributed_execution_attempts - unattributed_execution_successes,
+                    "success_rate": (
+                        round(unattributed_execution_successes / unattributed_execution_attempts, 4)
+                        if unattributed_execution_attempts
+                        else None
+                    ),
+                },
+            },
             "top_interfaces": _top_counts(executions_by_interface, limit=5),
             "success_rate": (
                 round(successful_executions / len(filtered_execution_rows), 4)
