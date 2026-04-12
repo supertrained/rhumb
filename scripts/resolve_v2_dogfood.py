@@ -695,6 +695,11 @@ def _artifact_path_for_profile(profile_name: str) -> Path:
     return _artifact_root() / f"resolve-v2-dogfood-{profile_name}-admin-latest.json"
 
 
+def _write_payload_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{json.dumps(payload, indent=2, sort_keys=True)}\n", encoding="utf-8")
+
+
 def _isoformat_utc(timestamp: float) -> str:
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -810,6 +815,32 @@ def _build_fleet_status_summary(results: dict[str, dict[str, Any]], max_age_minu
     return "; ".join(parts)
 
 
+def _run_profile_to_latest_artifact(args: argparse.Namespace, profile_name: str) -> dict[str, Any]:
+    run_args = _apply_profile_defaults(args, profile_name)
+    try:
+        payload = run_flow(run_args)
+    except FlowError as exc:
+        payload = {
+            "ok": False,
+            "summary": str(exc),
+            **exc.state,
+        }
+    except Exception as exc:  # pragma: no cover - defensive CLI fallback
+        payload = {
+            "ok": False,
+            "summary": str(exc),
+            "config": {
+                "profile": profile_name,
+                "provider": run_args.provider,
+                "interface": run_args.interface,
+                "capability": run_args.capability,
+            },
+        }
+
+    _write_payload_json(_artifact_path_for_profile(profile_name), payload)
+    return payload
+
+
 def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict[str, Any]:
     now_ts = time.time()
     results = {
@@ -822,6 +853,26 @@ def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict
         for profile_name in profile_names
     }
 
+    refreshed_profiles: list[str] = []
+    if args.refresh_stale_profiles:
+        for profile_name, payload in results.items():
+            if payload.get("ok"):
+                continue
+            _run_profile_to_latest_artifact(args, profile_name)
+            refreshed_profiles.append(profile_name)
+
+        if refreshed_profiles:
+            now_ts = time.time()
+            results = {
+                profile_name: _build_fleet_status_entry(
+                    profile_name,
+                    _artifact_path_for_profile(profile_name),
+                    now_ts=now_ts,
+                    max_age_minutes=args.fleet_status_max_age_minutes,
+                )
+                for profile_name in profile_names
+            }
+
     return {
         "ok": all(payload.get("ok") for payload in results.values()),
         "mode": "fleet_status",
@@ -829,6 +880,8 @@ def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict
         "profile_count": len(results),
         "checked_at": _isoformat_utc(now_ts),
         "max_artifact_age_minutes": args.fleet_status_max_age_minutes,
+        "refresh_stale_profiles": bool(args.refresh_stale_profiles),
+        "refreshed_profiles": refreshed_profiles,
         "summary": _build_fleet_status_summary(results, args.fleet_status_max_age_minutes),
     }
 
@@ -1300,6 +1353,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         type=float,
         default=DEFAULT_FLEET_STATUS_MAX_AGE_MINUTES,
         help="Maximum artifact age in minutes for --fleet-status mode before a lane is marked stale",
+    )
+    parser.add_argument(
+        "--refresh-stale-profiles",
+        action="store_true",
+        help=(
+            "When used with --fleet-status, rerun the dogfood flow for any profile whose "
+            "status is not ok, write refreshed artifacts, then recompute the fleet summary"
+        ),
     )
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Rhumb API root URL (without /v2)")
     parser.add_argument(

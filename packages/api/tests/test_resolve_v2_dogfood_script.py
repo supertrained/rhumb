@@ -181,6 +181,13 @@ def test_parse_args_accepts_summary_only_flag():
     assert args.summary_only is True
 
 
+def test_parse_args_accepts_refresh_stale_profiles_flag():
+    args = resolve_v2_dogfood.parse_args(["--fleet-status", "--refresh-stale-profiles"])
+
+    assert args.fleet_status is True
+    assert args.refresh_stale_profiles is True
+
+
 def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
     args = resolve_v2_dogfood.parse_args(
         [
@@ -308,6 +315,109 @@ def test_build_fleet_status_summary_mentions_age_and_freshness_window():
     assert "Resolve v2 dogfood fleet status complete; ok_profiles=1/2; freshness_window_minutes=1080" in summary
     assert "keel=ok provider=brave-search age_min=5.0" in summary
     assert "helm=failed provider=brave-search age_min=1200.0" in summary
+
+
+def test_run_fleet_status_refreshes_only_non_ok_profiles_and_recomputes_status(tmp_path):
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+
+    (artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "started_at": 1_700_000_000,
+                "summary": "stale keel",
+                "config": {"provider": "brave-search", "interface": "dogfood-keel"},
+                "receipt_chain": {"chain_intact": True, "verified": 1, "total_checked": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (artifact_root / "resolve-v2-dogfood-helm-admin-latest.json").write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "started_at": 1_700_066_770,
+                "summary": "fresh helm",
+                "config": {"provider": "brave-search", "interface": "dogfood-helm"},
+                "receipt_chain": {"chain_intact": True, "verified": 1, "total_checked": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = resolve_v2_dogfood.parse_args(["--fleet-status", "--refresh-stale-profiles"])
+
+    def fake_run_flow(run_args):
+        return {
+            "ok": True,
+            "started_at": 1_700_066_790,
+            "summary": f"refreshed {run_args.profile}",
+            "config": {"provider": run_args.provider, "interface": run_args.interface},
+            "receipt_chain": {"chain_intact": True, "verified": 2, "total_checked": 2},
+        }
+
+    with (
+        patch.object(resolve_v2_dogfood, "_artifact_root", return_value=artifact_root),
+        patch.object(resolve_v2_dogfood, "run_flow", side_effect=fake_run_flow) as mock_run_flow,
+            patch.object(resolve_v2_dogfood.time, "time", side_effect=[1_700_066_800, 1_700_066_800]),
+    ):
+        payload = resolve_v2_dogfood.run_fleet_status(args, ["keel", "helm", "beacon"])
+
+    assert payload["ok"] is True
+    assert payload["refreshed_profiles"] == ["keel", "beacon"]
+    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {"keel", "beacon"}
+    assert payload["profiles"]["keel"]["ok"] is True
+    assert payload["profiles"]["helm"]["ok"] is True
+    assert payload["profiles"]["beacon"]["ok"] is True
+
+    refreshed_keel = json.loads((artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8"))
+    refreshed_beacon = json.loads((artifact_root / "resolve-v2-dogfood-beacon-admin-latest.json").read_text(encoding="utf-8"))
+    assert refreshed_keel["summary"] == "refreshed keel"
+    assert refreshed_beacon["summary"] == "refreshed beacon"
+
+
+def test_run_fleet_status_refresh_preserves_failure_when_rerun_still_fails(tmp_path):
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+
+    (artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "started_at": 1_700_000_000,
+                "summary": "stale keel",
+                "config": {"provider": "brave-search", "interface": "dogfood-keel"},
+                "receipt_chain": {"chain_intact": True, "verified": 1, "total_checked": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = resolve_v2_dogfood.parse_args(["--fleet-status", "--refresh-stale-profiles"])
+
+    with (
+        patch.object(resolve_v2_dogfood, "_artifact_root", return_value=artifact_root),
+        patch.object(
+            resolve_v2_dogfood,
+            "run_flow",
+            side_effect=resolve_v2_dogfood.FlowError(
+                "refresh failed",
+                {"config": {"profile": "keel", "provider": "brave-search", "interface": "dogfood-keel"}},
+            ),
+        ),
+        patch.object(resolve_v2_dogfood.time, "time", side_effect=[1_700_066_800, 1_700_066_800]),
+    ):
+        payload = resolve_v2_dogfood.run_fleet_status(args, ["keel"])
+
+    assert payload["ok"] is False
+    assert payload["refreshed_profiles"] == ["keel"]
+    assert payload["profiles"]["keel"]["ok"] is False
+    assert "artifact marked failed" in payload["profiles"]["keel"]["blocker"]
+
+    refreshed_keel = json.loads((artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8"))
+    assert refreshed_keel["summary"] == "refresh failed"
+    assert refreshed_keel["ok"] is False
 
 
 def test_provision_api_key_via_admin_creates_agent_and_grants_access():

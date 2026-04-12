@@ -58,8 +58,8 @@ A healthy run should show:
 - Log results into runtime reviews / backed evidence
 - For unattended v2 automation, prefer `scripts/resolve_v2_dogfood.py --bootstrap-via-admin` so the loop can create or rotate its verifier key instead of depending on a stale long-lived dogfood key
 - For recurring per-profile proof jobs, add `--summary-only` so cron history stays to one proof line while the JSON artifact remains the real evidence surface
-- For recurring non-Pedro lanes already writing latest artifacts, use `python3 scripts/resolve_v2_dogfood.py --fleet-status --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json` to audit Keel/Helm/Beacon freshness and chain health without generating another live call
-- That consolidated fleet audit is now also a recurring mechanical cron: `db54ed12-26ac-4fed-8f95-72b0196f4c90` (`Resolve v2 Dogfood Fleet Status Audit`), scheduled for `10:45` and `22:45` PT, running `--fleet-status --summary-only` against the latest artifacts after the Beacon lane
+- For recurring non-Pedro lanes already writing latest artifacts, use `python3 scripts/resolve_v2_dogfood.py --fleet-status --refresh-stale-profiles --bootstrap-via-admin --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json` to audit Keel/Helm/Beacon freshness and chain health, and to self-heal any stale or failed lane once before the summary is finalized
+- That consolidated fleet audit is now also a recurring mechanical cron: `db54ed12-26ac-4fed-8f95-72b0196f4c90` (`Resolve v2 Dogfood Fleet Status Audit`), scheduled for `10:45` and `22:45` PT, running `--fleet-status --refresh-stale-profiles --bootstrap-via-admin --summary-only` against the latest artifacts after the Beacon lane
 - Expand from `search.query` to other callable capabilities only after the loop is clean
 
 ## Expansion order

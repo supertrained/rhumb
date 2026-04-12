@@ -192,6 +192,8 @@ When the recurring non-Pedro lanes are already running and you want a quick stea
 cd rhumb
 python3 scripts/resolve_v2_dogfood.py \
   --fleet-status \
+  --refresh-stale-profiles \
+  --bootstrap-via-admin \
   --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json
 ```
 
@@ -203,7 +205,7 @@ Default audited lanes:
 Default freshness window:
 - `1080` minutes (18 hours)
 
-This mode reads the current `resolve-v2-dogfood-*-admin-latest.json` artifacts, checks whether each lane is still marked `ok`, verifies the receipt-chain flag, and fails the summary if an artifact is missing or stale.
+This mode reads the current `resolve-v2-dogfood-*-admin-latest.json` artifacts, checks whether each lane is still marked `ok`, verifies the receipt-chain flag, and, when `--refresh-stale-profiles` is present, reruns any stale or failed lane once before recomputing the final summary.
 
 ## Summary-only mode for recurring proof jobs
 
@@ -239,12 +241,15 @@ It runs this exact command:
 cd rhumb
 python3 scripts/resolve_v2_dogfood.py \
   --fleet-status \
+  --refresh-stale-profiles \
+  --bootstrap-via-admin \
   --summary-only \
   --json-out artifacts/resolve-v2-dogfood-fleet-status-latest.json
 ```
 
 Purpose:
 - refresh the consolidated `keel` / `helm` / `beacon` proof artifact after the per-profile lanes
+- self-heal a stale or failed lane once before the fleet audit locks in a red status
 - keep cron history to one compact proof line
 - separate mechanical evidence refresh from backlog / memory bookkeeping
 
