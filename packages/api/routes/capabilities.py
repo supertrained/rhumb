@@ -457,12 +457,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DB_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": _DB_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_DB_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -494,12 +489,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_WAREHOUSE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_WAREHOUSE_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -530,12 +520,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "providers": [provider],
         "fallback_chain": [_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -567,12 +552,7 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DEPLOYMENT_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_DEPLOYMENT_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -604,12 +584,7 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_ACTIONS_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": _ACTIONS_DIRECT_PROVIDER_SLUG,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_ACTIONS_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -647,12 +622,7 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": providers,
         "fallback_chain": [provider["service_slug"] for provider in providers],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": preferred_provider["service_slug"],
-            "endpoint_pattern": preferred_provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_CRM_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(preferred_provider),
     }
 
 
@@ -685,12 +655,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [provider_slug],
         "related_bundles": [],
-        "execute_hint": {
-            "preferred_provider": provider_slug,
-            "endpoint_pattern": provider["endpoint_pattern"],
-            "estimated_cost_usd": None,
-            "credential_modes": list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
-        },
+        "execute_hint": _execute_hint_from_provider(provider),
     }
 
 
@@ -791,8 +756,6 @@ def _apply_direct_resolve_credential_mode_filter(
         if isinstance(provider, dict)
         and _supports_requested_credential_mode(provider.get("credential_modes"), credential_mode)
     ]
-    if len(filtered_providers) == len(providers):
-        return payload
 
     filtered_payload = dict(payload)
     filtered_payload["providers"] = filtered_providers
@@ -817,11 +780,10 @@ def _apply_direct_resolve_credential_mode_filter(
             ),
             filtered_providers[0],
         )
-        filtered_payload["execute_hint"] = {
-            **execute_hint,
-            "preferred_provider": preferred_provider.get("service_slug"),
-            "endpoint_pattern": preferred_provider.get("endpoint_pattern"),
-        }
+        filtered_payload["execute_hint"] = _execute_hint_from_provider(
+            preferred_provider,
+            requested_credential_mode=credential_mode,
+        )
 
     return filtered_payload
 
@@ -852,16 +814,49 @@ def _provider_can_back_execute_hint(provider: dict[str, object]) -> bool:
     return bool(provider.get("available_for_execute") and provider.get("endpoint_pattern"))
 
 
-def _execute_hint_from_provider(provider: dict[str, object]) -> dict[str, object]:
-    return {
+def _preferred_credential_mode_for_execute_hint(
+    credential_modes: object,
+    *,
+    requested_credential_mode: str | None = None,
+) -> str | None:
+    normalized_modes = _canonicalize_credential_modes(credential_modes)
+    requested_mode = _canonicalize_credential_mode(requested_credential_mode)
+    if requested_mode and requested_mode in normalized_modes:
+        return requested_mode
+    for mode in ("rhumb_managed", "agent_vault", "byok"):
+        if mode in normalized_modes:
+            return mode
+    if normalized_modes:
+        return normalized_modes[0]
+    return None
+
+
+def _execute_hint_from_provider(
+    provider: dict[str, object],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object]:
+    credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
+    execute_hint = {
         "preferred_provider": provider["service_slug"],
         "endpoint_pattern": provider.get("endpoint_pattern"),
         "estimated_cost_usd": provider.get("cost_per_call"),
-        "credential_modes": provider.get("credential_modes", ["byok"]),
+        "credential_modes": credential_modes,
     }
+    preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
+        credential_modes,
+        requested_credential_mode=requested_credential_mode,
+    )
+    if preferred_credential_mode is not None:
+        execute_hint["preferred_credential_mode"] = preferred_credential_mode
+    return execute_hint
 
 
-def _pick_mapped_execute_hint(providers: list[dict[str, object]]) -> dict[str, object] | None:
+def _pick_mapped_execute_hint(
+    providers: list[dict[str, object]],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
     configured_provider = next(
         (
             provider
@@ -871,14 +866,20 @@ def _pick_mapped_execute_hint(providers: list[dict[str, object]]) -> dict[str, o
         None,
     )
     if configured_provider is not None:
-        return _execute_hint_from_provider(configured_provider)
+        return _execute_hint_from_provider(
+            configured_provider,
+            requested_credential_mode=requested_credential_mode,
+        )
 
     fallback_provider = next(
         (provider for provider in providers if _provider_can_back_execute_hint(provider)),
         None,
     )
     if fallback_provider is not None:
-        return _execute_hint_from_provider(fallback_provider)
+        return _execute_hint_from_provider(
+            fallback_provider,
+            requested_credential_mode=requested_credential_mode,
+        )
 
     return None
 
@@ -2278,7 +2279,10 @@ async def resolve_capability(
     )
     bundle_ids = list({r["bundle_id"] for r in bundle_rows}) if bundle_rows else []
 
-    execute_hint = _pick_mapped_execute_hint(providers)
+    execute_hint = _pick_mapped_execute_hint(
+        providers,
+        requested_credential_mode=credential_mode,
+    )
 
     return {
         "data": {

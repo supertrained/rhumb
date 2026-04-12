@@ -497,6 +497,7 @@ async def test_resolve_capability(app):
     assert first["recommendation"] == "preferred"
     assert first["credential_modes"] == ["byok"]
     assert data["execute_hint"]["credential_modes"] == ["byok"]
+    assert data["execute_hint"]["preferred_credential_mode"] == "byok"
     assert data["related_bundles"] == ["prospect.enrich_and_verify"]
     assert "recommendation_reason" in first
 
@@ -515,6 +516,7 @@ async def test_resolve_capability_accepts_byok_alias_for_byo_mappings(app):
     assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "sendgrid"]
     assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
     assert data["execute_hint"]["preferred_provider"] == "resend"
+    assert data["execute_hint"]["preferred_credential_mode"] == "byok"
 
 
 @pytest.mark.anyio
@@ -576,12 +578,21 @@ async def test_resolve_capability_marks_rhumb_managed_provider_configured(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/v1/capabilities/ai.generate_text/resolve")
+            byok_resp = await client.get(
+                "/v1/capabilities/ai.generate_text/resolve",
+                params={"credential_mode": "byok"},
+            )
 
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["providers"][0]["credential_modes"] == ["rhumb_managed", "byok"]
     assert data["providers"][0]["configured"] is True
     assert data["execute_hint"]["credential_modes"] == ["rhumb_managed", "byok"]
+    assert data["execute_hint"]["preferred_credential_mode"] == "rhumb_managed"
+
+    byok_data = byok_resp.json()["data"]
+    assert byok_data["providers"][0]["credential_modes"] == ["rhumb_managed", "byok"]
+    assert byok_data["execute_hint"]["preferred_credential_mode"] == "byok"
 
 
 @pytest.mark.anyio
@@ -661,6 +672,7 @@ async def test_resolve_capability_prefers_configured_provider_in_execute_hint(ap
     assert data["providers"][1]["configured"] is True
     assert data["execute_hint"]["preferred_provider"] == "rhumb-managed-email"
     assert data["execute_hint"]["credential_modes"] == ["rhumb_managed"]
+    assert data["execute_hint"]["preferred_credential_mode"] == "rhumb_managed"
 
 
 @pytest.mark.anyio
@@ -773,6 +785,7 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
         "env-backed connection_ref is self-hosted/internal only."
     )
     assert resolve_data["execute_hint"]["preferred_provider"] == "postgresql"
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "postgresql"
@@ -802,10 +815,12 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
     supported_data = supported.json()["data"]
     assert supported_data["providers"][0]["service_slug"] == "postgresql"
     assert supported_data["execute_hint"]["preferred_provider"] == "postgresql"
+    assert supported_data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
 
     supported_alias_data = supported_alias.json()["data"]
     assert supported_alias_data["providers"][0]["service_slug"] == "postgresql"
     assert supported_alias_data["execute_hint"]["preferred_provider"] == "postgresql"
+    assert supported_alias_data["execute_hint"]["preferred_credential_mode"] == "byok"
 
     unsupported_data = unsupported.json()["data"]
     assert unsupported_data["providers"] == []
@@ -840,6 +855,7 @@ async def test_object_storage_direct_capability_surfaces_synthetic_provider(app)
     assert resolve_data["providers"][0]["service_slug"] == "aws-s3"
     assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
     assert resolve_data["execute_hint"]["preferred_provider"] == "aws-s3"
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "aws-s3"
@@ -874,6 +890,7 @@ async def test_support_direct_capability_surfaces_synthetic_provider(app):
     assert resolve_data["providers"][0]["service_slug"] == "zendesk"
     assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
     assert resolve_data["execute_hint"]["preferred_provider"] == "zendesk"
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "zendesk"
@@ -912,6 +929,7 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
     assert resolve_data["providers"][0]["configured"] is True
     assert resolve_data["providers"][1]["configured"] is True
     assert resolve_data["execute_hint"]["preferred_provider"] == "salesforce"
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
 
     mode_data = modes_resp.json()["data"]
     assert mode_data["providers"][0]["service_slug"] == "salesforce"
