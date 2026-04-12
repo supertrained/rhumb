@@ -1780,6 +1780,13 @@ async def test_execute_requires_auth_header(app):
             )
     assert resp.status_code == 402
     assert resp.headers["x-payment"] == "required"
+    body = resp.json()
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
+    assert body["available_providers"] == [
+        {"provider": "sendgrid", "credential_modes": ["byo"]},
+        {"provider": "resend", "credential_modes": ["byo"]},
+    ]
 
 
 @pytest.mark.anyio
@@ -1799,6 +1806,8 @@ async def test_execute_get_returns_x402_discovery(app):
     assert body["x402Version"] == 1
     assert "resource" in body
     assert "accepts" in body
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
 
 
 @pytest.mark.anyio
@@ -1828,6 +1837,8 @@ async def test_execute_post_raw_json_without_content_type_returns_x402_discovery
     assert body["x402Version"] == 1
     assert "resource" in body
     assert "accepts" in body
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
 
 
 @pytest.mark.anyio

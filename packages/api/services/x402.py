@@ -24,6 +24,8 @@ def build_x402_response(
     resource_url: str,
     error: str = "Payment required for capability execution",
     payment_request: dict | None = None,
+    resolution: str | None = None,
+    supplemental_fields: dict | None = None,
 ) -> dict:
     """Build an x402-compliant 402 response body.
 
@@ -107,6 +109,10 @@ def build_x402_response(
             "amount": payment_amount,
             "expiresAt": payment_request.get("expires_at"),
         }
+    if resolution:
+        response["resolution"] = resolution
+    if supplemental_fields:
+        response.update(supplemental_fields)
     return response
 
 
@@ -129,12 +135,16 @@ class PaymentRequiredException(Exception):
         resource_url: str,
         detail: str = "",
         payment_request: dict | None = None,
+        resolution: str | None = None,
+        supplemental_fields: dict | None = None,
     ):
         self.capability_id = capability_id
         self.cost_usd_cents = cost_usd_cents
         self.resource_url = resource_url
         self.detail = detail
         self.payment_request = payment_request
+        self.resolution = resolution
+        self.supplemental_fields = supplemental_fields
 
 
 async def payment_required_handler(
@@ -147,6 +157,8 @@ async def payment_required_handler(
         resource_url=exc.resource_url or str(request.url),
         error=exc.detail or "Payment required",
         payment_request=exc.payment_request,
+        resolution=exc.resolution,
+        supplemental_fields=exc.supplemental_fields,
     )
     return JSONResponse(
         status_code=402,

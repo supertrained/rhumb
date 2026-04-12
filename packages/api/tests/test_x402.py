@@ -66,6 +66,23 @@ class TestBuildX402Response:
         stripe_opt = next(a for a in resp["accepts"] if a["scheme"] == "stripe_checkout")
         assert stripe_opt["minAmountUsd"] >= 5.0
 
+    def test_resolution_and_supplemental_fields_are_preserved(self):
+        """Callers can attach recovery guidance and extra execute hints."""
+        resp = build_x402_response(
+            capability_id="email.send",
+            cost_usd_cents=15,
+            resource_url="https://api.rhumb.dev/v1/capabilities/email.send/execute",
+            resolution="Inspect resolve before retrying.",
+            supplemental_fields={
+                "resolve_url": "/v1/capabilities/email.send/resolve",
+                "estimate_url": "/v1/capabilities/email.send/execute/estimate",
+            },
+        )
+
+        assert resp["resolution"] == "Inspect resolve before retrying."
+        assert resp["resolve_url"] == "/v1/capabilities/email.send/resolve"
+        assert resp["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
+
     def test_usdc_absent_without_wallet(self):
         """USDC option is NOT included when RHUMB_USDC_WALLET_ADDRESS is empty."""
         with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": ""}, clear=False):
@@ -389,6 +406,10 @@ async def test_budget_402_embeds_payment_request_metadata(app):
     assert body["paymentRequestId"] == "pr_budget_123"
     exact_opt = next(a for a in body["accepts"] if a["scheme"] == "exact")
     assert exact_opt["extra"]["paymentRequestId"] == "pr_budget_123"
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byo"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byo"
+    assert body["requested_provider"] == "sendgrid"
+    assert body["requested_provider_credential_modes"] == ["byo"]
 
 
 @pytest.mark.anyio
@@ -456,6 +477,9 @@ async def test_credit_402_has_x402_format(app):
     assert body["x402Version"] == 1
     assert body["error"] == "Insufficient org credits"
     assert "accepts" in body
+    assert body["resolve_url"] == "/v1/capabilities/email.send/resolve?credential_mode=byo"
+    assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byo"
+    assert body["available_providers"] == [{"provider": "sendgrid", "credential_modes": ["byo"]}]
 
 
 @pytest.mark.anyio

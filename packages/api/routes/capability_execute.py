@@ -23,7 +23,7 @@ import os
 import time
 import uuid
 from typing import Any, Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Query, Request
@@ -187,6 +187,24 @@ def _capability_resolve_url(capability_id: str, *, credential_mode: str | None =
     return url
 
 
+def _capability_estimate_url(
+    capability_id: str,
+    *,
+    provider: str | None = None,
+    credential_mode: str | None = None,
+) -> str:
+    """Build an estimate URL that helps callers inspect cost for a concrete option."""
+    url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute/estimate"
+    params: list[tuple[str, str]] = []
+    if provider:
+        params.append(("provider", provider))
+    if credential_mode:
+        params.append(("credential_mode", credential_mode))
+    if params:
+        url += f"?{urlencode(params)}"
+    return url
+
+
 def _provider_option_summaries(mappings: list[dict]) -> list[dict[str, Any]]:
     """Return stable provider summaries for recovery/error responses."""
     options: list[dict[str, Any]] = []
@@ -218,6 +236,47 @@ def _matching_provider_mapping(mappings: list[dict], provider: str | None) -> di
         ),
         None,
     )
+
+
+def _execute_recovery_hints(
+    *,
+    capability_id: str,
+    mappings: list[dict],
+    credential_mode: str | None = None,
+    requested_provider: str | None = None,
+    selected_mapping: dict | None = None,
+) -> dict[str, Any]:
+    """Return stable resolve/estimate/provider hints for execute-time recovery."""
+    effective_provider = requested_provider or (
+        str(selected_mapping.get("service_slug") or "").strip()
+        if isinstance(selected_mapping, dict)
+        else None
+    )
+    effective_mode = credential_mode if credential_mode and credential_mode != "auto" else None
+    requested_mapping = _matching_provider_mapping(mappings, effective_provider)
+    target_mapping = requested_mapping or selected_mapping
+
+    hints: dict[str, Any] = {
+        "resolve_url": _capability_resolve_url(capability_id, credential_mode=effective_mode),
+        "estimate_url": _capability_estimate_url(
+            capability_id,
+            provider=effective_provider,
+            credential_mode=effective_mode,
+        ),
+        "available_providers": _provider_option_summaries(mappings),
+    }
+    if effective_mode:
+        hints["credential_mode"] = effective_mode
+    if effective_provider:
+        hints["requested_provider"] = effective_provider
+
+    requested_modes = _parse_credential_modes(
+        target_mapping.get("credential_modes") if isinstance(target_mapping, dict) else []
+    )
+    if requested_modes:
+        hints["requested_provider_credential_modes"] = requested_modes
+
+    return hints
 
 
 def _managed_provider_unavailable_response(
@@ -714,6 +773,10 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
     those clients can learn the payment requirements without triggering a 405.
     """
     cap_services_for_402 = await _get_capability_services(capability_id)
+    recovery_hints = _execute_recovery_hints(
+        capability_id=capability_id,
+        mappings=cap_services_for_402,
+    )
     cost_for_402 = 0.0
     if cap_services_for_402:
         costs = [
@@ -732,8 +795,12 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
                 "accepts": [],
                 "error": "Cost data unavailable for this capability. Use the estimate endpoint first: "
                          f"GET {api_base}/v1/capabilities/{capability_id}/execute/estimate",
+                "resolution": (
+                    "Inspect the estimate and resolve surfaces for provider and credential options before retrying."
+                ),
                 "balanceRequired": None,
                 "balanceRequiredUsd": None,
+                **recovery_hints,
             },
             headers={"X-Payment": "required"},
         )
@@ -750,6 +817,10 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
         cost_usd_cents=billed_cents_for_402,
         resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
         payment_request=payment_request,
+        resolution=(
+            "Pay with one of the accepted payment options, or inspect the resolve and estimate surfaces before retrying."
+        ),
+        supplemental_fields=recovery_hints,
     )
     return JSONResponse(
         status_code=402,
@@ -2429,6 +2500,16 @@ async def execute_capability(
                 resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
                 detail=budget_result.reason or "Agent budget exceeded",
                 payment_request=payment_request,
+                resolution=(
+                    "Pay with one of the accepted payment options, top up credits, or inspect the resolve and estimate surfaces before retrying."
+                ),
+                supplemental_fields=_execute_recovery_hints(
+                    capability_id=capability_id,
+                    mappings=cap_services,
+                    credential_mode=request.credential_mode,
+                    requested_provider=request.provider,
+                    selected_mapping=selected_mapping,
+                ),
             )
 
         budget_remaining = budget_result.remaining_usd
@@ -2474,6 +2555,16 @@ async def execute_capability(
                     resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
                     detail=credit_result.reason or "Insufficient org credits",
                     payment_request=payment_request,
+                    resolution=(
+                        "Pay with one of the accepted payment options, top up credits, or inspect the resolve and estimate surfaces before retrying."
+                    ),
+                    supplemental_fields=_execute_recovery_hints(
+                        capability_id=capability_id,
+                        mappings=cap_services,
+                        credential_mode=request.credential_mode,
+                        requested_provider=request.provider,
+                        selected_mapping=selected_mapping,
+                    ),
                 )
             credit_reserved = billed_cost_cents > 0
             credit_remaining_cents = credit_result.remaining_cents
