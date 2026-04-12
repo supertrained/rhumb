@@ -76,6 +76,17 @@ def _execution_period(created_at: datetime, *, window: str) -> str:
     return created_at.strftime("%Y-%m-%d")
 
 
+def _normalize_credential_mode(value: Any) -> str:
+    mode = _safe_label(value, max_length=40)
+    if not mode:
+        return "unknown"
+
+    normalized = mode.lower()
+    if normalized in {"byo", "byok"}:
+        return "byok"
+    return normalized
+
+
 def _client_key(row: dict[str, Any]) -> str | None:
     agent_id = _safe_label(row.get("agent_id"))
     if agent_id:
@@ -193,6 +204,9 @@ def build_launch_dashboard(
     top_capabilities = Counter[str]()
     execution_callers = Counter[str]()
     executions_by_interface = Counter[str]()
+    executions_by_credential_mode = Counter[str]()
+    successful_executions_by_credential_mode = Counter[str]()
+    first_success_modes = Counter[str]()
     success_trend: dict[str, dict[str, Any]] = {}
     successful_executions = 0
     first_time_execution_attempts = 0
@@ -201,6 +215,7 @@ def build_launch_dashboard(
     repeat_execution_successes = 0
     unattributed_execution_attempts = 0
     unattributed_execution_successes = 0
+    caller_first_success_mode: dict[str, str] = {}
 
     for row in click_rows:
         event_type = str(row.get("event_type") or "unknown")
@@ -222,6 +237,9 @@ def build_launch_dashboard(
         capability_id = _safe_label(row.get("capability_id"), max_length=80) or "unknown"
         top_capabilities[capability_id] += 1
 
+        credential_mode = _normalize_credential_mode(row.get("credential_mode"))
+        executions_by_credential_mode[credential_mode] += 1
+
         caller_key = _execution_caller_key(row)
         if caller_key:
             execution_callers[caller_key] += 1
@@ -240,6 +258,9 @@ def build_launch_dashboard(
         if success:
             successful_executions += 1
             bucket["successful"] += 1
+            successful_executions_by_credential_mode[credential_mode] += 1
+            if caller_key and caller_key not in caller_first_success_mode:
+                caller_first_success_mode[caller_key] = credential_mode
         else:
             bucket["failed"] += 1
 
@@ -297,6 +318,11 @@ def build_launch_dashboard(
     unique_execution_callers = len(execution_callers)
     repeat_execution_callers = sum(1 for count in execution_callers.values() if count > 1)
     first_time_execution_callers = unique_execution_callers - repeat_execution_callers
+    first_success_modes.update(caller_first_success_mode.values())
+    managed_attempts = executions_by_credential_mode.get("rhumb_managed", 0)
+    managed_successes = successful_executions_by_credential_mode.get("rhumb_managed", 0)
+    first_success_callers = len(caller_first_success_mode)
+    managed_first_success_callers = first_success_modes.get("rhumb_managed", 0)
 
     latest_query_at = max((row["_created_at"] for row in query_rows), default=None)
     latest_click_at = max((row["_created_at"] for row in click_rows), default=None)
@@ -412,6 +438,20 @@ def build_launch_dashboard(
                         else None
                     ),
                 },
+            },
+            "credential_modes": _top_counts(executions_by_credential_mode, limit=5),
+            "first_success_modes": _top_counts(first_success_modes, limit=5),
+            "managed_path": {
+                "attempts": managed_attempts,
+                "successful": managed_successes,
+                "failed": managed_attempts - managed_successes,
+                "success_rate": round(managed_successes / managed_attempts, 4) if managed_attempts else None,
+                "first_success_callers": managed_first_success_callers,
+                "first_success_share": (
+                    round(managed_first_success_callers / first_success_callers, 4)
+                    if first_success_callers
+                    else None
+                ),
             },
             "top_interfaces": _top_counts(executions_by_interface, limit=5),
             "success_rate": (

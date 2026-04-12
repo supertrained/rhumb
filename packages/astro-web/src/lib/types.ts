@@ -132,6 +132,15 @@ export type LaunchDashboardExecutionCohort = {
   successRate: number | null;
 };
 
+export type LaunchDashboardManagedPath = {
+  attempts: number;
+  successful: number;
+  failed: number;
+  successRate: number | null;
+  firstSuccessCallers: number;
+  firstSuccessShare: number | null;
+};
+
 export type LaunchDashboardFunnelTransitionRow = {
   fromStage: string;
   toStage: string;
@@ -198,6 +207,9 @@ export type LaunchDashboardViewModel = {
       repeat: LaunchDashboardExecutionCohort;
       unattributed: LaunchDashboardExecutionCohort;
     };
+    credentialModes: LaunchDashboardCount[];
+    firstSuccessModes: LaunchDashboardCount[];
+    managedPath: LaunchDashboardManagedPath;
     topInterfaces: LaunchDashboardCount[];
     successRate: number | null;
     topCapabilities: LaunchDashboardCount[];

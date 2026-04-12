@@ -94,6 +94,7 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
                     "success": True,
                     "agent_id": "agent-alpha",
                     "interface": "mcp",
+                    "credential_mode": "byo",
                 },
                 {
                     "executed_at": "2026-03-13T08:30:00Z",
@@ -101,6 +102,7 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
                     "success": False,
                     "agent_id": "agent-alpha",
                     "interface": "mcp",
+                    "credential_mode": "byok",
                 },
                 {
                     "executed_at": "2026-03-13T09:00:00Z",
@@ -108,6 +110,7 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
                     "success": True,
                     "agent_id": "agent-beta",
                     "interface": "api",
+                    "credential_mode": "rhumb_managed",
                 },
             ]
         if path == "services?select=slug":
@@ -152,6 +155,22 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
             "failed": 0,
             "success_rate": None,
         },
+    }
+    assert payload["executions"]["credential_modes"] == [
+        {"key": "byok", "count": 2},
+        {"key": "rhumb_managed", "count": 1},
+    ]
+    assert payload["executions"]["first_success_modes"] == [
+        {"key": "byok", "count": 1},
+        {"key": "rhumb_managed", "count": 1},
+    ]
+    assert payload["executions"]["managed_path"] == {
+        "attempts": 1,
+        "successful": 1,
+        "failed": 0,
+        "success_rate": 1.0,
+        "first_success_callers": 1,
+        "first_success_share": 0.5,
     }
     assert payload["executions"]["top_interfaces"] == [
         {"key": "mcp", "count": 2},
@@ -241,6 +260,7 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
                 "success": True,
                 "agent_id": "mcp-agent-1",
                 "interface": "mcp",
+                "credential_mode": "byo",
             },
             {
                 "executed_at": "2026-03-13T05:00:00Z",
@@ -248,6 +268,7 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
                 "success": False,
                 "agent_id": "mcp-agent-1",
                 "interface": "mcp",
+                "credential_mode": "byok",
             },
         ],
         service_rows=[{"slug": "stripe"}],
@@ -287,6 +308,16 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
             "failed": 0,
             "success_rate": None,
         },
+    }
+    assert dashboard["executions"]["credential_modes"] == [{"key": "byok", "count": 2}]
+    assert dashboard["executions"]["first_success_modes"] == [{"key": "byok", "count": 1}]
+    assert dashboard["executions"]["managed_path"] == {
+        "attempts": 0,
+        "successful": 0,
+        "failed": 0,
+        "success_rate": None,
+        "first_success_callers": 0,
+        "first_success_share": 0.0,
     }
     assert dashboard["executions"]["top_interfaces"] == [{"key": "mcp", "count": 2}]
     assert dashboard["executions"]["top_capabilities"] == [{"key": "search.query", "count": 2}]
@@ -367,6 +398,7 @@ def test_build_launch_dashboard_tracks_unattributed_execution_attempts() -> None
                 "success": True,
                 "agent_id": None,
                 "interface": None,
+                "credential_mode": "rhumb_managed",
             },
             {
                 "executed_at": "2026-03-13T05:00:00Z",
@@ -374,6 +406,7 @@ def test_build_launch_dashboard_tracks_unattributed_execution_attempts() -> None
                 "success": False,
                 "agent_id": "agent-1",
                 "interface": "mcp",
+                "credential_mode": "agent_vault",
             },
         ],
         service_rows=[{"slug": "stripe"}],
@@ -404,4 +437,17 @@ def test_build_launch_dashboard_tracks_unattributed_execution_attempts() -> None
             "failed": 0,
             "success_rate": 1.0,
         },
+    }
+    assert dashboard["executions"]["credential_modes"] == [
+        {"key": "rhumb_managed", "count": 1},
+        {"key": "agent_vault", "count": 1},
+    ]
+    assert dashboard["executions"]["first_success_modes"] == []
+    assert dashboard["executions"]["managed_path"] == {
+        "attempts": 1,
+        "successful": 1,
+        "failed": 0,
+        "success_rate": 1.0,
+        "first_success_callers": 0,
+        "first_success_share": None,
     }

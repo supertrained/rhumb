@@ -248,6 +248,7 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
   const callerCohorts = isRecord(executions.caller_cohorts) ? executions.caller_cohorts : {};
+  const managedPath = isRecord(executions.managed_path) ? executions.managed_path : {};
 
   const parseExecutionCohort = (row: unknown) => {
     if (!isRecord(row)) {
@@ -366,6 +367,16 @@ export function parseLaunchDashboardResponse(payload: unknown) {
         firstTime: parseExecutionCohort(callerCohorts.first_time),
         repeat: parseExecutionCohort(callerCohorts.repeat),
         unattributed: parseExecutionCohort(callerCohorts.unattributed),
+      },
+      credentialModes: parseDashboardCounts(executions.credential_modes),
+      firstSuccessModes: parseDashboardCounts(executions.first_success_modes),
+      managedPath: {
+        attempts: asNumber(managedPath.attempts) ?? 0,
+        successful: asNumber(managedPath.successful) ?? 0,
+        failed: asNumber(managedPath.failed) ?? 0,
+        successRate: asNumber(managedPath.success_rate),
+        firstSuccessCallers: asNumber(managedPath.first_success_callers) ?? 0,
+        firstSuccessShare: asNumber(managedPath.first_success_share),
       },
       topInterfaces: parseDashboardCounts(executions.top_interfaces),
       successRate: asNumber(executions.success_rate),
