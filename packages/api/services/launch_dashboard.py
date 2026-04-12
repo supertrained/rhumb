@@ -128,6 +128,181 @@ def _build_funnel_transition(from_stage: str, to_stage: str, *, from_count: int,
     }
 
 
+def _build_readiness_signal(
+    key: str,
+    label: str,
+    *,
+    value: int | float | None,
+    target: int | float | None,
+    met: bool | None,
+    detail: str,
+) -> dict[str, Any]:
+    return {
+        "key": key,
+        "label": label,
+        "value": value,
+        "target": target,
+        "met": met,
+        "detail": detail,
+    }
+
+
+def _launch_focus_from_dropoff(biggest_dropoff: dict[str, Any] | None) -> str:
+    if not biggest_dropoff:
+        return "Keep watching real traffic. There is not enough funnel evidence yet to call the next bottleneck."
+
+    from_stage = biggest_dropoff.get("from_stage")
+    to_stage = biggest_dropoff.get("to_stage")
+    if from_stage == "queries" and to_stage == "service_views":
+        return (
+            "Sharpen the query-to-service handoff. Ranking, snippet clarity, or the first landing page may still be hiding the right next step."
+        )
+    if from_stage == "service_views" and to_stage == "provider_clicks":
+        return (
+            "Tighten service-page trust and CTA clarity. People are viewing services but not moving deeper, so proof or positioning is still weak."
+        )
+    if from_stage == "provider_clicks" and to_stage == "execute_attempts":
+        return (
+            "Reduce the resolve/setup gap. People show intent after viewing providers, but the path into execute still has credential or onboarding friction."
+        )
+    if from_stage == "execute_attempts" and to_stage == "successful_executes":
+        return (
+            "Focus on first-run reliability and setup success. The demand signal exists, but successful execution is still the bottleneck."
+        )
+    return "Keep watching the live path and tighten the stage with the biggest visible drop-off."
+
+
+def _build_launch_readiness(
+    *,
+    unique_execution_callers: int,
+    successful_executions: int,
+    repeat_execution_callers: int,
+    first_time_execution_attempts: int,
+    first_time_execution_successes: int,
+    managed_attempts: int,
+    managed_first_success_callers: int,
+    first_success_callers: int,
+    biggest_dropoff: dict[str, Any] | None,
+) -> dict[str, Any]:
+    minimum_unique_callers = 3
+    minimum_successful_executes = 5
+    minimum_repeat_callers = 1
+    minimum_first_time_success_rate = 0.5
+    minimum_managed_first_success_share = 0.5
+
+    first_time_success_rate = (
+        round(first_time_execution_successes / first_time_execution_attempts, 4)
+        if first_time_execution_attempts
+        else None
+    )
+    managed_first_success_share = (
+        round(managed_first_success_callers / first_success_callers, 4)
+        if first_success_callers
+        else None
+    )
+    biggest_dropoff_rate = biggest_dropoff.get("dropoff_rate") if biggest_dropoff else None
+
+    signals = [
+        _build_readiness_signal(
+            "successful_executes",
+            "Successful executes",
+            value=successful_executions,
+            target=minimum_successful_executes,
+            met=successful_executions >= minimum_successful_executes,
+            detail="Need enough successful execution volume in-window before a launch-readiness call is credible.",
+        ),
+        _build_readiness_signal(
+            "unique_callers",
+            "Unique execution callers",
+            value=unique_execution_callers,
+            target=minimum_unique_callers,
+            met=unique_execution_callers >= minimum_unique_callers,
+            detail="A small-group recommendation needs signal from more than one or two isolated operators.",
+        ),
+        _build_readiness_signal(
+            "repeat_callers",
+            "Repeat callers",
+            value=repeat_execution_callers,
+            target=minimum_repeat_callers,
+            met=repeat_execution_callers >= minimum_repeat_callers,
+            detail="Repeat usage is the first proof that Rhumb is becoming part of a real workflow instead of a one-off test.",
+        ),
+        _build_readiness_signal(
+            "first_time_success_rate",
+            "Window-first success rate",
+            value=first_time_success_rate,
+            target=minimum_first_time_success_rate,
+            met=(
+                first_time_success_rate >= minimum_first_time_success_rate
+                if first_time_success_rate is not None
+                else None
+            ),
+            detail="If first-use success is weak, the remaining blocker is still onboarding or product friction rather than lack of traffic alone.",
+        ),
+        _build_readiness_signal(
+            "managed_first_success_share",
+            "Managed first-success share",
+            value=managed_first_success_share,
+            target=minimum_managed_first_success_share,
+            met=(
+                managed_first_success_share >= minimum_managed_first_success_share
+                if managed_first_success_share is not None
+                else False
+            ),
+            detail="Low-heroics launch readiness means the Rhumb-managed path should win a meaningful share of first successes.",
+        ),
+    ]
+
+    if (
+        successful_executions < minimum_successful_executes
+        or unique_execution_callers < minimum_unique_callers
+    ):
+        status = "insufficient_signal"
+        headline = "Not enough live usage signal yet to call small-group readiness."
+        summary = (
+            "Some launch traffic is landing, but the sample is still too thin to separate product truth from noise."
+        )
+    elif (
+        first_time_success_rate is not None and first_time_success_rate < minimum_first_time_success_rate
+    ) or (
+        biggest_dropoff
+        and biggest_dropoff.get("from_stage") in {"provider_clicks", "execute_attempts"}
+        and isinstance(biggest_dropoff_rate, float)
+        and biggest_dropoff_rate >= 0.5
+    ):
+        status = "onboarding_friction"
+        headline = "Launch traffic exists, but onboarding friction is still the blocker."
+        summary = (
+            "The current window shows intent, but too many new users are falling out before first success or at the execution step."
+        )
+    elif repeat_execution_callers < minimum_repeat_callers:
+        status = "repeat_usage_gap"
+        headline = "First-use signal exists, but repeat usage is not proven yet."
+        summary = (
+            "Rhumb is getting through first contact, but the window still lacks evidence that operators come back for a second real workflow."
+        )
+    elif managed_first_success_share is None or managed_first_success_share < minimum_managed_first_success_share:
+        status = "managed_path_gap"
+        headline = "Usage exists, but the low-heroics managed path is not winning first success yet."
+        summary = (
+            "The product may be usable, but launch readiness is still capped if early wins depend mostly on bridge-heavy setup instead of Rhumb-managed superpowers."
+        )
+    else:
+        status = "small_group_candidate"
+        headline = "The current window looks strong enough to prepare a small-group-ready recommendation."
+        summary = (
+            "Signal quality is now broad enough to move from telemetry watching into a concrete go or not-yet recommendation for a bounded small group."
+        )
+
+    return {
+        "status": status,
+        "headline": headline,
+        "summary": summary,
+        "next_focus": _launch_focus_from_dropoff(biggest_dropoff),
+        "signals": signals,
+    }
+
+
 def build_launch_dashboard(
     *,
     query_logs: Iterable[dict[str, Any]],
@@ -357,6 +532,17 @@ def build_launch_dashboard(
         key=lambda row: (row["dropoff_count"], row["dropoff_rate"] or 0.0),
         default=None,
     )
+    readiness = _build_launch_readiness(
+        unique_execution_callers=unique_execution_callers,
+        successful_executions=successful_executions,
+        repeat_execution_callers=repeat_execution_callers,
+        first_time_execution_attempts=first_time_execution_attempts,
+        first_time_execution_successes=first_time_execution_successes,
+        managed_attempts=managed_attempts,
+        managed_first_success_callers=managed_first_success_callers,
+        first_success_callers=first_success_callers,
+        biggest_dropoff=biggest_dropoff,
+    )
 
     return {
         "window": window,
@@ -395,6 +581,7 @@ def build_launch_dashboard(
             "stage_transitions": funnel_transitions,
             "biggest_dropoff": biggest_dropoff,
         },
+        "readiness": readiness,
         "executions": {
             "total": len(filtered_execution_rows),
             "successful": successful_executions,

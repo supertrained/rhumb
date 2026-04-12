@@ -164,6 +164,54 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
         {"key": "byok", "count": 1},
         {"key": "rhumb_managed", "count": 1},
     ]
+    assert payload["readiness"] == {
+        "status": "insufficient_signal",
+        "headline": "Not enough live usage signal yet to call small-group readiness.",
+        "summary": "Some launch traffic is landing, but the sample is still too thin to separate product truth from noise.",
+        "next_focus": "Sharpen the query-to-service handoff. Ranking, snippet clarity, or the first landing page may still be hiding the right next step.",
+        "signals": [
+            {
+                "key": "successful_executes",
+                "label": "Successful executes",
+                "value": 2,
+                "target": 5,
+                "met": False,
+                "detail": "Need enough successful execution volume in-window before a launch-readiness call is credible.",
+            },
+            {
+                "key": "unique_callers",
+                "label": "Unique execution callers",
+                "value": 2,
+                "target": 3,
+                "met": False,
+                "detail": "A small-group recommendation needs signal from more than one or two isolated operators.",
+            },
+            {
+                "key": "repeat_callers",
+                "label": "Repeat callers",
+                "value": 1,
+                "target": 1,
+                "met": True,
+                "detail": "Repeat usage is the first proof that Rhumb is becoming part of a real workflow instead of a one-off test.",
+            },
+            {
+                "key": "first_time_success_rate",
+                "label": "Window-first success rate",
+                "value": 1.0,
+                "target": 0.5,
+                "met": True,
+                "detail": "If first-use success is weak, the remaining blocker is still onboarding or product friction rather than lack of traffic alone.",
+            },
+            {
+                "key": "managed_first_success_share",
+                "label": "Managed first-success share",
+                "value": 0.5,
+                "target": 0.5,
+                "met": True,
+                "detail": "Low-heroics launch readiness means the Rhumb-managed path should win a meaningful share of first successes.",
+            },
+        ],
+    }
     assert payload["executions"]["managed_path"] == {
         "attempts": 1,
         "successful": 1,
@@ -319,6 +367,54 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
         "first_success_callers": 0,
         "first_success_share": 0.0,
     }
+    assert dashboard["readiness"] == {
+        "status": "insufficient_signal",
+        "headline": "Not enough live usage signal yet to call small-group readiness.",
+        "summary": "Some launch traffic is landing, but the sample is still too thin to separate product truth from noise.",
+        "next_focus": "Tighten service-page trust and CTA clarity. People are viewing services but not moving deeper, so proof or positioning is still weak.",
+        "signals": [
+            {
+                "key": "successful_executes",
+                "label": "Successful executes",
+                "value": 1,
+                "target": 5,
+                "met": False,
+                "detail": "Need enough successful execution volume in-window before a launch-readiness call is credible.",
+            },
+            {
+                "key": "unique_callers",
+                "label": "Unique execution callers",
+                "value": 1,
+                "target": 3,
+                "met": False,
+                "detail": "A small-group recommendation needs signal from more than one or two isolated operators.",
+            },
+            {
+                "key": "repeat_callers",
+                "label": "Repeat callers",
+                "value": 1,
+                "target": 1,
+                "met": True,
+                "detail": "Repeat usage is the first proof that Rhumb is becoming part of a real workflow instead of a one-off test.",
+            },
+            {
+                "key": "first_time_success_rate",
+                "label": "Window-first success rate",
+                "value": 1.0,
+                "target": 0.5,
+                "met": True,
+                "detail": "If first-use success is weak, the remaining blocker is still onboarding or product friction rather than lack of traffic alone.",
+            },
+            {
+                "key": "managed_first_success_share",
+                "label": "Managed first-success share",
+                "value": 0.0,
+                "target": 0.5,
+                "met": False,
+                "detail": "Low-heroics launch readiness means the Rhumb-managed path should win a meaningful share of first successes.",
+            },
+        ],
+    }
     assert dashboard["executions"]["top_interfaces"] == [{"key": "mcp", "count": 2}]
     assert dashboard["executions"]["top_capabilities"] == [{"key": "search.query", "count": 2}]
     assert dashboard["funnel"] == {
@@ -451,3 +547,147 @@ def test_build_launch_dashboard_tracks_unattributed_execution_attempts() -> None
         "first_success_callers": 0,
         "first_success_share": None,
     }
+
+
+def test_build_launch_dashboard_flags_small_group_candidate_when_signal_is_broad() -> None:
+    dashboard = build_launch_dashboard(
+        query_logs=[
+            {
+                "created_at": "2026-03-13T01:00:00Z",
+                "source": "mcp",
+                "query_type": "score_lookup",
+                "query_text": "stripe",
+                "query_params": {"slug": "stripe"},
+                "agent_id": "agent-a",
+                "user_agent": "rhumb-mcp/0.0.1",
+            },
+            {
+                "created_at": "2026-03-13T01:05:00Z",
+                "source": "mcp",
+                "query_type": "score_lookup",
+                "query_text": "openai",
+                "query_params": {"slug": "openai"},
+                "agent_id": "agent-b",
+                "user_agent": "rhumb-mcp/0.0.1",
+            },
+            {
+                "created_at": "2026-03-13T01:10:00Z",
+                "source": "api_direct",
+                "query_type": "score_lookup",
+                "query_text": "anthropic",
+                "query_params": {"slug": "anthropic"},
+                "agent_id": "agent-c",
+                "user_agent": "rhumb-api/1.0",
+            },
+        ],
+        click_events=[
+            {
+                "created_at": "2026-03-13T02:00:00Z",
+                "event_type": "provider_click",
+                "service_slug": "stripe",
+                "destination_domain": "stripe.com",
+                "source_surface": "service_page",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T02:05:00Z",
+                "event_type": "provider_click",
+                "service_slug": "openai",
+                "destination_domain": "openai.com",
+                "source_surface": "service_page",
+                "page_path": "/service/openai",
+            },
+        ],
+        execution_rows=[
+            {
+                "executed_at": "2026-03-13T03:00:00Z",
+                "capability_id": "search.query",
+                "success": True,
+                "agent_id": "agent-a",
+                "interface": "mcp",
+                "credential_mode": "rhumb_managed",
+            },
+            {
+                "executed_at": "2026-03-13T03:15:00Z",
+                "capability_id": "search.query",
+                "success": True,
+                "agent_id": "agent-b",
+                "interface": "mcp",
+                "credential_mode": "rhumb_managed",
+            },
+            {
+                "executed_at": "2026-03-13T03:30:00Z",
+                "capability_id": "search.query",
+                "success": True,
+                "agent_id": "agent-c",
+                "interface": "api",
+                "credential_mode": "byok",
+            },
+            {
+                "executed_at": "2026-03-13T04:00:00Z",
+                "capability_id": "search.query",
+                "success": True,
+                "agent_id": "agent-a",
+                "interface": "mcp",
+                "credential_mode": "rhumb_managed",
+            },
+            {
+                "executed_at": "2026-03-13T04:15:00Z",
+                "capability_id": "ai.generate_text",
+                "success": True,
+                "agent_id": "agent-b",
+                "interface": "mcp",
+                "credential_mode": "rhumb_managed",
+            },
+        ],
+        service_rows=[{"slug": "stripe"}, {"slug": "openai"}, {"slug": "anthropic"}],
+        window="launch",
+        now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
+    )
+
+    assert dashboard["readiness"]["status"] == "small_group_candidate"
+    assert dashboard["readiness"]["headline"] == (
+        "The current window looks strong enough to prepare a small-group-ready recommendation."
+    )
+    assert dashboard["readiness"]["signals"] == [
+        {
+            "key": "successful_executes",
+            "label": "Successful executes",
+            "value": 5,
+            "target": 5,
+            "met": True,
+            "detail": "Need enough successful execution volume in-window before a launch-readiness call is credible.",
+        },
+        {
+            "key": "unique_callers",
+            "label": "Unique execution callers",
+            "value": 3,
+            "target": 3,
+            "met": True,
+            "detail": "A small-group recommendation needs signal from more than one or two isolated operators.",
+        },
+        {
+            "key": "repeat_callers",
+            "label": "Repeat callers",
+            "value": 2,
+            "target": 1,
+            "met": True,
+            "detail": "Repeat usage is the first proof that Rhumb is becoming part of a real workflow instead of a one-off test.",
+        },
+        {
+            "key": "first_time_success_rate",
+            "label": "Window-first success rate",
+            "value": 1.0,
+            "target": 0.5,
+            "met": True,
+            "detail": "If first-use success is weak, the remaining blocker is still onboarding or product friction rather than lack of traffic alone.",
+        },
+        {
+            "key": "managed_first_success_share",
+            "label": "Managed first-success share",
+            "value": 0.6667,
+            "target": 0.5,
+            "met": True,
+            "detail": "Low-heroics launch readiness means the Rhumb-managed path should win a meaningful share of first successes.",
+        },
+    ]

@@ -141,6 +141,15 @@ export type LaunchDashboardManagedPath = {
   firstSuccessShare: number | null;
 };
 
+export type LaunchDashboardReadinessSignal = {
+  key: string;
+  label: string;
+  value: number | null;
+  target: number | null;
+  met: boolean | null;
+  detail: string;
+};
+
 export type LaunchDashboardFunnelTransitionRow = {
   fromStage: string;
   toStage: string;
@@ -193,6 +202,18 @@ export type LaunchDashboardViewModel = {
     successfulExecutes: number;
     stageTransitions: LaunchDashboardFunnelTransitionRow[];
     biggestDropoff: LaunchDashboardFunnelTransitionRow | null;
+  };
+  readiness: {
+    status:
+      | "insufficient_signal"
+      | "onboarding_friction"
+      | "repeat_usage_gap"
+      | "managed_path_gap"
+      | "small_group_candidate";
+    headline: string;
+    summary: string;
+    nextFocus: string;
+    signals: LaunchDashboardReadinessSignal[];
   };
   executions: {
     total: number;

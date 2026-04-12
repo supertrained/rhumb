@@ -245,6 +245,7 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const queries = isRecord(data.queries) ? data.queries : {};
   const clicks = isRecord(data.clicks) ? data.clicks : {};
   const funnel = isRecord(data.funnel) ? data.funnel : {};
+  const readiness = isRecord(data.readiness) ? data.readiness : {};
   const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
   const callerCohorts = isRecord(executions.caller_cohorts) ? executions.caller_cohorts : {};
@@ -299,15 +300,37 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     .map(parseFunnelTransition)
     .filter((row): row is NonNullable<ReturnType<typeof parseFunnelTransition>> => row !== null);
   const biggestDropoff = parseFunnelTransition(funnel.biggest_dropoff);
+  const readinessSignals = asItems(readiness.signals).map((row) => ({
+    key: asString(row.key) ?? "unknown",
+    label: asString(row.label) ?? "Unknown signal",
+    value: asNumber(row.value),
+    target: asNumber(row.target),
+    met: typeof row.met === "boolean" ? row.met : null,
+    detail: asString(row.detail) ?? "",
+  }));
 
   const window = asString(data.window);
   const startAt = asString(data.start_at);
   const generatedAt = asString(data.generated_at);
+  const readinessStatus = asString(readiness.status);
+  const readinessHeadline = asString(readiness.headline);
+  const readinessSummary = asString(readiness.summary);
+  const readinessNextFocus = asString(readiness.next_focus);
 
   if (
     (window !== "24h" && window !== "7d" && window !== "launch")
     || !startAt
     || !generatedAt
+    || (
+      readinessStatus !== "insufficient_signal"
+      && readinessStatus !== "onboarding_friction"
+      && readinessStatus !== "repeat_usage_gap"
+      && readinessStatus !== "managed_path_gap"
+      && readinessStatus !== "small_group_candidate"
+    )
+    || !readinessHeadline
+    || !readinessSummary
+    || !readinessNextFocus
   ) {
     return null;
   }
@@ -354,6 +377,13 @@ export function parseLaunchDashboardResponse(payload: unknown) {
       successfulExecutes: asNumber(funnel.successful_executes) ?? 0,
       stageTransitions,
       biggestDropoff,
+    },
+    readiness: {
+      status: readinessStatus,
+      headline: readinessHeadline,
+      summary: readinessSummary,
+      nextFocus: readinessNextFocus,
+      signals: readinessSignals,
     },
     executions: {
       total: asNumber(executions.total) ?? 0,

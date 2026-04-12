@@ -9,6 +9,45 @@ function formatPct(value: number | null): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatSignalValue(value: number | null, target: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+  if (target !== null && target <= 1) {
+    return formatPct(value);
+  }
+  return `${value}`;
+}
+
+function readinessBadgeClass(status: string): string {
+  if (status === "small_group_candidate") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  }
+  if (status === "insufficient_signal") {
+    return "border-slate-700 bg-slate-800/60 text-slate-300";
+  }
+  return "border-amber/20 bg-amber/10 text-amber";
+}
+
+function readinessLabel(status: string): string {
+  if (status === "small_group_candidate") {
+    return "Small-group candidate";
+  }
+  if (status === "insufficient_signal") {
+    return "Insufficient signal";
+  }
+  if (status === "onboarding_friction") {
+    return "Onboarding friction";
+  }
+  if (status === "repeat_usage_gap") {
+    return "Repeat-usage gap";
+  }
+  if (status === "managed_path_gap") {
+    return "Managed-path gap";
+  }
+  return status;
+}
+
 function formatTimestamp(value: string | null): string {
   if (!value) {
     return "No activity yet";
@@ -148,6 +187,48 @@ const windowLinks: Array<{ value: "24h" | "7d" | "launch"; label: string }> = [
           </p>
         </section>
       </div>
+
+      <section class="mt-6 rounded-xl border border-slate-800 bg-surface p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="text-xs font-mono text-slate-500">Launch-readiness read</p>
+            <h2 class="mt-2 font-display text-xl text-slate-100 font-semibold">
+              {dashboard.readiness.headline}
+            </h2>
+            <p class="mt-2 max-w-3xl text-sm text-slate-400">
+              {dashboard.readiness.summary}
+            </p>
+          </div>
+          <span class={`rounded-full border px-3 py-1.5 text-xs font-mono ${readinessBadgeClass(dashboard.readiness.status)}`}>
+            {readinessLabel(dashboard.readiness.status)}
+          </span>
+        </div>
+
+        <div class="mt-5 grid gap-5 lg:grid-cols-[1.4fr,0.9fr]">
+          <div>
+            <p class="text-xs font-mono text-slate-500">Decision signals</p>
+            <ul class="mt-3 space-y-2 text-sm">
+              {dashboard.readiness.signals.map((signal) => (
+                <li class="rounded-lg border border-slate-800 bg-navy px-4 py-3 text-slate-300">
+                  <div class="flex items-center justify-between gap-3">
+                    <span>{signal.label}</span>
+                    <span class={`font-mono ${signal.met === true ? "text-emerald-300" : signal.met === false ? "text-amber" : "text-slate-500"}`}>
+                      {formatSignalValue(signal.value, signal.target)}
+                      {signal.target !== null && ` / ${formatSignalValue(signal.target, signal.target)}`}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">{signal.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="rounded-lg border border-slate-800 bg-navy px-4 py-4">
+            <p class="text-xs font-mono text-amber">Next focus</p>
+            <p class="mt-3 text-sm text-slate-300">{dashboard.readiness.nextFocus}</p>
+          </div>
+        </div>
+      </section>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-xl border border-slate-800 bg-surface p-6">
