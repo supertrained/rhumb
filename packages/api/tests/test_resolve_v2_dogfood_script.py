@@ -95,6 +95,14 @@ def test_extract_receipt_id_prefers_top_level_receipt_id():
     assert resolve_v2_dogfood.extract_receipt_id(data) == "rcpt_top"
 
 
+def test_extract_provider_used_reads_top_level_provider():
+    data = {"provider_used": "exa"}
+
+    assert resolve_v2_dogfood.extract_provider_used(data) == "exa"
+    assert resolve_v2_dogfood.extract_provider_used({}) is None
+    assert resolve_v2_dogfood.extract_provider_used(None) is None
+
+
 def test_get_api_key_uses_env_first():
     with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_env_key"
@@ -222,12 +230,19 @@ def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
     assert profiled.parameters_json == '{"query": "custom", "numResults": 1}'
 
 
-def test_build_batch_summary_mentions_profile_statuses():
+def test_build_batch_summary_mentions_profile_statuses_and_actual_provider_used():
     summary = resolve_v2_dogfood._build_batch_summary(
         {
             "pedro": {
                 "ok": True,
                 "config": {"provider": "brave-search", "interface": "dogfood-pedro"},
+                "layer2": {
+                    "execute": {
+                        "data": {
+                            "provider_used": "exa",
+                        }
+                    }
+                },
             },
             "beacon": {
                 "ok": False,
@@ -237,7 +252,7 @@ def test_build_batch_summary_mentions_profile_statuses():
     )
 
     assert "Resolve v2 dogfood batch complete; ok_profiles=1/2" in summary
-    assert "pedro=ok provider=brave-search interface=dogfood-pedro" in summary
+    assert "pedro=ok provider=exa requested_provider=brave-search interface=dogfood-pedro" in summary
     assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary
 
 
@@ -253,7 +268,15 @@ def test_build_fleet_status_entry_marks_profile_ok(tmp_path):
                     "provider": "brave-search",
                     "interface": "dogfood-keel",
                 },
-                "layer2": {"execute": {"data": {"execution_id": "exec_l2", "receipt_id": "rcpt_l2"}}},
+                "layer2": {
+                    "execute": {
+                        "data": {
+                            "execution_id": "exec_l2",
+                            "receipt_id": "rcpt_l2",
+                            "provider_used": "exa",
+                        }
+                    }
+                },
                 "layer1": {"execute": {"data": {"execution_id": "exec_l1", "receipt_id": "rcpt_l1"}}},
                 "billing": {"summary": {"data": {"events_count": 4}}},
                 "audit": {"status": {"data": {"total_events": 2}}},
@@ -282,7 +305,9 @@ def test_build_fleet_status_entry_marks_profile_ok(tmp_path):
         "started_at": 1_700_000_000,
         "started_at_iso": "2023-11-14T22:13:20Z",
         "age_minutes": 5.0,
-        "provider": "brave-search",
+        "provider": "exa",
+        "requested_provider": "brave-search",
+        "layer2_provider_used": "exa",
         "interface": "dogfood-keel",
         "summary": "Resolve v2 dogfood complete",
         "billing_events": 4,

@@ -611,6 +611,13 @@ def extract_explanation_id(data: dict[str, Any] | None) -> str | None:
     return None
 
 
+def extract_provider_used(data: dict[str, Any] | None) -> str | None:
+    if not isinstance(data, dict):
+        return None
+    value = data.get("provider_used")
+    return value if isinstance(value, str) and value else None
+
+
 def _build_summary(state: dict[str, Any]) -> str:
     parts = ["Resolve v2 dogfood complete"]
 
@@ -654,9 +661,14 @@ def _build_batch_summary(results: dict[str, dict[str, Any]]) -> str:
     for profile_name, payload in results.items():
         status = "ok" if payload.get("ok") else "failed"
         config = payload.get("config") or {}
-        provider = config.get("provider") or "n/a"
+        requested_provider = config.get("provider") or "n/a"
+        layer2_data = ((payload.get("layer2") or {}).get("execute") or {}).get("data") or {}
+        provider = extract_provider_used(layer2_data) or requested_provider
         interface = config.get("interface") or "n/a"
-        parts.append(f"{profile_name}={status} provider={provider} interface={interface}")
+        provider_part = f"provider={provider}"
+        if requested_provider != "n/a" and requested_provider != provider:
+            provider_part += f" requested_provider={requested_provider}"
+        parts.append(f"{profile_name}={status} {provider_part} interface={interface}")
 
     return "; ".join(parts)
 
@@ -758,6 +770,8 @@ def _build_fleet_status_entry(
     receipt_chain = payload.get("receipt_chain") or {}
     artifact_ok = bool(payload.get("ok"))
     chain_intact = bool(receipt_chain.get("chain_intact"))
+    requested_provider = config.get("provider")
+    layer2_provider_used = extract_provider_used(layer2_data)
 
     blocker_parts: list[str] = []
     if not artifact_ok:
@@ -775,7 +789,9 @@ def _build_fleet_status_entry(
         "started_at": started_at_raw,
         "started_at_iso": _isoformat_utc(started_at) if started_at is not None else None,
         "age_minutes": age_minutes,
-        "provider": config.get("provider"),
+        "provider": layer2_provider_used or requested_provider,
+        "requested_provider": requested_provider,
+        "layer2_provider_used": layer2_provider_used,
         "interface": config.get("interface"),
         "summary": payload.get("summary"),
         "billing_events": billing_summary.get("events_count"),
@@ -1238,8 +1254,12 @@ def _print_human(payload: dict[str, Any]) -> None:
             age_minutes = profile_payload.get("age_minutes")
             age_part = f"age_min={age_minutes}" if age_minutes is not None else "age_min=n/a"
             provider = profile_payload.get("provider") or "n/a"
+            provider_part = f"provider={provider}"
+            requested_provider = profile_payload.get("requested_provider")
+            if requested_provider and requested_provider != provider:
+                provider_part += f" requested_provider={requested_provider}"
             print(
-                f"{profile_name}: {status} — provider={provider} {age_part} "
+                f"{profile_name}: {status} — {provider_part} {age_part} "
                 f"artifact={profile_payload.get('artifact_path')}"
             )
             if profile_payload.get("blocker"):

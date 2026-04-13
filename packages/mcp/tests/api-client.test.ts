@@ -245,4 +245,146 @@ describe("Rhumb MCP API client resolveCapability", () => {
       setupUrl: "/v1/services/resend/ceremony"
     });
   });
+
+  it("canonicalizes legacy byo values across resolve response surfaces", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          capability: "email.send",
+          providers: [
+            {
+              service_slug: "resend",
+              service_name: "Resend",
+              an_score: 7.9,
+              cost_per_call: null,
+              free_tier_calls: 100,
+              auth_method: "api_key",
+              endpoint_pattern: "/emails",
+              recommendation: "preferred",
+              recommendation_reason: "Top ranked",
+              credential_modes: ["byo", "byok"],
+              configured: false,
+              available_for_execute: false,
+              circuit_state: "closed"
+            }
+          ],
+          fallback_chain: [],
+          related_bundles: [],
+          execute_hint: {
+            preferred_provider: "resend",
+            selection_reason: "highest_ranked_provider",
+            auth_method: "api_key",
+            credential_modes: ["byo"],
+            configured: false,
+            credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+            preferred_credential_mode: "byo",
+            fallback_providers: [],
+            setup_hint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY",
+            setup_url: "/v1/services/resend/ceremony"
+          },
+          recovery_hint: {
+            reason: "no_execute_ready_providers",
+            requested_credential_mode: "byo",
+            resolve_url: "/v1/capabilities/email.send/resolve",
+            credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+            supported_provider_slugs: ["resend"],
+            supported_credential_modes: ["byo", "agent_vault"],
+            unavailable_provider_slugs: [],
+            not_execute_ready_provider_slugs: ["resend"],
+            alternate_execute_hint: {
+              preferred_provider: "sendgrid",
+              selection_reason: "fallback_available",
+              auth_method: "api_key",
+              credential_modes: ["byo"],
+              configured: true,
+              credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+              preferred_credential_mode: "byo",
+              fallback_providers: ["amazon-ses"],
+              setup_hint: null,
+              setup_url: null
+            },
+            setup_handoff: {
+              preferred_provider: "resend",
+              selection_reason: "highest_ranked_provider",
+              auth_method: "api_key",
+              credential_modes: ["byo"],
+              configured: false,
+              credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+              preferred_credential_mode: "byo",
+              fallback_providers: [],
+              setup_hint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY",
+              setup_url: "/v1/services/resend/ceremony"
+            }
+          }
+        }
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const result = await client.resolveCapability("email.send");
+
+    expect(result?.providers[0].credentialModes).toEqual(["byok"]);
+    expect(result?.executeHint?.credentialModes).toEqual(["byok"]);
+    expect(result?.executeHint?.preferredCredentialMode).toBe("byok");
+    expect(result?.recoveryHint?.requestedCredentialMode).toBe("byok");
+    expect(result?.recoveryHint?.supportedCredentialModes).toEqual(["byok", "agent_vault"]);
+    expect(result?.recoveryHint?.alternateExecuteHint?.credentialModes).toEqual(["byok"]);
+    expect(result?.recoveryHint?.alternateExecuteHint?.preferredCredentialMode).toBe("byok");
+    expect(result?.recoveryHint?.setupHandoff?.credentialModes).toEqual(["byok"]);
+    expect(result?.recoveryHint?.setupHandoff?.preferredCredentialMode).toBe("byok");
+  });
+});
+
+describe("Rhumb MCP API client execute and estimate", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("canonicalizes legacy byo credential mode in execute and estimate responses", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            capability_id: "email.send",
+            provider_used: "resend",
+            credential_mode: "byo",
+            upstream_status: 200,
+            upstream_response: { id: "msg_123" },
+            cost_estimate_usd: null,
+            latency_ms: 42,
+            fallback_attempted: false,
+            fallback_provider: null,
+            execution_id: "exec_123"
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            capability_id: "email.send",
+            provider: "resend",
+            credential_mode: "byo",
+            cost_estimate_usd: null,
+            circuit_state: "closed",
+            endpoint_pattern: "POST /emails"
+          }
+        })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const executeResult = await client.executeCapability("email.send", {
+      method: "POST",
+      path: "/emails"
+    });
+    const estimateResult = await client.estimateCapability("email.send");
+
+    expect(executeResult.credentialMode).toBe("byok");
+    expect(estimateResult.credentialMode).toBe("byok");
+  });
 });

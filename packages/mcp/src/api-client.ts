@@ -382,16 +382,30 @@ function asStringArray(v: unknown): string[] {
     : [];
 }
 
+function canonicalizeCredentialMode(mode: string | null): string | null {
+  return mode === "byo" ? "byok" : mode;
+}
+
+function asCredentialMode(v: unknown): string | null {
+  return canonicalizeCredentialMode(asString(v));
+}
+
+function asCredentialModeArray(v: unknown): string[] {
+  return [...new Set(asStringArray(v)
+    .map((mode) => canonicalizeCredentialMode(mode))
+    .filter((mode): mode is string => typeof mode === "string" && mode.length > 0))];
+}
+
 function parseRecoveryHandoff(rawHint: Record<string, unknown>): CapabilityRecoveryHandoff {
   return {
     preferredProvider: asString(rawHint.preferred_provider) ?? "unknown",
     selectionReason: asString(rawHint.selection_reason),
     endpointPattern: asString(rawHint.endpoint_pattern),
     authMethod: asString(rawHint.auth_method) ?? "unknown",
-    credentialModes: asStringArray(rawHint.credential_modes),
+    credentialModes: asCredentialModeArray(rawHint.credential_modes),
     configured: rawHint.configured === true,
     credentialModesUrl: asString(rawHint.credential_modes_url) ?? "",
-    preferredCredentialMode: asString(rawHint.preferred_credential_mode),
+    preferredCredentialMode: asCredentialMode(rawHint.preferred_credential_mode),
     fallbackProviders: asStringArray(rawHint.fallback_providers),
     setupHint: asString(rawHint.setup_hint),
     setupUrl: asString(rawHint.setup_url)
@@ -584,7 +598,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
           endpointPattern: asString(p.endpoint_pattern) ?? "",
           recommendation: asString(p.recommendation) ?? "available",
           recommendationReason: asString(p.recommendation_reason) ?? "",
-          credentialModes: asStringArray(p.credential_modes),
+          credentialModes: asCredentialModeArray(p.credential_modes),
           configured: asBoolean(p.configured),
           availableForExecute: asBoolean(p.available_for_execute),
           circuitState: asString(p.circuit_state)
@@ -609,10 +623,10 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
             endpointPattern: asString(rawExecuteHint.endpoint_pattern),
             estimatedCostUsd: asNumber(rawExecuteHint.estimated_cost_usd),
             authMethod: asString(rawExecuteHint.auth_method) ?? "unknown",
-            credentialModes: asStringArray(rawExecuteHint.credential_modes),
+            credentialModes: asCredentialModeArray(rawExecuteHint.credential_modes),
             configured: rawExecuteHint.configured === true,
             credentialModesUrl: asString(rawExecuteHint.credential_modes_url) ?? "",
-            preferredCredentialMode: asString(rawExecuteHint.preferred_credential_mode),
+            preferredCredentialMode: asCredentialMode(rawExecuteHint.preferred_credential_mode),
             fallbackProviders: asStringArray(rawExecuteHint.fallback_providers),
             setupHint: asString(rawExecuteHint.setup_hint),
             setupUrl: asString(rawExecuteHint.setup_url)
@@ -623,11 +637,11 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       const recoveryHint = rawRecoveryHint
         ? {
             reason: asString(rawRecoveryHint.reason) ?? "unknown",
-            requestedCredentialMode: asString(rawRecoveryHint.requested_credential_mode),
+            requestedCredentialMode: asCredentialMode(rawRecoveryHint.requested_credential_mode),
             resolveUrl: asString(rawRecoveryHint.resolve_url) ?? "",
             credentialModesUrl: asString(rawRecoveryHint.credential_modes_url) ?? "",
             supportedProviderSlugs: asStringArray(rawRecoveryHint.supported_provider_slugs),
-            supportedCredentialModes: asStringArray(rawRecoveryHint.supported_credential_modes),
+            supportedCredentialModes: asCredentialModeArray(rawRecoveryHint.supported_credential_modes),
             unavailableProviderSlugs: asStringArray(rawRecoveryHint.unavailable_provider_slugs),
             notExecuteReadyProviderSlugs: asStringArray(rawRecoveryHint.not_execute_ready_provider_slugs),
             alternateExecuteHint: isRecord(rawRecoveryHint.alternate_execute_hint)
@@ -762,7 +776,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return {
         capabilityId: asString(d.capability_id) ?? capabilityId,
         providerUsed: asString(d.provider_used) ?? "unknown",
-        credentialMode: asString(d.credential_mode) ?? "auto",
+        credentialMode: asCredentialMode(d.credential_mode) ?? "auto",
         upstreamStatus: typeof d.upstream_status === "number" ? d.upstream_status : null,
         upstreamResponse: d.upstream_response ?? null,
         costEstimateUsd: asNumber(d.cost_estimate_usd),
@@ -806,7 +820,7 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return {
         capabilityId: asString(d.capability_id) ?? capabilityId,
         provider: asString(d.provider) ?? "unknown",
-        credentialMode: asString(d.credential_mode) ?? "auto",
+        credentialMode: asCredentialMode(d.credential_mode) ?? "auto",
         costEstimateUsd: asNumber(d.cost_estimate_usd),
         circuitState: asString(d.circuit_state) ?? "unknown",
         endpointPattern: asString(d.endpoint_pattern)
