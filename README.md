@@ -201,9 +201,8 @@ pip install httpx && python examples/discover-and-evaluate.py
 - [AN Score Methodology](docs/AN-SCORE-V2-SPEC.md) — scoring dimensions, weights, and rubrics
 - [Architecture](docs/ARCHITECTURE.md) — scoring engine design
 - [API Reference](docs/API.md) — endpoint details
+- [Repo Boundary](docs/REPO-BOUNDARY.md) — what stays public here vs. what lives in the private ops workspace
 - [Security Policy](SECURITY.md) — vulnerability reporting and security architecture
-- [Runbooks](docs/runbooks/) — operational procedures
-- [Dogfood Loop](docs/DOGFOOD-LOOP.md) — repeatable Resolve → telemetry validation harness
 
 ---
 
@@ -218,9 +217,9 @@ rhumb/
 │   ├── cli/         # CLI tooling
 │   └── shared/      # Shared types/constants
 ├── examples/        # Runnable examples
-├── docs/            # Public documentation
-├── scripts/         # Scoring + verification
-├── artifacts/       # Score datasets
+├── docs/            # Public documentation only
+├── scripts/         # Product tooling + verification scripts
+├── artifacts/       # Curated public datasets only (raw proof outputs stay local/private)
 ├── llms.txt         # Machine-readable docs for agents
 └── agent-capabilities.json  # Structured capability manifest
 ```

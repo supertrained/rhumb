@@ -3,11 +3,12 @@
 
 Creates fresh checkpoints for score_audit_chain, audit_events, billing_events, and/or
 execution_receipts via the Rhumb admin API, then writes a deterministic JSON anchor bundle under
-``anchors/`` suitable for committing to Git as a public witness.
+``anchors/`` for local review and deliberate publication.
 
-This is the first external-anchor publication path for AUD-3.  It is honest
+This is the first external-anchor publication path for AUD-3. It is honest
 about what it provides: a timestamped, hash-pinned snapshot of chain heads
-committed to a public repo -- not a blockchain or Merkle-tree anchor (yet).
+that can be published as a public witness when intended, not an automatically tracked
+repo artifact and not a blockchain or Merkle-tree anchor (yet).
 
 Usage (production via Railway):
     railway run -s rhumb-api python3 scripts/publish_chain_anchor.py
@@ -27,6 +28,7 @@ Options:
     --reason  <string>                      Checkpoint reason tag (default: external_anchor)
     --operator <string>                     Who initiated this publication
     --output-dir <path>                     Override output directory (default: anchors/)
+                                           Note: anchors/ is ignored by git by default
     --dry-run                               Print bundle to stdout, don't write file
 """
 

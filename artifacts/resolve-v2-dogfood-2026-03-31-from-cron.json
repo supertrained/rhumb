@@ -1,4 +1,0 @@
-{
-  "ok": false,
-  "summary": "Missing API key. Set the RHUMB_DOGFOOD_API_KEY environment variable."
-}

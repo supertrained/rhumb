@@ -66,5 +66,18 @@ docs/WALLET-KEY-MANAGEMENT.md
 docs/WU-*.md
 docs/design-reference.html
 
+# Private operator materials now live in the private workspace repo by default
+# Keep only public product docs here.
+docs/panels/
+docs/runbooks/
+docs/DOGFOOD-LOOP.md
+
+# Local proofs and witness bundles are generated here, but only curated public datasets belong in git.
+anchors/*
+!anchors/.gitkeep
+artifacts/*
+!artifacts/autonomy-scores.json
+!artifacts/dataset-scores.json
+
 # Internal benchmark artifacts
 artifacts/benchmarks/
