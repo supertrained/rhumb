@@ -1,109 +1,194 @@
-import { getCapabilityCount, getCategories, getServiceCount } from "../../../lib/api";
+export const dynamic = "force-static";
 
-export const dynamic = "force-dynamic"; // Always fresh — no ISR cache
+const MANIFEST = {
+  "schema_version": "1.0",
+  "name": "Rhumb",
+  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "homepage": "https://rhumb.dev",
+  "api_base": "https://api.rhumb.dev/v1",
+  "mcp_install": "npx rhumb-mcp@latest",
+  "npm_package": "rhumb-mcp",
+  "auth": {
+    "discovery": "none",
+    "execution": "api_key_or_x402",
+    "signup_url": "https://rhumb.dev/auth/login"
+  },
+  "capabilities": {
+    "discovery": {
+      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
+      "auth_required": false,
+      "tools": [
+        {
+          "name": "find_services",
+          "description": "Search indexed Services by what you need them to do"
+        },
+        {
+          "name": "get_score",
+          "description": "Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness"
+        },
+        {
+          "name": "get_alternatives",
+          "description": "Find alternative Services, ranked by AN Score"
+        },
+        {
+          "name": "get_failure_modes",
+          "description": "Get known failure patterns, impact severity, and workarounds for a service"
+        },
+        {
+          "name": "discover_capabilities",
+          "description": "Browse Capabilities by domain or search text"
+        },
+        {
+          "name": "resolve_capability",
+          "description": "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs"
+        }
+      ]
+    },
+    "execution": {
+      "description": "Execute capabilities through Resolve with managed auth and cost-aware routing",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "execute_capability",
+          "description": "Call a Capability through Rhumb Resolve"
+        },
+        {
+          "name": "estimate_capability",
+          "description": "Get the cost of a Capability call WITHOUT making the call"
+        },
+        {
+          "name": "credential_ceremony",
+          "description": "Get step-by-step instructions to obtain API credentials for a Service"
+        },
+        {
+          "name": "check_credentials",
+          "description": "Check what credential modes are available to you"
+        },
+        {
+          "name": "rhumb_list_recipes",
+          "description": "List the current published Rhumb Layer 3 recipe catalog"
+        },
+        {
+          "name": "rhumb_get_recipe",
+          "description": "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology"
+        },
+        {
+          "name": "rhumb_recipe_execute",
+          "description": "Execute a published Rhumb Layer 3 recipe once one is live in the public catalog"
+        },
+        {
+          "name": "get_receipt",
+          "description": "Retrieve an execution receipt by ID"
+        }
+      ]
+    },
+    "billing": {
+      "description": "Budget enforcement and spend tracking",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "budget",
+          "description": "Check or set your call spending limit"
+        },
+        {
+          "name": "spend",
+          "description": "Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider"
+        },
+        {
+          "name": "check_balance",
+          "description": "Check your current Rhumb credit balance in USD"
+        },
+        {
+          "name": "get_payment_url",
+          "description": "Get a checkout URL to add credits to your Rhumb balance"
+        },
+        {
+          "name": "get_ledger",
+          "description": "Get your billing history: charges (debits), top-ups (credits), and auto-reload events"
+        }
+      ]
+    },
+    "operations": {
+      "description": "Routing preferences and usage analytics",
+      "auth_required": true,
+      "tools": [
+        {
+          "name": "routing",
+          "description": "Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability"
+        },
+        {
+          "name": "usage_telemetry",
+          "description": "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage"
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "services": 1038,
+    "capabilities": 415,
+    "domains": 50,
+    "categories": 92,
+    "providers_with_execution": 16,
+    "credential_modes": [
+      "byok",
+      "rhumb_managed",
+      "agent_vault"
+    ]
+  },
+  "scoring": {
+    "methodology": "https://rhumb.dev/methodology",
+    "dimensions": 20,
+    "axes": {
+      "execution": {
+        "weight": 0.7,
+        "dimensions": 13,
+        "includes_autonomy_dimensions": 3
+      },
+      "access": {
+        "weight": 0.3,
+        "dimensions": 7
+      }
+    },
+    "tiers": {
+      "L4_Native": "8.0-10.0",
+      "L3_Ready": "6.0-7.9",
+      "L2_Developing": "4.0-5.9",
+      "L1_Emerging": "0.0-3.9"
+    }
+  },
+  "trust": {
+    "overview": "https://rhumb.dev/trust",
+    "methodology": "https://rhumb.dev/methodology",
+    "provider_guide": "https://rhumb.dev/providers",
+    "machine_readable_docs": "https://rhumb.dev/llms.txt",
+    "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
+    "current_self_assessment": "https://rhumb.dev/blog/we-scored-ourselves",
+    "historical_self_assessment": "https://rhumb.dev/blog/self-score",
+    "public_dispute_template": "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
+    "public_dispute_log": "https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22",
+    "private_dispute_email": "providers@supertrained.ai",
+    "private_dispute_mailto": "mailto:providers@supertrained.ai?subject=Score%20Dispute",
+    "dispute_response_sla_business_days": 5
+  },
+  "pricing": {
+    "discovery": "free",
+    "execution": "prepaid_or_x402",
+    "free_tier": "1000_calls_per_month",
+    "details": "https://rhumb.dev/pricing"
+  },
+  "links": {
+    "quickstart": "https://rhumb.dev/quickstart",
+    "trust": "https://rhumb.dev/trust",
+    "methodology": "https://rhumb.dev/methodology",
+    "providers": "https://rhumb.dev/providers",
+    "blog": "https://rhumb.dev/blog",
+    "github": "https://github.com/supertrained/rhumb",
+    "disputes": "https://rhumb.dev/providers"
+  }
+} as const;
 
 export async function GET() {
-  const [servicesScored, capabilities, categories] = await Promise.all([
-    getServiceCount(),
-    getCapabilityCount(),
-    getCategories(),
-  ]);
-
-  const manifest = {
-    name: "Rhumb",
-    version: "0.3.2",
-    description:
-      `Agent-native infrastructure for discovering, evaluating, and using external tools. Scores ${servicesScored} APIs for AI agent compatibility (AN Score).`,
-    url: "https://rhumb.dev",
-    api: {
-      base_url: "https://api.rhumb.dev/v1",
-      docs: "https://api.rhumb.dev/docs",
-      authentication: {
-        methods: ["x402", "api_key", "byok"],
-        x402: {
-          description:
-            "Zero-signup per-call payment. No API key or account required.",
-          currency: "USDC",
-          network: "Base",
-          flow: "Send request → receive 402 with payment details → submit payment → retry with proof",
-        },
-        api_key: {
-          description: "Bearer token from signup. Pay-as-you-go: upstream cost + 20% margin.",
-          header: "Authorization: Bearer rhumb_live_{key}",
-          signup_url: "https://rhumb.dev/signup",
-        },
-        byok: {
-          description:
-            "Bring your own API keys for external services. Free passthrough.",
-        },
-      },
-    },
-    mcp: {
-      activation: "npx rhumb-mcp@latest",
-      tools: 16,
-      tool_list: [
-        "find_services",
-        "get_score",
-        "get_alternatives",
-        "get_failure_modes",
-        "execute_capability",
-        "estimate_cost",
-        "get_budget_status",
-        "get_ceremonies",
-        "get_credentials",
-        "get_ledger",
-        "get_routing",
-        "get_balance",
-        "get_payment_url",
-        "get_spend",
-        "resolve_capability",
-        "search_services",
-      ],
-    },
-    coverage: {
-      services_scored: servicesScored,
-      capabilities,
-      domains: categories.length,
-      comparisons: 13,
-      autopsies: 4,
-    },
-    pricing: {
-      discovery: {
-        cost: "free",
-        includes: "search, scores, comparisons, browsing",
-        signup_required: false,
-      },
-      x402: {
-        margin: "15% over upstream cost",
-        currency: "USDC",
-        signup_required: false,
-      },
-      managed: {
-        margin: "20% over upstream cost",
-        signup_required: true,
-      },
-      byok: {
-        cost: "free",
-        description: "You pay external providers directly",
-      },
-    },
-    trust: {
-      neutrality: "Scores are computed, not curated. No pay-to-rank.",
-      methodology: "https://rhumb.dev/methodology",
-      disputes: "providers@supertrained.ai",
-    },
-    discovery: {
-      llms_txt: "https://rhumb.dev/llms.txt",
-      llms_full_txt: "https://rhumb.dev/llms-full.txt",
-      agent_capabilities: "https://rhumb.dev/.well-known/agent-capabilities.json",
-    },
-    contact: {
-      providers: "providers@supertrained.ai",
-      github: "https://github.com/supertrained/rhumb",
-    },
-  };
-
-  return new Response(JSON.stringify(manifest, null, 2), {
+  return new Response(JSON.stringify(MANIFEST, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "public, max-age=3600, s-maxage=3600",
