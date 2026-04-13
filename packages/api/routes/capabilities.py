@@ -1076,6 +1076,7 @@ def _execute_ready_recovery_hint(
     providers: list[dict[str, object]],
     *,
     requested_credential_mode: str | None = None,
+    supported_items: list[dict[str, object]] | None = None,
 ) -> dict[str, object] | None:
     if not providers or any(_provider_can_back_execute_hint(provider) for provider in providers):
         return None
@@ -1084,16 +1085,17 @@ def _execute_ready_recovery_hint(
         "reason": "no_execute_ready_providers",
         "credential_modes_url": _capability_credential_modes_url(capability_id),
     }
+    recovery_items = supported_items or providers
 
     normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
     if normalized_requested_mode:
         recovery_hint["requested_credential_mode"] = normalized_requested_mode
 
-    supported_provider_slugs = _recovery_supported_provider_slugs(providers)
+    supported_provider_slugs = _recovery_supported_provider_slugs(recovery_items)
     if supported_provider_slugs:
         recovery_hint["supported_provider_slugs"] = supported_provider_slugs
 
-    supported_credential_modes = _recovery_supported_credential_modes(providers)
+    supported_credential_modes = _recovery_supported_credential_modes(recovery_items)
     if supported_credential_modes:
         recovery_hint["supported_credential_modes"] = supported_credential_modes
 
@@ -2757,6 +2759,7 @@ async def resolve_capability(
             capability_id,
             providers,
             requested_credential_mode=credential_mode,
+            supported_items=all_providers if credential_mode else None,
         )
         if recovery_hint is not None:
             data["recovery_hint"] = recovery_hint

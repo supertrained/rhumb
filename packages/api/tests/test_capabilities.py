@@ -1356,6 +1356,91 @@ async def test_resolve_capability_reports_mixed_execute_blockers_in_recovery(app
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_filtered_mode_recovery_keeps_unfiltered_pivot(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "credential_modes": ["rhumb_managed"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /v1/rhumb-managed/email/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.8,
+                    "execution_score": 8.6,
+                    "access_readiness_score": 8.7,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.92,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "aggregate_recommendation_score": 7.0,
+                    "execution_score": 7.0,
+                    "access_readiness_score": 7.0,
+                    "tier": "L4",
+                    "tier_label": "Native",
+                    "confidence": 0.9,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "rhumb-managed-email", "name": "Rhumb Managed Email"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "byok"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend"]
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+    assert data["recovery_hint"] == {
+        "reason": "no_execute_ready_providers",
+        "requested_credential_mode": "byok",
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "supported_provider_slugs": ["resend", "rhumb-managed-email"],
+        "supported_credential_modes": ["rhumb_managed", "byok"],
+        "not_execute_ready_provider_slugs": ["resend"],
+    }
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_not_found(app):
     """GET /v1/capabilities/nonexistent/resolve returns 404 with standardized envelope."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
