@@ -146,6 +146,42 @@ If a requested `credential_mode` still leaves at least one provider, `execute_hi
 If a lower-ranked provider is still execute-ready after higher-ranked paths degrade, `execute_hint` now keeps the degraded handoff machine-readable too via `unavailable_provider_slugs`, `not_execute_ready_provider_slugs`, and the mixed blocker selection reason when both conditions apply.
 When a requested `credential_mode` dead-ends, whether because zero providers match or because the filtered set collapses to zero execute-ready paths, `resolve` keeps the recovery handoff machine-readable. `supported_provider_slugs` and `supported_credential_modes` still reflect the broader unfiltered pivot, and `recovery_hint.alternate_execute_hint` carries the exact broader-rail execute/setup handoff when Rhumb can already identify one, so callers can pivot without another blind search. In the degraded-but-still-ranked case, `resolve` also keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
 
+Example recovery payload when `credential_mode=agent_vault` dead-ends for `email.send` but Rhumb can already point you at the broader `byok` rail:
+
+```json
+{
+  "data": {
+    "capability": "email.send",
+    "providers": [],
+    "fallback_chain": [],
+    "related_bundles": [],
+    "execute_hint": null,
+    "recovery_hint": {
+      "reason": "no_providers_match_credential_mode",
+      "requested_credential_mode": "agent_vault",
+      "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+      "supported_provider_slugs": ["resend", "sendgrid"],
+      "supported_credential_modes": ["byok"],
+      "alternate_execute_hint": {
+        "preferred_provider": "resend",
+        "endpoint_pattern": "POST /emails",
+        "auth_method": "api_key",
+        "configured": false,
+        "credential_modes": ["byok"],
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "selection_reason": "highest_ranked_provider",
+        "fallback_providers": ["sendgrid"],
+        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
+      }
+    }
+  },
+  "error": null
+}
+```
+
+`endpoint_pattern` keeps the canonical method-plus-path shape (`POST /emails`, not just `/emails`), and `/v2/capabilities/{capability_id}/resolve` returns the same recovery structure with nested `credential_modes_url` values rewritten onto `/v2`.
+
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
 Rhumb now exposes three direct PostgreSQL read-first capabilities:

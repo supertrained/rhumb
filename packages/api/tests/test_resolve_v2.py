@@ -250,6 +250,47 @@ async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/resolve",
+                params={"credential_mode": "agent_vault"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["providers"] == []
+    assert data["execute_hint"] is None
+
+    recovery_hint = data["recovery_hint"]
+    assert recovery_hint["reason"] == "no_providers_match_credential_mode"
+    assert recovery_hint["requested_credential_mode"] == "agent_vault"
+    assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
+    assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
+    assert recovery_hint["supported_credential_modes"] == ["byok"]
+    assert recovery_hint["alternate_execute_hint"] == {
+        "preferred_provider": "resend",
+        "endpoint_pattern": "POST /emails",
+        "estimated_cost_usd": None,
+        "auth_method": "api_key",
+        "credential_modes": ["byok"],
+        "configured": False,
+        "credential_modes_url": "/v2/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+        "selection_reason": "highest_ranked_provider",
+        "fallback_providers": ["sendgrid"],
+    }
+
+
+@pytest.mark.anyio
 async def test_v2_credential_modes_wraps_metadata(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

@@ -68,7 +68,8 @@ const ENDPOINTS = [
     path: "/v1/capabilities/{capability_id}/resolve",
     desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, an execute-ready fallback chain, machine-readable alternates, filtered recovery hints when a requested credential mode matches nothing, degraded recovery hints when execute-ready options collapse to zero, including unavailable versus not-execute-ready provider context plus broader provider and mode pivots when a requested rail dead-ends, a direct `recovery_hint.alternate_execute_hint` handoff when that broader rail is already identifiable, honest skipped-provider selection metadata when filtering changes the winner, mixed skipped-provider blocker context when a lower-ranked execute-ready path still wins, and contextual configured/setup truth so mixed-mode providers do not look ready through the wrong credential rail.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
-    response: `{
+    response: `Default success response
+{
   "data": {
     "capability": "email.send",
     "providers": [
@@ -84,7 +85,7 @@ const ENDPOINTS = [
     "execute_hint": {
       "preferred_provider": "resend",
       "selection_reason": "highest_ranked_provider",
-      "endpoint_pattern": "/emails",
+      "endpoint_pattern": "POST /emails",
       "estimated_cost_usd": 0.001,
       "auth_method": "api_key",
       "configured": false,
@@ -93,6 +94,37 @@ const ENDPOINTS = [
       "preferred_credential_mode": "byok",
       "fallback_providers": ["sendgrid"],
       "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
+    }
+  },
+  "error": null
+}
+
+Recovery response when credential_mode=agent_vault dead-ends
+{
+  "data": {
+    "capability": "email.send",
+    "providers": [],
+    "fallback_chain": [],
+    "related_bundles": [],
+    "execute_hint": null,
+    "recovery_hint": {
+      "reason": "no_providers_match_credential_mode",
+      "requested_credential_mode": "agent_vault",
+      "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+      "supported_provider_slugs": ["resend", "sendgrid"],
+      "supported_credential_modes": ["byok"],
+      "alternate_execute_hint": {
+        "preferred_provider": "resend",
+        "endpoint_pattern": "POST /emails",
+        "auth_method": "api_key",
+        "configured": false,
+        "credential_modes": ["byok"],
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "selection_reason": "highest_ranked_provider",
+        "fallback_providers": ["sendgrid"],
+        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
+      }
     }
   },
   "error": null
@@ -110,7 +142,7 @@ const ENDPOINTS = [
     "credential_mode": "auto",
     "cost_estimate_usd": 0.001,
     "circuit_state": "closed",
-    "endpoint_pattern": "/emails"
+    "endpoint_pattern": "POST /emails"
   },
   "error": null
 }`,
