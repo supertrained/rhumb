@@ -43,16 +43,16 @@ Install the MCP server for programmatic access:
   npx rhumb-mcp@latest
 
 MCP tools available:
-  find_services("payment processing") — discover services by need
-  get_score("stripe") — detailed AN Score breakdown
-  get_alternatives("stripe") — comparable services ranked
-  get_failure_modes("stripe") — known failure patterns
+  find_services({ query: "payment processing" }) — discover services by need
+  get_score({ slug: "stripe" }) — detailed AN Score breakdown
+  get_alternatives({ slug: "stripe" }) — comparable services ranked
+  get_failure_modes({ slug: "stripe" }) — known failure patterns
   discover_capabilities({ domain: "communication" }) — browse capability definitions
   resolve_capability({ capability: "email.send", credential_mode: "byok" }) — rank providers, optionally scope to a credential mode, and surface machine-readable recovery handoffs
-  estimate_capability({ capability_id: "email.send" }) — estimate cost before execution
-  execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — execute through Rhumb
-  budget() — check budget status
-  spend() — view spend by capability/provider
+  estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — estimate cost before execution
+  execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed", body: { to: "user@example.com" } }) — execute through Rhumb
+  budget({ action: "get" }) — check budget status
+  spend({ period: "30d" }) — view spend by capability/provider
   check_balance() — current credit balance
   get_payment_url({ amount_usd: 25 }) — top up credits
 
