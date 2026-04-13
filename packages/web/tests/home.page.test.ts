@@ -53,6 +53,9 @@ describe("home page", () => {
     expect(html).toContain("Open full payments leaderboard");
     expect(html).toContain("Stripe</a>");
     expect(html).toContain("Aggregate 8.9");
+    expect(html).toContain("href=\"/trust\"");
+    expect(html).toContain("href=\"/methodology\"");
+    expect(html).toContain("href=\"/providers#dispute-a-score\"");
   });
 
   it("renders even when leaderboard preview fails", async () => {

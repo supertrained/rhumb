@@ -183,7 +183,7 @@ export default function ProvidersPage() {
         </section>
 
         {/* Dispute */}
-        <section className="mb-16">
+        <section id="dispute-a-score" className="mb-16 scroll-mt-24">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
             Dispute a score
           </h2>
