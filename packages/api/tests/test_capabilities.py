@@ -1599,6 +1599,38 @@ async def test_resolve_capability_reports_mixed_execute_blockers_in_recovery(app
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_reports_recovery_when_no_providers_registered(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    assert resp.json()["data"] == {
+        "capability": "email.send",
+        "providers": [],
+        "fallback_chain": [],
+        "related_bundles": [],
+        "execute_hint": None,
+        "recovery_hint": {
+            "reason": "no_providers_registered",
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        },
+    }
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_filtered_mode_recovery_keeps_unfiltered_pivot(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):

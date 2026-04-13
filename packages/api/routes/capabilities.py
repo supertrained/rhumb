@@ -774,6 +774,7 @@ def _empty_resolve_payload(
     requested_credential_mode: str | None = None,
     recovery_reason: str | None = None,
     recovery_items: list[dict[str, object]] | None = None,
+    recovery_hint: dict[str, object] | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "capability": capability_id,
@@ -782,6 +783,9 @@ def _empty_resolve_payload(
         "related_bundles": [],
         "execute_hint": None,
     }
+    if recovery_hint is not None:
+        payload["recovery_hint"] = recovery_hint
+        return payload
     normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
     if recovery_reason and normalized_requested_mode:
         payload["recovery_hint"] = _credential_mode_filter_recovery_hint(
@@ -2695,7 +2699,13 @@ async def resolve_capability(
     all_mappings = await _cached_fetch("capability_services", mapping_path)
     if not all_mappings:
         return {
-            "data": _empty_resolve_payload(capability_id),
+            "data": _empty_resolve_payload(
+                capability_id,
+                recovery_hint={
+                    "reason": "no_providers_registered",
+                    "credential_modes_url": _capability_credential_modes_url(capability_id),
+                },
+            ),
             "error": None,
         }
 

@@ -130,6 +130,22 @@ Recovery response when credential_mode=agent_vault dead-ends
   "error": null
 }
 
+Recovery response when the capability exists but no providers are registered yet
+{
+  "data": {
+    "capability": "email.send",
+    "providers": [],
+    "fallback_chain": [],
+    "related_bundles": [],
+    "execute_hint": null,
+    "recovery_hint": {
+      "reason": "no_providers_registered",
+      "credential_modes_url": "/v1/capabilities/email.send/credential-modes"
+    }
+  },
+  "error": null
+}
+
 Recovery response when providers still rank but none can execute yet
 {
   "data": {
