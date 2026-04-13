@@ -58,8 +58,8 @@ const workflows: Workflow[] = [
     steps: [
       {
         tool: "resolve_capability",
-        input: '{ capability: "email.send" }',
-        whatHappens: "Returns ranked providers with live availability, cost per call, credential status, and circuit state.",
+        input: '{ capability: "email.send", credential_mode: "byok" }',
+        whatHappens: "Returns ranked providers with live availability, cost per call, credential status, and circuit state. If the requested mode dead-ends, Rhumb also returns machine-readable recovery handoffs like alternate_execute_hint or setup_handoff.",
       },
       {
         tool: "estimate_capability",
@@ -107,7 +107,7 @@ type McpTool = {
 const mcpTools: McpTool[] = [
   { name: "find_services", description: "Search for services by what you need", category: "discover" },
   { name: "discover_capabilities", description: "Browse capabilities by domain", category: "discover" },
-  { name: "resolve_capability", description: "Rank providers for a capability", category: "discover" },
+  { name: "resolve_capability", description: "Rank providers, filter by credential mode, and surface recovery handoffs", category: "discover" },
   { name: "get_score", description: "Full AN Score breakdown for a service", category: "score" },
   { name: "get_alternatives", description: "Similar services, ranked", category: "score" },
   { name: "get_failure_modes", description: "Known failure patterns", category: "score" },

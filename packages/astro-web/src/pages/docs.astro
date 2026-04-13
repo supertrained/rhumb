@@ -272,7 +272,7 @@ const MCP_TOOLS = [
   { name: "get_alternatives", desc: "Find alternatives ranked by AN Score.", example: 'get_alternatives("paypal")' },
   { name: "get_failure_modes", desc: "Inspect known breakage patterns before integrating.", example: 'get_failure_modes("stripe")' },
   { name: "discover_capabilities", desc: "Browse capabilities like email.send or scrape.extract.", example: 'discover_capabilities({ search: "email" })' },
-  { name: "resolve_capability", desc: "Rank providers for a capability.", example: 'resolve_capability("email.send")' },
+  { name: "resolve_capability", desc: "Rank providers, filter by credential mode, and surface recovery handoffs.", example: 'resolve_capability("email.send")' },
   { name: "estimate_capability", desc: "Estimate cost and routing before execution.", example: 'estimate_capability("email.send")' },
   { name: "execute_capability", desc: "Execute a capability through Rhumb Resolve.", example: 'execute_capability("email.send", { body: { to: "user@example.com" } })' },
   { name: "credential_ceremony", desc: "Get self-service credential setup instructions.", example: 'credential_ceremony("github")' },

@@ -67,7 +67,7 @@ In Cursor settings → MCP Servers → Add:
 - `discover_capabilities` — "What capabilities exist for payments?"
 
 ### With an API key (default production path)
-- `resolve_capability` — "Which provider should I use for email.send?"
+- `resolve_capability` — "Which provider or setup step should I use for email.send, and what if I only want BYOK or Rhumb-managed?"
 - `estimate_capability` — "How much will this call cost?"
 - `execute_capability` — "Send an email through the best provider"
 - `get_receipt` — "Show me the receipt for that execution"
@@ -77,9 +77,11 @@ In Cursor settings → MCP Servers → Add:
 ### Minimal recommended flow
 
 1. `discover_capabilities` — find the action you want
-2. `resolve_capability` — see the best provider choices
+2. `resolve_capability` — see the best provider choices, optional credential-mode filters, and recovery handoffs
 3. `estimate_capability` — check cost before paying
 4. `execute_capability` — run the action
+
+If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is execute-ready, `resolve_capability` can still return the next action as machine-readable `alternate_execute_hint` or `setup_handoff` instead of leaving you to rediscover it manually.
 
 ## Get an API key
 

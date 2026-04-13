@@ -68,7 +68,7 @@ Treat broader multi-system business automation as future scope, not the current 
 - `get_alternatives` — Find alternative Services, ranked by AN Score
 - `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
 - `discover_capabilities` — Browse Capabilities by domain or search text
-- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs
 
 > Discovery breadth is wider than current execution coverage. The index is broader than what Rhumb can execute today.
 
@@ -77,7 +77,7 @@ Treat broader multi-system business automation as future scope, not the current 
 **415 capability definitions** across **16 callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
-- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs
 - `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
 - `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
@@ -123,7 +123,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - `get_alternatives` — Find alternative Services, ranked by AN Score
 - `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
 - `discover_capabilities` — Browse Capabilities by domain or search text
-- `resolve_capability` — Given a Capability ID, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, and fallback chains
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs
 
 **Execution**
 - `execute_capability` — Call a Capability through Rhumb Resolve
@@ -167,7 +167,7 @@ Base URL: `https://api.rhumb.dev/v1`
 | `GET /search?q=...` | No | Search services |
 | `GET /leaderboard/{category}` | No | Category rankings |
 | `GET /capabilities` | No | Capability registry |
-| `GET /capabilities/{id}/resolve` | No | Ranked providers |
+| `GET /capabilities/{id}/resolve` | No | Ranked providers + recovery handoffs |
 | `POST /capabilities/{id}/execute` | Yes | Execute a capability |
 | `GET /capabilities/{id}/execute/estimate` | Yes | Cost estimate |
 | `GET /telemetry/provider-health` | No | Provider health status |
