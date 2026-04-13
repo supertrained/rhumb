@@ -516,7 +516,10 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DB_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -548,7 +551,10 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_WAREHOUSE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -579,7 +585,10 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "providers": [provider],
         "fallback_chain": [_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -611,7 +620,10 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DEPLOYMENT_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -643,7 +655,10 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_ACTIONS_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -681,7 +696,10 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": providers,
         "fallback_chain": [provider["service_slug"] for provider in providers],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, preferred_provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, preferred_provider),
+            providers,
+        ),
     }
 
 
@@ -714,7 +732,10 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [provider_slug],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(capability_id, provider),
+        "execute_hint": _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(capability_id, provider),
+            [provider],
+        ),
     }
 
 
@@ -871,10 +892,13 @@ def _apply_direct_resolve_credential_mode_filter(
             ),
             filtered_providers[0],
         )
-        filtered_payload["execute_hint"] = _execute_hint_from_provider(
-            capability_id,
-            preferred_provider,
-            requested_credential_mode=credential_mode,
+        filtered_payload["execute_hint"] = _with_execute_hint_fallbacks(
+            _execute_hint_from_provider(
+                capability_id,
+                preferred_provider,
+                requested_credential_mode=credential_mode,
+            ),
+            filtered_providers,
         )
 
     return filtered_payload
@@ -962,6 +986,44 @@ def _execute_hint_from_provider(
             if setup_url is not None:
                 execute_hint["setup_url"] = setup_url
     return execute_hint
+
+
+def _execute_hint_fallback_providers(
+    providers: list[dict[str, object]],
+    *,
+    preferred_provider: str,
+) -> list[str]:
+    return [
+        str(provider.get("service_slug"))
+        for provider in providers
+        if provider.get("service_slug")
+        and provider.get("service_slug") != preferred_provider
+        and _provider_can_back_execute_hint(provider)
+    ][:3]
+
+
+def _with_execute_hint_fallbacks(
+    execute_hint: dict[str, object] | None,
+    providers: list[dict[str, object]],
+) -> dict[str, object] | None:
+    if not isinstance(execute_hint, dict):
+        return execute_hint
+
+    preferred_provider = str(execute_hint.get("preferred_provider") or "")
+    if not preferred_provider:
+        return execute_hint
+
+    fallback_providers = _execute_hint_fallback_providers(
+        providers,
+        preferred_provider=preferred_provider,
+    )
+    if not fallback_providers:
+        return execute_hint
+
+    return {
+        **execute_hint,
+        "fallback_providers": fallback_providers,
+    }
 
 
 def _pick_mapped_execute_hint(
@@ -2407,6 +2469,7 @@ async def resolve_capability(
         providers,
         requested_credential_mode=credential_mode,
     )
+    execute_hint = _with_execute_hint_fallbacks(execute_hint, providers)
 
     return {
         "data": {

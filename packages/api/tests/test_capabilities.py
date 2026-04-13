@@ -315,6 +315,24 @@ def _mock_support_direct_supabase(path: str):
     return []
 
 
+class _FakeBreaker:
+    def __init__(self, state: str, *, allowed: bool):
+        self.state = type("State", (), {"value": state})()
+        self._allowed = allowed
+
+    def allow_request(self) -> bool:
+        return self._allowed
+
+
+class _FakeBreakerRegistry:
+    def __init__(self, breaker_states: dict[str, tuple[str, bool]]):
+        self._breaker_states = breaker_states
+
+    def get(self, service: str, agent_id: str = "default") -> _FakeBreaker:
+        state, allowed = self._breaker_states.get(service, ("closed", True))
+        return _FakeBreaker(state, allowed=allowed)
+
+
 # ── Tests ──────────────────────────────────────────────────
 
 @pytest.mark.anyio
@@ -501,6 +519,7 @@ async def test_resolve_capability(app):
     assert data["execute_hint"]["credential_modes"] == ["byok"]
     assert data["execute_hint"]["credential_modes_url"] == "/v1/capabilities/email.send/credential-modes"
     assert data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert data["execute_hint"]["fallback_providers"] == ["sendgrid"]
     assert "RHUMB_CREDENTIAL_RESEND_API_KEY" in data["execute_hint"]["setup_hint"]
     assert data["related_bundles"] == ["prospect.enrich_and_verify"]
     assert "recommendation_reason" in first
@@ -740,7 +759,30 @@ async def test_resolve_capability_prefers_configured_provider_in_execute_hint(ap
     assert data["execute_hint"]["configured"] is True
     assert data["execute_hint"]["credential_modes"] == ["rhumb_managed"]
     assert data["execute_hint"]["preferred_credential_mode"] == "rhumb_managed"
+    assert data["execute_hint"]["fallback_providers"] == ["resend"]
     assert "setup_hint" not in data["execute_hint"]
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_skips_open_provider_in_execute_hint_fallbacks(app):
+    fake_breakers = _FakeBreakerRegistry({
+        "resend": ("open", False),
+        "sendgrid": ("closed", True),
+    })
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "resend"
+    assert data["providers"][0]["circuit_state"] == "open"
+    assert data["execute_hint"]["preferred_provider"] == "sendgrid"
+    assert "fallback_providers" not in data["execute_hint"]
 
 
 @pytest.mark.anyio
@@ -1015,6 +1057,7 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
     assert resolve_data["execute_hint"]["auth_method"] == "crm_ref"
     assert resolve_data["execute_hint"]["configured"] is True
     assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert resolve_data["execute_hint"]["fallback_providers"] == ["hubspot"]
     assert "setup_hint" not in resolve_data["execute_hint"]
 
     mode_data = modes_resp.json()["data"]
