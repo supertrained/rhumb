@@ -12,7 +12,12 @@ Requires: RHUMB_API_KEY environment variable.
 import os
 import httpx
 
-from resolve_helpers import describe_recovery_hint, preferred_execute_provider, preferred_recovery_handoff
+from resolve_helpers import (
+    describe_recovery_hint,
+    preferred_execute_provider,
+    preferred_recovery_handoff,
+    recovery_resolve_url,
+)
 
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -63,6 +68,7 @@ def main():
     preferred_provider = preferred_execute_provider(data)
     recovery_summary = describe_recovery_hint(data)
     recovery_handoff = preferred_recovery_handoff(data)
+    resolve_url = recovery_resolve_url(data)
     if preferred_provider:
         print(f"\n🧭 Preferred execute provider: {preferred_provider}")
         if execute_hint.get("preferred_credential_mode"):
@@ -81,6 +87,10 @@ def main():
             print(f"  Setup URL: {handoff['setup_url']}")
         elif handoff.get("setup_hint"):
             print(f"  Setup hint: {handoff['setup_hint']}")
+        if resolve_url:
+            print(f"  Resolve URL: {resolve_url}")
+    elif resolve_url:
+        print(f"\n🧭 Resolve URL: {resolve_url}")
 
     if recovery_summary:
         print(f"  Recovery hint: {recovery_summary}")

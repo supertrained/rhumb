@@ -61,6 +61,7 @@ def test_budget_example_surfaces_alternate_execute_endpoint(monkeypatch, capsys)
                         "fallback_chain": [],
                         "recovery_hint": {
                             "reason": "no_providers_match_credential_mode",
+                            "resolve_url": "/v1/capabilities/data.enrich_company/resolve?credential_mode=auto",
                             "alternate_execute_hint": {
                                 "preferred_provider": "hubspot",
                                 "preferred_credential_mode": "agent_vault",
@@ -99,6 +100,7 @@ def test_budget_example_surfaces_alternate_execute_endpoint(monkeypatch, capsys)
     assert "🧭 Alternate execute rail: hubspot (agent_vault)" in out
     assert "  Endpoint: POST /v1/capabilities/crm.record.search/execute" in out
     assert "  Setup URL: /v1/services/hubspot/ceremony" in out
+    assert "  Resolve URL: /v1/capabilities/data.enrich_company/resolve?credential_mode=auto" in out
 
 
 def test_budget_example_surfaces_setup_handoff_hint(monkeypatch, capsys) -> None:
@@ -126,6 +128,7 @@ def test_budget_example_surfaces_setup_handoff_hint(monkeypatch, capsys) -> None
                         "fallback_chain": [],
                         "recovery_hint": {
                             "reason": "no_execute_ready_providers",
+                            "resolve_url": "/v1/capabilities/data.enrich_company/resolve?credential_mode=byok",
                             "setup_handoff": {
                                 "preferred_provider": "apollo",
                                 "preferred_credential_mode": "byok",
@@ -162,3 +165,4 @@ def test_budget_example_surfaces_setup_handoff_hint(monkeypatch, capsys) -> None
 
     assert "🧭 Setup next: apollo (byok)" in out
     assert "  Setup hint: Set RHUMB_CREDENTIAL_APOLLO_API_KEY or configure via proxy credentials" in out
+    assert "  Resolve URL: /v1/capabilities/data.enrich_company/resolve?credential_mode=byok" in out

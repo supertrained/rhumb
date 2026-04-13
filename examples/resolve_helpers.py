@@ -77,6 +77,18 @@ def preferred_recovery_handoff(resolve_data: dict[str, Any]) -> tuple[str, dict[
     return None
 
 
+def recovery_resolve_url(resolve_data: dict[str, Any]) -> str | None:
+    recovery_hint = resolve_data.get("recovery_hint")
+    if not isinstance(recovery_hint, dict):
+        return None
+
+    resolve_url = recovery_hint.get("resolve_url")
+    if isinstance(resolve_url, str) and resolve_url:
+        return resolve_url
+
+    return None
+
+
 def _handoff_summary(prefix: str, handoff: Any) -> list[str]:
     if not isinstance(handoff, dict):
         return []

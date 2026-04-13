@@ -72,6 +72,7 @@ def test_execute_ready_provider_slugs_returns_empty_when_only_recovery_remains()
 
     assert resolve_helpers.execute_ready_provider_slugs(payload) == []
     assert resolve_helpers.preferred_execute_provider(payload) is None
+    assert resolve_helpers.recovery_resolve_url(payload) == "/v1/capabilities/email.send/resolve"
     assert resolve_helpers.describe_recovery_hint(payload) == (
         "no_execute_ready_providers; resolve_url=/v1/capabilities/email.send/resolve; unavailable=resend; "
         "not_execute_ready=postmark; supported=resend,postmark"
@@ -102,6 +103,7 @@ def test_describe_recovery_hint_surfaces_alternate_execute_handoff() -> None:
             "setup_url": "/v1/services/gmail/ceremony",
         },
     )
+    assert resolve_helpers.recovery_resolve_url(payload) == "/v1/capabilities/email.send/resolve"
     assert resolve_helpers.describe_recovery_hint(payload) == (
         "no_providers_match_credential_mode; resolve_url=/v1/capabilities/email.send/resolve; supported=resend,gmail; "
         "alternate_execute=gmail(agent_vault); "
@@ -133,6 +135,7 @@ def test_describe_recovery_hint_surfaces_setup_handoff() -> None:
             "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
         },
     )
+    assert resolve_helpers.recovery_resolve_url(payload) == "/v1/capabilities/email.send/resolve"
     assert resolve_helpers.describe_recovery_hint(payload) == (
         "no_execute_ready_providers; resolve_url=/v1/capabilities/email.send/resolve; not_execute_ready=resend; "
         "setup_handoff=resend(byok); "

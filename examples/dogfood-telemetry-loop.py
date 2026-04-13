@@ -30,7 +30,12 @@ from typing import Any
 
 import httpx
 
-from resolve_helpers import describe_recovery_hint, execute_ready_provider_slugs, preferred_recovery_handoff
+from resolve_helpers import (
+    describe_recovery_hint,
+    execute_ready_provider_slugs,
+    preferred_recovery_handoff,
+    recovery_resolve_url,
+)
 
 BASE = os.environ.get("RHUMB_BASE_URL", "https://api.rhumb.dev/v1").rstrip("/")
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -80,11 +85,18 @@ def _get_json(client: httpx.Client, path: str, *, params: dict[str, Any] | None 
     return resp.json()
 
 
-def _resolve_execute_context(client: httpx.Client) -> tuple[list[str], str | None, tuple[str, dict[str, Any]] | None]:
+def _resolve_execute_context(
+    client: httpx.Client,
+) -> tuple[list[str], str | None, tuple[str, dict[str, Any]] | None, str | None]:
     payload = _get_json(client, f"/capabilities/{CAPABILITY}/resolve")
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
     providers = execute_ready_provider_slugs(data, limit=PROVIDER_COUNT)
-    return providers, describe_recovery_hint(data), preferred_recovery_handoff(data)
+    return (
+        providers,
+        describe_recovery_hint(data),
+        preferred_recovery_handoff(data),
+        recovery_resolve_url(data),
+    )
 
 
 def _usage_summary(client: httpx.Client) -> dict[str, Any]:
@@ -153,7 +165,7 @@ def main() -> None:
     queries = _queries()
     with httpx.Client(timeout=30.0) as client:
         before = _usage_summary(client)
-        providers, recovery_summary, recovery_handoff = _resolve_execute_context(client)
+        providers, recovery_summary, recovery_handoff, resolve_url = _resolve_execute_context(client)
 
         if not providers:
             print(f"No execute-ready providers resolved for {CAPABILITY}.")
@@ -171,6 +183,8 @@ def main() -> None:
                     print(f"  Setup URL: {handoff['setup_url']}")
                 elif handoff.get("setup_hint"):
                     print(f"  Setup hint: {handoff['setup_hint']}")
+            if resolve_url:
+                print(f"  Resolve URL: {resolve_url}")
             if recovery_summary:
                 print(f"Recovery hint: {recovery_summary}")
             sys.exit(1)

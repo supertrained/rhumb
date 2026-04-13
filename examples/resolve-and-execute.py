@@ -16,7 +16,12 @@ import os
 import httpx
 import json
 
-from resolve_helpers import describe_recovery_hint, preferred_execute_provider, preferred_recovery_handoff
+from resolve_helpers import (
+    describe_recovery_hint,
+    preferred_execute_provider,
+    preferred_recovery_handoff,
+    recovery_resolve_url,
+)
 
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -76,8 +81,7 @@ def main():
 
     recovery_summary = describe_recovery_hint(data)
     recovery_handoff = preferred_recovery_handoff(data)
-    recovery_hint = data.get("recovery_hint") if isinstance(data.get("recovery_hint"), dict) else {}
-    resolve_url = recovery_hint.get("resolve_url") if isinstance(recovery_hint.get("resolve_url"), str) else None
+    resolve_url = recovery_resolve_url(data)
     top_provider = preferred_execute_provider(data)
     if recovery_summary:
         print(f"\n⚠️  Recovery hint: {recovery_summary}")
