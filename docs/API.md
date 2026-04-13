@@ -230,6 +230,30 @@ Example recovery payload when providers still rank but none can execute yet and 
 
 Use `alternate_execute_hint` when Rhumb already knows a live broader execute path. Use `setup_handoff` when the best next move is still setup rather than execution.
 
+## Execute auth/payment handoff
+
+When `POST /v1/capabilities/{capability_id}/execute` returns HTTP 402, Rhumb now includes the normal execute recovery fields plus a machine-readable `auth_handoff` block.
+
+`auth_handoff` is the answer to: "What should the agent do next?"
+- `recommended_path`: default retry/setup path (`governed_api_key` today)
+- `retry_url`: canonical execute retry target
+- `docs_url`: canonical onboarding map
+- `paths[]`: structured alternate rails, each with:
+  - `kind`
+  - `setup_url`
+  - `retry_header`
+  - `summary`
+  - `requires_human_setup`
+  - `automatic_after_setup`
+  - optional `requires_wallet_support`
+
+Current product truth:
+- **default path:** governed API key via `/auth/login`, then retry with `X-Rhumb-Key`
+- **wallet repeat traffic:** wallet-prefund via `/payments/agent`, then retry with `X-Rhumb-Key`
+- **zero-signup per-call:** x402 via `/payments/agent`, then retry with `X-Payment`
+
+That means agents should not treat a 402 as a generic dead end. They should either follow the structured next step automatically when their runtime supports the rail, or surface the exact human setup action when it does not.
+
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
 Rhumb now exposes three direct PostgreSQL read-first capabilities:

@@ -240,6 +240,47 @@ def _matching_provider_mapping(mappings: list[dict], provider: str | None) -> di
     )
 
 
+def _execute_auth_handoff(capability_id: str) -> dict[str, Any]:
+    """Return machine-readable next-step guidance when execute is blocked on auth/payment."""
+    execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
+    return {
+        "reason": "auth_or_payment_required",
+        "recommended_path": "governed_api_key",
+        "retry_url": execute_url,
+        "docs_url": "/docs#resolve-mental-model",
+        "paths": [
+            {
+                "kind": "governed_api_key",
+                "recommended": True,
+                "setup_url": "/auth/login",
+                "retry_header": "X-Rhumb-Key",
+                "summary": "Default for most buyers and most repeat agent traffic.",
+                "requires_human_setup": True,
+                "automatic_after_setup": True,
+            },
+            {
+                "kind": "wallet_prefund",
+                "recommended": False,
+                "setup_url": "/payments/agent",
+                "retry_header": "X-Rhumb-Key",
+                "summary": "Best when wallet identity matters and the same wallet will call repeatedly.",
+                "requires_human_setup": True,
+                "automatic_after_setup": True,
+            },
+            {
+                "kind": "x402_per_call",
+                "recommended": False,
+                "setup_url": "/payments/agent",
+                "retry_header": "X-Payment",
+                "summary": "Use when request-level payment authorization is the point and the runtime can pay from a wallet.",
+                "requires_human_setup": True,
+                "automatic_after_setup": True,
+                "requires_wallet_support": True,
+            },
+        ],
+    }
+
+
 def _execute_recovery_hints(
     *,
     capability_id: str,
@@ -266,6 +307,7 @@ def _execute_recovery_hints(
             credential_mode=effective_mode,
         ),
         "available_providers": _provider_option_summaries(mappings),
+        "auth_handoff": _execute_auth_handoff(capability_id),
     }
     if effective_mode:
         hints["credential_mode"] = effective_mode
@@ -579,15 +621,17 @@ def _build_x402_compatibility_error_response(
     network = payment_trace.get("declared_network")
     resolution = (
         "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
-        "or use a Rhumb API key / Stripe checkout. Rhumb does not currently support "
-        "settling standard x402 authorization payloads on Base mainnet, and the public "
-        "x402 facilitator is not integrated here."
+        "or use a funded Rhumb API key via /auth/login. If you need wallet setup guidance, "
+        "use /payments/agent. Rhumb does not currently support settling standard x402 "
+        "authorization payloads on Base mainnet, and the public x402 facilitator is not "
+        "integrated here."
     )
     if network in ("base-sepolia", "evm:84532"):
         resolution = (
             "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
-            "or use a Rhumb API key / Stripe checkout. Rhumb does not currently settle "
-            "standard x402 authorization payloads in this execute path."
+            "or use a funded Rhumb API key via /auth/login. If you need wallet setup guidance, "
+            "use /payments/agent. Rhumb does not currently settle standard x402 authorization "
+            "payloads in this execute path."
         )
 
     return JSONResponse(
@@ -798,7 +842,9 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
                 "error": "Cost data unavailable for this capability. Use the estimate endpoint first: "
                          f"GET {api_base}/v1/capabilities/{capability_id}/execute/estimate",
                 "resolution": (
-                    "Inspect the estimate and resolve surfaces for provider and credential options before retrying."
+                    "Default next step: create or use a funded governed API key at /auth/login and retry with X-Rhumb-Key. "
+                    "If you need a wallet-first path, use /payments/agent for wallet-prefund or x402 per-call. "
+                    "Inspect the estimate and resolve surfaces before retrying if you only need discovery."
                 ),
                 "balanceRequired": None,
                 "balanceRequiredUsd": None,
@@ -820,7 +866,9 @@ async def _build_execute_discovery_response(capability_id: str) -> JSONResponse:
         resource_url=f"{api_base}/v1/capabilities/{capability_id}/execute",
         payment_request=payment_request,
         resolution=(
-            "Pay with one of the accepted payment options, or inspect the resolve and estimate surfaces before retrying."
+            "Default next step: create or use a funded governed API key at /auth/login and retry with X-Rhumb-Key. "
+            "If you need a wallet-first path, use /payments/agent for wallet-prefund or x402 per-call. "
+            "Inspect the resolve and estimate surfaces before retrying if you only need discovery."
         ),
         supplemental_fields=recovery_hints,
     )
@@ -2523,7 +2571,9 @@ async def execute_capability(
                 detail=budget_result.reason or "Agent budget exceeded",
                 payment_request=payment_request,
                 resolution=(
-                    "Pay with one of the accepted payment options, top up credits, or inspect the resolve and estimate surfaces before retrying."
+                    "Default next step: use a funded governed API key at /auth/login and retry with X-Rhumb-Key. "
+                    "If you need a wallet-first path, use /payments/agent for wallet-prefund or x402 per-call. "
+                    "Inspect the resolve and estimate surfaces before retrying if you only need discovery."
                 ),
                 supplemental_fields=_execute_recovery_hints(
                     capability_id=capability_id,
@@ -2578,7 +2628,9 @@ async def execute_capability(
                     detail=credit_result.reason or "Insufficient org credits",
                     payment_request=payment_request,
                     resolution=(
-                        "Pay with one of the accepted payment options, top up credits, or inspect the resolve and estimate surfaces before retrying."
+                        "Default next step: use a funded governed API key at /auth/login and retry with X-Rhumb-Key. "
+                        "If you need a wallet-first path, use /payments/agent for wallet-prefund or x402 per-call. "
+                        "Inspect the resolve and estimate surfaces before retrying if you only need discovery."
                     ),
                     supplemental_fields=_execute_recovery_hints(
                         capability_id=capability_id,

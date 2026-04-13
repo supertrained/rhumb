@@ -1791,6 +1791,12 @@ async def test_execute_requires_auth_header(app):
         {"provider": "sendgrid", "credential_modes": ["byok"]},
         {"provider": "resend", "credential_modes": ["byok"]},
     ]
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert auth_paths["governed_api_key"]["setup_url"] == "/auth/login"
+    assert auth_paths["governed_api_key"]["retry_header"] == "X-Rhumb-Key"
+    assert auth_paths["x402_per_call"]["setup_url"] == "/payments/agent"
+    assert auth_paths["x402_per_call"]["retry_header"] == "X-Payment"
 
 
 @pytest.mark.anyio
@@ -1812,6 +1818,7 @@ async def test_execute_get_returns_x402_discovery(app):
     assert "accepts" in body
     assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
     assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
 
 
 @pytest.mark.anyio
@@ -1843,6 +1850,7 @@ async def test_execute_post_raw_json_without_content_type_returns_x402_discovery
     assert "accepts" in body
     assert body["resolve_url"] == "/v1/capabilities/email.send/resolve"
     assert body["estimate_url"] == "/v1/capabilities/email.send/execute/estimate"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
 
 
 @pytest.mark.anyio
