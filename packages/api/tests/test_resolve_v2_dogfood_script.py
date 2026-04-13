@@ -15,7 +15,7 @@ resolve_v2_dogfood = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(resolve_v2_dogfood)
 
 
-def test_build_l2_execute_payload_defaults_to_provider_preference():
+def test_build_l2_execute_payload_defaults_to_neutral_routing():
     payload = resolve_v2_dogfood.build_l2_execute_payload(
         parameters={"query": "rhumb"},
         provider="brave-search-api",
@@ -23,6 +23,24 @@ def test_build_l2_execute_payload_defaults_to_provider_preference():
         interface="dogfood",
         max_cost_usd=0.05,
         provider_preference=None,
+    )
+
+    assert payload == {
+        "parameters": {"query": "rhumb"},
+        "credential_mode": "rhumb_managed",
+        "interface": "dogfood",
+        "policy": {"max_cost_usd": 0.05},
+    }
+
+
+def test_build_l2_execute_payload_honors_explicit_provider_preference():
+    payload = resolve_v2_dogfood.build_l2_execute_payload(
+        parameters={"query": "rhumb"},
+        provider="brave-search-api",
+        credential_mode="rhumb_managed",
+        interface="dogfood",
+        max_cost_usd=0.05,
+        provider_preference=["brave-search-api"],
     )
 
     assert payload == {

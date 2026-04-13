@@ -550,11 +550,6 @@ def build_l2_execute_payload(
     }
     if policy:
         payload["policy"] = policy
-    if provider and not provider_preference:
-        payload["policy"] = {
-            **payload.get("policy", {}),
-            "provider_preference": [provider],
-        }
     return payload
 
 
@@ -1013,8 +1008,11 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
             "GET",
             (
                 f"{v2_root}/capabilities/{quote(args.capability, safe='')}/execute/estimate"
-                f"?provider={quote(args.provider, safe='')}"
-                f"&credential_mode={quote(args.credential_mode, safe='')}"
+                + (
+                    f"?provider={quote(args.provider, safe='')}&credential_mode={quote(args.credential_mode, safe='')}"
+                    if args.force_provider_preference
+                    else f"?credential_mode={quote(args.credential_mode, safe='')}"
+                )
             ),
             headers=headers,
             timeout=args.timeout,
@@ -1398,7 +1396,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds")
     parser.add_argument("--capability", default=DEFAULT_CAPABILITY, help="Capability ID for L1/L2 execute")
-    parser.add_argument("--provider", default=DEFAULT_PROVIDER, help="Provider slug for estimate and L1 execute")
+    parser.add_argument(
+        "--provider",
+        default=DEFAULT_PROVIDER,
+        help=(
+            "Provider slug for exact-provider Layer 1 execute and optional Layer 2 pinning "
+            "when --force-provider-preference is set"
+        ),
+    )
     parser.add_argument(
         "--credential-mode",
         default=DEFAULT_CREDENTIAL_MODE,
@@ -1419,7 +1424,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--force-provider-preference",
         action="store_true",
-        help="Send provider_preference=[provider] on the Layer 2 execute call",
+        help="Pin Layer 2 estimate/execute to --provider instead of observing Resolve's neutral routing",
     )
     parser.add_argument(
         "--policy-provider-preference",
