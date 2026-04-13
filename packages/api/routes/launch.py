@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from routes._supabase import supabase_fetch, supabase_insert
-from routes.admin_auth import require_admin_key
+from routes.admin_auth import require_launch_dashboard_access
 from services.launch_dashboard import SUPPORTED_WINDOWS, build_launch_dashboard
 
 router = APIRouter(tags=["launch"])
@@ -92,7 +92,7 @@ async def capture_click_event(body: ClickEventRequest, request: Request) -> dict
 @router.get("/admin/launch/dashboard")
 async def get_launch_dashboard(
     window: Literal["24h", "7d", "launch"] = Query(default="7d"),
-    _: None = Depends(require_admin_key),
+    _: None = Depends(require_launch_dashboard_access),
 ) -> dict:
     """Return the internal launch dashboard payload."""
     if window not in SUPPORTED_WINDOWS:

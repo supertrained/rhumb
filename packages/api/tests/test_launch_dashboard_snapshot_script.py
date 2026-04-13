@@ -100,12 +100,13 @@ def test_main_writes_timestamped_and_latest_artifacts(
 ) -> None:
     json_out = tmp_path / "dashboard.json"
     latest_out = tmp_path / "dashboard-latest.json"
+    captured: dict[str, object] = {}
 
-    monkeypatch.setattr(
-        launch_dashboard_snapshot,
-        "_request_json",
-        lambda **_: {"status": 200, "json": SAMPLE_PAYLOAD},
-    )
+    def fake_request_json(**kwargs):
+        captured.update(kwargs)
+        return {"status": 200, "json": SAMPLE_PAYLOAD}
+
+    monkeypatch.setattr(launch_dashboard_snapshot, "_request_json", fake_request_json)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -126,21 +127,57 @@ def test_main_writes_timestamped_and_latest_artifacts(
 
     assert launch_dashboard_snapshot.main() == 0
     stdout = capsys.readouterr().out
+    assert "auth_mode=admin" in stdout
     assert "readiness=small_group_candidate" in stdout
     assert "small_group=ready" in stdout
     assert "provider_clicks=4" in stdout
+    assert captured["headers"] == {"X-Rhumb-Admin-Key": "secret"}
 
     written = json.loads(json_out.read_text(encoding="utf-8"))
     latest = json.loads(latest_out.read_text(encoding="utf-8"))
+    assert written["auth_mode"] == "admin"
     assert written["ok"] is True
     assert written["window"] == "7d"
     assert written["summary"]["small_group_gate_status"] == "ready"
     assert latest == written
 
 
-def test_main_requires_admin_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_prefers_dashboard_key_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_request_json(**kwargs):
+        captured.update(kwargs)
+        return {"status": 200, "json": SAMPLE_PAYLOAD}
+
+    monkeypatch.setattr(launch_dashboard_snapshot, "_request_json", fake_request_json)
+    monkeypatch.setenv("RHUMB_LAUNCH_DASHBOARD_KEY", "dashboard-secret")
+    monkeypatch.setenv("RHUMB_ADMIN_SECRET", "admin-secret")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "launch_dashboard_snapshot.py",
+            "--json-out",
+            str(tmp_path / "dashboard.json"),
+            "--latest-out",
+            str(tmp_path / "dashboard-latest.json"),
+        ],
+    )
+
+    assert launch_dashboard_snapshot.main() == 0
+    assert captured["headers"] == {"X-Rhumb-Launch-Dashboard-Key": "dashboard-secret"}
+
+
+def test_main_requires_dashboard_or_admin_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("RHUMB_LAUNCH_DASHBOARD_KEY", raising=False)
     monkeypatch.delenv("RHUMB_ADMIN_SECRET", raising=False)
     monkeypatch.setattr(sys, "argv", ["launch_dashboard_snapshot.py"])
 
-    with pytest.raises(SystemExit, match="Pass --admin-key or set RHUMB_ADMIN_SECRET"):
+    with pytest.raises(
+        SystemExit,
+        match="Pass --dashboard-key, --admin-key, or set RHUMB_LAUNCH_DASHBOARD_KEY / RHUMB_ADMIN_SECRET",
+    ):
         launch_dashboard_snapshot.main()

@@ -10,6 +10,18 @@ from services.launch_dashboard import build_launch_dashboard
 from services.payload_redactor import REDACTED
 
 
+async def _fake_empty_launch_dashboard_fetch(path: str):
+    if path.startswith("query_logs?"):
+        return []
+    if path.startswith("click_events?"):
+        return []
+    if path.startswith("capability_executions?"):
+        return []
+    if path == "services?select=slug":
+        return []
+    raise AssertionError(f"Unexpected path: {path}")
+
+
 def test_capture_click_event_logs_payload(client: TestClient, monkeypatch) -> None:
     captured: dict[str, object] = {}
 
@@ -891,3 +903,50 @@ def test_build_launch_dashboard_surfaces_service_page_cta_split() -> None:
         "legacy_service_page": {"clicks": 0, "share": 0.0},
         "other": {"clicks": 1, "share": 0.25},
     }
+
+
+def test_launch_dashboard_route_accepts_dashboard_key(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("routes.launch.supabase_fetch", _fake_empty_launch_dashboard_fetch)
+    monkeypatch.setattr("routes.admin_auth.settings.rhumb_admin_secret", None)
+    monkeypatch.setattr(
+        "routes.admin_auth.settings.rhumb_launch_dashboard_key",
+        "launch-dashboard-test-secret",
+    )
+
+    response = client.get(
+        "/v1/admin/launch/dashboard?window=7d",
+        headers={
+            "X-Rhumb-Admin-Key": "wrong-admin-key",
+            "X-Rhumb-Launch-Dashboard-Key": "launch-dashboard-test-secret",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["error"] is None
+
+
+def test_launch_dashboard_route_requires_configured_key(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("routes.admin_auth.settings.rhumb_admin_secret", None)
+    monkeypatch.setattr("routes.admin_auth.settings.rhumb_launch_dashboard_key", None)
+
+    response = client.get(
+        "/v1/admin/launch/dashboard?window=7d",
+        headers={
+            "X-Rhumb-Admin-Key": "wrong-admin-key",
+            "X-Rhumb-Launch-Dashboard-Key": "wrong-dashboard-key",
+        },
+    )
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["detail"] == (
+        "Launch dashboard is not configured "
+        "(RHUMB_ADMIN_SECRET / RHUMB_LAUNCH_DASHBOARD_KEY not set)."
+    )
+    assert payload["error"] == "service_unavailable"

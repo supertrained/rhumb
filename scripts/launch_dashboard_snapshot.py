@@ -21,6 +21,10 @@ DEFAULT_TIMEOUT = 30.0
 SUPPORTED_WINDOWS = ("24h", "7d", "launch")
 
 
+def _normalize_secret(value: str | None) -> str:
+    return value.strip() if value else ""
+
+
 def _now_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
@@ -113,22 +117,42 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--window", default=DEFAULT_WINDOW, choices=SUPPORTED_WINDOWS)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--admin-key")
+    parser.add_argument("--dashboard-key")
     parser.add_argument("--json-out")
     parser.add_argument("--latest-out")
     return parser
 
 
+def _resolve_auth_headers(args: argparse.Namespace) -> tuple[dict[str, str], str]:
+    explicit_admin_key = _normalize_secret(args.admin_key)
+    explicit_dashboard_key = _normalize_secret(args.dashboard_key)
+    env_dashboard_key = _normalize_secret(os.environ.get("RHUMB_LAUNCH_DASHBOARD_KEY"))
+    env_admin_key = _normalize_secret(os.environ.get("RHUMB_ADMIN_SECRET"))
+
+    if explicit_admin_key:
+        return {"X-Rhumb-Admin-Key": explicit_admin_key}, "admin"
+    if explicit_dashboard_key:
+        return {"X-Rhumb-Launch-Dashboard-Key": explicit_dashboard_key}, "dashboard"
+    if env_dashboard_key:
+        return {"X-Rhumb-Launch-Dashboard-Key": env_dashboard_key}, "dashboard"
+    if env_admin_key:
+        return {"X-Rhumb-Admin-Key": env_admin_key}, "admin"
+
+    raise SystemExit(
+        "Pass --dashboard-key, --admin-key, or set "
+        "RHUMB_LAUNCH_DASHBOARD_KEY / RHUMB_ADMIN_SECRET"
+    )
+
+
 def main() -> int:
     args = build_parser().parse_args()
-    admin_key = (args.admin_key or os.environ.get("RHUMB_ADMIN_SECRET") or "").strip()
-    if not admin_key:
-        raise SystemExit("Pass --admin-key or set RHUMB_ADMIN_SECRET")
+    headers, auth_mode = _resolve_auth_headers(args)
 
     root = args.base_url.rstrip("/")
     url = f"{root}/v1/admin/launch/dashboard?window={urllib.parse.quote(args.window)}"
     response = _request_json(
         url=url,
-        headers={"X-Rhumb-Admin-Key": admin_key},
+        headers=headers,
         timeout=args.timeout,
     )
     payload = response.get("json")
@@ -141,6 +165,7 @@ def main() -> int:
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "base_url": root,
         "window": args.window,
+        "auth_mode": auth_mode,
         "status": status,
         "summary": summary,
         "payload": payload,
@@ -158,6 +183,7 @@ def main() -> int:
 
     print(
         "launch_dashboard_snapshot"
+        f" auth_mode={auth_mode}"
         f" readiness={summary.get('readiness_status')}"
         f" small_group={summary.get('small_group_gate_status')}"
         f" public_launch={summary.get('public_launch_gate_status')}"

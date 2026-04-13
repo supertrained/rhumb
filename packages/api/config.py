@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     supabase_score_publisher_database_url: str | None = None
 
     rhumb_admin_secret: str | None = None
+    rhumb_launch_dashboard_key: str | None = None
 
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
