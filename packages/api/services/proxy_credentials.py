@@ -12,8 +12,13 @@ import os
 import subprocess
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List, Optional
+
+
+def _utcnow() -> datetime:
+    """Return a naive UTC timestamp without using the deprecated stdlib UTC helper."""
+    return datetime.now(tz=UTC).replace(tzinfo=None)
 
 
 @dataclass
@@ -23,13 +28,13 @@ class CredentialEntry:
     credential_type: str  # "api_key", "oauth_token", "basic_auth"
     value: str
     expires_at: Optional[datetime] = None
-    loaded_at: datetime = field(default_factory=datetime.utcnow)
+    loaded_at: datetime = field(default_factory=_utcnow)
 
     def is_expired(self) -> bool:
         """Check whether the credential has passed its expiration time."""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() > self.expires_at
+        return _utcnow() > self.expires_at
 
 
 @dataclass
@@ -38,12 +43,12 @@ class ProviderCredentials:
 
     service: str  # "stripe", "slack", etc.
     credentials: Dict[str, CredentialEntry] = field(default_factory=dict)
-    last_refreshed: datetime = field(default_factory=datetime.utcnow)
+    last_refreshed: datetime = field(default_factory=_utcnow)
     ttl_minutes: int = 60  # refresh every 60 min
 
     def is_stale(self) -> bool:
         """Return ``True`` when the TTL window has elapsed."""
-        elapsed = (datetime.utcnow() - self.last_refreshed).total_seconds() / 60
+        elapsed = (_utcnow() - self.last_refreshed).total_seconds() / 60
         return elapsed > self.ttl_minutes
 
 
@@ -157,12 +162,12 @@ class CredentialStore:
                     entry = CredentialEntry(
                         credential_type=cred_key,
                         value=value,
-                        loaded_at=datetime.utcnow(),
+                        loaded_at=_utcnow(),
                     )
                     self._cache[service] = ProviderCredentials(
                         service=service,
                         credentials={cred_key: entry},
-                        last_refreshed=datetime.utcnow(),
+                        last_refreshed=_utcnow(),
                     )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
@@ -185,12 +190,12 @@ class CredentialStore:
         entry = CredentialEntry(
             credential_type=cred_key,
             value=value,
-            loaded_at=datetime.utcnow(),
+            loaded_at=_utcnow(),
         )
         self._cache[service] = ProviderCredentials(
             service=service,
             credentials={cred_key: entry},
-            last_refreshed=datetime.utcnow(),
+            last_refreshed=_utcnow(),
         )
 
     @staticmethod
@@ -291,7 +296,7 @@ class CredentialStore:
             credential_type=key,
             value=value,
             expires_at=expires_at,
-            loaded_at=datetime.utcnow(),
+            loaded_at=_utcnow(),
         )
         if service not in self._cache:
             self._cache[service] = ProviderCredentials(
@@ -299,7 +304,7 @@ class CredentialStore:
                 ttl_minutes=ttl_minutes,
             )
         self._cache[service].credentials[key] = entry
-        self._cache[service].last_refreshed = datetime.utcnow()
+        self._cache[service].last_refreshed = _utcnow()
 
     # ------------------------------------------------------------------
     # Audit
@@ -312,7 +317,7 @@ class CredentialStore:
                 "service": service,
                 "agent_id": agent_id,
                 "action": action,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": _utcnow().isoformat(),
             }
         )
 

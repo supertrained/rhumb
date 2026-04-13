@@ -36,6 +36,10 @@ from services.proxy_credentials import CredentialEntry, CredentialStore, Provide
 from services.proxy_rate_limit import RateLimiter, RateLimitStatus
 
 
+def _utcnow() -> datetime:
+    return datetime.now(tz=UTC).replace(tzinfo=None)
+
+
 # =====================================================================
 # Fixtures
 # =====================================================================
@@ -136,13 +140,13 @@ class TestCredentialStore:
 
     def test_credential_expired(self, credential_store: CredentialStore) -> None:
         """Expired credential returns None."""
-        past = datetime.utcnow() - timedelta(hours=1)
+        past = _utcnow() - timedelta(hours=1)
         credential_store.set_credential("stripe", "api_key", "old_key", expires_at=past)
         assert credential_store.get_credential("stripe", "api_key") is None
 
     def test_credential_not_expired(self, credential_store: CredentialStore) -> None:
         """Credential within TTL is returned."""
-        future = datetime.utcnow() + timedelta(hours=1)
+        future = _utcnow() + timedelta(hours=1)
         credential_store.set_credential("stripe", "api_key", "fresh_key", expires_at=future)
         assert credential_store.get_credential("stripe", "api_key") == "fresh_key"
 
@@ -153,7 +157,7 @@ class TestCredentialStore:
         """Stale provider triggers a refresh (force last_refreshed into the past)."""
         credential_store.set_credential("stripe", "api_key", "original", ttl_minutes=1)
         # Force staleness by backdating last_refreshed
-        credential_store._cache["stripe"].last_refreshed = datetime.utcnow() - timedelta(hours=1)
+        credential_store._cache["stripe"].last_refreshed = _utcnow() - timedelta(hours=1)
         with patch.object(credential_store, "_load_service") as mock_load:
             await credential_store.refresh_if_stale("stripe")
             mock_load.assert_called_once_with("stripe")
@@ -571,7 +575,7 @@ class TestSliceCIntegration:
         """Stale credentials trigger a refresh before the next request."""
         credential_store.set_credential("stripe", "api_key", "old_key", ttl_minutes=1)
         # Force staleness
-        credential_store._cache["stripe"].last_refreshed = datetime.utcnow() - timedelta(hours=1)
+        credential_store._cache["stripe"].last_refreshed = _utcnow() - timedelta(hours=1)
         with patch.object(credential_store, "_load_service") as mock:
             await credential_store.refresh_if_stale("stripe")
             mock.assert_called_once_with("stripe")
