@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
 import TierBadge from "../components/TierBadge.astro";
 import CopyInstall from "../components/CopyInstall.tsx";
+import CopyTextButton from "../components/CopyTextButton.tsx";
 import { getLeaderboard, getServiceCount } from "../lib/api";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 import type { EvidenceTier } from "../lib/types";
@@ -29,133 +30,249 @@ const [leaderboard, serviceCount] = await Promise.all([
   getServiceCount(),
 ]);
 
+const formattedServiceCount = new Intl.NumberFormat("en-US").format(serviceCount);
+const starterPrompt = `Use Rhumb as the first stop for this task.
+
+Start here: https://rhumb.dev/docs#resolve-mental-model
+
+1. Search Rhumb for the best service or capability for the task.
+2. Compare the top options using scores, evidence, freshness, and failure modes.
+3. If Rhumb supports a governed action, estimate and execute it through Resolve.
+4. If execution is not supported or credentials are missing, stay on the public discovery flow and tell me the best next step.
+
+Task: [replace with your task]`;
+
 const HOME_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    `Rhumb gives agents one key for managed superpowers, then secure bridges into real systems when the workflow needs them. Underneath, Rhumb scores ${serviceCount} services for honest agent-compatibility discovery.`,
+    `Rhumb is the tool discovery and access layer for AI agents. Search ${formattedServiceCount} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`,
   logo: "https://rhumb.dev/favicon.ico",
 };
 
 const previewItems = leaderboard.items.slice(0, 3);
 const stats = [
-  { value: String(serviceCount), label: "services scored" },
-  { value: PUBLIC_TRUTH.categoriesLabel, label: "categories" },
-  { value: "20", label: "scored dimensions" },
-  { value: "live", label: "evidence data" },
+  { value: formattedServiceCount, label: "services scored" },
+  { value: PUBLIC_TRUTH.capabilitiesLabel, label: "capabilities mapped" },
+  { value: PUBLIC_TRUTH.callableProvidersLabel, label: "providers callable" },
+  { value: "API + MCP", label: "live access surfaces" },
+];
+
+const heroProof = [
+  {
+    label: "Broad discovery",
+    value: `${formattedServiceCount} services`,
+    tone: "border-slate-700/80 bg-slate-900/40 text-slate-200",
+  },
+  {
+    label: "Capability map",
+    value: `${PUBLIC_TRUTH.capabilitiesLabel} capabilities`,
+    tone: "border-slate-700/80 bg-slate-900/40 text-slate-200",
+  },
+  {
+    label: "Callable today",
+    value: `${PUBLIC_TRUTH.callableProvidersLabel} providers`,
+    tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
+  },
+  {
+    label: "Best current fit",
+    value: "Research, extraction, generation, enrichment",
+    tone: "border-amber/20 bg-amber/10 text-amber-50",
+  },
+];
+
+const howItWorks = [
+  {
+    step: "01",
+    title: "Discover with Rhumb Index",
+    body:
+      `Search ${formattedServiceCount} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions across ${PUBLIC_TRUTH.domainsLabel} domains before you commit to a tool or provider.`,
+  },
+  {
+    step: "02",
+    title: "Decide with published evidence",
+    body:
+      "Compare scores, freshness, evidence tiers, and failure modes so your agent can explain why it chose a route, not just that it did.",
+  },
+  {
+    step: "03",
+    title: "Execute when the path is ready",
+    body:
+      `Use Rhumb Resolve for supported actions today, strongest in ${PUBLIC_TRUTH.beachheadLabel}. When execution is not ready, Rhumb still shows the best next step honestly.`,
+  },
 ];
 ---
 
 <Layout
-  title="Rhumb | One key, many superpowers"
-  description={`Rhumb gives agents one key for managed superpowers, then secure bridges into real systems when the workflow needs them. Underneath, Rhumb scores ${serviceCount} services for honest discovery.`}
+  title="Rhumb | Give your agent the right tool for the job"
+  description={`Rhumb is the tool discovery and access layer for AI agents. Search ${formattedServiceCount} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`}
   canonical="https://rhumb.dev/"
-  ogTitle="Rhumb — One key, many superpowers"
-  ogDescription={`Start with managed agent superpowers, then bring your systems only when the workflow needs them. ${serviceCount} services scored underneath with honest execution boundaries.`}
+  ogTitle="Rhumb — Give your agent the right tool for the job"
+  ogDescription={`Discover ${formattedServiceCount} scored services, compare ${PUBLIC_TRUTH.capabilitiesLabel} mapped capabilities, and execute supported actions through Rhumb's governed API and MCP layer.`}
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
     <!-- Hero -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-grid opacity-50 pointer-events-none"></div>
+    <section class="relative overflow-hidden border-b border-slate-900/80">
+      <div class="absolute inset-0 bg-grid opacity-35 pointer-events-none"></div>
       <div
-        class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
-        style="background: radial-gradient(ellipse at top, rgba(245,158,11,0.08) 0%, transparent 70%)"
+        class="absolute top-0 left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full pointer-events-none"
+        style="background: radial-gradient(ellipse at top, rgba(245,158,11,0.12) 0%, rgba(59,130,246,0.04) 36%, transparent 72%)"
+      ></div>
+      <div
+        class="absolute inset-y-0 right-0 w-[42vw] min-w-[320px] pointer-events-none opacity-60"
+        style="background: linear-gradient(180deg, rgba(21,29,46,0) 0%, rgba(21,29,46,0.5) 35%, rgba(21,29,46,0) 100%)"
       ></div>
 
-      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
-        <div class="animate-fade-up flex items-center gap-3 mb-6 flex-wrap">
-          <span class="inline-flex items-center gap-2 rounded-full border border-amber/25 bg-amber/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-            Resolve by Rhumb
-          </span>
-          <span class="text-xs font-mono text-slate-500 uppercase tracking-widest">{serviceCount} scored services behind the trust layer</span>
-        </div>
-
-        <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.03] tracking-tight max-w-4xl">
-          One key, many superpowers.
-        </h1>
-
-        <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-300 max-w-3xl leading-relaxed">
-          Start with Rhumb-managed capabilities for research, scraping, generation, verification, enrichment, and utility workflows. Then bring your CRM, support, data, and ops systems only when the workflow needs them.
-        </p>
-        <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
-          Underneath that, Rhumb still measures execution reliability and access readiness so discovery stays honest even when execution is narrower today. Best current fit: {PUBLIC_TRUTH.beachheadLabel}.
-        </p>
-
-        <div class="animate-fade-up animate-delay-300 mt-6 flex flex-wrap gap-2 max-w-3xl">
-          <span class="rounded-full border border-amber/20 bg-amber/5 px-3 py-1.5 text-xs font-mono text-amber/90">Managed superpowers</span>
-          <span class="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs font-mono text-emerald-300">Secure bridges</span>
-          <span class="rounded-full border border-slate-700 bg-surface/70 px-3 py-1.5 text-xs font-mono text-slate-300">Discovery-backed trust</span>
-        </div>
-
-        <form
-          action="/search"
-          method="get"
-          class="animate-fade-up animate-delay-300 mt-8 flex flex-col sm:flex-row gap-3 max-w-2xl"
-        >
-          <div class="relative flex-1">
-            <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M11 6.5C11 9.0 9.0 11 6.5 11C4.0 11 2 9.0 2 6.5C2 4.0 4.0 2 6.5 2C9.0 2 11 4.0 11 6.5ZM10.2 10.9L14 14.7"
-                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                />
-              </svg>
+      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-20 lg:pt-24 lg:pb-24">
+        <div class="grid gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-start">
+          <div>
+            <div class="animate-fade-up flex items-center gap-3 mb-5 flex-wrap">
+              <span class="inline-flex items-center gap-2 rounded-full border border-amber/25 bg-amber/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
+                Agent tool discovery + access
+              </span>
+              <span class="text-xs font-mono text-slate-500 uppercase tracking-[0.28em]">Broad discovery, selective governed execution</span>
             </div>
-            <input
-              aria-label="Search services"
-              name="q"
-              type="search"
-              placeholder="Search capabilities, systems, or services"
-              class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-surface border border-slate-700 text-slate-100 placeholder-slate-500 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20 transition-all duration-200"
-            />
-          </div>
-          <button
-            type="submit"
-            class="px-6 py-3.5 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200 shrink-0"
-          >
-            Search
-          </button>
-        </form>
 
-        <div class="animate-fade-up animate-delay-400 mt-5 flex flex-wrap gap-3">
-          <a
-            href="/resolve"
-            class="px-5 py-2.5 rounded-lg border border-amber/30 bg-amber/10 text-sm text-amber hover:bg-amber/15 transition-colors duration-200 font-medium"
-          >
-            See Resolve &rarr;
-          </a>
-          <a
-            href="/leaderboard"
-            class="px-5 py-2.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100 transition-colors duration-200 font-medium"
-          >
-            Search {serviceCount} services &rarr;
-          </a>
-          <CopyInstall client:load command="npx rhumb-mcp" />
-        </div>
+            <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-[4.5rem] text-slate-100 leading-[0.98] tracking-tight max-w-4xl text-balance">
+              Give your agent the right tool for the job.
+            </h1>
 
-        <div class="animate-fade-up animate-delay-400 mt-8 grid gap-4 md:grid-cols-3 max-w-5xl">
-          <div class="rounded-2xl border border-emerald-500/20 bg-surface/70 p-5">
-            <p class="text-xs font-mono uppercase tracking-widest text-emerald-300 mb-2">Best fit today</p>
-            <p class="text-sm text-slate-300 leading-6">
-              Start with {PUBLIC_TRUTH.beachheadLabel}. That is where Rhumb is strongest and most honest today.
+            <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-300 max-w-3xl leading-relaxed">
+              Rhumb helps agents discover what services and capabilities exist across the web, then execute supported actions through one governed layer. Broad discovery today, selective execution where trust is earned.
             </p>
+            <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
+              Start where Rhumb is strongest, {PUBLIC_TRUTH.beachheadLabel}. Use Rhumb Index to compare the field. Use Rhumb Resolve when a supported action is ready.
+            </p>
+
+            <div class="animate-fade-up animate-delay-300 mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 max-w-5xl">
+              {heroProof.map(({ label, value, tone }, index) => (
+                <div class={`rounded-2xl border p-4 shadow-[0_12px_32px_rgba(2,6,23,0.18)] ${tone}`}>
+                  <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">{label}</div>
+                  <div class="mt-2 text-sm leading-6 font-medium text-current" style={`animation-delay: ${index * 80}ms`}>
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div class="animate-fade-up animate-delay-400 mt-8 flex flex-wrap gap-3">
+              <a
+                href="/capabilities"
+                class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors duration-200 hover:bg-amber-dark"
+              >
+                Explore capabilities
+              </a>
+              <a
+                href="/docs#resolve-mental-model"
+                class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-surface/60 px-5 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
+              >
+                How Rhumb works
+              </a>
+            </div>
+
+            <div class="animate-fade-up animate-delay-500 mt-6 max-w-3xl rounded-[28px] border border-slate-800/90 bg-[linear-gradient(180deg,rgba(21,29,46,0.96)_0%,rgba(11,17,32,0.92)_100%)] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.38)]">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div class="max-w-xl">
+                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Starter prompt</p>
+                  <h2 class="mt-2 font-display text-xl font-semibold text-slate-100">Paste this into Claude, Codex, or your own agent.</h2>
+                  <p class="mt-2 text-sm leading-6 text-slate-400">
+                    Best for cold starts. If execution is not supported yet, Rhumb should still return the best route and next step.
+                  </p>
+                </div>
+                <CopyTextButton
+                  client:load
+                  text={starterPrompt}
+                  label="Copy starter prompt"
+                  copiedLabel="Starter prompt copied"
+                  className="shrink-0"
+                />
+              </div>
+              <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300 whitespace-pre-wrap break-words"><code>{starterPrompt}</code></pre>
+            </div>
           </div>
-          <div class="rounded-2xl border border-amber/20 bg-surface/70 p-5">
-            <p class="text-xs font-mono uppercase tracking-widest text-amber mb-2">Resolve promise</p>
-            <p class="text-sm text-slate-300 leading-6">
-              Give an agent one key for many superpowers, then connect your own systems only when the workflow needs them.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-slate-700 bg-surface/70 p-5">
-            <p class="text-xs font-mono uppercase tracking-widest text-slate-300 mb-2">Current execution boundary</p>
-            <p class="text-sm text-slate-300 leading-6">
-              Discovery is broader than execution today: Rhumb indexes {PUBLIC_TRUTH.servicesLabel} scored services and {PUBLIC_TRUTH.capabilitiesLabel} capability definitions, but current governed execution is concentrated in {PUBLIC_TRUTH.callableProvidersLabel} callable providers. Layer 3 is live but the public recipe catalog is still intentionally sparse.
-            </p>
+
+          <div class="animate-fade-up animate-delay-300 lg:pt-8">
+            <div class="relative overflow-hidden rounded-[32px] border border-slate-800/90 bg-[linear-gradient(180deg,rgba(21,29,46,0.97)_0%,rgba(11,17,32,0.95)_100%)] p-6 shadow-[0_24px_90px_rgba(2,6,23,0.44)]">
+              <div
+                class="pointer-events-none absolute inset-x-6 top-0 h-px"
+                style="background: linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)"
+              ></div>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Decision view</p>
+                  <h2 class="mt-2 font-display text-2xl font-semibold text-slate-100">One task, three possible routes</h2>
+                </div>
+                <span class="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
+                  The Rhumb line
+                </span>
+              </div>
+
+              <div class="mt-6 rounded-2xl border border-slate-700/70 bg-navy/75 p-4">
+                <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Agent task</p>
+                <p class="mt-3 text-base leading-7 text-slate-200">
+                  “Find the best way to research a company, extract current facts, and return a clean summary.”
+                </p>
+              </div>
+
+              <div class="relative mt-6 space-y-4 before:absolute before:bottom-6 before:left-[11px] before:top-3 before:w-px before:bg-[linear-gradient(180deg,rgba(100,116,139,0.15)_0%,rgba(100,116,139,0.45)_22%,rgba(100,116,139,0.12)_100%)]">
+                <div class="relative pl-8">
+                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/12 text-[11px] font-mono text-emerald-300">1</span>
+                  <div class="rounded-2xl border border-emerald-500/18 bg-emerald-500/10 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Recommended path</p>
+                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Callable now through Resolve</h3>
+                      </div>
+                      <span class="rounded-full border border-emerald-500/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-300">Layer 2</span>
+                    </div>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">
+                      Rhumb routes supported research, extraction, generation, and enrichment calls across {PUBLIC_TRUTH.callableProvidersLabel} callable providers today.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="relative pl-8">
+                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-[11px] font-mono text-amber">2</span>
+                  <div class="rounded-2xl border border-amber/20 bg-amber/10 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-amber">When your own system matters</p>
+                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Use BYOK or your existing stack</h3>
+                      </div>
+                      <span class="rounded-full border border-amber/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-amber">Boundary</span>
+                    </div>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">
+                      When the workflow reaches your CRM, support desk, or internal tooling, Rhumb should expose the boundary instead of pretending the governed path already exists.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="relative pl-8">
+                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-[11px] font-mono text-slate-400">3</span>
+                  <div class="rounded-2xl border border-slate-700 bg-slate-900/45 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Still useful</p>
+                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Discovery only is still a good answer</h3>
+                      </div>
+                      <span class="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">Index</span>
+                    </div>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">
+                      Even when execution is not supported yet, Rhumb can still rank the market, surface failure modes, and give your agent an honest next move.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p class="mt-6 text-sm leading-6 text-slate-400">
+                Rhumb is useful even when the right answer is <span class="text-slate-200">“not through Rhumb yet.”</span> That honesty is part of the product.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -178,12 +295,62 @@ const stats = [
       </div>
     </section>
 
+    <!-- How it works -->
+    <section class="border-t border-slate-800 bg-navy reveal">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        <div class="max-w-3xl mb-10">
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">How it works</p>
+          <h2 class="font-display font-bold text-2xl text-slate-100">From discovery to governed execution</h2>
+          <p class="text-slate-400 text-sm mt-3 leading-relaxed">
+            Rhumb helps agents find the right service first, understand the boundaries second, and execute when a governed path is actually ready. That keeps the product useful before, during, and after execution.
+          </p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-3">
+          {howItWorks.map(({ step, title, body }) => (
+            <article class="rounded-[24px] border border-slate-800 bg-surface/55 p-6 shadow-[0_16px_40px_rgba(2,6,23,0.2)]">
+              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{step}</p>
+              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">{title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{body}</p>
+            </article>
+          ))}
+        </div>
+
+        <div class="mt-8 grid gap-6 rounded-[28px] border border-slate-800 bg-surface/55 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:items-center">
+          <div>
+            <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Underneath it all</p>
+            <h3 class="mt-2 font-display text-xl font-semibold text-slate-100">Why the recommendation is explainable</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              The AN Score measures execution reliability and access readiness across 20 dimensions. Rhumb also publishes evidence tiers, freshness, and failure modes so your agent can explain the route instead of hiding behind a black box.
+            </p>
+          </div>
+          <div class="flex flex-col gap-3 lg:items-end">
+            <a
+              href="/methodology"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-navy/75 px-4 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
+            >
+              Read methodology
+            </a>
+            <a
+              href="/trust"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-navy/75 px-4 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
+            >
+              See trust surface
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Featured leaderboard (Payments) -->
     <section class="max-w-6xl mx-auto px-6 py-16 reveal">
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Featured &middot; Payments</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100">Top services in payments</h2>
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Live preview &middot; Payments</p>
+          <h2 class="font-display font-bold text-2xl text-slate-100">See how Rhumb ranks a category in public</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+            This preview uses payments, but the same evidence model carries across the index. Rhumb is not just a routing layer. It is also the map your agent uses before it decides.
+          </p>
         </div>
         <a
           href="/leaderboard/payments"
@@ -246,41 +413,6 @@ const stats = [
           Open full payments leaderboard
         </a>
       </p>
-    </section>
-
-    <!-- What is Rhumb -->
-    <section class="border-t border-slate-800 bg-navy reveal">
-      <div class="max-w-4xl mx-auto px-6 py-16">
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-6">What is the AN Score?</h2>
-        <div class="grid sm:grid-cols-2 gap-8 text-sm text-slate-400 leading-relaxed">
-          <div>
-            <p class="mb-4">
-              The Agent-Native (AN) Score measures how well a developer API works for
-              autonomous AI agents — not humans reading documentation, but machines making
-              API calls without supervision.
-            </p>
-            <p>
-              Each service is evaluated across <strong class="text-slate-300">20 dimensions</strong> on two axes:
-              <strong class="text-slate-300">Execution</strong> (70% weight — reliability, error handling,
-              schema stability, idempotency, latency) and <strong class="text-slate-300">Access Readiness</strong>
-              (30% weight — signup friction, credential management, rate limits, documentation, sandbox availability).
-            </p>
-          </div>
-          <div>
-            <p class="mb-4">
-              Services are ranked into four tiers: <strong class="text-score-native">L4 Native</strong> (8.0–10.0),
-              <strong class="text-score-ready">L3 Ready</strong> (6.0–7.9),
-              <strong class="text-amber">L2 Developing</strong> (4.0–5.9), and
-              <strong class="text-score-limited">L1 Emerging</strong> (0.0–3.9).
-            </p>
-            <p>
-              Every score is <a href="/methodology" class="text-amber hover:underline">published, transparent, and disputable</a>.
-              Rhumb surfaces active failure modes, evidence tiers, and freshness timestamps so agents
-              can make informed routing decisions at runtime.
-            </p>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- Research & Analysis -->
