@@ -7,7 +7,7 @@ Use Rhumb through the Model Context Protocol — the fastest path to agent tool 
 For most agents, the default production path is:
 
 1. discover a **Service** or **Capability**
-2. resolve the best provider
+2. resolve ranked providers, or the next setup step
 3. estimate the call
 4. execute through Layer 2 with `RHUMB_API_KEY`
 
@@ -77,7 +77,7 @@ In Cursor settings → MCP Servers → Add:
 ### Minimal recommended flow
 
 1. `discover_capabilities` — find the action you want
-2. `resolve_capability` — see the best provider choices, optional credential-mode filters, and recovery handoffs
+2. `resolve_capability` — see ranked providers, optional credential-mode filters, and recovery handoffs
 3. `estimate_capability` — check cost before paying
 4. `execute_capability` — run the action
 

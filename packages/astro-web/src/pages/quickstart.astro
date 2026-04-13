@@ -270,8 +270,8 @@ curl -X POST "${API}/capabilities/search.query/execute" \
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# 1) Discover the capability you need
 curl "${API}/capabilities?search=email"
 
-# 2) Resolve the best provider
-curl "${API}/capabilities/email.send/resolve"
+# 2) Resolve ranked providers, or the next setup step
+curl "${API}/capabilities/email.send/resolve?credential_mode=byok"
 
 # 3) Estimate before paying
 curl "${API}/capabilities/email.send/execute/estimate"
