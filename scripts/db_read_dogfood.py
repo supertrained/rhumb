@@ -193,6 +193,83 @@ def _receipt_id_from_execute(payload: dict[str, Any]) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    recovery_hint = data.get("recovery_hint")
+    raw_recovery = recovery_hint if isinstance(recovery_hint, dict) else {}
+    candidates = (
+        ("execute_hint", data.get("execute_hint")),
+        ("alternate_execute_hint", raw_recovery.get("alternate_execute_hint")),
+        ("setup_handoff", raw_recovery.get("setup_handoff")),
+    )
+    for source, candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handoff = {
+            "source": source,
+            "reason": raw_recovery.get("reason") if isinstance(raw_recovery.get("reason"), str) else None,
+            "resolve_url": raw_recovery.get("resolve_url") if isinstance(raw_recovery.get("resolve_url"), str) else None,
+            "preferred_provider": candidate.get("preferred_provider") if isinstance(candidate.get("preferred_provider"), str) else None,
+            "preferred_credential_mode": (
+                candidate.get("preferred_credential_mode")
+                if isinstance(candidate.get("preferred_credential_mode"), str)
+                else None
+            ),
+            "selection_reason": candidate.get("selection_reason") if isinstance(candidate.get("selection_reason"), str) else None,
+            "setup_hint": candidate.get("setup_hint") if isinstance(candidate.get("setup_hint"), str) else None,
+            "setup_url": candidate.get("setup_url") if isinstance(candidate.get("setup_url"), str) else None,
+            "credential_modes_url": (
+                candidate.get("credential_modes_url")
+                if isinstance(candidate.get("credential_modes_url"), str)
+                else raw_recovery.get("credential_modes_url")
+                if isinstance(raw_recovery.get("credential_modes_url"), str)
+                else None
+            ),
+            "endpoint_pattern": candidate.get("endpoint_pattern") if isinstance(candidate.get("endpoint_pattern"), str) else None,
+            "configured": candidate.get("configured") if isinstance(candidate.get("configured"), bool) else None,
+        }
+        return {key: value for key, value in handoff.items() if value is not None}
+    return None
+
+
+def _preferred_resolve_handoff(state: dict[str, Any]) -> dict[str, Any] | None:
+    capabilities = state.get("capabilities")
+    if not isinstance(capabilities, dict):
+        return None
+    for capability_id in ("db.query.read", "db.schema.describe", "db.row.get"):
+        candidate = (capabilities.get(capability_id) or {}).get("resolve_handoff")
+        if isinstance(candidate, dict) and candidate:
+            return candidate
+    return None
+
+
+def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
+    if not isinstance(handoff, dict) or not handoff:
+        return None
+    parts: list[str] = []
+    if isinstance(handoff.get("preferred_provider"), str):
+        parts.append(f"provider={handoff['preferred_provider']}")
+    if isinstance(handoff.get("preferred_credential_mode"), str):
+        parts.append(f"mode={handoff['preferred_credential_mode']}")
+    if isinstance(handoff.get("selection_reason"), str):
+        parts.append(f"selection_reason={handoff['selection_reason']}")
+    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
+    if isinstance(next_url, str):
+        parts.append(f"next_url={next_url}")
+    if not parts:
+        return None
+    return "resolve_handoff[" + ", ".join(parts) + "]"
+
+
+def _failure_summary(message: str, state: dict[str, Any]) -> str:
+    handoff_summary = _resolve_handoff_summary(_preferred_resolve_handoff(state))
+    if not handoff_summary:
+        return message
+    return f"{message}; {handoff_summary}"
+
+
 def _run_denial(
     *,
     root: str,
@@ -323,6 +400,7 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
         capabilities[capability_id] = {
             "get": _extract_data(get_resp.get("json")),
             "resolve": _extract_data(resolve_resp.get("json")),
+            "resolve_handoff": _resolve_handoff(resolve_resp.get("json")),
             "credential_modes": _extract_data(modes_resp.get("json")),
         }
     state["capabilities"] = capabilities
@@ -416,13 +494,18 @@ def _print_human(payload: dict[str, Any]) -> None:
     for label, search in (payload.get("searches") or {}).items():
         print(f"Search {label}: {search.get('top_ids')}")
 
+    capabilities = payload.get("capabilities") or {}
     executions = payload.get("executions") or {}
     for capability_id in ("db.query.read", "db.schema.describe", "db.row.get"):
+        capability = capabilities.get(capability_id) or {}
+        resolve_handoff = capability.get("resolve_handoff") or {}
         run = executions.get(capability_id) or {}
         data = run.get("data") or {}
         receipt = run.get("receipt") or {}
         print()
         print(capability_id)
+        if resolve_handoff:
+            print(f"- resolve_handoff: {json.dumps(resolve_handoff, sort_keys=True)}")
         print(f"- provider_used: {data.get('provider_used')}")
         print(f"- receipt_id: {data.get('receipt_id')}")
         print(f"- execution_id: {data.get('execution_id')}")
@@ -468,7 +551,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = run_flow(args)
         exit_code = 0
     except FlowError as exc:
-        payload = {"ok": False, "summary": str(exc), **exc.state}
+        payload = {"ok": False, "summary": _failure_summary(str(exc), exc.state), **exc.state}
         exit_code = 1
     except Exception as exc:  # pragma: no cover - defensive CLI fallback
         payload = {"ok": False, "summary": str(exc)}
