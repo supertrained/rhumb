@@ -76,6 +76,10 @@ def test_no_auth_walkthrough_shows_alternate_execute_handoff_before_auth_hint(
     module.main()
     out = capsys.readouterr().out
 
+    assert "ℹ️  No RHUMB_API_KEY set, so this run will stop after resolve." in out
+    assert "   Resolve itself works without auth." in out
+    assert "   Set RHUMB_API_KEY only if you want to continue into estimate and execute." in out
+    assert "⚠️  Set RHUMB_API_KEY to run execution examples." not in out
     assert "No execute-ready provider found in the current resolve context." in out
     assert "Next step: pivot to the alternate execute rail via gmail (agent_vault)." in out
     assert "  Endpoint: POST /gmail/v1/users/me/messages/send" in out
@@ -123,6 +127,10 @@ def test_no_auth_walkthrough_shows_setup_handoff_before_auth_hint(monkeypatch, c
     module.main()
     out = capsys.readouterr().out
 
+    assert "ℹ️  No RHUMB_API_KEY set, so this run will stop after resolve." in out
+    assert "   Resolve itself works without auth." in out
+    assert "   Set RHUMB_API_KEY only if you want to continue into estimate and execute." in out
+    assert "⚠️  Set RHUMB_API_KEY to run execution examples." not in out
     assert "No execute-ready provider found in the current resolve context." in out
     assert "Next step: finish setup for resend (byok)." in out
     assert (

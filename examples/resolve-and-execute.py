@@ -45,9 +45,10 @@ def _print_recovery_handoff(recovery_handoff: tuple[str, dict[str, object]] | No
 
 def main():
     if not API_KEY:
-        print("⚠️  Set RHUMB_API_KEY to run execution examples.")
-        print("   Get one at https://rhumb.dev/auth/login")
-        print("\n   Running resolution (no auth needed)...\n")
+        print("ℹ️  No RHUMB_API_KEY set, so this run will stop after resolve.")
+        print("   Resolve itself works without auth.")
+        print("   Set RHUMB_API_KEY only if you want to continue into estimate and execute.")
+        print("   Get one at https://rhumb.dev/auth/login\n")
 
     headers = {"X-Rhumb-Key": API_KEY} if API_KEY else {}
 
