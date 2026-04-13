@@ -34,9 +34,11 @@ def _validate_bucket(value: str) -> str:
 
 
 def _validate_object_path(value: str, *, field_name: str) -> str:
-    value = value.strip().lstrip("/")
+    value = value.strip()
     if not value:
         raise ValueError(f"{field_name} is required")
+    if value.startswith("/"):
+        raise ValueError(f"{field_name} must not start with '/'")
     if len(value) > 1024:
         raise ValueError(f"{field_name} is too long")
     return value
@@ -165,6 +167,12 @@ class ObjectGetRequest(BaseModel):
             and self.range_end < self.range_start
         ):
             raise ValueError("range_end must be greater than or equal to range_start")
+        if (
+            self.range_start is not None
+            and self.range_end is not None
+            and (self.range_end - self.range_start + 1) > self.max_bytes
+        ):
+            raise ValueError("requested range exceeds max_bytes")
         return self
 
 
@@ -184,3 +192,12 @@ class ObjectGetResponse(BaseModel):
     truncated: bool = False
     body_text: str | None = None
     body_base64: str | None = None
+
+
+# Backward-compatible aliases for older AUD-18 S3-specific imports.
+S3ObjectListRequest = ObjectListRequest
+S3ObjectListResponse = ObjectListResponse
+S3ObjectHeadRequest = ObjectHeadRequest
+S3ObjectHeadResponse = ObjectHeadResponse
+S3ObjectGetRequest = ObjectGetRequest
+S3ObjectGetResponse = ObjectGetResponse
