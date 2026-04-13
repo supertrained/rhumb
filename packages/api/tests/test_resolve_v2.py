@@ -295,6 +295,7 @@ async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(ap
     recovery_hint = data["recovery_hint"]
     assert recovery_hint["reason"] == "no_providers_match_credential_mode"
     assert recovery_hint["requested_credential_mode"] == "agent_vault"
+    assert recovery_hint["resolve_url"] == "/v2/capabilities/email.send/resolve"
     assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
     assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
     assert recovery_hint["supported_credential_modes"] == ["byok"]
@@ -369,6 +370,7 @@ async def test_v2_resolve_preserves_blocker_hints_when_no_alternate_handoff(app)
     recovery_hint = data["recovery_hint"]
     assert recovery_hint["reason"] == "no_providers_match_credential_mode"
     assert recovery_hint["requested_credential_mode"] == "agent_vault"
+    assert recovery_hint["resolve_url"] == "/v2/capabilities/email.send/resolve"
     assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
     assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
     assert recovery_hint["supported_credential_modes"] == ["byok"]
@@ -449,6 +451,7 @@ async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(a
     recovery_hint = data["recovery_hint"]
     assert recovery_hint["reason"] == "no_execute_ready_providers"
     assert recovery_hint["requested_credential_mode"] == "byok"
+    assert recovery_hint["resolve_url"] == "/v2/capabilities/email.send/resolve"
     assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
     assert recovery_hint["supported_provider_slugs"] == ["resend", "gmail"]
     assert recovery_hint["supported_credential_modes"] == ["agent_vault", "byok"]
@@ -523,6 +526,7 @@ async def test_v2_resolve_rewrites_direct_recovery_alternate_execute_endpoint_pa
     assert recovery_hint == {
         "reason": "no_providers_match_credential_mode",
         "requested_credential_mode": "rhumb_managed",
+        "resolve_url": "/v2/capabilities/db.query.read/resolve",
         "credential_modes_url": "/v2/capabilities/db.query.read/credential-modes",
         "supported_provider_slugs": ["postgresql"],
         "supported_credential_modes": ["agent_vault", "byok"],

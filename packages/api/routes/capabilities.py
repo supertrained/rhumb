@@ -761,6 +761,10 @@ def _capability_credential_modes_url(capability_id: str) -> str:
     return f"/v1/capabilities/{quote(capability_id)}/credential-modes"
 
 
+def _capability_resolve_url(capability_id: str) -> str:
+    return f"/v1/capabilities/{quote(capability_id)}/resolve"
+
+
 def _provider_mode_setup_url(service_slug: str, mode: str) -> str | None:
     normalized_mode = _canonicalize_credential_mode(mode)
     if normalized_mode == "agent_vault":
@@ -876,6 +880,7 @@ def _credential_mode_filter_recovery_hint(
     recovery_hint: dict[str, object] = {
         "reason": reason,
         "requested_credential_mode": normalized_requested_mode,
+        "resolve_url": _capability_resolve_url(capability_id),
         "credential_modes_url": _capability_credential_modes_url(capability_id),
     }
 
@@ -1211,6 +1216,7 @@ def _execute_ready_recovery_hint(
 
     recovery_hint: dict[str, object] = {
         "reason": "no_execute_ready_providers",
+        "resolve_url": _capability_resolve_url(capability_id),
         "credential_modes_url": _capability_credential_modes_url(capability_id),
     }
     recovery_items = supported_items or providers
@@ -2703,6 +2709,7 @@ async def resolve_capability(
                 capability_id,
                 recovery_hint={
                     "reason": "no_providers_registered",
+                    "resolve_url": _capability_resolve_url(capability_id),
                     "credential_modes_url": _capability_credential_modes_url(capability_id),
                 },
             ),

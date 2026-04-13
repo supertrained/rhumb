@@ -63,6 +63,7 @@ def test_execute_ready_provider_slugs_returns_empty_when_only_recovery_remains()
         "execute_hint": None,
         "recovery_hint": {
             "reason": "no_execute_ready_providers",
+            "resolve_url": "/v1/capabilities/email.send/resolve",
             "unavailable_provider_slugs": ["resend"],
             "not_execute_ready_provider_slugs": ["postmark"],
             "supported_provider_slugs": ["resend", "postmark"],
@@ -72,7 +73,7 @@ def test_execute_ready_provider_slugs_returns_empty_when_only_recovery_remains()
     assert resolve_helpers.execute_ready_provider_slugs(payload) == []
     assert resolve_helpers.preferred_execute_provider(payload) is None
     assert resolve_helpers.describe_recovery_hint(payload) == (
-        "no_execute_ready_providers; unavailable=resend; "
+        "no_execute_ready_providers; resolve_url=/v1/capabilities/email.send/resolve; unavailable=resend; "
         "not_execute_ready=postmark; supported=resend,postmark"
     )
 
@@ -81,6 +82,7 @@ def test_describe_recovery_hint_surfaces_alternate_execute_handoff() -> None:
     payload = {
         "recovery_hint": {
             "reason": "no_providers_match_credential_mode",
+            "resolve_url": "/v1/capabilities/email.send/resolve",
             "supported_provider_slugs": ["resend", "gmail"],
             "alternate_execute_hint": {
                 "preferred_provider": "gmail",
@@ -101,7 +103,7 @@ def test_describe_recovery_hint_surfaces_alternate_execute_handoff() -> None:
         },
     )
     assert resolve_helpers.describe_recovery_hint(payload) == (
-        "no_providers_match_credential_mode; supported=resend,gmail; "
+        "no_providers_match_credential_mode; resolve_url=/v1/capabilities/email.send/resolve; supported=resend,gmail; "
         "alternate_execute=gmail(agent_vault); "
         "alternate_execute_endpoint=POST /gmail/v1/users/me/messages/send; "
         "alternate_execute_setup_url=/v1/services/gmail/ceremony"
@@ -113,6 +115,7 @@ def test_describe_recovery_hint_surfaces_setup_handoff() -> None:
     payload = {
         "recovery_hint": {
             "reason": "no_execute_ready_providers",
+            "resolve_url": "/v1/capabilities/email.send/resolve",
             "not_execute_ready_provider_slugs": ["resend"],
             "setup_handoff": {
                 "preferred_provider": "resend",
@@ -131,7 +134,7 @@ def test_describe_recovery_hint_surfaces_setup_handoff() -> None:
         },
     )
     assert resolve_helpers.describe_recovery_hint(payload) == (
-        "no_execute_ready_providers; not_execute_ready=resend; "
+        "no_execute_ready_providers; resolve_url=/v1/capabilities/email.send/resolve; not_execute_ready=resend; "
         "setup_handoff=resend(byok); "
         "setup_handoff_setup_hint=Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
     )

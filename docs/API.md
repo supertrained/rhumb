@@ -141,11 +141,11 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `fallback_chain` stays as the ordered ranked shortlist, but now only includes providers that can actually back execute right now in the current context.
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
-If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
-If the capability exists but no providers are registered yet, `resolve` returns `recovery_hint.reason=no_providers_registered` plus `credential_modes_url` so callers can distinguish missing catalog coverage from the other dead-end reasons.
+If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `resolve_url`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
+If the capability exists but no providers are registered yet, `resolve` returns `recovery_hint.reason=no_providers_registered` plus `resolve_url` and `credential_modes_url` so callers can distinguish missing catalog coverage from the other dead-end reasons.
 If a requested `credential_mode` still leaves at least one provider, `execute_hint.selection_reason` and `skipped_provider_slugs` now stay honest about any higher-ranked providers that were filtered out, and provider-level plus execute-hint `configured` truth stays scoped to that requested mode so mixed-mode providers do not look preconfigured through the wrong rail.
 If a lower-ranked provider is still execute-ready after higher-ranked paths degrade, `execute_hint` now keeps the degraded handoff machine-readable too via `unavailable_provider_slugs`, `not_execute_ready_provider_slugs`, and the mixed blocker selection reason when both conditions apply.
-When a requested `credential_mode` dead-ends, whether because zero providers match or because the filtered set collapses to zero execute-ready paths, `resolve` keeps the recovery handoff machine-readable. `supported_provider_slugs` and `supported_credential_modes` still reflect the broader unfiltered pivot, `recovery_hint.alternate_execute_hint` carries the exact broader-rail execute/setup handoff when Rhumb can already identify one, and `recovery_hint.setup_handoff` carries the next ranked setup action when no executable alternate rail exists yet, so callers can still move forward without another blind search. In the degraded-but-still-ranked case, `resolve` also keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
+When a requested `credential_mode` dead-ends, whether because zero providers match or because the filtered set collapses to zero execute-ready paths, `resolve` keeps the recovery handoff machine-readable. `recovery_hint.resolve_url` gives callers the canonical rerun target for the same capability, `supported_provider_slugs` and `supported_credential_modes` still reflect the broader unfiltered pivot, `recovery_hint.alternate_execute_hint` carries the exact broader-rail execute/setup handoff when Rhumb can already identify one, and `recovery_hint.setup_handoff` carries the next ranked setup action when no executable alternate rail exists yet, so callers can still move forward without another blind search. In the degraded-but-still-ranked case, `resolve` also keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
 
 Example recovery payload when `credential_mode=agent_vault` dead-ends for `email.send` but Rhumb can already point you at the broader `byok` rail:
 
@@ -160,6 +160,7 @@ Example recovery payload when `credential_mode=agent_vault` dead-ends for `email
     "recovery_hint": {
       "reason": "no_providers_match_credential_mode",
       "requested_credential_mode": "agent_vault",
+      "resolve_url": "/v1/capabilities/email.send/resolve",
       "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
       "supported_provider_slugs": ["resend", "sendgrid"],
       "supported_credential_modes": ["byok"],
@@ -181,7 +182,7 @@ Example recovery payload when `credential_mode=agent_vault` dead-ends for `email
 }
 ```
 
-`endpoint_pattern` keeps the canonical method-plus-path shape (`POST /emails`, not just `/emails`), and `/v2/capabilities/{capability_id}/resolve` returns the same recovery structure with nested `credential_modes_url` values rewritten onto `/v2`.
+`endpoint_pattern` keeps the canonical method-plus-path shape (`POST /emails`, not just `/emails`), and `/v2/capabilities/{capability_id}/resolve` returns the same recovery structure with top-level `resolve_url` plus nested `credential_modes_url` values rewritten onto `/v2`.
 
 Example recovery payload when providers still rank but none can execute yet and Rhumb can only hand you the next setup step:
 
@@ -206,6 +207,7 @@ Example recovery payload when providers still rank but none can execute yet and 
     "execute_hint": null,
     "recovery_hint": {
       "reason": "no_execute_ready_providers",
+      "resolve_url": "/v1/capabilities/email.send/resolve",
       "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
       "supported_provider_slugs": ["resend", "sendgrid"],
       "supported_credential_modes": ["byok"],

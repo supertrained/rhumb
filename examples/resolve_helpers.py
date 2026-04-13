@@ -116,6 +116,10 @@ def describe_recovery_hint(resolve_data: dict[str, Any]) -> str | None:
     reason = recovery_hint.get("reason")
     parts = [reason if isinstance(reason, str) and reason else "unknown_recovery_state"]
 
+    resolve_url = recovery_hint.get("resolve_url")
+    if isinstance(resolve_url, str) and resolve_url:
+        parts.append(f"resolve_url={resolve_url}")
+
     unavailable = _slug_list(recovery_hint.get("unavailable_provider_slugs"))
     if unavailable:
         parts.append(f"unavailable={','.join(unavailable)}")

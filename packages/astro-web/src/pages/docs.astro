@@ -66,7 +66,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, an execute-ready fallback chain, machine-readable alternates, filtered recovery hints when a requested credential mode matches nothing, degraded recovery hints when execute-ready options collapse to zero, including unavailable versus not-execute-ready provider context plus broader provider and mode pivots when a requested rail dead-ends, a direct `recovery_hint.alternate_execute_hint` handoff when that broader rail is already identifiable, a `recovery_hint.setup_handoff` when setup is the next ranked move instead of execution, honest skipped-provider selection metadata when filtering changes the winner, mixed skipped-provider blocker context when a lower-ranked execute-ready path still wins, and contextual configured/setup truth so mixed-mode providers do not look ready through the wrong credential rail.",
+    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, an execute-ready fallback chain, machine-readable alternates, filtered recovery hints when a requested credential mode matches nothing, degraded recovery hints when execute-ready options collapse to zero, including unavailable versus not-execute-ready provider context plus broader provider and mode pivots when a requested rail dead-ends, a canonical `recovery_hint.resolve_url` rerun target, a direct `recovery_hint.alternate_execute_hint` handoff when that broader rail is already identifiable, a `recovery_hint.setup_handoff` when setup is the next ranked move instead of execution, honest skipped-provider selection metadata when filtering changes the winner, mixed skipped-provider blocker context when a lower-ranked execute-ready path still wins, and contextual configured/setup truth so mixed-mode providers do not look ready through the wrong credential rail.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
     response: `Default success response
 {
@@ -110,6 +110,7 @@ Recovery response when credential_mode=agent_vault dead-ends
     "recovery_hint": {
       "reason": "no_providers_match_credential_mode",
       "requested_credential_mode": "agent_vault",
+      "resolve_url": "/v1/capabilities/email.send/resolve",
       "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
       "supported_provider_slugs": ["resend", "sendgrid"],
       "supported_credential_modes": ["byok"],
@@ -140,6 +141,7 @@ Recovery response when the capability exists but no providers are registered yet
     "execute_hint": null,
     "recovery_hint": {
       "reason": "no_providers_registered",
+      "resolve_url": "/v1/capabilities/email.send/resolve",
       "credential_modes_url": "/v1/capabilities/email.send/credential-modes"
     }
   },
@@ -167,6 +169,7 @@ Recovery response when providers still rank but none can execute yet
     "execute_hint": null,
     "recovery_hint": {
       "reason": "no_execute_ready_providers",
+      "resolve_url": "/v1/capabilities/email.send/resolve",
       "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
       "supported_provider_slugs": ["resend", "sendgrid"],
       "supported_credential_modes": ["byok"],

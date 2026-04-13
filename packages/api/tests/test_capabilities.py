@@ -563,6 +563,7 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
         "recovery_hint": {
             "reason": "no_providers_match_credential_mode",
             "requested_credential_mode": "agent_vault",
+            "resolve_url": "/v1/capabilities/email.send/resolve",
             "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
             "supported_provider_slugs": ["resend", "sendgrid"],
             "supported_credential_modes": ["byok"],
@@ -669,6 +670,7 @@ async def test_resolve_capability_empty_filter_recovery_includes_execute_blocker
     recovery_hint = data["recovery_hint"]
     assert recovery_hint["reason"] == "no_providers_match_credential_mode"
     assert recovery_hint["requested_credential_mode"] == "agent_vault"
+    assert recovery_hint["resolve_url"] == "/v1/capabilities/email.send/resolve"
     assert recovery_hint["credential_modes_url"] == "/v1/capabilities/email.send/credential-modes"
     assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
     assert recovery_hint["supported_credential_modes"] == ["byok"]
@@ -1049,6 +1051,7 @@ async def test_resolve_capability_empty_filter_prefers_broader_configured_altern
     assert data["recovery_hint"] == {
         "reason": "no_providers_match_credential_mode",
         "requested_credential_mode": "agent_vault",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "rhumb-managed-email"],
         "supported_credential_modes": ["rhumb_managed", "byok"],
@@ -1395,6 +1398,7 @@ async def test_resolve_capability_reports_recovery_when_no_execute_ready_provide
     assert data["execute_hint"] is None
     assert data["recovery_hint"] == {
         "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
@@ -1476,6 +1480,7 @@ async def test_resolve_capability_reports_non_circuit_execute_blockers_in_recove
     assert data["execute_hint"] is None
     assert data["recovery_hint"] == {
         "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
@@ -1576,6 +1581,7 @@ async def test_resolve_capability_reports_mixed_execute_blockers_in_recovery(app
     assert data["execute_hint"] is None
     assert data["recovery_hint"] == {
         "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
@@ -1625,6 +1631,7 @@ async def test_resolve_capability_reports_recovery_when_no_providers_registered(
         "execute_hint": None,
         "recovery_hint": {
             "reason": "no_providers_registered",
+            "resolve_url": "/v1/capabilities/email.send/resolve",
             "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         },
     }
@@ -1708,6 +1715,7 @@ async def test_resolve_capability_filtered_mode_recovery_keeps_unfiltered_pivot(
     assert data["recovery_hint"] == {
         "reason": "no_execute_ready_providers",
         "requested_credential_mode": "byok",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "rhumb-managed-email"],
         "supported_credential_modes": ["rhumb_managed", "byok"],
@@ -1806,6 +1814,7 @@ async def test_resolve_capability_filtered_mode_recovery_includes_alternate_setu
     assert data["recovery_hint"] == {
         "reason": "no_execute_ready_providers",
         "requested_credential_mode": "byok",
+        "resolve_url": "/v1/capabilities/email.send/resolve",
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "gmail"],
         "supported_credential_modes": ["agent_vault", "byok"],
@@ -1989,6 +1998,7 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
     assert unsupported_data["recovery_hint"] == {
         "reason": "no_providers_match_credential_mode",
         "requested_credential_mode": "rhumb_managed",
+        "resolve_url": "/v1/capabilities/db.query.read/resolve",
         "credential_modes_url": "/v1/capabilities/db.query.read/credential-modes",
         "supported_provider_slugs": ["postgresql"],
         "supported_credential_modes": ["agent_vault", "byok"],
