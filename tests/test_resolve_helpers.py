@@ -91,6 +91,15 @@ def test_describe_recovery_hint_surfaces_alternate_execute_handoff() -> None:
         },
     }
 
+    assert resolve_helpers.preferred_recovery_handoff(payload) == (
+        "alternate_execute",
+        {
+            "preferred_provider": "gmail",
+            "preferred_credential_mode": "agent_vault",
+            "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+            "setup_url": "/v1/services/gmail/ceremony",
+        },
+    )
     assert resolve_helpers.describe_recovery_hint(payload) == (
         "no_providers_match_credential_mode; supported=resend,gmail; "
         "alternate_execute=gmail(agent_vault); "
@@ -113,8 +122,40 @@ def test_describe_recovery_hint_surfaces_setup_handoff() -> None:
         },
     }
 
+    assert resolve_helpers.preferred_recovery_handoff(payload) == (
+        "setup_handoff",
+        {
+            "preferred_provider": "resend",
+            "preferred_credential_mode": "byok",
+            "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+        },
+    )
     assert resolve_helpers.describe_recovery_hint(payload) == (
         "no_execute_ready_providers; not_execute_ready=resend; "
         "setup_handoff=resend(byok); "
         "setup_handoff_setup_hint=Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
+    )
+
+
+
+def test_preferred_recovery_handoff_prefers_alternate_execute_over_setup() -> None:
+    payload = {
+        "recovery_hint": {
+            "alternate_execute_hint": {
+                "preferred_provider": "gmail",
+                "preferred_credential_mode": "agent_vault",
+            },
+            "setup_handoff": {
+                "preferred_provider": "resend",
+                "preferred_credential_mode": "byok",
+            },
+        },
+    }
+
+    assert resolve_helpers.preferred_recovery_handoff(payload) == (
+        "alternate_execute",
+        {
+            "preferred_provider": "gmail",
+            "preferred_credential_mode": "agent_vault",
+        },
     )

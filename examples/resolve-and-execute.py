@@ -14,7 +14,7 @@ import os
 import httpx
 import json
 
-from resolve_helpers import describe_recovery_hint, preferred_execute_provider
+from resolve_helpers import describe_recovery_hint, preferred_execute_provider, preferred_recovery_handoff
 
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -51,6 +51,7 @@ def main():
             print(f"  Fallbacks:          {', '.join(execute_hint['fallback_providers'])}")
 
     recovery_summary = describe_recovery_hint(data)
+    recovery_handoff = preferred_recovery_handoff(data)
     if recovery_summary:
         print(f"\n⚠️  Recovery hint: {recovery_summary}")
 
@@ -62,8 +63,22 @@ def main():
     top_provider = preferred_execute_provider(data)
     if not top_provider:
         print("No execute-ready provider found in the current resolve context.")
-        if recovery_summary:
-            print("Follow the recovery handoff above to finish setup or pivot to the alternate rail.")
+        if recovery_handoff:
+            handoff_kind, handoff = recovery_handoff
+            provider = handoff.get("preferred_provider", "?")
+            mode = handoff.get("preferred_credential_mode", "?")
+            if handoff_kind == "alternate_execute":
+                print(f"Next step: pivot to the alternate execute rail via {provider} ({mode}).")
+                if handoff.get("endpoint_pattern"):
+                    print(f"  Endpoint: {handoff['endpoint_pattern']}")
+            else:
+                print(f"Next step: finish setup for {provider} ({mode}).")
+            if handoff.get("setup_url"):
+                print(f"  Setup URL: {handoff['setup_url']}")
+            elif handoff.get("setup_hint"):
+                print(f"  Setup hint: {handoff['setup_hint']}")
+        elif recovery_summary:
+            print("Follow the recovery hint above to finish setup or pivot to the alternate rail.")
         return
 
     print(f"\n💰 Estimating cost for '{capability}' via {top_provider}...\n")

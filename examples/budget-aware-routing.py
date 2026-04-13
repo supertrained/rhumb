@@ -12,7 +12,7 @@ Requires: RHUMB_API_KEY environment variable.
 import os
 import httpx
 
-from resolve_helpers import describe_recovery_hint, preferred_execute_provider
+from resolve_helpers import describe_recovery_hint, preferred_execute_provider, preferred_recovery_handoff
 
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -61,12 +61,25 @@ def main():
         print(f"  {slug:20s}  AN Score: {score}  Est. cost: ${cost}")
 
     preferred_provider = preferred_execute_provider(data)
+    recovery_summary = describe_recovery_hint(data)
+    recovery_handoff = preferred_recovery_handoff(data)
     if preferred_provider:
         print(f"\n🧭 Preferred execute provider: {preferred_provider}")
         if execute_hint.get("preferred_credential_mode"):
             print(f"  Preferred credential mode: {execute_hint['preferred_credential_mode']}")
+    elif recovery_handoff:
+        handoff_kind, handoff = recovery_handoff
+        provider = handoff.get("preferred_provider", "?")
+        mode = handoff.get("preferred_credential_mode", "?")
+        if handoff_kind == "alternate_execute":
+            print(f"\n🧭 Alternate execute rail: {provider} ({mode})")
+        else:
+            print(f"\n🧭 Setup next: {provider} ({mode})")
+        if handoff.get("setup_url"):
+            print(f"  Setup URL: {handoff['setup_url']}")
+        elif handoff.get("setup_hint"):
+            print(f"  Setup hint: {handoff['setup_hint']}")
 
-    recovery_summary = describe_recovery_hint(data)
     if recovery_summary:
         print(f"  Recovery hint: {recovery_summary}")
 

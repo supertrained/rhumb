@@ -30,7 +30,7 @@ from typing import Any
 
 import httpx
 
-from resolve_helpers import describe_recovery_hint, execute_ready_provider_slugs
+from resolve_helpers import describe_recovery_hint, execute_ready_provider_slugs, preferred_recovery_handoff
 
 BASE = os.environ.get("RHUMB_BASE_URL", "https://api.rhumb.dev/v1").rstrip("/")
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -80,11 +80,11 @@ def _get_json(client: httpx.Client, path: str, *, params: dict[str, Any] | None 
     return resp.json()
 
 
-def _resolve_execute_context(client: httpx.Client) -> tuple[list[str], str | None]:
+def _resolve_execute_context(client: httpx.Client) -> tuple[list[str], str | None, tuple[str, dict[str, Any]] | None]:
     payload = _get_json(client, f"/capabilities/{CAPABILITY}/resolve")
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
     providers = execute_ready_provider_slugs(data, limit=PROVIDER_COUNT)
-    return providers, describe_recovery_hint(data)
+    return providers, describe_recovery_hint(data), preferred_recovery_handoff(data)
 
 
 def _usage_summary(client: httpx.Client) -> dict[str, Any]:
@@ -153,10 +153,24 @@ def main() -> None:
     queries = _queries()
     with httpx.Client(timeout=30.0) as client:
         before = _usage_summary(client)
-        providers, recovery_summary = _resolve_execute_context(client)
+        providers, recovery_summary, recovery_handoff = _resolve_execute_context(client)
 
         if not providers:
             print(f"No execute-ready providers resolved for {CAPABILITY}.")
+            if recovery_handoff:
+                handoff_kind, handoff = recovery_handoff
+                provider = handoff.get("preferred_provider", "?")
+                mode = handoff.get("preferred_credential_mode", "?")
+                if handoff_kind == "alternate_execute":
+                    print(f"Alternate execute rail: {provider} ({mode})")
+                    if handoff.get("endpoint_pattern"):
+                        print(f"  Endpoint: {handoff['endpoint_pattern']}")
+                else:
+                    print(f"Setup next: {provider} ({mode})")
+                if handoff.get("setup_url"):
+                    print(f"  Setup URL: {handoff['setup_url']}")
+                elif handoff.get("setup_hint"):
+                    print(f"  Setup hint: {handoff['setup_hint']}")
             if recovery_summary:
                 print(f"Recovery hint: {recovery_summary}")
             sys.exit(1)

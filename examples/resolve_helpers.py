@@ -61,6 +61,22 @@ def preferred_execute_provider(resolve_data: dict[str, Any]) -> str | None:
     return providers[0] if providers else None
 
 
+def preferred_recovery_handoff(resolve_data: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
+    recovery_hint = resolve_data.get("recovery_hint")
+    if not isinstance(recovery_hint, dict):
+        return None
+
+    alternate_execute_hint = recovery_hint.get("alternate_execute_hint")
+    if isinstance(alternate_execute_hint, dict):
+        return "alternate_execute", alternate_execute_hint
+
+    setup_handoff = recovery_hint.get("setup_handoff")
+    if isinstance(setup_handoff, dict):
+        return "setup_handoff", setup_handoff
+
+    return None
+
+
 def _handoff_summary(prefix: str, handoff: Any) -> list[str]:
     if not isinstance(handoff, dict):
         return []
