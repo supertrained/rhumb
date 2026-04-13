@@ -37,12 +37,14 @@ export default async function InternalLaunchDashboardPage({
   const { key, window = "7d" } = await searchParams;
 
   const adminKey = process.env.RHUMB_ADMIN_SECRET ?? "";
-  const dashboardKey = process.env.RHUMB_LAUNCH_DASHBOARD_KEY ?? adminKey;
-  if (!adminKey || !dashboardKey || key !== dashboardKey) {
+  const configuredDashboardKey = process.env.RHUMB_LAUNCH_DASHBOARD_KEY ?? "";
+  const dashboardKey = configuredDashboardKey || adminKey;
+  const dashboardAuthMode = configuredDashboardKey ? "dashboard" : "admin";
+  if (!dashboardKey || key !== dashboardKey) {
     notFound();
   }
 
-  const dashboard = await getLaunchDashboard(window, adminKey);
+  const dashboard = await getLaunchDashboard(window, dashboardKey, dashboardAuthMode);
   if (dashboard === null) {
     notFound();
   }

@@ -66,6 +66,44 @@ describe("internal launch dashboard page", () => {
     expect(html).toContain("Known clients");
     expect(html).toContain("stripe.com");
     expect(html).toContain("provider clicks / 4 service views");
+    expect(getLaunchDashboardMock).toHaveBeenCalledWith("7d", "dashboard-key", "dashboard");
+    expect(notFoundMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to admin auth when no bounded dashboard key is configured", async () => {
+    process.env.RHUMB_LAUNCH_DASHBOARD_KEY = "";
+    getLaunchDashboardMock.mockResolvedValue({
+      window: "24h",
+      startAt: "2026-03-12T00:00:00Z",
+      generatedAt: "2026-03-13T00:00:00Z",
+      coverage: { publicServiceCount: 1 },
+      queries: {
+        total: 1,
+        machineTotal: 1,
+        bySource: [],
+        topQueryTypes: [],
+        topServices: [],
+        topSearches: [],
+        uniqueClients: 1,
+        repeatClients: 0,
+        repeatClientRate: 0,
+        latestActivityAt: null,
+      },
+      clicks: {
+        total: 0,
+        providerClicks: 0,
+        topProviderDomains: [],
+        topSourceSurfaces: [],
+        providerCtr: [],
+        disputeClicks: { email: 0, github: 0, contact: 0 },
+        latestActivityAt: null,
+      },
+    });
+
+    const html = await renderLaunchPage({ key: "admin-secret", window: "24h" });
+
+    expect(html).toContain("Launch dashboard");
+    expect(getLaunchDashboardMock).toHaveBeenCalledWith("24h", "admin-secret", "admin");
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 

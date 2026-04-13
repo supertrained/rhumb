@@ -140,13 +140,15 @@ const key = Astro.url.searchParams.get("key") ?? "";
 const windowParam = (Astro.url.searchParams.get("window") ?? "7d") as "24h" | "7d" | "launch";
 
 const adminKey = import.meta.env.RHUMB_ADMIN_SECRET ?? "";
-const dashboardKey = import.meta.env.RHUMB_LAUNCH_DASHBOARD_KEY ?? adminKey;
+const configuredDashboardKey = import.meta.env.RHUMB_LAUNCH_DASHBOARD_KEY ?? "";
+const dashboardKey = configuredDashboardKey || adminKey;
+const dashboardAuthMode = configuredDashboardKey ? "dashboard" : "admin";
 
-if (!adminKey || !dashboardKey || key !== dashboardKey) {
+if (!dashboardKey || key !== dashboardKey) {
   return new Response(null, { status: 404 });
 }
 
-const dashboard = await getLaunchDashboard(windowParam, adminKey);
+const dashboard = await getLaunchDashboard(windowParam, dashboardKey, dashboardAuthMode);
 
 if (dashboard === null) {
   return new Response(null, { status: 404 });

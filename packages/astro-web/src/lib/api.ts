@@ -335,12 +335,37 @@ async function fetchPayload(path: string): Promise<unknown> {
   }
 }
 
+type LaunchDashboardAuthMode = "admin" | "dashboard";
+
 async function fetchAdminPayload(path: string, adminKey: string): Promise<unknown> {
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       cache: "no-store",
       headers: {
         "X-Rhumb-Admin-Key": adminKey,
+        "X-Rhumb-Client": "web",
+      },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLaunchDashboardPayload(
+  path: string,
+  accessKey: string,
+  authMode: LaunchDashboardAuthMode,
+): Promise<unknown> {
+  try {
+    const headerName = authMode === "dashboard"
+      ? "X-Rhumb-Launch-Dashboard-Key"
+      : "X-Rhumb-Admin-Key";
+    const response = await fetch(`${API_BASE}${path}`, {
+      cache: "no-store",
+      headers: {
+        [headerName]: accessKey,
         "X-Rhumb-Client": "web",
       },
     });
@@ -468,11 +493,13 @@ export async function getServiceCount(): Promise<number> {
 /** Fetch launch dashboard data from the admin API. */
 export async function getLaunchDashboard(
   window: "24h" | "7d" | "launch",
-  adminKey: string,
+  accessKey: string,
+  authMode: LaunchDashboardAuthMode = "dashboard",
 ): Promise<LaunchDashboardViewModel | null> {
-  const payload = await fetchAdminPayload(
+  const payload = await fetchLaunchDashboardPayload(
     `/admin/launch/dashboard?window=${encodeURIComponent(window)}`,
-    adminKey,
+    accessKey,
+    authMode,
   );
   return parseLaunchDashboardResponse(payload);
 }
