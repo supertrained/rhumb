@@ -870,7 +870,7 @@ def summarize_provider(
         hosted_surface.get("resolve_configured") or hosted_surface.get("credential_modes_configured")
     )
     resolve_handoff = hosted_surface.get("resolve_handoff")
-    resolve_handoff_summary = _resolve_handoff_summary(resolve_handoff)
+    resolve_step = _resolve_handoff_summary(resolve_handoff)
     provider_label = _provider_display_name(provider)
     bundle_label = _provider_bundle_label(provider)
     recovery_label = _provider_recovery_label(provider)
@@ -898,8 +898,8 @@ def summarize_provider(
         blocker += (
             f" The rhumb browser profile also exposes no saved {provider_label} login entry, so password-manager recovery is not a viable local shortcut."
         )
-    if resolve_handoff_summary and (likely_blocked or not hosted_surface_live or not hosted_configured):
-        blocker += f" {resolve_handoff_summary}."
+    if resolve_step and (likely_blocked or not hosted_surface_live or not hosted_configured):
+        blocker += f" {resolve_step}."
 
     return {
         "provider": provider.name,
@@ -916,7 +916,8 @@ def summarize_provider(
         "hosted_surface_live": hosted_surface_live,
         "hosted_surface_configured": hosted_configured,
         "resolve_handoff": resolve_handoff,
-        "resolve_handoff_summary": resolve_handoff_summary,
+        "resolve_step": resolve_step,
+        "resolve_handoff_summary": resolve_step,
         "proof_material_ready": proof_material_ready,
         "likely_blocked_on_credentials": likely_blocked,
         "assessment": blocker,
@@ -990,7 +991,7 @@ def main() -> int:
                 f"reset_hits={summary['password_reset_hit_count']} "
                 f"hosted_live={summary['hosted_surface_live']} "
                 f"hosted_configured={summary['hosted_surface_configured']} "
-                f"resolve_step={summary['resolve_handoff_summary'] or '-'} "
+                f"resolve_step={summary['resolve_step'] or '-'} "
                 f"proof_ready={summary['proof_material_ready']}"
             )
     else:

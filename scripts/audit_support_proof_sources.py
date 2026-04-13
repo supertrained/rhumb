@@ -583,7 +583,7 @@ def summarize_provider(
         hosted_surface.get("resolve_configured") or hosted_surface.get("credential_modes_configured")
     )
     resolve_handoff = hosted_surface.get("resolve_handoff")
-    resolve_handoff_summary = _resolve_handoff_summary(resolve_handoff)
+    resolve_step = _resolve_handoff_summary(resolve_handoff)
 
     if not hosted_surface.get("supported"):
         blocker = "No hosted direct support rail is published yet for this provider."
@@ -602,8 +602,8 @@ def summarize_provider(
             )
     else:
         blocker = "Vault inspection found at least one support item with the scoped bundle fields required for hosted proof."
-    if resolve_handoff_summary and (likely_blocked or not hosted_surface_live or not hosted_configured):
-        blocker += f" {resolve_handoff_summary}."
+    if resolve_step and (likely_blocked or not hosted_surface_live or not hosted_configured):
+        blocker += f" {resolve_step}."
 
     return {
         "provider": provider.name,
@@ -616,7 +616,8 @@ def summarize_provider(
         "hosted_surface_live": hosted_surface_live,
         "hosted_surface_configured": hosted_configured,
         "resolve_handoff": resolve_handoff,
-        "resolve_handoff_summary": resolve_handoff_summary,
+        "resolve_step": resolve_step,
+        "resolve_handoff_summary": resolve_step,
         "proof_material_ready": proof_material_ready,
         "likely_blocked_on_credentials": likely_blocked,
         "assessment": blocker,
@@ -681,7 +682,7 @@ def main() -> int:
                 f"gmail_instances={','.join(summary['gmail_candidate_instances']) or '-'} "
                 f"hosted_live={summary['hosted_surface_live']} "
                 f"hosted_configured={summary['hosted_surface_configured']} "
-                f"resolve_step={summary['resolve_handoff_summary'] or '-'} "
+                f"resolve_step={summary['resolve_step'] or '-'} "
                 f"proof_ready={summary['proof_material_ready']}"
             )
     else:

@@ -374,10 +374,11 @@ def test_summarize_provider_includes_resolve_handoff_summary_when_available() ->
         local_service_account_files={"hit_count": 0, "candidate_project_hit_count": 0, "project_ids": []},
     )
 
-    assert summary["resolve_handoff_summary"] == (
+    assert summary["resolve_step"] == (
         "Resolve next step: source=setup_handoff, provider=bigquery, mode=byok, "
         "next_url=/v1/services/bigquery/ceremony"
     )
+    assert summary["resolve_handoff_summary"] == summary["resolve_step"]
     assert "Resolve next step: source=setup_handoff" in summary["assessment"]
 
 

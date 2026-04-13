@@ -1075,7 +1075,7 @@ def summarize_provider(
     hosted_surface_live = bool(hosted_surface.get("live"))
     hosted_configured = bool(hosted_surface.get("configured"))
     resolve_handoff = hosted_surface.get("resolve_handoff")
-    resolve_handoff_summary = _resolve_handoff_summary(resolve_handoff)
+    resolve_step = _resolve_handoff_summary(resolve_handoff)
     gcloud_installed = bool(local_tooling.get("gcloud_installed"))
     local_service_account_hit_count = int(local_service_account_files.get("hit_count") or 0)
     local_candidate_project_hit_count = int(local_service_account_files.get("candidate_project_hit_count") or 0)
@@ -1113,8 +1113,8 @@ def summarize_provider(
         blocker += " Local file scan found service-account JSON on this machine, but none matched the candidate project ids surfaced for this provider."
     if likely_blocked and not gcloud_installed:
         blocker += " Direct local GCP minting is also blocked on this machine right now because `gcloud` is not installed."
-    if resolve_handoff_summary and (likely_blocked or not hosted_surface_live or not hosted_configured):
-        blocker += f" {resolve_handoff_summary}."
+    if resolve_step and (likely_blocked or not hosted_surface_live or not hosted_configured):
+        blocker += f" {resolve_step}."
 
     return {
         "provider": provider.name,
@@ -1133,7 +1133,8 @@ def summarize_provider(
         "hosted_surface_live": hosted_surface_live,
         "hosted_surface_configured": hosted_configured,
         "resolve_handoff": resolve_handoff,
-        "resolve_handoff_summary": resolve_handoff_summary,
+        "resolve_step": resolve_step,
+        "resolve_handoff_summary": resolve_step,
         "gcloud_installed": gcloud_installed,
         "local_service_account_hit_count": local_service_account_hit_count,
         "local_service_account_candidate_project_hit_count": local_candidate_project_hit_count,
@@ -1242,7 +1243,7 @@ def main() -> int:
                 f"gcloud_installed={summary['gcloud_installed']} "
                 f"hosted_live={summary['hosted_surface_live']} "
                 f"hosted_configured={summary['hosted_surface_configured']} "
-                f"resolve_step={summary['resolve_handoff_summary'] or '-'} "
+                f"resolve_step={summary['resolve_step'] or '-'} "
                 f"proof_ready={summary['proof_material_ready']}"
             )
     else:
