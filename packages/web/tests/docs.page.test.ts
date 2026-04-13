@@ -17,6 +17,7 @@ describe("docs page", () => {
     expect(html).toContain("resolve_capability");
     expect(html).toContain("credential-mode filtering");
     expect(html).toContain("machine-readable recovery handoffs");
+    expect(html).toContain("search suggestions when the capability ID is wrong");
     expect(html).toContain("estimate_capability");
     expect(html).toContain("check_credentials");
     expect(html).toContain("rhumb_list_recipes");

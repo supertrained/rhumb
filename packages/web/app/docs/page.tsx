@@ -151,7 +151,7 @@ const MCP_TOOLS = [
   },
   {
     name: "resolve_capability",
-    desc: "Resolve a capability to ranked providers, optional credential-mode filtering, and machine-readable recovery handoffs.",
+    desc: "Resolve a capability to ranked providers, optional credential-mode filtering, machine-readable recovery handoffs, and search suggestions when the capability ID is wrong.",
     example: 'resolve_capability({ capability: "email.send", credential_mode: "byok" })',
     category: "resolve",
   },

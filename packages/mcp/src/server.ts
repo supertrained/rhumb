@@ -141,7 +141,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- resolve_capability ------------------------------------------------
   server.tool(
     "resolve_capability",
-    "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs. If the capability ID is wrong, returns a capability search URL plus suggested capabilities instead of a blank dead end. This is the core routing decision: 'I need email.send, and maybe a specific credential mode, which provider or setup step should I use?' Call this before execute_capability to understand your options.",
+    "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong. If the capability ID is wrong, returns a capability search URL plus suggested capabilities instead of a blank dead end. This is the core routing decision: 'I need email.send, and maybe a specific credential mode, which provider or setup step should I use?' Call this before execute_capability to understand your options.",
     {
       capability: z.string().describe(ResolveCapabilityInputSchema.properties.capability.description),
       credential_mode: z.string().optional().describe(ResolveCapabilityInputSchema.properties.credential_mode.description)
