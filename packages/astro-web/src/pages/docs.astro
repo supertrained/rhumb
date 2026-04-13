@@ -66,7 +66,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, and fallback chain.",
+    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, fallback chain, and an exact setup hint when the preferred path is not configured yet.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
     response: `{
   "data": {
@@ -76,7 +76,7 @@ const ENDPOINTS = [
         "service_slug": "resend",
         "recommendation": "preferred",
         "cost_per_call": 0.001,
-        "credential_modes": ["byok", "rhumb_managed"]
+        "credential_modes": ["byok"]
       }
     ],
     "fallback_chain": ["resend", "sendgrid"],
@@ -85,8 +85,11 @@ const ENDPOINTS = [
       "preferred_provider": "resend",
       "endpoint_pattern": "/emails",
       "estimated_cost_usd": 0.001,
-      "credential_modes": ["rhumb_managed", "byok"],
-      "preferred_credential_mode": "rhumb_managed"
+      "auth_method": "api_key",
+      "configured": false,
+      "credential_modes": ["byok"],
+      "preferred_credential_mode": "byok",
+      "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
     }
   },
   "error": null

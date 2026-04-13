@@ -165,10 +165,69 @@ def _support_direct_recommendation_reason(capability_id: str) -> str:
     return "Direct read-only Zendesk execution via support_ref with explicit brand/group scope and public-comments-only default."
 
 
-def _support_direct_setup_hint(capability_id: str) -> str:
-    if capability_id.startswith("conversation."):
+def _mapped_provider_setup_hint(service_slug: str, auth_method: str, mode: str) -> str | None:
+    if mode == "byok":
+        return (
+            f"Set RHUMB_CREDENTIAL_{service_slug.upper().replace('-', '_')}_{auth_method.upper()} "
+            f"environment variable or configure via proxy credentials"
+        )
+    if mode == "rhumb_managed":
+        return "No setup needed — Rhumb manages the credential"
+    if mode == "agent_vault":
+        return (
+            f"Complete the ceremony at GET /v1/services/{service_slug}/ceremony, "
+            f"then pass token via X-Agent-Token header"
+        )
+    return None
+
+
+def _support_direct_setup_hint_for_provider(provider_slug: str) -> str:
+    if provider_slug == _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG:
         return "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=intercom, region, auth_mode=bearer_token, bearer_token, and explicit allowed_team_ids and/or allowed_admin_ids."
     return "Pass a support_ref that resolves to a RHUMB_SUPPORT_<REF> JSON bundle with provider=zendesk, subdomain, auth_mode, credentials, and explicit allowed_group_ids and/or allowed_brand_ids."
+
+
+def _support_direct_setup_hint(capability_id: str) -> str:
+    return _support_direct_setup_hint_for_provider(_support_direct_provider_slug(capability_id))
+
+
+def _direct_provider_setup_hint(service_slug: str, auth_method: str, mode: str) -> str | None:
+    if service_slug == _DB_DIRECT_PROVIDER_SLUG and auth_method == "connection_ref":
+        if mode == "byok":
+            return "Self-hosted/internal only: pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time. Hosted Rhumb should prefer agent_vault."
+        if mode == "agent_vault":
+            return "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored."
+        return None
+
+    if service_slug == _WAREHOUSE_DIRECT_PROVIDER_SLUG and auth_method == "warehouse_ref" and mode == "byok":
+        return "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode set to either service_account_json or service_account_impersonation, the matching credential payload, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs."
+
+    if service_slug == _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG and auth_method == "storage_ref" and mode == "byok":
+        return "Pass a storage_ref that resolves to a RHUMB_STORAGE_<REF> JSON bundle with provider=aws-s3, region, credentials, allowed_buckets, and optional allowed_prefixes."
+
+    if service_slug == _DEPLOYMENT_DIRECT_PROVIDER_SLUG and auth_method == "deployment_ref" and mode == "byok":
+        return "Pass a deployment_ref that resolves to a RHUMB_DEPLOYMENT_<REF> JSON bundle with provider=vercel, auth_mode=bearer_token, bearer_token, allowed_project_ids, and optional team_id/allowed_targets."
+
+    if service_slug == _ACTIONS_DIRECT_PROVIDER_SLUG and auth_method == "actions_ref" and mode == "byok":
+        return "Pass an actions_ref that resolves to a RHUMB_ACTIONS_<REF> JSON bundle with provider=github, auth_mode=bearer_token, bearer_token, and allowed_repositories."
+
+    if auth_method == "crm_ref" and mode == "byok":
+        if service_slug == _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG:
+            return "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=salesforce, auth_mode=connected_app_refresh_token, client_id, client_secret, refresh_token, optional auth_base_url/api_version, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+        return "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
+
+    if auth_method == "support_ref" and mode == "byok":
+        return _support_direct_setup_hint_for_provider(service_slug)
+
+    return None
+
+
+def _provider_mode_setup_hint(service_slug: str, auth_method: str, mode: str) -> str | None:
+    return _direct_provider_setup_hint(service_slug, auth_method, mode) or _mapped_provider_setup_hint(
+        service_slug,
+        auth_method,
+        mode,
+    )
 
 
 def _db_direct_top_provider() -> dict[str, str | None]:
@@ -837,11 +896,15 @@ def _execute_hint_from_provider(
     requested_credential_mode: str | None = None,
 ) -> dict[str, object]:
     credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
+    auth_method = str(provider.get("auth_method") or "")
+    configured = bool(provider.get("configured"))
     execute_hint = {
         "preferred_provider": provider["service_slug"],
         "endpoint_pattern": provider.get("endpoint_pattern"),
         "estimated_cost_usd": provider.get("cost_per_call"),
+        "auth_method": auth_method,
         "credential_modes": credential_modes,
+        "configured": configured,
     }
     preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
         credential_modes,
@@ -849,6 +912,14 @@ def _execute_hint_from_provider(
     )
     if preferred_credential_mode is not None:
         execute_hint["preferred_credential_mode"] = preferred_credential_mode
+        if not configured:
+            setup_hint = _provider_mode_setup_hint(
+                str(provider.get("service_slug") or ""),
+                auth_method,
+                preferred_credential_mode,
+            )
+            if setup_hint is not None:
+                execute_hint["setup_hint"] = setup_hint
     return execute_hint
 
 
@@ -896,13 +967,13 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Self-hosted/internal only: pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time. Hosted Rhumb should prefer agent_vault.",
+                        "setup_hint": _provider_mode_setup_hint(_DB_DIRECT_PROVIDER_SLUG, "connection_ref", "byok"),
                     },
                     {
                         "mode": "agent_vault",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
+                        "setup_hint": _provider_mode_setup_hint(_DB_DIRECT_PROVIDER_SLUG, "connection_ref", "agent_vault"),
                     }
                 ],
                 "any_configured": False,
@@ -924,7 +995,7 @@ def _warehouse_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": "Pass a warehouse_ref that resolves to a RHUMB_WAREHOUSE_<REF> JSON bundle with provider=bigquery, auth_mode set to either service_account_json or service_account_impersonation, the matching credential payload, billing_project_id, location, and explicit allowed_dataset_refs and allowed_table_refs.",
+                        "setup_hint": _provider_mode_setup_hint(_WAREHOUSE_DIRECT_PROVIDER_SLUG, "warehouse_ref", "byok"),
                     }
                 ],
                 "any_configured": configured,
@@ -945,7 +1016,7 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
                         "mode": "byok",
                         "available": True,
                         "configured": False,
-                        "setup_hint": "Pass a storage_ref that resolves to a RHUMB_STORAGE_<REF> JSON bundle with provider=aws-s3, region, credentials, allowed_buckets, and optional allowed_prefixes.",
+                        "setup_hint": _provider_mode_setup_hint(_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG, "storage_ref", "byok"),
                     }
                 ],
                 "any_configured": False,
@@ -967,7 +1038,7 @@ def _deployment_direct_credential_modes(capability_id: str) -> dict[str, object]
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": "Pass a deployment_ref that resolves to a RHUMB_DEPLOYMENT_<REF> JSON bundle with provider=vercel, auth_mode=bearer_token, bearer_token, allowed_project_ids, and optional team_id/allowed_targets.",
+                        "setup_hint": _provider_mode_setup_hint(_DEPLOYMENT_DIRECT_PROVIDER_SLUG, "deployment_ref", "byok"),
                     }
                 ],
                 "any_configured": configured,
@@ -989,7 +1060,7 @@ def _actions_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": "Pass an actions_ref that resolves to a RHUMB_ACTIONS_<REF> JSON bundle with provider=github, auth_mode=bearer_token, bearer_token, and allowed_repositories.",
+                        "setup_hint": _provider_mode_setup_hint(_ACTIONS_DIRECT_PROVIDER_SLUG, "actions_ref", "byok"),
                     }
                 ],
                 "any_configured": configured,
@@ -1010,11 +1081,7 @@ def _crm_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": has_any_crm_bundle_configured(provider_slug),
-                        "setup_hint": (
-                            "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=salesforce, auth_mode=connected_app_refresh_token, client_id, client_secret, refresh_token, optional auth_base_url/api_version, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
-                            if provider_slug == _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG
-                            else "Pass a crm_ref that resolves to a RHUMB_CRM_<REF> JSON bundle with provider=hubspot, auth_mode=private_app_token, private_app_token, allowed_object_types, allowed_properties_by_object, and optional default/searchable/sortable/allowed_record_ids maps."
-                        ),
+                        "setup_hint": _provider_mode_setup_hint(provider_slug, "crm_ref", "byok"),
                     }
                 ],
                 "any_configured": has_any_crm_bundle_configured(provider_slug),
@@ -1038,7 +1105,7 @@ def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
                         "mode": "byok",
                         "available": True,
                         "configured": configured,
-                        "setup_hint": _support_direct_setup_hint(capability_id),
+                        "setup_hint": _provider_mode_setup_hint(provider_slug, "support_ref", "byok"),
                     }
                 ],
                 "any_configured": configured,
@@ -2401,19 +2468,13 @@ async def get_credential_modes(
             detail = {"mode": mode, "available": True, "configured": False}
             if mode == "byok":
                 detail["configured"] = byok_configured
-                detail["setup_hint"] = (
-                    f"Set RHUMB_CREDENTIAL_{slug.upper().replace('-', '_')}_{auth_method.upper()} "
-                    f"environment variable or configure via proxy credentials"
-                )
+                detail["setup_hint"] = _provider_mode_setup_hint(slug, auth_method, mode)
             elif mode == "rhumb_managed":
                 detail["configured"] = True  # always available if listed
-                detail["setup_hint"] = "No setup needed — Rhumb manages the credential"
+                detail["setup_hint"] = _provider_mode_setup_hint(slug, auth_method, mode)
             elif mode == "agent_vault":
                 detail["configured"] = False  # needs per-request token
-                detail["setup_hint"] = (
-                    f"Complete the ceremony at GET /v1/services/{slug}/ceremony, "
-                    f"then pass token via X-Agent-Token header"
-                )
+                detail["setup_hint"] = _provider_mode_setup_hint(slug, auth_method, mode)
 
             mode_details.append(detail)
 

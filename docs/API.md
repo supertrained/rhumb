@@ -123,6 +123,17 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `limit` is optional and can be used by clients to cap result count.
 
+## Resolve hint contract
+
+`GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:
+- `preferred_provider`: the provider Rhumb wants the operator to use first
+- `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
+- `configured`: whether that path is already ready on the current deployment
+- `preferred_credential_mode`: the lowest-heroics credential mode for that provider in the current context
+- `setup_hint`: present when `configured=false`, with the exact next setup action Rhumb expects before execute
+
+Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step.
+
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
 Rhumb now exposes three direct PostgreSQL read-first capabilities:
