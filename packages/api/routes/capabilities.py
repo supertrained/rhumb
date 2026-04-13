@@ -891,6 +891,14 @@ def _credential_mode_filter_recovery_hint(
         )
         if alternate_execute_hint is not None:
             recovery_hint["alternate_execute_hint"] = alternate_execute_hint
+        else:
+            setup_handoff = _recovery_setup_handoff(
+                capability_id,
+                recovery_items,
+                requested_credential_mode=normalized_requested_mode,
+            )
+            if setup_handoff is not None:
+                recovery_hint["setup_handoff"] = setup_handoff
 
         unavailable_provider_slugs = [
             str(provider.get("service_slug"))
@@ -1086,6 +1094,58 @@ def _execute_hint_from_provider(
     return execute_hint
 
 
+def _setup_handoff_from_provider(
+    capability_id: str,
+    provider: dict[str, object],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
+    service_slug = str(provider.get("service_slug") or "")
+    if not service_slug:
+        return None
+
+    credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
+    auth_method = str(provider.get("auth_method") or "")
+    configured = bool(provider.get("configured"))
+    setup_handoff = {
+        "preferred_provider": service_slug,
+        "estimated_cost_usd": provider.get("cost_per_call"),
+        "auth_method": auth_method,
+        "credential_modes": credential_modes,
+        "configured": configured,
+        "credential_modes_url": _capability_credential_modes_url(capability_id),
+    }
+    preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
+        credential_modes,
+        requested_credential_mode=requested_credential_mode,
+    )
+    if preferred_credential_mode is None:
+        return None
+
+    setup_handoff["preferred_credential_mode"] = preferred_credential_mode
+    if configured:
+        return None
+
+    setup_hint = _provider_mode_setup_hint(
+        service_slug,
+        auth_method,
+        preferred_credential_mode,
+    )
+    if setup_hint is not None:
+        setup_handoff["setup_hint"] = setup_hint
+    setup_url = _provider_mode_setup_url(
+        service_slug,
+        preferred_credential_mode,
+    )
+    if setup_url is not None:
+        setup_handoff["setup_url"] = setup_url
+
+    if "setup_hint" not in setup_handoff and "setup_url" not in setup_handoff:
+        return None
+
+    return setup_handoff
+
+
 def _execute_ready_fallback_chain(providers: list[dict[str, object]]) -> list[str]:
     return [
         str(provider.get("service_slug"))
@@ -1113,6 +1173,25 @@ def _recovery_alternate_execute_hint(
         alternate_execute_hint,
         recovery_items,
         selection_providers=recovery_items,
+    )
+
+
+def _recovery_setup_handoff(
+    capability_id: str,
+    recovery_items: list[dict[str, object]],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
+    setup_handoff = _pick_setup_handoff(
+        capability_id,
+        recovery_items,
+        requested_credential_mode=requested_credential_mode,
+    )
+    return _with_execute_hint_fallbacks(
+        setup_handoff,
+        recovery_items,
+        selection_providers=recovery_items,
+        requested_credential_mode=requested_credential_mode,
     )
 
 
@@ -1151,6 +1230,14 @@ def _execute_ready_recovery_hint(
     )
     if alternate_execute_hint is not None:
         recovery_hint["alternate_execute_hint"] = alternate_execute_hint
+    else:
+        setup_handoff = _recovery_setup_handoff(
+            capability_id,
+            recovery_items,
+            requested_credential_mode=normalized_requested_mode,
+        )
+        if setup_handoff is not None:
+            recovery_hint["setup_handoff"] = setup_handoff
 
     unavailable_provider_slugs = [
         str(provider.get("service_slug"))
@@ -1328,6 +1415,25 @@ def _pick_mapped_execute_hint(
             requested_credential_mode=requested_credential_mode,
         )
 
+    return None
+
+
+def _pick_setup_handoff(
+    capability_id: str,
+    providers: list[dict[str, object]],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
+    for provider in providers:
+        if not provider.get("available_for_execute") or provider.get("endpoint_pattern"):
+            continue
+        setup_handoff = _setup_handoff_from_provider(
+            capability_id,
+            provider,
+            requested_credential_mode=requested_credential_mode,
+        )
+        if setup_handoff is not None:
+            return setup_handoff
     return None
 
 

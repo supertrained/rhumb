@@ -373,6 +373,17 @@ async def test_v2_resolve_preserves_blocker_hints_when_no_alternate_handoff(app)
     assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
     assert recovery_hint["supported_credential_modes"] == ["byok"]
     assert recovery_hint["not_execute_ready_provider_slugs"] == ["resend", "sendgrid"]
+    assert recovery_hint["setup_handoff"] == {
+        "preferred_provider": "resend",
+        "estimated_cost_usd": None,
+        "auth_method": "api_key",
+        "credential_modes": ["byok"],
+        "configured": False,
+        "credential_modes_url": "/v2/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+        "selection_reason": "highest_ranked_provider",
+    }
     assert "alternate_execute_hint" not in recovery_hint
 
 

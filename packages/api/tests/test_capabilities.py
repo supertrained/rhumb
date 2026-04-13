@@ -674,6 +674,20 @@ async def test_resolve_capability_empty_filter_recovery_includes_execute_blocker
     assert recovery_hint["supported_credential_modes"] == ["byok"]
     assert recovery_hint["unavailable_provider_slugs"] == ["resend"]
     assert recovery_hint["not_execute_ready_provider_slugs"] == ["resend", "sendgrid"]
+    assert recovery_hint["setup_handoff"] == {
+        "preferred_provider": "sendgrid",
+        "estimated_cost_usd": 0.001,
+        "auth_method": "api_key",
+        "credential_modes": ["byok"],
+        "configured": False,
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "setup_hint": "Set RHUMB_CREDENTIAL_SENDGRID_API_KEY environment variable or configure via proxy credentials",
+        "selection_reason": "higher_ranked_provider_filtered_by_credential_mode",
+        "skipped_provider_slugs": ["resend"],
+        "unavailable_provider_slugs": ["resend"],
+        "not_execute_ready_provider_slugs": ["resend"],
+    }
     assert "alternate_execute_hint" not in recovery_hint
 
 
@@ -1465,6 +1479,17 @@ async def test_resolve_capability_reports_non_circuit_execute_blockers_in_recove
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
+        "setup_handoff": {
+            "preferred_provider": "resend",
+            "estimated_cost_usd": None,
+            "auth_method": "api_key",
+            "credential_modes": ["byok"],
+            "configured": False,
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "preferred_credential_mode": "byok",
+            "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+            "selection_reason": "highest_ranked_provider",
+        },
         "not_execute_ready_provider_slugs": ["resend", "sendgrid"],
     }
 
@@ -1554,6 +1579,20 @@ async def test_resolve_capability_reports_mixed_execute_blockers_in_recovery(app
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
+        "setup_handoff": {
+            "preferred_provider": "sendgrid",
+            "estimated_cost_usd": 0.001,
+            "auth_method": "api_key",
+            "credential_modes": ["byok"],
+            "configured": False,
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "preferred_credential_mode": "byok",
+            "setup_hint": "Set RHUMB_CREDENTIAL_SENDGRID_API_KEY environment variable or configure via proxy credentials",
+            "selection_reason": "higher_ranked_provider_mixed_execute_blockers",
+            "skipped_provider_slugs": ["resend"],
+            "unavailable_provider_slugs": ["resend"],
+            "not_execute_ready_provider_slugs": ["resend"],
+        },
         "unavailable_provider_slugs": ["resend"],
         "not_execute_ready_provider_slugs": ["resend", "sendgrid"],
     }
