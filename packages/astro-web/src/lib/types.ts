@@ -215,6 +215,37 @@ export type LaunchDashboardViewModel = {
     nextFocus: string;
     signals: LaunchDashboardReadinessSignal[];
   };
+  launchGates: {
+    smallGroup: {
+      key: string;
+      label: string;
+      status: "ready" | "not_ready" | "blocked" | "manual_review";
+      headline: string;
+      summary: string;
+      nextAction: string;
+      shouldNotify: boolean;
+      audience: string;
+      signals: LaunchDashboardReadinessSignal[];
+    };
+    publicLaunch: {
+      key: string;
+      label: string;
+      status: "ready" | "not_ready" | "blocked" | "manual_review";
+      headline: string;
+      summary: string;
+      nextAction: string;
+      shouldNotify: boolean;
+      audience: string;
+      signals: LaunchDashboardReadinessSignal[];
+    };
+  };
+  notifications: Array<{
+    key: string;
+    level: "action" | "warning" | "info";
+    audience: string;
+    headline: string;
+    message: string;
+  }>;
   executions: {
     total: number;
     successful: number;

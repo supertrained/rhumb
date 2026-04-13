@@ -246,6 +246,7 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const clicks = isRecord(data.clicks) ? data.clicks : {};
   const funnel = isRecord(data.funnel) ? data.funnel : {};
   const readiness = isRecord(data.readiness) ? data.readiness : {};
+  const launchGates = isRecord(data.launch_gates) ? data.launch_gates : {};
   const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
   const callerCohorts = isRecord(executions.caller_cohorts) ? executions.caller_cohorts : {};
@@ -309,6 +310,66 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     detail: asString(row.detail) ?? "",
   }));
 
+  const parseGate = (row: unknown) => {
+    if (!isRecord(row)) {
+      return null;
+    }
+
+    const status = asString(row.status);
+    if (
+      status !== "ready"
+      && status !== "not_ready"
+      && status !== "blocked"
+      && status !== "manual_review"
+    ) {
+      return null;
+    }
+
+    return {
+      key: asString(row.key) ?? "unknown",
+      label: asString(row.label) ?? "Unknown gate",
+      status,
+      headline: asString(row.headline) ?? "",
+      summary: asString(row.summary) ?? "",
+      nextAction: asString(row.next_action) ?? "",
+      shouldNotify: Boolean(row.should_notify),
+      audience: asString(row.audience) ?? "operators",
+      signals: asItems(row.signals).map((signal) => ({
+        key: asString(signal.key) ?? "unknown",
+        label: asString(signal.label) ?? "Unknown signal",
+        value: asNumber(signal.value),
+        target: asNumber(signal.target),
+        met: typeof signal.met === "boolean" ? signal.met : null,
+        detail: asString(signal.detail) ?? "",
+      })),
+    };
+  };
+
+  const parseNotification = (row: unknown) => {
+    if (!isRecord(row)) {
+      return null;
+    }
+
+    const level = asString(row.level);
+    if (level !== "action" && level !== "warning" && level !== "info") {
+      return null;
+    }
+
+    return {
+      key: asString(row.key) ?? "unknown",
+      level,
+      audience: asString(row.audience) ?? "operators",
+      headline: asString(row.headline) ?? "",
+      message: asString(row.message) ?? "",
+    };
+  };
+
+  const parsedSmallGroupGate = parseGate(launchGates.small_group);
+  const parsedPublicLaunchGate = parseGate(launchGates.public_launch);
+  const notifications = asItems(data.notifications)
+    .map(parseNotification)
+    .filter((row): row is NonNullable<ReturnType<typeof parseNotification>> => row !== null);
+
   const window = asString(data.window);
   const startAt = asString(data.start_at);
   const generatedAt = asString(data.generated_at);
@@ -331,6 +392,8 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     || !readinessHeadline
     || !readinessSummary
     || !readinessNextFocus
+    || !parsedSmallGroupGate
+    || !parsedPublicLaunchGate
   ) {
     return null;
   }
@@ -385,6 +448,11 @@ export function parseLaunchDashboardResponse(payload: unknown) {
       nextFocus: readinessNextFocus,
       signals: readinessSignals,
     },
+    launchGates: {
+      smallGroup: parsedSmallGroupGate,
+      publicLaunch: parsedPublicLaunchGate,
+    },
+    notifications,
     executions: {
       total: asNumber(executions.total) ?? 0,
       successful: asNumber(executions.successful) ?? 0,

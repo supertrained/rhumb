@@ -212,6 +212,64 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
             },
         ],
     }
+    assert payload["launch_gates"] == {
+        "small_group": {
+            "key": "small_group",
+            "label": "Small-group ready",
+            "status": "not_ready",
+            "headline": "Small-group launch is not ready to recommend yet.",
+            "summary": "Some launch traffic is landing, but the sample is still too thin to separate product truth from noise.",
+            "next_action": "Sharpen the query-to-service handoff. Ranking, snippet clarity, or the first landing page may still be hiding the right next step.",
+            "should_notify": False,
+            "audience": "Tom",
+            "signals": payload["readiness"]["signals"],
+        },
+        "public_launch": {
+            "key": "public_launch",
+            "label": "Public-launch ready",
+            "status": "blocked",
+            "headline": "Public launch stays blocked until the small-group gate is honestly green.",
+            "summary": "The product should not widen into broad public self-serve traffic while the smaller controlled-cohort call is still unresolved.",
+            "next_action": "Sharpen the query-to-service handoff. Ranking, snippet clarity, or the first landing page may still be hiding the right next step.",
+            "should_notify": False,
+            "audience": "operators",
+            "signals": [
+                {
+                    "key": "small_group_gate",
+                    "label": "Small-group gate",
+                    "value": 0,
+                    "target": 1,
+                    "met": False,
+                    "detail": "Broad public launch stays gated until the smaller controlled-cohort recommendation is honestly green.",
+                },
+                {
+                    "key": "repeat_callers",
+                    "label": "Repeat callers",
+                    "value": 1,
+                    "target": 5,
+                    "met": False,
+                    "detail": "A broader launch needs repeat usage from more than a single returning operator or two.",
+                },
+                {
+                    "key": "first_time_success_rate",
+                    "label": "Window-first success rate",
+                    "value": 1.0,
+                    "target": 0.6,
+                    "met": True,
+                    "detail": "Broad self-serve launch needs stronger first-run reliability than a purely controlled cohort does.",
+                },
+                {
+                    "key": "service_view_to_provider_click_conversion",
+                    "label": "Service-view → provider-click conversion",
+                    "value": 1.0,
+                    "target": 0.05,
+                    "met": True,
+                    "detail": "Cold website traffic should move deeper than a near-zero clickthrough rate before broad public launch.",
+                },
+            ],
+        },
+    }
+    assert payload["notifications"] == []
     assert payload["executions"]["managed_path"] == {
         "attempts": 1,
         "successful": 1,
@@ -690,4 +748,70 @@ def test_build_launch_dashboard_flags_small_group_candidate_when_signal_is_broad
             "met": True,
             "detail": "Low-heroics launch readiness means the Rhumb-managed path should win a meaningful share of first successes.",
         },
+    ]
+    assert dashboard["launch_gates"] == {
+        "small_group": {
+            "key": "small_group",
+            "label": "Small-group ready",
+            "status": "ready",
+            "headline": "Ready to bring the small-group recommendation to Tom.",
+            "summary": "Recommend a controlled API / MCP-first cohort now, while keeping broad public launch gated.",
+            "next_action": "Bring the bounded small-group-ready recommendation to Tom now.",
+            "should_notify": True,
+            "audience": "Tom",
+            "signals": dashboard["readiness"]["signals"],
+        },
+        "public_launch": {
+            "key": "public_launch",
+            "label": "Public-launch ready",
+            "status": "manual_review",
+            "headline": "Public launch still needs a final human readiness review.",
+            "summary": "Telemetry may be healthier, but broad public launch still depends on trust, methodology, dispute, and positioning review rather than green numbers alone.",
+            "next_action": "Review the public trust surface and launch copy before calling public-launch ready.",
+            "should_notify": False,
+            "audience": "operators",
+            "signals": [
+                {
+                    "key": "small_group_gate",
+                    "label": "Small-group gate",
+                    "value": 1,
+                    "target": 1,
+                    "met": True,
+                    "detail": "Broad public launch stays gated until the smaller controlled-cohort recommendation is honestly green.",
+                },
+                {
+                    "key": "repeat_callers",
+                    "label": "Repeat callers",
+                    "value": 2,
+                    "target": 5,
+                    "met": False,
+                    "detail": "A broader launch needs repeat usage from more than a single returning operator or two.",
+                },
+                {
+                    "key": "first_time_success_rate",
+                    "label": "Window-first success rate",
+                    "value": 1.0,
+                    "target": 0.6,
+                    "met": True,
+                    "detail": "Broad self-serve launch needs stronger first-run reliability than a purely controlled cohort does.",
+                },
+                {
+                    "key": "service_view_to_provider_click_conversion",
+                    "label": "Service-view → provider-click conversion",
+                    "value": 0.6667,
+                    "target": 0.05,
+                    "met": True,
+                    "detail": "Cold website traffic should move deeper than a near-zero clickthrough rate before broad public launch.",
+                },
+            ],
+        },
+    }
+    assert dashboard["notifications"] == [
+        {
+            "key": "small_group_ready_recommendation",
+            "level": "action",
+            "audience": "Tom",
+            "headline": "Bring the small-group-ready recommendation to Tom now.",
+            "message": "Recommend yes for a controlled API / MCP-first cohort, and keep broad public launch gated on launch-surface conversion plus trust review.",
+        }
     ]

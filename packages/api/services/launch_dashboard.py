@@ -147,6 +147,48 @@ def _build_readiness_signal(
     }
 
 
+def _build_launch_gate(
+    key: str,
+    label: str,
+    *,
+    status: str,
+    headline: str,
+    summary: str,
+    next_action: str,
+    should_notify: bool,
+    audience: str,
+    signals: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "key": key,
+        "label": label,
+        "status": status,
+        "headline": headline,
+        "summary": summary,
+        "next_action": next_action,
+        "should_notify": should_notify,
+        "audience": audience,
+        "signals": signals,
+    }
+
+
+def _build_launch_notification(
+    key: str,
+    *,
+    level: str,
+    audience: str,
+    headline: str,
+    message: str,
+) -> dict[str, Any]:
+    return {
+        "key": key,
+        "level": level,
+        "audience": audience,
+        "headline": headline,
+        "message": message,
+    }
+
+
 def _launch_focus_from_dropoff(biggest_dropoff: dict[str, Any] | None) -> str:
     if not biggest_dropoff:
         return "Keep watching real traffic. There is not enough funnel evidence yet to call the next bottleneck."
@@ -170,6 +212,170 @@ def _launch_focus_from_dropoff(biggest_dropoff: dict[str, Any] | None) -> str:
             "Focus on first-run reliability and setup success. The demand signal exists, but successful execution is still the bottleneck."
         )
     return "Keep watching the live path and tighten the stage with the biggest visible drop-off."
+
+
+def _find_funnel_transition(
+    transitions: list[dict[str, Any]],
+    *,
+    from_stage: str,
+    to_stage: str,
+) -> dict[str, Any] | None:
+    for row in transitions:
+        if row.get("from_stage") == from_stage and row.get("to_stage") == to_stage:
+            return row
+    return None
+
+
+def _build_launch_gates(
+    *,
+    readiness: dict[str, Any],
+    repeat_execution_callers: int,
+    first_time_success_rate: float | None,
+    funnel_transitions: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    notifications: list[dict[str, Any]] = []
+    small_group_ready = readiness.get("status") == "small_group_candidate"
+
+    small_group_gate = _build_launch_gate(
+        "small_group",
+        "Small-group ready",
+        status="ready" if small_group_ready else "not_ready",
+        headline=(
+            "Ready to bring the small-group recommendation to Tom."
+            if small_group_ready
+            else "Small-group launch is not ready to recommend yet."
+        ),
+        summary=(
+            "Recommend a controlled API / MCP-first cohort now, while keeping broad public launch gated."
+            if small_group_ready
+            else readiness.get("summary") or "Small-group readiness is still blocked by the current launch evidence."
+        ),
+        next_action=(
+            "Bring the bounded small-group-ready recommendation to Tom now."
+            if small_group_ready
+            else readiness.get("next_focus") or "Keep tightening the highest-friction stage before calling a launch gate."
+        ),
+        should_notify=small_group_ready,
+        audience="Tom",
+        signals=list(readiness.get("signals") or []),
+    )
+
+    service_to_provider = _find_funnel_transition(
+        funnel_transitions,
+        from_stage="service_views",
+        to_stage="provider_clicks",
+    )
+    service_to_provider_conversion = (
+        service_to_provider.get("conversion_rate")
+        if service_to_provider is not None
+        else None
+    )
+    public_launch_signals = [
+        _build_readiness_signal(
+            "small_group_gate",
+            "Small-group gate",
+            value=1 if small_group_ready else 0,
+            target=1,
+            met=small_group_ready,
+            detail="Broad public launch stays gated until the smaller controlled-cohort recommendation is honestly green.",
+        ),
+        _build_readiness_signal(
+            "repeat_callers",
+            "Repeat callers",
+            value=repeat_execution_callers,
+            target=5,
+            met=repeat_execution_callers >= 5,
+            detail="A broader launch needs repeat usage from more than a single returning operator or two.",
+        ),
+        _build_readiness_signal(
+            "first_time_success_rate",
+            "Window-first success rate",
+            value=first_time_success_rate,
+            target=0.6,
+            met=(
+                first_time_success_rate >= 0.6
+                if first_time_success_rate is not None
+                else None
+            ),
+            detail="Broad self-serve launch needs stronger first-run reliability than a purely controlled cohort does.",
+        ),
+        _build_readiness_signal(
+            "service_view_to_provider_click_conversion",
+            "Service-view → provider-click conversion",
+            value=service_to_provider_conversion,
+            target=0.05,
+            met=(
+                service_to_provider_conversion >= 0.05
+                if service_to_provider_conversion is not None
+                else None
+            ),
+            detail="Cold website traffic should move deeper than a near-zero clickthrough rate before broad public launch.",
+        ),
+    ]
+
+    if not small_group_ready:
+        public_launch_gate = _build_launch_gate(
+            "public_launch",
+            "Public-launch ready",
+            status="blocked",
+            headline="Public launch stays blocked until the small-group gate is honestly green.",
+            summary="The product should not widen into broad public self-serve traffic while the smaller controlled-cohort call is still unresolved.",
+            next_action=readiness.get("next_focus") or "Keep tightening the highest-friction stage before widening the launch surface.",
+            should_notify=False,
+            audience="operators",
+            signals=public_launch_signals,
+        )
+    elif service_to_provider_conversion is not None and service_to_provider_conversion < 0.05:
+        public_launch_gate = _build_launch_gate(
+            "public_launch",
+            "Public-launch ready",
+            status="blocked",
+            headline="Public launch is still blocked on launch-surface conversion.",
+            summary="Cold visitors are still dropping out on service pages before provider clicks, so broad self-serve launch would out-run the current launch surface.",
+            next_action="Keep public launch gated while watching the service-page hero/sidebar CTA split and trust/dispute follow-through.",
+            should_notify=False,
+            audience="operators",
+            signals=public_launch_signals,
+        )
+    else:
+        public_launch_gate = _build_launch_gate(
+            "public_launch",
+            "Public-launch ready",
+            status="manual_review",
+            headline="Public launch still needs a final human readiness review.",
+            summary="Telemetry may be healthier, but broad public launch still depends on trust, methodology, dispute, and positioning review rather than green numbers alone.",
+            next_action="Review the public trust surface and launch copy before calling public-launch ready.",
+            should_notify=False,
+            audience="operators",
+            signals=public_launch_signals,
+        )
+
+    if small_group_ready and public_launch_gate["status"] != "ready":
+        notifications.append(
+            _build_launch_notification(
+                "small_group_ready_recommendation",
+                level="action",
+                audience="Tom",
+                headline="Bring the small-group-ready recommendation to Tom now.",
+                message="Recommend yes for a controlled API / MCP-first cohort, and keep broad public launch gated on launch-surface conversion plus trust review.",
+            )
+        )
+
+    if public_launch_gate["status"] == "ready":
+        notifications.append(
+            _build_launch_notification(
+                "public_launch_ready",
+                level="action",
+                audience="Tom",
+                headline="Public-launch gate is green.",
+                message="The current launch telemetry and launch-surface evidence look strong enough to bring a broad public-launch recommendation to Tom.",
+            )
+        )
+
+    return {
+        "small_group": small_group_gate,
+        "public_launch": public_launch_gate,
+    }, notifications
 
 
 def _build_launch_readiness(
@@ -498,6 +704,11 @@ def build_launch_dashboard(
     managed_successes = successful_executions_by_credential_mode.get("rhumb_managed", 0)
     first_success_callers = len(caller_first_success_mode)
     managed_first_success_callers = first_success_modes.get("rhumb_managed", 0)
+    first_time_success_rate = (
+        round(first_time_execution_successes / first_time_execution_attempts, 4)
+        if first_time_execution_attempts
+        else None
+    )
 
     latest_query_at = max((row["_created_at"] for row in query_rows), default=None)
     latest_click_at = max((row["_created_at"] for row in click_rows), default=None)
@@ -543,6 +754,12 @@ def build_launch_dashboard(
         first_success_callers=first_success_callers,
         biggest_dropoff=biggest_dropoff,
     )
+    launch_gates, notifications = _build_launch_gates(
+        readiness=readiness,
+        repeat_execution_callers=repeat_execution_callers,
+        first_time_success_rate=first_time_success_rate,
+        funnel_transitions=funnel_transitions,
+    )
 
     return {
         "window": window,
@@ -582,6 +799,8 @@ def build_launch_dashboard(
             "biggest_dropoff": biggest_dropoff,
         },
         "readiness": readiness,
+        "launch_gates": launch_gates,
+        "notifications": notifications,
         "executions": {
             "total": len(filtered_execution_rows),
             "successful": successful_executions,
@@ -599,11 +818,7 @@ def build_launch_dashboard(
                     "attempts": first_time_execution_attempts,
                     "successful": first_time_execution_successes,
                     "failed": first_time_execution_attempts - first_time_execution_successes,
-                    "success_rate": (
-                        round(first_time_execution_successes / first_time_execution_attempts, 4)
-                        if first_time_execution_attempts
-                        else None
-                    ),
+                    "success_rate": first_time_success_rate,
                 },
                 "repeat": {
                     "attempts": repeat_execution_attempts,
