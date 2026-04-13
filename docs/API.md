@@ -127,6 +127,8 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:
 - `preferred_provider`: the provider Rhumb wants the operator to use first
+- `selection_reason`: machine-readable explanation for why Rhumb chose that provider (`highest_ranked_provider`, `configured_provider_preferred`, `higher_ranked_provider_unavailable`, or `higher_ranked_provider_not_execute_ready`)
+- `skipped_provider_slugs`: optional higher-ranked providers Rhumb intentionally skipped before choosing the execute path
 - `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
 - `configured`: whether that path is already ready on the current deployment
 - `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability

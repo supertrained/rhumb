@@ -519,6 +519,7 @@ async def test_resolve_capability(app):
     assert data["execute_hint"]["credential_modes"] == ["byok"]
     assert data["execute_hint"]["credential_modes_url"] == "/v1/capabilities/email.send/credential-modes"
     assert data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert data["execute_hint"]["selection_reason"] == "highest_ranked_provider"
     assert data["execute_hint"]["fallback_providers"] == ["sendgrid"]
     assert "RHUMB_CREDENTIAL_RESEND_API_KEY" in data["execute_hint"]["setup_hint"]
     assert data["related_bundles"] == ["prospect.enrich_and_verify"]
@@ -759,6 +760,8 @@ async def test_resolve_capability_prefers_configured_provider_in_execute_hint(ap
     assert data["execute_hint"]["configured"] is True
     assert data["execute_hint"]["credential_modes"] == ["rhumb_managed"]
     assert data["execute_hint"]["preferred_credential_mode"] == "rhumb_managed"
+    assert data["execute_hint"]["selection_reason"] == "configured_provider_preferred"
+    assert data["execute_hint"]["skipped_provider_slugs"] == ["resend"]
     assert data["execute_hint"]["fallback_providers"] == ["resend"]
     assert "setup_hint" not in data["execute_hint"]
 
@@ -782,6 +785,8 @@ async def test_resolve_capability_skips_open_provider_in_execute_hint_fallbacks(
     assert data["providers"][0]["service_slug"] == "resend"
     assert data["providers"][0]["circuit_state"] == "open"
     assert data["execute_hint"]["preferred_provider"] == "sendgrid"
+    assert data["execute_hint"]["selection_reason"] == "higher_ranked_provider_unavailable"
+    assert data["execute_hint"]["skipped_provider_slugs"] == ["resend"]
     assert "fallback_providers" not in data["execute_hint"]
 
 
@@ -1057,6 +1062,7 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
     assert resolve_data["execute_hint"]["auth_method"] == "crm_ref"
     assert resolve_data["execute_hint"]["configured"] is True
     assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert resolve_data["execute_hint"]["selection_reason"] == "highest_ranked_provider"
     assert resolve_data["execute_hint"]["fallback_providers"] == ["hubspot"]
     assert "setup_hint" not in resolve_data["execute_hint"]
 

@@ -1002,6 +1002,55 @@ def _execute_hint_fallback_providers(
     ][:3]
 
 
+def _execute_hint_selection_metadata(
+    execute_hint: dict[str, object],
+    providers: list[dict[str, object]],
+) -> dict[str, object]:
+    preferred_provider = str(execute_hint.get("preferred_provider") or "")
+    if not preferred_provider:
+        return {}
+
+    ranked_providers = [
+        provider
+        for provider in providers
+        if isinstance(provider, dict) and provider.get("service_slug")
+    ]
+    if not ranked_providers:
+        return {}
+
+    selected_index = next(
+        (
+            index
+            for index, provider in enumerate(ranked_providers)
+            if provider.get("service_slug") == preferred_provider
+        ),
+        None,
+    )
+    if selected_index is None:
+        return {}
+
+    skipped_providers = ranked_providers[:selected_index]
+    if not skipped_providers:
+        return {"selection_reason": "highest_ranked_provider"}
+
+    reason = "lower_ranked_provider_selected"
+    if any(not provider.get("available_for_execute") for provider in skipped_providers):
+        reason = "higher_ranked_provider_unavailable"
+    elif any(not provider.get("endpoint_pattern") for provider in skipped_providers):
+        reason = "higher_ranked_provider_not_execute_ready"
+    elif bool(ranked_providers[selected_index].get("configured")):
+        reason = "configured_provider_preferred"
+
+    return {
+        "selection_reason": reason,
+        "skipped_provider_slugs": [
+            str(provider.get("service_slug"))
+            for provider in skipped_providers
+            if provider.get("service_slug")
+        ],
+    }
+
+
 def _with_execute_hint_fallbacks(
     execute_hint: dict[str, object] | None,
     providers: list[dict[str, object]],
@@ -1013,15 +1062,20 @@ def _with_execute_hint_fallbacks(
     if not preferred_provider:
         return execute_hint
 
+    enriched_execute_hint = {
+        **execute_hint,
+        **_execute_hint_selection_metadata(execute_hint, providers),
+    }
+
     fallback_providers = _execute_hint_fallback_providers(
         providers,
         preferred_provider=preferred_provider,
     )
     if not fallback_providers:
-        return execute_hint
+        return enriched_execute_hint
 
     return {
-        **execute_hint,
+        **enriched_execute_hint,
         "fallback_providers": fallback_providers,
     }
 
