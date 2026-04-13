@@ -76,6 +76,8 @@ def main():
 
     recovery_summary = describe_recovery_hint(data)
     recovery_handoff = preferred_recovery_handoff(data)
+    recovery_hint = data.get("recovery_hint") if isinstance(data.get("recovery_hint"), dict) else {}
+    resolve_url = recovery_hint.get("resolve_url") if isinstance(recovery_hint.get("resolve_url"), str) else None
     top_provider = preferred_execute_provider(data)
     if recovery_summary:
         print(f"\n⚠️  Recovery hint: {recovery_summary}")
@@ -87,6 +89,8 @@ def main():
                 _print_recovery_handoff(recovery_handoff)
             elif recovery_summary:
                 print("Follow the recovery hint above to finish setup or pivot to the alternate rail.")
+            if resolve_url:
+                print(f"  Resolve URL: {resolve_url}")
         print("\n💡 Set RHUMB_API_KEY to continue with estimation and execution.")
         return
 
@@ -97,6 +101,8 @@ def main():
             _print_recovery_handoff(recovery_handoff)
         elif recovery_summary:
             print("Follow the recovery hint above to finish setup or pivot to the alternate rail.")
+        if resolve_url:
+            print(f"  Resolve URL: {resolve_url}")
         return
 
     print(f"\n💰 Estimating cost for '{capability}' via {top_provider}...\n")

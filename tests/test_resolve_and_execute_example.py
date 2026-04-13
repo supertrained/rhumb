@@ -56,6 +56,7 @@ def test_no_auth_walkthrough_shows_alternate_execute_handoff_before_auth_hint(
             "fallback_chain": [],
             "recovery_hint": {
                 "reason": "no_providers_match_credential_mode",
+                "resolve_url": "/v1/capabilities/search.query/resolve?credential_mode=auto",
                 "alternate_execute_hint": {
                     "preferred_provider": "gmail",
                     "preferred_credential_mode": "agent_vault",
@@ -84,7 +85,8 @@ def test_no_auth_walkthrough_shows_alternate_execute_handoff_before_auth_hint(
     assert "Next step: pivot to the alternate execute rail via gmail (agent_vault)." in out
     assert "  Endpoint: POST /gmail/v1/users/me/messages/send" in out
     assert "  Setup URL: /v1/services/gmail/ceremony" in out
-    assert out.index("Next step: pivot to the alternate execute rail") < out.index(
+    assert "  Resolve URL: /v1/capabilities/search.query/resolve?credential_mode=auto" in out
+    assert out.index("  Resolve URL: /v1/capabilities/search.query/resolve?credential_mode=auto") < out.index(
         "💡 Set RHUMB_API_KEY to continue with estimation and execution."
     )
 
@@ -108,6 +110,7 @@ def test_no_auth_walkthrough_shows_setup_handoff_before_auth_hint(monkeypatch, c
             "fallback_chain": [],
             "recovery_hint": {
                 "reason": "no_execute_ready_providers",
+                "resolve_url": "/v1/capabilities/search.query/resolve?credential_mode=byok",
                 "setup_handoff": {
                     "preferred_provider": "resend",
                     "preferred_credential_mode": "byok",
@@ -137,6 +140,7 @@ def test_no_auth_walkthrough_shows_setup_handoff_before_auth_hint(monkeypatch, c
         "  Setup hint: Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
         in out
     )
-    assert out.index("Next step: finish setup for resend (byok).") < out.index(
+    assert "  Resolve URL: /v1/capabilities/search.query/resolve?credential_mode=byok" in out
+    assert out.index("  Resolve URL: /v1/capabilities/search.query/resolve?credential_mode=byok") < out.index(
         "💡 Set RHUMB_API_KEY to continue with estimation and execution."
     )
