@@ -160,6 +160,15 @@ SAMPLE_SERVICE_DOMAIN = [
     {"slug": "resend", "api_domain": "api.resend.com"},
 ]
 
+DB_DIRECT_CAPABILITY = {
+    "id": "db.query.read",
+    "domain": "database",
+    "action": "query_read",
+    "description": "Execute a read-only SQL query against a PostgreSQL database",
+    "input_hint": "connection_ref, query, params (optional), max_rows, timeout_ms",
+    "outcome": "Query results: column metadata + rows, bounded by row limit and timeout",
+}
+
 
 def _mock_supabase(path: str):
     if path.startswith("capabilities?"):
@@ -179,6 +188,20 @@ def _mock_supabase(path: str):
             return [SAMPLE_SERVICE_DOMAIN[1]]
         return SAMPLE_SERVICE_DOMAIN
     if path.startswith("capability_executions?"):
+        return []
+    return []
+
+
+def _mock_db_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        return [DB_DIRECT_CAPABILITY]
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
         return []
     return []
 
@@ -370,6 +393,78 @@ async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(a
         "selection_reason": "higher_ranked_provider_not_execute_ready",
         "skipped_provider_slugs": ["resend"],
         "not_execute_ready_provider_slugs": ["resend"],
+    }
+
+
+@pytest.mark.anyio
+async def test_v2_resolve_rewrites_direct_execute_endpoint_pattern(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["providers"][0]["service_slug"] == "postgresql"
+    assert data["providers"][0]["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
+    assert data["execute_hint"] == {
+        "preferred_provider": "postgresql",
+        "endpoint_pattern": "POST /v2/capabilities/db.query.read/execute",
+        "estimated_cost_usd": None,
+        "auth_method": "connection_ref",
+        "credential_modes": ["byok", "agent_vault"],
+        "configured": False,
+        "credential_modes_url": "/v2/capabilities/db.query.read/credential-modes",
+        "preferred_credential_mode": "agent_vault",
+        "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
+        "setup_url": "/v1/services/postgresql/ceremony",
+        "selection_reason": "highest_ranked_provider",
+    }
+
+
+@pytest.mark.anyio
+async def test_v2_resolve_rewrites_direct_recovery_alternate_execute_endpoint_pattern(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/db.query.read/resolve",
+                params={"credential_mode": "rhumb_managed"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["providers"] == []
+    assert data["execute_hint"] is None
+
+    recovery_hint = data["recovery_hint"]
+    assert recovery_hint == {
+        "reason": "no_providers_match_credential_mode",
+        "requested_credential_mode": "rhumb_managed",
+        "credential_modes_url": "/v2/capabilities/db.query.read/credential-modes",
+        "supported_provider_slugs": ["postgresql"],
+        "supported_credential_modes": ["agent_vault", "byok"],
+        "alternate_execute_hint": {
+            "preferred_provider": "postgresql",
+            "endpoint_pattern": "POST /v2/capabilities/db.query.read/execute",
+            "estimated_cost_usd": None,
+            "auth_method": "connection_ref",
+            "credential_modes": ["byok", "agent_vault"],
+            "configured": False,
+            "credential_modes_url": "/v2/capabilities/db.query.read/credential-modes",
+            "preferred_credential_mode": "agent_vault",
+            "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
+            "setup_url": "/v1/services/postgresql/ceremony",
+            "selection_reason": "highest_ranked_provider",
+        },
     }
 
 

@@ -200,12 +200,24 @@ def _rewrite_v1_capabilities_url(url: str) -> str:
     return f"/v2{url[3:]}"
 
 
+def _rewrite_endpoint_pattern(endpoint_pattern: str) -> str:
+    method, path = _parse_endpoint_pattern(endpoint_pattern)
+    if method is None or path is None:
+        return endpoint_pattern
+    rewritten_path = _rewrite_v1_capabilities_url(path)
+    if rewritten_path == path:
+        return endpoint_pattern
+    return f"{method} {rewritten_path}"
+
+
 def _rewrite_navigation_urls(payload: Any) -> Any:
     if isinstance(payload, dict):
         rewritten: dict[str, Any] = {}
         for key, value in payload.items():
             if key in _V2_NAVIGATION_URL_KEYS and isinstance(value, str):
                 rewritten[key] = _rewrite_v1_capabilities_url(value)
+            elif key == "endpoint_pattern" and isinstance(value, str):
+                rewritten[key] = _rewrite_endpoint_pattern(value)
             else:
                 rewritten[key] = _rewrite_navigation_urls(value)
         return rewritten
