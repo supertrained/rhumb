@@ -13,7 +13,8 @@ import {
   type GetAlternativesInput,
   type GetAlternativesOutput,
   type GetFailureModesInput,
-  type GetFailureModesOutput
+  type GetFailureModesOutput,
+  type ResolveCapabilityOutput
 } from "../src/types.js";
 
 describe("types.contract", () => {
@@ -89,5 +90,39 @@ describe("types.contract", () => {
       failures: [{ pattern: "Rate limit", impact: "high", frequency: "occasional", workaround: "Implement backoff" }]
     };
     expect(failOutput.failures).toHaveLength(1);
+
+    const resolveOutput: ResolveCapabilityOutput = {
+      capability: "email.send",
+      providers: [],
+      fallbackChain: [],
+      relatedBundles: [],
+      executeHint: null,
+      recoveryHint: {
+        reason: "no_execute_ready_providers",
+        requestedCredentialMode: "byok",
+        resolveUrl: "/v1/capabilities/email.send/resolve",
+        credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+        supportedProviderSlugs: ["resend"],
+        supportedCredentialModes: ["byok"],
+        unavailableProviderSlugs: [],
+        notExecuteReadyProviderSlugs: ["resend"],
+        alternateExecuteHint: null,
+        setupHandoff: {
+          preferredProvider: "resend",
+          selectionReason: "highest_ranked_provider",
+          endpointPattern: null,
+          authMethod: "api_key",
+          credentialModes: ["byok"],
+          configured: false,
+          credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+          preferredCredentialMode: "byok",
+          fallbackProviders: [],
+          setupHint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+          setupUrl: "/v1/services/resend/ceremony"
+        }
+      }
+    };
+    expect(resolveOutput.recoveryHint?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
+    expect(resolveOutput.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
   });
 });

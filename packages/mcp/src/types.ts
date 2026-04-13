@@ -197,14 +197,31 @@ export type CapabilityExecuteHint = {
   setupUrl: string | null;
 };
 
+export type CapabilityRecoveryHandoff = {
+  preferredProvider: string;
+  selectionReason: string | null;
+  endpointPattern: string | null;
+  authMethod: string;
+  credentialModes: string[];
+  configured: boolean;
+  credentialModesUrl: string;
+  preferredCredentialMode: string | null;
+  fallbackProviders: string[];
+  setupHint: string | null;
+  setupUrl: string | null;
+};
+
 export type CapabilityRecoveryHint = {
   reason: string;
   requestedCredentialMode: string | null;
+  resolveUrl: string;
   credentialModesUrl: string;
   supportedProviderSlugs: string[];
   supportedCredentialModes: string[];
   unavailableProviderSlugs: string[];
   notExecuteReadyProviderSlugs: string[];
+  alternateExecuteHint: CapabilityRecoveryHandoff | null;
+  setupHandoff: CapabilityRecoveryHandoff | null;
 };
 
 export type ResolveCapabilityOutput = {

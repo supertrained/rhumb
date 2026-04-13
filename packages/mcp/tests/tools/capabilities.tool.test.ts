@@ -228,11 +228,26 @@ describe("resolve_capability", () => {
         recoveryHint: {
           reason: "no_execute_ready_providers",
           requestedCredentialMode: "byok",
+          resolveUrl: "/v1/capabilities/email.send/resolve",
           credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
           supportedProviderSlugs: ["resend", "sendgrid"],
           supportedCredentialModes: ["byok", "agent_vault"],
           unavailableProviderSlugs: ["resend"],
-          notExecuteReadyProviderSlugs: ["sendgrid"]
+          notExecuteReadyProviderSlugs: ["sendgrid"],
+          alternateExecuteHint: {
+            preferredProvider: "sendgrid",
+            selectionReason: "higher_ranked_provider_unavailable",
+            endpointPattern: "POST /v3/mail/send",
+            authMethod: "api_key",
+            credentialModes: ["byok"],
+            configured: true,
+            credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+            preferredCredentialMode: "byok",
+            fallbackProviders: ["amazon-ses"],
+            setupHint: null,
+            setupUrl: null
+          },
+          setupHandoff: null
         }
       })
     });
@@ -240,8 +255,51 @@ describe("resolve_capability", () => {
 
     expect(result.executeHint).toBeNull();
     expect(result.recoveryHint?.reason).toBe("no_execute_ready_providers");
+    expect(result.recoveryHint?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
     expect(result.recoveryHint?.unavailableProviderSlugs).toEqual(["resend"]);
     expect(result.recoveryHint?.notExecuteReadyProviderSlugs).toEqual(["sendgrid"]);
+    expect(result.recoveryHint?.alternateExecuteHint?.endpointPattern).toBe("POST /v3/mail/send");
+    expect(result.recoveryHint?.setupHandoff).toBeNull();
+  });
+
+  it("includes setup handoff when recovery points at setup instead of execute", async () => {
+    const client = createMockClient({
+      resolveCapability: vi.fn().mockResolvedValue({
+        ...mockResolveResult,
+        fallbackChain: [],
+        executeHint: null,
+        recoveryHint: {
+          reason: "no_execute_ready_providers",
+          requestedCredentialMode: "byok",
+          resolveUrl: "/v1/capabilities/email.send/resolve",
+          credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+          supportedProviderSlugs: ["resend"],
+          supportedCredentialModes: ["byok"],
+          unavailableProviderSlugs: [],
+          notExecuteReadyProviderSlugs: ["resend"],
+          alternateExecuteHint: null,
+          setupHandoff: {
+            preferredProvider: "resend",
+            selectionReason: "highest_ranked_provider",
+            endpointPattern: null,
+            authMethod: "api_key",
+            credentialModes: ["byok"],
+            configured: false,
+            credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+            preferredCredentialMode: "byok",
+            fallbackProviders: [],
+            setupHint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+            setupUrl: "/v1/services/resend/ceremony"
+          }
+        }
+      })
+    });
+
+    const result = await handleResolveCapability({ capability: "email.send" }, client);
+
+    expect(result.recoveryHint?.alternateExecuteHint).toBeNull();
+    expect(result.recoveryHint?.setupHandoff?.preferredProvider).toBe("resend");
+    expect(result.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
   });
 
   it("returns empty providers when capability not found", async () => {

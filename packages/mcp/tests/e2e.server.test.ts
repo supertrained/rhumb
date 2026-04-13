@@ -522,6 +522,71 @@ describe("e2e: MCP server integration", () => {
       expect(parsed.executeHint?.unavailableProviderSlugs).toEqual(["resend"]);
       expect(parsed.recoveryHint).toBeNull();
     });
+
+    it("returns recovery rerun and handoff fields when resolve dead-ends", async () => {
+      const apiClient = createMockApiClient();
+      vi.mocked(apiClient.resolveCapability).mockResolvedValueOnce({
+        capability: "email.send",
+        providers: [
+          {
+            serviceSlug: "resend",
+            serviceName: "Resend",
+            anScore: 91,
+            costPerCall: null,
+            freeTierCalls: 100,
+            authMethod: "api_key",
+            endpointPattern: "POST /emails",
+            recommendation: "preferred",
+            recommendationReason: "High AN score (91), 100 free calls/month",
+            credentialModes: ["byok"],
+            configured: false,
+            availableForExecute: false,
+            circuitState: "closed"
+          }
+        ],
+        fallbackChain: [],
+        relatedBundles: [],
+        executeHint: null,
+        recoveryHint: {
+          reason: "no_execute_ready_providers",
+          requestedCredentialMode: "byok",
+          resolveUrl: "/v1/capabilities/email.send/resolve",
+          credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+          supportedProviderSlugs: ["resend"],
+          supportedCredentialModes: ["byok"],
+          unavailableProviderSlugs: [],
+          notExecuteReadyProviderSlugs: ["resend"],
+          alternateExecuteHint: null,
+          setupHandoff: {
+            preferredProvider: "resend",
+            selectionReason: "highest_ranked_provider",
+            endpointPattern: null,
+            authMethod: "api_key",
+            credentialModes: ["byok"],
+            configured: false,
+            credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+            preferredCredentialMode: "byok",
+            fallbackProviders: [],
+            setupHint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+            setupUrl: "/v1/services/resend/ceremony"
+          }
+        }
+      });
+
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "resolve_capability",
+        arguments: { capability: "email.send" },
+      }, CallToolResultSchema);
+
+      const parsed: ResolveCapabilityOutput = JSON.parse(extractText(result));
+
+      expect(parsed.executeHint).toBeNull();
+      expect(parsed.recoveryHint?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
+      expect(parsed.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
+      expect(parsed.recoveryHint?.alternateExecuteHint).toBeNull();
+    });
   });
 
   describe("recipe tools", () => {
