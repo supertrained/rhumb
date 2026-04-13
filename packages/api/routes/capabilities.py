@@ -1173,9 +1173,7 @@ def _execute_hint_selection_metadata(
     skipped_not_execute_ready_provider_slugs = [
         str(provider.get("service_slug"))
         for provider in skipped_providers
-        if provider.get("service_slug")
-        and provider.get("available_for_execute")
-        and not provider.get("endpoint_pattern")
+        if provider.get("service_slug") and not provider.get("endpoint_pattern")
     ]
     if requested_credential_mode and any(
         not _supports_requested_credential_mode(provider.get("credential_modes"), requested_credential_mode)
