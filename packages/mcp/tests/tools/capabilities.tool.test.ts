@@ -313,9 +313,26 @@ describe("resolve_capability", () => {
     expect(result.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
   });
 
-  it("returns empty providers when capability not found", async () => {
+  it("preserves capability search recovery when resolve capability is not found", async () => {
     const client = createMockClient({
-      resolveCapability: vi.fn().mockResolvedValue(null)
+      resolveCapability: vi.fn().mockResolvedValue({
+        capability: "nonexistent.action",
+        providers: [],
+        fallbackChain: [],
+        relatedBundles: [],
+        executeHint: null,
+        recoveryHint: null,
+        error: "capability_not_found",
+        message: "No capability found with id 'nonexistent.action'",
+        resolution: "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+        searchUrl: "/v1/capabilities?search=nonexistent.action",
+        suggestedCapabilities: [
+          {
+            id: "email.send",
+            description: "Send transactional email"
+          }
+        ]
+      })
     });
     const result = await handleResolveCapability({ capability: "nonexistent.action" }, client);
 
@@ -324,6 +341,14 @@ describe("resolve_capability", () => {
     expect(result.fallbackChain).toHaveLength(0);
     expect(result.executeHint).toBeNull();
     expect(result.recoveryHint).toBeNull();
+    expect(result.error).toBe("capability_not_found");
+    expect(result.searchUrl).toBe("/v1/capabilities?search=nonexistent.action");
+    expect(result.suggestedCapabilities).toEqual([
+      {
+        id: "email.send",
+        description: "Send transactional email"
+      }
+    ]);
   });
 
   it("returns empty providers on API error", async () => {

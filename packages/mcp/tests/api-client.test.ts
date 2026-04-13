@@ -246,6 +246,48 @@ describe("Rhumb MCP API client resolveCapability", () => {
     });
   });
 
+  it("preserves search_url and suggested capabilities when /resolve gets an unknown capability", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({
+        error: "capability_not_found",
+        message: "No capability found with id 'Nano Banana Pro'",
+        resolution: "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+        search_url: "/v1/capabilities?search=Nano%20Banana%20Pro",
+        suggested_capabilities: [
+          {
+            id: "ai.generate_image",
+            description: "Generate or edit images"
+          }
+        ]
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const result = await client.resolveCapability("Nano Banana Pro");
+
+    expect(result).toEqual({
+      capability: "Nano Banana Pro",
+      providers: [],
+      fallbackChain: [],
+      relatedBundles: [],
+      executeHint: null,
+      recoveryHint: null,
+      error: "capability_not_found",
+      message: "No capability found with id 'Nano Banana Pro'",
+      resolution: "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+      searchUrl: "/v1/capabilities?search=Nano%20Banana%20Pro",
+      suggestedCapabilities: [
+        {
+          id: "ai.generate_image",
+          description: "Generate or edit images"
+        }
+      ]
+    });
+  });
+
   it("canonicalizes legacy byo values across resolve response surfaces", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

@@ -181,6 +181,11 @@ export interface CapabilityRecoveryHint {
   setupHandoff: CapabilityRecoveryHandoff | null;
 }
 
+export interface CapabilitySuggestion {
+  id: string;
+  description: string;
+}
+
 export interface CapabilityResolveResult {
   capability: string;
   providers: CapabilityResolveProvider[];
@@ -188,6 +193,11 @@ export interface CapabilityResolveResult {
   relatedBundles: string[];
   executeHint: CapabilityExecuteHint | null;
   recoveryHint: CapabilityRecoveryHint | null;
+  error?: string;
+  message?: string;
+  resolution?: string;
+  searchUrl?: string;
+  suggestedCapabilities?: CapabilitySuggestion[];
 }
 
 export interface CapabilityExecuteResult {
@@ -575,7 +585,37 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       const res = await fetch(url, { headers: defaultHeaders });
 
       if (!res.ok) {
-        if (res.status === 404) return null;
+        if (res.status === 404) {
+          const payload: unknown = await res.json().catch(() => null);
+          const raw = isRecord(payload) ? payload : null;
+          const rawSuggestions = Array.isArray(raw?.suggested_capabilities)
+            ? raw.suggested_capabilities
+            : [];
+          const suggestedCapabilities = rawSuggestions
+            .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
+            .map((item) => ({
+              id: asString(item.id) ?? "unknown",
+              description: asString(item.description) ?? ""
+            }));
+
+          return {
+            capability: capabilityId,
+            providers: [],
+            fallbackChain: [],
+            relatedBundles: [],
+            executeHint: null,
+            recoveryHint: null,
+            error: asString(raw?.error) ?? "capability_not_found",
+            message: asString(raw?.message) ?? `No capability found with id '${capabilityId}'`,
+            resolution:
+              asString(raw?.resolution) ??
+              "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+            searchUrl:
+              asString(raw?.search_url) ??
+              `/v1/capabilities?search=${encodeURIComponent(capabilityId)}`,
+            suggestedCapabilities
+          };
+        }
         throw new Error(`API returned ${res.status}`);
       }
 

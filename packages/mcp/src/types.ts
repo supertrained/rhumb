@@ -213,6 +213,11 @@ export type CapabilityRecoveryHandoff = {
   setupUrl: string | null;
 };
 
+export type CapabilitySuggestion = {
+  id: string;
+  description: string;
+};
+
 export type CapabilityRecoveryHint = {
   reason: string;
   requestedCredentialMode: string | null;
@@ -233,6 +238,11 @@ export type ResolveCapabilityOutput = {
   relatedBundles: string[];
   executeHint: CapabilityExecuteHint | null;
   recoveryHint: CapabilityRecoveryHint | null;
+  error?: string;
+  message?: string;
+  resolution?: string;
+  searchUrl?: string;
+  suggestedCapabilities?: CapabilitySuggestion[];
 };
 
 // ---------------------------------------------------------------------------
