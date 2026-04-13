@@ -73,6 +73,8 @@ def main():
         mode = handoff.get("preferred_credential_mode", "?")
         if handoff_kind == "alternate_execute":
             print(f"\n🧭 Alternate execute rail: {provider} ({mode})")
+            if handoff.get("endpoint_pattern"):
+                print(f"  Endpoint: {handoff['endpoint_pattern']}")
         else:
             print(f"\n🧭 Setup next: {provider} ({mode})")
         if handoff.get("setup_url"):
