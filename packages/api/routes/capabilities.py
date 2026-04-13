@@ -2517,15 +2517,61 @@ async def resolve_capability(
         _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
         for mapping in all_mappings
     ):
-        recovery_reason = None
-        if credential_mode and all_mappings:
-            recovery_reason = "no_providers_match_credential_mode"
+        recovery_reason = "no_providers_match_credential_mode" if credential_mode and all_mappings else None
+
+        recovery_items = all_mappings if recovery_reason else None
+        # Keep recovery metadata ordered the same way we'd rank providers during normal resolve.
+        # This avoids drift where `supported_provider_slugs` reflects raw mapping insertion order
+        # instead of score-ranked provider order.
+        if recovery_reason and isinstance(all_mappings, list):
+            try:
+                slugs = list(dict.fromkeys(
+                    str(m.get("service_slug"))
+                    for m in all_mappings
+                    if isinstance(m, dict) and m.get("service_slug")
+                ))
+                if slugs:
+                    slug_filter = ",".join(f'"{s}"' for s in slugs)
+                    scores = await _cached_fetch(
+                        "scores",
+                        f"scores?service_slug=in.({slug_filter})"
+                        f"&select=service_slug,aggregate_recommendation_score"
+                        f"&order=aggregate_recommendation_score.desc.nullslast",
+                    )
+                    scores_by_slug: dict[str, float] = {}
+                    if isinstance(scores, list):
+                        for sc in scores:
+                            if not isinstance(sc, dict):
+                                continue
+                            slug = sc.get("service_slug")
+                            score = sc.get("aggregate_recommendation_score")
+                            if isinstance(slug, str) and isinstance(score, (int, float)):
+                                scores_by_slug[slug] = float(score)
+
+                    indexed: list[tuple[bool, float, int, dict[str, object]]] = []
+                    for idx, mapping in enumerate(all_mappings):
+                        if not isinstance(mapping, dict):
+                            continue
+                        slug = str(mapping.get("service_slug") or "")
+                        an_score = scores_by_slug.get(slug)
+                        indexed.append(
+                            (
+                                an_score is None,
+                                -(an_score or 0.0),
+                                idx,
+                                mapping,
+                            )
+                        )
+                    indexed.sort(key=lambda item: (item[0], item[1], item[2]))
+                    recovery_items = [item[3] for item in indexed]
+            except Exception:
+                recovery_items = all_mappings
         return {
             "data": _empty_resolve_payload(
                 capability_id,
                 requested_credential_mode=credential_mode,
                 recovery_reason=recovery_reason,
-                recovery_items=all_mappings if recovery_reason else None,
+                recovery_items=recovery_items,
             ),
             "error": None,
         }

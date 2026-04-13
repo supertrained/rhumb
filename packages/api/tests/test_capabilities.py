@@ -564,7 +564,7 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
             "reason": "no_providers_match_credential_mode",
             "requested_credential_mode": "agent_vault",
             "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
-            "supported_provider_slugs": ["sendgrid", "resend"],
+            "supported_provider_slugs": ["resend", "sendgrid"],
             "supported_credential_modes": ["byok"],
         },
     }
