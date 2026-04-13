@@ -958,6 +958,8 @@ def _apply_direct_resolve_credential_mode_filter(
                 requested_credential_mode=credential_mode,
             ),
             filtered_providers,
+            selection_providers=[provider for provider in providers if isinstance(provider, dict)],
+            requested_credential_mode=credential_mode,
         )
 
     return filtered_payload
@@ -976,8 +978,20 @@ def _mapped_provider_is_configured(
     credential_modes: object,
     *,
     byok_configured: bool,
+    requested_credential_mode: str | None = None,
 ) -> bool:
     normalized_modes = _canonicalize_credential_modes(credential_modes)
+    requested_mode = _canonicalize_credential_mode(requested_credential_mode)
+
+    if requested_mode:
+        if requested_mode not in normalized_modes:
+            return False
+        if requested_mode == "rhumb_managed":
+            return True
+        if requested_mode == "byok":
+            return byok_configured
+        return False
+
     if "rhumb_managed" in normalized_modes:
         return True
     if "byok" in normalized_modes:
@@ -1047,6 +1061,16 @@ def _execute_hint_from_provider(
     return execute_hint
 
 
+def _execute_ready_fallback_chain(providers: list[dict[str, object]]) -> list[str]:
+    return [
+        str(provider.get("service_slug"))
+        for provider in providers
+        if provider.get("service_slug")
+        and provider.get("recommendation") in ("preferred", "available")
+        and _provider_can_back_execute_hint(provider)
+    ][:3]
+
+
 def _execute_hint_fallback_providers(
     providers: list[dict[str, object]],
     *,
@@ -1064,6 +1088,9 @@ def _execute_hint_fallback_providers(
 def _execute_hint_selection_metadata(
     execute_hint: dict[str, object],
     providers: list[dict[str, object]],
+    *,
+    selection_providers: list[dict[str, object]] | None = None,
+    requested_credential_mode: str | None = None,
 ) -> dict[str, object]:
     preferred_provider = str(execute_hint.get("preferred_provider") or "")
     if not preferred_provider:
@@ -1071,7 +1098,7 @@ def _execute_hint_selection_metadata(
 
     ranked_providers = [
         provider
-        for provider in providers
+        for provider in (selection_providers or providers)
         if isinstance(provider, dict) and provider.get("service_slug")
     ]
     if not ranked_providers:
@@ -1093,7 +1120,12 @@ def _execute_hint_selection_metadata(
         return {"selection_reason": "highest_ranked_provider"}
 
     reason = "lower_ranked_provider_selected"
-    if any(not provider.get("available_for_execute") for provider in skipped_providers):
+    if requested_credential_mode and any(
+        not _supports_requested_credential_mode(provider.get("credential_modes"), requested_credential_mode)
+        for provider in skipped_providers
+    ):
+        reason = "higher_ranked_provider_filtered_by_credential_mode"
+    elif any(not provider.get("available_for_execute") for provider in skipped_providers):
         reason = "higher_ranked_provider_unavailable"
     elif any(not provider.get("endpoint_pattern") for provider in skipped_providers):
         reason = "higher_ranked_provider_not_execute_ready"
@@ -1113,6 +1145,9 @@ def _execute_hint_selection_metadata(
 def _with_execute_hint_fallbacks(
     execute_hint: dict[str, object] | None,
     providers: list[dict[str, object]],
+    *,
+    selection_providers: list[dict[str, object]] | None = None,
+    requested_credential_mode: str | None = None,
 ) -> dict[str, object] | None:
     if not isinstance(execute_hint, dict):
         return execute_hint
@@ -1123,7 +1158,12 @@ def _with_execute_hint_fallbacks(
 
     enriched_execute_hint = {
         **execute_hint,
-        **_execute_hint_selection_metadata(execute_hint, providers),
+        **_execute_hint_selection_metadata(
+            execute_hint,
+            providers,
+            selection_providers=selection_providers,
+            requested_credential_mode=requested_credential_mode,
+        ),
     }
 
     fallback_providers = _execute_hint_fallback_providers(
@@ -2430,14 +2470,16 @@ async def resolve_capability(
     )
 
     all_mappings = await _cached_fetch("capability_services", mapping_path)
-    mappings = all_mappings
-    if credential_mode:
-        mappings = [
-            mapping
-            for mapping in mappings
-            if _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
-        ]
-    if not mappings:
+    if not all_mappings:
+        return {
+            "data": _empty_resolve_payload(capability_id),
+            "error": None,
+        }
+
+    if credential_mode and not any(
+        _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
+        for mapping in all_mappings
+    ):
         recovery_reason = None
         if credential_mode and all_mappings:
             recovery_reason = "no_providers_match_credential_mode"
@@ -2452,7 +2494,7 @@ async def resolve_capability(
         }
 
     # Get scores for all mapped services
-    slugs = [m["service_slug"] for m in mappings]
+    slugs = list(dict.fromkeys(m["service_slug"] for m in all_mappings))
     slug_filter = ",".join(f'"{s}"' for s in slugs)
 
     scores = await _cached_fetch(
@@ -2481,8 +2523,8 @@ async def resolve_capability(
             names_by_slug[svc["slug"]] = svc.get("name", svc["slug"])
 
     # Build ranked provider list with recommendations
-    providers = []
-    for m in mappings:
+    all_providers = []
+    for m in all_mappings:
         slug = m["service_slug"]
         sc = scores_by_slug.get(slug, {})
         an_score = sc.get("aggregate_recommendation_score")
@@ -2531,7 +2573,7 @@ async def resolve_capability(
         if "byok" in credential_modes:
             byok_configured = _has_proxy_credential_configured(slug, auth_method)
 
-        providers.append({
+        all_providers.append({
             "service_slug": slug,
             "service_name": names_by_slug.get(slug, slug),
             "an_score": an_score,
@@ -2553,22 +2595,27 @@ async def resolve_capability(
             "configured": _mapped_provider_is_configured(
                 credential_modes,
                 byok_configured=byok_configured,
+                requested_credential_mode=credential_mode,
             ),
         })
 
     # Sort: preferred first, then by AN score descending
     rank_order = {"preferred": 0, "available": 1, "caution": 2, "unscored": 3}
-    providers.sort(key=lambda p: (
+    all_providers.sort(key=lambda p: (
         rank_order.get(p["recommendation"], 4),
         -(p.get("an_score") or 0),
     ))
 
+    providers = all_providers
+    if credential_mode:
+        providers = [
+            provider
+            for provider in all_providers
+            if _supports_requested_credential_mode(provider.get("credential_modes"), credential_mode)
+        ]
+
     # Build fallback chain (top 3 preferred/available providers)
-    fallback_chain = [
-        p["service_slug"]
-        for p in providers
-        if p["recommendation"] in ("preferred", "available")
-    ][:3]
+    fallback_chain = _execute_ready_fallback_chain(providers)
 
     # Check for relevant bundles
     bundle_rows = await _cached_fetch(
@@ -2583,7 +2630,12 @@ async def resolve_capability(
         providers,
         requested_credential_mode=credential_mode,
     )
-    execute_hint = _with_execute_hint_fallbacks(execute_hint, providers)
+    execute_hint = _with_execute_hint_fallbacks(
+        execute_hint,
+        providers,
+        selection_providers=all_providers,
+        requested_credential_mode=credential_mode,
+    )
 
     return {
         "data": {

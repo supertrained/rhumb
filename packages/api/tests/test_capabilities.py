@@ -571,6 +571,87 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_filtered_execute_hint_marks_higher_ranked_filtered_provider(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /emails",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "gmail",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "oauth",
+                    "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.8,
+                    "execution_score": 8.6,
+                    "access_readiness_score": 8.7,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.92,
+                },
+                {
+                    "service_slug": "gmail",
+                    "aggregate_recommendation_score": 7.2,
+                    "execution_score": 7.2,
+                    "access_readiness_score": 7.0,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.9,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "gmail", "name": "Gmail"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["gmail"]
+    assert data["fallback_chain"] == ["gmail"]
+    assert data["execute_hint"]["preferred_provider"] == "gmail"
+    assert data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
+    assert data["execute_hint"]["selection_reason"] == "higher_ranked_provider_filtered_by_credential_mode"
+    assert data["execute_hint"]["skipped_provider_slugs"] == ["resend"]
+    assert "fallback_providers" not in data["execute_hint"]
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_agent_vault_hint_links_to_setup_surface(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):
@@ -677,9 +758,96 @@ async def test_resolve_capability_marks_rhumb_managed_provider_configured(app):
 
     byok_data = byok_resp.json()["data"]
     assert byok_data["providers"][0]["credential_modes"] == ["rhumb_managed", "byok"]
-    assert byok_data["execute_hint"]["configured"] is True
+    assert byok_data["providers"][0]["configured"] is False
+    assert byok_data["execute_hint"]["configured"] is False
     assert byok_data["execute_hint"]["preferred_credential_mode"] == "byok"
-    assert "setup_hint" not in byok_data["execute_hint"]
+    assert "RHUMB_CREDENTIAL_ANTHROPIC_API_KEY" in byok_data["execute_hint"]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_filtered_mode_does_not_prefer_provider_configured_only_in_other_mode(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /emails",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "credential_modes": ["rhumb_managed", "byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /v1/rhumb-managed/email/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.8,
+                    "execution_score": 8.6,
+                    "access_readiness_score": 8.7,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.92,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "aggregate_recommendation_score": 7.0,
+                    "execution_score": 7.0,
+                    "access_readiness_score": 7.0,
+                    "tier": "L4",
+                    "tier_label": "Native",
+                    "confidence": 0.9,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "rhumb-managed-email", "name": "Rhumb Managed Email"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "byok"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == [
+        "resend",
+        "rhumb-managed-email",
+    ]
+    assert data["providers"][0]["configured"] is False
+    assert data["providers"][1]["configured"] is False
+    assert data["execute_hint"]["preferred_provider"] == "resend"
+    assert data["execute_hint"]["configured"] is False
+    assert data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert data["execute_hint"]["selection_reason"] == "highest_ranked_provider"
+    assert data["execute_hint"]["fallback_providers"] == ["rhumb-managed-email"]
+    assert "RHUMB_CREDENTIAL_RESEND_API_KEY" in data["execute_hint"]["setup_hint"]
 
 
 @pytest.mark.anyio
@@ -786,6 +954,7 @@ async def test_resolve_capability_skips_open_provider_in_execute_hint_fallbacks(
     data = resp.json()["data"]
     assert data["providers"][0]["service_slug"] == "resend"
     assert data["providers"][0]["circuit_state"] == "open"
+    assert data["fallback_chain"] == ["sendgrid"]
     assert data["execute_hint"]["preferred_provider"] == "sendgrid"
     assert data["execute_hint"]["selection_reason"] == "higher_ranked_provider_unavailable"
     assert data["execute_hint"]["skipped_provider_slugs"] == ["resend"]

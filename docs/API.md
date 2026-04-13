@@ -127,18 +127,20 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:
 - `preferred_provider`: the provider Rhumb wants the operator to use first
-- `selection_reason`: machine-readable explanation for why Rhumb chose that provider (`highest_ranked_provider`, `configured_provider_preferred`, `higher_ranked_provider_unavailable`, or `higher_ranked_provider_not_execute_ready`)
-- `skipped_provider_slugs`: optional higher-ranked providers Rhumb intentionally skipped before choosing the execute path
+- `selection_reason`: machine-readable explanation for why Rhumb chose that provider (`highest_ranked_provider`, `configured_provider_preferred`, `higher_ranked_provider_unavailable`, `higher_ranked_provider_not_execute_ready`, or `higher_ranked_provider_filtered_by_credential_mode`)
+- `skipped_provider_slugs`: optional higher-ranked providers Rhumb intentionally skipped before choosing the execute path, including providers excluded by a requested `credential_mode`
 - `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
-- `configured`: whether that path is already ready on the current deployment
+- `configured`: whether that path is already ready on the current deployment in the current context; when `credential_mode` is supplied, this is evaluated against that requested mode rather than some other supported mode
 - `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability
 - `preferred_credential_mode`: the lowest-heroics credential mode for that provider in the current context
 - `fallback_providers`: optional ordered alternates that can also back execute right now when the preferred path is not the only viable choice
 - `setup_hint`: present when `configured=false`, with the exact next setup action Rhumb expects before execute
 - `setup_url`: present when Rhumb has a first-class setup surface for that mode, for example a provider ceremony route
 
+`fallback_chain` stays as the ordered ranked shortlist, but now only includes providers that can actually back execute right now in the current context.
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
 If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
+If a requested `credential_mode` still leaves at least one provider, `execute_hint.selection_reason` and `skipped_provider_slugs` now stay honest about any higher-ranked providers that were filtered out, and provider-level plus execute-hint `configured` truth stays scoped to that requested mode so mixed-mode providers do not look preconfigured through the wrong rail.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
