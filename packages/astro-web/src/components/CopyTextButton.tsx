@@ -47,7 +47,7 @@ export default function CopyTextButton({
     >
       <span>{copied ? copiedLabel : label}</span>
       <span className={`font-mono text-xs ${copied ? "text-emerald-300/80" : "text-slate-500"}`}>
-        {copied ? "✓" : "⌘C"}
+        {copied ? "✓" : "⧉"}
       </span>
     </button>
   );

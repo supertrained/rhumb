@@ -2,10 +2,10 @@
 import Layout from "../layouts/Layout.astro";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
 import TierBadge from "../components/TierBadge.astro";
-import CopyInstall from "../components/CopyInstall.tsx";
 import CopyTextButton from "../components/CopyTextButton.tsx";
 import { getLeaderboard, getServiceCount } from "../lib/api";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
+import { STARTER_PROMPT } from "../lib/starter-prompt";
 import type { EvidenceTier } from "../lib/types";
 
 const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
@@ -31,16 +31,6 @@ const [leaderboard, serviceCount] = await Promise.all([
 ]);
 
 const formattedServiceCount = new Intl.NumberFormat("en-US").format(serviceCount);
-const starterPrompt = `Use Rhumb as the first stop for this task.
-
-Start here: https://rhumb.dev/docs#resolve-mental-model
-
-1. Search Rhumb for the best service or capability for the task.
-2. Compare the top options using scores, evidence, freshness, and failure modes.
-3. If Rhumb supports a governed action, estimate and execute it through Resolve.
-4. If execution is not supported or credentials are missing, stay on the public discovery flow and tell me the best next step.
-
-Task: [replace with your task]`;
 
 const HOME_JSON_LD = {
   "@context": "https://schema.org",
@@ -78,7 +68,7 @@ const heroProof = [
   },
   {
     label: "Best current fit",
-    value: "Research, extraction, generation, enrichment",
+    value: PUBLIC_TRUTH.beachheadLabel,
     tone: "border-amber/20 bg-amber/10 text-amber-50",
   },
 ];
@@ -186,13 +176,13 @@ const howItWorks = [
                 </div>
                 <CopyTextButton
                   client:load
-                  text={starterPrompt}
+                  text={STARTER_PROMPT}
                   label="Copy starter prompt"
                   copiedLabel="Starter prompt copied"
                   className="shrink-0"
                 />
               </div>
-              <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300 whitespace-pre-wrap break-words"><code>{starterPrompt}</code></pre>
+              <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300 whitespace-pre-wrap break-words"><code>{STARTER_PROMPT}</code></pre>
             </div>
           </div>
 
@@ -231,7 +221,7 @@ const howItWorks = [
                       <span class="rounded-full border border-emerald-500/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-300">Layer 2</span>
                     </div>
                     <p class="mt-3 text-sm leading-6 text-slate-300">
-                      Rhumb routes supported research, extraction, generation, and enrichment calls across {PUBLIC_TRUTH.callableProvidersLabel} callable providers today.
+                      Rhumb routes supported work across {PUBLIC_TRUTH.callableProvidersLabel} callable providers today, strongest in {PUBLIC_TRUTH.beachheadLabel}.
                     </p>
                   </div>
                 </div>

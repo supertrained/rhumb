@@ -1,8 +1,61 @@
 ---
+export const prerender = true;
+
 import Layout from "../layouts/Layout.astro";
+import CopyTextButton from "../components/CopyTextButton.tsx";
+import { getServiceCount } from "../lib/api";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
+import { STARTER_PROMPT } from "../lib/starter-prompt";
 
 const BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
+const serviceCount = await getServiceCount().catch(() => PUBLIC_TRUTH.services);
+const servicesLabel = new Intl.NumberFormat("en-US").format(serviceCount || PUBLIC_TRUTH.services);
+
+const START_HERE_STEPS = [
+  {
+    step: "01",
+    title: "Discover first",
+    body: `Search ${servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} mapped capabilities before you commit to a provider or rail.`,
+  },
+  {
+    step: "02",
+    title: "Decide with evidence",
+    body: "Use scores, freshness, evidence tiers, and failure modes to explain the route instead of guessing.",
+  },
+  {
+    step: "03",
+    title: "Execute what is ready",
+    body: `Use Rhumb Resolve when a governed action is supported. Best current fit is ${PUBLIC_TRUTH.beachheadLabel}.`,
+  },
+];
+
+const DOCS_PROOF = [
+  { label: "Services scored", value: servicesLabel },
+  { label: "Capabilities mapped", value: PUBLIC_TRUTH.capabilitiesLabel },
+  { label: "Providers callable", value: PUBLIC_TRUTH.callableProvidersLabel },
+  { label: "Live surfaces", value: "API + MCP" },
+];
+
+const AUTH_PATHS = [
+  {
+    label: "Default",
+    title: "Governed API key",
+    detail: "Most buyers should start here. Sign in, fund the account, retry with X-Rhumb-Key.",
+    tone: "border-amber/20 bg-amber/10 text-amber",
+  },
+  {
+    label: "Wallet-first",
+    title: "Wallet-prefund",
+    detail: "Use this when wallet identity matters and the same agent will call repeatedly.",
+    tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+  },
+  {
+    label: "Zero-signup",
+    title: "x402 per-call",
+    detail: "Use this only when request-level payment authorization is the requirement and the runtime can pay from a wallet.",
+    tone: "border-slate-700 bg-slate-900/60 text-slate-300",
+  },
+];
 
 const ENDPOINTS = [
   {
@@ -66,9 +119,9 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, an execute-ready fallback chain, machine-readable alternates, filtered recovery hints when a requested credential mode matches nothing, degraded recovery hints when execute-ready options collapse to zero, including unavailable versus not-execute-ready provider context plus broader provider and mode pivots when a requested rail dead-ends, a canonical `recovery_hint.resolve_url` rerun target, a direct `recovery_hint.alternate_execute_hint` handoff when that broader rail is already identifiable, a `recovery_hint.setup_handoff` when setup is the next ranked move instead of execution, honest skipped-provider selection metadata when filtering changes the winner, mixed skipped-provider blocker context when a lower-ranked execute-ready path still wins, and contextual configured/setup truth so mixed-mode providers do not look ready through the wrong credential rail.",
+    desc: "Resolve a capability into ranked providers, execute hints, and recovery handoffs when the requested rail is not ready.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
-    response: `Default success response
+    response: `Common success response
 {
   "data": {
     "capability": "email.send",
@@ -99,56 +152,7 @@ const ENDPOINTS = [
   "error": null
 }
 
-Recovery response when credential_mode=agent_vault dead-ends
-{
-  "data": {
-    "capability": "email.send",
-    "providers": [],
-    "fallback_chain": [],
-    "related_bundles": [],
-    "execute_hint": null,
-    "recovery_hint": {
-      "reason": "no_providers_match_credential_mode",
-      "requested_credential_mode": "agent_vault",
-      "resolve_url": "/v1/capabilities/email.send/resolve",
-      "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
-      "supported_provider_slugs": ["resend", "sendgrid"],
-      "supported_credential_modes": ["byok"],
-      "alternate_execute_hint": {
-        "preferred_provider": "resend",
-        "endpoint_pattern": "POST /emails",
-        "auth_method": "api_key",
-        "configured": false,
-        "credential_modes": ["byok"],
-        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
-        "preferred_credential_mode": "byok",
-        "selection_reason": "highest_ranked_provider",
-        "fallback_providers": ["sendgrid"],
-        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
-      }
-    }
-  },
-  "error": null
-}
-
-Recovery response when the capability exists but no providers are registered yet
-{
-  "data": {
-    "capability": "email.send",
-    "providers": [],
-    "fallback_chain": [],
-    "related_bundles": [],
-    "execute_hint": null,
-    "recovery_hint": {
-      "reason": "no_providers_registered",
-      "resolve_url": "/v1/capabilities/email.send/resolve",
-      "credential_modes_url": "/v1/capabilities/email.send/credential-modes"
-    }
-  },
-  "error": null
-}
-
-Recovery response when providers still rank but none can execute yet
+Representative recovery response when ranked providers exist but none are execute-ready on the requested rail
 {
   "data": {
     "capability": "email.send",
@@ -182,12 +186,13 @@ Recovery response when providers still rank but none can execute yet
         "preferred_credential_mode": "byok",
         "selection_reason": "highest_ranked_provider",
         "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
-      },
-      "not_execute_ready_provider_slugs": ["resend", "sendgrid"]
+      }
     }
   },
   "error": null
-}`,
+}
+
+Other recovery cases reuse the same recovery_hint shape with a different reason.` ,
   },
   {
     method: "GET",
@@ -209,7 +214,7 @@ Recovery response when providers still rank but none can execute yet
   {
     method: "POST",
     path: "/v1/capabilities/{capability_id}/execute",
-    desc: "Execute through Rhumb with governed API key, wallet-prefunded API key, BYOK / agent token, or x402 payment.",
+    desc: "Execute through Rhumb with the rail returned by resolve: governed API key, wallet-prefund, BYOK, or x402 where supported.",
     curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\
@@ -242,7 +247,16 @@ Recovery response when providers still rank but none can execute yet
       "maxAmountRequired": "10000"
     }
   ],
-  "balanceRequiredUsd": 0.01
+  "resolution": "Default next step: create or use a funded governed API key at /auth/login and retry with X-Rhumb-Key.",
+  "auth_handoff": {
+    "recommended_path": "governed_api_key",
+    "docs_url": "/docs#resolve-mental-model",
+    "paths": [
+      { "kind": "governed_api_key", "setup_url": "/auth/login", "retry_header": "X-Rhumb-Key" },
+      { "kind": "wallet_prefund", "setup_url": "/payments/agent", "retry_header": "X-Rhumb-Key" },
+      { "kind": "x402_per_call", "setup_url": "/payments/agent", "retry_header": "X-Payment" }
+    ]
+  }
 }`,
   },
 ];
@@ -250,10 +264,10 @@ Recovery response when providers still rank but none can execute yet
 const DOCS_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "TechArticle",
-  name: "API Documentation — Rhumb",
+  name: "How Rhumb works — Docs",
   url: "https://rhumb.dev/docs",
   description:
-    "Rhumb REST API and MCP docs for discovery, capability routing, execution, pricing, and x402 payment flow.",
+    "How Rhumb helps agents discover services, compare capabilities, and execute supported actions through governed access rails.",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -292,11 +306,11 @@ const MCP_TOOLS = [
 ---
 
 <Layout
-  title="API Documentation"
-  description="Rhumb REST API and MCP docs for discovery, capability routing, execution, pricing, and x402 payment flow."
+  title="How Rhumb works | Docs"
+  description="How Rhumb helps agents discover services, compare capabilities, and execute supported actions through governed access rails."
   canonical="/docs"
-  ogTitle="API Documentation — Rhumb"
-  ogDescription="REST API + MCP docs for discovery, routing, execution, billing, and x402 payments."
+  ogTitle="How Rhumb works — Rhumb Docs"
+  ogDescription="Discover first, decide with evidence, and execute supported actions through Rhumb's governed API and MCP rails."
   ogUrl="https://rhumb.dev/docs"
   jsonLd={DOCS_JSON_LD}
 >
@@ -304,20 +318,27 @@ const MCP_TOOLS = [
     <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">
       <header class="mb-16">
         <div class="flex items-center gap-3 mb-4">
-          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">Documentation</span>
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">How Rhumb works</span>
         </div>
-        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
-          API Documentation
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6 max-w-3xl text-balance">
+          Discover first. Execute what is ready.
         </h1>
-        <p class="text-lg text-slate-400 leading-relaxed mb-6">
-          Use Rhumb for discovery, capability routing, pricing, and execution. Discovery reads are open.
-          Start with one key for Rhumb-managed superpowers, then bring BYOK or Agent Vault only when the workflow needs your own systems.
-          Execution supports governed API keys, wallet-prefunded API keys, BYOK credential passthrough,
-          or <code class="font-mono text-amber text-base">X-Payment</code> for x402 per-call auth.
+        <p class="text-lg text-slate-400 leading-relaxed mb-6 max-w-3xl">
+          Rhumb helps agents discover what services and capabilities exist across the web, compare them with public evidence, and execute supported actions through governed access rails. Discovery is broad. Governed execution is selective and explicit.
         </p>
-        <div class="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
-          <span class="text-slate-500">Base URL:</span>{" "}
-          <span class="text-amber">{BASE_URL}</span>
+        <div class="flex flex-wrap gap-3 mb-6">
+          <a
+            href="#resolve-mental-model"
+            class="inline-flex items-center justify-center rounded-xl bg-amber px-4 py-2.5 text-sm font-semibold text-navy transition-colors duration-200 hover:bg-amber-dark"
+          >
+            Start here
+          </a>
+          <a
+            href="/capabilities"
+            class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-surface/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
+          >
+            Browse capabilities
+          </a>
         </div>
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
           <div class="bg-surface border border-emerald-500/20 rounded-xl p-5">
@@ -329,7 +350,7 @@ const MCP_TOOLS = [
           <div class="bg-surface border border-amber/20 rounded-xl p-5">
             <p class="text-xs font-mono text-amber uppercase tracking-wider mb-2">Current boundary</p>
             <p class="text-sm text-slate-300 leading-6">
-              Do not read the current docs as a promise of general business-agent automation. Treat broad orchestration as future scope, and Layer 3 as beta with a sparse public catalog.
+              Do not read the current docs as a promise of general business-agent automation. Discovery is wider than current governed execution, and that honesty is part of the product.
             </p>
           </div>
         </div>
@@ -347,14 +368,65 @@ const MCP_TOOLS = [
         </div>
       </section>
 
-      <section class="mb-16" id="resolve-mental-model">
+      <section class="mb-16 scroll-mt-28" id="resolve-mental-model">
         <div class="flex items-center gap-3 mb-4">
           <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">Start here</span>
         </div>
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Resolve mental model in 60 seconds</h2>
+        <h2 class="font-display font-bold text-3xl text-slate-100 mb-4 tracking-tight">The Rhumb mental model in 60 seconds</h2>
         <p class="text-slate-400 leading-relaxed mb-6 max-w-3xl">
-          {PUBLIC_TRUTH.resolveMentalModel.defaultPath}
+          Do not start with install details. Start with the route. Rhumb helps agents discover the landscape, decide with evidence, and execute only where a governed path is truly ready.
         </p>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1.02fr)_minmax(300px,0.98fr)] mb-6">
+          <div class="space-y-4">
+            {START_HERE_STEPS.map((item) => (
+              <article class="rounded-[24px] border border-slate-800 bg-surface/70 p-5">
+                <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{item.step}</p>
+                <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">{item.title}</h3>
+                <p class="mt-3 text-sm leading-6 text-slate-400">{item.body}</p>
+              </article>
+            ))}
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-[linear-gradient(180deg,rgba(21,29,46,0.96)_0%,rgba(11,17,32,0.92)_100%)] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)]">
+            <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">If execute blocks</p>
+            <h3 class="mt-2 font-display text-2xl font-semibold text-slate-100">A 402 is a handoff, not a dead end.</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              Discovery can keep moving even when execution is not ready. When execute returns an auth or payment handoff, follow the default rail first unless your runtime clearly supports a wallet path.
+            </p>
+            <div class="mt-5 space-y-3">
+              {AUTH_PATHS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <h4 class="font-display text-lg font-semibold text-slate-100">{item.title}</h4>
+                    <span class={`rounded-full border px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] ${item.tone}`}>{item.label}</span>
+                  </div>
+                  <p class="mt-2 text-sm leading-6 text-slate-400">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-6 rounded-[28px] border border-slate-800 bg-[linear-gradient(180deg,rgba(21,29,46,0.96)_0%,rgba(11,17,32,0.92)_100%)] p-6">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="max-w-2xl">
+              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Starter prompt</p>
+              <h3 class="mt-2 font-display text-xl font-semibold text-slate-100">This is the cold-start path the homepage points agents to.</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">
+                Use this when a human wants to hand Rhumb to Claude, Codex, or another agent without assuming prior workspace context or a preinstalled integration.
+              </p>
+            </div>
+            <CopyTextButton
+              client:load
+              text={STARTER_PROMPT}
+              label="Copy starter prompt"
+              copiedLabel="Starter prompt copied"
+              className="shrink-0"
+            />
+          </div>
+          <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300 whitespace-pre-wrap break-words"><code>{STARTER_PROMPT}</code></pre>
+        </div>
 
         <div class="grid gap-4 lg:grid-cols-2 mb-4">
           <div class="bg-surface border border-slate-800 rounded-xl p-5">
@@ -416,6 +488,25 @@ const MCP_TOOLS = [
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section class="mb-16">
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">Quick reference</h2>
+        <p class="text-slate-400 leading-relaxed mb-6 max-w-3xl">
+          Once you have the route, these are the live public surfaces and the base URL behind the examples below.
+        </p>
+        <div class="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
+          <span class="text-slate-500">Base URL:</span>{" "}
+          <span class="text-amber">{BASE_URL}</span>
+        </div>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {DOCS_PROOF.map(({ label, value }) => (
+            <div class="rounded-2xl border border-slate-800 bg-surface/70 p-4">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">{label}</div>
+              <div class="mt-2 text-sm font-medium text-slate-200">{value}</div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -489,7 +580,7 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
       <section class="mb-16">
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">MCP Server</h2>
         <p class="text-slate-400 leading-relaxed mb-6">
-          Rhumb provides an MCP server for discovery, routing, execution, billing, and telemetry.
+          Rhumb provides an MCP server for discovery, capability routing, supported execution, and account operations.
           Current public server surface: <strong class="text-slate-200">{PUBLIC_TRUTH.mcpToolsLabel} tools</strong>.
         </p>
 
