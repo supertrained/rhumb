@@ -451,20 +451,24 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
     )
 
     resolve_provider = None
+    resolve_provider_present = False
     if isinstance(resolve_payload, dict):
         providers = ((resolve_payload.get("data") or {}).get("providers") or [])
         resolve_provider = next(
             (item for item in providers if item.get("service_slug") == provider.name),
-            providers[0] if providers else None,
+            None,
         )
+        resolve_provider_present = isinstance(resolve_provider, dict)
 
     mode_provider = None
+    credential_modes_provider_present = False
     if isinstance(modes_payload, dict):
         providers = ((modes_payload.get("data") or {}).get("providers") or [])
         mode_provider = next(
             (item for item in providers if item.get("service_slug") == provider.name),
-            providers[0] if providers else None,
+            None,
         )
+        credential_modes_provider_present = isinstance(mode_provider, dict)
 
     return {
         "ok": all(error is None for error in (get_error, resolve_error, modes_error)),
@@ -473,7 +477,15 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
         "get_status": get_status,
         "resolve_status": resolve_status,
         "credential_modes_status": modes_status,
-        "live": get_status == 200 and resolve_status == 200 and modes_status == 200,
+        "live": (
+            get_status == 200
+            and resolve_status == 200
+            and modes_status == 200
+            and resolve_provider_present
+            and credential_modes_provider_present
+        ),
+        "resolve_provider_present": resolve_provider_present,
+        "credential_modes_provider_present": credential_modes_provider_present,
         "resolve_configured": bool((resolve_provider or {}).get("configured")),
         "credential_modes_configured": bool((mode_provider or {}).get("any_configured")),
         "errors": {

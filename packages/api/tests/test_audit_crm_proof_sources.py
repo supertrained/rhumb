@@ -92,6 +92,8 @@ def test_audit_hosted_surface_marks_hubspot_live_when_capability_endpoints_are_l
         "resolve_status": 200,
         "credential_modes_status": 200,
         "live": True,
+        "resolve_provider_present": True,
+        "credential_modes_provider_present": True,
         "resolve_configured": False,
         "credential_modes_configured": False,
         "errors": {
@@ -100,6 +102,68 @@ def test_audit_hosted_surface_marks_hubspot_live_when_capability_endpoints_are_l
             "credential_modes": None,
         },
     }
+
+
+def test_audit_hosted_surface_does_not_fall_back_to_another_provider() -> None:
+    provider = crm_proof_audit.PROVIDERS["hubspot"]
+
+    responses = [
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "hubspot",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "salesforce",
+                            "configured": True,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "salesforce",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": True,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(crm_proof_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = crm_proof_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["live"] is False
+    assert hosted_surface["resolve_provider_present"] is False
+    assert hosted_surface["credential_modes_provider_present"] is False
+    assert hosted_surface["resolve_configured"] is False
+    assert hosted_surface["credential_modes_configured"] is False
 
 
 def test_summarize_provider_mentions_password_reset_path_when_mail_exists() -> None:

@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "audit_warehouse_proof_sources.py"
 
@@ -12,6 +13,223 @@ assert spec is not None and spec.loader is not None
 warehouse_audit = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = warehouse_audit
 spec.loader.exec_module(warehouse_audit)
+
+
+def test_audit_hosted_surface_marks_bigquery_live_when_provider_is_present() -> None:
+    provider = warehouse_audit.PROVIDERS["bigquery"]
+
+    responses = [
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "configured": False,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": False,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "configured": False,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": False,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(warehouse_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = warehouse_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["live"] is True
+    assert hosted_surface["configured"] is False
+    assert len(hosted_surface["checks"]) == 2
+    assert all(check["resolve_provider_present"] is True for check in hosted_surface["checks"])
+    assert all(check["credential_modes_provider_present"] is True for check in hosted_surface["checks"])
+
+
+def test_audit_hosted_surface_does_not_fall_back_to_another_provider() -> None:
+    provider = warehouse_audit.PROVIDERS["bigquery"]
+
+    responses = [
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "snowflake",
+                            "configured": True,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "snowflake",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": True,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "snowflake",
+                            "configured": True,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "snowflake",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": True,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(warehouse_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = warehouse_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["live"] is False
+    assert hosted_surface["configured"] is False
+    assert all(check["resolve_provider_present"] is False for check in hosted_surface["checks"])
+    assert all(check["credential_modes_provider_present"] is False for check in hosted_surface["checks"])
+    assert all(check["resolve_configured"] is False for check in hosted_surface["checks"])
+    assert all(check["credential_modes_configured"] is False for check in hosted_surface["checks"])
 
 
 def test_bigquery_bundle_material_accepts_embedded_bundle_note() -> None:
