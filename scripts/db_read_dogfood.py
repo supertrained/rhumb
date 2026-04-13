@@ -249,6 +249,8 @@ def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
     if not isinstance(handoff, dict) or not handoff:
         return None
     parts: list[str] = []
+    if isinstance(handoff.get("source"), str):
+        parts.append(f"source={handoff['source']}")
     if isinstance(handoff.get("preferred_provider"), str):
         parts.append(f"provider={handoff['preferred_provider']}")
     if isinstance(handoff.get("preferred_credential_mode"), str):
@@ -260,11 +262,24 @@ def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
         parts.append(f"next_url={next_url}")
     if not parts:
         return None
-    return "resolve_handoff[" + ", ".join(parts) + "]"
+    return "Resolve next step: " + ", ".join(parts)
+
+
+def _resolve_step(state: dict[str, Any]) -> str | None:
+    return _resolve_handoff_summary(_preferred_resolve_handoff(state))
+
+
+def _attach_resolve_step(payload: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("ok") is True:
+        return payload
+    resolve_step = _resolve_step(payload)
+    if isinstance(resolve_step, str):
+        payload["resolve_step"] = resolve_step
+    return payload
 
 
 def _failure_summary(message: str, state: dict[str, Any]) -> str:
-    handoff_summary = _resolve_handoff_summary(_preferred_resolve_handoff(state))
+    handoff_summary = _resolve_step(state)
     if not handoff_summary:
         return message
     return f"{message}; {handoff_summary}"
@@ -489,6 +504,9 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
 def _print_human(payload: dict[str, Any]) -> None:
     print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
+    resolve_step = payload.get("resolve_step")
+    if isinstance(resolve_step, str):
+        print(resolve_step)
     print()
 
     for label, search in (payload.get("searches") or {}).items():
@@ -556,6 +574,8 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # pragma: no cover - defensive CLI fallback
         payload = {"ok": False, "summary": str(exc)}
         exit_code = 1
+
+    payload = _attach_resolve_step(payload)
 
     if args.summary_only:
         _print_summary_only(payload)

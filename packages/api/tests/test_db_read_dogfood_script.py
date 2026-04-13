@@ -85,6 +85,7 @@ def test_failure_summary_includes_next_step_handoff() -> None:
             "capabilities": {
                 "db.query.read": {
                     "resolve_handoff": {
+                        "source": "execute_hint",
                         "preferred_provider": "postgresql",
                         "preferred_credential_mode": "agent_vault",
                         "selection_reason": "highest_ranked_provider",
@@ -97,6 +98,30 @@ def test_failure_summary_includes_next_step_handoff() -> None:
 
     assert summary == (
         "execute db.query.read failed: missing token; "
-        "resolve_handoff[provider=postgresql, mode=agent_vault, "
-        "selection_reason=highest_ranked_provider, next_url=/v1/services/postgresql/ceremony]"
+        "Resolve next step: source=execute_hint, provider=postgresql, mode=agent_vault, "
+        "selection_reason=highest_ranked_provider, next_url=/v1/services/postgresql/ceremony"
+    )
+
+
+def test_attach_resolve_step_promotes_handoff_to_top_level_failed_payload() -> None:
+    payload = db_read_dogfood._attach_resolve_step(
+        {
+            "ok": False,
+            "summary": "execute db.query.read failed: missing token",
+            "capabilities": {
+                "db.query.read": {
+                    "resolve_handoff": {
+                        "source": "setup_handoff",
+                        "preferred_provider": "postgresql",
+                        "preferred_credential_mode": "agent_vault",
+                        "setup_url": "/v1/services/postgresql/ceremony",
+                    }
+                }
+            },
+        }
+    )
+
+    assert payload["resolve_step"] == (
+        "Resolve next step: source=setup_handoff, provider=postgresql, mode=agent_vault, "
+        "next_url=/v1/services/postgresql/ceremony"
     )
