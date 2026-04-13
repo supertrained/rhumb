@@ -773,6 +773,7 @@ def _empty_resolve_payload(
     *,
     requested_credential_mode: str | None = None,
     recovery_reason: str | None = None,
+    recovery_items: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "capability": capability_id,
@@ -783,11 +784,12 @@ def _empty_resolve_payload(
     }
     normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
     if recovery_reason and normalized_requested_mode:
-        payload["recovery_hint"] = {
-            "reason": recovery_reason,
-            "requested_credential_mode": normalized_requested_mode,
-            "credential_modes_url": _capability_credential_modes_url(capability_id),
-        }
+        payload["recovery_hint"] = _credential_mode_filter_recovery_hint(
+            capability_id,
+            normalized_requested_mode,
+            reason=recovery_reason,
+            recovery_items=recovery_items,
+        )
     return payload
 
 
@@ -826,6 +828,62 @@ def _credential_mode_aliases(credential_mode: str | None) -> set[str]:
     if normalized == "byok":
         aliases.update({"byo", "byok"})
     return aliases
+
+
+def _recovery_supported_provider_slugs(items: list[dict[str, object]]) -> list[str]:
+    provider_slugs: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        provider_slug = str(item.get("service_slug") or "")
+        if not provider_slug or provider_slug in seen:
+            continue
+        provider_slugs.append(provider_slug)
+        seen.add(provider_slug)
+    return provider_slugs
+
+
+def _recovery_supported_credential_modes(items: list[dict[str, object]]) -> list[str]:
+    discovered_modes: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        for mode in _canonicalize_credential_modes(item.get("credential_modes")):
+            if mode in seen:
+                continue
+            discovered_modes.append(mode)
+            seen.add(mode)
+
+    ordered_modes = [
+        mode
+        for mode in ("rhumb_managed", "agent_vault", "byok")
+        if mode in seen
+    ]
+    ordered_modes.extend(mode for mode in discovered_modes if mode not in ordered_modes)
+    return ordered_modes
+
+
+def _credential_mode_filter_recovery_hint(
+    capability_id: str,
+    requested_credential_mode: str | None,
+    *,
+    reason: str,
+    recovery_items: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    recovery_hint: dict[str, object] = {
+        "reason": reason,
+        "requested_credential_mode": _canonicalize_credential_mode(requested_credential_mode),
+        "credential_modes_url": _capability_credential_modes_url(capability_id),
+    }
+
+    if recovery_items:
+        provider_slugs = _recovery_supported_provider_slugs(recovery_items)
+        if provider_slugs:
+            recovery_hint["supported_provider_slugs"] = provider_slugs
+
+        supported_modes = _recovery_supported_credential_modes(recovery_items)
+        if supported_modes:
+            recovery_hint["supported_credential_modes"] = supported_modes
+
+    return recovery_hint
 
 
 def _supports_requested_credential_mode(
@@ -873,11 +931,12 @@ def _apply_direct_resolve_credential_mode_filter(
     execute_hint = payload.get("execute_hint")
     if not filtered_providers:
         filtered_payload["execute_hint"] = None
-        filtered_payload["recovery_hint"] = {
-            "reason": "no_providers_match_credential_mode",
-            "requested_credential_mode": _canonicalize_credential_mode(credential_mode),
-            "credential_modes_url": _capability_credential_modes_url(capability_id),
-        }
+        filtered_payload["recovery_hint"] = _credential_mode_filter_recovery_hint(
+            capability_id,
+            credential_mode,
+            reason="no_providers_match_credential_mode",
+            recovery_items=[provider for provider in providers if isinstance(provider, dict)],
+        )
         return filtered_payload
 
     filtered_payload.pop("recovery_hint", None)
@@ -2387,6 +2446,7 @@ async def resolve_capability(
                 capability_id,
                 requested_credential_mode=credential_mode,
                 recovery_reason=recovery_reason,
+                recovery_items=all_mappings if recovery_reason else None,
             ),
             "error": None,
         }

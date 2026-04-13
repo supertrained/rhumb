@@ -66,7 +66,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, fallback chain, machine-readable alternates, and an exact setup hint when the preferred path is not configured yet.",
+    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, fallback chain, machine-readable alternates, filtered recovery hints when a requested credential mode matches nothing, and an exact setup hint when the preferred path is not configured yet.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
     response: `{
   "data": {

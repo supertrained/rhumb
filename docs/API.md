@@ -138,7 +138,7 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 - `setup_url`: present when Rhumb has a first-class setup surface for that mode, for example a provider ceremony route
 
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
-If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode` plus `credential_modes_url` so callers can pivot without guessing.
+If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 

@@ -564,6 +564,8 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
             "reason": "no_providers_match_credential_mode",
             "requested_credential_mode": "agent_vault",
             "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "supported_provider_slugs": ["sendgrid", "resend"],
+            "supported_credential_modes": ["byok"],
         },
     }
 
@@ -949,6 +951,8 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
         "reason": "no_providers_match_credential_mode",
         "requested_credential_mode": "rhumb_managed",
         "credential_modes_url": "/v1/capabilities/db.query.read/credential-modes",
+        "supported_provider_slugs": ["postgresql"],
+        "supported_credential_modes": ["agent_vault", "byok"],
     }
 
 
