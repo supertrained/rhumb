@@ -1071,6 +1071,43 @@ def _execute_ready_fallback_chain(providers: list[dict[str, object]]) -> list[st
     ][:3]
 
 
+def _execute_ready_recovery_hint(
+    capability_id: str,
+    providers: list[dict[str, object]],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
+    if not providers or any(_provider_can_back_execute_hint(provider) for provider in providers):
+        return None
+
+    recovery_hint: dict[str, object] = {
+        "reason": "no_execute_ready_providers",
+        "credential_modes_url": _capability_credential_modes_url(capability_id),
+    }
+
+    normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
+    if normalized_requested_mode:
+        recovery_hint["requested_credential_mode"] = normalized_requested_mode
+
+    supported_provider_slugs = _recovery_supported_provider_slugs(providers)
+    if supported_provider_slugs:
+        recovery_hint["supported_provider_slugs"] = supported_provider_slugs
+
+    supported_credential_modes = _recovery_supported_credential_modes(providers)
+    if supported_credential_modes:
+        recovery_hint["supported_credential_modes"] = supported_credential_modes
+
+    unavailable_provider_slugs = [
+        str(provider.get("service_slug"))
+        for provider in providers
+        if provider.get("service_slug") and not provider.get("available_for_execute")
+    ]
+    if unavailable_provider_slugs:
+        recovery_hint["unavailable_provider_slugs"] = unavailable_provider_slugs
+
+    return recovery_hint
+
+
 def _execute_hint_fallback_providers(
     providers: list[dict[str, object]],
     *,
@@ -2637,14 +2674,24 @@ async def resolve_capability(
         requested_credential_mode=credential_mode,
     )
 
+    data = {
+        "capability": capability_id,
+        "providers": providers,
+        "fallback_chain": fallback_chain,
+        "related_bundles": bundle_ids,
+        "execute_hint": execute_hint,
+    }
+    if execute_hint is None:
+        recovery_hint = _execute_ready_recovery_hint(
+            capability_id,
+            providers,
+            requested_credential_mode=credential_mode,
+        )
+        if recovery_hint is not None:
+            data["recovery_hint"] = recovery_hint
+
     return {
-        "data": {
-            "capability": capability_id,
-            "providers": providers,
-            "fallback_chain": fallback_chain,
-            "related_bundles": bundle_ids,
-            "execute_hint": execute_hint,
-        },
+        "data": data,
         "error": None,
     }
 

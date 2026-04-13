@@ -962,6 +962,34 @@ async def test_resolve_capability_skips_open_provider_in_execute_hint_fallbacks(
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_reports_recovery_when_no_execute_ready_providers_remain(app):
+    fake_breakers = _FakeBreakerRegistry({
+        "resend": ("open", False),
+        "sendgrid": ("open", False),
+    })
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "sendgrid"]
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+    assert data["recovery_hint"] == {
+        "reason": "no_execute_ready_providers",
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "supported_provider_slugs": ["resend", "sendgrid"],
+        "supported_credential_modes": ["byok"],
+        "unavailable_provider_slugs": ["resend", "sendgrid"],
+    }
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_not_found(app):
     """GET /v1/capabilities/nonexistent/resolve returns 404 with standardized envelope."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):

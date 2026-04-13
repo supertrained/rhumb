@@ -141,6 +141,7 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
 If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
 If a requested `credential_mode` still leaves at least one provider, `execute_hint.selection_reason` and `skipped_provider_slugs` now stay honest about any higher-ranked providers that were filtered out, and provider-level plus execute-hint `configured` truth stays scoped to that requested mode so mixed-mode providers do not look preconfigured through the wrong rail.
+If ranked providers remain but all execute-ready options collapse to zero in the current context, `resolve` now keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus machine-readable degraded-provider context like `unavailable_provider_slugs`.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
