@@ -159,6 +159,73 @@ def _fetch_json_url(url: str) -> tuple[int | None, Any | None, str | None]:
     return status, payload, None
 
 
+def _extract_data(payload: dict[str, Any] | None) -> Any:
+    if isinstance(payload, dict) and "data" in payload:
+        return payload.get("data")
+    return payload
+
+
+def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    recovery_hint = data.get("recovery_hint")
+    raw_recovery = recovery_hint if isinstance(recovery_hint, dict) else {}
+    candidates = (
+        ("execute_hint", data.get("execute_hint")),
+        ("alternate_execute_hint", raw_recovery.get("alternate_execute_hint")),
+        ("setup_handoff", raw_recovery.get("setup_handoff")),
+    )
+    for source, candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handoff = {
+            "source": source,
+            "reason": raw_recovery.get("reason") if isinstance(raw_recovery.get("reason"), str) else None,
+            "resolve_url": raw_recovery.get("resolve_url") if isinstance(raw_recovery.get("resolve_url"), str) else None,
+            "preferred_provider": candidate.get("preferred_provider") if isinstance(candidate.get("preferred_provider"), str) else None,
+            "preferred_credential_mode": (
+                candidate.get("preferred_credential_mode")
+                if isinstance(candidate.get("preferred_credential_mode"), str)
+                else None
+            ),
+            "selection_reason": candidate.get("selection_reason") if isinstance(candidate.get("selection_reason"), str) else None,
+            "setup_hint": candidate.get("setup_hint") if isinstance(candidate.get("setup_hint"), str) else None,
+            "setup_url": candidate.get("setup_url") if isinstance(candidate.get("setup_url"), str) else None,
+            "credential_modes_url": (
+                candidate.get("credential_modes_url")
+                if isinstance(candidate.get("credential_modes_url"), str)
+                else raw_recovery.get("credential_modes_url")
+                if isinstance(raw_recovery.get("credential_modes_url"), str)
+                else None
+            ),
+            "endpoint_pattern": candidate.get("endpoint_pattern") if isinstance(candidate.get("endpoint_pattern"), str) else None,
+            "configured": candidate.get("configured") if isinstance(candidate.get("configured"), bool) else None,
+        }
+        return {key: value for key, value in handoff.items() if value is not None}
+    return None
+
+
+def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
+    if not isinstance(handoff, dict) or not handoff:
+        return None
+    parts: list[str] = []
+    if isinstance(handoff.get("source"), str):
+        parts.append(f"source={handoff['source']}")
+    if isinstance(handoff.get("preferred_provider"), str):
+        parts.append(f"provider={handoff['preferred_provider']}")
+    if isinstance(handoff.get("preferred_credential_mode"), str):
+        parts.append(f"mode={handoff['preferred_credential_mode']}")
+    if isinstance(handoff.get("endpoint_pattern"), str):
+        parts.append(f"endpoint={handoff['endpoint_pattern']}")
+    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
+    if isinstance(next_url, str):
+        parts.append(f"next_url={next_url}")
+    if not parts:
+        return None
+    return "Resolve next step: " + ", ".join(parts)
+
+
 def _host_from_url(url: str) -> str | None:
     match = re.match(r"https?://([^/]+)", url, re.I)
     if not match:
@@ -833,6 +900,7 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
                 None,
             )
             resolve_provider_present = isinstance(resolve_provider, dict)
+        resolve_handoff = _resolve_handoff(resolve_payload)
 
         mode_provider = None
         credential_modes_provider_present = False
@@ -868,6 +936,7 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
                 "resolve_configured": bool((resolve_provider or {}).get("configured")),
                 "credential_modes_configured": bool((byok_mode or {}).get("configured"))
                 or bool((mode_provider or {}).get("any_configured")),
+                "resolve_handoff": resolve_handoff,
                 "errors": {
                     "get": get_error,
                     "resolve": resolve_error,
@@ -884,12 +953,22 @@ def audit_hosted_surface(provider: ProviderConfig, api_base: str) -> dict[str, A
         overall_live = overall_live and live
         overall_configured = overall_configured and configured
 
+    preferred_resolve_handoff = next(
+        (
+            check.get("resolve_handoff")
+            for check in checks
+            if isinstance(check.get("resolve_handoff"), dict) and check.get("resolve_handoff")
+        ),
+        None,
+    )
+
     return {
         "ok": overall_ok,
         "supported": bool(provider.hosted_capability_ids),
         "checks": checks,
         "live": overall_live,
         "configured": overall_configured,
+        "resolve_handoff": preferred_resolve_handoff,
     }
 
 
@@ -995,6 +1074,8 @@ def summarize_provider(
     likely_blocked = not proof_material_ready
     hosted_surface_live = bool(hosted_surface.get("live"))
     hosted_configured = bool(hosted_surface.get("configured"))
+    resolve_handoff = hosted_surface.get("resolve_handoff")
+    resolve_handoff_summary = _resolve_handoff_summary(resolve_handoff)
     gcloud_installed = bool(local_tooling.get("gcloud_installed"))
     local_service_account_hit_count = int(local_service_account_files.get("hit_count") or 0)
     local_candidate_project_hit_count = int(local_service_account_files.get("candidate_project_hit_count") or 0)
@@ -1032,6 +1113,8 @@ def summarize_provider(
         blocker += " Local file scan found service-account JSON on this machine, but none matched the candidate project ids surfaced for this provider."
     if likely_blocked and not gcloud_installed:
         blocker += " Direct local GCP minting is also blocked on this machine right now because `gcloud` is not installed."
+    if resolve_handoff_summary and (likely_blocked or not hosted_surface_live or not hosted_configured):
+        blocker += f" {resolve_handoff_summary}."
 
     return {
         "provider": provider.name,
@@ -1049,6 +1132,8 @@ def summarize_provider(
         "gmail_candidate_accounts": gmail_candidate_accounts,
         "hosted_surface_live": hosted_surface_live,
         "hosted_surface_configured": hosted_configured,
+        "resolve_handoff": resolve_handoff,
+        "resolve_handoff_summary": resolve_handoff_summary,
         "gcloud_installed": gcloud_installed,
         "local_service_account_hit_count": local_service_account_hit_count,
         "local_service_account_candidate_project_hit_count": local_candidate_project_hit_count,
@@ -1157,6 +1242,7 @@ def main() -> int:
                 f"gcloud_installed={summary['gcloud_installed']} "
                 f"hosted_live={summary['hosted_surface_live']} "
                 f"hosted_configured={summary['hosted_surface_configured']} "
+                f"resolve_step={summary['resolve_handoff_summary'] or '-'} "
                 f"proof_ready={summary['proof_material_ready']}"
             )
     else:

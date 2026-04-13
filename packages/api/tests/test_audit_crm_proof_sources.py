@@ -96,6 +96,7 @@ def test_audit_hosted_surface_marks_hubspot_live_when_capability_endpoints_are_l
         "credential_modes_provider_present": True,
         "resolve_configured": False,
         "credential_modes_configured": False,
+        "resolve_handoff": None,
         "errors": {
             "get": None,
             "resolve": None,
@@ -166,6 +167,84 @@ def test_audit_hosted_surface_does_not_fall_back_to_another_provider() -> None:
     assert hosted_surface["credential_modes_configured"] is False
 
 
+def test_audit_hosted_surface_carries_resolve_handoff() -> None:
+    provider = crm_proof_audit.PROVIDERS["hubspot"]
+
+    responses = [
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "hubspot",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "hubspot",
+                            "configured": False,
+                        }
+                    ],
+                    "recovery_hint": {
+                        "reason": "no_execute_ready_providers",
+                        "resolve_url": "/v1/capabilities/crm.record.search/resolve",
+                        "setup_handoff": {
+                            "preferred_provider": "hubspot",
+                            "preferred_credential_mode": "byok",
+                            "setup_url": "/v1/services/hubspot/ceremony",
+                            "credential_modes_url": "/v1/capabilities/crm.record.search/credential-modes",
+                            "configured": False,
+                        },
+                    },
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "hubspot",
+                            "modes": [
+                                {
+                                    "mode": "byok",
+                                    "configured": False,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(crm_proof_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = crm_proof_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["resolve_handoff"] == {
+        "source": "setup_handoff",
+        "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/crm.record.search/resolve",
+        "preferred_provider": "hubspot",
+        "preferred_credential_mode": "byok",
+        "setup_url": "/v1/services/hubspot/ceremony",
+        "credential_modes_url": "/v1/capabilities/crm.record.search/credential-modes",
+        "configured": False,
+    }
+
+
 def test_summarize_provider_mentions_password_reset_path_when_mail_exists() -> None:
     provider = crm_proof_audit.PROVIDERS["hubspot"]
 
@@ -192,6 +271,37 @@ def test_summarize_provider_mentions_password_reset_path_when_mail_exists() -> N
     assert summary["likely_blocked_on_credentials"] is True
     assert "password-reset mail is reaching the known mailbox" in summary["assessment"]
     assert "no saved HubSpot login entry" in summary["assessment"]
+
+
+def test_summarize_provider_includes_resolve_handoff_summary_when_available() -> None:
+    provider = crm_proof_audit.PROVIDERS["hubspot"]
+
+    summary = crm_proof_audit.summarize_provider(
+        provider,
+        vault={"hit_count": 0, "bundle_ready_hit_count": 0},
+        browser={"workspace_hosts": [], "portal_ids": []},
+        browser_saved_logins={"hit_count": 0, "usernames": []},
+        gmail={"hit_count": 0, "instances": [], "password_reset_hit_count": 0},
+        hosted_surface={
+            "supported": True,
+            "live": True,
+            "resolve_configured": False,
+            "credential_modes_configured": False,
+            "resolve_handoff": {
+                "source": "setup_handoff",
+                "preferred_provider": "hubspot",
+                "preferred_credential_mode": "byok",
+                "setup_url": "/v1/services/hubspot/ceremony",
+                "resolve_url": "/v1/capabilities/crm.record.search/resolve",
+            },
+        },
+    )
+
+    assert summary["resolve_handoff_summary"] == (
+        "Resolve next step: source=setup_handoff, provider=hubspot, mode=byok, "
+        "next_url=/v1/services/hubspot/ceremony"
+    )
+    assert "Resolve next step: source=setup_handoff" in summary["assessment"]
 
 
 def test_audit_vault_marks_login_only_hubspot_item_as_not_bundle_ready() -> None:

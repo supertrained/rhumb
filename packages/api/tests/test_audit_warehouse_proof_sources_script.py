@@ -232,6 +232,92 @@ def test_audit_hosted_surface_does_not_fall_back_to_another_provider() -> None:
     assert all(check["credential_modes_configured"] is False for check in hosted_surface["checks"])
 
 
+def test_audit_hosted_surface_carries_first_resolve_handoff() -> None:
+    provider = warehouse_audit.PROVIDERS["bigquery"]
+
+    responses = [
+        (
+            200,
+            {"data": {"providers": [{"service_slug": "bigquery"}]}},
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [{"service_slug": "bigquery", "configured": False}],
+                    "recovery_hint": {
+                        "reason": "no_execute_ready_providers",
+                        "resolve_url": "/v1/capabilities/warehouse.query.read/resolve",
+                        "setup_handoff": {
+                            "preferred_provider": "bigquery",
+                            "preferred_credential_mode": "byok",
+                            "setup_url": "/v1/services/bigquery/ceremony",
+                            "credential_modes_url": "/v1/capabilities/warehouse.query.read/credential-modes",
+                            "configured": False,
+                        },
+                    },
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "modes": [{"mode": "byok", "configured": False}],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {"data": {"providers": [{"service_slug": "bigquery"}]}},
+            None,
+        ),
+        (
+            200,
+            {"data": {"providers": [{"service_slug": "bigquery", "configured": False}]}},
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "bigquery",
+                            "modes": [{"mode": "byok", "configured": False}],
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(warehouse_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = warehouse_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["resolve_handoff"] == {
+        "source": "setup_handoff",
+        "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/warehouse.query.read/resolve",
+        "preferred_provider": "bigquery",
+        "preferred_credential_mode": "byok",
+        "setup_url": "/v1/services/bigquery/ceremony",
+        "credential_modes_url": "/v1/capabilities/warehouse.query.read/credential-modes",
+        "configured": False,
+    }
+    assert hosted_surface["checks"][0]["resolve_handoff"] == hosted_surface["resolve_handoff"]
+    assert hosted_surface["checks"][1]["resolve_handoff"] is None
+
+
 def test_bigquery_bundle_material_accepts_embedded_bundle_note() -> None:
     ready, missing, details = warehouse_audit._bigquery_bundle_material(
         {
@@ -261,6 +347,38 @@ def test_bigquery_bundle_material_accepts_embedded_bundle_note() -> None:
     assert details["has_embedded_bundle_json"] is True
     assert details["project_ids"] == ["rhumb-sandbox"]
     assert details["candidate_accounts"] == ["rhumb-bq-read@rhumb-sandbox.iam.gserviceaccount.com"]
+
+
+def test_summarize_provider_includes_resolve_handoff_summary_when_available() -> None:
+    provider = warehouse_audit.PROVIDERS["bigquery"]
+
+    summary = warehouse_audit.summarize_provider(
+        provider,
+        vault={"hit_count": 0, "bundle_ready_hit_count": 0, "project_ids": [], "candidate_accounts": []},
+        browser={"workspace_hosts": [], "project_ids": []},
+        browser_saved_logins={"hit_count": 0, "usernames": []},
+        gmail={"hit_count": 0, "project_ids": [], "candidate_accounts": []},
+        hosted_surface={
+            "supported": True,
+            "live": True,
+            "configured": False,
+            "resolve_handoff": {
+                "source": "setup_handoff",
+                "preferred_provider": "bigquery",
+                "preferred_credential_mode": "byok",
+                "setup_url": "/v1/services/bigquery/ceremony",
+                "resolve_url": "/v1/capabilities/warehouse.query.read/resolve",
+            },
+        },
+        local_tooling={"gcloud_installed": True},
+        local_service_account_files={"hit_count": 0, "candidate_project_hit_count": 0, "project_ids": []},
+    )
+
+    assert summary["resolve_handoff_summary"] == (
+        "Resolve next step: source=setup_handoff, provider=bigquery, mode=byok, "
+        "next_url=/v1/services/bigquery/ceremony"
+    )
+    assert "Resolve next step: source=setup_handoff" in summary["assessment"]
 
 
 def test_bigquery_bundle_material_accepts_split_field_impersonation_material() -> None:

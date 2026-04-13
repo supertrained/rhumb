@@ -84,6 +84,7 @@ def test_audit_hosted_surface_marks_intercom_live_when_capability_endpoints_are_
         "credential_modes_provider_present": True,
         "resolve_configured": False,
         "credential_modes_configured": False,
+        "resolve_handoff": None,
         "errors": {
             "get": None,
             "resolve": None,
@@ -149,6 +150,79 @@ def test_audit_hosted_surface_does_not_fall_back_to_another_provider() -> None:
     assert hosted_surface["credential_modes_configured"] is False
 
 
+def test_audit_hosted_surface_carries_resolve_handoff() -> None:
+    provider = support_proof_audit.PROVIDERS["intercom"]
+
+    responses = [
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "intercom",
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "intercom",
+                            "configured": False,
+                        }
+                    ],
+                    "recovery_hint": {
+                        "reason": "no_execute_ready_providers",
+                        "resolve_url": "/v1/capabilities/conversation.list/resolve",
+                        "setup_handoff": {
+                            "preferred_provider": "intercom",
+                            "preferred_credential_mode": "byok",
+                            "setup_url": "/v1/services/intercom/ceremony",
+                            "credential_modes_url": "/v1/capabilities/conversation.list/credential-modes",
+                            "configured": False,
+                        },
+                    },
+                }
+            },
+            None,
+        ),
+        (
+            200,
+            {
+                "data": {
+                    "providers": [
+                        {
+                            "service_slug": "intercom",
+                            "any_configured": False,
+                        }
+                    ]
+                }
+            },
+            None,
+        ),
+    ]
+
+    with patch.object(support_proof_audit, "_fetch_json_url", side_effect=responses):
+        hosted_surface = support_proof_audit.audit_hosted_surface(provider, "https://api.rhumb.dev")
+
+    assert hosted_surface["resolve_handoff"] == {
+        "source": "setup_handoff",
+        "reason": "no_execute_ready_providers",
+        "resolve_url": "/v1/capabilities/conversation.list/resolve",
+        "preferred_provider": "intercom",
+        "preferred_credential_mode": "byok",
+        "setup_url": "/v1/services/intercom/ceremony",
+        "credential_modes_url": "/v1/capabilities/conversation.list/credential-modes",
+        "configured": False,
+    }
+
+
 def test_summarize_provider_marks_intercom_blocked_on_credentials_when_hosted_surface_is_live() -> None:
     provider = support_proof_audit.PROVIDERS["intercom"]
 
@@ -173,6 +247,36 @@ def test_summarize_provider_marks_intercom_blocked_on_credentials_when_hosted_su
     assert summary["likely_blocked_on_credentials"] is True
     assert "Hosted support surface is live" in summary["assessment"]
     assert "no vault-backed support credential bundle was detected" in summary["assessment"]
+
+
+def test_summarize_provider_includes_resolve_handoff_summary_when_available() -> None:
+    provider = support_proof_audit.PROVIDERS["intercom"]
+
+    summary = support_proof_audit.summarize_provider(
+        provider,
+        vault={"hit_count": 0, "bundle_ready_hit_count": 0},
+        browser={"workspace_hosts": []},
+        gmail={"hit_count": 0, "instances": []},
+        hosted_surface={
+            "supported": True,
+            "live": True,
+            "resolve_configured": False,
+            "credential_modes_configured": False,
+            "resolve_handoff": {
+                "source": "setup_handoff",
+                "preferred_provider": "intercom",
+                "preferred_credential_mode": "byok",
+                "setup_url": "/v1/services/intercom/ceremony",
+                "resolve_url": "/v1/capabilities/conversation.list/resolve",
+            },
+        },
+    )
+
+    assert summary["resolve_handoff_summary"] == (
+        "Resolve next step: source=setup_handoff, provider=intercom, mode=byok, "
+        "next_url=/v1/services/intercom/ceremony"
+    )
+    assert "Resolve next step: source=setup_handoff" in summary["assessment"]
 
 
 def test_summarize_provider_keeps_intercom_blocked_when_only_login_item_exists() -> None:
