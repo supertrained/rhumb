@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,10 +20,50 @@ DEFAULT_BASE_URL = "https://api.rhumb.dev"
 DEFAULT_WINDOW = "7d"
 DEFAULT_TIMEOUT = 30.0
 SUPPORTED_WINDOWS = ("24h", "7d", "launch")
+DEFAULT_VAULT = "OpenClaw Agents"
+DEFAULT_DASHBOARD_KEY_ITEM = "Rhumb Launch Dashboard Key (Railway)"
+DEFAULT_ADMIN_SECRET_ITEM = "Rhumb Admin Secret (Railway)"
 
 
 def _normalize_secret(value: str | None) -> str:
     return value.strip() if value else ""
+
+
+def _load_secret_from_sop(item_name: str, vault: str = DEFAULT_VAULT) -> str | None:
+    try:
+        result = subprocess.run(
+            [
+                "sop",
+                "item",
+                "get",
+                item_name,
+                "--vault",
+                vault,
+                "--fields",
+                "credential",
+                "--reveal",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    value = result.stdout.strip()
+    return value or None
+
+
+def _load_dashboard_key_from_sop() -> str | None:
+    return _load_secret_from_sop(DEFAULT_DASHBOARD_KEY_ITEM)
+
+
+def _load_admin_secret_from_sop() -> str | None:
+    return _load_secret_from_sop(DEFAULT_ADMIN_SECRET_ITEM)
 
 
 def _now_slug() -> str:
@@ -128,6 +169,8 @@ def _resolve_auth_headers(args: argparse.Namespace) -> tuple[dict[str, str], str
     explicit_dashboard_key = _normalize_secret(args.dashboard_key)
     env_dashboard_key = _normalize_secret(os.environ.get("RHUMB_LAUNCH_DASHBOARD_KEY"))
     env_admin_key = _normalize_secret(os.environ.get("RHUMB_ADMIN_SECRET"))
+    sop_dashboard_key = _normalize_secret(_load_dashboard_key_from_sop())
+    sop_admin_key = _normalize_secret(_load_admin_secret_from_sop())
 
     if explicit_admin_key:
         return {"X-Rhumb-Admin-Key": explicit_admin_key}, "admin"
@@ -137,6 +180,10 @@ def _resolve_auth_headers(args: argparse.Namespace) -> tuple[dict[str, str], str
         return {"X-Rhumb-Launch-Dashboard-Key": env_dashboard_key}, "dashboard"
     if env_admin_key:
         return {"X-Rhumb-Admin-Key": env_admin_key}, "admin"
+    if sop_dashboard_key:
+        return {"X-Rhumb-Launch-Dashboard-Key": sop_dashboard_key}, "dashboard"
+    if sop_admin_key:
+        return {"X-Rhumb-Admin-Key": sop_admin_key}, "admin"
 
     raise SystemExit(
         "Pass --dashboard-key, --admin-key, or set "

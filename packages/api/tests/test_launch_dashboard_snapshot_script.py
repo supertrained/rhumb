@@ -171,9 +171,73 @@ def test_main_prefers_dashboard_key_env(
     assert captured["headers"] == {"X-Rhumb-Launch-Dashboard-Key": "dashboard-secret"}
 
 
+def test_main_falls_back_to_sop_dashboard_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_request_json(**kwargs):
+        captured.update(kwargs)
+        return {"status": 200, "json": SAMPLE_PAYLOAD}
+
+    monkeypatch.setattr(launch_dashboard_snapshot, "_request_json", fake_request_json)
+    monkeypatch.delenv("RHUMB_LAUNCH_DASHBOARD_KEY", raising=False)
+    monkeypatch.delenv("RHUMB_ADMIN_SECRET", raising=False)
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_dashboard_key_from_sop", lambda: "dashboard-from-sop")
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_admin_secret_from_sop", lambda: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "launch_dashboard_snapshot.py",
+            "--json-out",
+            str(tmp_path / "dashboard.json"),
+            "--latest-out",
+            str(tmp_path / "dashboard-latest.json"),
+        ],
+    )
+
+    assert launch_dashboard_snapshot.main() == 0
+    assert captured["headers"] == {"X-Rhumb-Launch-Dashboard-Key": "dashboard-from-sop"}
+
+
+def test_main_falls_back_to_sop_admin_secret_when_dashboard_key_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_request_json(**kwargs):
+        captured.update(kwargs)
+        return {"status": 200, "json": SAMPLE_PAYLOAD}
+
+    monkeypatch.setattr(launch_dashboard_snapshot, "_request_json", fake_request_json)
+    monkeypatch.delenv("RHUMB_LAUNCH_DASHBOARD_KEY", raising=False)
+    monkeypatch.delenv("RHUMB_ADMIN_SECRET", raising=False)
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_dashboard_key_from_sop", lambda: None)
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_admin_secret_from_sop", lambda: "admin-from-sop")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "launch_dashboard_snapshot.py",
+            "--json-out",
+            str(tmp_path / "dashboard.json"),
+            "--latest-out",
+            str(tmp_path / "dashboard-latest.json"),
+        ],
+    )
+
+    assert launch_dashboard_snapshot.main() == 0
+    assert captured["headers"] == {"X-Rhumb-Admin-Key": "admin-from-sop"}
+
+
 def test_main_requires_dashboard_or_admin_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("RHUMB_LAUNCH_DASHBOARD_KEY", raising=False)
     monkeypatch.delenv("RHUMB_ADMIN_SECRET", raising=False)
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_dashboard_key_from_sop", lambda: None)
+    monkeypatch.setattr(launch_dashboard_snapshot, "_load_admin_secret_from_sop", lambda: None)
     monkeypatch.setattr(sys, "argv", ["launch_dashboard_snapshot.py"])
 
     with pytest.raises(
