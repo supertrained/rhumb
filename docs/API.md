@@ -144,7 +144,7 @@ Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the fu
 If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
 If a requested `credential_mode` still leaves at least one provider, `execute_hint.selection_reason` and `skipped_provider_slugs` now stay honest about any higher-ranked providers that were filtered out, and provider-level plus execute-hint `configured` truth stays scoped to that requested mode so mixed-mode providers do not look preconfigured through the wrong rail.
 If a lower-ranked provider is still execute-ready after higher-ranked paths degrade, `execute_hint` now keeps the degraded handoff machine-readable too via `unavailable_provider_slugs`, `not_execute_ready_provider_slugs`, and the mixed blocker selection reason when both conditions apply.
-When a requested `credential_mode` dead-ends, whether because zero providers match or because the filtered set collapses to zero execute-ready paths, `resolve` keeps the recovery handoff machine-readable. `supported_provider_slugs` and `supported_credential_modes` still reflect the broader unfiltered pivot, and `recovery_hint.alternate_execute_hint` carries the exact broader-rail execute/setup handoff when Rhumb can already identify one, so callers can pivot without another blind search. In the degraded-but-still-ranked case, `resolve` also keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
+When a requested `credential_mode` dead-ends, whether because zero providers match or because the filtered set collapses to zero execute-ready paths, `resolve` keeps the recovery handoff machine-readable. `supported_provider_slugs` and `supported_credential_modes` still reflect the broader unfiltered pivot, `recovery_hint.alternate_execute_hint` carries the exact broader-rail execute/setup handoff when Rhumb can already identify one, and `recovery_hint.setup_handoff` carries the next ranked setup action when no executable alternate rail exists yet, so callers can still move forward without another blind search. In the degraded-but-still-ranked case, `resolve` also keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
 
 Example recovery payload when `credential_mode=agent_vault` dead-ends for `email.send` but Rhumb can already point you at the broader `byok` rail:
 
@@ -181,6 +181,51 @@ Example recovery payload when `credential_mode=agent_vault` dead-ends for `email
 ```
 
 `endpoint_pattern` keeps the canonical method-plus-path shape (`POST /emails`, not just `/emails`), and `/v2/capabilities/{capability_id}/resolve` returns the same recovery structure with nested `credential_modes_url` values rewritten onto `/v2`.
+
+Example recovery payload when providers still rank but none can execute yet and Rhumb can only hand you the next setup step:
+
+```json
+{
+  "data": {
+    "capability": "email.send",
+    "providers": [
+      {
+        "service_slug": "resend",
+        "recommendation": "preferred",
+        "credential_modes": ["byok"]
+      },
+      {
+        "service_slug": "sendgrid",
+        "recommendation": "available",
+        "credential_modes": ["byok"]
+      }
+    ],
+    "fallback_chain": [],
+    "related_bundles": [],
+    "execute_hint": null,
+    "recovery_hint": {
+      "reason": "no_execute_ready_providers",
+      "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+      "supported_provider_slugs": ["resend", "sendgrid"],
+      "supported_credential_modes": ["byok"],
+      "setup_handoff": {
+        "preferred_provider": "resend",
+        "auth_method": "api_key",
+        "configured": false,
+        "credential_modes": ["byok"],
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "byok",
+        "selection_reason": "highest_ranked_provider",
+        "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials"
+      },
+      "not_execute_ready_provider_slugs": ["resend", "sendgrid"]
+    }
+  },
+  "error": null
+}
+```
+
+Use `alternate_execute_hint` when Rhumb already knows a live broader execute path. Use `setup_handoff` when the best next move is still setup rather than execution.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
