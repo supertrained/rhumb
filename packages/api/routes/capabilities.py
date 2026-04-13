@@ -892,6 +892,22 @@ def _credential_mode_filter_recovery_hint(
         if alternate_execute_hint is not None:
             recovery_hint["alternate_execute_hint"] = alternate_execute_hint
 
+        unavailable_provider_slugs = [
+            str(provider.get("service_slug"))
+            for provider in recovery_items
+            if provider.get("service_slug") and provider.get("available_for_execute") is False
+        ]
+        if unavailable_provider_slugs:
+            recovery_hint["unavailable_provider_slugs"] = unavailable_provider_slugs
+
+        not_execute_ready_provider_slugs = [
+            str(provider.get("service_slug"))
+            for provider in recovery_items
+            if provider.get("service_slug") and not provider.get("endpoint_pattern")
+        ]
+        if not_execute_ready_provider_slugs:
+            recovery_hint["not_execute_ready_provider_slugs"] = not_execute_ready_provider_slugs
+
     return recovery_hint
 
 

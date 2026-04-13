@@ -314,6 +314,69 @@ async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(ap
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_preserves_blocker_hints_when_no_alternate_handoff(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return SAMPLE_CAP
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "sendgrid",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": "0.001",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                },
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {"service_slug": "resend", "aggregate_recommendation_score": 7.79},
+                {"service_slug": "sendgrid", "aggregate_recommendation_score": 6.35},
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "sendgrid", "name": "SendGrid"},
+                {"slug": "resend", "name": "Resend"},
+            ]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/resolve",
+                params={"credential_mode": "agent_vault"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"] == []
+    assert data["execute_hint"] is None
+
+    recovery_hint = data["recovery_hint"]
+    assert recovery_hint["reason"] == "no_providers_match_credential_mode"
+    assert recovery_hint["requested_credential_mode"] == "agent_vault"
+    assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
+    assert recovery_hint["supported_provider_slugs"] == ["resend", "sendgrid"]
+    assert recovery_hint["supported_credential_modes"] == ["byok"]
+    assert recovery_hint["not_execute_ready_provider_slugs"] == ["resend", "sendgrid"]
+    assert "alternate_execute_hint" not in recovery_hint
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):
