@@ -40,7 +40,7 @@ const MANIFEST = {
         },
         {
           "name": "resolve_capability",
-          "description": "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, and machine-readable recovery handoffs"
+          "description": "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong"
         }
       ]
     },
