@@ -61,6 +61,37 @@ def preferred_execute_provider(resolve_data: dict[str, Any]) -> str | None:
     return providers[0] if providers else None
 
 
+def _handoff_summary(prefix: str, handoff: Any) -> list[str]:
+    if not isinstance(handoff, dict):
+        return []
+
+    provider = handoff.get("preferred_provider")
+    mode = handoff.get("preferred_credential_mode")
+    if isinstance(provider, str) and provider:
+        summary = provider
+        if isinstance(mode, str) and mode:
+            summary = f"{summary}({mode})"
+        parts = [f"{prefix}={summary}"]
+    elif isinstance(mode, str) and mode:
+        parts = [f"{prefix}=({mode})"]
+    else:
+        parts = [prefix]
+
+    endpoint_pattern = handoff.get("endpoint_pattern")
+    if isinstance(endpoint_pattern, str) and endpoint_pattern:
+        parts.append(f"{prefix}_endpoint={endpoint_pattern}")
+
+    setup_url = handoff.get("setup_url")
+    if isinstance(setup_url, str) and setup_url:
+        parts.append(f"{prefix}_setup_url={setup_url}")
+    else:
+        setup_hint = handoff.get("setup_hint")
+        if isinstance(setup_hint, str) and setup_hint:
+            parts.append(f"{prefix}_setup_hint={setup_hint}")
+
+    return parts
+
+
 def describe_recovery_hint(resolve_data: dict[str, Any]) -> str | None:
     recovery_hint = resolve_data.get("recovery_hint")
     if not isinstance(recovery_hint, dict):
@@ -80,5 +111,8 @@ def describe_recovery_hint(resolve_data: dict[str, Any]) -> str | None:
     supported = _slug_list(recovery_hint.get("supported_provider_slugs"))
     if supported:
         parts.append(f"supported={','.join(supported)}")
+
+    parts.extend(_handoff_summary("alternate_execute", recovery_hint.get("alternate_execute_hint")))
+    parts.extend(_handoff_summary("setup_handoff", recovery_hint.get("setup_handoff")))
 
     return "; ".join(parts)

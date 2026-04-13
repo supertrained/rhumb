@@ -62,6 +62,8 @@ def main():
     top_provider = preferred_execute_provider(data)
     if not top_provider:
         print("No execute-ready provider found in the current resolve context.")
+        if recovery_summary:
+            print("Follow the recovery handoff above to finish setup or pivot to the alternate rail.")
         return
 
     print(f"\n💰 Estimating cost for '{capability}' via {top_provider}...\n")
