@@ -120,6 +120,47 @@ def _first_credential_mode(payload: Any) -> tuple[dict[str, Any] | None, dict[st
     return None, None
 
 
+def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    recovery_hint = data.get("recovery_hint")
+    raw_recovery = recovery_hint if isinstance(recovery_hint, dict) else {}
+    candidates = (
+        ("execute_hint", data.get("execute_hint")),
+        ("alternate_execute_hint", raw_recovery.get("alternate_execute_hint")),
+        ("setup_handoff", raw_recovery.get("setup_handoff")),
+    )
+    for source, candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handoff = {
+            "source": source,
+            "reason": raw_recovery.get("reason") if isinstance(raw_recovery.get("reason"), str) else None,
+            "resolve_url": raw_recovery.get("resolve_url") if isinstance(raw_recovery.get("resolve_url"), str) else None,
+            "preferred_provider": candidate.get("preferred_provider") if isinstance(candidate.get("preferred_provider"), str) else None,
+            "preferred_credential_mode": (
+                candidate.get("preferred_credential_mode")
+                if isinstance(candidate.get("preferred_credential_mode"), str)
+                else None
+            ),
+            "selection_reason": candidate.get("selection_reason") if isinstance(candidate.get("selection_reason"), str) else None,
+            "setup_hint": candidate.get("setup_hint") if isinstance(candidate.get("setup_hint"), str) else None,
+            "setup_url": candidate.get("setup_url") if isinstance(candidate.get("setup_url"), str) else None,
+            "credential_modes_url": (
+                candidate.get("credential_modes_url")
+                if isinstance(candidate.get("credential_modes_url"), str)
+                else raw_recovery.get("credential_modes_url")
+                if isinstance(raw_recovery.get("credential_modes_url"), str)
+                else None
+            ),
+            "endpoint_pattern": candidate.get("endpoint_pattern") if isinstance(candidate.get("endpoint_pattern"), str) else None,
+            "configured": candidate.get("configured") if isinstance(candidate.get("configured"), bool) else None,
+        }
+        return {key: value for key, value in handoff.items() if value is not None}
+    return None
+
+
 def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
     resolve = _request_json(
         method="GET",
@@ -138,11 +179,15 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
 
     resolve_provider = _first_provider(resolve.get("json"))
     modes_provider, byok_mode = _first_credential_mode(credential_modes.get("json"))
+    resolve_handoff = _resolve_handoff(resolve.get("json"))
 
     resolve_ok = (
         resolve.get("status") == 200
         and isinstance(resolve_provider, dict)
-        and resolve_provider.get("available_for_execute") is True
+        and (
+            resolve_provider.get("available_for_execute") is True
+            or isinstance(resolve_handoff, dict)
+        )
     )
     credential_modes_ok = (
         credential_modes.get("status") == 200
@@ -161,8 +206,12 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
             "ok": resolve_ok,
             "status": resolve.get("status"),
             "error": None if resolve_ok else "crm_capability_unavailable",
-            "payload_check": None if resolve_ok else "missing_salesforce_provider_or_execute_hint",
-            "payload": resolve.get("json"),
+            "payload_check": None if resolve_ok else "missing_salesforce_provider_or_resolve_handoff",
+            "payload": {
+                "provider": resolve_provider,
+                "resolve_handoff": resolve_handoff,
+                "response": resolve.get("json"),
+            },
         },
         {
             "check": "crm_record_search_credential_modes_surface",
@@ -181,6 +230,7 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
             "payload": {
                 "resolve_configured": resolve_configured,
                 "credential_mode_configured": mode_configured,
+                "resolve_handoff": resolve_handoff,
             },
         },
     ]
@@ -188,6 +238,7 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
     return {
         "configured": configured,
         "available_for_execute": bool(resolve_provider.get("available_for_execute")) if isinstance(resolve_provider, dict) else False,
+        "resolve_handoff": resolve_handoff,
         "resolve": resolve,
         "credential_modes": credential_modes,
         "results": results,
@@ -424,6 +475,7 @@ def main() -> int:
             "preflight": {
                 "configured": preflight["configured"],
                 "available_for_execute": preflight["available_for_execute"],
+                "resolve_handoff": preflight["resolve_handoff"],
                 "resolve": preflight["resolve"],
                 "credential_modes": preflight["credential_modes"],
             },
@@ -633,6 +685,7 @@ def main() -> int:
     artifact["preflight"] = {
         "configured": preflight["configured"],
         "available_for_execute": preflight["available_for_execute"],
+        "resolve_handoff": preflight["resolve_handoff"],
         "resolve": preflight["resolve"],
         "credential_modes": preflight["credential_modes"],
     }

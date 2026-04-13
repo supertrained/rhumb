@@ -18,6 +18,15 @@ spec.loader.exec_module(salesforce_crm_read_dogfood)
 UNCONFIGURED_PREFLIGHT = {
     "configured": False,
     "available_for_execute": True,
+    "resolve_handoff": {
+        "source": "execute_hint",
+        "preferred_provider": "salesforce",
+        "preferred_credential_mode": "byok",
+        "selection_reason": "highest_ranked_provider",
+        "setup_hint": "Set RHUMB_CRM_<REF> on the server",
+        "credential_modes_url": "/v1/capabilities/crm.record.search/credential-modes",
+        "configured": False,
+    },
     "resolve": {
         "status": 200,
         "json": {
@@ -28,7 +37,15 @@ UNCONFIGURED_PREFLIGHT = {
                         "available_for_execute": True,
                         "configured": False,
                     }
-                ]
+                ],
+                "execute_hint": {
+                    "preferred_provider": "salesforce",
+                    "preferred_credential_mode": "byok",
+                    "selection_reason": "highest_ranked_provider",
+                    "setup_hint": "Set RHUMB_CRM_<REF> on the server",
+                    "credential_modes_url": "/v1/capabilities/crm.record.search/credential-modes",
+                    "configured": False,
+                },
             }
         },
     },
@@ -98,6 +115,7 @@ def test_run_preflight_reports_unconfigured_bundle_when_surfaces_are_live(monkey
 
     assert preflight["configured"] is False
     assert preflight["available_for_execute"] is True
+    assert preflight["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
     assert [item["check"] for item in preflight["results"]] == [
         "crm_record_search_resolve_surface",
         "crm_record_search_credential_modes_surface",
@@ -107,6 +125,28 @@ def test_run_preflight_reports_unconfigured_bundle_when_surfaces_are_live(monkey
     assert preflight["results"][1]["ok"] is True
     assert preflight["results"][2]["ok"] is False
     assert preflight["results"][2]["error"] == "crm_bundle_unconfigured"
+    assert preflight["results"][2]["payload"]["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
+
+
+def test_run_preflight_accepts_execute_handoff_when_provider_not_execute_ready(monkeypatch) -> None:
+    resolve_response = json.loads(json.dumps(UNCONFIGURED_PREFLIGHT["resolve"]))
+    resolve_response["json"]["data"]["providers"][0]["available_for_execute"] = False
+    responses = [
+        resolve_response,
+        UNCONFIGURED_PREFLIGHT["credential_modes"],
+    ]
+
+    def fake_request_json(**_: object) -> dict[str, object]:
+        return responses.pop(0)
+
+    monkeypatch.setattr(salesforce_crm_read_dogfood, "_request_json", fake_request_json)
+
+    preflight = salesforce_crm_read_dogfood._run_preflight(root="https://api.rhumb.dev", timeout=5.0)
+
+    assert preflight["available_for_execute"] is False
+    assert preflight["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
+    assert preflight["results"][0]["ok"] is True
+    assert preflight["results"][0]["payload_check"] is None
 
 
 def test_main_preflight_only_writes_blocker_artifact_without_record_id(monkeypatch, tmp_path) -> None:
@@ -130,6 +170,7 @@ def test_main_preflight_only_writes_blocker_artifact_without_record_id(monkeypat
     assert artifact["mode"] == "preflight_only"
     assert artifact["record_id"] is None
     assert artifact["preflight"]["configured"] is False
+    assert artifact["preflight"]["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
     assert artifact["results"][2]["error"] == "crm_bundle_unconfigured"
 
 
