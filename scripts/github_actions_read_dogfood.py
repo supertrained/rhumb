@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live hosted proof bundle for the AUD-18 Vercel deployment read-first rail."""
+"""Live hosted proof bundle for the AUD-18 GitHub Actions workflow-run read-first rail."""
 
 from __future__ import annotations
 
@@ -17,13 +17,12 @@ from typing import Any, Callable, Optional, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS_DIR = ROOT / "artifacts"
 DEFAULT_BASE_URL = "https://api.rhumb.dev"
-DEFAULT_DEPLOYMENT_REF = "dep_rhumb"
-DEFAULT_BAD_DEPLOYMENT_REF = "dep_missing"
-DEFAULT_ALLOWED_PROJECT_ID = "prj_xkjVLZiODE5z9WVa9mNyMnNroJBf"
-DEFAULT_ALLOWED_DEPLOYMENT_ID = "dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63"
-DEFAULT_DENIED_DEPLOYMENT_ID = "dpl_3evXfwPoNSewbLVThSTGhdPg92pV"
-DEFAULT_ALLOWED_TARGET = "production"
-DEFAULT_DENIED_TARGET = "preview"
+DEFAULT_ACTIONS_REF = "gh_cli"
+DEFAULT_BAD_ACTIONS_REF = "gh_missing"
+DEFAULT_ALLOWED_REPOSITORY = "cli/cli"
+DEFAULT_DENIED_REPOSITORY = "vercel/next.js"
+DEFAULT_RUN_ID = 24204222943
+DEFAULT_NOT_FOUND_RUN_ID = 99999999999
 DEFAULT_TIMEOUT = 60.0
 
 
@@ -96,7 +95,7 @@ def _first_provider(payload: Any) -> dict[str, Any] | None:
     if not isinstance(providers, list):
         return None
     for provider in providers:
-        if isinstance(provider, dict) and provider.get("service_slug") == "vercel":
+        if isinstance(provider, dict) and provider.get("service_slug") == "github":
             return provider
     return None
 
@@ -109,7 +108,7 @@ def _first_credential_mode(payload: Any) -> tuple[dict[str, Any] | None, dict[st
     if not isinstance(providers, list):
         return None, None
     for provider in providers:
-        if not isinstance(provider, dict) or provider.get("service_slug") != "vercel":
+        if not isinstance(provider, dict) or provider.get("service_slug") != "github":
             continue
         modes = provider.get("modes")
         if not isinstance(modes, list):
@@ -185,14 +184,14 @@ def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
 def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
     resolve = _request_json(
         method="GET",
-        url=f"{root}/v1/capabilities/deployment.list/resolve",
+        url=f"{root}/v1/capabilities/workflow_run.list/resolve",
         headers={},
         payload=None,
         timeout=timeout,
     )
     credential_modes = _request_json(
         method="GET",
-        url=f"{root}/v1/capabilities/deployment.list/credential-modes",
+        url=f"{root}/v1/capabilities/workflow_run.list/credential-modes",
         headers={},
         payload=None,
         timeout=timeout,
@@ -220,11 +219,11 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
 
     results = [
         {
-            "check": "deployment_list_resolve_surface",
+            "check": "workflow_run_list_resolve_surface",
             "ok": resolve_ok,
             "status": resolve.get("status"),
-            "error": None if resolve_ok else "deployment_capability_unavailable",
-            "payload_check": None if resolve_ok else "missing_vercel_provider_or_resolve_handoff",
+            "error": None if resolve_ok else "actions_capability_unavailable",
+            "payload_check": None if resolve_ok else "missing_github_provider_or_resolve_handoff",
             "payload": {
                 "provider": resolve_provider,
                 "resolve_handoff": resolve_handoff,
@@ -232,18 +231,18 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
             },
         },
         {
-            "check": "deployment_list_credential_modes_surface",
+            "check": "workflow_run_list_credential_modes_surface",
             "ok": credential_modes_ok,
             "status": credential_modes.get("status"),
-            "error": None if credential_modes_ok else "deployment_credential_modes_unavailable",
-            "payload_check": None if credential_modes_ok else "missing_vercel_byok_mode",
+            "error": None if credential_modes_ok else "actions_credential_modes_unavailable",
+            "payload_check": None if credential_modes_ok else "missing_github_byok_mode",
             "payload": credential_modes.get("json"),
         },
         {
-            "check": "deployment_bundle_configured",
+            "check": "actions_bundle_configured",
             "ok": configured,
             "status": 200 if resolve.get("status") == 200 and credential_modes.get("status") == 200 else None,
-            "error": None if configured else "deployment_bundle_unconfigured",
+            "error": None if configured else "actions_bundle_unconfigured",
             "payload_check": None if configured else "configured_false",
             "payload": {
                 "resolve_configured": resolve_configured,
@@ -263,37 +262,35 @@ def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
     }
 
 
-def _make_list_success_check(*, project_id: str, target: str) -> PayloadCheck:
+def _make_list_success_check(*, repository: str) -> PayloadCheck:
     def _check(payload: Any) -> tuple[bool, str | None]:
         data = _extract_data(payload)
         if not isinstance(data, dict):
             return False, "missing_data"
-        deployments = data.get("deployments")
-        if not isinstance(deployments, list) or not deployments:
-            return False, "expected_non_empty_deployments"
-        first = deployments[0] if isinstance(deployments[0], dict) else None
+        runs = data.get("workflow_runs")
+        if not isinstance(runs, list) or not runs:
+            return False, "expected_non_empty_workflow_runs"
+        first = runs[0] if isinstance(runs[0], dict) else None
         if not isinstance(first, dict):
-            return False, "first_deployment_missing"
-        if first.get("project_id") != project_id:
-            return False, f"unexpected_project_id:{first.get('project_id')}"
-        if first.get("target") != target:
-            return False, f"unexpected_target:{first.get('target')}"
+            return False, "first_workflow_run_missing"
+        if first.get("repository") != repository:
+            return False, f"unexpected_repository:{first.get('repository')}"
+        if not isinstance(first.get("run_id"), int):
+            return False, "first_run_id_missing"
         return True, None
 
     return _check
 
 
-def _make_get_success_check(*, deployment_id: str, project_id: str, target: str) -> PayloadCheck:
+def _make_get_success_check(*, repository: str, run_id: int) -> PayloadCheck:
     def _check(payload: Any) -> tuple[bool, str | None]:
         data = _extract_data(payload)
         if not isinstance(data, dict):
             return False, "missing_data"
-        if data.get("deployment_id") != deployment_id:
-            return False, f"unexpected_deployment_id:{data.get('deployment_id')}"
-        if data.get("project_id") != project_id:
-            return False, f"unexpected_project_id:{data.get('project_id')}"
-        if data.get("target") != target:
-            return False, f"unexpected_target:{data.get('target')}"
+        if data.get("repository") != repository:
+            return False, f"unexpected_repository:{data.get('repository')}"
+        if data.get("run_id") != run_id:
+            return False, f"unexpected_run_id:{data.get('run_id')}"
         return True, None
 
     return _check
@@ -337,17 +334,16 @@ def _check_result(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the hosted Vercel deployment read-first proof bundle")
+    parser = argparse.ArgumentParser(description="Run the hosted GitHub Actions workflow-run read-first proof bundle")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
-    parser.add_argument("--deployment-ref", default=DEFAULT_DEPLOYMENT_REF)
-    parser.add_argument("--bad-deployment-ref", default=DEFAULT_BAD_DEPLOYMENT_REF)
+    parser.add_argument("--actions-ref", default=DEFAULT_ACTIONS_REF)
+    parser.add_argument("--bad-actions-ref", default=DEFAULT_BAD_ACTIONS_REF)
     parser.add_argument("--preflight-only", action="store_true")
-    parser.add_argument("--project-id", default=DEFAULT_ALLOWED_PROJECT_ID)
-    parser.add_argument("--deployment-id", default=DEFAULT_ALLOWED_DEPLOYMENT_ID)
-    parser.add_argument("--denied-deployment-id", default=DEFAULT_DENIED_DEPLOYMENT_ID)
-    parser.add_argument("--allowed-target", default=DEFAULT_ALLOWED_TARGET)
-    parser.add_argument("--denied-target", default=DEFAULT_DENIED_TARGET)
-    parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument("--repository", default=DEFAULT_ALLOWED_REPOSITORY)
+    parser.add_argument("--denied-repository", default=DEFAULT_DENIED_REPOSITORY)
+    parser.add_argument("--run-id", type=int, default=DEFAULT_RUN_ID)
+    parser.add_argument("--not-found-run-id", type=int, default=DEFAULT_NOT_FOUND_RUN_ID)
+    parser.add_argument("--limit", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument("--api-key")
     parser.add_argument("--json-out")
@@ -356,7 +352,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _write_artifact(*, args: argparse.Namespace, artifact: dict[str, Any], ok: bool, results: list[dict[str, Any]]) -> int:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-vercel-hosted-proof-{_now_slug()}.json"
+    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-github-actions-hosted-proof-{_now_slug()}.json"
     artifact_path.write_text(json.dumps(artifact, indent=2))
     preflight = artifact.get("preflight") if isinstance(artifact.get("preflight"), dict) else {}
     resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None
@@ -392,13 +388,12 @@ def main() -> int:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "mode": "preflight_only" if args.preflight_only else "blocked_preflight",
             "base_url": root,
-            "deployment_ref": args.deployment_ref,
-            "bad_deployment_ref": args.bad_deployment_ref,
-            "project_id": args.project_id,
-            "deployment_id": args.deployment_id,
-            "denied_deployment_id": args.denied_deployment_id,
-            "allowed_target": args.allowed_target,
-            "denied_target": args.denied_target,
+            "actions_ref": args.actions_ref,
+            "bad_actions_ref": args.bad_actions_ref,
+            "repository": args.repository,
+            "denied_repository": args.denied_repository,
+            "run_id": args.run_id,
+            "not_found_run_id": args.not_found_run_id,
             "api_key_hint": _mask(args.api_key or os.environ.get("RHUMB_API_KEY")),
             "preflight": {
                 "configured": preflight["configured"],
@@ -422,71 +417,67 @@ def main() -> int:
 
     checks = [
         (
-            "deployment_list",
-            f"{root}/v1/capabilities/deployment.list/execute",
+            "workflow_run_list",
+            f"{root}/v1/capabilities/workflow_run.list/execute",
             {
-                "deployment_ref": args.deployment_ref,
-                "project_id": args.project_id,
-                "target": args.allowed_target,
+                "actions_ref": args.actions_ref,
+                "repository": args.repository,
                 "limit": args.limit,
             },
             200,
             None,
-            _make_list_success_check(project_id=args.project_id, target=args.allowed_target),
+            _make_list_success_check(repository=args.repository),
             True,
         ),
         (
-            "deployment_get",
-            f"{root}/v1/capabilities/deployment.get/execute",
+            "workflow_run_get",
+            f"{root}/v1/capabilities/workflow_run.get/execute",
             {
-                "deployment_ref": args.deployment_ref,
-                "deployment_id": args.deployment_id,
+                "actions_ref": args.actions_ref,
+                "repository": args.repository,
+                "run_id": args.run_id,
             },
             200,
             None,
-            _make_get_success_check(
-                deployment_id=args.deployment_id,
-                project_id=args.project_id,
-                target=args.allowed_target,
-            ),
+            _make_get_success_check(repository=args.repository, run_id=args.run_id),
             True,
         ),
         (
-            "bad_deployment_ref_denial",
-            f"{root}/v1/capabilities/deployment.list/execute",
+            "bad_actions_ref_denial",
+            f"{root}/v1/capabilities/workflow_run.list/execute",
             {
-                "deployment_ref": args.bad_deployment_ref,
-                "project_id": args.project_id,
+                "actions_ref": args.bad_actions_ref,
+                "repository": args.repository,
                 "limit": 1,
             },
             400,
-            "deployment_ref_invalid",
+            "actions_ref_invalid",
             None,
             False,
         ),
         (
-            "out_of_scope_deployment_denial",
-            f"{root}/v1/capabilities/deployment.get/execute",
+            "out_of_scope_repository_denial",
+            f"{root}/v1/capabilities/workflow_run.list/execute",
             {
-                "deployment_ref": args.deployment_ref,
-                "deployment_id": args.denied_deployment_id,
-            },
-            403,
-            "deployment_scope_denied",
-            None,
-            False,
-        ),
-        (
-            "out_of_scope_target_denial",
-            f"{root}/v1/capabilities/deployment.list/execute",
-            {
-                "deployment_ref": args.deployment_ref,
-                "project_id": args.project_id,
-                "target": args.denied_target,
+                "actions_ref": args.actions_ref,
+                "repository": args.denied_repository,
                 "limit": 1,
             },
             403,
-            "deployment_target_scope_denied",
+            "workflow_run_scope_denied",
+            None,
+            False,
+        ),
+        (
+            "workflow_run_not_found_denial",
+            f"{root}/v1/capabilities/workflow_run.get/execute",
+            {
+                "actions_ref": args.actions_ref,
+                "repository": args.repository,
+                "run_id": args.not_found_run_id,
+            },
+            404,
+            "workflow_run_not_found",
             None,
             False,
         ),
@@ -520,13 +511,12 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mode": "full_proof",
         "base_url": root,
-        "deployment_ref": args.deployment_ref,
-        "bad_deployment_ref": args.bad_deployment_ref,
-        "project_id": args.project_id,
-        "deployment_id": args.deployment_id,
-        "denied_deployment_id": args.denied_deployment_id,
-        "allowed_target": args.allowed_target,
-        "denied_target": args.denied_target,
+        "actions_ref": args.actions_ref,
+        "bad_actions_ref": args.bad_actions_ref,
+        "repository": args.repository,
+        "denied_repository": args.denied_repository,
+        "run_id": args.run_id,
+        "not_found_run_id": args.not_found_run_id,
         "api_key_hint": _mask(api_key),
         "preflight": {
             "configured": preflight["configured"],
