@@ -291,6 +291,89 @@ async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(ap
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return SAMPLE_CAP
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                },
+                {
+                    "service_slug": "gmail",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "oauth",
+                    "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {"service_slug": "resend", "aggregate_recommendation_score": 8.79},
+                {"service_slug": "gmail", "aggregate_recommendation_score": 7.2},
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "gmail", "name": "Gmail"},
+            ]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/resolve",
+                params={"credential_mode": "byok"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend"]
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+
+    recovery_hint = data["recovery_hint"]
+    assert recovery_hint["reason"] == "no_execute_ready_providers"
+    assert recovery_hint["requested_credential_mode"] == "byok"
+    assert recovery_hint["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
+    assert recovery_hint["supported_provider_slugs"] == ["resend", "gmail"]
+    assert recovery_hint["supported_credential_modes"] == ["agent_vault", "byok"]
+    assert recovery_hint["not_execute_ready_provider_slugs"] == ["resend"]
+    assert recovery_hint["alternate_execute_hint"] == {
+        "preferred_provider": "gmail",
+        "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+        "estimated_cost_usd": None,
+        "auth_method": "oauth",
+        "credential_modes": ["agent_vault"],
+        "configured": False,
+        "credential_modes_url": "/v2/capabilities/email.send/credential-modes",
+        "preferred_credential_mode": "agent_vault",
+        "setup_hint": "Complete the ceremony at GET /v1/services/gmail/ceremony, then pass token via X-Agent-Token header",
+        "setup_url": "/v1/services/gmail/ceremony",
+        "selection_reason": "higher_ranked_provider_not_execute_ready",
+        "skipped_provider_slugs": ["resend"],
+        "not_execute_ready_provider_slugs": ["resend"],
+    }
+
+
+@pytest.mark.anyio
 async def test_v2_credential_modes_wraps_metadata(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
