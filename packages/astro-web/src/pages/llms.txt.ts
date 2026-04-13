@@ -69,7 +69,7 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 - GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of capability definitions
 - Each capability: { id, domain, action, description, provider_count, top_provider }
 - Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
-- Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, and follow recovery handoffs when a filtered route dead-ends
+- Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, follow recovery handoffs when a filtered route dead-ends, and get search suggestions when the capability ID is wrong
 
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract

@@ -119,7 +119,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability into ranked providers, execute hints, and recovery handoffs when the requested rail is not ready.",
+    desc: "Resolve a capability into ranked providers, execute hints, recovery handoffs when the requested rail is not ready, and search suggestions when the capability ID is wrong.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
     response: `Common success response
 {
