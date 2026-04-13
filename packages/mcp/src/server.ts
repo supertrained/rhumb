@@ -157,7 +157,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- execute_capability ------------------------------------------------
   server.tool(
     "execute_capability",
-    "Call a Capability through Rhumb Resolve. Typical workflow: discover_capabilities → resolve_capability → estimate_capability → execute_capability. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byo (BYOK). Other explicit modes: rhumb_managed — zero-config through Rhumb Resolve when available; byo — BYOK via agent_token + method + path; agent_vault — use a key from credential_ceremony via agent_token + method + path. Alternative: pass x_payment for a per-call USDC payment with no account needed. Use check_credentials to see which modes are available.",
+    "Call a Capability through Rhumb Resolve. Typical workflow: discover_capabilities → resolve_capability → estimate_capability → execute_capability. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byok. Legacy 'byo' is still accepted as an input alias. Other explicit modes: rhumb_managed — zero-config through Rhumb Resolve when available; byok — BYOK via agent_token + method + path; agent_vault — use a key from credential_ceremony via agent_token + method + path. Alternative: pass x_payment for a per-call USDC payment with no account needed. Use check_credentials to see which modes are available.",
     {
       capability_id: z.string().describe(ExecuteCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(ExecuteCapabilityInputSchema.properties.provider.description),
@@ -187,7 +187,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- estimate_capability -----------------------------------------------
   server.tool(
     "estimate_capability",
-    "Get the cost of a Capability call WITHOUT making the call. Returns cost in USD, circuit health, and endpoint pattern. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byo (BYOK). Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
+    "Get the cost of a Capability call WITHOUT making the call. Returns cost in USD, circuit health, and endpoint pattern. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byok. Legacy 'byo' is still accepted as an input alias. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
     {
       capability_id: z.string().describe(EstimateCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(EstimateCapabilityInputSchema.properties.provider.description),

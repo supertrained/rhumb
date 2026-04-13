@@ -5,6 +5,8 @@ import {
   GetAlternativesInputSchema,
   GetFailureModesInputSchema,
   ResolveCapabilityInputSchema,
+  ExecuteCapabilityInputSchema,
+  EstimateCapabilityInputSchema,
   TOOL_SCHEMAS,
   TOOL_NAMES,
   type FindServiceInput,
@@ -53,6 +55,21 @@ describe("types.contract", () => {
       "get_receipt"
     ]);
     expect(TOOL_NAMES.length).toBe(21);
+  });
+
+  it("execute and estimate schemas use canonical public byok vocabulary", () => {
+    expect(ExecuteCapabilityInputSchema.properties.method.description).toContain("byok");
+    expect(ExecuteCapabilityInputSchema.properties.method.description).not.toContain("Required for byo (BYOK)");
+    expect(ExecuteCapabilityInputSchema.properties.path.description).toContain("byok");
+    expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).toContain("'byok'");
+    expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).toContain("legacy 'byo' alias still accepted");
+    expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).toContain("fall back to byok");
+    expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).not.toMatch(/fall back to byo(?:[^k]|$)/);
+    expect(ExecuteCapabilityInputSchema.properties.agent_token.description).toContain("byok or agent_vault");
+    expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("'byok'");
+    expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("legacy 'byo' alias still accepted");
+    expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("fall back to byok");
+    expect(EstimateCapabilityInputSchema.properties.credential_mode.description).not.toMatch(/fall back to byo(?:[^k]|$)/);
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {
