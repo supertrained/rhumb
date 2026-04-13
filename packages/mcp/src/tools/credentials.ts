@@ -25,7 +25,7 @@ export async function handleCheckCredentials(
 
   const modes = [
     {
-      mode: "byo",
+      mode: "byok",
       available: true,
       detail: "BYOK. Set RHUMB_API_KEY env var and pass credentials via the call.",
     },
