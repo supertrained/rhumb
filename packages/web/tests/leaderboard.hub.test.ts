@@ -75,7 +75,7 @@ describe("leaderboard hub page", () => {
     const mod = await import("../app/leaderboard/page");
     const meta = mod.metadata;
     expect(meta.title).toBe("Leaderboard | Rhumb");
-    expect(meta.description).toContain("11 categories");
+    expect(meta.description).toContain("90+ categories");
   });
 
   it("metadata has canonical URL /leaderboard", async () => {
@@ -124,6 +124,9 @@ describe("leaderboard hub page", () => {
     const html = await renderHub();
     expect(html).toContain("<h1");
     expect(html).toContain("Leaderboard");
+    expect(html).toContain('href="/trust"');
+    expect(html).toContain('href="/methodology"');
+    expect(html).toContain('href="/providers#dispute-a-score"');
   });
 
   it("renders category names (capitalized display names)", async () => {

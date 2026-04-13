@@ -124,6 +124,36 @@ export default async function LeaderboardHubPage(): Promise<JSX.Element> {
             on execution reliability and access readiness for autonomous AI agents.
             Each service is rated on 20 dimensions using Rhumb&apos;s Agent-Native Score (AN&nbsp;Score).
           </p>
+
+          <div className="mt-8 max-w-3xl rounded-2xl border border-amber/20 bg-surface/80 p-5 backdrop-blur-sm">
+            <p className="text-xs font-mono text-amber uppercase tracking-widest">
+              Before you route from these rankings
+            </p>
+            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+              Check how the score is earned, what trust posture Rhumb is claiming, and where to
+              challenge a provider score when something looks off.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/trust"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Trust →
+              </Link>
+              <Link
+                href="/methodology"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Methodology →
+              </Link>
+              <Link
+                href="/providers#dispute-a-score"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Dispute a score →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

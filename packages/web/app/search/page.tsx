@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -46,6 +46,36 @@ export default async function SearchPage({ searchParams }: Props): Promise<JSX.E
           <Suspense>
             <Search />
           </Suspense>
+
+          <div className="mt-8 rounded-2xl border border-amber/20 bg-surface/80 p-5 backdrop-blur-sm">
+            <p className="text-xs font-mono text-amber uppercase tracking-widest">
+              Before you wire a result into your flow
+            </p>
+            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+              Sanity-check the trust posture, scoring methodology, and dispute path before you turn
+              a search result into routing logic or vendor selection.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/trust"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Trust →
+              </Link>
+              <Link
+                href="/methodology"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Methodology →
+              </Link>
+              <Link
+                href="/providers#dispute-a-score"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Dispute a score →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
