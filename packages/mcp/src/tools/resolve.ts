@@ -20,7 +20,9 @@ export async function handleResolveCapability(
         capability: input.capability,
         providers: [],
         fallbackChain: [],
-        relatedBundles: []
+        relatedBundles: [],
+        executeHint: null,
+        recoveryHint: null
       };
     }
 
@@ -30,7 +32,9 @@ export async function handleResolveCapability(
       capability: input.capability,
       providers: [],
       fallbackChain: [],
-      relatedBundles: []
+      relatedBundles: [],
+      executeHint: null,
+      recoveryHint: null
     };
   }
 }

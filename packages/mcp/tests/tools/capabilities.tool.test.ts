@@ -44,7 +44,11 @@ const mockResolveResult = {
       authMethod: "api_key",
       endpointPattern: "POST /emails",
       recommendation: "preferred",
-      recommendationReason: "High AN score (7.8), 100 free calls/month"
+      recommendationReason: "High AN score (7.8), 100 free calls/month",
+      credentialModes: ["byok"],
+      configured: false,
+      availableForExecute: false,
+      circuitState: "open"
     },
     {
       serviceSlug: "sendgrid",
@@ -55,11 +59,33 @@ const mockResolveResult = {
       authMethod: "api_key",
       endpointPattern: "POST /v3/mail/send",
       recommendation: "available",
-      recommendationReason: "Solid AN score (6.4), $0.001/call (100 free)"
+      recommendationReason: "Solid AN score (6.4), $0.001/call (100 free)",
+      credentialModes: ["byok"],
+      configured: true,
+      availableForExecute: true,
+      circuitState: "closed"
     }
   ],
   fallbackChain: ["resend", "sendgrid", "amazon-ses"],
-  relatedBundles: ["email.compose_and_deliver"]
+  relatedBundles: ["email.compose_and_deliver"],
+  executeHint: {
+    preferredProvider: "sendgrid",
+    selectionReason: "higher_ranked_provider_unavailable",
+    skippedProviderSlugs: ["resend"],
+    unavailableProviderSlugs: ["resend"],
+    notExecuteReadyProviderSlugs: [],
+    endpointPattern: "POST /v3/mail/send",
+    estimatedCostUsd: 0.001,
+    authMethod: "api_key",
+    credentialModes: ["byok"],
+    configured: true,
+    credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+    preferredCredentialMode: "byok",
+    fallbackProviders: ["amazon-ses"],
+    setupHint: null,
+    setupUrl: null
+  },
+  recoveryHint: null
 };
 
 function createMockClient(overrides: Partial<RhumbApiClient> = {}): RhumbApiClient {
@@ -183,6 +209,41 @@ describe("resolve_capability", () => {
     expect(result.relatedBundles).toContain("email.compose_and_deliver");
   });
 
+  it("includes execute hint machine-readable handoff fields", async () => {
+    const client = createMockClient();
+    const result = await handleResolveCapability({ capability: "email.send" }, client);
+
+    expect(result.executeHint?.preferredProvider).toBe("sendgrid");
+    expect(result.executeHint?.selectionReason).toBe("higher_ranked_provider_unavailable");
+    expect(result.executeHint?.unavailableProviderSlugs).toEqual(["resend"]);
+    expect(result.executeHint?.fallbackProviders).toEqual(["amazon-ses"]);
+  });
+
+  it("includes recovery hint when resolve has no execute-ready providers", async () => {
+    const client = createMockClient({
+      resolveCapability: vi.fn().mockResolvedValue({
+        ...mockResolveResult,
+        fallbackChain: [],
+        executeHint: null,
+        recoveryHint: {
+          reason: "no_execute_ready_providers",
+          requestedCredentialMode: "byok",
+          credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+          supportedProviderSlugs: ["resend", "sendgrid"],
+          supportedCredentialModes: ["byok", "agent_vault"],
+          unavailableProviderSlugs: ["resend"],
+          notExecuteReadyProviderSlugs: ["sendgrid"]
+        }
+      })
+    });
+    const result = await handleResolveCapability({ capability: "email.send" }, client);
+
+    expect(result.executeHint).toBeNull();
+    expect(result.recoveryHint?.reason).toBe("no_execute_ready_providers");
+    expect(result.recoveryHint?.unavailableProviderSlugs).toEqual(["resend"]);
+    expect(result.recoveryHint?.notExecuteReadyProviderSlugs).toEqual(["sendgrid"]);
+  });
+
   it("returns empty providers when capability not found", async () => {
     const client = createMockClient({
       resolveCapability: vi.fn().mockResolvedValue(null)
@@ -192,6 +253,8 @@ describe("resolve_capability", () => {
     expect(result.capability).toBe("nonexistent.action");
     expect(result.providers).toHaveLength(0);
     expect(result.fallbackChain).toHaveLength(0);
+    expect(result.executeHint).toBeNull();
+    expect(result.recoveryHint).toBeNull();
   });
 
   it("returns empty providers on API error", async () => {
@@ -201,6 +264,8 @@ describe("resolve_capability", () => {
     const result = await handleResolveCapability({ capability: "email.send" }, client);
 
     expect(result.providers).toHaveLength(0);
+    expect(result.executeHint).toBeNull();
+    expect(result.recoveryHint).toBeNull();
   });
 
   it("includes cost and auth info per provider", async () => {

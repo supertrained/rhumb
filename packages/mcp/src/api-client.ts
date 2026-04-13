@@ -120,21 +120,57 @@ export interface CapabilitySearchItem {
   topProvider: { slug: string; anScore: number | null; tierLabel: string } | null;
 }
 
+export interface CapabilityResolveProvider {
+  serviceSlug: string;
+  serviceName: string;
+  anScore: number | null;
+  costPerCall: number | null;
+  freeTierCalls: number | null;
+  authMethod: string;
+  endpointPattern: string;
+  recommendation: string;
+  recommendationReason: string;
+  credentialModes: string[];
+  configured: boolean | null;
+  availableForExecute: boolean | null;
+  circuitState: string | null;
+}
+
+export interface CapabilityExecuteHint {
+  preferredProvider: string;
+  selectionReason: string | null;
+  skippedProviderSlugs: string[];
+  unavailableProviderSlugs: string[];
+  notExecuteReadyProviderSlugs: string[];
+  endpointPattern: string | null;
+  estimatedCostUsd: number | null;
+  authMethod: string;
+  credentialModes: string[];
+  configured: boolean;
+  credentialModesUrl: string;
+  preferredCredentialMode: string | null;
+  fallbackProviders: string[];
+  setupHint: string | null;
+  setupUrl: string | null;
+}
+
+export interface CapabilityRecoveryHint {
+  reason: string;
+  requestedCredentialMode: string | null;
+  credentialModesUrl: string;
+  supportedProviderSlugs: string[];
+  supportedCredentialModes: string[];
+  unavailableProviderSlugs: string[];
+  notExecuteReadyProviderSlugs: string[];
+}
+
 export interface CapabilityResolveResult {
   capability: string;
-  providers: Array<{
-    serviceSlug: string;
-    serviceName: string;
-    anScore: number | null;
-    costPerCall: number | null;
-    freeTierCalls: number | null;
-    authMethod: string;
-    endpointPattern: string;
-    recommendation: string;
-    recommendationReason: string;
-  }>;
+  providers: CapabilityResolveProvider[];
   fallbackChain: string[];
   relatedBundles: string[];
+  executeHint: CapabilityExecuteHint | null;
+  recoveryHint: CapabilityRecoveryHint | null;
 }
 
 export interface CapabilityExecuteResult {
@@ -317,6 +353,16 @@ function asNumber(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+function asBoolean(v: unknown): boolean | null {
+  return typeof v === "boolean" ? v : null;
+}
+
+function asStringArray(v: unknown): string[] {
+  return Array.isArray(v)
+    ? v.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -497,7 +543,11 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
           authMethod: asString(p.auth_method) ?? "unknown",
           endpointPattern: asString(p.endpoint_pattern) ?? "",
           recommendation: asString(p.recommendation) ?? "available",
-          recommendationReason: asString(p.recommendation_reason) ?? ""
+          recommendationReason: asString(p.recommendation_reason) ?? "",
+          credentialModes: asStringArray(p.credential_modes),
+          configured: asBoolean(p.configured),
+          availableForExecute: asBoolean(p.available_for_execute),
+          circuitState: asString(p.circuit_state)
         }));
 
       const fallbackChain = Array.isArray(data.fallback_chain)
@@ -508,11 +558,47 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         ? (data.related_bundles as unknown[]).filter((s): s is string => typeof s === "string")
         : [];
 
+      const rawExecuteHint = isRecord(data.execute_hint) ? data.execute_hint : null;
+      const executeHint = rawExecuteHint
+        ? {
+            preferredProvider: asString(rawExecuteHint.preferred_provider) ?? "unknown",
+            selectionReason: asString(rawExecuteHint.selection_reason),
+            skippedProviderSlugs: asStringArray(rawExecuteHint.skipped_provider_slugs),
+            unavailableProviderSlugs: asStringArray(rawExecuteHint.unavailable_provider_slugs),
+            notExecuteReadyProviderSlugs: asStringArray(rawExecuteHint.not_execute_ready_provider_slugs),
+            endpointPattern: asString(rawExecuteHint.endpoint_pattern),
+            estimatedCostUsd: asNumber(rawExecuteHint.estimated_cost_usd),
+            authMethod: asString(rawExecuteHint.auth_method) ?? "unknown",
+            credentialModes: asStringArray(rawExecuteHint.credential_modes),
+            configured: rawExecuteHint.configured === true,
+            credentialModesUrl: asString(rawExecuteHint.credential_modes_url) ?? "",
+            preferredCredentialMode: asString(rawExecuteHint.preferred_credential_mode),
+            fallbackProviders: asStringArray(rawExecuteHint.fallback_providers),
+            setupHint: asString(rawExecuteHint.setup_hint),
+            setupUrl: asString(rawExecuteHint.setup_url)
+          }
+        : null;
+
+      const rawRecoveryHint = isRecord(data.recovery_hint) ? data.recovery_hint : null;
+      const recoveryHint = rawRecoveryHint
+        ? {
+            reason: asString(rawRecoveryHint.reason) ?? "unknown",
+            requestedCredentialMode: asString(rawRecoveryHint.requested_credential_mode),
+            credentialModesUrl: asString(rawRecoveryHint.credential_modes_url) ?? "",
+            supportedProviderSlugs: asStringArray(rawRecoveryHint.supported_provider_slugs),
+            supportedCredentialModes: asStringArray(rawRecoveryHint.supported_credential_modes),
+            unavailableProviderSlugs: asStringArray(rawRecoveryHint.unavailable_provider_slugs),
+            notExecuteReadyProviderSlugs: asStringArray(rawRecoveryHint.not_execute_ready_provider_slugs)
+          }
+        : null;
+
       return {
         capability: asString(data.capability) ?? capabilityId,
         providers,
         fallbackChain,
-        relatedBundles
+        relatedBundles,
+        executeHint,
+        recoveryHint
       };
     },
 

@@ -173,6 +173,38 @@ export type CapabilityProvider = {
   endpointPattern: string;
   recommendation: string;
   recommendationReason: string;
+  credentialModes: string[];
+  configured: boolean | null;
+  availableForExecute: boolean | null;
+  circuitState: string | null;
+};
+
+export type CapabilityExecuteHint = {
+  preferredProvider: string;
+  selectionReason: string | null;
+  skippedProviderSlugs: string[];
+  unavailableProviderSlugs: string[];
+  notExecuteReadyProviderSlugs: string[];
+  endpointPattern: string | null;
+  estimatedCostUsd: number | null;
+  authMethod: string;
+  credentialModes: string[];
+  configured: boolean;
+  credentialModesUrl: string;
+  preferredCredentialMode: string | null;
+  fallbackProviders: string[];
+  setupHint: string | null;
+  setupUrl: string | null;
+};
+
+export type CapabilityRecoveryHint = {
+  reason: string;
+  requestedCredentialMode: string | null;
+  credentialModesUrl: string;
+  supportedProviderSlugs: string[];
+  supportedCredentialModes: string[];
+  unavailableProviderSlugs: string[];
+  notExecuteReadyProviderSlugs: string[];
 };
 
 export type ResolveCapabilityOutput = {
@@ -180,6 +212,8 @@ export type ResolveCapabilityOutput = {
   providers: CapabilityProvider[];
   fallbackChain: string[];
   relatedBundles: string[];
+  executeHint: CapabilityExecuteHint | null;
+  recoveryHint: CapabilityRecoveryHint | null;
 };
 
 // ---------------------------------------------------------------------------

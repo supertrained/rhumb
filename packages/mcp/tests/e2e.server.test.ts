@@ -22,6 +22,7 @@ import type {
   GetScoreOutput,
   GetAlternativesOutput,
   GetFailureModesOutput,
+  ResolveCapabilityOutput,
   ListRecipesOutput,
   GetRecipeOutput,
   RecipeExecuteOutput,
@@ -114,11 +115,33 @@ function createMockApiClient(): RhumbApiClient {
           authMethod: "api_key",
           endpointPattern: "POST /emails",
           recommendation: "preferred",
-          recommendationReason: "High AN score (91), 100 free calls/month"
+          recommendationReason: "High AN score (91), 100 free calls/month",
+          credentialModes: ["byok"],
+          configured: false,
+          availableForExecute: false,
+          circuitState: "open"
         }
       ],
       fallbackChain: ["resend", "sendgrid"],
-      relatedBundles: []
+      relatedBundles: [],
+      executeHint: {
+        preferredProvider: "sendgrid",
+        selectionReason: "higher_ranked_provider_unavailable",
+        skippedProviderSlugs: ["resend"],
+        unavailableProviderSlugs: ["resend"],
+        notExecuteReadyProviderSlugs: [],
+        endpointPattern: "POST /v3/mail/send",
+        estimatedCostUsd: 0.001,
+        authMethod: "api_key",
+        credentialModes: ["byok"],
+        configured: true,
+        credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+        preferredCredentialMode: "byok",
+        fallbackProviders: [],
+        setupHint: null,
+        setupUrl: null
+      },
+      recoveryHint: null
     }),
     executeCapability: vi.fn().mockResolvedValue({
       capabilityId: "email.send",
@@ -477,6 +500,27 @@ describe("e2e: MCP server integration", () => {
       expect(parsed.failures[0].pattern).toBe(
         "SDK timeout on large batch sends"
       );
+    });
+  });
+
+  describe("resolve_capability", () => {
+    it("returns execute hint and degraded-provider context", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "resolve_capability",
+        arguments: { capability: "email.send" },
+      }, CallToolResultSchema);
+
+      const parsed: ResolveCapabilityOutput = JSON.parse(extractText(result));
+
+      expect(parsed.capability).toBe("email.send");
+      expect(parsed.providers[0].availableForExecute).toBe(false);
+      expect(parsed.executeHint?.preferredProvider).toBe("sendgrid");
+      expect(parsed.executeHint?.selectionReason).toBe("higher_ranked_provider_unavailable");
+      expect(parsed.executeHint?.unavailableProviderSlugs).toEqual(["resend"]);
+      expect(parsed.recoveryHint).toBeNull();
     });
   });
 
