@@ -66,7 +66,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/resolve",
-    desc: "Resolve a capability to ranked providers, with routing hints and fallback chain.",
+    desc: "Resolve a capability to ranked providers, with routing hints, credential-mode guidance, and fallback chain.",
     curl: `curl ${BASE_URL}/capabilities/email.send/resolve`,
     response: `{
   "data": {
@@ -85,7 +85,8 @@ const ENDPOINTS = [
       "preferred_provider": "resend",
       "endpoint_pattern": "/emails",
       "estimated_cost_usd": 0.001,
-      "credential_modes": ["rhumb_managed", "byok"]
+      "credential_modes": ["rhumb_managed", "byok"],
+      "preferred_credential_mode": "rhumb_managed"
     }
   },
   "error": null
