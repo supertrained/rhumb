@@ -123,6 +123,184 @@ def _fetch_receipt(*, root: str, headers: dict[str, str], timeout: float, receip
     return _request_json(method="GET", url=url, headers=headers, payload=None, timeout=timeout)
 
 
+def _first_provider(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None
+    for provider in providers:
+        if isinstance(provider, dict) and provider.get("service_slug") == "zendesk":
+            return provider
+    return None
+
+
+def _first_credential_mode(payload: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None, None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None, None
+    for provider in providers:
+        if not isinstance(provider, dict) or provider.get("service_slug") != "zendesk":
+            continue
+        modes = provider.get("modes")
+        if not isinstance(modes, list):
+            return provider, None
+        for mode in modes:
+            if isinstance(mode, dict) and mode.get("mode") == "byok":
+                return provider, mode
+        return provider, None
+    return None, None
+
+
+def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    recovery_hint = data.get("recovery_hint")
+    raw_recovery = recovery_hint if isinstance(recovery_hint, dict) else {}
+    candidates = (
+        ("execute_hint", data.get("execute_hint")),
+        ("alternate_execute_hint", raw_recovery.get("alternate_execute_hint")),
+        ("setup_handoff", raw_recovery.get("setup_handoff")),
+    )
+    for source, candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handoff = {
+            "source": source,
+            "reason": raw_recovery.get("reason") if isinstance(raw_recovery.get("reason"), str) else None,
+            "resolve_url": raw_recovery.get("resolve_url") if isinstance(raw_recovery.get("resolve_url"), str) else None,
+            "preferred_provider": candidate.get("preferred_provider") if isinstance(candidate.get("preferred_provider"), str) else None,
+            "preferred_credential_mode": (
+                candidate.get("preferred_credential_mode")
+                if isinstance(candidate.get("preferred_credential_mode"), str)
+                else None
+            ),
+            "selection_reason": candidate.get("selection_reason") if isinstance(candidate.get("selection_reason"), str) else None,
+            "setup_hint": candidate.get("setup_hint") if isinstance(candidate.get("setup_hint"), str) else None,
+            "setup_url": candidate.get("setup_url") if isinstance(candidate.get("setup_url"), str) else None,
+            "credential_modes_url": (
+                candidate.get("credential_modes_url")
+                if isinstance(candidate.get("credential_modes_url"), str)
+                else raw_recovery.get("credential_modes_url")
+                if isinstance(raw_recovery.get("credential_modes_url"), str)
+                else None
+            ),
+            "endpoint_pattern": candidate.get("endpoint_pattern") if isinstance(candidate.get("endpoint_pattern"), str) else None,
+            "configured": candidate.get("configured") if isinstance(candidate.get("configured"), bool) else None,
+        }
+        return {key: value for key, value in handoff.items() if value is not None}
+    return None
+
+
+def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
+    if not isinstance(handoff, dict) or not handoff:
+        return None
+    parts: list[str] = []
+    if isinstance(handoff.get("source"), str):
+        parts.append(f"source={handoff['source']}")
+    if isinstance(handoff.get("preferred_provider"), str):
+        parts.append(f"provider={handoff['preferred_provider']}")
+    if isinstance(handoff.get("preferred_credential_mode"), str):
+        parts.append(f"mode={handoff['preferred_credential_mode']}")
+    if isinstance(handoff.get("endpoint_pattern"), str):
+        parts.append(f"endpoint={handoff['endpoint_pattern']}")
+    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
+    if isinstance(next_url, str):
+        parts.append(f"next_url={next_url}")
+    if not parts:
+        return None
+    return "Resolve next step: " + ", ".join(parts)
+
+
+def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
+    resolve = _request_json(
+        method="GET",
+        url=f"{root}/v1/capabilities/ticket.search/resolve",
+        headers={},
+        payload=None,
+        timeout=timeout,
+    )
+    credential_modes = _request_json(
+        method="GET",
+        url=f"{root}/v1/capabilities/ticket.search/credential-modes",
+        headers={},
+        payload=None,
+        timeout=timeout,
+    )
+
+    resolve_provider = _first_provider(resolve.get("json"))
+    modes_provider, byok_mode = _first_credential_mode(credential_modes.get("json"))
+    resolve_handoff = _resolve_handoff(resolve.get("json"))
+
+    resolve_ok = (
+        resolve.get("status") == 200
+        and isinstance(resolve_provider, dict)
+        and (
+            resolve_provider.get("available_for_execute") is True
+            or isinstance(resolve_handoff, dict)
+        )
+    )
+    credential_modes_ok = (
+        credential_modes.get("status") == 200
+        and isinstance(modes_provider, dict)
+        and isinstance(byok_mode, dict)
+        and byok_mode.get("available") is True
+    )
+
+    resolve_configured = bool(resolve_provider.get("configured")) if isinstance(resolve_provider, dict) else False
+    mode_configured = bool(byok_mode.get("configured")) if isinstance(byok_mode, dict) else False
+    configured = resolve_configured and mode_configured
+
+    results = [
+        {
+            "check": "ticket_search_resolve_surface",
+            "ok": resolve_ok,
+            "status": resolve.get("status"),
+            "error": None if resolve_ok else "support_capability_unavailable",
+            "payload_check": None if resolve_ok else "missing_zendesk_provider_or_resolve_handoff",
+            "payload": {
+                "provider": resolve_provider,
+                "resolve_handoff": resolve_handoff,
+                "response": resolve.get("json"),
+            },
+        },
+        {
+            "check": "ticket_search_credential_modes_surface",
+            "ok": credential_modes_ok,
+            "status": credential_modes.get("status"),
+            "error": None if credential_modes_ok else "support_credential_modes_unavailable",
+            "payload_check": None if credential_modes_ok else "missing_zendesk_byok_mode",
+            "payload": credential_modes.get("json"),
+        },
+        {
+            "check": "support_bundle_configured",
+            "ok": configured,
+            "status": 200 if resolve.get("status") == 200 and credential_modes.get("status") == 200 else None,
+            "error": None if configured else "support_bundle_unconfigured",
+            "payload_check": None if configured else "configured_false",
+            "payload": {
+                "resolve_configured": resolve_configured,
+                "credential_mode_configured": mode_configured,
+                "resolve_handoff": resolve_handoff,
+            },
+        },
+    ]
+
+    return {
+        "configured": configured,
+        "available_for_execute": bool(resolve_provider.get("available_for_execute")) if isinstance(resolve_provider, dict) else False,
+        "resolve_handoff": resolve_handoff,
+        "resolve": resolve,
+        "credential_modes": credential_modes,
+        "results": results,
+    }
+
+
 def _check_result(
     *,
     name: str,
@@ -154,11 +332,40 @@ def _check_result(
     return result
 
 
+def _write_artifact(
+    *,
+    artifact: dict[str, Any],
+    artifact_path: Path,
+    ok: bool,
+    results: list[dict[str, Any]],
+    resolve_step: str | None,
+) -> int:
+    artifact_path.write_text(json.dumps(artifact, indent=2))
+    print(str(artifact_path))
+    summary = {
+        "ok": ok,
+        "checks": [
+            {
+                "check": item["check"],
+                "status": item["status"],
+                "error": item.get("error"),
+                "payload_check": item.get("payload_check"),
+            }
+            for item in results
+        ],
+    }
+    if isinstance(resolve_step, str):
+        summary["resolve_step"] = resolve_step
+    print(json.dumps(summary, indent=2))
+    return 0 if ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the hosted Zendesk read-first dogfood proof bundle")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--support-ref", default=DEFAULT_SUPPORT_REF)
     parser.add_argument("--bad-support-ref", default=DEFAULT_BAD_SUPPORT_REF)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--search-query", default=DEFAULT_SEARCH_QUERY)
     parser.add_argument("--ticket-id", type=int, default=1)
     parser.add_argument("--comments-ticket-id", type=int)
@@ -172,8 +379,48 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    api_key = _get_api_key(args)
     root = args.base_url.rstrip("/")
+    preflight = _run_preflight(root=root, timeout=args.timeout)
+    results: list[dict[str, Any]] = list(preflight["results"])
+
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-zendesk-hosted-proof-{_now_slug()}.json"
+
+    if args.preflight_only or not preflight["configured"]:
+        ok = all(item["ok"] for item in results)
+        resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None
+        artifact = {
+            "ok": ok,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "mode": "preflight_only" if args.preflight_only else "blocked_preflight",
+            "base_url": root,
+            "support_ref": args.support_ref,
+            "bad_support_ref": args.bad_support_ref,
+            "search_query": args.search_query,
+            "ticket_id": args.ticket_id,
+            "comments_ticket_id": args.comments_ticket_id or args.ticket_id,
+            "denied_ticket_id": args.denied_ticket_id,
+            "api_key_hint": _mask(args.api_key or os.environ.get("RHUMB_API_KEY")),
+            "preflight": {
+                "configured": preflight["configured"],
+                "available_for_execute": preflight["available_for_execute"],
+                "resolve_handoff": preflight["resolve_handoff"],
+                "resolve": preflight["resolve"],
+                "credential_modes": preflight["credential_modes"],
+            },
+            "results": results,
+        }
+        if isinstance(resolve_step, str):
+            artifact["resolve_step"] = resolve_step
+        return _write_artifact(
+            artifact=artifact,
+            artifact_path=artifact_path,
+            ok=ok,
+            results=results,
+            resolve_step=resolve_step,
+        )
+
+    api_key = _get_api_key(args)
     headers = {
         "Content-Type": "application/json",
         "X-Rhumb-Key": api_key,
@@ -276,18 +523,24 @@ def main() -> int:
     artifact = {
         "ok": ok,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "mode": "full_proof",
         "base_url": root,
         "support_ref": args.support_ref,
         "api_key_hint": _mask(api_key),
+        "preflight": {
+            "configured": preflight["configured"],
+            "available_for_execute": preflight["available_for_execute"],
+            "resolve_handoff": preflight["resolve_handoff"],
+        },
         "results": results,
     }
-
-    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-    artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-zendesk-hosted-proof-{_now_slug()}.json"
-    artifact_path.write_text(json.dumps(artifact, indent=2))
-    print(str(artifact_path))
-    print(json.dumps({"ok": ok, "checks": [{"check": item["check"], "status": item["status"], "error": item.get("error")} for item in results]}, indent=2))
-    return 0 if ok else 1
+    return _write_artifact(
+        artifact=artifact,
+        artifact_path=artifact_path,
+        ok=ok,
+        results=results,
+        resolve_step=None,
+    )
 
 
 if __name__ == "__main__":

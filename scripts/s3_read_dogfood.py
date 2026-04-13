@@ -277,6 +277,180 @@ def _fetch_receipt(
     }
 
 
+def _first_provider(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None
+    for provider in providers:
+        if isinstance(provider, dict) and provider.get("service_slug") == "aws-s3":
+            return provider
+    return None
+
+
+def _first_credential_mode(payload: Any) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None, None
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        return None, None
+    for provider in providers:
+        if not isinstance(provider, dict) or provider.get("service_slug") != "aws-s3":
+            continue
+        modes = provider.get("modes")
+        if not isinstance(modes, list):
+            return provider, None
+        for mode in modes:
+            if isinstance(mode, dict) and mode.get("mode") == "byok":
+                return provider, mode
+        return provider, None
+    return None, None
+
+
+def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
+    data = _extract_data(payload)
+    if not isinstance(data, dict):
+        return None
+    recovery_hint = data.get("recovery_hint")
+    raw_recovery = recovery_hint if isinstance(recovery_hint, dict) else {}
+    candidates = (
+        ("execute_hint", data.get("execute_hint")),
+        ("alternate_execute_hint", raw_recovery.get("alternate_execute_hint")),
+        ("setup_handoff", raw_recovery.get("setup_handoff")),
+    )
+    for source, candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handoff = {
+            "source": source,
+            "reason": raw_recovery.get("reason") if isinstance(raw_recovery.get("reason"), str) else None,
+            "resolve_url": raw_recovery.get("resolve_url") if isinstance(raw_recovery.get("resolve_url"), str) else None,
+            "preferred_provider": candidate.get("preferred_provider") if isinstance(candidate.get("preferred_provider"), str) else None,
+            "preferred_credential_mode": (
+                candidate.get("preferred_credential_mode")
+                if isinstance(candidate.get("preferred_credential_mode"), str)
+                else None
+            ),
+            "selection_reason": candidate.get("selection_reason") if isinstance(candidate.get("selection_reason"), str) else None,
+            "setup_hint": candidate.get("setup_hint") if isinstance(candidate.get("setup_hint"), str) else None,
+            "setup_url": candidate.get("setup_url") if isinstance(candidate.get("setup_url"), str) else None,
+            "credential_modes_url": (
+                candidate.get("credential_modes_url")
+                if isinstance(candidate.get("credential_modes_url"), str)
+                else raw_recovery.get("credential_modes_url")
+                if isinstance(raw_recovery.get("credential_modes_url"), str)
+                else None
+            ),
+            "endpoint_pattern": candidate.get("endpoint_pattern") if isinstance(candidate.get("endpoint_pattern"), str) else None,
+            "configured": candidate.get("configured") if isinstance(candidate.get("configured"), bool) else None,
+        }
+        return {key: value for key, value in handoff.items() if value is not None}
+    return None
+
+
+def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
+    if not isinstance(handoff, dict) or not handoff:
+        return None
+    parts: list[str] = []
+    if isinstance(handoff.get("source"), str):
+        parts.append(f"source={handoff['source']}")
+    if isinstance(handoff.get("preferred_provider"), str):
+        parts.append(f"provider={handoff['preferred_provider']}")
+    if isinstance(handoff.get("preferred_credential_mode"), str):
+        parts.append(f"mode={handoff['preferred_credential_mode']}")
+    if isinstance(handoff.get("endpoint_pattern"), str):
+        parts.append(f"endpoint={handoff['endpoint_pattern']}")
+    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
+    if isinstance(next_url, str):
+        parts.append(f"next_url={next_url}")
+    if not parts:
+        return None
+    return "Resolve next step: " + ", ".join(parts)
+
+
+def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
+    resolve = _http_json(
+        "GET",
+        f"{root}/v1/capabilities/object.list/resolve",
+        timeout=timeout,
+    )
+    credential_modes = _http_json(
+        "GET",
+        f"{root}/v1/capabilities/object.list/credential-modes",
+        timeout=timeout,
+    )
+
+    resolve_provider = _first_provider(resolve.get("json"))
+    modes_provider, byok_mode = _first_credential_mode(credential_modes.get("json"))
+    resolve_handoff = _resolve_handoff(resolve.get("json"))
+
+    resolve_ok = (
+        resolve.get("status") == 200
+        and isinstance(resolve_provider, dict)
+        and (
+            resolve_provider.get("available_for_execute") is True
+            or isinstance(resolve_handoff, dict)
+        )
+    )
+    credential_modes_ok = (
+        credential_modes.get("status") == 200
+        and isinstance(modes_provider, dict)
+        and isinstance(byok_mode, dict)
+        and byok_mode.get("available") is True
+    )
+
+    resolve_configured = bool(resolve_provider.get("configured")) if isinstance(resolve_provider, dict) else False
+    mode_configured = bool(byok_mode.get("configured")) if isinstance(byok_mode, dict) else False
+    configured = resolve_configured and mode_configured
+
+    results = [
+        {
+            "check": "object_list_resolve_surface",
+            "ok": resolve_ok,
+            "status": resolve.get("status"),
+            "error": None if resolve_ok else "storage_capability_unavailable",
+            "payload_check": None if resolve_ok else "missing_aws_s3_provider_or_resolve_handoff",
+            "payload": {
+                "provider": resolve_provider,
+                "resolve_handoff": resolve_handoff,
+                "response": resolve.get("json"),
+            },
+        },
+        {
+            "check": "object_list_credential_modes_surface",
+            "ok": credential_modes_ok,
+            "status": credential_modes.get("status"),
+            "error": None if credential_modes_ok else "storage_credential_modes_unavailable",
+            "payload_check": None if credential_modes_ok else "missing_aws_s3_byok_mode",
+            "payload": credential_modes.get("json"),
+        },
+        {
+            "check": "storage_bundle_configured",
+            "ok": configured,
+            "status": 200 if resolve.get("status") == 200 and credential_modes.get("status") == 200 else None,
+            "error": None if configured else "storage_bundle_unconfigured",
+            "payload_check": None if configured else "configured_false",
+            "payload": {
+                "resolve_configured": resolve_configured,
+                "credential_mode_configured": mode_configured,
+                "resolve_handoff": resolve_handoff,
+            },
+        },
+    ]
+
+    return {
+        "configured": configured,
+        "available_for_execute": bool(resolve_provider.get("available_for_execute")) if isinstance(resolve_provider, dict) else False,
+        "resolve_handoff": resolve_handoff,
+        "resolve": resolve,
+        "credential_modes": credential_modes,
+        "results": results,
+    }
+
+
 def _build_checks(args: argparse.Namespace) -> list[CheckSpec]:
     checks = [
         CheckSpec(
@@ -359,16 +533,22 @@ def _build_summary(state: dict[str, Any]) -> str:
     ok_count = sum(1 for item in results if item.get("ok"))
     total = len(results)
 
-    by_name = {item.get("name"): item for item in results}
+    by_name = {item.get("name") or item.get("check"): item for item in results}
     list_result = by_name.get("list") or {}
     head_result = by_name.get("head") or {}
     get_result = by_name.get("get") or {}
     deny_bucket = by_name.get("deny_bucket") or {}
     deny_prefix = by_name.get("deny_prefix") or {}
     oversized = by_name.get("oversized_get") or {}
+    resolve_surface = by_name.get("object_list_resolve_surface") or {}
+    modes_surface = by_name.get("object_list_credential_modes_surface") or {}
+    bundle_state = by_name.get("storage_bundle_configured") or {}
 
     parts = [
         f"AUD-18 S3 dogfood {ok_count}/{total} checks green",
+        f"resolve={resolve_surface.get('status', 'n/a')}:{resolve_surface.get('error') or 'ok'}",
+        f"credential_modes={modes_surface.get('status', 'n/a')}:{modes_surface.get('error') or 'ok'}",
+        f"configured={bundle_state.get('status', 'n/a')}:{bundle_state.get('error') or 'ok'}",
         f"list={list_result.get('status', 'n/a')}:{list_result.get('error') or 'ok'}",
         f"head={head_result.get('status', 'n/a')}:{head_result.get('error') or 'ok'}",
         f"get={get_result.get('status', 'n/a')}:{get_result.get('error') or 'ok'}",
@@ -381,23 +561,27 @@ def _build_summary(state: dict[str, Any]) -> str:
         item for item in results
         if item.get("name") in {"list", "head", "get"} and item.get("error") == "storage_ref_invalid"
     ]
-    if blocking:
+    if blocking or bundle_state.get("error") == "storage_bundle_unconfigured":
         parts.append("blocked_on=hosted_storage_ref_config")
+
+    resolve_step = state.get("resolve_step")
+    if isinstance(resolve_step, str):
+        parts.append(f"resolve_step={resolve_step}")
 
     return "; ".join(parts)
 
 
 def run_flow(args: argparse.Namespace) -> dict[str, Any]:
     root = args.base_url.rstrip("/")
-    api_key = _get_api_key(args.api_key_env)
-    headers = {"X-Rhumb-Key": api_key}
+    preflight = _run_preflight(root=root, timeout=args.timeout)
 
     state: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "root": root,
+        "base_url": root,
+        "mode": "full_proof",
         "config": {
             "api_key_env": args.api_key_env,
-            "api_key_preview": _mask_secret(api_key),
+            "api_key_preview": _mask_secret(os.environ.get(args.api_key_env)),
             "storage_ref": args.storage_ref,
             "bucket": args.bucket,
             "prefix": args.prefix,
@@ -408,9 +592,29 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
             "oversized_max_bytes": args.oversized_max_bytes,
             "get_max_bytes": args.get_max_bytes,
         },
-        "results": [],
+        "preflight": {
+            "configured": preflight["configured"],
+            "available_for_execute": preflight["available_for_execute"],
+            "resolve_handoff": preflight["resolve_handoff"],
+            "resolve": preflight["resolve"],
+            "credential_modes": preflight["credential_modes"],
+        },
+        "results": list(preflight["results"]),
         "receipts": {},
     }
+
+    if args.preflight_only or not preflight["configured"]:
+        state["mode"] = "preflight_only" if args.preflight_only else "blocked_preflight"
+        state["ok"] = all(bool(item.get("ok")) for item in state["results"])
+        resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not state["ok"] else None
+        if isinstance(resolve_step, str):
+            state["resolve_step"] = resolve_step
+        state["summary"] = _build_summary(state)
+        return state
+
+    api_key = _get_api_key(args.api_key_env)
+    headers = {"X-Rhumb-Key": api_key}
+    state["config"]["api_key_preview"] = _mask_secret(api_key)
 
     for check in _build_checks(args):
         result = _execute_check(root=root, headers=headers, timeout=args.timeout, check=check)
@@ -434,6 +638,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--api-key-env", default=DEFAULT_API_KEY_ENV)
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--storage-ref", default=DEFAULT_STORAGE_REF)
     parser.add_argument("--bucket", default=DEFAULT_BUCKET)
     parser.add_argument("--prefix", default=DEFAULT_PREFIX)
