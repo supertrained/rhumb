@@ -962,6 +962,114 @@ async def test_resolve_capability_skips_open_provider_in_execute_hint_fallbacks(
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_reports_mixed_skipped_execute_blockers(app):
+    fake_breakers = _FakeBreakerRegistry({
+        "resend": ("open", False),
+        "postmark": ("closed", True),
+        "sendgrid": ("closed", True),
+    })
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /emails",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "postmark",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": "0.001",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "sendgrid",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /v3/mail/send",
+                    "cost_per_call": "0.001",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.1,
+                    "execution_score": 8.5,
+                    "access_readiness_score": 7.0,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.8,
+                },
+                {
+                    "service_slug": "postmark",
+                    "aggregate_recommendation_score": 7.4,
+                    "execution_score": 7.8,
+                    "access_readiness_score": 6.8,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.78,
+                },
+                {
+                    "service_slug": "sendgrid",
+                    "aggregate_recommendation_score": 6.35,
+                    "execution_score": 7.0,
+                    "access_readiness_score": 5.5,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.7,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "postmark", "name": "Postmark"},
+                {"slug": "sendgrid", "name": "SendGrid"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "postmark", "sendgrid"]
+    assert data["fallback_chain"] == ["sendgrid"]
+    assert data["execute_hint"]["preferred_provider"] == "sendgrid"
+    assert data["execute_hint"]["selection_reason"] == "higher_ranked_provider_mixed_execute_blockers"
+    assert data["execute_hint"]["skipped_provider_slugs"] == ["resend", "postmark"]
+    assert data["execute_hint"]["unavailable_provider_slugs"] == ["resend"]
+    assert data["execute_hint"]["not_execute_ready_provider_slugs"] == ["postmark"]
+    assert "recovery_hint" not in data
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_reports_recovery_when_no_execute_ready_providers_remain(app):
     fake_breakers = _FakeBreakerRegistry({
         "resend": ("open", False),
@@ -1066,6 +1174,96 @@ async def test_resolve_capability_reports_non_circuit_execute_blockers_in_recove
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "sendgrid"],
         "supported_credential_modes": ["byok"],
+        "not_execute_ready_provider_slugs": ["resend", "sendgrid"],
+    }
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_reports_mixed_execute_blockers_in_recovery(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "sendgrid",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": "0.001",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 7.79,
+                    "execution_score": 8.5,
+                    "access_readiness_score": 7.0,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.8,
+                },
+                {
+                    "service_slug": "sendgrid",
+                    "aggregate_recommendation_score": 6.35,
+                    "execution_score": 7.0,
+                    "access_readiness_score": 5.5,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.7,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "sendgrid", "name": "SendGrid"},
+                {"slug": "resend", "name": "Resend"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    fake_breakers = _FakeBreakerRegistry({
+        "resend": ("open", False),
+        "sendgrid": ("closed", True),
+    })
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend", "sendgrid"]
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+    assert data["recovery_hint"] == {
+        "reason": "no_execute_ready_providers",
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "supported_provider_slugs": ["resend", "sendgrid"],
+        "supported_credential_modes": ["byok"],
+        "unavailable_provider_slugs": ["resend"],
         "not_execute_ready_provider_slugs": ["resend", "sendgrid"],
     }
 

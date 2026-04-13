@@ -127,8 +127,10 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:
 - `preferred_provider`: the provider Rhumb wants the operator to use first
-- `selection_reason`: machine-readable explanation for why Rhumb chose that provider (`highest_ranked_provider`, `configured_provider_preferred`, `higher_ranked_provider_unavailable`, `higher_ranked_provider_not_execute_ready`, or `higher_ranked_provider_filtered_by_credential_mode`)
+- `selection_reason`: machine-readable explanation for why Rhumb chose that provider (`highest_ranked_provider`, `configured_provider_preferred`, `higher_ranked_provider_unavailable`, `higher_ranked_provider_not_execute_ready`, `higher_ranked_provider_mixed_execute_blockers`, or `higher_ranked_provider_filtered_by_credential_mode`)
 - `skipped_provider_slugs`: optional higher-ranked providers Rhumb intentionally skipped before choosing the execute path, including providers excluded by a requested `credential_mode`
+- `unavailable_provider_slugs`: optional subset of skipped higher-ranked providers that are currently breaker-blocked or otherwise unavailable for execute
+- `not_execute_ready_provider_slugs`: optional subset of skipped higher-ranked providers that still rank but cannot back execute in the current context
 - `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
 - `configured`: whether that path is already ready on the current deployment in the current context; when `credential_mode` is supplied, this is evaluated against that requested mode rather than some other supported mode
 - `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability
@@ -141,6 +143,7 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
 If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode`, `credential_modes_url`, and the unfiltered `supported_provider_slugs` / `supported_credential_modes` so callers can pivot without guessing.
 If a requested `credential_mode` still leaves at least one provider, `execute_hint.selection_reason` and `skipped_provider_slugs` now stay honest about any higher-ranked providers that were filtered out, and provider-level plus execute-hint `configured` truth stays scoped to that requested mode so mixed-mode providers do not look preconfigured through the wrong rail.
+If a lower-ranked provider is still execute-ready after higher-ranked paths degrade, `execute_hint` now keeps the degraded handoff machine-readable too via `unavailable_provider_slugs`, `not_execute_ready_provider_slugs`, and the mixed blocker selection reason when both conditions apply.
 If ranked providers remain but all execute-ready options collapse to zero in the current context, `resolve` now keeps the ranked `providers` list while returning `fallback_chain=[]`, `execute_hint=null`, and `recovery_hint.reason=no_execute_ready_providers` plus machine-readable degraded-provider context like `unavailable_provider_slugs` and `not_execute_ready_provider_slugs`.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)

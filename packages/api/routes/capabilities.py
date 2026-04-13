@@ -1167,19 +1167,33 @@ def _execute_hint_selection_metadata(
         return {"selection_reason": "highest_ranked_provider"}
 
     reason = "lower_ranked_provider_selected"
+    skipped_unavailable_provider_slugs = [
+        str(provider.get("service_slug"))
+        for provider in skipped_providers
+        if provider.get("service_slug") and not provider.get("available_for_execute")
+    ]
+    skipped_not_execute_ready_provider_slugs = [
+        str(provider.get("service_slug"))
+        for provider in skipped_providers
+        if provider.get("service_slug")
+        and provider.get("available_for_execute")
+        and not provider.get("endpoint_pattern")
+    ]
     if requested_credential_mode and any(
         not _supports_requested_credential_mode(provider.get("credential_modes"), requested_credential_mode)
         for provider in skipped_providers
     ):
         reason = "higher_ranked_provider_filtered_by_credential_mode"
-    elif any(not provider.get("available_for_execute") for provider in skipped_providers):
+    elif skipped_unavailable_provider_slugs and skipped_not_execute_ready_provider_slugs:
+        reason = "higher_ranked_provider_mixed_execute_blockers"
+    elif skipped_unavailable_provider_slugs:
         reason = "higher_ranked_provider_unavailable"
-    elif any(not provider.get("endpoint_pattern") for provider in skipped_providers):
+    elif skipped_not_execute_ready_provider_slugs:
         reason = "higher_ranked_provider_not_execute_ready"
     elif bool(ranked_providers[selected_index].get("configured")):
         reason = "configured_provider_preferred"
 
-    return {
+    metadata = {
         "selection_reason": reason,
         "skipped_provider_slugs": [
             str(provider.get("service_slug"))
@@ -1187,6 +1201,11 @@ def _execute_hint_selection_metadata(
             if provider.get("service_slug")
         ],
     }
+    if skipped_unavailable_provider_slugs:
+        metadata["unavailable_provider_slugs"] = skipped_unavailable_provider_slugs
+    if skipped_not_execute_ready_provider_slugs:
+        metadata["not_execute_ready_provider_slugs"] = skipped_not_execute_ready_provider_slugs
+    return metadata
 
 
 def _with_execute_hint_fallbacks(
