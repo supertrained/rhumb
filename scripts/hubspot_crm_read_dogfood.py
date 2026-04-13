@@ -161,6 +161,26 @@ def _resolve_handoff(payload: Any) -> dict[str, Any] | None:
     return None
 
 
+def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
+    if not isinstance(handoff, dict) or not handoff:
+        return None
+    parts: list[str] = []
+    if isinstance(handoff.get("source"), str):
+        parts.append(f"source={handoff['source']}")
+    if isinstance(handoff.get("preferred_provider"), str):
+        parts.append(f"provider={handoff['preferred_provider']}")
+    if isinstance(handoff.get("preferred_credential_mode"), str):
+        parts.append(f"mode={handoff['preferred_credential_mode']}")
+    if isinstance(handoff.get("endpoint_pattern"), str):
+        parts.append(f"endpoint={handoff['endpoint_pattern']}")
+    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
+    if isinstance(next_url, str):
+        parts.append(f"next_url={next_url}")
+    if not parts:
+        return None
+    return "Resolve next step: " + ", ".join(parts)
+
+
 def _run_preflight(*, root: str, timeout: float) -> dict[str, Any]:
     resolve = _request_json(
         method="GET",
@@ -414,24 +434,24 @@ def _write_artifact(*, args: argparse.Namespace, artifact: dict[str, Any], ok: b
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-hubspot-crm-hosted-proof-{_now_slug()}.json"
     artifact_path.write_text(json.dumps(artifact, indent=2))
-    print(str(artifact_path))
-    print(
-        json.dumps(
+    preflight = artifact.get("preflight") if isinstance(artifact.get("preflight"), dict) else {}
+    resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None
+    summary = {
+        "ok": ok,
+        "checks": [
             {
-                "ok": ok,
-                "checks": [
-                    {
-                        "check": item["check"],
-                        "status": item["status"],
-                        "error": item.get("error"),
-                        "payload_check": item.get("payload_check"),
-                    }
-                    for item in results
-                ],
-            },
-            indent=2,
-        )
-    )
+                "check": item["check"],
+                "status": item["status"],
+                "error": item.get("error"),
+                "payload_check": item.get("payload_check"),
+            }
+            for item in results
+        ],
+    }
+    if isinstance(resolve_step, str):
+        summary["resolve_step"] = resolve_step
+    print(str(artifact_path))
+    print(json.dumps(summary, indent=2))
     return 0 if ok else 1
 
 

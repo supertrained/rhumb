@@ -174,6 +174,32 @@ def test_main_preflight_only_writes_blocker_artifact_without_record_id(monkeypat
     assert artifact["results"][2]["error"] == "crm_bundle_unconfigured"
 
 
+def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "salesforce-preflight.json"
+    monkeypatch.setattr(salesforce_crm_read_dogfood, "_run_preflight", lambda **_: UNCONFIGURED_PREFLIGHT)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "salesforce_crm_read_dogfood.py",
+            "--preflight-only",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    exit_code = salesforce_crm_read_dogfood.main()
+
+    assert exit_code == 1
+    stdout_lines = capsys.readouterr().out.splitlines()
+    assert stdout_lines[0] == str(artifact_path)
+    summary = json.loads("\n".join(stdout_lines[1:]))
+    assert summary["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=salesforce, mode=byok, "
+        "next_url=/v1/capabilities/crm.record.search/credential-modes"
+    )
+
+
 def test_main_requires_record_id_without_preflight(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["salesforce_crm_read_dogfood.py"])
 

@@ -174,6 +174,32 @@ def test_main_preflight_only_writes_blocker_artifact_without_query(monkeypatch, 
     assert artifact["results"][2]["error"] == "warehouse_bundle_unconfigured"
 
 
+def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "warehouse-preflight.json"
+    monkeypatch.setattr(bigquery_warehouse_read_dogfood, "_run_preflight", lambda **_: UNCONFIGURED_PREFLIGHT)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "bigquery_warehouse_read_dogfood.py",
+            "--preflight-only",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    exit_code = bigquery_warehouse_read_dogfood.main()
+
+    assert exit_code == 1
+    stdout_lines = capsys.readouterr().out.splitlines()
+    assert stdout_lines[0] == str(artifact_path)
+    summary = json.loads("\n".join(stdout_lines[1:]))
+    assert summary["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=bigquery, mode=byok, "
+        "next_url=/v1/capabilities/warehouse.query.read/credential-modes"
+    )
+
+
 def test_main_requires_query_without_preflight(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["bigquery_warehouse_read_dogfood.py"])
 
