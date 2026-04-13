@@ -128,6 +128,15 @@ def test_launch_dashboard_route_returns_aggregated_metrics(
     assert payload["queries"]["total"] == 2
     assert payload["queries"]["machine_total"] == 1
     assert payload["clicks"]["provider_clicks"] == 1
+    assert payload["clicks"]["provider_click_surfaces"] == [{"key": "service_page", "count": 1}]
+    assert payload["clicks"]["service_page_cta_split"] == {
+        "service_page_clicks": 1,
+        "outside_service_page_clicks": 0,
+        "hero": {"clicks": 0, "share": 0.0},
+        "sidebar": {"clicks": 0, "share": 0.0},
+        "legacy_service_page": {"clicks": 1, "share": 1.0},
+        "other": {"clicks": 0, "share": 0.0},
+    }
     assert payload["clicks"]["dispute_clicks"]["github"] == 1
     assert payload["executions"]["total"] == 3
     assert payload["executions"]["successful"] == 2
@@ -389,6 +398,15 @@ def test_build_launch_dashboard_computes_repeat_and_ctr() -> None:
       "clicks": 1,
       "views": 2,
       "ctr": 0.5,
+    }
+    assert dashboard["clicks"]["provider_click_surfaces"] == [{"key": "service_page", "count": 1}]
+    assert dashboard["clicks"]["service_page_cta_split"] == {
+        "service_page_clicks": 1,
+        "outside_service_page_clicks": 0,
+        "hero": {"clicks": 0, "share": 0.0},
+        "sidebar": {"clicks": 0, "share": 0.0},
+        "legacy_service_page": {"clicks": 1, "share": 1.0},
+        "other": {"clicks": 0, "share": 0.0},
     }
     assert dashboard["executions"]["success_rate"] == 0.5
     assert dashboard["executions"]["unique_callers"] == 1
@@ -815,3 +833,61 @@ def test_build_launch_dashboard_flags_small_group_candidate_when_signal_is_broad
             "message": "Recommend yes for a controlled API / MCP-first cohort, and keep broad public launch gated on launch-surface conversion plus trust review.",
         }
     ]
+
+
+def test_build_launch_dashboard_surfaces_service_page_cta_split() -> None:
+    dashboard = build_launch_dashboard(
+        query_logs=[],
+        click_events=[
+            {
+                "created_at": "2026-03-13T03:00:00Z",
+                "event_type": "provider_click",
+                "service_slug": "stripe",
+                "destination_domain": "stripe.com",
+                "source_surface": "service_page_hero",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T03:05:00Z",
+                "event_type": "provider_click",
+                "service_slug": "stripe",
+                "destination_domain": "stripe.com",
+                "source_surface": "service_page_hero",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T03:10:00Z",
+                "event_type": "provider_click",
+                "service_slug": "stripe",
+                "destination_domain": "stripe.com",
+                "source_surface": "service_page_sidebar",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T03:15:00Z",
+                "event_type": "provider_click",
+                "service_slug": "openai",
+                "destination_domain": "openai.com",
+                "source_surface": "providers_page",
+                "page_path": "/providers",
+            },
+        ],
+        execution_rows=[],
+        service_rows=[{"slug": "stripe"}, {"slug": "openai"}],
+        window="launch",
+        now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
+    )
+
+    assert dashboard["clicks"]["provider_click_surfaces"] == [
+        {"key": "service_page_hero", "count": 2},
+        {"key": "service_page_sidebar", "count": 1},
+        {"key": "providers_page", "count": 1},
+    ]
+    assert dashboard["clicks"]["service_page_cta_split"] == {
+        "service_page_clicks": 3,
+        "outside_service_page_clicks": 1,
+        "hero": {"clicks": 2, "share": 0.6667},
+        "sidebar": {"clicks": 1, "share": 0.3333},
+        "legacy_service_page": {"clicks": 0, "share": 0.0},
+        "other": {"clicks": 1, "share": 0.25},
+    }

@@ -123,6 +123,19 @@ function formatCredentialModeLabel(value: string): string {
   return formatStageLabel(value);
 }
 
+function formatSurfaceLabel(value: string): string {
+  if (value === "service_page_hero") {
+    return "Service page hero";
+  }
+  if (value === "service_page_sidebar") {
+    return "Service page sidebar";
+  }
+  if (value === "service_page") {
+    return "Legacy service page";
+  }
+  return formatStageLabel(value);
+}
+
 const key = Astro.url.searchParams.get("key") ?? "";
 const windowParam = (Astro.url.searchParams.get("window") ?? "7d") as "24h" | "7d" | "launch";
 
@@ -360,13 +373,24 @@ const windowLinks: Array<{ value: "24h" | "7d" | "launch"; label: string }> = [
           <p class="mt-1 text-sm text-slate-500">
             Latest activity {formatTimestamp(dashboard.clicks.latestActivityAt)}
           </p>
-          <div class="mt-5 grid gap-5 sm:grid-cols-2">
+          <div class="mt-5 grid gap-5 lg:grid-cols-3">
             <div>
               <p class="text-xs font-mono text-slate-500">Top provider domains</p>
               <ul class="mt-3 space-y-2 text-sm">
                 {dashboard.clicks.topProviderDomains.map((row) => (
                   <li class="flex items-center justify-between text-slate-300">
                     <span>{row.key}</span>
+                    <span class="font-mono text-slate-500">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p class="text-xs font-mono text-slate-500">Provider-click surfaces</p>
+              <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                {dashboard.clicks.providerClickSurfaces.map((row) => (
+                  <li class="flex items-center justify-between">
+                    <span>{formatSurfaceLabel(row.key)}</span>
                     <span class="font-mono text-slate-500">{row.count}</span>
                   </li>
                 ))}
@@ -417,18 +441,52 @@ const windowLinks: Array<{ value: "24h" | "7d" | "launch"; label: string }> = [
 
         <section class="rounded-xl border border-slate-800 bg-surface p-6">
           <h2 class="font-display text-lg text-slate-100 font-semibold">Provider CTR</h2>
-          <div class="mt-4 space-y-3">
-            {dashboard.clicks.providerCtr.map((row) => (
-              <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3 text-sm">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-200">{row.service_slug}</span>
-                  <span class="font-mono text-slate-500">{formatPct(row.ctr)}</span>
+          <div class="mt-4 grid gap-5 lg:grid-cols-2">
+            <div>
+              <p class="text-xs font-mono text-slate-500">Service-page CTA split</p>
+              <div class="mt-3 rounded-lg border border-slate-800 bg-navy px-4 py-3 text-sm text-slate-300">
+                <div class="flex items-center justify-between gap-3">
+                  <span>Measured service-page clicks</span>
+                  <span class="font-mono text-slate-500">{dashboard.clicks.servicePageCtaSplit.servicePageClicks}</span>
                 </div>
                 <p class="mt-1 text-xs text-slate-500">
-                  {row.clicks} provider clicks / {row.views} service views
+                  Outside service pages: {dashboard.clicks.servicePageCtaSplit.outsideServicePageClicks}
                 </p>
               </div>
-            ))}
+              <ul class="mt-3 space-y-2 text-sm">
+                {[
+                  ["Hero", dashboard.clicks.servicePageCtaSplit.hero],
+                  ["Sidebar", dashboard.clicks.servicePageCtaSplit.sidebar],
+                  ["Legacy service page", dashboard.clicks.servicePageCtaSplit.legacyServicePage],
+                  ["Other surfaces", dashboard.clicks.servicePageCtaSplit.other],
+                ].map(([label, row]) => (
+                  <li class="rounded-lg border border-slate-800 bg-navy px-4 py-3 text-slate-300">
+                    <div class="flex items-center justify-between gap-3">
+                      <span>{label}</span>
+                      <span class="font-mono text-slate-500">{row.clicks}</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">Share {formatPct(row.share)}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p class="text-xs font-mono text-slate-500">Per-service provider CTR</p>
+              <div class="mt-3 space-y-3">
+                {dashboard.clicks.providerCtr.map((row) => (
+                  <div class="rounded-lg border border-slate-800 bg-navy px-4 py-3 text-sm">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-200">{row.service_slug}</span>
+                      <span class="font-mono text-slate-500">{formatPct(row.ctr)}</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">
+                      {row.clicks} provider clicks / {row.views} service views
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       </div>

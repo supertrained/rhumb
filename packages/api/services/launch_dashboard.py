@@ -62,6 +62,16 @@ def _safe_label(value: Any, *, max_length: int = 120) -> str | None:
     return None
 
 
+def _provider_click_surface_bucket(surface: str) -> str:
+    if surface == "service_page_hero":
+        return "hero"
+    if surface == "service_page_sidebar":
+        return "sidebar"
+    if surface == "service_page":
+        return "legacy_service_page"
+    return "other"
+
+
 def _to_bool(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -186,6 +196,13 @@ def _build_launch_notification(
         "audience": audience,
         "headline": headline,
         "message": message,
+    }
+
+
+def _build_split_row(clicks: int, *, total: int) -> dict[str, Any]:
+    return {
+        "clicks": clicks,
+        "share": round(clicks / total, 4) if total else None,
     }
 
 
@@ -580,6 +597,7 @@ def build_launch_dashboard(
 
     provider_clicks = Counter[str]()
     provider_clicks_by_service = Counter[str]()
+    provider_clicks_by_surface = Counter[str]()
     dispute_clicks_by_type = Counter[str]()
     clicks_by_surface = Counter[str]()
     top_capabilities = Counter[str]()
@@ -606,6 +624,7 @@ def build_launch_dashboard(
         if event_type == "provider_click":
             domain = str(row.get("destination_domain") or row.get("service_slug") or "unknown")
             provider_clicks[domain] += 1
+            provider_clicks_by_surface[surface] += 1
             service_slug = _normalize_service_slug(row.get("service_slug"))
             if service_slug:
                 provider_clicks_by_service[service_slug] += 1
@@ -691,6 +710,15 @@ def build_launch_dashboard(
             row["service_slug"],
         )
     )
+
+    service_page_click_total = sum(
+        count
+        for surface, count in provider_clicks_by_surface.items()
+        if surface in {"service_page_hero", "service_page_sidebar", "service_page"}
+    )
+    service_page_cta_split = Counter[str]()
+    for surface, count in provider_clicks_by_surface.items():
+        service_page_cta_split[_provider_click_surface_bucket(surface)] += count
 
     machine_queries = sum(
         count for source, count in by_source.items() if source in {"api_direct", "cli", "mcp", "unknown_agent"}
@@ -785,7 +813,16 @@ def build_launch_dashboard(
             "provider_clicks": sum(provider_clicks.values()),
             "top_provider_domains": _top_counts(provider_clicks, limit=5),
             "top_source_surfaces": _top_counts(clicks_by_surface, limit=5),
+            "provider_click_surfaces": _top_counts(provider_clicks_by_surface, limit=10),
             "provider_ctr": ctr_rows[:10],
+            "service_page_cta_split": {
+                "service_page_clicks": service_page_click_total,
+                "outside_service_page_clicks": sum(provider_clicks.values()) - service_page_click_total,
+                "hero": _build_split_row(service_page_cta_split.get("hero", 0), total=service_page_click_total),
+                "sidebar": _build_split_row(service_page_cta_split.get("sidebar", 0), total=service_page_click_total),
+                "legacy_service_page": _build_split_row(service_page_cta_split.get("legacy_service_page", 0), total=service_page_click_total),
+                "other": _build_split_row(service_page_cta_split.get("other", 0), total=sum(provider_clicks.values())),
+            },
             "dispute_clicks": {
                 "email": dispute_clicks_by_type.get("dispute_click", 0),
                 "github": dispute_clicks_by_type.get("github_dispute_click", 0),

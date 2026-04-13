@@ -186,7 +186,16 @@ export type LaunchDashboardViewModel = {
     providerClicks: number;
     topProviderDomains: LaunchDashboardCount[];
     topSourceSurfaces: LaunchDashboardCount[];
+    providerClickSurfaces: LaunchDashboardCount[];
     providerCtr: LaunchDashboardCtrRow[];
+    servicePageCtaSplit: {
+      servicePageClicks: number;
+      outsideServicePageClicks: number;
+      hero: { clicks: number; share: number | null };
+      sidebar: { clicks: number; share: number | null };
+      legacyServicePage: { clicks: number; share: number | null };
+      other: { clicks: number; share: number | null };
+    };
     disputeClicks: {
       email: number;
       github: number;

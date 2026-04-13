@@ -249,6 +249,7 @@ export function parseLaunchDashboardResponse(payload: unknown) {
   const launchGates = isRecord(data.launch_gates) ? data.launch_gates : {};
   const executions = isRecord(data.executions) ? data.executions : {};
   const disputeClicks = isRecord(clicks.dispute_clicks) ? clicks.dispute_clicks : {};
+  const servicePageCtaSplit = isRecord(clicks.service_page_cta_split) ? clicks.service_page_cta_split : {};
   const callerCohorts = isRecord(executions.caller_cohorts) ? executions.caller_cohorts : {};
   const managedPath = isRecord(executions.managed_path) ? executions.managed_path : {};
 
@@ -271,6 +272,17 @@ export function parseLaunchDashboardResponse(payload: unknown) {
     views: asNumber(row.views) ?? 0,
     ctr: asNumber(row.ctr),
   }));
+
+  const parseSplitRow = (row: unknown) => {
+    if (!isRecord(row)) {
+      return { clicks: 0, share: null };
+    }
+
+    return {
+      clicks: asNumber(row.clicks) ?? 0,
+      share: asNumber(row.share),
+    };
+  };
 
   const parseFunnelTransition = (row: unknown) => {
     if (!isRecord(row)) {
@@ -424,7 +436,16 @@ export function parseLaunchDashboardResponse(payload: unknown) {
       providerClicks: asNumber(clicks.provider_clicks) ?? 0,
       topProviderDomains: parseDashboardCounts(clicks.top_provider_domains),
       topSourceSurfaces: parseDashboardCounts(clicks.top_source_surfaces),
+      providerClickSurfaces: parseDashboardCounts(clicks.provider_click_surfaces),
       providerCtr,
+      servicePageCtaSplit: {
+        servicePageClicks: asNumber(servicePageCtaSplit.service_page_clicks) ?? 0,
+        outsideServicePageClicks: asNumber(servicePageCtaSplit.outside_service_page_clicks) ?? 0,
+        hero: parseSplitRow(servicePageCtaSplit.hero),
+        sidebar: parseSplitRow(servicePageCtaSplit.sidebar),
+        legacyServicePage: parseSplitRow(servicePageCtaSplit.legacy_service_page),
+        other: parseSplitRow(servicePageCtaSplit.other),
+      },
       disputeClicks: {
         email: asNumber(disputeClicks.email) ?? 0,
         github: asNumber(disputeClicks.github) ?? 0,
