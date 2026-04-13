@@ -868,9 +868,10 @@ def _credential_mode_filter_recovery_hint(
     reason: str,
     recovery_items: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
     recovery_hint: dict[str, object] = {
         "reason": reason,
-        "requested_credential_mode": _canonicalize_credential_mode(requested_credential_mode),
+        "requested_credential_mode": normalized_requested_mode,
         "credential_modes_url": _capability_credential_modes_url(capability_id),
     }
 
@@ -882,6 +883,14 @@ def _credential_mode_filter_recovery_hint(
         supported_modes = _recovery_supported_credential_modes(recovery_items)
         if supported_modes:
             recovery_hint["supported_credential_modes"] = supported_modes
+
+        alternate_execute_hint = _recovery_alternate_execute_hint(
+            capability_id,
+            recovery_items,
+            requested_credential_mode=normalized_requested_mode,
+        )
+        if alternate_execute_hint is not None:
+            recovery_hint["alternate_execute_hint"] = alternate_execute_hint
 
     return recovery_hint
 
@@ -2568,69 +2577,6 @@ async def resolve_capability(
             "error": None,
         }
 
-    if credential_mode and not any(
-        _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
-        for mapping in all_mappings
-    ):
-        recovery_reason = "no_providers_match_credential_mode" if credential_mode and all_mappings else None
-
-        recovery_items = all_mappings if recovery_reason else None
-        # Keep recovery metadata ordered the same way we'd rank providers during normal resolve.
-        # This avoids drift where `supported_provider_slugs` reflects raw mapping insertion order
-        # instead of score-ranked provider order.
-        if recovery_reason and isinstance(all_mappings, list):
-            try:
-                slugs = list(dict.fromkeys(
-                    str(m.get("service_slug"))
-                    for m in all_mappings
-                    if isinstance(m, dict) and m.get("service_slug")
-                ))
-                if slugs:
-                    slug_filter = ",".join(f'"{s}"' for s in slugs)
-                    scores = await _cached_fetch(
-                        "scores",
-                        f"scores?service_slug=in.({slug_filter})"
-                        f"&select=service_slug,aggregate_recommendation_score"
-                        f"&order=aggregate_recommendation_score.desc.nullslast",
-                    )
-                    scores_by_slug: dict[str, float] = {}
-                    if isinstance(scores, list):
-                        for sc in scores:
-                            if not isinstance(sc, dict):
-                                continue
-                            slug = sc.get("service_slug")
-                            score = sc.get("aggregate_recommendation_score")
-                            if isinstance(slug, str) and isinstance(score, (int, float)):
-                                scores_by_slug[slug] = float(score)
-
-                    indexed: list[tuple[bool, float, int, dict[str, object]]] = []
-                    for idx, mapping in enumerate(all_mappings):
-                        if not isinstance(mapping, dict):
-                            continue
-                        slug = str(mapping.get("service_slug") or "")
-                        an_score = scores_by_slug.get(slug)
-                        indexed.append(
-                            (
-                                an_score is None,
-                                -(an_score or 0.0),
-                                idx,
-                                mapping,
-                            )
-                        )
-                    indexed.sort(key=lambda item: (item[0], item[1], item[2]))
-                    recovery_items = [item[3] for item in indexed]
-            except Exception:
-                recovery_items = all_mappings
-        return {
-            "data": _empty_resolve_payload(
-                capability_id,
-                requested_credential_mode=credential_mode,
-                recovery_reason=recovery_reason,
-                recovery_items=recovery_items,
-            ),
-            "error": None,
-        }
-
     # Get scores for all mapped services
     slugs = list(dict.fromkeys(m["service_slug"] for m in all_mappings))
     slug_filter = ",".join(f'"{s}"' for s in slugs)
@@ -2766,6 +2712,16 @@ async def resolve_capability(
             for provider in all_providers
             if _supports_requested_credential_mode(provider.get("credential_modes"), credential_mode)
         ]
+        if not providers:
+            return {
+                "data": _empty_resolve_payload(
+                    capability_id,
+                    requested_credential_mode=credential_mode,
+                    recovery_reason="no_providers_match_credential_mode",
+                    recovery_items=recovery_providers,
+                ),
+                "error": None,
+            }
 
     # Build fallback chain (top 3 preferred/available providers)
     fallback_chain = _execute_ready_fallback_chain(providers)

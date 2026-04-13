@@ -566,6 +566,19 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
             "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
             "supported_provider_slugs": ["resend", "sendgrid"],
             "supported_credential_modes": ["byok"],
+            "alternate_execute_hint": {
+                "preferred_provider": "resend",
+                "endpoint_pattern": "POST /emails",
+                "estimated_cost_usd": None,
+                "auth_method": "api_key",
+                "credential_modes": ["byok"],
+                "configured": False,
+                "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+                "preferred_credential_mode": "byok",
+                "setup_hint": "Set RHUMB_CREDENTIAL_RESEND_API_KEY environment variable or configure via proxy credentials",
+                "selection_reason": "highest_ranked_provider",
+                "fallback_providers": ["sendgrid"],
+            },
         },
     }
 
@@ -848,6 +861,103 @@ async def test_resolve_capability_filtered_mode_does_not_prefer_provider_configu
     assert data["execute_hint"]["selection_reason"] == "highest_ranked_provider"
     assert data["execute_hint"]["fallback_providers"] == ["rhumb-managed-email"]
     assert "RHUMB_CREDENTIAL_RESEND_API_KEY" in data["execute_hint"]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_empty_filter_prefers_broader_configured_alternate(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /emails",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "credential_modes": ["rhumb_managed"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /v1/rhumb-managed/email/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.8,
+                    "execution_score": 8.6,
+                    "access_readiness_score": 8.7,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.92,
+                },
+                {
+                    "service_slug": "rhumb-managed-email",
+                    "aggregate_recommendation_score": 7.0,
+                    "execution_score": 7.0,
+                    "access_readiness_score": 7.0,
+                    "tier": "L4",
+                    "tier_label": "Native",
+                    "confidence": 0.9,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "rhumb-managed-email", "name": "Rhumb Managed Email"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"] == []
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+    assert data["recovery_hint"] == {
+        "reason": "no_providers_match_credential_mode",
+        "requested_credential_mode": "agent_vault",
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "supported_provider_slugs": ["resend", "rhumb-managed-email"],
+        "supported_credential_modes": ["rhumb_managed", "byok"],
+        "alternate_execute_hint": {
+            "preferred_provider": "rhumb-managed-email",
+            "endpoint_pattern": "POST /v1/rhumb-managed/email/send",
+            "estimated_cost_usd": None,
+            "auth_method": "api_key",
+            "credential_modes": ["rhumb_managed"],
+            "configured": True,
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "preferred_credential_mode": "rhumb_managed",
+            "selection_reason": "configured_provider_preferred",
+            "skipped_provider_slugs": ["resend"],
+            "fallback_providers": ["resend"],
+        },
+    }
 
 
 @pytest.mark.anyio
@@ -1717,6 +1827,19 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
         "credential_modes_url": "/v1/capabilities/db.query.read/credential-modes",
         "supported_provider_slugs": ["postgresql"],
         "supported_credential_modes": ["agent_vault", "byok"],
+        "alternate_execute_hint": {
+            "preferred_provider": "postgresql",
+            "endpoint_pattern": "POST /v1/capabilities/db.query.read/execute",
+            "estimated_cost_usd": None,
+            "auth_method": "connection_ref",
+            "credential_modes": ["byok", "agent_vault"],
+            "configured": False,
+            "credential_modes_url": "/v1/capabilities/db.query.read/credential-modes",
+            "preferred_credential_mode": "agent_vault",
+            "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
+            "setup_url": "/v1/services/postgresql/ceremony",
+            "selection_reason": "highest_ranked_provider",
+        },
     }
 
 
