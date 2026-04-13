@@ -3,7 +3,7 @@ Rhumb Example: Repeatable dogfood loop for Resolve + telemetry.
 
 This script turns the one-off internal validation into a reusable harness:
 1. Capture a telemetry baseline for an authenticated agent
-2. Resolve a capability and pick the top N providers
+2. Resolve a capability and pick the execute-ready providers Rhumb recommends
 3. Execute a small battery of real calls through Resolve
 4. Verify those calls show up in recent telemetry
 5. Print a compact dogfood summary you can paste into a log or review
@@ -29,6 +29,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+
+from resolve_helpers import describe_recovery_hint, execute_ready_provider_slugs
 
 BASE = os.environ.get("RHUMB_BASE_URL", "https://api.rhumb.dev/v1").rstrip("/")
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -78,12 +80,11 @@ def _get_json(client: httpx.Client, path: str, *, params: dict[str, Any] | None 
     return resp.json()
 
 
-def _resolve_top_providers(client: httpx.Client) -> list[str]:
-    resp = client.get(f"{BASE}/capabilities/{CAPABILITY}/resolve")
-    resp.raise_for_status()
-    providers = resp.json().get("data", {}).get("providers", [])
-    slugs = [p.get("service_slug") for p in providers if p.get("service_slug")]
-    return slugs[:PROVIDER_COUNT]
+def _resolve_execute_context(client: httpx.Client) -> tuple[list[str], str | None]:
+    payload = _get_json(client, f"/capabilities/{CAPABILITY}/resolve")
+    data = payload.get("data", {}) if isinstance(payload, dict) else {}
+    providers = execute_ready_provider_slugs(data, limit=PROVIDER_COUNT)
+    return providers, describe_recovery_hint(data)
 
 
 def _usage_summary(client: httpx.Client) -> dict[str, Any]:
@@ -152,10 +153,12 @@ def main() -> None:
     queries = _queries()
     with httpx.Client(timeout=30.0) as client:
         before = _usage_summary(client)
-        providers = _resolve_top_providers(client)
+        providers, recovery_summary = _resolve_execute_context(client)
 
         if not providers:
-            print(f"No providers resolved for {CAPABILITY}.")
+            print(f"No execute-ready providers resolved for {CAPABILITY}.")
+            if recovery_summary:
+                print(f"Recovery hint: {recovery_summary}")
             sys.exit(1)
 
         print(f"🎯 Dogfood loop for {CAPABILITY}")

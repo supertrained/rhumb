@@ -14,6 +14,8 @@ import os
 import httpx
 import json
 
+from resolve_helpers import describe_recovery_hint, preferred_execute_provider
+
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
 
@@ -30,24 +32,36 @@ def main():
     capability = "search.query"
     print(f"🔍 Resolving '{capability}' to best providers...\n")
 
-    resp = httpx.get(f"{BASE}/capabilities/{capability}/resolve")
+    resp = httpx.get(f"{BASE}/capabilities/{capability}/resolve", headers=headers)
     data = resp.json().get("data", {})
     providers = data.get("providers", [])
+    execute_hint = data.get("execute_hint") or {}
 
     for p in providers[:5]:
         slug = p.get("service_slug", "?")
         score = p.get("an_score", "?")
-        cost = p.get("estimated_cost_usd", "?")
+        cost = p.get("cost_per_call", "?")
         print(f"  {slug:20s}  AN Score: {score}  Est. cost: ${cost}")
+
+    if execute_hint:
+        print("\n🧭 Execute handoff")
+        print(f"  Preferred provider: {execute_hint.get('preferred_provider', '?')}")
+        print(f"  Preferred mode:     {execute_hint.get('preferred_credential_mode', '?')}")
+        if execute_hint.get("fallback_providers"):
+            print(f"  Fallbacks:          {', '.join(execute_hint['fallback_providers'])}")
+
+    recovery_summary = describe_recovery_hint(data)
+    if recovery_summary:
+        print(f"\n⚠️  Recovery hint: {recovery_summary}")
 
     if not API_KEY:
         print("\n💡 Set RHUMB_API_KEY to continue with estimation and execution.")
         return
 
     # Step 2: Estimate cost before committing
-    top_provider = providers[0]["service_slug"] if providers else None
+    top_provider = preferred_execute_provider(data)
     if not top_provider:
-        print("No providers found.")
+        print("No execute-ready provider found in the current resolve context.")
         return
 
     print(f"\n💰 Estimating cost for '{capability}' via {top_provider}...\n")

@@ -11,7 +11,8 @@ Requires: RHUMB_API_KEY environment variable.
 
 import os
 import httpx
-import json
+
+from resolve_helpers import describe_recovery_hint, preferred_execute_provider
 
 BASE = "https://api.rhumb.dev/v1"
 API_KEY = os.environ.get("RHUMB_API_KEY")
@@ -51,12 +52,23 @@ def main():
     resp = httpx.get(f"{BASE}/capabilities/{capability}/resolve", headers=headers)
     data = resp.json().get("data", {})
     providers = data.get("providers", [])
+    execute_hint = data.get("execute_hint") or {}
 
     for p in providers[:3]:
         slug = p.get("service_slug", "?")
         score = p.get("an_score", "?")
-        cost = p.get("estimated_cost_usd", "?")
+        cost = p.get("cost_per_call", "?")
         print(f"  {slug:20s}  AN Score: {score}  Est. cost: ${cost}")
+
+    preferred_provider = preferred_execute_provider(data)
+    if preferred_provider:
+        print(f"\n🧭 Preferred execute provider: {preferred_provider}")
+        if execute_hint.get("preferred_credential_mode"):
+            print(f"  Preferred credential mode: {execute_hint['preferred_credential_mode']}")
+
+    recovery_summary = describe_recovery_hint(data)
+    if recovery_summary:
+        print(f"  Recovery hint: {recovery_summary}")
 
     # Step 4: Check spend
     print("\n📊 Current spend...\n")
