@@ -154,6 +154,10 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
     artifact = json.loads(artifact_path.read_text())
     assert artifact["mode"] == "preflight_only"
     assert artifact["preflight"]["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
+    assert artifact["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=github, mode=byok, "
+        "next_url=/v1/capabilities/workflow_run.list/credential-modes"
+    )
     stdout_lines = capsys.readouterr().out.splitlines()
     assert stdout_lines[0] == str(artifact_path)
     summary = json.loads("\n".join(stdout_lines[1:]))

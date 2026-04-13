@@ -1115,6 +1115,9 @@ def main() -> int:
         artifact["ok"] = ok
         artifact["mode"] = "preflight_only" if args.preflight_only else "blocked_preflight"
         artifact["results"] = results
+        resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None
+        if isinstance(resolve_step, str):
+            artifact["resolve_step"] = resolve_step
         return _write_artifact(args=args, artifact=artifact, ok=ok, results=results)
 
     if bundle is None:

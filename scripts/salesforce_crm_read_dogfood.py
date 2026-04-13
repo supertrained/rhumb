@@ -501,6 +501,9 @@ def main() -> int:
             },
             "results": results,
         }
+        resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None
+        if isinstance(resolve_step, str):
+            artifact["resolve_step"] = resolve_step
         return _write_artifact(args=args, artifact=artifact, ok=ok, results=results)
 
     api_key = (args.api_key or os.environ.get("RHUMB_API_KEY") or "").strip()

@@ -191,6 +191,11 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
     exit_code = bigquery_warehouse_read_dogfood.main()
 
     assert exit_code == 1
+    artifact = json.loads(artifact_path.read_text())
+    assert artifact["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=bigquery, mode=byok, "
+        "next_url=/v1/capabilities/warehouse.query.read/credential-modes"
+    )
     stdout_lines = capsys.readouterr().out.splitlines()
     assert stdout_lines[0] == str(artifact_path)
     summary = json.loads("\n".join(stdout_lines[1:]))
