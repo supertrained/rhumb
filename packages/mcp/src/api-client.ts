@@ -154,14 +154,31 @@ export interface CapabilityExecuteHint {
   setupUrl: string | null;
 }
 
+export interface CapabilityRecoveryHandoff {
+  preferredProvider: string;
+  selectionReason: string | null;
+  endpointPattern: string | null;
+  authMethod: string;
+  credentialModes: string[];
+  configured: boolean;
+  credentialModesUrl: string;
+  preferredCredentialMode: string | null;
+  fallbackProviders: string[];
+  setupHint: string | null;
+  setupUrl: string | null;
+}
+
 export interface CapabilityRecoveryHint {
   reason: string;
   requestedCredentialMode: string | null;
+  resolveUrl: string;
   credentialModesUrl: string;
   supportedProviderSlugs: string[];
   supportedCredentialModes: string[];
   unavailableProviderSlugs: string[];
   notExecuteReadyProviderSlugs: string[];
+  alternateExecuteHint: CapabilityRecoveryHandoff | null;
+  setupHandoff: CapabilityRecoveryHandoff | null;
 }
 
 export interface CapabilityResolveResult {
@@ -361,6 +378,22 @@ function asStringArray(v: unknown): string[] {
   return Array.isArray(v)
     ? v.filter((item): item is string => typeof item === "string")
     : [];
+}
+
+function parseRecoveryHandoff(rawHint: Record<string, unknown>): CapabilityRecoveryHandoff {
+  return {
+    preferredProvider: asString(rawHint.preferred_provider) ?? "unknown",
+    selectionReason: asString(rawHint.selection_reason),
+    endpointPattern: asString(rawHint.endpoint_pattern),
+    authMethod: asString(rawHint.auth_method) ?? "unknown",
+    credentialModes: asStringArray(rawHint.credential_modes),
+    configured: rawHint.configured === true,
+    credentialModesUrl: asString(rawHint.credential_modes_url) ?? "",
+    preferredCredentialMode: asString(rawHint.preferred_credential_mode),
+    fallbackProviders: asStringArray(rawHint.fallback_providers),
+    setupHint: asString(rawHint.setup_hint),
+    setupUrl: asString(rawHint.setup_url)
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -584,11 +617,18 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         ? {
             reason: asString(rawRecoveryHint.reason) ?? "unknown",
             requestedCredentialMode: asString(rawRecoveryHint.requested_credential_mode),
+            resolveUrl: asString(rawRecoveryHint.resolve_url) ?? "",
             credentialModesUrl: asString(rawRecoveryHint.credential_modes_url) ?? "",
             supportedProviderSlugs: asStringArray(rawRecoveryHint.supported_provider_slugs),
             supportedCredentialModes: asStringArray(rawRecoveryHint.supported_credential_modes),
             unavailableProviderSlugs: asStringArray(rawRecoveryHint.unavailable_provider_slugs),
-            notExecuteReadyProviderSlugs: asStringArray(rawRecoveryHint.not_execute_ready_provider_slugs)
+            notExecuteReadyProviderSlugs: asStringArray(rawRecoveryHint.not_execute_ready_provider_slugs),
+            alternateExecuteHint: isRecord(rawRecoveryHint.alternate_execute_hint)
+              ? parseRecoveryHandoff(rawRecoveryHint.alternate_execute_hint)
+              : null,
+            setupHandoff: isRecord(rawRecoveryHint.setup_handoff)
+              ? parseRecoveryHandoff(rawRecoveryHint.setup_handoff)
+              : null
           }
         : null;
 
