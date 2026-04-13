@@ -1436,6 +1436,122 @@ async def test_resolve_capability_filtered_mode_recovery_keeps_unfiltered_pivot(
         "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
         "supported_provider_slugs": ["resend", "rhumb-managed-email"],
         "supported_credential_modes": ["rhumb_managed", "byok"],
+        "alternate_execute_hint": {
+            "preferred_provider": "rhumb-managed-email",
+            "endpoint_pattern": "POST /v1/rhumb-managed/email/send",
+            "estimated_cost_usd": None,
+            "auth_method": "api_key",
+            "credential_modes": ["rhumb_managed"],
+            "configured": True,
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "preferred_credential_mode": "rhumb_managed",
+            "selection_reason": "higher_ranked_provider_not_execute_ready",
+            "skipped_provider_slugs": ["resend"],
+            "not_execute_ready_provider_slugs": ["resend"],
+        },
+        "not_execute_ready_provider_slugs": ["resend"],
+    }
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_filtered_mode_recovery_includes_alternate_setup_handoff(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": None,
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                    "notes": None,
+                },
+                {
+                    "service_slug": "gmail",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "oauth",
+                    "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": None,
+                },
+            ]
+        if path.startswith("scores?"):
+            return [
+                {
+                    "service_slug": "resend",
+                    "aggregate_recommendation_score": 8.8,
+                    "execution_score": 8.6,
+                    "access_readiness_score": 8.7,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.92,
+                },
+                {
+                    "service_slug": "gmail",
+                    "aggregate_recommendation_score": 7.2,
+                    "execution_score": 7.2,
+                    "access_readiness_score": 7.0,
+                    "tier": "L3",
+                    "tier_label": "Ready",
+                    "confidence": 0.9,
+                },
+            ]
+        if path.startswith("services?"):
+            return [
+                {"slug": "resend", "name": "Resend"},
+                {"slug": "gmail", "name": "Gmail"},
+            ]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "byok"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["resend"]
+    assert data["fallback_chain"] == []
+    assert data["execute_hint"] is None
+    assert data["recovery_hint"] == {
+        "reason": "no_execute_ready_providers",
+        "requested_credential_mode": "byok",
+        "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        "supported_provider_slugs": ["resend", "gmail"],
+        "supported_credential_modes": ["agent_vault", "byok"],
+        "alternate_execute_hint": {
+            "preferred_provider": "gmail",
+            "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+            "estimated_cost_usd": None,
+            "auth_method": "oauth",
+            "credential_modes": ["agent_vault"],
+            "configured": False,
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+            "preferred_credential_mode": "agent_vault",
+            "setup_hint": (
+                "Complete the ceremony at GET /v1/services/gmail/ceremony, "
+                "then pass token via X-Agent-Token header"
+            ),
+            "setup_url": "/v1/services/gmail/ceremony",
+            "selection_reason": "higher_ranked_provider_not_execute_ready",
+            "skipped_provider_slugs": ["resend"],
+            "not_execute_ready_provider_slugs": ["resend"],
+        },
         "not_execute_ready_provider_slugs": ["resend"],
     }
 

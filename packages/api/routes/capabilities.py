@@ -1071,6 +1071,26 @@ def _execute_ready_fallback_chain(providers: list[dict[str, object]]) -> list[st
     ][:3]
 
 
+def _recovery_alternate_execute_hint(
+    capability_id: str,
+    recovery_items: list[dict[str, object]],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object] | None:
+    if not _canonicalize_credential_mode(requested_credential_mode):
+        return None
+
+    alternate_execute_hint = _pick_mapped_execute_hint(
+        capability_id,
+        recovery_items,
+    )
+    return _with_execute_hint_fallbacks(
+        alternate_execute_hint,
+        recovery_items,
+        selection_providers=recovery_items,
+    )
+
+
 def _execute_ready_recovery_hint(
     capability_id: str,
     providers: list[dict[str, object]],
@@ -1098,6 +1118,14 @@ def _execute_ready_recovery_hint(
     supported_credential_modes = _recovery_supported_credential_modes(recovery_items)
     if supported_credential_modes:
         recovery_hint["supported_credential_modes"] = supported_credential_modes
+
+    alternate_execute_hint = _recovery_alternate_execute_hint(
+        capability_id,
+        recovery_items,
+        requested_credential_mode=normalized_requested_mode,
+    )
+    if alternate_execute_hint is not None:
+        recovery_hint["alternate_execute_hint"] = alternate_execute_hint
 
     unavailable_provider_slugs = [
         str(provider.get("service_slug"))
@@ -2634,6 +2662,7 @@ async def resolve_capability(
 
     # Build ranked provider list with recommendations
     all_providers = []
+    recovery_providers = []
     for m in all_mappings:
         slug = m["service_slug"]
         sc = scores_by_slug.get(slug, {})
@@ -2683,7 +2712,7 @@ async def resolve_capability(
         if "byok" in credential_modes:
             byok_configured = _has_proxy_credential_configured(slug, auth_method)
 
-        all_providers.append({
+        provider_base = {
             "service_slug": slug,
             "service_name": names_by_slug.get(slug, slug),
             "an_score": an_score,
@@ -2702,16 +2731,30 @@ async def resolve_capability(
             "recommendation_reason": reason,
             "circuit_state": circuit_state,
             "available_for_execute": available_for_execute,
+        }
+        all_providers.append({
+            **provider_base,
             "configured": _mapped_provider_is_configured(
                 credential_modes,
                 byok_configured=byok_configured,
                 requested_credential_mode=credential_mode,
             ),
         })
+        recovery_providers.append({
+            **provider_base,
+            "configured": _mapped_provider_is_configured(
+                credential_modes,
+                byok_configured=byok_configured,
+            ),
+        })
 
     # Sort: preferred first, then by AN score descending
     rank_order = {"preferred": 0, "available": 1, "caution": 2, "unscored": 3}
     all_providers.sort(key=lambda p: (
+        rank_order.get(p["recommendation"], 4),
+        -(p.get("an_score") or 0),
+    ))
+    recovery_providers.sort(key=lambda p: (
         rank_order.get(p["recommendation"], 4),
         -(p.get("an_score") or 0),
     ))
@@ -2759,7 +2802,7 @@ async def resolve_capability(
             capability_id,
             providers,
             requested_credential_mode=credential_mode,
-            supported_items=all_providers if credential_mode else None,
+            supported_items=recovery_providers if credential_mode else None,
         )
         if recovery_hint is not None:
             data["recovery_hint"] = recovery_hint
