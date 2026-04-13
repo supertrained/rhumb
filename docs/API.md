@@ -129,10 +129,13 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 - `preferred_provider`: the provider Rhumb wants the operator to use first
 - `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
 - `configured`: whether that path is already ready on the current deployment
+- `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability
 - `preferred_credential_mode`: the lowest-heroics credential mode for that provider in the current context
 - `setup_hint`: present when `configured=false`, with the exact next setup action Rhumb expects before execute
+- `setup_url`: present when Rhumb has a first-class setup surface for that mode, for example a provider ceremony route
 
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step.
+If a requested `credential_mode` filters the provider list down to zero, `resolve` now keeps the 200 envelope but adds `recovery_hint.reason=no_providers_match_credential_mode` plus `credential_modes_url` so callers can pivot without guessing.
 
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 

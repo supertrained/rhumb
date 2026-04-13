@@ -516,7 +516,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DB_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -548,7 +548,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_WAREHOUSE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -579,7 +579,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "providers": [provider],
         "fallback_chain": [_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -611,7 +611,7 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_DEPLOYMENT_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -643,7 +643,7 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [_ACTIONS_DIRECT_PROVIDER_SLUG],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -681,7 +681,7 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": providers,
         "fallback_chain": [provider["service_slug"] for provider in providers],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(preferred_provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, preferred_provider),
     }
 
 
@@ -714,7 +714,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "providers": [provider],
         "fallback_chain": [provider_slug],
         "related_bundles": [],
-        "execute_hint": _execute_hint_from_provider(provider),
+        "execute_hint": _execute_hint_from_provider(capability_id, provider),
     }
 
 
@@ -736,14 +736,38 @@ def _synthetic_direct_resolve_payload(capability_id: str) -> dict[str, object] |
     return None
 
 
-def _empty_resolve_payload(capability_id: str) -> dict[str, object]:
-    return {
+def _capability_credential_modes_url(capability_id: str) -> str:
+    return f"/v1/capabilities/{quote(capability_id)}/credential-modes"
+
+
+def _provider_mode_setup_url(service_slug: str, mode: str) -> str | None:
+    normalized_mode = _canonicalize_credential_mode(mode)
+    if normalized_mode == "agent_vault":
+        return f"/v1/services/{quote(service_slug)}/ceremony"
+    return None
+
+
+def _empty_resolve_payload(
+    capability_id: str,
+    *,
+    requested_credential_mode: str | None = None,
+    recovery_reason: str | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "capability": capability_id,
         "providers": [],
         "fallback_chain": [],
         "related_bundles": [],
         "execute_hint": None,
     }
+    normalized_requested_mode = _canonicalize_credential_mode(requested_credential_mode)
+    if recovery_reason and normalized_requested_mode:
+        payload["recovery_hint"] = {
+            "reason": recovery_reason,
+            "requested_credential_mode": normalized_requested_mode,
+            "credential_modes_url": _capability_credential_modes_url(capability_id),
+        }
+    return payload
 
 
 def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
@@ -799,6 +823,7 @@ def _supports_requested_credential_mode(
 
 
 def _apply_direct_resolve_credential_mode_filter(
+    capability_id: str,
     payload: dict[str, object],
     credential_mode: str | None,
 ) -> dict[str, object]:
@@ -827,7 +852,14 @@ def _apply_direct_resolve_credential_mode_filter(
     execute_hint = payload.get("execute_hint")
     if not filtered_providers:
         filtered_payload["execute_hint"] = None
+        filtered_payload["recovery_hint"] = {
+            "reason": "no_providers_match_credential_mode",
+            "requested_credential_mode": _canonicalize_credential_mode(credential_mode),
+            "credential_modes_url": _capability_credential_modes_url(capability_id),
+        }
         return filtered_payload
+
+    filtered_payload.pop("recovery_hint", None)
 
     if isinstance(execute_hint, dict):
         preferred_slug = execute_hint.get("preferred_provider")
@@ -840,6 +872,7 @@ def _apply_direct_resolve_credential_mode_filter(
             filtered_providers[0],
         )
         filtered_payload["execute_hint"] = _execute_hint_from_provider(
+            capability_id,
             preferred_provider,
             requested_credential_mode=credential_mode,
         )
@@ -891,6 +924,7 @@ def _preferred_credential_mode_for_execute_hint(
 
 
 def _execute_hint_from_provider(
+    capability_id: str,
     provider: dict[str, object],
     *,
     requested_credential_mode: str | None = None,
@@ -905,6 +939,7 @@ def _execute_hint_from_provider(
         "auth_method": auth_method,
         "credential_modes": credential_modes,
         "configured": configured,
+        "credential_modes_url": _capability_credential_modes_url(capability_id),
     }
     preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
         credential_modes,
@@ -920,10 +955,17 @@ def _execute_hint_from_provider(
             )
             if setup_hint is not None:
                 execute_hint["setup_hint"] = setup_hint
+            setup_url = _provider_mode_setup_url(
+                str(provider.get("service_slug") or ""),
+                preferred_credential_mode,
+            )
+            if setup_url is not None:
+                execute_hint["setup_url"] = setup_url
     return execute_hint
 
 
 def _pick_mapped_execute_hint(
+    capability_id: str,
     providers: list[dict[str, object]],
     *,
     requested_credential_mode: str | None = None,
@@ -938,6 +980,7 @@ def _pick_mapped_execute_hint(
     )
     if configured_provider is not None:
         return _execute_hint_from_provider(
+            capability_id,
             configured_provider,
             requested_credential_mode=requested_credential_mode,
         )
@@ -948,6 +991,7 @@ def _pick_mapped_execute_hint(
     )
     if fallback_provider is not None:
         return _execute_hint_from_provider(
+            capability_id,
             fallback_provider,
             requested_credential_mode=requested_credential_mode,
         )
@@ -2196,6 +2240,7 @@ async def resolve_capability(
     if synthetic_direct_payload is not None:
         return {
             "data": _apply_direct_resolve_credential_mode_filter(
+                capability_id,
                 synthetic_direct_payload,
                 credential_mode,
             ),
@@ -2209,7 +2254,8 @@ async def resolve_capability(
         f"cost_per_call,cost_currency,free_tier_calls,notes"
     )
 
-    mappings = await _cached_fetch("capability_services", mapping_path)
+    all_mappings = await _cached_fetch("capability_services", mapping_path)
+    mappings = all_mappings
     if credential_mode:
         mappings = [
             mapping
@@ -2217,7 +2263,17 @@ async def resolve_capability(
             if _supports_requested_credential_mode(mapping.get("credential_modes"), credential_mode)
         ]
     if not mappings:
-        return {"data": _empty_resolve_payload(capability_id), "error": None}
+        recovery_reason = None
+        if credential_mode and all_mappings:
+            recovery_reason = "no_providers_match_credential_mode"
+        return {
+            "data": _empty_resolve_payload(
+                capability_id,
+                requested_credential_mode=credential_mode,
+                recovery_reason=recovery_reason,
+            ),
+            "error": None,
+        }
 
     # Get scores for all mapped services
     slugs = [m["service_slug"] for m in mappings]
@@ -2347,6 +2403,7 @@ async def resolve_capability(
     bundle_ids = list({r["bundle_id"] for r in bundle_rows}) if bundle_rows else []
 
     execute_hint = _pick_mapped_execute_hint(
+        capability_id,
         providers,
         requested_credential_mode=credential_mode,
     )

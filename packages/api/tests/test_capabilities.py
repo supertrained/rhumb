@@ -499,6 +499,7 @@ async def test_resolve_capability(app):
     assert data["execute_hint"]["auth_method"] == "api_key"
     assert data["execute_hint"]["configured"] is False
     assert data["execute_hint"]["credential_modes"] == ["byok"]
+    assert data["execute_hint"]["credential_modes_url"] == "/v1/capabilities/email.send/credential-modes"
     assert data["execute_hint"]["preferred_credential_mode"] == "byok"
     assert "RHUMB_CREDENTIAL_RESEND_API_KEY" in data["execute_hint"]["setup_hint"]
     assert data["related_bundles"] == ["prospect.enrich_and_verify"]
@@ -539,7 +540,62 @@ async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
         "fallback_chain": [],
         "related_bundles": [],
         "execute_hint": None,
+        "recovery_hint": {
+            "reason": "no_providers_match_credential_mode",
+            "requested_credential_mode": "agent_vault",
+            "credential_modes_url": "/v1/capabilities/email.send/credential-modes",
+        },
     }
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_agent_vault_hint_links_to_setup_surface(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [{
+                "service_slug": "gmail",
+                "credential_modes": ["agent_vault"],
+                "auth_method": "oauth",
+                "endpoint_pattern": "POST /gmail/v1/users/me/messages/send",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": None,
+            }]
+        if path.startswith("scores?"):
+            return [{
+                "service_slug": "gmail",
+                "aggregate_recommendation_score": 7.8,
+                "execution_score": 7.8,
+                "access_readiness_score": 7.4,
+                "tier": "L3",
+                "tier_label": "Ready",
+                "confidence": 0.85,
+            }]
+        if path.startswith("services?"):
+            return [{"slug": "gmail", "name": "Gmail"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["execute_hint"]["preferred_provider"] == "gmail"
+    assert data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
+    assert data["execute_hint"]["credential_modes_url"] == "/v1/capabilities/email.send/credential-modes"
+    assert data["execute_hint"]["setup_url"] == "/v1/services/gmail/ceremony"
+    assert "/v1/services/gmail/ceremony" in data["execute_hint"]["setup_hint"]
 
 
 @pytest.mark.anyio
@@ -799,6 +855,7 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
     assert resolve_data["execute_hint"]["preferred_provider"] == "postgresql"
     assert resolve_data["execute_hint"]["auth_method"] == "connection_ref"
     assert resolve_data["execute_hint"]["configured"] is False
+    assert resolve_data["execute_hint"]["credential_modes_url"] == "/v1/capabilities/db.query.read/credential-modes"
     assert resolve_data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
     assert "X-Agent-Token" in resolve_data["execute_hint"]["setup_hint"]
 
@@ -841,6 +898,11 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
     assert unsupported_data["providers"] == []
     assert unsupported_data["fallback_chain"] == []
     assert unsupported_data["execute_hint"] is None
+    assert unsupported_data["recovery_hint"] == {
+        "reason": "no_providers_match_credential_mode",
+        "requested_credential_mode": "rhumb_managed",
+        "credential_modes_url": "/v1/capabilities/db.query.read/credential-modes",
+    }
 
 
 @pytest.mark.anyio
