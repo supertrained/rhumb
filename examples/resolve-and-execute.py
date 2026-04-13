@@ -3,10 +3,12 @@ Rhumb Example: Resolve a capability to the best provider and execute it.
 
 This script shows the core Rhumb Resolve flow:
 1. Resolve a capability to ranked providers
-2. Estimate cost before committing
-3. Execute through Resolve with managed credentials
+2. Inspect any recovery handoff Rhumb already identified
+3. Estimate cost before committing
+4. Execute through Resolve with managed credentials
 
-Requires: RHUMB_API_KEY environment variable.
+No auth is needed for the initial resolve walkthrough.
+RHUMB_API_KEY is required for estimation and execution.
 Get one at https://rhumb.dev/auth/login
 """
 
