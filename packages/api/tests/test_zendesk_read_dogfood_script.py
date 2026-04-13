@@ -155,6 +155,10 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
     artifact = json.loads(artifact_path.read_text())
     assert artifact["mode"] == "preflight_only"
     assert artifact["preflight"]["resolve_handoff"] == UNCONFIGURED_PREFLIGHT["resolve_handoff"]
+    assert artifact["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=zendesk, mode=byok, "
+        "next_url=/v1/capabilities/ticket.search/credential-modes"
+    )
     stdout_lines = capsys.readouterr().out.splitlines()
     assert stdout_lines[0] == str(artifact_path)
     summary = json.loads("\n".join(stdout_lines[1:]))
@@ -162,3 +166,63 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
         "Resolve next step: source=execute_hint, provider=zendesk, mode=byok, "
         "next_url=/v1/capabilities/ticket.search/credential-modes"
     )
+
+
+def test_main_full_proof_keeps_preflight_resolve_surfaces_in_artifact(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "zendesk-full.json"
+    configured_preflight = json.loads(json.dumps(UNCONFIGURED_PREFLIGHT))
+    configured_preflight["configured"] = True
+    configured_preflight["resolve_handoff"] = None
+    configured_preflight["resolve"]["json"]["data"]["providers"][0]["configured"] = True
+    configured_preflight["resolve"]["json"]["data"]["execute_hint"]["configured"] = True
+    configured_preflight["credential_modes"]["json"]["data"]["providers"][0]["modes"][0]["configured"] = True
+    configured_preflight["results"][2] = {
+        "check": "support_bundle_configured",
+        "ok": True,
+        "status": 200,
+        "error": None,
+        "payload_check": None,
+        "payload": {
+            "resolve_configured": True,
+            "credential_mode_configured": True,
+            "resolve_handoff": None,
+        },
+    }
+    monkeypatch.setattr(zendesk_read_dogfood, "_run_preflight", lambda **_: configured_preflight)
+
+    responses = [
+        {"status": 200, "json": {"data": {"tickets": [{"id": 1}]}}},
+        {"status": 200, "json": {"data": {"ticket_id": 1}}},
+        {"status": 200, "json": {"data": {"ticket_id": 1, "comments": []}}},
+        {"status": 400, "json": {"error": "support_ref_invalid"}},
+        {"status": 403, "json": {"error": "support_internal_comments_denied"}},
+        {"status": 403, "json": {"error": "support_ticket_scope_denied"}},
+    ]
+
+    def fake_request_json(**_: object) -> dict[str, object]:
+        return responses.pop(0)
+
+    monkeypatch.setattr(zendesk_read_dogfood, "_request_json", fake_request_json)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "zendesk_read_dogfood.py",
+            "--api-key",
+            "test-key",
+            "--denied-ticket-id",
+            "999",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    exit_code = zendesk_read_dogfood.main()
+
+    assert exit_code == 0
+    artifact = json.loads(artifact_path.read_text())
+    assert artifact["mode"] == "full_proof"
+    assert artifact["preflight"]["resolve"] == configured_preflight["resolve"]
+    assert artifact["preflight"]["credential_modes"] == configured_preflight["credential_modes"]
+    stdout_lines = capsys.readouterr().out.splitlines()
+    assert stdout_lines[0] == str(artifact_path)

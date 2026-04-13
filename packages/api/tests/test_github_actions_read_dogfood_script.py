@@ -165,3 +165,66 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
         "Resolve next step: source=execute_hint, provider=github, mode=byok, "
         "next_url=/v1/capabilities/workflow_run.list/credential-modes"
     )
+
+
+def test_main_full_proof_keeps_preflight_resolve_surfaces_in_artifact(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "github-actions-full.json"
+    configured_preflight = json.loads(json.dumps(UNCONFIGURED_PREFLIGHT))
+    configured_preflight["configured"] = True
+    configured_preflight["resolve_handoff"] = None
+    configured_preflight["resolve"]["json"]["data"]["providers"][0]["configured"] = True
+    configured_preflight["resolve"]["json"]["data"]["execute_hint"]["configured"] = True
+    configured_preflight["credential_modes"]["json"]["data"]["providers"][0]["modes"][0]["configured"] = True
+    configured_preflight["results"][2] = {
+        "check": "actions_bundle_configured",
+        "ok": True,
+        "status": 200,
+        "error": None,
+        "payload_check": None,
+        "payload": {
+            "resolve_configured": True,
+            "credential_mode_configured": True,
+            "resolve_handoff": None,
+        },
+    }
+    monkeypatch.setattr(github_actions_read_dogfood, "_run_preflight", lambda **_: configured_preflight)
+
+    responses = [
+        {
+            "status": 200,
+            "json": {"data": {"workflow_runs": [{"repository": github_actions_read_dogfood.DEFAULT_ALLOWED_REPOSITORY, "run_id": github_actions_read_dogfood.DEFAULT_RUN_ID}]}}
+        },
+        {
+            "status": 200,
+            "json": {"data": {"repository": github_actions_read_dogfood.DEFAULT_ALLOWED_REPOSITORY, "run_id": github_actions_read_dogfood.DEFAULT_RUN_ID}}
+        },
+        {"status": 400, "json": {"error": "actions_ref_invalid"}},
+        {"status": 403, "json": {"error": "workflow_run_scope_denied"}},
+        {"status": 404, "json": {"error": "workflow_run_not_found"}},
+    ]
+
+    def fake_request_json(**_: object) -> dict[str, object]:
+        return responses.pop(0)
+
+    monkeypatch.setattr(github_actions_read_dogfood, "_request_json", fake_request_json)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "github_actions_read_dogfood.py",
+            "--api-key",
+            "test-key",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    exit_code = github_actions_read_dogfood.main()
+
+    assert exit_code == 0
+    artifact = json.loads(artifact_path.read_text())
+    assert artifact["mode"] == "full_proof"
+    assert artifact["preflight"]["resolve"] == configured_preflight["resolve"]
+    assert artifact["preflight"]["credential_modes"] == configured_preflight["credential_modes"]
+    stdout_lines = capsys.readouterr().out.splitlines()
+    assert stdout_lines[0] == str(artifact_path)

@@ -165,3 +165,66 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
         "Resolve next step: source=execute_hint, provider=vercel, mode=byok, "
         "next_url=/v1/capabilities/deployment.list/credential-modes"
     )
+
+
+def test_main_full_proof_keeps_preflight_resolve_surfaces_in_artifact(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "vercel-full.json"
+    configured_preflight = json.loads(json.dumps(UNCONFIGURED_PREFLIGHT))
+    configured_preflight["configured"] = True
+    configured_preflight["resolve_handoff"] = None
+    configured_preflight["resolve"]["json"]["data"]["providers"][0]["configured"] = True
+    configured_preflight["resolve"]["json"]["data"]["execute_hint"]["configured"] = True
+    configured_preflight["credential_modes"]["json"]["data"]["providers"][0]["modes"][0]["configured"] = True
+    configured_preflight["results"][2] = {
+        "check": "deployment_bundle_configured",
+        "ok": True,
+        "status": 200,
+        "error": None,
+        "payload_check": None,
+        "payload": {
+            "resolve_configured": True,
+            "credential_mode_configured": True,
+            "resolve_handoff": None,
+        },
+    }
+    monkeypatch.setattr(vercel_deployment_read_dogfood, "_run_preflight", lambda **_: configured_preflight)
+
+    responses = [
+        {
+            "status": 200,
+            "json": {"data": {"deployments": [{"project_id": vercel_deployment_read_dogfood.DEFAULT_ALLOWED_PROJECT_ID, "target": vercel_deployment_read_dogfood.DEFAULT_ALLOWED_TARGET}]}}
+        },
+        {
+            "status": 200,
+            "json": {"data": {"deployment_id": vercel_deployment_read_dogfood.DEFAULT_ALLOWED_DEPLOYMENT_ID, "project_id": vercel_deployment_read_dogfood.DEFAULT_ALLOWED_PROJECT_ID, "target": vercel_deployment_read_dogfood.DEFAULT_ALLOWED_TARGET}}
+        },
+        {"status": 400, "json": {"error": "deployment_ref_invalid"}},
+        {"status": 403, "json": {"error": "deployment_scope_denied"}},
+        {"status": 403, "json": {"error": "deployment_target_scope_denied"}},
+    ]
+
+    def fake_request_json(**_: object) -> dict[str, object]:
+        return responses.pop(0)
+
+    monkeypatch.setattr(vercel_deployment_read_dogfood, "_request_json", fake_request_json)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "vercel_deployment_read_dogfood.py",
+            "--api-key",
+            "test-key",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    exit_code = vercel_deployment_read_dogfood.main()
+
+    assert exit_code == 0
+    artifact = json.loads(artifact_path.read_text())
+    assert artifact["mode"] == "full_proof"
+    assert artifact["preflight"]["resolve"] == configured_preflight["resolve"]
+    assert artifact["preflight"]["credential_modes"] == configured_preflight["credential_modes"]
+    stdout_lines = capsys.readouterr().out.splitlines()
+    assert stdout_lines[0] == str(artifact_path)

@@ -535,6 +535,8 @@ def main() -> int:
             "configured": preflight["configured"],
             "available_for_execute": preflight["available_for_execute"],
             "resolve_handoff": preflight["resolve_handoff"],
+            "resolve": preflight["resolve"],
+            "credential_modes": preflight["credential_modes"],
         },
         "results": results,
     }
