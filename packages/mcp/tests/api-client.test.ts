@@ -125,6 +125,56 @@ describe("Rhumb MCP API client resolveCapability", () => {
     expect(result?.recoveryHint?.setupHandoff).toBeNull();
   });
 
+  it("passes credential_mode filters through to /resolve", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          capability: "email.send",
+          providers: [],
+          fallback_chain: [],
+          related_bundles: [],
+          execute_hint: null,
+          recovery_hint: {
+            reason: "no_providers_match_credential_mode",
+            requested_credential_mode: "agent_vault",
+            resolve_url: "/v1/capabilities/email.send/resolve",
+            credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+            supported_provider_slugs: ["resend", "sendgrid"],
+            supported_credential_modes: ["byok", "agent_vault"],
+            unavailable_provider_slugs: [],
+            not_execute_ready_provider_slugs: [],
+            alternate_execute_hint: {
+              preferred_provider: "sendgrid",
+              selection_reason: "higher_ranked_provider_unavailable",
+              endpoint_pattern: "POST /v3/mail/send",
+              auth_method: "api_key",
+              credential_modes: ["byok"],
+              configured: true,
+              credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+              preferred_credential_mode: "byok",
+              fallback_providers: ["amazon-ses"],
+              setup_hint: null,
+              setup_url: null
+            },
+            setup_handoff: null
+          }
+        }
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const result = await client.resolveCapability("email.send", { credentialMode: "agent_vault" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/v1/capabilities/email.send/resolve?credential_mode=agent_vault",
+      expect.objectContaining({ headers: expect.any(Object) })
+    );
+    expect(result?.recoveryHint?.requestedCredentialMode).toBe("agent_vault");
+    expect(result?.recoveryHint?.alternateExecuteHint?.preferredCredentialMode).toBe("byok");
+  });
+
   it("parses recovery setup handoff from /resolve", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

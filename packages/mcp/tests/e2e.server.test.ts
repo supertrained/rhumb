@@ -523,6 +523,21 @@ describe("e2e: MCP server integration", () => {
       expect(parsed.recoveryHint).toBeNull();
     });
 
+    it("forwards credential_mode filters through the MCP tool", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      await client.callTool({
+        name: "resolve_capability",
+        arguments: { capability: "email.send", credential_mode: "agent_vault" },
+      }, CallToolResultSchema);
+
+      expect(apiClient.resolveCapability).toHaveBeenCalledWith(
+        "email.send",
+        expect.objectContaining({ credentialMode: "agent_vault" })
+      );
+    });
+
     it("returns recovery rerun and handoff fields when resolve dead-ends", async () => {
       const apiClient = createMockApiClient();
       vi.mocked(apiClient.resolveCapability).mockResolvedValueOnce({

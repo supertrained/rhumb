@@ -301,7 +301,9 @@ export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
   discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }>;
-  resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null>;
+  resolveCapability(capabilityId: string, opts?: {
+    credentialMode?: string;
+  }): Promise<CapabilityResolveResult | null>;
   executeCapability(capabilityId: string, opts: {
     provider?: string;
     method?: string;
@@ -549,8 +551,13 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return { items, total };
     },
 
-    async resolveCapability(capabilityId: string): Promise<CapabilityResolveResult | null> {
-      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/resolve`;
+    async resolveCapability(capabilityId: string, opts?: {
+      credentialMode?: string;
+    }): Promise<CapabilityResolveResult | null> {
+      const params = new URLSearchParams();
+      if (opts?.credentialMode) params.set("credential_mode", opts.credentialMode);
+      const qs = params.toString();
+      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/resolve${qs ? `?${qs}` : ""}`;
       const res = await fetch(url, { headers: defaultHeaders });
 
       if (!res.ok) {

@@ -219,6 +219,17 @@ describe("resolve_capability", () => {
     expect(result.executeHint?.fallbackProviders).toEqual(["amazon-ses"]);
   });
 
+  it("passes credential_mode filters to the API client", async () => {
+    const client = createMockClient();
+
+    await handleResolveCapability({ capability: "email.send", credential_mode: "agent_vault" }, client);
+
+    expect(client.resolveCapability).toHaveBeenCalledWith(
+      "email.send",
+      expect.objectContaining({ credentialMode: "agent_vault" })
+    );
+  });
+
   it("includes recovery hint when resolve has no execute-ready providers", async () => {
     const client = createMockClient({
       resolveCapability: vi.fn().mockResolvedValue({

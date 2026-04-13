@@ -4,6 +4,7 @@ import {
   GetScoreInputSchema,
   GetAlternativesInputSchema,
   GetFailureModesInputSchema,
+  ResolveCapabilityInputSchema,
   TOOL_SCHEMAS,
   TOOL_NAMES,
   type FindServiceInput,
@@ -90,6 +91,8 @@ describe("types.contract", () => {
       failures: [{ pattern: "Rate limit", impact: "high", frequency: "occasional", workaround: "Implement backoff" }]
     };
     expect(failOutput.failures).toHaveLength(1);
+
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.type).toBe("string");
 
     const resolveOutput: ResolveCapabilityOutput = {
       capability: "email.send",

@@ -13,7 +13,9 @@ export async function handleResolveCapability(
   client: RhumbApiClient
 ): Promise<ResolveCapabilityOutput> {
   try {
-    const result = await client.resolveCapability(input.capability);
+    const result = await client.resolveCapability(input.capability, {
+      credentialMode: input.credential_mode
+    });
 
     if (!result) {
       return {
