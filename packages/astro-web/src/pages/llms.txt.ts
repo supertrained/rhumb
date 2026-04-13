@@ -48,7 +48,7 @@ MCP tools available:
   get_alternatives("stripe") — comparable services ranked
   get_failure_modes("stripe") — known failure patterns
   discover_capabilities({ domain: "communication" }) — browse capability definitions
-  resolve_capability({ capability: "email.send" }) — rank providers for a capability
+  resolve_capability({ capability: "email.send", credential_mode: "byok" }) — rank providers, optionally scope to a credential mode, and surface machine-readable recovery handoffs
   estimate_capability({ capability_id: "email.send" }) — estimate cost before execution
   execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — execute through Rhumb
   budget() — check budget status
@@ -69,7 +69,7 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 - GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of capability definitions
 - Each capability: { id, domain, action, description, provider_count, top_provider }
 - Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
-- Use discover_capabilities() in MCP to browse, resolve_capability() to find the best provider where execution is live
+- Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, and follow recovery handoffs when a filtered route dead-ends
 
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract

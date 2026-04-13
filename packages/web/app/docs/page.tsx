@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "API Documentation",
   description:
-    "Rhumb REST API and MCP server documentation. Endpoints for service scores, failure modes, leaderboards, and search. No auth required.",
+    "Rhumb REST API and MCP server docs for discovery, capability routing, execution, pricing, and receipts.",
   alternates: { canonical: "/docs" },
   openGraph: {
     title: "API Documentation — Rhumb",
-    description: "REST API + MCP server docs. Get AN Scores, failure modes, and leaderboards programmatically.",
+    description: "REST API + MCP server docs for discovery, capability routing, execution, pricing, and receipts.",
     type: "website",
     url: "https://rhumb.dev/docs",
     siteName: "Rhumb",
@@ -119,106 +119,135 @@ const ENDPOINTS = [
 ];
 
 const MCP_TOOLS = [
-  // Discovery tools (no auth required)
   {
     name: "find_services",
-    desc: "Search for services by use case or need",
-    example: 'find_services("payment processing")',
+    desc: "Search indexed services by what you need them to do.",
+    example: 'find_services({ query: "payment processing" })',
     category: "discovery",
   },
   {
     name: "get_score",
-    desc: "Full AN Score breakdown for a specific service",
-    example: 'get_score("stripe")',
+    desc: "Get the full AN Score breakdown for a service.",
+    example: 'get_score({ slug: "stripe" })',
     category: "discovery",
   },
   {
     name: "get_alternatives",
-    desc: "Find scored alternatives in the same category",
-    example: 'get_alternatives("paypal")',
+    desc: "Find alternative services ranked by AN Score.",
+    example: 'get_alternatives({ slug: "paypal" })',
     category: "discovery",
   },
   {
     name: "get_failure_modes",
-    desc: "Known failure modes and workarounds for a service",
-    example: 'get_failure_modes("stripe")',
+    desc: "Get known failure patterns, impact, and workarounds for a service.",
+    example: 'get_failure_modes({ slug: "stripe" })',
     category: "discovery",
   },
   {
-    name: "search_services",
-    desc: "Semantic search across all scored services",
-    example: 'search_services("email sending API")',
+    name: "discover_capabilities",
+    desc: "Browse capability definitions by domain or search text.",
+    example: 'discover_capabilities({ search: "email.send" })',
     category: "discovery",
   },
-  {
-    name: "get_ceremonies",
-    desc: "Signup and onboarding friction for a service",
-    example: 'get_ceremonies("sendgrid")',
-    category: "discovery",
-  },
-  // Capability resolution tools (auth required for execution)
   {
     name: "resolve_capability",
-    desc: "Find the best provider for a capability based on AN Score",
-    example: 'resolve_capability("email.send")',
+    desc: "Resolve a capability to ranked providers, optional credential-mode filtering, and machine-readable recovery handoffs.",
+    example: 'resolve_capability({ capability: "email.send", credential_mode: "byok" })',
+    category: "resolve",
+  },
+  {
+    name: "estimate_capability",
+    desc: "Estimate cost and health before execution.",
+    example: 'estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" })',
     category: "resolve",
   },
   {
     name: "execute_capability",
-    desc: "Execute a capability through Rhumb's managed proxy",
-    example: 'execute_capability("email.send", {to: "user@example.com", subject: "Hello"})',
+    desc: "Execute a capability through Rhumb Resolve.",
+    example: 'execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed", body: { to: "user@example.com", subject: "Hello" } })',
     category: "resolve",
   },
   {
-    name: "estimate_cost",
-    desc: "Check pricing before executing a capability",
-    example: 'estimate_cost("email.send")',
+    name: "credential_ceremony",
+    desc: "Get step-by-step instructions for obtaining provider credentials.",
+    example: 'credential_ceremony({ service: "gmail" })',
     category: "resolve",
   },
   {
-    name: "get_credentials",
-    desc: "Check available credential modes for a capability",
-    example: 'get_credentials("email.send")',
+    name: "check_credentials",
+    desc: "Check which credential modes are available to you.",
+    example: 'check_credentials({ capability: "email.send" })',
     category: "resolve",
   },
   {
-    name: "get_routing",
-    desc: "See how a capability routes to providers",
-    example: 'get_routing("scrape.extract")',
-    category: "resolve",
-  },
-  // Billing & budget tools (auth required)
-  {
-    name: "get_budget_status",
-    desc: "Check remaining prepaid balance and spend",
-    example: "get_budget_status()",
-    category: "billing",
+    name: "budget",
+    desc: "Check or set your call spending limit.",
+    example: 'budget({ action: "get" })',
+    category: "governance",
   },
   {
-    name: "get_balance",
-    desc: "Current account balance",
-    example: "get_balance()",
-    category: "billing",
+    name: "spend",
+    desc: "Get spend totals and breakdowns by capability and provider.",
+    example: 'spend({ period: "30d" })',
+    category: "governance",
   },
   {
-    name: "get_spend",
-    desc: "Spend breakdown by service and time period",
-    example: "get_spend()",
-    category: "billing",
+    name: "routing",
+    desc: "Inspect or set provider routing preferences.",
+    example: 'routing({ action: "get" })',
+    category: "governance",
   },
   {
-    name: "get_ledger",
-    desc: "Transaction history and billing ledger",
-    example: "get_ledger()",
-    category: "billing",
+    name: "usage_telemetry",
+    desc: "Get execution analytics for calls, latency, errors, and cost.",
+    example: 'usage_telemetry({ days: 7 })',
+    category: "governance",
+  },
+  {
+    name: "check_balance",
+    desc: "Check your current Rhumb credit balance.",
+    example: "check_balance()",
+    category: "governance",
   },
   {
     name: "get_payment_url",
-    desc: "Get URL to add prepaid balance via Stripe",
-    example: "get_payment_url()",
-    category: "billing",
+    desc: "Get a checkout URL to top up credits.",
+    example: 'get_payment_url({ amount_usd: 25 })',
+    category: "governance",
+  },
+  {
+    name: "get_ledger",
+    desc: "Review billing events, top-ups, and debits.",
+    example: 'get_ledger({ limit: 20 })',
+    category: "governance",
+  },
+  {
+    name: "rhumb_list_recipes",
+    desc: "List the currently published Layer 3 recipe catalog.",
+    example: "rhumb_list_recipes({ limit: 20 })",
+    category: "recipes",
+  },
+  {
+    name: "rhumb_get_recipe",
+    desc: "Fetch the full published definition for a recipe.",
+    example: 'rhumb_get_recipe({ recipe_id: "recipe.example" })',
+    category: "recipes",
+  },
+  {
+    name: "rhumb_recipe_execute",
+    desc: "Execute a published Layer 3 recipe.",
+    example: 'rhumb_recipe_execute({ recipe_id: "recipe.example", inputs: {} })',
+    category: "recipes",
+  },
+  {
+    name: "get_receipt",
+    desc: "Retrieve a past execution receipt by ID.",
+    example: 'get_receipt({ receipt_id: "rcpt_123" })',
+    category: "audit",
   },
 ];
+
+const MCP_TOOL_CATEGORIES = ["discovery", "resolve", "governance", "recipes", "audit"] as const;
 
 export default function DocsPage() {
   return (
@@ -235,8 +264,9 @@ export default function DocsPage() {
             API Documentation
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed mb-6">
-            Access AN Scores, failure modes, and leaderboards
-            programmatically. No authentication required.
+            Access discovery, capability routing, execution, pricing,
+            and receipt surfaces programmatically. Discovery is public,
+            while execution and billing require authentication.
           </p>
           <div className="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
             <span className="text-slate-500">Base URL:</span>{" "}
@@ -322,12 +352,14 @@ export default function DocsPage() {
             Available tools ({MCP_TOOLS.length})
           </h3>
 
-          {(["discovery", "resolve", "billing"] as const).map((cat) => {
+          {MCP_TOOL_CATEGORIES.map((cat) => {
             const tools = MCP_TOOLS.filter((t) => t.category === cat);
             const labels = {
-              discovery: "Discovery (no auth required)",
-              resolve: "Capability Resolution (auth required for execution)",
-              billing: "Billing & Budget (auth required)",
+              discovery: "Discovery (free)",
+              resolve: "Resolve, estimate, and credential setup",
+              governance: "Routing, usage, and billing",
+              recipes: "Recipes (Layer 3 beta)",
+              audit: "Receipts and audit",
             };
             return (
               <div key={cat} className="mb-8">
@@ -369,8 +401,8 @@ export default function DocsPage() {
                 <strong className="text-slate-200">
                   Discovery is free
                 </strong>{" "}
-                — search, scores, leaderboards, and failure modes require
-                no authentication.
+                — search, scores, failure modes, and capability discovery
+                require no authentication.
               </span>
             </li>
             <li className="flex items-start gap-2">
