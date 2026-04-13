@@ -72,6 +72,10 @@ def _provider_click_surface_bucket(surface: str) -> str:
     return "other"
 
 
+def _is_service_page_cta_event(event_type: str) -> bool:
+    return event_type in {"provider_click", "docs_click"}
+
+
 def _to_bool(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -598,6 +602,7 @@ def build_launch_dashboard(
     provider_clicks = Counter[str]()
     provider_clicks_by_service = Counter[str]()
     provider_clicks_by_surface = Counter[str]()
+    service_page_cta_clicks_by_surface = Counter[str]()
     dispute_clicks_by_type = Counter[str]()
     clicks_by_surface = Counter[str]()
     top_capabilities = Counter[str]()
@@ -620,6 +625,9 @@ def build_launch_dashboard(
         event_type = str(row.get("event_type") or "unknown")
         surface = str(row.get("source_surface") or "unknown")
         clicks_by_surface[surface] += 1
+
+        if _is_service_page_cta_event(event_type):
+            service_page_cta_clicks_by_surface[surface] += 1
 
         if event_type == "provider_click":
             domain = str(row.get("destination_domain") or row.get("service_slug") or "unknown")
@@ -713,11 +721,11 @@ def build_launch_dashboard(
 
     service_page_click_total = sum(
         count
-        for surface, count in provider_clicks_by_surface.items()
+        for surface, count in service_page_cta_clicks_by_surface.items()
         if surface in {"service_page_hero", "service_page_sidebar", "service_page"}
     )
     service_page_cta_split = Counter[str]()
-    for surface, count in provider_clicks_by_surface.items():
+    for surface, count in service_page_cta_clicks_by_surface.items():
         service_page_cta_split[_provider_click_surface_bucket(surface)] += count
 
     machine_queries = sum(
@@ -817,11 +825,11 @@ def build_launch_dashboard(
             "provider_ctr": ctr_rows[:10],
             "service_page_cta_split": {
                 "service_page_clicks": service_page_click_total,
-                "outside_service_page_clicks": sum(provider_clicks.values()) - service_page_click_total,
+                "outside_service_page_clicks": sum(service_page_cta_clicks_by_surface.values()) - service_page_click_total,
                 "hero": _build_split_row(service_page_cta_split.get("hero", 0), total=service_page_click_total),
                 "sidebar": _build_split_row(service_page_cta_split.get("sidebar", 0), total=service_page_click_total),
                 "legacy_service_page": _build_split_row(service_page_cta_split.get("legacy_service_page", 0), total=service_page_click_total),
-                "other": _build_split_row(service_page_cta_split.get("other", 0), total=sum(provider_clicks.values())),
+                "other": _build_split_row(service_page_cta_split.get("other", 0), total=sum(service_page_cta_clicks_by_surface.values())),
             },
             "dispute_clicks": {
                 "email": dispute_clicks_by_type.get("dispute_click", 0),

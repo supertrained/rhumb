@@ -905,6 +905,53 @@ def test_build_launch_dashboard_surfaces_service_page_cta_split() -> None:
     }
 
 
+def test_build_launch_dashboard_counts_docs_clicks_in_service_page_cta_split() -> None:
+    dashboard = build_launch_dashboard(
+        query_logs=[],
+        click_events=[
+            {
+                "created_at": "2026-03-13T03:00:00Z",
+                "event_type": "docs_click",
+                "service_slug": "stripe",
+                "destination_domain": "docs.stripe.com",
+                "source_surface": "service_page_hero",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T03:05:00Z",
+                "event_type": "provider_click",
+                "service_slug": "stripe",
+                "destination_domain": "stripe.com",
+                "source_surface": "service_page_sidebar",
+                "page_path": "/service/stripe",
+            },
+            {
+                "created_at": "2026-03-13T03:10:00Z",
+                "event_type": "docs_click",
+                "service_slug": "openai",
+                "destination_domain": "platform.openai.com",
+                "source_surface": "providers_page",
+                "page_path": "/providers",
+            },
+        ],
+        execution_rows=[],
+        service_rows=[{"slug": "stripe"}, {"slug": "openai"}],
+        window="launch",
+        now=datetime(2026, 3, 13, 10, 0, tzinfo=UTC),
+    )
+
+    assert dashboard["clicks"]["provider_clicks"] == 1
+    assert dashboard["clicks"]["provider_click_surfaces"] == [{"key": "service_page_sidebar", "count": 1}]
+    assert dashboard["clicks"]["service_page_cta_split"] == {
+        "service_page_clicks": 2,
+        "outside_service_page_clicks": 1,
+        "hero": {"clicks": 1, "share": 0.5},
+        "sidebar": {"clicks": 1, "share": 0.5},
+        "legacy_service_page": {"clicks": 0, "share": 0.0},
+        "other": {"clicks": 1, "share": 0.3333},
+    }
+
+
 def test_launch_dashboard_route_accepts_dashboard_key(
     client: TestClient,
     monkeypatch,
