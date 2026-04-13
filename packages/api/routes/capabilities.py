@@ -1105,6 +1105,16 @@ def _execute_ready_recovery_hint(
     if unavailable_provider_slugs:
         recovery_hint["unavailable_provider_slugs"] = unavailable_provider_slugs
 
+    not_execute_ready_provider_slugs = [
+        str(provider.get("service_slug"))
+        for provider in providers
+        if provider.get("service_slug")
+        and provider.get("available_for_execute")
+        and not provider.get("endpoint_pattern")
+    ]
+    if not_execute_ready_provider_slugs:
+        recovery_hint["not_execute_ready_provider_slugs"] = not_execute_ready_provider_slugs
+
     return recovery_hint
 
 
