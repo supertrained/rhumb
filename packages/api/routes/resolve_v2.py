@@ -6,6 +6,8 @@ compatibility namespace without breaking the existing `/v1/` contract.
 Current scope:
 - `/v2/health`
 - `/v2/capabilities`
+- `/v2/capabilities/{capability_id}/resolve`
+- `/v2/capabilities/{capability_id}/credential-modes`
 - `/v2/policy`
 - `/v2/capabilities/{capability_id}/execute/estimate`
 - `/v2/capabilities/{capability_id}/execute`
@@ -79,6 +81,12 @@ _RESPONSE_HEADER_NAMES = [
     "X-Rhumb-Wallet",
     "X-Rhumb-Rate-Remaining",
 ]
+_V2_NAVIGATION_URL_KEYS = {
+    "search_url",
+    "resolve_url",
+    "estimate_url",
+    "credential_modes_url",
+}
 
 _v2_budget_enforcer = BudgetEnforcer()
 
@@ -176,6 +184,43 @@ def _compat_headers() -> dict[str, str]:
 def _canonicalize_credential_mode(credential_mode: str | None) -> str:
     """Normalize legacy credential-mode aliases for the compat surface."""
     return v1_execute._canonicalize_credential_mode(credential_mode) or "auto"
+
+
+def _compat_meta() -> dict[str, Any]:
+    return {
+        "api_version": "v2-alpha",
+        "compat_mode": _COMPAT_MODE,
+        "layer": 2,
+    }
+
+
+def _rewrite_v1_capabilities_url(url: str) -> str:
+    if not url.startswith("/v1/capabilities"):
+        return url
+    return f"/v2{url[3:]}"
+
+
+def _rewrite_navigation_urls(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        rewritten: dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in _V2_NAVIGATION_URL_KEYS and isinstance(value, str):
+                rewritten[key] = _rewrite_v1_capabilities_url(value)
+            else:
+                rewritten[key] = _rewrite_navigation_urls(value)
+        return rewritten
+    if isinstance(payload, list):
+        return [_rewrite_navigation_urls(item) for item in payload]
+    return payload
+
+
+def _annotate_v2_body(body: dict[str, Any]) -> dict[str, Any]:
+    meta = _compat_meta()
+    if isinstance(body.get("data"), dict):
+        body["data"]["_rhumb_v2"] = meta
+    else:
+        body["_rhumb_v2"] = meta
+    return body
 
 
 def _extract_error_fields(body: Any) -> tuple[str | None, str | None]:
@@ -495,16 +540,66 @@ async def list_capabilities_v2(
         offset=offset,
     )
     if isinstance(body, dict):
-        meta = {
-            "api_version": "v2-alpha",
-            "compat_mode": _COMPAT_MODE,
-            "layer": 2,
-        }
-        if isinstance(body.get("data"), dict):
-            body["data"]["_rhumb_v2"] = meta
-        else:
-            body["_rhumb_v2"] = meta
+        body = _annotate_v2_body(body)
     return body
+
+
+@router.get("/capabilities/{capability_id}/resolve")
+async def resolve_capability_v2(
+    capability_id: str,
+    raw_request: Request,
+    credential_mode: str | None = Query(
+        default=None,
+        description="Filter by credential mode (byok, rhumb_managed, agent_vault; legacy byo accepted).",
+    ),
+) -> JSONResponse:
+    canonical_credential_mode = (
+        _canonicalize_credential_mode(credential_mode)
+        if credential_mode is not None
+        else None
+    )
+    resolve_response = await _forward_internal(
+        raw_request,
+        method="GET",
+        path=f"/v1/capabilities/{capability_id}/resolve",
+        params=(
+            {"credential_mode": canonical_credential_mode}
+            if canonical_credential_mode is not None
+            else None
+        ),
+    )
+
+    body = _rewrite_navigation_urls(resolve_response.json())
+    if resolve_response.status_code == 200 and isinstance(body.get("data"), dict):
+        body = _annotate_v2_body(body)
+
+    return JSONResponse(
+        status_code=resolve_response.status_code,
+        content=body,
+        headers=_merge_response_headers(resolve_response),
+    )
+
+
+@router.get("/capabilities/{capability_id}/credential-modes")
+async def get_credential_modes_v2(
+    capability_id: str,
+    raw_request: Request,
+) -> JSONResponse:
+    modes_response = await _forward_internal(
+        raw_request,
+        method="GET",
+        path=f"/v1/capabilities/{capability_id}/credential-modes",
+    )
+
+    body = _rewrite_navigation_urls(modes_response.json())
+    if modes_response.status_code == 200 and isinstance(body.get("data"), dict):
+        body = _annotate_v2_body(body)
+
+    return JSONResponse(
+        status_code=modes_response.status_code,
+        content=body,
+        headers=_merge_response_headers(modes_response),
+    )
 
 
 @router.get("/policy")
@@ -591,17 +686,13 @@ async def estimate_capability_v2(
         },
     )
 
-    body = estimate_response.json()
+    body = _rewrite_navigation_urls(estimate_response.json())
     if estimate_response.status_code == 200 and isinstance(body.get("data"), dict):
         if body["data"].get("credential_mode") is not None:
             body["data"]["credential_mode"] = _canonicalize_credential_mode(
                 body["data"].get("credential_mode")
             )
-        body["data"]["_rhumb_v2"] = {
-            "api_version": "v2-alpha",
-            "compat_mode": _COMPAT_MODE,
-            "layer": 2,
-        }
+        body = _annotate_v2_body(body)
 
     return JSONResponse(
         status_code=estimate_response.status_code,
@@ -643,7 +734,7 @@ async def execute_capability_v2(
         },
     )
 
-    estimate_body = estimate_response.json()
+    estimate_body = _rewrite_navigation_urls(estimate_response.json())
     if estimate_response.status_code != 200:
         return JSONResponse(
             status_code=estimate_response.status_code,
@@ -709,7 +800,7 @@ async def execute_capability_v2(
         json_body=v1_payload,
         extra_headers={"X-Rhumb-Skip-Receipt": "true"},
     )
-    body = execute_response.json()
+    body = _rewrite_navigation_urls(execute_response.json())
 
     # ── Receipt creation ─────────────────────────────────────────────
     execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
@@ -827,9 +918,7 @@ async def execute_capability_v2(
             else _policy_summary(effective_policy)
         )
         v2_meta: dict[str, Any] = {
-            "api_version": "v2-alpha",
-            "compat_mode": _COMPAT_MODE,
-            "layer": 2,
+            **_compat_meta(),
             "receipt_id": receipt_id or _compat_receipt_id(execution_id),
             "explanation_id": explanation_id,
             "selected_provider": selected_provider,

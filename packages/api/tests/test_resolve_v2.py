@@ -226,6 +226,89 @@ async def test_v2_health(app):
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/resolve",
+                params={"credential_mode": "byo"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    assert resp.headers["X-Rhumb-Compat"] == "v1-translate"
+
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert data["execute_hint"]["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
+    assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
+
+
+@pytest.mark.anyio
+async def test_v2_credential_modes_wraps_metadata(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/credential-modes",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["providers"][0]["modes"][0]["mode"] == "byok"
+
+
+@pytest.mark.anyio
+async def test_v2_resolve_not_found_rewrites_search_url(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, return_value=[]):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/nonexistent/resolve")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["search_url"] == "/v2/capabilities?search=nonexistent"
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 402
+    estimate_resp.json.return_value = {
+        "error": "payment_required",
+        "message": "Payment required.",
+        "resolve_url": "/v1/capabilities/email.send/resolve?credential_mode=byok",
+        "estimate_url": "/v1/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok",
+    }
+    estimate_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)) as mock_forward:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "byo", "provider": "sendgrid"},
+            )
+
+    assert resp.status_code == 402
+    body = resp.json()
+    assert body["resolve_url"] == "/v2/capabilities/email.send/resolve?credential_mode=byok"
+    assert body["estimate_url"] == "/v2/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok"
+    assert mock_forward.await_args.kwargs["params"] == {
+        "credential_mode": "byok",
+        "provider": "sendgrid",
+    }
+
+
+@pytest.mark.anyio
 async def test_policy_engine_matches_provider_preference_aliases():
     engine = PolicyEngine()
     auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
