@@ -2,7 +2,8 @@ import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-import { getLeaderboard, getServiceCount } from "../lib/api";
+import { getLeaderboard } from "../lib/api";
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 import type { EvidenceTier, LeaderboardItem } from "../lib/types";
 import { ScoreDisplay, TierBadge } from "../components/ScoreDisplay";
 import { CopyInstall } from "../components/copy-install";
@@ -54,14 +55,11 @@ function freshnessLabel(item: LeaderboardItem): string {
 }
 
 export default async function HomePage(): Promise<JSX.Element> {
-  const [leaderboard, serviceCount] = await Promise.all([
-    getLeaderboard("payments", { limit: 3 }),
-    getServiceCount(),
-  ]);
+  const leaderboard = await getLeaderboard("payments", { limit: 3 });
   const previewItems = leaderboard.items.slice(0, 3);
   const stats = [
-    { value: String(serviceCount), label: "services scored" },
-    { value: "11", label: "categories" },
+    { value: PUBLIC_TRUTH.servicesLabel, label: "services scored" },
+    { value: PUBLIC_TRUTH.categoriesLabel, label: "categories" },
     { value: "20", label: "scored dimensions" },
     { value: "live", label: "evidence data" },
   ];

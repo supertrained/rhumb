@@ -2,7 +2,8 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getServiceCount, getServices } from "../../lib/api";
+import { getServices } from "../../lib/api";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 import { Search } from "../../components/Search";
 import { ScoreDisplay } from "../../components/ScoreDisplay";
 
@@ -18,11 +19,9 @@ type Props = {
 export default async function SearchPage({ searchParams }: Props): Promise<JSX.Element> {
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
+  const servicesLabel = PUBLIC_TRUTH.servicesLabel;
 
-  const [allServices, serviceCount] = await Promise.all([
-    query ? getServices() : Promise.resolve([]),
-    query ? Promise.resolve(null) : getServiceCount(),
-  ]);
+  const allServices = query ? await getServices() : [];
   const results = allServices.filter((s) => {
     const search = query.toLowerCase();
     return (
@@ -132,7 +131,7 @@ export default async function SearchPage({ searchParams }: Props): Promise<JSX.E
         ) : (
           <div className="text-center py-16">
             <p className="text-slate-500 text-sm font-mono mb-6">
-              Search across {serviceCount ?? "hundreds of"} scored APIs and developer tools.
+              Search across {servicesLabel} scored APIs and developer tools.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {["payments", "ai", "auth", "email", "devops", "search"].map((cat) => (

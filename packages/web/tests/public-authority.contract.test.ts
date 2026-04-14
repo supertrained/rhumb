@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
+const webHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+const webSearch = readFileSync(new URL("../app/search/page.tsx", import.meta.url), "utf8");
+const webPublicTruth = readFileSync(new URL("../lib/public-truth.ts", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
@@ -68,6 +71,20 @@ describe("public authority pricing contract", () => {
     expect(astroHome).toContain('Search ${servicesLabel} services');
     expect(astroHome).toContain('Search ${servicesLabel} scored services');
     expect(astroHome).not.toContain('getServiceCount');
+  });
+
+  it("keeps the web homepage and search authority surfaces pinned to public truth labels", () => {
+    expect(webPublicTruth).toContain('servicesLabel: "1,038"');
+    expect(webPublicTruth).toContain('categoriesLabel: "92"');
+
+    expect(webHome).toContain('PUBLIC_TRUTH.servicesLabel');
+    expect(webHome).toContain('PUBLIC_TRUTH.categoriesLabel');
+    expect(webHome).not.toContain('getServiceCount');
+    expect(webHome).not.toContain('{ value: "11", label: "categories" }');
+
+    expect(webSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(webSearch).toContain('Search across {servicesLabel} scored APIs and developer tools.');
+    expect(webSearch).not.toContain('getServiceCount');
   });
 
   it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {

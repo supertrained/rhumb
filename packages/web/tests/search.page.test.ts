@@ -1,13 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getServiceCountMock, getServicesMock } = vi.hoisted(() => ({
-  getServiceCountMock: vi.fn(),
+const { getServicesMock } = vi.hoisted(() => ({
   getServicesMock: vi.fn(),
 }));
 
 vi.mock("../lib/api", () => ({
-  getServiceCount: getServiceCountMock,
   getServices: getServicesMock,
 }));
 
@@ -23,9 +21,7 @@ async function renderSearchPage(searchParams: Promise<{ q?: string }> = Promise.
 
 describe("search page", () => {
   beforeEach(() => {
-    getServiceCountMock.mockReset();
     getServicesMock.mockReset();
-    getServiceCountMock.mockResolvedValue(54);
     getServicesMock.mockResolvedValue([]);
   });
 
