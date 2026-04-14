@@ -306,6 +306,8 @@ Current product truth:
 
 That means agents should not treat a 402 as a generic dead end. They should either follow the structured next step automatically when their runtime supports the rail, or surface the exact human setup action when it does not.
 
+Direct AUD-18 system-of-record execute rails that do **not** support x402 per-call payment yet, such as the direct CRM / support / DB / warehouse / deployment / storage / GitHub Actions paths, now return auth-only machine-readable onboarding on HTTP 401 instead of a bare header error or misleading x402 discovery. Those responses include `auth_handoff`, `resolve_url`, and `credential_modes_url`, but intentionally keep `auth_handoff.reason=auth_required` and `auth_handoff.paths[]=[governed_api_key]` so agents are not misled into thinking payment or anonymous x402 works on those direct rails today. `GET /v1/capabilities/{capability_id}/execute` for those direct rails now stays off the x402 preflight path too: without `X-Rhumb-Key` it returns the same auth-only 401 guidance, and with a valid key it returns POST-only guidance instead of x402 instructions.
+
 ## Direct DB-Read Capabilities (AUD-18 Wave 1)
 
 Rhumb now exposes three direct PostgreSQL read-first capabilities:

@@ -10,8 +10,9 @@ Supports two authentication paths:
      No API key or signup required; identity is derived from wallet address.
      Rate-limited per wallet to prevent abuse.
 
-If neither header is present, the endpoint returns HTTP 402 with x402 payment
-instructions so agents can discover how to pay.
+Routed execute capabilities can use either path. Direct AUD-18 system-of-record
+execute rails currently require ``X-Rhumb-Key`` and return auth-only recovery
+guidance instead of x402 payment discovery.
 """
 
 from __future__ import annotations
@@ -152,6 +153,51 @@ async def _get_idempotency_store() -> DurableIdempotencyStore:
 logger = logging.getLogger(__name__)
 
 
+CRM_CAPABILITY_IDS = frozenset({"crm.object.describe", "crm.record.search", "crm.record.get"})
+ACTIONS_CAPABILITY_IDS = frozenset({"workflow_run.list", "workflow_run.get"})
+DB_CAPABILITY_IDS = frozenset({"db.query.read", "db.schema.describe", "db.row.get"})
+WAREHOUSE_CAPABILITY_IDS = frozenset({"warehouse.query.read", "warehouse.schema.describe"})
+DEPLOYMENT_CAPABILITY_IDS = frozenset({"deployment.list", "deployment.get"})
+STORAGE_CAPABILITY_IDS = frozenset({"object.list", "object.head", "object.get"})
+SUPPORT_CAPABILITY_IDS = frozenset(
+    {
+        "ticket.search",
+        "ticket.get",
+        "ticket.list_comments",
+        "conversation.list",
+        "conversation.get",
+        "conversation.list_parts",
+    }
+)
+DIRECT_EXECUTE_CAPABILITY_IDS = frozenset(
+    CRM_CAPABILITY_IDS
+    | ACTIONS_CAPABILITY_IDS
+    | DB_CAPABILITY_IDS
+    | WAREHOUSE_CAPABILITY_IDS
+    | DEPLOYMENT_CAPABILITY_IDS
+    | STORAGE_CAPABILITY_IDS
+    | SUPPORT_CAPABILITY_IDS
+)
+
+
+def _direct_execute_auth_detail(capability_id: str) -> str | None:
+    if capability_id in CRM_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for CRM capability execution"
+    if capability_id in ACTIONS_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for GitHub Actions capability execution"
+    if capability_id in DB_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for database capability execution"
+    if capability_id in WAREHOUSE_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for warehouse capability execution"
+    if capability_id in DEPLOYMENT_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for deployment capability execution"
+    if capability_id in STORAGE_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for storage capability execution"
+    if capability_id in SUPPORT_CAPABILITY_IDS:
+        return "X-Rhumb-Key header required for support capability execution"
+    return None
+
+
 def _not_found_response(
     raw_request: Request,
     *,
@@ -207,6 +253,11 @@ def _capability_estimate_url(
     return url
 
 
+def _capability_credential_modes_url(capability_id: str) -> str:
+    """Build a credential-modes URL for a capability."""
+    return f"/v1/capabilities/{quote(capability_id, safe='')}/credential-modes"
+
+
 def _provider_option_summaries(mappings: list[dict]) -> list[dict[str, Any]]:
     """Return stable provider summaries for recovery/error responses."""
     options: list[dict[str, Any]] = []
@@ -240,45 +291,114 @@ def _matching_provider_mapping(mappings: list[dict], provider: str | None) -> di
     )
 
 
-def _execute_auth_handoff(capability_id: str) -> dict[str, Any]:
+def _execute_auth_handoff(
+    capability_id: str,
+    *,
+    supported_paths: tuple[str, ...] = ("governed_api_key", "wallet_prefund", "x402_per_call"),
+    reason: str = "auth_or_payment_required",
+) -> dict[str, Any]:
     """Return machine-readable next-step guidance when execute is blocked on auth/payment."""
     execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
+    path_options: dict[str, dict[str, Any]] = {
+        "governed_api_key": {
+            "kind": "governed_api_key",
+            "recommended": True,
+            "setup_url": "/auth/login",
+            "retry_header": "X-Rhumb-Key",
+            "summary": "Default for most buyers and most repeat agent traffic.",
+            "requires_human_setup": True,
+            "automatic_after_setup": True,
+        },
+        "wallet_prefund": {
+            "kind": "wallet_prefund",
+            "recommended": False,
+            "setup_url": "/payments/agent",
+            "retry_header": "X-Rhumb-Key",
+            "summary": "Best when wallet identity matters and the same wallet will call repeatedly.",
+            "requires_human_setup": True,
+            "automatic_after_setup": True,
+        },
+        "x402_per_call": {
+            "kind": "x402_per_call",
+            "recommended": False,
+            "setup_url": "/payments/agent",
+            "retry_header": "X-Payment",
+            "summary": "Use when request-level payment authorization is the point and the runtime can pay from a wallet.",
+            "requires_human_setup": True,
+            "automatic_after_setup": True,
+            "requires_wallet_support": True,
+        },
+    }
+    paths = [path_options[kind] for kind in supported_paths if kind in path_options]
+    recommended_path = next(
+        (
+            path.get("kind")
+            for path in paths
+            if path.get("recommended") is True and isinstance(path.get("kind"), str)
+        ),
+        paths[0]["kind"] if paths else None,
+    )
     return {
-        "reason": "auth_or_payment_required",
-        "recommended_path": "governed_api_key",
+        "reason": reason,
+        "recommended_path": recommended_path,
         "retry_url": execute_url,
         "docs_url": "/docs#resolve-mental-model",
-        "paths": [
-            {
-                "kind": "governed_api_key",
-                "recommended": True,
-                "setup_url": "/auth/login",
-                "retry_header": "X-Rhumb-Key",
-                "summary": "Default for most buyers and most repeat agent traffic.",
-                "requires_human_setup": True,
-                "automatic_after_setup": True,
-            },
-            {
-                "kind": "wallet_prefund",
-                "recommended": False,
-                "setup_url": "/payments/agent",
-                "retry_header": "X-Rhumb-Key",
-                "summary": "Best when wallet identity matters and the same wallet will call repeatedly.",
-                "requires_human_setup": True,
-                "automatic_after_setup": True,
-            },
-            {
-                "kind": "x402_per_call",
-                "recommended": False,
-                "setup_url": "/payments/agent",
-                "retry_header": "X-Payment",
-                "summary": "Use when request-level payment authorization is the point and the runtime can pay from a wallet.",
-                "requires_human_setup": True,
-                "automatic_after_setup": True,
-                "requires_wallet_support": True,
-            },
-        ],
+        "paths": paths,
     }
+
+
+def _direct_execute_auth_required_response(
+    raw_request: Request,
+    *,
+    capability_id: str,
+    detail: str,
+) -> JSONResponse:
+    """Return a structured auth handoff for direct execute rails that require API keys."""
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    return JSONResponse(
+        status_code=401,
+        content={
+            "error": "authentication_required",
+            "message": detail,
+            "resolution": (
+                "Create a Rhumb API key, then retry this execute call. "
+                "Use resolve first if you need to inspect the current preferred rail."
+            ),
+            "request_id": request_id,
+            "resolve_url": _capability_resolve_url(capability_id),
+            "credential_modes_url": _capability_credential_modes_url(capability_id),
+            "auth_handoff": _execute_auth_handoff(
+                capability_id,
+                supported_paths=("governed_api_key",),
+                reason="auth_required",
+            ),
+        },
+    )
+
+
+def _direct_execute_get_not_supported_response(
+    raw_request: Request,
+    *,
+    capability_id: str,
+) -> JSONResponse:
+    """Direct execute rails use POST after auth, not GET x402 discovery."""
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
+    return JSONResponse(
+        status_code=405,
+        content={
+            "error": "method_not_allowed",
+            "message": "Direct capability execute discovery is POST-only after API-key auth.",
+            "resolution": (
+                "Retry with POST and X-Rhumb-Key. Use resolve or credential-modes if you need "
+                "setup guidance before executing."
+            ),
+            "request_id": request_id,
+            "execute_url": execute_url,
+            "resolve_url": _capability_resolve_url(capability_id),
+            "credential_modes_url": _capability_credential_modes_url(capability_id),
+        },
+    )
 
 
 def _execute_recovery_hints(
@@ -1399,6 +1519,7 @@ def _inject_auth_headers(
 async def discover_execute_capability(
     capability_id: str,
     raw_request: Request,
+    x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
     x_payment: Optional[str] = Header(None, alias="X-Payment"),
     payment_signature: Optional[str] = Header(None, alias="PAYMENT-SIGNATURE"),
 ) -> JSONResponse:
@@ -1406,8 +1527,27 @@ async def discover_execute_capability(
 
     Also captures all incoming headers for x402 interop diagnostics
     when buyers retry with GET + payment proof (as awal does).
+
+    Direct AUD-18 execute rails do not use GET x402 discovery. They require
+    X-Rhumb-Key for execution and keep GET limited to auth/setup guidance.
     """
     x_payment = _normalize_x402_payment_header(x_payment, payment_signature)
+
+    direct_auth_detail = _direct_execute_auth_detail(capability_id)
+    if direct_auth_detail is not None:
+        if not x_rhumb_key:
+            return _direct_execute_auth_required_response(
+                raw_request,
+                capability_id=capability_id,
+                detail=direct_auth_detail,
+            )
+        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        if agent is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        return _direct_execute_get_not_supported_response(
+            raw_request,
+            capability_id=capability_id,
+        )
 
     capability = await _resolve_capability(capability_id)
     if capability is None:
@@ -1479,51 +1619,20 @@ async def execute_capability(
 
     # ── AUD-18: direct capability early dispatch ───────────────────
     # These capabilities bypass the proxy layer entirely.
-    crm_capability_ids = frozenset({"crm.object.describe", "crm.record.search", "crm.record.get"})
-    actions_capability_ids = frozenset({"workflow_run.list", "workflow_run.get"})
-    db_capability_ids = frozenset({"db.query.read", "db.schema.describe", "db.row.get"})
-    warehouse_capability_ids = frozenset({"warehouse.query.read", "warehouse.schema.describe"})
-    deployment_capability_ids = frozenset({"deployment.list", "deployment.get"})
-    storage_capability_ids = frozenset({"object.list", "object.head", "object.get"})
-    support_capability_ids = frozenset({
-        "ticket.search",
-        "ticket.get",
-        "ticket.list_comments",
-        "conversation.list",
-        "conversation.get",
-        "conversation.list_parts",
-    })
-    if capability_id in (
-        crm_capability_ids
-        | actions_capability_ids
-        | db_capability_ids
-        | warehouse_capability_ids
-        | deployment_capability_ids
-        | storage_capability_ids
-        | support_capability_ids
-    ):
+    direct_auth_detail = _direct_execute_auth_detail(capability_id)
+    if capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
         execution_id = f"exec_{uuid.uuid4().hex}"
         request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
         if not x_rhumb_key:
-            if capability_id in crm_capability_ids:
-                detail = "X-Rhumb-Key header required for CRM capability execution"
-            elif capability_id in actions_capability_ids:
-                detail = "X-Rhumb-Key header required for GitHub Actions capability execution"
-            elif capability_id in db_capability_ids:
-                detail = "X-Rhumb-Key header required for database capability execution"
-            elif capability_id in warehouse_capability_ids:
-                detail = "X-Rhumb-Key header required for warehouse capability execution"
-            elif capability_id in deployment_capability_ids:
-                detail = "X-Rhumb-Key header required for deployment capability execution"
-            elif capability_id in storage_capability_ids:
-                detail = "X-Rhumb-Key header required for storage capability execution"
-            else:
-                detail = "X-Rhumb-Key header required for support capability execution"
-            raise HTTPException(status_code=401, detail=detail)
+            return _direct_execute_auth_required_response(
+                raw_request,
+                capability_id=capability_id,
+                detail=direct_auth_detail or "X-Rhumb-Key header required for direct capability execution",
+            )
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
-        if capability_id in crm_capability_ids:
+        if capability_id in CRM_CAPABILITY_IDS:
             from routes.crm_execute import handle_crm_execute
 
             return await handle_crm_execute(
@@ -1534,7 +1643,7 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if capability_id in actions_capability_ids:
+        if capability_id in ACTIONS_CAPABILITY_IDS:
             from routes.actions_execute import handle_actions_execute
 
             return await handle_actions_execute(
@@ -1545,7 +1654,7 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if capability_id in db_capability_ids:
+        if capability_id in DB_CAPABILITY_IDS:
             from routes.db_execute import handle_db_execute
 
             return await handle_db_execute(
@@ -1556,7 +1665,7 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if capability_id in warehouse_capability_ids:
+        if capability_id in WAREHOUSE_CAPABILITY_IDS:
             from routes.warehouse_execute import handle_warehouse_execute
 
             return await handle_warehouse_execute(
@@ -1567,7 +1676,7 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if capability_id in deployment_capability_ids:
+        if capability_id in DEPLOYMENT_CAPABILITY_IDS:
             from routes.deployment_execute import handle_deployment_execute
 
             return await handle_deployment_execute(
@@ -1578,7 +1687,7 @@ async def execute_capability(
                 execution_id=execution_id,
                 request_id=request_id,
             )
-        if capability_id in storage_capability_ids:
+        if capability_id in STORAGE_CAPABILITY_IDS:
             from routes.storage_execute import handle_storage_execute
 
             return await handle_storage_execute(

@@ -18,6 +18,22 @@ from services.durable_replay_guard import ReplayGuardUnavailable
 
 FAKE_RHUMB_KEY = "rhumb_test_key_cap_exec"
 
+DIRECT_AUTH_CASES = [
+    ("crm.object.describe", "X-Rhumb-Key header required for CRM capability execution"),
+    (
+        "workflow_run.list",
+        "X-Rhumb-Key header required for GitHub Actions capability execution",
+    ),
+    ("db.query.read", "X-Rhumb-Key header required for database capability execution"),
+    (
+        "warehouse.query.read",
+        "X-Rhumb-Key header required for warehouse capability execution",
+    ),
+    ("deployment.list", "X-Rhumb-Key header required for deployment capability execution"),
+    ("object.list", "X-Rhumb-Key header required for storage capability execution"),
+    ("ticket.search", "X-Rhumb-Key header required for support capability execution"),
+]
+
 
 def _mock_agent() -> AgentIdentitySchema:
     return AgentIdentitySchema(
@@ -1797,6 +1813,84 @@ async def test_execute_requires_auth_header(app):
     assert auth_paths["governed_api_key"]["retry_header"] == "X-Rhumb-Key"
     assert auth_paths["x402_per_call"]["setup_url"] == "/payments/agent"
     assert auth_paths["x402_per_call"]["retry_header"] == "X-Payment"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("capability_id", "message"), DIRECT_AUTH_CASES)
+async def test_direct_execute_requires_api_key_handoff(app, capability_id, message):
+    """Direct AUD-18 execute rails return a structured API-key handoff when auth is missing."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(f"/v1/capabilities/{capability_id}/execute", json={})
+
+    assert resp.status_code == 401
+    assert "x-payment" not in resp.headers
+    body = resp.json()
+    assert body["error"] == "authentication_required"
+    assert body["message"] == message
+    assert body["resolution"].startswith("Create a Rhumb API key")
+    assert body["resolve_url"] == f"/v1/capabilities/{capability_id}/resolve"
+    assert body["credential_modes_url"] == f"/v1/capabilities/{capability_id}/credential-modes"
+    assert body["auth_handoff"]["reason"] == "auth_required"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
+    assert body["auth_handoff"]["retry_url"] == f"/v1/capabilities/{capability_id}/execute"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
+    assert auth_paths["governed_api_key"]["retry_header"] == "X-Rhumb-Key"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("capability_id", "message"), DIRECT_AUTH_CASES)
+async def test_direct_execute_get_requires_api_key_handoff(app, capability_id, message):
+    """Direct AUD-18 GET /execute stays auth-only and does not advertise x402."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(f"/v1/capabilities/{capability_id}/execute")
+
+    assert resp.status_code == 401
+    assert "x-payment" not in resp.headers
+    body = resp.json()
+    assert body["error"] == "authentication_required"
+    assert body["message"] == message
+    assert body["auth_handoff"]["reason"] == "auth_required"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
+
+
+@pytest.mark.anyio
+async def test_direct_execute_get_with_api_key_returns_post_only_guidance(app):
+    """Authenticated direct GET /execute should not fall back to x402 discovery."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(
+            "/v1/capabilities/crm.object.describe/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+        )
+
+    assert resp.status_code == 405
+    assert "x-payment" not in resp.headers
+    body = resp.json()
+    assert body["error"] == "method_not_allowed"
+    assert body["execute_url"] == "/v1/capabilities/crm.object.describe/execute"
+    assert body["resolve_url"] == "/v1/capabilities/crm.object.describe/resolve"
+    assert body["credential_modes_url"] == "/v1/capabilities/crm.object.describe/credential-modes"
+
+
+@pytest.mark.anyio
+async def test_direct_execute_with_payment_header_still_requires_api_key(app):
+    """Direct AUD-18 execute rails should not reinterpret payment headers as x402 auth."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(
+            "/v1/capabilities/crm.object.describe/execute",
+            json={},
+            headers={"X-Payment": "fake-proof"},
+        )
+
+    assert resp.status_code == 401
+    assert "x-payment" not in resp.headers
+    body = resp.json()
+    assert body["error"] == "authentication_required"
+    assert body["auth_handoff"]["reason"] == "auth_required"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
 
 
 @pytest.mark.anyio
