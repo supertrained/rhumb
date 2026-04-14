@@ -167,7 +167,7 @@ Base URL: `https://api.rhumb.dev/v1`
 | `GET /search?q=...` | No | Search services |
 | `GET /leaderboard/{category}` | No | Category rankings |
 | `GET /capabilities` | No | Capability registry |
-| `GET /capabilities/{id}/resolve` | No | Ranked providers + recovery handoffs |
+| `GET /capabilities/{id}/resolve` | No | Ranked providers + explicit `recovery_hint.*` fields |
 | `POST /capabilities/{id}/execute` | Yes | Execute a capability |
 | `GET /capabilities/{id}/execute/estimate` | Yes | Cost estimate |
 | `GET /telemetry/provider-health` | No | Provider health status |

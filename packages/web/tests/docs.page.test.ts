@@ -11,6 +11,7 @@ const mcpQuickstartSource = readFileSync(
   new URL("../../../examples/mcp-quickstart.md", import.meta.url),
   "utf8",
 );
+const apiDocSource = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -29,8 +30,8 @@ describe("docs page", () => {
     expect(html).toContain("machine-readable recovery fields");
     expect(html).toContain("recovery_hint.resolve_url");
     expect(html).toContain("recovery_hint.credential_modes_url");
-    expect(html).toContain("alternate_execute_hint");
-    expect(html).toContain("setup_handoff");
+    expect(html).toContain("recovery_hint.alternate_execute_hint");
+    expect(html).toContain("recovery_hint.setup_handoff");
     expect(html).toContain("search suggestions when the capability ID is wrong");
     expect(html).toContain("estimate_capability");
     expect(html).toContain("Estimate the active execution rail, cost, and health before execution.");
@@ -61,7 +62,21 @@ describe("docs page", () => {
     expect(mcpQuickstartSource).toContain(
       "check the active execution rail, health, and cost before execution",
     );
+    expect(mcpQuickstartSource).toContain("recovery_hint.resolve_url");
+    expect(mcpQuickstartSource).toContain("recovery_hint.credential_modes_url");
+    expect(mcpQuickstartSource).toContain("recovery_hint.alternate_execute_hint");
+    expect(mcpQuickstartSource).toContain("recovery_hint.setup_handoff");
+    expect(mcpQuickstartSource).not.toContain("recovery handoffs");
     expect(mcpQuickstartSource).not.toContain('`estimate_capability` — "How much will this call cost?"');
     expect(mcpQuickstartSource).not.toContain("`estimate_capability` — check cost before paying");
+  });
+
+  it("keeps the owned API docs aligned with explicit recovery_hint field names", () => {
+    expect(apiDocSource).toContain("recovery_hint.resolve_url");
+    expect(apiDocSource).toContain("recovery_hint.credential_modes_url");
+    expect(apiDocSource).toContain("recovery_hint.alternate_execute_hint");
+    expect(apiDocSource).toContain("recovery_hint.setup_handoff");
+    expect(apiDocSource).not.toContain("Use `alternate_execute_hint` when");
+    expect(apiDocSource).not.toContain("plus `resolve_url` and `credential_modes_url`");
   });
 });

@@ -129,6 +129,9 @@ describe("types.contract", () => {
       expect(surface).not.toContain("machine-readable recovery handoffs");
       expect(surface).not.toContain("fallback chains");
     }
+
+    expect(rootReadme).toContain("Ranked providers + explicit `recovery_hint.*` fields");
+    expect(rootReadme).not.toContain("Ranked providers + recovery handoffs");
   });
 
   it("published MCP dist bundle stays aligned with explicit resolve recovery wording", () => {

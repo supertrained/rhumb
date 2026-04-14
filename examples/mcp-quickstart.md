@@ -77,11 +77,11 @@ In Cursor settings → MCP Servers → Add:
 ### Minimal recommended flow
 
 1. `discover_capabilities` — find the action you want
-2. `resolve_capability` — see ranked providers, optional credential-mode filters, recovery handoffs, and search suggestions when the capability ID is wrong
+2. `resolve_capability` — see ranked providers, optional credential-mode filters, machine-readable recovery fields like `recovery_hint.resolve_url`, `recovery_hint.credential_modes_url`, and, when applicable, `recovery_hint.alternate_execute_hint` or `recovery_hint.setup_handoff`, plus search suggestions when the capability ID is wrong
 3. `estimate_capability` — check the active execution rail, health, and cost before execution
 4. `execute_capability` — run the action
 
-If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is execute-ready, `resolve_capability` can still return the next action as machine-readable `alternate_execute_hint` or `setup_handoff` instead of leaving you to rediscover it manually. If you typo the capability ID, it can also return a capability search URL plus suggested capabilities instead of a blank dead end.
+If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is execute-ready, `resolve_capability` can still return the next action as machine-readable `recovery_hint.alternate_execute_hint` or `recovery_hint.setup_handoff` instead of leaving you to rediscover it manually. If you typo the capability ID, it can also return a capability search URL plus suggested capabilities instead of a blank dead end.
 
 ## Get an API key
 
