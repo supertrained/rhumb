@@ -1,8 +1,14 @@
+import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+const astroPricingSource = readFileSync(
+  new URL("../../astro-web/src/pages/pricing.astro", import.meta.url),
+  "utf8",
+);
 
 async function renderPricingPage(): Promise<string> {
   const module = await import("../app/pricing/page");
@@ -48,5 +54,17 @@ describe("pricing page", () => {
     expect(html).toContain("recovery_hint.setup_handoff");
 
     expect(html).not.toContain("machine-readable setup or recovery handoff");
+  });
+
+  it("keeps the Astro pricing BYOK surface aligned with explicit resolve recovery fields", () => {
+    expect(astroPricingSource).toContain("resolve_capability");
+    expect(astroPricingSource).toContain("recovery_hint.resolve_url");
+    expect(astroPricingSource).toContain("recovery_hint.credential_modes_url");
+    expect(astroPricingSource).toContain("recovery_hint.alternate_execute_hint");
+    expect(astroPricingSource).toContain("recovery_hint.setup_handoff");
+
+    expect(astroPricingSource).not.toContain(
+      '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',
+    );
   });
 });
