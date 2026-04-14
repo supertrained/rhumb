@@ -64,7 +64,7 @@ const workflows: Workflow[] = [
       {
         tool: "estimate_capability",
         input: '{ capability_id: "email.send", provider: "resend" }',
-        whatHappens: "Cost estimate before execution: $0.001/call, budget remaining, can_afford: true.",
+        whatHappens: "Estimate returns the active execution rail, cost, and health before execution, plus machine-readable execute_readiness handoffs on anonymous direct system-of-record paths: $0.001/call, budget remaining, can_afford: true.",
       },
       {
         tool: "execute_capability",
@@ -111,7 +111,7 @@ const mcpTools: McpTool[] = [
   { name: "get_score", description: "Full AN Score breakdown for a service", category: "score" },
   { name: "get_alternatives", description: "Similar services, ranked", category: "score" },
   { name: "get_failure_modes", description: "Known failure patterns", category: "score" },
-  { name: "estimate_capability", description: "Cost estimate before execution", category: "execute" },
+  { name: "estimate_capability", description: "Estimate the active execution rail, cost, and health before execution, with direct-rail execute_readiness handoffs when applicable", category: "execute" },
   { name: "execute_capability", description: "Execute through Rhumb proxy", category: "execute" },
   { name: "credential_ceremony", description: "Setup guides for credential modes", category: "execute" },
   { name: "check_credentials", description: "Check credential status", category: "execute" },
