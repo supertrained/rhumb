@@ -310,6 +310,23 @@ const POSTS: Post[] = [
     ],
   },
   {
+    slug: "remote-mcp-production-readiness-checklist",
+    title: "A Production Readiness Checklist for Remote MCP Servers",
+    description: "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
+    date: "April 14, 2026",
+    dateISO: "2026-04-14T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "Production Readiness",
+    difficulty: "Intermediate",
+    timeEstimate: "~8 min",
+    related: [
+      { slug: "how-to-evaluate-mcp-servers", title: "How to Evaluate MCP Servers" },
+      { slug: "remote-mcp-liveness-vs-production-readiness", title: "Remote MCP Uptime Is Not Production Readiness" },
+      { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
+    ],
+  },
+  {
     slug: "read-only-mcp-trust-class",
     title: "Read-Only MCP as a Trust Class",
     description: "Read-only MCP matters because it removes a mutation failure class, but only if the surrounding runtime preserves a real inspect-only boundary.",

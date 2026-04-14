@@ -1,0 +1,374 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const READINESS_RAILS = [
+  {
+    label: "Principal",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "The caller should map to a real identity with scopes software can reason about, rotate, and revoke cleanly.",
+  },
+  {
+    label: "Scope",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "The tool surface should narrow what can be touched, not hide broad power behind freeform parameters and one server label.",
+  },
+  {
+    label: "Governors",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Budgets, quotas, idempotency, and circuit breakers should stop bad loops before they become expensive or destructive.",
+  },
+  {
+    label: "Recovery",
+    accent: "text-rose-400",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "Partial failure should leave enough structure behind that the caller can re-verify state and recover without guesswork.",
+  },
+];
+
+const DEMO_FLAGS = [
+  "auth is optional, hand-wavy, or too broad",
+  "tool arguments are open-ended enough to hide dangerous behavior",
+  "write scope is hard to reason about before execution",
+  "tenant isolation mostly means deployment sprawl instead of policy design",
+  "retry, idempotency, and quota behavior are unclear",
+  "audit trails do not map actions back to principals and scopes",
+];
+
+const CHECKLIST = [
+  "Trust class: is this local convenience or remote production infrastructure?",
+  "Auth model: who is the principal and how is scope enforced?",
+  "Parameter boundaries: what can the tool actually touch, and what constrains that?",
+  "Tenant model: how are identities, quotas, and data segmented?",
+  "Governors: what stops runaway spend, writes, or token burn?",
+  "Recovery: after partial failure, how does the caller re-verify state?",
+  "Auditability: can actions be traced back to a principal, tool, and scope?",
+];
+
+const FAILURE_CLASSES = [
+  {
+    title: "Auth drift",
+    body: "Credentials lose scope or expire while the endpoint still looks healthy, so naive uptime checks keep telling the wrong story.",
+  },
+  {
+    title: "Scope confusion",
+    body: "A broad parameter surface turns a planning mistake or prompt injection into the wrong side effect because the boundary was weak before execution.",
+  },
+  {
+    title: "Loop damage",
+    body: "Every individual call may be valid, but the sequence burns budget, repeats writes, or fans out damage because no governor stops it.",
+  },
+  {
+    title: "Unrecoverable partial success",
+    body: "The call half-worked, the state is ambiguous, and the caller cannot tell whether retrying is safe or harmful.",
+  },
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/how-to-evaluate-mcp-servers",
+    title: "How to Evaluate MCP Servers",
+    description: "The broader selection model: workflow fit, trust class, capability shape, auth viability, and runtime reality.",
+  },
+  {
+    href: "/blog/remote-mcp-liveness-vs-production-readiness",
+    title: "Remote MCP Uptime Is Not Production Readiness",
+    description: "Why reachability is only the first layer, not the operator decision.",
+  },
+  {
+    href: "/blog/governed-capability-surfaces-agent-integrations",
+    title: "Governed Capabilities Are Becoming the Real Control Plane",
+    description: "Why safer agent interfaces narrow authority instead of mirroring raw endpoint sprawl.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "How structural evaluation and live runtime evidence work better together.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "A Production Readiness Checklist for Remote MCP Servers",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
+  url: "https://rhumb.dev/blog/remote-mcp-production-readiness-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/remote-mcp-production-readiness-checklist",
+};
+---
+
+<Layout
+  title="A Production Readiness Checklist for Remote MCP Servers | Rhumb"
+  description="Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability."
+  canonical="/blog/remote-mcp-production-readiness-checklist"
+  ogTitle="A Production Readiness Checklist for Remote MCP Servers"
+  ogDescription="Remote MCP readiness depends on auth, scope, governors, recovery, and auditability, not just whether the endpoint responds."
+  ogUrl="https://rhumb.dev/blog/remote-mcp-production-readiness-checklist"
+  ogType="article"
+  twitterTitle="A Production Readiness Checklist for Remote MCP Servers"
+  twitterDescription="Remote MCP is an auth, containment, and recovery problem before it is a convenience story."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-amber/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Production Readiness</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              A Production Readiness Checklist for Remote MCP Servers
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              Remote MCP is not mainly a convenience problem. The real production question is what this server can touch, whose credentials it acts with, and how well the system contains damage when prompts, retries, or auth paths go wrong.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">Containment rails</div>
+            <div class="space-y-3">
+              {READINESS_RAILS.map((rail) => (
+                <div class={`rounded-2xl border p-4 ${rail.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${rail.accent}`}>{rail.label}</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{rail.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-10">
+        {FAILURE_CLASSES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="font-display font-semibold text-lg text-slate-100 tracking-tight mb-2">{item.title}</h2>
+            <p class="text-sm text-slate-400 leading-relaxed">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The real question is not <span class="text-slate-100">“Can I get this tool working from my agent?”</span>
+          It is <span class="text-slate-100">“Can this server stay bounded when the agent is wrong, over-eager, compromised, or simply stuck in a loop?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Treat local stdio and remote MCP as different trust classes
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A local MCP tool on your own machine lives inside one trust story: your identity, your filesystem, your process boundary, and your failure domain. A remote MCP service lives inside another: shared infrastructure, network attack surface, longer-lived credentials, and often multi-tenant state.
+              </p>
+              <p>
+                If you evaluate remote MCP with the same mental model you use for a local helper, you underweight the hard part. The hard part is not whether the tool returns something useful in a demo. The hard part is whether it stays bounded once prompts, retries, or automation start leaning on it unattended.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. Authentication has to be real, scoped, and machine-operable
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                “Supports auth” is not enough. The questions that matter are whether each caller maps cleanly to a principal, whether scopes are narrow enough to reason about, whether credentials can be provisioned and rotated without human glue, and whether auth failures are machine-readable.
+              </p>
+              <p>
+                A surprising amount of remote tooling still treats authentication like packaging instead of infrastructure. That is how you end up with one shared API key, vague 401s, and no way for an agent to distinguish expiry, revocation, and insufficient scope safely.
+              </p>
+              <p>
+                For unattended systems, vague auth is not cosmetic friction. It is a recovery blocker.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. Tool parameters need hard boundaries, not freeform power
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                When people describe prompt injection or indirect instruction risk in remote MCP, the root problem is often not mystical model behavior. It is that the tool surface is too permissive. Broad, underspecified string inputs can turn the wrong plan into filesystem writes, repo changes, browser navigation, or hidden egress with very little friction.
+              </p>
+              <p>
+                A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. Tenant isolation must be explicit
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                The moment remote MCP is used by teams, platforms, or customer-facing agents, multi-tenancy stops being an edge case. The real questions become whose data this agent can see, whether one tenant can affect another tenant's rate budget or failure mode, and whether audit trails stay principal-aware.
+              </p>
+              <p>
+                “One server per tenant” can be a reasonable safety tactic, but if that is the whole story, you do not have a mature shared-runtime model yet. You have deployment sprawl standing in for authorization design.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. You need governors on writes, spend, and token burn
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Many tools are safe enough when judged call by call. They become unsafe when judged as loops. An unattended agent can do damage even if every individual request is technically valid.
+              </p>
+              <p>
+                Repeated repo writes, runaway browser automation, duplicate tickets, repeated model calls that burn budget, or partial failures that cause the same expensive action to be retried are not exotic edge cases. They are normal automation failure patterns.
+              </p>
+              <p>
+                Production readiness means asking what caps spend, call volume, write volume, and retry fan-out before the system gets weird at 2 a.m.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. Failure has to be containable, not just observable
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Lots of systems are observable. Far fewer are recoverable. The production test is not whether a call ever fails. It is whether the caller can tell what happened, whether retrying is safe, and whether state can be re-verified after partial success.
+              </p>
+              <p>
+                That is why uptime is too soft a word here. The operational burden usually shows up in stale auth, ambiguous writes, hidden quota exhaustion, inconsistent read-after-write behavior, and success responses that mask degraded state.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              7. Auditability matters because blame eventually matters
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Once remote MCP is used in real workflows, somebody will ask who triggered an action, with which credentials, under which tenant, and why the system decided it was allowed. “We have logs somewhere” is not an answer. Production readiness means principal-aware auditability that maps actions back to tool, scope, and execution context.
+              </p>
+              <p>
+                This is not just for compliance theatre. It is what makes the system debuggable after something weird happens.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              8. What still counts as a demo, not infrastructure
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                A remote MCP server may still be useful while remaining a demo. The important part is classification honesty. If most of the following are true, I would not call the server production infrastructure yet.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Demo flags</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DEMO_FLAGS.map((flag) => (
+                  <li>{flag}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              9. The checklist in one page
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Before trusting a remote MCP server in production, I would want a clear answer to each of these.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Operator checklist</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CHECKLIST.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                If a server can answer those well, now we are talking about infrastructure. If not, it may still be interesting signal, but it belongs in the demo bucket until the containment story catches up.
+              </p>
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Closing</div>
+            <p class="text-slate-300 leading-relaxed text-lg">
+              Remote MCP adoption will not be decided by who can demo the most tools. It will be decided by who can make those tools safe enough to trust inside unattended systems. That is mostly a principal, scope, tenancy, and recovery problem, not a marketing problem.
+            </p>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 self-start">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Minimum bar</div>
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed">
+              <li>explicit principal model</li>
+              <li>narrow and visible scopes</li>
+              <li>governors on side effects and spend</li>
+              <li>recoverable failure semantics</li>
+              <li>principal-aware audit history</li>
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Decision rule</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              If the safety story mostly depends on “be careful” or “the orchestrator will handle it,” the server is probably not production-complete on its own.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100 group-hover:text-amber transition-colors">{item.title}</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
