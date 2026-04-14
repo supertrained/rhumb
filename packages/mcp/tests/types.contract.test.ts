@@ -33,6 +33,12 @@ const wellKnownAgentCapabilities = readFileSync(
   new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url),
   "utf8",
 );
+const mcpPackageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+  description: string;
+};
+const mcpServerManifest = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8")) as {
+  description: string;
+};
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
@@ -132,6 +138,23 @@ describe("types.contract", () => {
 
     expect(rootReadme).toContain("Ranked providers + explicit `recovery_hint.*` fields");
     expect(rootReadme).not.toContain("Ranked providers + recovery handoffs");
+  });
+
+  it("generated llms and MCP metadata stay aligned with the live rail-based execution story", () => {
+    for (const surface of [rootLlms, webPublicLlms]) {
+      expect(surface).toContain("## Execution (requires a live rail)");
+      expect(surface).toContain("Governed API key");
+      expect(surface).toContain("Wallet-prefund");
+      expect(surface).toContain("x402 / USDC");
+      expect(surface).toContain("BYOK credentials");
+      expect(surface).not.toContain("## Execution (requires API key or x402 payment)");
+    }
+
+    for (const description of [mcpPackageJson.description, mcpServerManifest.description]) {
+      expect(description.toLowerCase()).toContain("agent-native tool intelligence");
+      expect(description).toContain("governed execution");
+      expect(description).not.toMatch(/(?:600\+ services|1000\+ scored services|1,000\+ scored services)/);
+    }
   });
 
   it("published MCP dist bundle stays aligned with explicit resolve recovery wording", () => {

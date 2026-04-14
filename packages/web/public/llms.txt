@@ -38,14 +38,15 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - GET https://api.rhumb.dev/v1/telemetry/provider-health — provider health status
 - GET https://api.rhumb.dev/v1/pricing — machine-readable pricing
 
-## Execution (requires API key or x402 payment)
+## Execution (requires a live rail)
 - POST https://api.rhumb.dev/v1/capabilities/{id}/execute — execute a capability
 - GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — estimate the active execution rail, cost, and health before execution; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 
 ## Auth paths
-1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
-2. x402 / USDC: no signup, pay per call, send X-Payment header
-3. BYOK credentials: pass your own upstream API keys
+1. Governed API key: sign up at https://rhumb.dev/auth/login, then send X-Rhumb-Key on the governed rail
+2. Wallet-prefund: add balance first, then execute with X-Rhumb-Key on the governed rail
+3. x402 / USDC: no signup, pay per call, send X-Payment header
+4. BYOK credentials: pass your own upstream API keys
 
 ## MCP tools (21 total)
 Discovery: find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability

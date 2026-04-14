@@ -173,15 +173,21 @@ describe("public authority pricing contract", () => {
     expect(astroLlmsRoute).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(astroLlmsRoute).not.toContain("upstream cost +");
 
+    expect(rootLlms).toContain("## Execution (requires a live rail)");
+    expect(rootLlms).toContain("Wallet-prefund: add balance first");
     expect(rootLlms).toContain("wallet-prefund");
     expect(rootLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(rootLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(rootLlms).not.toContain("Free tier: 1,000 calls/month");
+    expect(rootLlms).not.toContain("## Execution (requires API key or x402 payment)");
 
+    expect(webPublicLlms).toContain("## Execution (requires a live rail)");
+    expect(webPublicLlms).toContain("Wallet-prefund: add balance first");
     expect(webPublicLlms).toContain("wallet-prefund");
     expect(webPublicLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(webPublicLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(webPublicLlms).not.toContain("Free tier: 1,000 calls/month");
+    expect(webPublicLlms).not.toContain("## Execution (requires API key or x402 payment)");
 
     expect(webPublicLlms).toBe(rootLlms);
   });
