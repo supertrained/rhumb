@@ -176,6 +176,13 @@ describe("public authority pricing contract", () => {
     expect(astroSecurity).not.toContain('API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents.');
   });
 
+  it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
+    expect(astroHome).toContain('zero-signup, request-level payment authorization is the point');
+    expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
+    expect(astroHome).toContain('use BYOK when provider control is the point');
+    expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
+  });
+
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
     expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
     expect(astroCapabilities).toContain('governed or wallet-prefund path');
