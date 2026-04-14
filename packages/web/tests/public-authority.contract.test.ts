@@ -23,6 +23,7 @@ const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/bl
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
+const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
 const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
 const astroCapabilities = readFileSync(new URL("../../astro-web/src/pages/capabilities.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
@@ -181,6 +182,13 @@ describe("public authority pricing contract", () => {
     expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
     expect(astroHome).toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
+  });
+
+  it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
+    expect(astroQuickstart).toContain('Use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code> for repeat calls.');
+    expect(astroQuickstart).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
+    expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
   });
 
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
