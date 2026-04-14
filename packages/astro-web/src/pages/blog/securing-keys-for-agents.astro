@@ -118,7 +118,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
 
 ### Mode 3: x402 per-call payment
 
-No account signup on this rail. Payment proof authorizes the request. For repeat traffic, prefer wallet-prefund or a governed API key.
+No account signup on this rail. Payment proof authorizes the request. For repeat traffic, default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.
 
 \`\`\`bash
 # First call: get payment instructions

@@ -26,6 +26,7 @@ import {
 
 const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
 const mcpReadme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+const mcpQuickstartExample = readFileSync(new URL("../../../examples/mcp-quickstart.md", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../../web/public/llms.txt", import.meta.url), "utf8");
 const rootAgentCapabilities = readFileSync(new URL("../../../agent-capabilities.json", import.meta.url), "utf8");
@@ -149,6 +150,17 @@ describe("types.contract", () => {
       expect(surface).toContain("BYOK credentials");
       expect(surface).not.toContain("## Execution (requires API key or x402 payment)");
     }
+
+    expect(rootReadme).toContain("Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`");
+    expect(rootReadme).toContain("Bring BYOK** only when provider control is the point");
+    expect(rootReadme).not.toContain("wallet-prefunded API key");
+
+    expect(mcpReadme).toContain("Default auth for repeat traffic** = `RHUMB_API_KEY` via governed account or wallet-prefund");
+    expect(mcpReadme).toContain("Bring BYOK** only when provider control is the point");
+    expect(mcpReadme).not.toContain("wallet-prefunded API key");
+
+    expect(mcpQuickstartExample).toContain("For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK only when provider control is the point.");
+    expect(mcpQuickstartExample).not.toContain("For repeat wallet traffic, use wallet-prefund and then execute with `X-Rhumb-Key`.");
 
     for (const description of [mcpPackageJson.description, mcpServerManifest.description]) {
       expect(description.toLowerCase()).toContain("agent-native tool intelligence");

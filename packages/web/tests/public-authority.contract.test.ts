@@ -16,10 +16,12 @@ const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro"
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroBlogIndex = readFileSync(new URL("../../astro-web/src/pages/blog/index.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
+const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-truth.ts", import.meta.url), "utf8");
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
+const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/securing-keys-for-agents.astro", import.meta.url), "utf8");
 const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pages/blog/switching-from-smithery.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
@@ -29,6 +31,7 @@ const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro
 const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
 const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
 const astroCapabilities = readFileSync(new URL("../../astro-web/src/pages/capabilities.astro", import.meta.url), "utf8");
+const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
 const apiDocs = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
@@ -214,6 +217,11 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).not.toContain('for that, use API key or wallet-prefund.');
   });
 
+  it("keeps the astro key-security x402 note aligned with the live execution rails", () => {
+    expect(astroSecuringKeys).toContain('default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
+    expect(astroSecuringKeys).not.toContain('For repeat traffic, prefer wallet-prefund or a governed API key.');
+  });
+
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
     expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
     expect(astroCapabilities).toContain('governed or wallet-prefund path');
@@ -221,6 +229,16 @@ describe("public authority pricing contract", () => {
     expect(astroCapabilities).toContain('<code class="text-amber">x_payment</code>');
     expect(astroCapabilities).toContain('capabilities that expose x402 per-call');
     expect(astroCapabilities).not.toContain('Discovery works without a key; governed execution uses <code class="text-amber">RHUMB_API_KEY</code> or wallet-prefund.');
+  });
+
+  it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
+    expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
+    expect(rootReadme).toContain('**Bring BYOK** only when provider control is the point');
+    expect(rootReadme).not.toContain('wallet-prefunded API key');
+
+    expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
+    expect(astroPublicTruth).toContain('Bring BYOK or Agent Vault only when the workflow touches your own systems.');
+    expect(astroPublicTruth).not.toContain('governed API key or wallet-prefunded API key');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
