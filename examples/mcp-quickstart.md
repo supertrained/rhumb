@@ -68,7 +68,7 @@ In Cursor settings → MCP Servers → Add:
 
 ### With an API key (default production path)
 - `resolve_capability` — "Which provider or recovery handoff should I use for email.send, and what if I only want BYOK or Rhumb-managed?"
-- `estimate_capability` — "How much will this call cost?"
+- `estimate_capability` — "What execution rail, health, and cost should I expect before this call runs?"
 - `execute_capability` — "Send an email through the best provider"
 - `get_receipt` — "Show me the receipt for that execution"
 - `usage_telemetry` — "How are my calls performing this week?"
@@ -78,7 +78,7 @@ In Cursor settings → MCP Servers → Add:
 
 1. `discover_capabilities` — find the action you want
 2. `resolve_capability` — see ranked providers, optional credential-mode filters, recovery handoffs, and search suggestions when the capability ID is wrong
-3. `estimate_capability` — check cost before paying
+3. `estimate_capability` — check the active execution rail, health, and cost before execution
 4. `execute_capability` — run the action
 
 If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is execute-ready, `resolve_capability` can still return the next action as machine-readable `alternate_execute_hint` or `setup_handoff` instead of leaving you to rediscover it manually. If you typo the capability ID, it can also return a capability search URL plus suggested capabilities instead of a blank dead end.

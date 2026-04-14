@@ -7,6 +7,10 @@ const failureModesSource = readFileSync(
   new URL("../../astro-web/src/pages/docs/failure-modes.astro", import.meta.url),
   "utf8",
 );
+const mcpQuickstartSource = readFileSync(
+  new URL("../../../examples/mcp-quickstart.md", import.meta.url),
+  "utf8",
+);
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -42,5 +46,16 @@ describe("docs page", () => {
     expect(failureModesSource).toContain("alternate_execute_hint");
     expect(failureModesSource).toContain("setup_handoff");
     expect(failureModesSource).not.toContain("Build routing fallback chains: primary → alternative → manual.");
+  });
+
+  it("keeps the MCP quickstart estimate guidance aligned with the live preflight contract", () => {
+    expect(mcpQuickstartSource).toContain(
+      'What execution rail, health, and cost should I expect before this call runs?',
+    );
+    expect(mcpQuickstartSource).toContain(
+      "check the active execution rail, health, and cost before execution",
+    );
+    expect(mcpQuickstartSource).not.toContain('`estimate_capability` — "How much will this call cost?"');
+    expect(mcpQuickstartSource).not.toContain("`estimate_capability` — check cost before paying");
   });
 });
