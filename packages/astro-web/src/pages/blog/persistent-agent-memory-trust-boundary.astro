@@ -1,0 +1,298 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const TRUST_PILLARS = [
+  {
+    label: "Inspectable",
+    className: "border-emerald-500/20 bg-emerald-500/5 text-slate-300",
+    eyebrow: "text-emerald-400",
+    description: "A human can read what the agent is inheriting instead of trusting a hidden summary layer.",
+  },
+  {
+    label: "Typed",
+    className: "border-sky-500/20 bg-sky-500/5 text-slate-300",
+    eyebrow: "text-sky-400",
+    description: "Facts, decisions, warnings, mistakes, and open questions stay meaningfully separate.",
+  },
+  {
+    label: "Reversible",
+    className: "border-amber/20 bg-amber/5 text-slate-300",
+    eyebrow: "text-amber",
+    description: "Wrong or stale memory can be corrected or deleted without leaving invisible policy behind.",
+  },
+  {
+    label: "Provenanced",
+    className: "border-rose-500/20 bg-rose-500/5 text-slate-300",
+    eyebrow: "text-rose-400",
+    description: "Important memory claims keep source, time, and evidence context so the operator can challenge them.",
+  },
+];
+
+const MEMORY_ROLES = [
+  {
+    title: "Facts",
+    description: "Structural claims about the codebase or environment that should still be verifiable.",
+  },
+  {
+    title: "Decisions",
+    description: "Why a team or prior agent chose one path over another, including the tradeoff context.",
+  },
+  {
+    title: "Warnings",
+    description: "Known hazards and constraints that should stay visible without silently hardening into permanent law.",
+  },
+  {
+    title: "Mistakes",
+    description: "Preserved negative lessons, especially the failures the system is most likely to repeat.",
+  },
+  {
+    title: "Open questions",
+    description: "Unresolved uncertainty that should remain tentative instead of getting mistaken for settled truth.",
+  },
+];
+
+const GOVERNANCE_CHECKLIST = [
+  "Can a human inspect the memory surface without special tooling?",
+  "Can stale or wrong memory be removed cleanly?",
+  "Does each important item preserve where it came from and when it was created?",
+  "Can the runtime treat memory as input to verify rather than unquestionable truth?",
+  "Are weak-confidence claims visibly tentative instead of silently authoritative?",
+  "Do preserved mistakes explain what failed and why the lesson still matters?",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Persistent Coding Memory Is a Trust Boundary, Not Just Context Compression",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Persistent agent memory is not just a token-saving trick. Once saved facts, decisions, and mistakes influence future actions, memory becomes part of the trust boundary.",
+  url: "https://rhumb.dev/blog/persistent-agent-memory-trust-boundary",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/persistent-agent-memory-trust-boundary",
+};
+---
+
+<Layout
+  title="Persistent Coding Memory Is a Trust Boundary, Not Just Context Compression | Rhumb"
+  description="Persistent agent memory is not just a token-saving trick. Once saved facts, decisions, and mistakes influence future actions, memory becomes part of the trust boundary."
+  canonical="/blog/persistent-agent-memory-trust-boundary"
+  ogTitle="Persistent Coding Memory Is a Trust Boundary | Rhumb"
+  ogDescription="When memory survives across sessions, it stops being only retrieval help and starts shaping future action."
+  ogUrl="https://rhumb.dev/blog/persistent-agent-memory-trust-boundary"
+  ogType="article"
+  twitterTitle="Persistent Coding Memory Is a Trust Boundary"
+  twitterDescription="Inspectable, typed, reversible memory beats a hidden control plane full of stale priors."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-4xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Agent Memory</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+        <h1 class="max-w-3xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Persistent Coding Memory Is a Trust Boundary, Not Just Context Compression
+        </h1>
+        <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+          Persistent memory stops being a simple token-saving trick the moment it survives one session and shapes the next one.
+          Once saved facts, decisions, warnings, and mistakes influence future action, memory becomes part of the trust boundary.
+        </p>
+      </div>
+    </section>
+
+    <article class="max-w-4xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-10">
+        {TRUST_PILLARS.map((pillar) => (
+          <div class={`rounded-2xl border p-4 ${pillar.className}`}>
+            <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${pillar.eyebrow}`}>{pillar.label}</div>
+            <p class="text-sm leading-relaxed">{pillar.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The question is not <span class="text-slate-100">“Does this memory layer reduce context?”</span>
+          It is <span class="text-slate-100">“Can a human inspect, challenge, repair, and reason about the priors the next agent is inheriting before they quietly become policy?”</span>
+        </p>
+      </div>
+
+      <div class="max-w-3xl space-y-12">
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            1. Token savings is the shallow story
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Persistent memory gets adopted first because the cost story is easy. The agent reads less code, repeats fewer searches, and can pull a compact summary instead of rehydrating the whole repo.
+            </p>
+            <p>
+              That is useful. It just is not the whole operational story. If a memory entry says a module is deprecated, a migration path is risky, or a warning still applies, the next agent may plan around that claim before it verifies it.
+            </p>
+            <p>
+              The moment saved memory changes what the agent believes before it acts, memory stops being only retrieval help. It becomes decision-shaping infrastructure.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            2. Surviving one session turns memory into a control surface
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Short-lived context dies with the session. Persistent memory does not. A stale summary or weak assumption can keep steering future behavior for days if the system keeps treating it as inherited guidance.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li>an agent reaches for an old implementation because memory says it is canonical</li>
+              <li>it avoids a part of the codebase because an old warning still looks authoritative</li>
+              <li>it repeats a mistaken assumption because the stored claim feels more official than the source files</li>
+              <li>it quietly adopts yesterday’s uncertainty as today’s policy</li>
+            </ul>
+            <p>
+              That is why durable memory should be treated less like a notebook and more like a lightweight control surface. Hidden priors become dangerous precisely when they look like harmless convenience.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            3. Local and inspectable memory is a better trust class, but not the whole answer
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Local-first memory tools are interesting because they improve the trust class immediately. Storage that lives in SQLite, plain files, or another readable local format can be diffed, copied, backed up, and deleted by the operator.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li>the storage itself is inspectable</li>
+              <li>teams can see what the agent actually inherited</li>
+              <li>the memory surface can be repaired without a hidden vendor layer</li>
+              <li>deterministic extraction keeps one more part of the pipeline legible</li>
+            </ul>
+            <p>
+              But locality does not finish the job. A local database can still contain stale facts, collapse warnings into generic notes, or encode a wrong abstraction. The stronger claim is narrower: memory becomes more governable when both storage and extraction stay inspectable.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            4. Regret buffers preserve the lessons teams forget first
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              One of the most valuable memory patterns is not generic project summary. It is preserved negative lessons. Systems forget the painful failures first, then pay to relearn them.
+            </p>
+            <p>
+              A useful regret buffer should explain at least three things: what happened, why it was a mistake, and how strongly the system should still believe the lesson applies. Without that, memory can turn one old incident into a permanent superstition.
+            </p>
+            <p>
+              That makes regret buffers more than a nice feature. They are a safety surface, but only when the operator can still govern them.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            5. Facts, decisions, warnings, and priors should not collapse into one blob
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Many memory systems still treat every stored item as the same kind of thing. Operationally, that is where invisible policy starts. A stale decision can look like a current fact. A warning can harden into a permanent rule. An open question can quietly become planning guidance.
+            </p>
+            <p>
+              At minimum, a trustworthy coding-memory layer should keep roles like these distinct.
+            </p>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-6">
+            {MEMORY_ROLES.map((role) => (
+              <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                <h3 class="font-display font-semibold text-lg text-slate-100 mb-3 tracking-tight">{role.title}</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">{role.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            6. Provenance and reversibility matter more than clever retrieval
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Retrieval quality matters, but once memory shapes action the more important questions are provenance and repair. For any important memory item, an operator should be able to ask where it came from, when it was created, what evidence supports it, and how to correct or remove it.
+            </p>
+            <p>
+              If a claim cannot be challenged, it is too authoritative. If it cannot be deleted, it is too sticky. If it cannot be traced, it is too opaque. The most important trust property of persistent memory is not that it exists. It is that it can be audited and repaired.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            7. A practical governance checklist for persistent memory
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The best memory layer is not the one that remembers the most. It is the one that gives future agents legible inherited context without hiding what authority that context should carry.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              {GOVERNANCE_CHECKLIST.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            8. The practical recommendation
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Prefer memory systems that stay local or inspectable, preserve typed roles, keep negative lessons visible, and make repair cheap. The goal is not more memory. The goal is legible inherited context.
+            </p>
+            <p>
+              If we design persistent memory that way, it becomes a useful operational asset. If we do not, it becomes a quiet source of invisible policy. Once memory survives across sessions and shapes the next action, it belongs inside the trust model either way.
+            </p>
+          </div>
+        </section>
+
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
+          <ul class="space-y-3 text-slate-300">
+            <li>
+              <a href="/blog/read-only-mcp-trust-class" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Read-Only MCP as a Trust Class
+              </a>
+            </li>
+            <li>
+              <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Remote MCP Uptime Is Not Production Readiness
+              </a>
+            </li>
+            <li>
+              <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                How to Evaluate APIs for AI Agents
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
