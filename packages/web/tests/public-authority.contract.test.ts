@@ -7,6 +7,10 @@ const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro"
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
+const apiDocs = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
+const canonicalPricing = JSON.parse(
+  readFileSync(new URL("../../shared/pricing.json", import.meta.url), "utf8"),
+);
 const rootAgentCapabilities = readFileSync(
   new URL("../../../agent-capabilities.json", import.meta.url),
   "utf8",
@@ -15,6 +19,14 @@ const wellKnownAgentCapabilities = readFileSync(
   new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url),
   "utf8",
 );
+
+function extractPricingExampleJson(markdown: string) {
+  const match = markdown.match(
+    /### `GET \/v1\/pricing`[\s\S]*?```json\n([\s\S]*?)\n```/,
+  );
+  expect(match).not.toBeNull();
+  return JSON.parse(match![1]);
+}
 
 describe("public authority pricing contract", () => {
   it("keeps the sitewide web metadata aligned with current pricing truth", () => {
@@ -75,5 +87,32 @@ describe("public authority pricing contract", () => {
     expect(rootCaps).toEqual(wellKnownCaps);
     expect(rootAgentCapabilities).not.toContain("1000_calls_per_month");
     expect(wellKnownAgentCapabilities).not.toContain("1000_calls_per_month");
+  });
+
+  it("keeps the API pricing example aligned with canonical pricing truth", () => {
+    const pricingExample = extractPricingExampleJson(apiDocs);
+
+    expect(pricingExample.error).toBeNull();
+    expect(pricingExample.data.pricing_version).toBe(canonicalPricing.pricing_version);
+    expect(pricingExample.data.published_at).toBe(canonicalPricing.published_at);
+    expect(pricingExample.data.public_pricing_url).toBe(canonicalPricing.public_pricing_url);
+    expect(pricingExample.data.canonical_api_base_url).toBe(canonicalPricing.canonical_api_base_url);
+    expect(pricingExample.data.free_tier).toBe(canonicalPricing.free_tier);
+    expect(pricingExample.data.modes.rhumb_managed.margin_percent).toBe(
+      canonicalPricing.modes.rhumb_managed.margin_percent,
+    );
+    expect(pricingExample.data.modes.x402.margin_percent).toBe(
+      canonicalPricing.modes.x402.margin_percent,
+    );
+    expect(pricingExample.data.modes.x402.network).toBe(canonicalPricing.modes.x402.network);
+    expect(pricingExample.data.modes.x402.token).toBe(canonicalPricing.modes.x402.token);
+    expect(pricingExample.data.modes.byok.upstream_passthrough).toBe(
+      canonicalPricing.modes.byok.upstream_passthrough,
+    );
+    expect(pricingExample.data.modes.byok.margin_percent).toBe(
+      canonicalPricing.modes.byok.margin_percent,
+    );
+
+    expect(apiDocs).not.toContain("included_executions_per_month");
   });
 });

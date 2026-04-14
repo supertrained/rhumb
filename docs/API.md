@@ -710,10 +710,10 @@ Returns Rhumb's current machine-readable public pricing contract.
 {
   "data": {
     "pricing_version": "2026-03-18",
+    "published_at": "2026-03-18",
+    "public_pricing_url": "https://rhumb.dev/pricing",
     "canonical_api_base_url": "https://api.rhumb.dev/v1",
-    "free_tier": {
-      "included_executions_per_month": 1000
-    },
+    "free_tier": null,
     "modes": {
       "rhumb_managed": {
         "margin_percent": 20
