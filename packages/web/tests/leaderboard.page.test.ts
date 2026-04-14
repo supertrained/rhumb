@@ -78,6 +78,11 @@ describe("leaderboard page", () => {
     expect(html).toContain("Execution 9.1");
     expect(html).toContain("Access 8.4");
     expect(html).toContain("Freshness: 12 minutes ago");
+    expect(html).toContain("Before you route from this category");
+    expect(html).toContain("Trust →");
+    expect(html).toContain("Methodology →");
+    expect(html).toContain("Dispute a score →");
+    expect(html).toContain("/providers#dispute-a-score");
     expect(html).toContain("application/ld+json");
     expect(html).toContain('"@type":"ItemList"');
     expect(html).toContain('"name":"payments leaderboard"');
