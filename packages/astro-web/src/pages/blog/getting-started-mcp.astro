@@ -59,7 +59,7 @@ const workflows: Workflow[] = [
       {
         tool: "resolve_capability",
         input: '{ capability: "email.send", credential_mode: "byok" }',
-        whatHappens: "Returns ranked providers plus machine-readable execute guidance like cost per call, auth method, endpoint pattern, configured state, and preferred credential mode. If the requested mode dead-ends, Rhumb also returns machine-readable recovery handoffs like alternate_execute_hint or setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
+        whatHappens: "Returns ranked providers plus machine-readable execute guidance like cost per call, auth method, endpoint pattern, configured state, and preferred credential mode. If the requested mode dead-ends, Rhumb also returns machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, alternate_execute_hint, or setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
       },
       {
         tool: "estimate_capability",

@@ -50,7 +50,7 @@ const failureModes: FailureMode[] = [
     agentSees: "HTTP 502 with JSON body: {\"error\": {\"code\": \"upstream_error\", \"message\": \"Provider returned an error\", \"resolution\": \"Try an alternative provider via /v1/services/{slug}/alternatives\", \"request_id\": \"req_...\"}}",
     blastRadius: "Single provider. Other providers and capabilities are unaffected. Your agent's other active executions continue normally.",
     recovery: "Call /v1/services/{slug}/alternatives to find a working substitute. Re-route to the alternative. You are NOT charged for failed provider calls.",
-    prevention: "Use /v1/capabilities/{id}/resolve to pre-rank backup providers and preserve machine-readable recovery handoffs like alternate_execute_hint or setup_handoff before failure hits. Re-route from the returned execute guidance instead of maintaining a blind primary → alternative → manual chain.",
+    prevention: "Use /v1/capabilities/{id}/resolve to pre-rank backup providers and preserve machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, alternate_execute_hint, or setup_handoff before failure hits. Re-route from the returned execute guidance instead of maintaining a blind primary → alternative → manual chain.",
     affects: "Managed and BYOK modes for that provider",
   },
   {
