@@ -5,6 +5,7 @@ const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
+const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
@@ -58,6 +59,13 @@ describe("public authority pricing contract", () => {
     expect(astroDocs).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroDocs).toContain('Search ${servicesLabel} scored services');
     expect(astroDocs).not.toContain('getServiceCount');
+  });
+
+  it("keeps the astro homepage authority surface pinned to canonical public truth", () => {
+    expect(astroHome).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroHome).toContain('Search ${servicesLabel} services');
+    expect(astroHome).toContain('Search ${servicesLabel} scored services');
+    expect(astroHome).not.toContain('getServiceCount');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {

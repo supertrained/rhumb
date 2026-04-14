@@ -3,7 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import ScoreDisplay from "../components/ScoreDisplay.astro";
 import TierBadge from "../components/TierBadge.astro";
 import CopyTextButton from "../components/CopyTextButton.tsx";
-import { getLeaderboard, getServiceCount } from "../lib/api";
+import { getLeaderboard } from "../lib/api";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 import { STARTER_PROMPT } from "../lib/starter-prompt";
 import type { EvidenceTier } from "../lib/types";
@@ -25,12 +25,9 @@ function freshnessLabel(item: any): string {
   return "Freshness pending";
 }
 
-const [leaderboard, serviceCount] = await Promise.all([
-  getLeaderboard("payments", { limit: 3 }),
-  getServiceCount(),
-]);
+const leaderboard = await getLeaderboard("payments", { limit: 3 });
 
-const formattedServiceCount = new Intl.NumberFormat("en-US").format(serviceCount);
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
 
 const HOME_JSON_LD = {
   "@context": "https://schema.org",
@@ -38,13 +35,13 @@ const HOME_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    `Rhumb is the tool discovery and access layer for AI agents. Search ${formattedServiceCount} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`,
+    `Rhumb is the tool discovery and access layer for AI agents. Search ${servicesLabel} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`,
   logo: "https://rhumb.dev/favicon.ico",
 };
 
 const previewItems = leaderboard.items.slice(0, 3);
 const stats = [
-  { value: formattedServiceCount, label: "services scored" },
+  { value: servicesLabel, label: "services scored" },
   { value: PUBLIC_TRUTH.capabilitiesLabel, label: "capabilities mapped" },
   { value: PUBLIC_TRUTH.callableProvidersLabel, label: "providers callable" },
   { value: "API + MCP", label: "live access surfaces" },
@@ -53,7 +50,7 @@ const stats = [
 const heroProof = [
   {
     label: "Broad discovery",
-    value: `${formattedServiceCount} services`,
+    value: `${servicesLabel} services`,
     tone: "border-slate-700/80 bg-slate-900/40 text-slate-200",
   },
   {
@@ -78,7 +75,7 @@ const howItWorks = [
     step: "01",
     title: "Discover with Rhumb Index",
     body:
-      `Search ${formattedServiceCount} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions across ${PUBLIC_TRUTH.domainsLabel} domains before you commit to a tool or provider.`,
+      `Search ${servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions across ${PUBLIC_TRUTH.domainsLabel} domains before you commit to a tool or provider.`,
   },
   {
     step: "02",
@@ -97,10 +94,10 @@ const howItWorks = [
 
 <Layout
   title="Rhumb | Give your agent the right tool for the job"
-  description={`Rhumb is the tool discovery and access layer for AI agents. Search ${formattedServiceCount} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`}
+  description={`Rhumb is the tool discovery and access layer for AI agents. Search ${servicesLabel} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`}
   canonical="https://rhumb.dev/"
   ogTitle="Rhumb — Give your agent the right tool for the job"
-  ogDescription={`Discover ${formattedServiceCount} scored services, compare ${PUBLIC_TRUTH.capabilitiesLabel} mapped capabilities, and execute supported actions through Rhumb's governed API and MCP layer.`}
+  ogDescription={`Discover ${servicesLabel} scored services, compare ${PUBLIC_TRUTH.capabilitiesLabel} mapped capabilities, and execute supported actions through Rhumb's governed API and MCP layer.`}
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
 >
