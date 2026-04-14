@@ -176,7 +176,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 
 > "Send the email with the cheapest provider above my quality floor."
 
-- `estimate_capability` → preview cost
+- `estimate_capability` → check the active execution rail, health, and cost before execution
 - `execute_capability` → perform the action
 - `get_receipt` → verify the HMAC-signed execution record
 
