@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const webHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+const webLeaderboard = readFileSync(new URL("../app/leaderboard/page.tsx", import.meta.url), "utf8");
 const webSearch = readFileSync(new URL("../app/search/page.tsx", import.meta.url), "utf8");
 const webPublicTruth = readFileSync(new URL("../lib/public-truth.ts", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
@@ -10,6 +11,7 @@ const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro"
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
+const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
@@ -85,6 +87,16 @@ describe("public authority pricing contract", () => {
     expect(webSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(webSearch).toContain('Search across {servicesLabel} scored APIs and developer tools.');
     expect(webSearch).not.toContain('getServiceCount');
+  });
+
+  it("keeps leaderboard hub metadata aligned with the 11-category leaderboard surface", () => {
+    expect(webLeaderboard).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
+    expect(webLeaderboard).toContain('${leaderboardCategoryCount} categories');
+    expect(webLeaderboard).not.toContain('90+ categories');
+
+    expect(astroLeaderboardHub).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
+    expect(astroLeaderboardHub).toContain('${leaderboardCategoryCount} categories');
+    expect(astroLeaderboardHub).not.toContain('11 categories');
   });
 
   it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {

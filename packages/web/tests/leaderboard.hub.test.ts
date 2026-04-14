@@ -75,7 +75,8 @@ describe("leaderboard hub page", () => {
     const mod = await import("../app/leaderboard/page");
     const meta = mod.metadata;
     expect(meta.title).toBe("Leaderboard | Rhumb");
-    expect(meta.description).toContain("90+ categories");
+    expect(meta.description).toContain("11 categories");
+    expect(meta.description).not.toContain("90+ categories");
   });
 
   it("metadata has canonical URL /leaderboard", async () => {

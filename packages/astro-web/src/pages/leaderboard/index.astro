@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import { getCategories } from "../../lib/api";
 import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
 
+const leaderboardCategoryCount = ORDERED_SLUGS.length;
 const categoryData = await getCategories();
 const countMap: Record<string, number> = Object.fromEntries(
   categoryData.map((c) => [c.slug, c.serviceCount])
@@ -62,10 +63,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 <Layout
   title="Leaderboard | Rhumb"
-  description="Browse agent-native tool rankings across 11 categories: AI, payments, auth, and more."
+  description={`Browse agent-native tool rankings across ${leaderboardCategoryCount} categories: AI, payments, auth, and more.`}
   canonical="/leaderboard"
   ogTitle="Leaderboard | Rhumb"
-  ogDescription="Agent-native tool rankings across 11 categories."
+  ogDescription={`Agent-native tool rankings across ${leaderboardCategoryCount} categories.`}
   ogImage="https://rhumb.dev/api/og"
   jsonLd={LEADERBOARD_HUB_JSON_LD}
 >

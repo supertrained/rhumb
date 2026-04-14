@@ -7,14 +7,16 @@ import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
 
 // ---------- Metadata ----------
 
+const leaderboardCategoryCount = ORDERED_SLUGS.length;
+
 export const metadata: Metadata = {
   title: "Leaderboard | Rhumb",
   description:
-    "Browse agent-native tool rankings across 90+ categories: AI, payments, auth, databases, and more.",
+    `Browse agent-native tool rankings across ${leaderboardCategoryCount} categories: AI, payments, auth, and more.`,
   alternates: { canonical: "/leaderboard" },
   openGraph: {
     title: "Leaderboard | Rhumb",
-    description: "Agent-native tool rankings across 90+ categories.",
+    description: `Agent-native tool rankings across ${leaderboardCategoryCount} categories.`,
     images: [{ url: "/api/og", width: 1200, height: 630 }],
   },
 };
