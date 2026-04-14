@@ -19,6 +19,8 @@ describe("docs page", () => {
     expect(html).toContain("machine-readable recovery handoffs");
     expect(html).toContain("search suggestions when the capability ID is wrong");
     expect(html).toContain("estimate_capability");
+    expect(html).toContain("active execution rail before execution");
+    expect(html).toContain("machine-readable execute_readiness handoffs");
     expect(html).toContain("check_credentials");
     expect(html).toContain("rhumb_list_recipes");
     expect(html).toContain("get_receipt");
