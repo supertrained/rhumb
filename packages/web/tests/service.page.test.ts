@@ -87,7 +87,11 @@ describe("service page", () => {
     expect(html).toContain("Official links");
     expect(html).toContain("href=\"/go?to=https%3A%2F%2Fstripe.com&amp;event=provider_click");
     expect(html).toContain("href=\"/go?to=https%3A%2F%2Fdocs.stripe.com&amp;event=docs_click");
+    expect(html).toContain("href=\"/methodology\"");
+    expect(html).toContain("href=\"/trust\"");
+    expect(html).toContain("href=\"/providers#dispute-a-score\"");
     expect(html).toContain("href=\"/go?to=mailto%3Ateam%40supertrained.ai");
+    expect(html).toContain("Email evidence about this score");
     expect(html).toContain("square");
     expect(html).toContain("7.4");
     expect(html).toContain("application/ld+json");

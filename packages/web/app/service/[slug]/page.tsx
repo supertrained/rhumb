@@ -488,7 +488,7 @@ export default async function ServicePage({
                 </p>
               )}
               <p>
-                Read how the score works, how disputes are handled, and how Rhumb scored itself before launch.
+                Read how the score works, how the public dispute path works, and how Rhumb scored itself before launch.
               </p>
             </div>
             <div className="mt-4 flex flex-col gap-2 text-sm">
@@ -498,6 +498,9 @@ export default async function ServicePage({
               <Link href="/trust" className="text-slate-300 hover:text-amber transition-colors">
                 Trust process →
               </Link>
+              <Link href="/providers#dispute-a-score" className="text-slate-300 hover:text-amber transition-colors">
+                Public dispute process →
+              </Link>
               <Link href="/blog/self-score" className="text-slate-300 hover:text-amber transition-colors">
                 Why we scored ourselves first →
               </Link>
@@ -505,7 +508,7 @@ export default async function ServicePage({
                 href={disputeHref}
                 className="text-slate-300 hover:text-amber transition-colors"
               >
-                Dispute this score →
+                Email evidence about this score →
               </a>
             </div>
           </section>
@@ -569,7 +572,7 @@ export default async function ServicePage({
               href={disputeHref}
               className="text-xs text-slate-600 hover:text-amber transition-colors"
             >
-              Dispute this score →
+              Email evidence about this score →
             </a>
           </div>
         </div>
