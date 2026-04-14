@@ -92,7 +92,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 | `get_alternatives` | Find alternative Services, ranked by AN Score |
 | `get_failure_modes` | Get known failure patterns, impact severity, and workarounds for a service |
 | `discover_capabilities` | Browse Capabilities by domain or search text |
-| `resolve_capability` | Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong |
+| `resolve_capability` | Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong |
 
 ## Execution tools (auth required, 8 tools)
 
@@ -170,7 +170,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 > "I need `email.send`. What should I use?"
 
 - `discover_capabilities` → find the capability ID
-- `resolve_capability` → get ranked providers, optional credential-mode filtering, machine-readable recovery handoffs, or search suggestions when the capability ID is wrong
+- `resolve_capability` → get ranked providers, optional credential-mode filtering, machine-readable recovery fields like `recovery_hint.resolve_url`, `recovery_hint.credential_modes_url`, and, when applicable, `recovery_hint.alternate_execute_hint` or `recovery_hint.setup_handoff`, or search suggestions when the capability ID is wrong
 
 ### 3) Execute (auth required)
 

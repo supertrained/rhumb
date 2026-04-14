@@ -97,14 +97,22 @@ describe("types.contract", () => {
     expect(EstimateCapabilityInputSchema.properties.credential_mode.description).not.toMatch(/fall back to byo(?:[^k]|$)/);
   });
 
-  it("resolve schema describes recovery handoffs and typo recovery", () => {
-    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("machine-readable recovery handoffs");
+  it("resolve schema names concrete recovery fields and typo recovery", () => {
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("recovery_hint.resolve_url");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("recovery_hint.credential_modes_url");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("recovery_hint.alternate_execute_hint");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("recovery_hint.setup_handoff");
     expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("typo recovery");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).not.toContain("machine-readable recovery handoffs");
     expect(ResolveCapabilityInputSchema.properties.capability.description).not.toContain("fallback chains.");
-    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("machine-readable recovery handoffs");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.resolve_url");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.credential_modes_url");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.alternate_execute_hint");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.setup_handoff");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).not.toContain("machine-readable recovery handoffs");
   });
 
-  it("generated public resolve surfaces describe execute guidance instead of fallback chains", () => {
+  it("generated public resolve surfaces describe explicit recovery fields instead of fallback chains", () => {
     for (const surface of [
       rootReadme,
       mcpReadme,
@@ -114,20 +122,32 @@ describe("types.contract", () => {
       wellKnownAgentCapabilities,
     ]) {
       expect(surface).toContain("execute guidance");
-      expect(surface).toContain("machine-readable recovery handoffs");
+      expect(surface).toContain("recovery_hint.resolve_url");
+      expect(surface).toContain("recovery_hint.credential_modes_url");
+      expect(surface).toContain("recovery_hint.alternate_execute_hint");
+      expect(surface).toContain("recovery_hint.setup_handoff");
+      expect(surface).not.toContain("machine-readable recovery handoffs");
       expect(surface).not.toContain("fallback chains");
     }
   });
 
-  it("published MCP dist bundle stays aligned with resolve handoff wording", () => {
+  it("published MCP dist bundle stays aligned with explicit resolve recovery wording", () => {
     expect(distServerBundle).toContain("execute guidance");
-    expect(distServerBundle).toContain("machine-readable recovery handoffs");
+    expect(distServerBundle).toContain("recovery_hint.resolve_url");
+    expect(distServerBundle).toContain("recovery_hint.credential_modes_url");
+    expect(distServerBundle).toContain("recovery_hint.alternate_execute_hint");
+    expect(distServerBundle).toContain("recovery_hint.setup_handoff");
     expect(distServerBundle).toContain("which provider or recovery handoff should I use?");
+    expect(distServerBundle).not.toContain("machine-readable recovery handoffs");
     expect(distServerBundle).not.toContain("fallback chains");
     expect(distServerBundle).not.toContain("which provider or setup step should I use?");
 
     expect(distTypesBundle).toContain("execute guidance");
-    expect(distTypesBundle).toContain("machine-readable recovery handoffs");
+    expect(distTypesBundle).toContain("recovery_hint.resolve_url");
+    expect(distTypesBundle).toContain("recovery_hint.credential_modes_url");
+    expect(distTypesBundle).toContain("recovery_hint.alternate_execute_hint");
+    expect(distTypesBundle).toContain("recovery_hint.setup_handoff");
+    expect(distTypesBundle).not.toContain("machine-readable recovery handoffs");
     expect(distTypesBundle).not.toContain("fallback chains");
   });
 

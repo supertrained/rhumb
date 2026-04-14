@@ -68,7 +68,7 @@ Treat broader multi-system business automation as future scope, not the current 
 - `get_alternatives` — Find alternative Services, ranked by AN Score
 - `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
 - `discover_capabilities` — Browse Capabilities by domain or search text
-- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
 
 > Discovery breadth is wider than current execution coverage. The index is broader than what Rhumb can execute today.
 
@@ -77,7 +77,7 @@ Treat broader multi-system business automation as future scope, not the current 
 **415 capability definitions** across **16 callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
-- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
 - `estimate_capability` — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
@@ -123,7 +123,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - `get_alternatives` — Find alternative Services, ranked by AN Score
 - `get_failure_modes` — Get known failure patterns, impact severity, and workarounds for a service
 - `discover_capabilities` — Browse Capabilities by domain or search text
-- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
+- `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
 
 **Execution**
 - `execute_capability` — Call a Capability through Rhumb Resolve

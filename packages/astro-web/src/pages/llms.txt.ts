@@ -51,7 +51,7 @@ MCP tools available:
   get_alternatives({ slug: "stripe" }) — comparable services ranked
   get_failure_modes({ slug: "stripe" }) — known failure patterns
   discover_capabilities({ domain: "communication" }) — browse capability definitions
-  resolve_capability({ capability: "email.send", credential_mode: "byok" }) — rank providers, optionally scope to a credential mode, surface machine-readable recovery handoffs, and recover typoed capability IDs with search suggestions
+  resolve_capability({ capability: "email.send", credential_mode: "byok" }) — rank providers, optionally scope to a credential mode, surface machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, and recover typoed capability IDs with search suggestions
   estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" }) — estimate the active execution rail, cost, and health before execution; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
   execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed", body: { to: "user@example.com" } }) — execute through Rhumb
   budget({ action: "get" }) — check budget status
