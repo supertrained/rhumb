@@ -135,7 +135,7 @@ Recommended cold-start flow:
 1. Search services when you need to compare vendors.
 2. Search capabilities when you know the job but not the slug.
 3. Call `GET /v1/capabilities/{capability_id}/resolve` to see the ranked recommendation plus the default next step.
-4. Call `GET /v1/capabilities/{capability_id}/execute/estimate` to see the concrete provider, cost, and circuit state for the rail you are actually about to use.
+4. Call `GET /v1/capabilities/{capability_id}/execute/estimate` to see the active execution rail, cost, and health before execution. Anonymous direct system-of-record rails also preserve machine-readable `execute_readiness` handoffs.
 
 `resolve` and `estimate` intentionally answer different questions:
 
