@@ -5,6 +5,11 @@ import path from "path";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { PUBLIC_TRUTH } from "../../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+
 export const metadata: Metadata = {
   title:
     "The WCAG for AI Agents: Why Your Web App Isn't Built for Its Fastest-Growing User Base | Rhumb",
@@ -251,8 +256,8 @@ export default async function AAGFramework() {
             See how your tools score
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 600+ developer tools across 90+ categories using the
-            AN Score — the quantitative backbone of AAG.
+            We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories using the AN
+            Score — the quantitative backbone of AAG.
           </p>
           <Link
             href="/leaderboard"

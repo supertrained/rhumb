@@ -2,6 +2,10 @@
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+
 const TITLE = "Why Agent Wallets Keep Losing Money";
 const DESCRIPTION =
   "We funded an agent wallet with $5 USDC and lost access to it within 48 hours. Not because of a hack — because of a re-authentication. Here's the systemic fragility in agent wallet tooling that nobody is talking about.";
@@ -489,9 +493,9 @@ const GOOD_WALLET_PROPERTIES = [
         </h2>
         <div class="prose-rhumb space-y-4">
           <p class="text-slate-400 leading-relaxed">
-            We score 1,000+ APIs on 20 dimensions for AI agent compatibility. None of those
-            dimensions currently cover wallet persistence, identity recovery, or daemon resilience.
-            That needs to change.
+            We score {servicesLabel} services on 20 dimensions for AI agent compatibility. None of
+            those dimensions currently cover wallet persistence, identity recovery, or daemon
+            resilience. That needs to change.
           </p>
           <p class="text-slate-400 leading-relaxed">
             When we evaluate payment and wallet services for agents, the questions should include:

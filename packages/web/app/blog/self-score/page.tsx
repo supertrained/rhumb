@@ -5,6 +5,11 @@ import path from "path";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { PUBLIC_TRUTH } from "../../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+
 export const metadata: Metadata = {
   title:
     "We Scored Ourselves First — Here's What We Found | Rhumb",
@@ -241,9 +246,8 @@ export default async function SelfScoreBlog() {
             See how other tools score
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 600+ developer tools across 90+ categories. Our
-            AN Score measures real agent compatibility — not marketing
-            claims.
+            We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories. Our AN Score
+            measures real agent compatibility — not marketing claims.
           </p>
           <Link
             href="/leaderboard"

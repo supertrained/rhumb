@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTierInfo } from "../../../lib/utils";
 
+import { PUBLIC_TRUTH } from "../../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+
 export const metadata: Metadata = {
   title: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents | Rhumb",
   description:
@@ -365,7 +370,7 @@ export default function PaymentsForAgents() {
             Want to see how your tools stack up?
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 600+ developer tools across 90+ categories.
+            We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories.
           </p>
           <Link
             href="/leaderboard"

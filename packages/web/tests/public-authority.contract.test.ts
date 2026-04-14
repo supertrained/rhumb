@@ -4,17 +4,23 @@ import { describe, expect, it } from "vitest";
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const webHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
 const webAbout = readFileSync(new URL("../app/about/page.tsx", import.meta.url), "utf8");
+const webBlogAag = readFileSync(new URL("../app/blog/aag-framework/page.tsx", import.meta.url), "utf8");
+const webBlogHowToEvaluate = readFileSync(new URL("../app/blog/how-to-evaluate-apis-for-agents/page.tsx", import.meta.url), "utf8");
+const webBlogPayments = readFileSync(new URL("../app/blog/payments-for-agents/page.tsx", import.meta.url), "utf8");
+const webBlogSelfScore = readFileSync(new URL("../app/blog/self-score/page.tsx", import.meta.url), "utf8");
 const webLeaderboard = readFileSync(new URL("../app/leaderboard/page.tsx", import.meta.url), "utf8");
 const webSearch = readFileSync(new URL("../app/search/page.tsx", import.meta.url), "utf8");
 const webPublicTruth = readFileSync(new URL("../lib/public-truth.ts", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
+const astroBlogIndex = readFileSync(new URL("../../astro-web/src/pages/blog/index.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
+const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
@@ -88,7 +94,9 @@ describe("public authority pricing contract", () => {
     expect(webHome).not.toContain('{ value: "11", label: "categories" }');
 
     expect(webAbout).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
-    expect(webAbout).toContain('{PUBLIC_TRUTH.servicesLabel} services across {PUBLIC_TRUTH.categoriesLabel} categories');
+    expect(webAbout).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
+    expect(webAbout).toContain('PUBLIC_TRUTH.servicesLabel');
+    expect(webAbout).toContain('PUBLIC_TRUTH.categoriesLabel');
     expect(webAbout).not.toContain('645+ services across 90+ categories');
 
     expect(webSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
@@ -119,6 +127,34 @@ describe("public authority pricing contract", () => {
     expect(astroMultiProviderMcp).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
     expect(astroMultiProviderMcp).not.toContain('The full leaderboard across 92 categories');
     expect(astroMultiProviderMcp).not.toContain('1,000+ APIs');
+
+    expect(astroBlogIndex).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroBlogIndex).not.toContain('proxies 1,000+ APIs');
+    expect(astroBlogIndex).not.toContain('665+ scored services');
+
+    expect(astroWallets).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroWallets).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroWallets).not.toContain('We score 1,000+ APIs on 20 dimensions for AI agent compatibility.');
+  });
+
+  it("keeps high-visibility web authority surfaces pinned to current public truth", () => {
+    expect(webBlogHowToEvaluate).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(webBlogHowToEvaluate).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(webBlogHowToEvaluate).not.toContain('665+ scored services');
+    expect(webBlogHowToEvaluate).not.toContain('600+ developer tools across 90+ categories');
+    expect(webBlogHowToEvaluate).not.toContain('Compare 600+ APIs across execution and access readiness.');
+
+    expect(webBlogAag).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(webBlogAag).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(webBlogAag).not.toContain('600+ developer tools across 90+ categories');
+
+    expect(webBlogPayments).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(webBlogPayments).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(webBlogPayments).not.toContain('600+ developer tools across 90+ categories');
+
+    expect(webBlogSelfScore).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(webBlogSelfScore).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(webBlogSelfScore).not.toContain('600+ developer tools across 90+ categories');
   });
 
   it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {

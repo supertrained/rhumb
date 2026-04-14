@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PUBLIC_TRUTH } from "../../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+const DESCRIPTION = `Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from ${servicesLabel} scored services.`;
+
 export const metadata: Metadata = {
   title:
     "How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb",
-  description:
-    "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+  description: DESCRIPTION,
   alternates: { canonical: "/blog/how-to-evaluate-apis-for-agents" },
   openGraph: {
     title: "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
-    description:
-      "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+    description: DESCRIPTION,
     type: "article",
     publishedTime: "2026-03-24T00:00:00Z",
     modifiedTime: "2026-03-24T00:00:00Z",
@@ -22,8 +26,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "How to Evaluate APIs for AI Agents: The 20-Dimension Framework",
-    description:
-      "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+    description: DESCRIPTION,
     images: ["/api/og"],
     creator: "@pedrorhumb",
   },
@@ -39,8 +42,7 @@ const ARTICLE_JSON_LD = {
     "@type": "Person",
     name: "Pedro",
   },
-  description:
-    "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+  description: DESCRIPTION,
   url: "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
   publisher: {
     "@type": "Organization",
@@ -119,8 +121,8 @@ export default function EvaluateApisForAgentsPage() {
             What actually matters: execution vs. access
           </h2>
           <p className="text-slate-400 leading-relaxed mb-4">
-            After scoring 665+ developer APIs across 86 categories, we&apos;ve
-            found that agent compatibility comes down to two axes:
+            After scoring {servicesLabel} services across {categoriesLabel} categories, we&apos;ve found
+            that agent compatibility comes down to two axes:
           </p>
           <p className="text-slate-400 leading-relaxed mb-4">
             <strong className="text-slate-200 font-semibold">
@@ -548,9 +550,8 @@ export default function EvaluateApisForAgentsPage() {
             See how your tools score
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            We&apos;ve scored 600+ developer tools across 90+ categories. The AN
-            Score measures real agent compatibility &mdash; not marketing
-            claims.
+            We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories. The AN Score
+            measures real agent compatibility &mdash; not marketing claims.
           </p>
           <Link
             href="/leaderboard"
@@ -592,7 +593,7 @@ export default function EvaluateApisForAgentsPage() {
                 Browse the AN Score leaderboard
               </h3>
               <p className="text-sm text-slate-500 mt-1">
-                Compare 600+ APIs across execution and access readiness.
+                Compare {servicesLabel} services across execution and access readiness.
               </p>
             </Link>
             <Link

@@ -35,6 +35,8 @@ interface Post {
   related?: RelatedPost[];
 }
 
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+
 const POSTS: Post[] = [
   // ── Comparisons ──────────────────────────────────────────
   {
@@ -361,7 +363,7 @@ const POSTS: Post[] = [
   {
     slug: "what-nobody-tells-you-building-multi-provider-mcp-server",
     title: "What Nobody Tells You About Building a Multi-Provider MCP Server",
-    description: "Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server that proxies 1,000+ APIs.",
+    description: `Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server on top of ${servicesLabel} scored services.`,
     date: "March 28, 2026",
     dateISO: "2026-03-28T00:00:00Z",
     readTime: "10 min",
@@ -377,7 +379,7 @@ const POSTS: Post[] = [
   {
     slug: "how-to-evaluate-apis-for-agents",
     title: "How to Evaluate APIs for AI Agents",
-    description: "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+    description: `Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from ${servicesLabel} scored services.`,
     date: "March 24, 2026",
     dateISO: "2026-03-24T00:00:00Z",
     readTime: "7 min",
