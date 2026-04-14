@@ -92,7 +92,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 | `get_alternatives` | Find alternative Services, ranked by AN Score |
 | `get_failure_modes` | Get known failure patterns, impact severity, and workarounds for a service |
 | `discover_capabilities` | Browse Capabilities by domain or search text |
-| `resolve_capability` | Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong |
+| `resolve_capability` | Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong |
 
 ## Execution tools (auth required, 8 tools)
 

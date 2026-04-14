@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
   FindServiceInputSchema,
@@ -19,6 +20,16 @@ import {
   type GetFailureModesOutput,
   type ResolveCapabilityOutput
 } from "../src/types.js";
+
+const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
+const mcpReadme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
+const webPublicLlms = readFileSync(new URL("../../web/public/llms.txt", import.meta.url), "utf8");
+const rootAgentCapabilities = readFileSync(new URL("../../../agent-capabilities.json", import.meta.url), "utf8");
+const wellKnownAgentCapabilities = readFileSync(
+  new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url),
+  "utf8",
+);
 
 describe("types.contract", () => {
   it("all tool schemas are valid JSON Schema objects with required fields", () => {
@@ -77,6 +88,21 @@ describe("types.contract", () => {
     expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("typo recovery");
     expect(ResolveCapabilityInputSchema.properties.capability.description).not.toContain("fallback chains.");
     expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("machine-readable recovery handoffs");
+  });
+
+  it("generated public resolve surfaces describe execute guidance instead of fallback chains", () => {
+    for (const surface of [
+      rootReadme,
+      mcpReadme,
+      rootLlms,
+      webPublicLlms,
+      rootAgentCapabilities,
+      wellKnownAgentCapabilities,
+    ]) {
+      expect(surface).toContain("execute guidance");
+      expect(surface).toContain("machine-readable recovery handoffs");
+      expect(surface).not.toContain("fallback chains");
+    }
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {

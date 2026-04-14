@@ -56,7 +56,7 @@ Operations: routing, usage_telemetry
 ## Key tool semantics
 - find_services — Search indexed Services by what you need them to do
 - get_score — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness
-- resolve_capability — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
+- resolve_capability — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
 - execute_capability — Call a Capability through Rhumb Resolve
 - estimate_capability — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - get_receipt — Retrieve an execution receipt by ID
