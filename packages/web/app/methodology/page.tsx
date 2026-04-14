@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -480,7 +481,16 @@ export default function MethodologyPage() {
             >
               Email privately →
             </a>
+            <Link
+              href="/providers#dispute-a-score"
+              className="inline-flex px-4 py-2 rounded-lg bg-elevated border border-slate-700 text-slate-200 text-sm font-medium hover:border-amber/40 transition-colors"
+            >
+              Read the dispute process →
+            </Link>
           </div>
+          <p className="text-slate-500 text-xs leading-relaxed mt-4">
+            We target an initial response within 5 business days and keep public outcomes visible on GitHub.
+          </p>
         </section>
       </div>
     </div>
