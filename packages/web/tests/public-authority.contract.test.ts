@@ -20,6 +20,7 @@ const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/b
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
+const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pages/blog/switching-from-smithery.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
@@ -205,6 +206,12 @@ describe("public authority pricing contract", () => {
     expect(astroPaymentsAgent).toContain('Bring BYOK only when provider control is the point.');
     expect(astroPaymentsAgent).toContain('Zero-signup, request-level payment authorization matters more than repeat throughput');
     expect(astroPaymentsAgent).not.toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with a governed API key or wallet-prefunded API key.');
+  });
+
+  it("keeps the astro Smithery migration auth rail aligned with the live execution rails", () => {
+    expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
+    expect(astroSwitchingFromSmithery).toContain('zero-signup, request-level payment authorization is the point');
+    expect(astroSwitchingFromSmithery).not.toContain('for that, use API key or wallet-prefund.');
   });
 
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
