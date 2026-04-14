@@ -103,14 +103,19 @@ export default function PricingPage() {
               <span className="text-amber text-lg">💡</span>
               <div className="text-slate-400 text-sm leading-relaxed">
                 <strong className="text-slate-200">
-                  Check costs before execution.
+                  Check the active rail before execution.
                 </strong>{" "}
                 Use the{" "}
                 <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
                   estimate_capability
                 </code>{" "}
-                MCP tool or the REST API to see exactly what a capability
-                will cost before you run it.
+                MCP tool or the REST API to see the active execution rail,
+                health, and exact cost before you run it. Anonymous direct
+                system-of-record paths also preserve machine-readable{" "}
+                <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
+                  execute_readiness
+                </code>{" "}
+                handoffs.
               </div>
             </div>
           </div>
@@ -330,7 +335,8 @@ Body:
                 <code>{`# Check your budget
 rhumb budget
 
-# Estimate cost before execution
+# Check the active execution rail, health, and cost before execution
+# Anonymous direct system-of-record estimates also preserve execute_readiness handoffs
 rhumb estimate_capability --capability_id email.send
 
 # Execute (uses credits or returns 402 with payment instructions)
