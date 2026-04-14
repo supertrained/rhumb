@@ -291,6 +291,38 @@ const POSTS: Post[] = [
   },
   // ── Guides ────────────────────────────────────────────────
   {
+    slug: "read-only-mcp-trust-class",
+    title: "Read-Only MCP as a Trust Class",
+    description: "Read-only MCP matters because it removes a mutation failure class, but only if the surrounding runtime preserves a real inspect-only boundary.",
+    date: "April 12, 2026",
+    dateISO: "2026-04-12T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "MCP",
+    difficulty: "Intermediate",
+    timeEstimate: "~8 min",
+    related: [
+      { slug: "how-to-evaluate-apis-for-agents", title: "How to Evaluate APIs for AI Agents" },
+      { slug: "what-nobody-tells-you-building-multi-provider-mcp-server", title: "Building a Multi-Provider MCP Server" },
+    ],
+  },
+  {
+    slug: "remote-mcp-liveness-vs-production-readiness",
+    title: "Remote MCP Uptime Is Not Production Readiness",
+    description: "A remote MCP server that responds can still be unsafe for unattended agent use. The useful health model is reachable, auth-viable, operator-safe, and shared-runtime ready.",
+    date: "April 13, 2026",
+    dateISO: "2026-04-13T00:00:00Z",
+    readTime: "7 min",
+    contentType: "Guide",
+    category: "MCP",
+    difficulty: "Intermediate",
+    timeEstimate: "~7 min",
+    related: [
+      { slug: "read-only-mcp-trust-class", title: "Read-Only MCP as a Trust Class" },
+      { slug: "how-to-evaluate-apis-for-agents", title: "How to Evaluate APIs for AI Agents" },
+    ],
+  },
+  {
     slug: "what-nobody-tells-you-building-multi-provider-mcp-server",
     title: "What Nobody Tells You About Building a Multi-Provider MCP Server",
     description: "Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server that proxies 1,000+ APIs.",

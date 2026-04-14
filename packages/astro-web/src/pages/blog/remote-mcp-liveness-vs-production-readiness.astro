@@ -1,0 +1,309 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Remote MCP Uptime Is Not Production Readiness",
+  datePublished: "2026-04-13T00:00:00Z",
+  dateModified: "2026-04-13T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A remote MCP server that responds can still be unsafe for unattended agent use. The useful health model is reachable, auth-viable, operator-safe, and shared-runtime ready.",
+  url: "https://rhumb.dev/blog/remote-mcp-liveness-vs-production-readiness",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/remote-mcp-liveness-vs-production-readiness",
+};
+
+const HEALTH_STATES = [
+  {
+    label: "Reachable",
+    className: "border-slate-700/80 bg-slate-900/60 text-slate-300",
+    eyebrow: "text-slate-400",
+    description: "Transport responds. Useful floor, but it says nothing about auth quality, scope, or failure recovery.",
+  },
+  {
+    label: "Auth-viable",
+    className: "border-sky-500/20 bg-sky-500/5 text-slate-300",
+    eyebrow: "text-sky-400",
+    description: "Identity is automatable, scopes are legible, and auth failures are machine-operable instead of vague ceremony.",
+  },
+  {
+    label: "Operator-safe",
+    className: "border-emerald-500/20 bg-emerald-500/5 text-slate-300",
+    eyebrow: "text-emerald-400",
+    description: "Unattended use stays bounded under retry, prompt mistakes, and partial failure. Scope and evidence hold together.",
+  },
+  {
+    label: "Shared-runtime ready",
+    className: "border-amber/20 bg-amber/5 text-slate-300",
+    eyebrow: "text-amber",
+    description: "Multiple agents, tenants, or teams can use the surface without flattening identity, policy, or auditability.",
+  },
+];
+
+const WHAT_BREAKS = [
+  "credentials expire or lose scope while the endpoint still looks healthy",
+  "retry loops cannot tell whether a prior write committed",
+  "tool scope is broad enough that a planning mistake still crosses the wrong boundary",
+  "audit trails cannot explain who acted, under which principal, and with what scope",
+];
+
+const EVALUATION_AXES = [
+  {
+    title: "Bounded side effects",
+    bullets: [
+      "narrow tool scope and visible read vs write separation",
+      "idempotency or duplicate protection on sensitive actions",
+      "allowlists, governors, or policy checks before execution",
+    ],
+  },
+  {
+    title: "Legible failure behavior",
+    bullets: [
+      "structured auth errors that distinguish expiry, revocation, and insufficient scope",
+      "clear retry vs stop semantics under partial failure",
+      "consistent error shapes software can branch on safely",
+    ],
+  },
+  {
+    title: "Reconstructable history",
+    bullets: [
+      "principal-aware audit logs",
+      "action traces with tool, parameters, and timing",
+      "enough attribution to explain who did what after an incident",
+    ],
+  },
+];
+---
+
+<Layout
+  title="Remote MCP Uptime Is Not Production Readiness | Rhumb"
+  description="A remote MCP server that responds can still be unsafe for unattended agent use. The useful health model is reachable, auth-viable, operator-safe, and shared-runtime ready."
+  canonical="/blog/remote-mcp-liveness-vs-production-readiness"
+  ogTitle="Remote MCP Uptime Is Not Production Readiness | Rhumb"
+  ogDescription="Reachable is only the floor. Remote MCP readiness starts when auth is viable, side effects stay bounded, and failures remain explainable."
+  ogUrl="https://rhumb.dev/blog/remote-mcp-liveness-vs-production-readiness"
+  ogType="article"
+  twitterTitle="Remote MCP Uptime Is Not Production Readiness"
+  twitterDescription="A better remote MCP health model: reachable, auth-viable, operator-safe, and shared-runtime ready."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-4xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Production Readiness</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 13, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">7 min read</span>
+        </div>
+        <h1 class="max-w-3xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Remote MCP Uptime Is Not Production Readiness
+        </h1>
+        <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+          A remote MCP server that responds can still be a bad unattended dependency. The useful health model is not just up or down. It is reachable, auth-viable, operator-safe, and shared-runtime ready.
+        </p>
+      </div>
+    </section>
+
+    <article class="max-w-4xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-10">
+        {HEALTH_STATES.map((state) => (
+          <div class={`rounded-2xl border p-4 ${state.className}`}>
+            <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${state.eyebrow}`}>{state.label}</div>
+            <p class="text-sm leading-relaxed">{state.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The question is not <span class="text-slate-100">“Does the server respond?”</span>
+          It is <span class="text-slate-100">“Can an agent authenticate safely, operate within bounded scope, recover from failure, and leave enough evidence behind to explain what happened later?”</span>
+        </p>
+      </div>
+
+      <div class="max-w-3xl space-y-12">
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            1. Liveness is a transport property. Production readiness is an operational property.
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              A lot of remote MCP discussion still treats uptime as the headline signal. That is useful for narrow questions like whether the endpoint is reachable, whether it returned something parseable, or whether the socket stayed open.
+            </p>
+            <p>
+              Those are real signals. They are just not enough for unattended agent use. A server can be reachable while still being a poor dependency because the auth model cannot be automated cleanly, the tool surface is too broad for safe delegation, or the failure semantics are too vague to recover from.
+            </p>
+            <p>
+              For operators, a server can be up but unusable, up but unsafe, or up but impossible to debug after something goes wrong. A transport check does not tell you any of that.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            2. The minimum useful health model has more than two states.
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The cleanest improvement is to stop calling every responding server healthy. A better model separates four states that operators actually care about.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li><span class="text-slate-200 font-semibold">Reachable</span> means transport works.</li>
+              <li><span class="text-slate-200 font-semibold">Auth-viable</span> means identity, scope, refresh, and revocation behave like software can actually manage them.</li>
+              <li><span class="text-slate-200 font-semibold">Operator-safe</span> means retries, prompt mistakes, and partial failures do not create uncontrolled blast radius.</li>
+              <li><span class="text-slate-200 font-semibold">Shared-runtime ready</span> means multiple callers can use the surface without flattening principals, budgets, or evidence.</li>
+            </ul>
+            <p>
+              A server can be reachable without being auth-viable. It can be auth-viable without being operator-safe. Treating those as one state hides the actual risk.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            3. The painful failures usually start after the endpoint responds.
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              This is why uptime-first analysis keeps missing the real operational burden. Many of the worst failures happen after the health check passes.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              {WHAT_BREAKS.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+            <p>
+              None of those are transport questions. They are scope, recoverability, and evidence questions. That is the layer that actually determines whether a remote MCP surface is safe to trust in production.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            4. Auth-gated is not broken. Public no-auth is not automatically healthy.
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              One of the most common classification errors is treating public accessibility as the main proxy for readiness. That creates two bad shortcuts: auth-gated endpoints get treated as degraded, and public no-auth endpoints get treated as frictionless and therefore better.
+            </p>
+            <p>
+              The more useful question is what trust class the server is designed for. A public no-auth endpoint can be fine for demos, read-only utilities, or low-risk experimentation. That does not make it a strong unattended default.
+            </p>
+            <p>
+              An auth-gated endpoint may actually be healthier if callers map cleanly to principals, scopes are narrow, refresh is automatable, and failures are explicit enough for software to react safely.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            5. Local stdio and remote shared MCP are different trust classes.
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              A lot of protocol-war discourse stays muddy because people compare local CLI, local stdio MCP, and remote shared MCP as if they carried the same operational burden. They do not.
+            </p>
+            <p>
+              Local tooling can work well when the failure domain is one machine, a human is nearby, and the blast radius is narrow. Remote shared MCP is a different category. The moment multiple agents, tenants, or business systems are involved, identity separation, scoped discovery, auditability, and failure recovery matter much more.
+            </p>
+            <p>
+              What feels ergonomic as a local helper can still be the wrong dependency for a shared runtime. The production burden rises the moment the trust boundary moves off the box.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            6. Operator-safe means bounded side effects, legible failures, and reconstructable history.
+          </h2>
+          <div class="space-y-6 text-slate-400 leading-relaxed">
+            <p>
+              If Rhumb is going to evaluate remote MCP honestly, the useful evidence clusters into three buckets.
+            </p>
+            <div class="grid gap-4 md:grid-cols-3">
+              {EVALUATION_AXES.map((axis) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="font-display font-semibold text-lg text-slate-100 mb-3 tracking-tight">{axis.title}</h3>
+                  <ul class="list-disc list-outside ml-5 space-y-2 text-sm text-slate-400 leading-relaxed">
+                    {axis.bullets.map((bullet) => (
+                      <li>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <p>
+              If those three buckets are weak, the server may still be reachable. It just is not production-ready yet.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            7. A better public frame for remote MCP evaluation
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The public framing should move from <span class="text-slate-100">“How many endpoints are up?”</span> to a ladder that operators can actually use.
+            </p>
+            <ol class="list-decimal list-outside ml-5 space-y-2">
+              <li><span class="text-slate-200 font-semibold">Reachable</span>, does it respond?</li>
+              <li><span class="text-slate-200 font-semibold">Auth-viable</span>, can software authenticate, refresh, and scope access sanely?</li>
+              <li><span class="text-slate-200 font-semibold">Operator-safe</span>, can unattended agents use it without uncontrolled blast radius?</li>
+              <li><span class="text-slate-200 font-semibold">Shared-runtime ready</span>, can it survive multiple principals, tenants, or clients cleanly?</li>
+            </ol>
+            <p>
+              That framing matches the real rollout questions teams hit before adoption: can we trust this remotely, can we automate auth without handholding, can we contain prompt mistakes, and can we explain the history after an incident?
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            8. The practical recommendation
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Treat <span class="text-slate-100">responds</span> as the floor, not the headline. For production agent use, the more useful questions are whether auth is automatable, scope is bounded, failures are recoverable, side effects are containable, and the history is reconstructable.
+            </p>
+            <p>
+              If the answer is no, the server is not production-ready yet, no matter how green the uptime check looks. That is the distinction Rhumb should keep making public, because the market is still flattening transport health and operational safety into the same word.
+            </p>
+          </div>
+        </section>
+
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
+          <ul class="space-y-3 text-slate-300">
+            <li>
+              <a href="/blog/read-only-mcp-trust-class" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Read-Only MCP as a Trust Class
+              </a>
+            </li>
+            <li>
+              <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                How to Evaluate APIs for AI Agents
+              </a>
+            </li>
+            <li>
+              <a href="/blog/what-nobody-tells-you-building-multi-provider-mcp-server" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                What Nobody Tells You About Building a Multi-Provider MCP Server
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
