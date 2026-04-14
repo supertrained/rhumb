@@ -134,7 +134,7 @@ const FAQ = [
   },
   {
     q: "Which rail should most buyers start with?",
-    a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it gives you one stable execution header, pre-call route, health, and cost checks, and simpler repeat-traffic operations.",
+    a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it gives you one stable execution header, route, health, and cost checks before execution, and simpler repeat-traffic operations.",
   },
   {
     q: "What is the difference between API key, wallet-prefund, and x402?",
@@ -152,7 +152,7 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Rhumb pricing: pay only for the calls you make. Discovery, scoring, and browsing are always free. Per-call route, health, and cost checks before every call.",
+    "Rhumb pricing: pay only for the calls you make. Discovery, scoring, and browsing are always free. Check the route, health, and cost before execution.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
@@ -163,10 +163,10 @@ const PRICING_JSON_LD = {
 
 <Layout
   title="Pricing"
-  description="Pay only for the calls you make. Per-call route, health, and cost checks before every call. Discovery, scoring, and browsing are always free."
+  description="Pay only for the calls you make. Check the route, health, and cost before execution. Discovery, scoring, and browsing are always free."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Pay only for the calls you make. Know the route and cost before every call. Discovery is always free."
+  ogDescription="Pay only for the calls you make. Know the route, health, and cost before execution. Discovery is always free."
   ogUrl="https://rhumb.dev/pricing"
   jsonLd={PRICING_JSON_LD}
 >
@@ -176,7 +176,7 @@ const PRICING_JSON_LD = {
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
           Pay for what you use.
-          <span class="block text-slate-400 mt-2">Know the route and cost before every call.</span>
+          <span class="block text-slate-400 mt-2">Know the route, health, and cost before execution.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
           Discovery, scoring, and browsing are always free. When your agent runs a capability
@@ -459,8 +459,8 @@ const PRICING_JSON_LD = {
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Rhumb handles credentials, routing, failover, and billing. You get pre-call route,
-            health, and cost checks, smart provider selection, and fail-closed execution safety. Pay per call, no commitments.
+            Rhumb handles credentials, routing, failover, and billing. You get route,
+            health, and cost checks before execution, smart provider selection, and fail-closed execution safety. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
@@ -469,7 +469,7 @@ const PRICING_JSON_LD = {
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Pricing</dt>
-              <dd class="text-slate-200">Per-call, with route, health, and cost checks before every call</dd>
+              <dd class="text-slate-200">Per-call, with route, health, and cost checks before execution</dd>
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Best for</dt>
