@@ -4,14 +4,12 @@ export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import CopyTextButton from "../components/CopyTextButton.tsx";
 import ActivationPathCards from "../components/ActivationPathCards.astro";
-import { getServiceCount } from "../lib/api";
 import { PRIMARY_ACTIVATION_PATHS } from "../lib/activation-paths";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 import { STARTER_PROMPT } from "../lib/starter-prompt";
 
 const BASE_URL = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
-const serviceCount = await getServiceCount().catch(() => PUBLIC_TRUTH.services);
-const servicesLabel = new Intl.NumberFormat("en-US").format(serviceCount || PUBLIC_TRUTH.services);
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
 
 const START_HERE_STEPS = [
   {

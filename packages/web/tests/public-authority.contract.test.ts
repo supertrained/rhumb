@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
+const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
@@ -51,6 +52,12 @@ describe("public authority pricing contract", () => {
     expect(glossary).toContain("wallet-prefund");
     expect(glossary).toContain("Discovery is free, and execution pricing lives on /pricing.");
     expect(glossary).not.toContain("public free tier includes 1,000 calls per month");
+  });
+
+  it("keeps the astro docs authority surface pinned to canonical public truth", () => {
+    expect(astroDocs).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroDocs).toContain('Search ${servicesLabel} scored services');
+    expect(astroDocs).not.toContain('getServiceCount');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
