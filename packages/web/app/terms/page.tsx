@@ -1,4 +1,7 @@
+import React from "react";
 import type { Metadata } from "next";
+
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -148,22 +151,22 @@ export default function TermsPage() {
               <li>
                 •{" "}
                 <a
-                  href="https://github.com/supertrained/rhumb/issues/new"
+                  href={PUBLIC_TRUTH.publicDisputeTemplateUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-amber hover:underline underline-offset-2"
                 >
-                  GitHub issue
+                  GitHub issue template
                 </a>{" "}
                 (public)
               </li>
               <li>
                 •{" "}
                 <a
-                  href="mailto:providers@supertrained.ai"
+                  href={`mailto:${PUBLIC_TRUTH.privateDisputesEmail}`}
                   className="text-amber hover:underline underline-offset-2"
                 >
-                  providers@supertrained.ai
+                  {PUBLIC_TRUTH.privateDisputesEmail}
                 </a>{" "}
                 (private)
               </li>
