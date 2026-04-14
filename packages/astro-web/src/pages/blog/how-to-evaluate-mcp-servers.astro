@@ -1,0 +1,344 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const DECISION_LAYERS = [
+  {
+    label: "1. Workflow fit",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Start with the repeated job. A useful MCP server should remove friction from a specific workflow, not just look powerful in a demo.",
+  },
+  {
+    label: "2. Trust class",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "A read-mostly helper, a reversible write tool, and a high-side-effect remote integration should not compete as if they are the same kind of system.",
+  },
+  {
+    label: "3. Capability shape",
+    accent: "text-violet-400",
+    className: "border-violet-500/20 bg-violet-500/5",
+    description: "Prefer surfaces that narrow authority around the real job instead of mirroring a giant raw API behind one server label.",
+  },
+  {
+    label: "4. Runtime reality",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "After structural fit comes live evidence. Auth viability, failure shape, and operator-safe behavior decide whether the server still belongs in the loop.",
+  },
+];
+
+const FALSE_PROXIES = [
+  {
+    title: "GitHub stars",
+    body: "Stars tell you a server is visible. They do not tell you whether it contains authority well, survives auth drift cleanly, or behaves safely under retries.",
+  },
+  {
+    title: "Tool count",
+    body: "A long tool catalog often means taxonomy sprawl, not a better operator surface. More tools can mean more planning confusion and more mixed-authority risk.",
+  },
+  {
+    title: "Giant indexes",
+    body: "A huge runtime catalog increases recall, but only helps if trust filters narrow the pool before ranking. Bigger search over the wrong pool is still wrong-tool risk.",
+  },
+];
+
+const LEADERBOARDS = [
+  {
+    title: "Solo and local leaderboard",
+    points: [
+      "fast setup and immediate usefulness",
+      "human-in-the-loop recoverability",
+      "local convenience over governance",
+      "great for coding, research, and personal workflows",
+    ],
+  },
+  {
+    title: "Shared or unattended leaderboard",
+    points: [
+      "scoped discovery and clearer authority boundaries",
+      "auth viability for the real caller class",
+      "bounded writes, recoverability, and evidence after action",
+      "better fit for remote or multi-actor systems",
+    ],
+  },
+];
+
+const CHECKLIST = [
+  "What repeated job does this server actually improve?",
+  "Which trust class does it belong to: read-mostly, reversible write, high-side-effect, or shared remote?",
+  "Does the capability surface narrow authority around the job, or mostly mirror a broad upstream API?",
+  "Can the intended caller authenticate cleanly, with the right principal and scope?",
+  "What happens on timeout, retry, partial success, or auth expiry?",
+  "After the action, can an operator tell who invoked what and what actually happened?",
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/read-only-mcp-trust-class",
+    title: "Read-Only MCP as a Trust Class",
+    description: "Why inspect-only boundaries matter, and when they are real versus marketing language.",
+  },
+  {
+    href: "/blog/remote-mcp-liveness-vs-production-readiness",
+    title: "Remote MCP Uptime Is Not Production Readiness",
+    description: "Why reachability is only the first layer, not the operator decision.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "How structural evaluation and live runtime evidence work better together.",
+  },
+  {
+    href: "/blog/how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents",
+    description: "The broader selection framework behind Rhumb's API and MCP evaluation posture.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
+  url: "https://rhumb.dev/blog/how-to-evaluate-mcp-servers",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/how-to-evaluate-mcp-servers",
+};
+---
+
+<Layout
+  title="How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality | Rhumb"
+  description="The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop."
+  canonical="/blog/how-to-evaluate-mcp-servers"
+  ogTitle="How to Evaluate MCP Servers"
+  ogDescription="Workflow fit first, trust class second, then capability shape, auth viability, and runtime reality."
+  ogUrl="https://rhumb.dev/blog/how-to-evaluate-mcp-servers"
+  ogType="article"
+  twitterTitle="How to Evaluate MCP Servers"
+  twitterDescription="The useful MCP selection model is workflow fit plus trust class, then capability shape, auth viability, and runtime evidence."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-amber/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">MCP Methodology</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">9 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              The right MCP server question is not which server looks hottest on a flat leaderboard. It is which server fits this workflow, at this authority level, with a capability surface and runtime behavior an operator can actually trust.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">Selection stack</div>
+            <div class="space-y-3">
+              {DECISION_LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-4 ${layer.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-3 mb-10">
+        {FALSE_PROXIES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="font-display font-semibold text-lg text-slate-100 tracking-tight mb-2">{item.title}</h2>
+            <p class="text-sm text-slate-400 leading-relaxed">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The real decision is not <span class="text-slate-100">&ldquo;Which MCP server is best?&rdquo;</span>
+          It is <span class="text-slate-100">&ldquo;Which server best fits this workflow, at this trust class, with behavior we can live with when the agent is wrong or the environment drifts?&rdquo;</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Workflow fit is the first real cut
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A useful MCP server is not useful in the abstract. It is useful for a repeated job. Research, coding, delivery, operations, business-system access, and device control all create very different demands.
+              </p>
+              <p>
+                That is why flat top-server lists keep blurring the decision. They collapse local coding helpers, read-only retrieval surfaces, and write-capable remote integrations into one popularity stack. The result feels efficient, but it hides the first question an operator actually cares about: what work does this server make cleaner without widening authority more than necessary?
+              </p>
+              <p>
+                If the workflow answer is vague, the server is probably novelty, not leverage.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. Trust class is the second cut, and often the harder one
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Workflow fit explains usefulness. Trust class explains risk. A read-mostly helper, a reversible write tool, and a high-side-effect remote integration should not compete as if they are interchangeable.
+              </p>
+              <p>
+                This is where operators get into trouble. A server can feel magical in a supervised local Claude workflow and still be the wrong choice for unattended or shared use. Another server can feel narrower or slower precisely because it is doing the harder job: principal-aware auth, capability bounding, auditability, and recoverable failure handling.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              {LEADERBOARDS.map((board) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="font-display font-semibold text-lg text-slate-100 tracking-tight mb-3">{board.title}</h3>
+                  <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                    {board.points.map((point) => (
+                      <li>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                A lot of ecosystem confusion disappears once you admit there is more than one leaderboard. &ldquo;Best for a solo local operator&rdquo; and &ldquo;best for shared or unattended use&rdquo; are related questions, but not the same question.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. Capability shape matters more than raw breadth
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Tool count is one of the weakest proxies in MCP selection. A server with dozens of tools can look more capable while actually exposing more planning confusion, more mixed-authority choices, and more ways for side effects to hide.
+              </p>
+              <p>
+                The better question is whether the server narrows the visible surface around the real job. A smaller capability set with legible read, write, execute, and egress boundaries is often stronger than a server that mostly mirrors upstream product taxonomy.
+              </p>
+              <p>
+                That same logic shows up in <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:text-amber-200 transition-colors">governed capability surfaces</a>. Safer agent interfaces usually win by making authority clearer, not by making everything accessible at once.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. Auth viability and caller model decide whether the server is truly available
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A server that &ldquo;supports auth&rdquo; is not automatically usable. Operators need to know who the caller is, what principal the runtime is acting as, what scope remains after auth succeeds, and whether the intended caller can complete that path without manual glue.
+              </p>
+              <p>
+                This is especially important for remote MCP. A global directory entry or a successful handshake says very little if the server is bound to the wrong principal, the wrong tenant, or a scope the actual workflow cannot use safely. That is why <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber-200 transition-colors">production readiness</a> is a stronger frame than uptime alone.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Operator checklist</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CHECKLIST.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. Runtime reality should confirm the structural story, not replace it
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Structural evaluation tells you what kind of surface you are letting into the loop. Runtime evidence tells you whether it is still behaving like that surface now.
+              </p>
+              <p>
+                The useful live questions are not just reachability or socket success. They are whether the intended caller can still authenticate, whether failures stay typed and recoverable, and whether the server still behaves like the trust class it claimed to belong to.
+              </p>
+              <p>
+                That is why <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:text-amber-200 transition-colors">baseline scoring plus runtime overlays</a> is a better operator model than forcing static and live systems to compete.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. The right outcome is not one global leaderboard
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                MCP selection gets easier once you stop asking for one universal ranking. Servers serve different workflows, different caller models, and different authority envelopes. The stronger outcome is a bounded candidate set with clear vocabulary for workflow fit, trust class, capability shape, auth viability, and runtime evidence.
+              </p>
+              <p>
+                In practice, that means the best MCP server is almost never the most famous one. It is the server whose authority matches the job closely enough that an operator can predict what happens when the model misfires.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-4">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Decision rule</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Prefer the smallest server surface that cleanly fits the workflow and the caller's real authority. Convenience is not the same thing as readiness.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Trust-class lens</div>
+            <p class="text-sm text-slate-300 leading-relaxed mb-3">
+              If you need a sharper distinction between inspect-only boundaries and broader authority surfaces, start with <a href="/blog/read-only-mcp-trust-class" class="text-amber hover:text-amber-200 transition-colors">Read-Only MCP as a Trust Class</a>.
+            </p>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              It gives the baseline language for when a server is safe because it is actually bounded, not merely because the label sounds harmless.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100 group-hover:text-amber transition-colors">{item.title}</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>

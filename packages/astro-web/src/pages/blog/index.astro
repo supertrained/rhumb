@@ -293,6 +293,23 @@ const POSTS: Post[] = [
   },
   // ── Guides ────────────────────────────────────────────────
   {
+    slug: "how-to-evaluate-mcp-servers",
+    title: "How to Evaluate MCP Servers",
+    description: "The useful MCP selection model is workflow fit plus trust class, then capability shape, auth viability, and runtime evidence.",
+    date: "April 14, 2026",
+    dateISO: "2026-04-14T00:00:00Z",
+    readTime: "9 min",
+    contentType: "Guide",
+    category: "MCP",
+    difficulty: "Intermediate",
+    timeEstimate: "~9 min",
+    related: [
+      { slug: "read-only-mcp-trust-class", title: "Read-Only MCP as a Trust Class" },
+      { slug: "remote-mcp-liveness-vs-production-readiness", title: "Remote MCP Uptime Is Not Production Readiness" },
+      { slug: "static-mcp-scores-runtime-trust-overlays", title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay" },
+    ],
+  },
+  {
     slug: "read-only-mcp-trust-class",
     title: "Read-Only MCP as a Trust Class",
     description: "Read-only MCP matters because it removes a mutation failure class, but only if the surrounding runtime preserves a real inspect-only boundary.",
@@ -304,9 +321,9 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~8 min",
     related: [
+      { slug: "how-to-evaluate-mcp-servers", title: "How to Evaluate MCP Servers" },
       { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
       { slug: "persistent-agent-memory-trust-boundary", title: "Persistent Coding Memory Is a Trust Boundary" },
-      { slug: "how-to-evaluate-apis-for-agents", title: "How to Evaluate APIs for AI Agents" },
     ],
   },
   {
@@ -321,8 +338,8 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~7 min",
     related: [
+      { slug: "how-to-evaluate-mcp-servers", title: "How to Evaluate MCP Servers" },
       { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
-      { slug: "persistent-agent-memory-trust-boundary", title: "Persistent Coding Memory Is a Trust Boundary" },
       { slug: "read-only-mcp-trust-class", title: "Read-Only MCP as a Trust Class" },
     ],
   },
@@ -372,9 +389,9 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~8 min",
     related: [
+      { slug: "how-to-evaluate-mcp-servers", title: "How to Evaluate MCP Servers" },
       { slug: "remote-mcp-liveness-vs-production-readiness", title: "Remote MCP Uptime Is Not Production Readiness" },
       { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
-      { slug: "how-to-evaluate-apis-for-agents", title: "How to Evaluate APIs for AI Agents" },
     ],
   },
   {
