@@ -1,0 +1,315 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const CONTROL_PILLARS = [
+  {
+    label: "Authority context",
+    className: "border-emerald-500/20 bg-emerald-500/5 text-slate-300",
+    eyebrow: "text-emerald-400",
+    description: "The capability keeps principal, scope, and action class visible instead of flattening them behind a generic tool name.",
+  },
+  {
+    label: "Policy boundaries",
+    className: "border-sky-500/20 bg-sky-500/5 text-slate-300",
+    eyebrow: "text-sky-400",
+    description: "Budget, allowlist, trust-tier, and preflight checks travel with the capability instead of disappearing into prompt instructions.",
+  },
+  {
+    label: "Failure semantics",
+    className: "border-amber/20 bg-amber/5 text-slate-300",
+    eyebrow: "text-amber",
+    description: "Retries, partial success, auth failure, and human handoff stay legible at the task layer where operators actually reason.",
+  },
+  {
+    label: "Auditability",
+    className: "border-rose-500/20 bg-rose-500/5 text-slate-300",
+    eyebrow: "text-rose-400",
+    description: "Humans can reconstruct who invoked what, under which authority, and what downstream systems were touched.",
+  },
+];
+
+const EVALUATION_AREAS = [
+  {
+    title: "Capability shape",
+    bullets: [
+      "Is the surface task-native, or just endpoint-shaped with nicer names?",
+      "Does each capability map to a real agent task?",
+      "Are authority classes explicit at the capability level?",
+    ],
+  },
+  {
+    title: "Policy and scope",
+    bullets: [
+      "Can visibility differ by principal, role, tenant, or session?",
+      "Do budget and rate boundaries travel with the capability?",
+      "Is read-only versus write-capable use legible before invocation?",
+    ],
+  },
+  {
+    title: "Failure semantics",
+    bullets: [
+      "Does the abstraction preserve retry safety and idempotency information?",
+      "Are auth failures machine-legible instead of vague ceremony?",
+      "Can callers distinguish partial failure from no-op from successful commit?",
+    ],
+  },
+  {
+    title: "Auditability",
+    bullets: [
+      "Is there a trace from capability invocation to downstream provider actions?",
+      "Can you reconstruct who acted, with what authority, and why?",
+      "Does the evidence survive multi-agent handoffs?",
+    ],
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics.",
+  url: "https://rhumb.dev/blog/governed-capability-surfaces-agent-integrations",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/governed-capability-surfaces-agent-integrations",
+};
+---
+
+<Layout
+  title="Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations | Rhumb"
+  description="The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics."
+  canonical="/blog/governed-capability-surfaces-agent-integrations"
+  ogTitle="Governed Capabilities Are Becoming the Real Control Plane | Rhumb"
+  ogDescription="The safer abstraction is not raw endpoints. It is a governed capability surface that keeps authority, policy boundaries, failure semantics, and auditability intact."
+  ogUrl="https://rhumb.dev/blog/governed-capability-surfaces-agent-integrations"
+  ogType="article"
+  twitterTitle="Governed Capabilities Are Becoming the Real Control Plane"
+  twitterDescription="A safer agent surface preserves authority, policy boundaries, failure semantics, and auditability."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-4xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Control Plane</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+        <h1 class="max-w-3xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations
+        </h1>
+        <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+          The safer abstraction is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority context, policy boundaries, failure semantics, and auditability.
+        </p>
+      </div>
+    </section>
+
+    <article class="max-w-4xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-10">
+        {CONTROL_PILLARS.map((pillar) => (
+          <div class={`rounded-2xl border p-4 ${pillar.className}`}>
+            <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${pillar.eyebrow}`}>{pillar.label}</div>
+            <p class="text-sm leading-relaxed">{pillar.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The question is not <span class="text-slate-100">“Did we reduce the tool list?”</span>
+          It is <span class="text-slate-100">“Did we create a task-shaped surface whose authority, policy, failure behavior, and evidence trail are explicit enough to trust?”</span>
+        </p>
+      </div>
+
+      <div class="max-w-3xl space-y-12">
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            1. Raw API sprawl keeps reappearing inside agent systems
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Teams usually notice the problem first as a token or context problem. A server exposes too many tools, planning gets noisy, and the model spends more effort choosing among low-level actions than finishing the task.
+            </p>
+            <p>
+              Those are real problems, but they are usually symptoms of a deeper design mistake. The visible surface is shaped around the provider&rsquo;s endpoint taxonomy instead of the smaller set of tasks the agent actually needs to complete.
+            </p>
+            <p>
+              If the system exposes the raw provider surface directly, the agent inherits implementation detail, authority spread, and failure complexity all at once. That creates planning drag, security drag, and operational drag together.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            2. A governed capability surface is not just a smaller tool list
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              It is easy to hear “governed capabilities” and think this only means repackaging ten endpoints into two broader tools. That can still fail badly.
+            </p>
+            <p>
+              A smaller surface only helps if the abstraction preserves the information the operator needs in order to trust it. A governed capability should make the action class, principal, policy checks, limits, success condition, failure modes, and evidence trail legible before execution.
+            </p>
+            <p>
+              Compression says, “Here are fewer things to choose from.” Governance says, “Here is the task-shaped action the agent may take, under these boundaries, with these consequences.” That is a much stronger object.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            3. Smaller surfaces are still dangerous if authority context gets lost
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Many systems reduce the visible surface while also stripping away the distinctions that matter most. A tool can look cleaner while hiding whether it is inspect-only, write-capable, reversible, external-facing, or tenant-wide.
+            </p>
+            <p>
+              A capability surface is only safer if it keeps authority classes explicit. In practice, that means preserving boundaries like read versus write, reversible versus irreversible, internal note versus external side effect, and one-tenant scope versus platform-wide effect.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li>read versus write</li>
+              <li>reversible versus irreversible</li>
+              <li>internal note versus external side effect</li>
+              <li>one-shot action versus long-lived subscription</li>
+              <li>tenant-scoped action versus platform-wide action</li>
+            </ul>
+            <p>
+              The useful design goal is not just fewer tools. It is fewer tools with clearer authority.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            4. Failure semantics and auditability have to survive the abstraction
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Many abstractions get the happy path right and the failure path wrong. They present a polished capability on the way in, then collapse back into vague provider chaos when something breaks.
+            </p>
+            <p>
+              If a capability is going to be the real agent-facing contract, it has to preserve retry safety, auth-failure clarity, partial-success handling, idempotency information, and human handoff cues at the task layer.
+            </p>
+            <p>
+              The same rule applies to auditability. A governed capability should leave enough evidence behind that another person can reconstruct who invoked it, under which principal, which policy checks passed, what inputs were accepted, what downstream systems were touched, and what outcome occurred.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            5. The visible capability surface is becoming part of the trust boundary
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              We used to talk about the trust boundary mostly at execution time. Did the server authenticate the caller? Did it reject the dangerous tool? Did it log the violation?
+            </p>
+            <p>
+              Agent systems push that boundary earlier. What the agent can see influences what it can plan. What it can plan influences what it will attempt. What it attempts shapes the burden on execution-time controls.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li>the model should see the minimum useful action set for the task</li>
+              <li>the authority class of each action should be legible before invocation</li>
+              <li>policy should be able to narrow discovery as well as execution</li>
+              <li>drift between declared need and exposed surface should itself be observable</li>
+            </ul>
+            <p>
+              Once you model it this way, governed capabilities sit in the same family as scoped discovery, per-tool least privilege, typed failures, and budget governors. They are all pieces of the same control plane.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            6. What to evaluate when someone claims a surface is agent-ready
+          </h2>
+          <div class="space-y-6 text-slate-400 leading-relaxed">
+            <p>
+              If a team says they created a clean agent layer over a messy system, the right question is not “How many tools did you reduce it to?” Ask whether the task shape, policy layer, failure behavior, and evidence model all survived the abstraction.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {EVALUATION_AREAS.map((area) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="font-display font-semibold text-lg text-slate-100 mb-3 tracking-tight">{area.title}</h3>
+                  <ul class="list-disc list-outside ml-5 space-y-2 text-sm text-slate-400 leading-relaxed">
+                    {area.bullets.map((bullet) => (
+                      <li>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            7. Why this matters for Rhumb&rsquo;s evaluation model
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Rhumb already lives near the right questions. The recurring trust and access pain around MCP and agent tooling is not only about availability. It is about auth shape, scope boundaries, auditability, credential lifecycle, recoverability, and operator-safe abstraction.
+            </p>
+            <p>
+              Governed capability surfaces extend that same logic one layer earlier. The useful evaluation question is not just whether an API or MCP server exists. It is whether the agent-facing capability layer preserves trust while narrowing blast radius.
+            </p>
+            <ul class="list-disc list-outside ml-5 space-y-2">
+              <li>score task-native capability design versus raw endpoint mirroring</li>
+              <li>score whether authority context survives abstraction</li>
+              <li>score whether failure semantics remain visible at the capability layer</li>
+              <li>score whether the visible surface actually reduces reachable authority</li>
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            8. The practical recommendation
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The next useful control plane for agent integrations will not look like a giant endpoint index and it will not look like a magic black box either. It will look like a smaller set of governed capabilities whose authority, policy, and failure behavior are explicit enough to trust.
+            </p>
+            <p>
+              That is the real abstraction upgrade. Not fewer endpoints by themselves. Governed capabilities that keep the operator&rsquo;s trust story intact.
+            </p>
+          </div>
+        </section>
+
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
+          <ul class="space-y-3 text-slate-300">
+            <li>
+              <a href="/blog/read-only-mcp-trust-class" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Read-Only MCP as a Trust Class
+              </a>
+            </li>
+            <li>
+              <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Remote MCP Uptime Is Not Production Readiness
+              </a>
+            </li>
+            <li>
+              <a href="/blog/persistent-agent-memory-trust-boundary" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Persistent Coding Memory Is a Trust Boundary
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
