@@ -3,7 +3,9 @@ export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
 import CopyTextButton from "../components/CopyTextButton.tsx";
+import ActivationPathCards from "../components/ActivationPathCards.astro";
 import { getServiceCount } from "../lib/api";
+import { PRIMARY_ACTIVATION_PATHS } from "../lib/activation-paths";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 import { STARTER_PROMPT } from "../lib/starter-prompt";
 
@@ -92,6 +94,31 @@ const ENDPOINTS = [
         "tier": "L4"
       }
     ]
+  },
+  "error": null
+}`,
+  },
+  {
+    method: "GET",
+    path: "/v1/capabilities?search={query}",
+    desc: "Search executable action IDs when you know the job but not the capability slug.",
+    curl: `curl "${BASE_URL}/capabilities?search=web+research"`,
+    response: `{
+  "data": {
+    "items": [
+      {
+        "id": "search.query",
+        "description": "Search the web through a provider-backed execution rail",
+        "provider_count": 6,
+        "top_provider": {
+          "slug": "brave-search",
+          "tier_label": "L4 Native"
+        }
+      }
+    ],
+    "total": 1,
+    "limit": 20,
+    "offset": 0
   },
   "error": null
 }`,
@@ -197,7 +224,7 @@ Other recovery cases reuse the same recovery_hint shape with a different reason.
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/execute/estimate",
-    desc: "Estimate provider, cost, and circuit state before executing.",
+    desc: "Estimate the concrete provider, cost, and circuit state for the rail you are actually about to use.",
     curl: `curl ${BASE_URL}/capabilities/email.send/execute/estimate`,
     response: `{
   "data": {
@@ -328,7 +355,7 @@ const MCP_TOOLS = [
         </p>
         <div class="flex flex-wrap gap-3 mb-6">
           <a
-            href="#resolve-mental-model"
+            href="#pick-your-route"
             class="inline-flex items-center justify-center rounded-xl bg-amber px-4 py-2.5 text-sm font-semibold text-navy transition-colors duration-200 hover:bg-amber-dark"
           >
             Start here
@@ -367,6 +394,14 @@ const MCP_TOOLS = [
           </p>
         </div>
       </section>
+
+      <ActivationPathCards
+        id="pick-your-route"
+        eyebrow="Route picker"
+        title="Pick the right entrypoint before you read the whole manual"
+        description="Cold start should not require inference. Evaluating with curl starts on the free discovery rail. Building an agent starts with MCP. Needing a reusable execution key starts with account setup. Services answer who to trust. Capabilities answer what Rhumb can execute."
+        routes={PRIMARY_ACTIVATION_PATHS}
+      />
 
       <section class="mb-16 scroll-mt-28" id="resolve-mental-model">
         <div class="flex items-center gap-3 mb-4">

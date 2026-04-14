@@ -123,6 +123,35 @@ Search indexed services by free-text query. Used by `rhumb find <query>`.
 
 `limit` is optional and can be used by clients to cap result count.
 
+## Capability discovery and routing
+
+Use different endpoints for the vendor question and the action question:
+
+- `GET /v1/search?q={query}` answers **who should I use?** It returns services.
+- `GET /v1/capabilities?search={query}` answers **what exact action slug should I call?** It returns capability IDs such as `search.query` and `email.send`.
+
+Recommended cold-start flow:
+
+1. Search services when you need to compare vendors.
+2. Search capabilities when you know the job but not the slug.
+3. Call `GET /v1/capabilities/{capability_id}/resolve` to see the ranked recommendation plus the default next step.
+4. Call `GET /v1/capabilities/{capability_id}/execute/estimate` to see the concrete provider, cost, and circuit state for the rail you are actually about to use.
+
+`resolve` and `estimate` intentionally answer different questions:
+
+- `resolve` is the ranked recommendation surface. Use `execute_hint.preferred_provider` and `execute_hint.selection_reason` when you need to explain why Rhumb wants a given provider first.
+- `execute/estimate` is the active-rail execution surface. The returned `provider` can differ from the top-ranked provider when a higher-ranked path is filtered by `credential_mode`, is not execute-ready, or is currently unavailable.
+
+That difference is not drift. It is the contract telling you both the preferred overall provider and the selected provider on the current execution rail.
+
+Example capability discovery flow:
+
+```bash
+curl "https://api.rhumb.dev/v1/capabilities?search=web+research"
+curl "https://api.rhumb.dev/v1/capabilities/search.query/resolve"
+curl "https://api.rhumb.dev/v1/capabilities/search.query/execute/estimate?credential_mode=rhumb_managed"
+```
+
 ## Resolve hint contract
 
 `GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:

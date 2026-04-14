@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getServices, getCategories } from '../lib/api';
+import { PRIMARY_ACTIVATION_PATHS } from '../lib/activation-paths';
 import { PUBLIC_TRUTH } from '../lib/public-truth';
 // Pricing values inlined to avoid cross-package JSON import failures on Vercel
 const pricing = {
@@ -21,6 +22,9 @@ export const GET: APIRoute = async () => {
       .catch(() => null),
   ]);
   const totalCapabilities = capRes?.data?.total ?? PUBLIC_TRUTH.capabilities;
+  const routeList = PRIMARY_ACTIVATION_PATHS
+    .map((route) => `- ${route.title}: https://rhumb.dev${route.href} — ${route.summary}`)
+    .join("\n");
 
   const categoryList = categories
     .map((c) => `- /leaderboard/${c.slug} (${c.serviceCount} services)`)
@@ -37,6 +41,13 @@ export const GET: APIRoute = async () => {
 Rhumb scores developer tools on how well they work for AI agents.
 The AN (Agent-Native) Score measures execution reliability and access readiness
 across 20 dimensions. Scores are computed as 70% Execution + 30% Access Readiness.
+
+## Pick the right starting path
+${routeList}
+
+Service discovery answers who to trust.
+Capability discovery answers what Rhumb can execute.
+Signup creates identity. Credits or wallet-prefund unlock governed execution.
 
 ## For Agents
 Install the MCP server for programmatic access:
@@ -67,8 +78,11 @@ ${apiBase}
 ## Capabilities
 Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabilities
 - GET ${apiBase}/capabilities?limit=100&offset=0 — paginated list of capability definitions
+- GET ${apiBase}/capabilities?search=web+research — find the capability slug when you know the task but not the action ID
 - Each capability: { id, domain, action, description, provider_count, top_provider }
 - Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
+- Use find_services() when the question is which vendor should I use
+- Use discover_capabilities() when the question is what exact action slug should I call
 - Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, follow recovery handoffs when a filtered route dead-ends, and get search suggestions when the capability ID is wrong
 
 ## API Endpoints

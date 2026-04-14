@@ -79,6 +79,14 @@ const clientData = allCapabilities.map((c) => ({
   provider_count: c.provider_count,
   top_provider: c.top_provider,
 }));
+
+const CAPABILITY_STARTER_QUERIES = [
+  "web research",
+  "extract webpage text",
+  "send email",
+  "generate image",
+  "transcribe audio",
+];
 ---
 
 <Layout
@@ -115,8 +123,47 @@ const clientData = allCapabilities.map((c) => ({
       </div>
     </section>
 
-    <!-- Filters -->
     <section class="max-w-6xl mx-auto px-6 pt-8 pb-4">
+      <div class="grid gap-4 lg:grid-cols-3 mb-6">
+        <div class="rounded-2xl border border-slate-800 bg-surface p-5">
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Choosing vendors?</p>
+          <p class="text-sm text-slate-300 leading-6">
+            Use service search, leaderboards, and score pages when you want to compare who should handle the job.
+          </p>
+          <a href="/quickstart#rest-path" class="mt-4 inline-flex text-xs font-mono text-slate-400 hover:text-amber transition-colors">See the REST path →</a>
+        </div>
+        <div class="rounded-2xl border border-amber/20 bg-surface p-5">
+          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Naming the action?</p>
+          <p class="text-sm text-slate-300 leading-6">
+            Search this page when you know the job but not the slug. <code class="text-amber text-xs">/search</code> returns services, not capability IDs.
+          </p>
+          <a href="#cap-search" class="mt-4 inline-flex text-xs font-mono text-slate-400 hover:text-amber transition-colors">Jump to capability search →</a>
+        </div>
+        <div class="rounded-2xl border border-emerald-500/20 bg-surface p-5">
+          <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Ready to run it?</p>
+          <p class="text-sm text-slate-300 leading-6">
+            Once you have the capability ID, resolve providers, estimate the active rail, then execute through quickstart or MCP.
+          </p>
+          <a href="/quickstart#execute-path" class="mt-4 inline-flex text-xs font-mono text-slate-400 hover:text-emerald-300 transition-colors">Go to execute flow →</a>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-surface px-5 py-4 mb-6 text-sm text-slate-300 leading-6">
+        <strong class="text-slate-100">Service</strong> = vendor. <strong class="text-slate-100">Capability</strong> = executable action. This page exists to bridge from plain-English intent to the exact capability slug your agent can resolve.
+      </div>
+
+      <div class="mb-4 flex flex-wrap gap-2">
+        {CAPABILITY_STARTER_QUERIES.map((query) => (
+          <button
+            type="button"
+            data-cap-query={query}
+            class="rounded-full border border-slate-800 bg-surface px-3 py-1.5 text-xs font-mono text-slate-400 transition-colors hover:border-amber/40 hover:text-amber cursor-pointer"
+          >
+            {query}
+          </button>
+        ))}
+      </div>
+
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
         <!-- Search -->
         <div class="relative flex-1 max-w-md">
@@ -321,6 +368,7 @@ const clientData = allCapabilities.map((c) => ({
       const emptyEl = document.getElementById('cap-empty');
       const domainTags = document.querySelectorAll('.domain-tag');
       const resetBtn = document.getElementById('cap-reset');
+      const queryChips = document.querySelectorAll('[data-cap-query]');
 
       let visibleLimit = 30;
 
@@ -555,6 +603,15 @@ const clientData = allCapabilities.map((c) => ({
             domainFilter.value = domain;
           }
           domainFilter.dispatchEvent(new Event('change'));
+        });
+      });
+
+      queryChips.forEach(function(chip) {
+        chip.addEventListener('click', function() {
+          var query = chip.getAttribute('data-cap-query') || '';
+          searchInput.value = query;
+          applyFilters();
+          searchInput.focus();
         });
       });
 
