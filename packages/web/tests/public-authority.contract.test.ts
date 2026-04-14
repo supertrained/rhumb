@@ -23,6 +23,7 @@ const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/bl
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
+const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
 const apiDocs = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
@@ -165,6 +166,13 @@ describe("public authority pricing contract", () => {
     expect(astroSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroSearch).toContain('Search across {servicesLabel} scored services.');
     expect(astroSearch).not.toContain('getServiceCount');
+  });
+
+  it("keeps the astro security auth surface aligned with the live execution rails", () => {
+    expect(astroSecurity).toContain('wallet-prefund repeat traffic authenticate with X-Rhumb-Key');
+    expect(astroSecurity).toContain('x402 per-call uses X-Payment from the payer wallet');
+    expect(astroSecurity).toContain('BYOK routes through provider-scoped credentials via Rhumb');
+    expect(astroSecurity).not.toContain('API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents.');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {

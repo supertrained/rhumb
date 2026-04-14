@@ -39,7 +39,7 @@ const sections: SecuritySection[] = [
     title: "API Security",
     icon: "🛡️",
     items: [
-      { label: "Authentication", detail: "API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents. Session cookies are HttpOnly, Secure, SameSite=Strict.", status: "live" },
+      { label: "Authentication", detail: "Governed API key and wallet-prefund repeat traffic authenticate with X-Rhumb-Key. x402 per-call uses X-Payment from the payer wallet. BYOK routes through provider-scoped credentials via Rhumb. Session cookies are HttpOnly, Secure, SameSite=Strict.", status: "live" },
       { label: "Rate limiting", detail: "Per-agent rate limiting on all endpoints. Execution endpoints have stricter limits. 429 responses include Retry-After headers.", status: "live" },
       { label: "Request validation", detail: "All inputs are validated and sanitized. SQL injection, XSS, and path traversal protections are enforced.", status: "live" },
       { label: "Error handling", detail: "Standardized error envelope with request_id for traceability. Resolution guidance in every error response. No stack traces or internal details in production errors.", status: "live" },
