@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ORDERED_SLUGS } from "../../lib/categories";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const leaderboardCategoryCount = ORDERED_SLUGS.length;
+
 export const metadata: Metadata = {
   title: "About Rhumb",
   description:
@@ -93,12 +98,12 @@ export default function AboutPage() {
               </strong>
             </p>
             <p>
-              We score{" "}
+              We score {PUBLIC_TRUTH.servicesLabel} services across {PUBLIC_TRUTH.categoriesLabel} categories, with the{" "}
               <Link
                 href="/leaderboard"
                 className="text-amber hover:underline underline-offset-2"
               >
-                645+ services across 90+ categories
+                current ranked leaderboard spanning {leaderboardCategoryCount} categories
               </Link>{" "}
               on{" "}
               <Link

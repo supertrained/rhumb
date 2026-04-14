@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const webHome = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+const webAbout = readFileSync(new URL("../app/about/page.tsx", import.meta.url), "utf8");
 const webLeaderboard = readFileSync(new URL("../app/leaderboard/page.tsx", import.meta.url), "utf8");
 const webSearch = readFileSync(new URL("../app/search/page.tsx", import.meta.url), "utf8");
 const webPublicTruth = readFileSync(new URL("../lib/public-truth.ts", import.meta.url), "utf8");
@@ -77,7 +78,7 @@ describe("public authority pricing contract", () => {
     expect(astroHome).not.toContain('getServiceCount');
   });
 
-  it("keeps the web homepage and search authority surfaces pinned to public truth labels", () => {
+  it("keeps the web homepage, about, and search authority surfaces pinned to public truth labels", () => {
     expect(webPublicTruth).toContain('servicesLabel: "1,038"');
     expect(webPublicTruth).toContain('categoriesLabel: "92"');
 
@@ -85,6 +86,10 @@ describe("public authority pricing contract", () => {
     expect(webHome).toContain('PUBLIC_TRUTH.categoriesLabel');
     expect(webHome).not.toContain('getServiceCount');
     expect(webHome).not.toContain('{ value: "11", label: "categories" }');
+
+    expect(webAbout).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(webAbout).toContain('{PUBLIC_TRUTH.servicesLabel} services across {PUBLIC_TRUTH.categoriesLabel} categories');
+    expect(webAbout).not.toContain('645+ services across 90+ categories');
 
     expect(webSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(webSearch).toContain('Search across {servicesLabel} scored APIs and developer tools.');
