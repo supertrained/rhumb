@@ -517,6 +517,8 @@ Bearer-token mode is also supported by the runtime parser:
 - Run the hosted proof loop once the bundle is set:
   - `python3 scripts/zendesk_read_dogfood.py --support-ref st_zd --ticket-id 123 --comments-ticket-id 123 --denied-ticket-id 456`
 
+The hosted proof artifact now preserves the same machine-readable preflight contract in both blocked/preflight-only and full-proof runs, so automation can keep the next setup context after success or denial checks too: `configured`, `available_for_execute`, `resolve_handoff`, `resolve`, and `credential_modes`.
+
 ### Example request
 
 ```bash
