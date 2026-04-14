@@ -16,6 +16,20 @@ describe("terms page", () => {
     );
     expect(html).toContain('href="mailto:providers@supertrained.ai"');
     expect(html).toContain("responding within 5 business days");
-    expect(html).toContain("Outcomes of public disputes are published on GitHub");
+    expect(html).toContain('href="https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22"');
+  });
+
+  it("keeps the live Next legal surface aligned with the current terms authority", async () => {
+    const html = await renderTermsPage();
+
+    expect(html).toContain("Last updated: March 20, 2026");
+    expect(html).toContain("Supertrained Inc.");
+    expect(html).toContain("Service tiers and access");
+    expect(html).toContain("Execution rails (paid as used):");
+    expect(html).toContain("x402 zero-signup (paid):");
+    expect(html).toContain("Managed capabilities and proxy services");
+    expect(html).toContain("billing@supertrained.ai");
+    expect(html).toContain("State of Florida, United States");
+    expect(html).toContain("7901 4th St N STE 300");
   });
 });
