@@ -59,7 +59,7 @@ const workflows: Workflow[] = [
       {
         tool: "resolve_capability",
         input: '{ capability: "email.send", credential_mode: "byok" }',
-        whatHappens: "Returns ranked providers with live availability, cost per call, credential status, and circuit state. If the requested mode dead-ends, Rhumb also returns machine-readable recovery handoffs like alternate_execute_hint or setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
+        whatHappens: "Returns ranked providers with health status, cost per call, credential status, and circuit state. If the requested mode dead-ends, Rhumb also returns machine-readable recovery handoffs like alternate_execute_hint or setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
       },
       {
         tool: "estimate_capability",
