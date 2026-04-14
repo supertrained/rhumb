@@ -26,7 +26,11 @@ describe("docs page", () => {
 
     expect(html).toContain("resolve_capability");
     expect(html).toContain("credential-mode filtering");
-    expect(html).toContain("machine-readable recovery handoffs");
+    expect(html).toContain("machine-readable recovery fields");
+    expect(html).toContain("recovery_hint.resolve_url");
+    expect(html).toContain("recovery_hint.credential_modes_url");
+    expect(html).toContain("alternate_execute_hint");
+    expect(html).toContain("setup_handoff");
     expect(html).toContain("search suggestions when the capability ID is wrong");
     expect(html).toContain("estimate_capability");
     expect(html).toContain("Estimate the active execution rail, cost, and health before execution.");
@@ -42,7 +46,9 @@ describe("docs page", () => {
   });
 
   it("keeps the failure-modes guidance aligned with resolve recovery handoffs", () => {
-    expect(failureModesSource).toContain("machine-readable recovery handoffs");
+    expect(failureModesSource).toContain("machine-readable recovery fields");
+    expect(failureModesSource).toContain("recovery_hint.resolve_url");
+    expect(failureModesSource).toContain("recovery_hint.credential_modes_url");
     expect(failureModesSource).toContain("alternate_execute_hint");
     expect(failureModesSource).toContain("setup_handoff");
     expect(failureModesSource).not.toContain("Build routing fallback chains: primary → alternative → manual.");
