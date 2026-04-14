@@ -1,6 +1,12 @@
+import { readFileSync } from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+
+const failureModesSource = readFileSync(
+  new URL("../../astro-web/src/pages/docs/failure-modes.astro", import.meta.url),
+  "utf8",
+);
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -29,5 +35,12 @@ describe("docs page", () => {
     expect(html).not.toContain("get_credentials");
     expect(html).not.toContain("search_services");
     expect(html).not.toContain("get_ceremonies");
+  });
+
+  it("keeps the failure-modes guidance aligned with resolve recovery handoffs", () => {
+    expect(failureModesSource).toContain("machine-readable recovery handoffs");
+    expect(failureModesSource).toContain("alternate_execute_hint");
+    expect(failureModesSource).toContain("setup_handoff");
+    expect(failureModesSource).not.toContain("Build routing fallback chains: primary → alternative → manual.");
   });
 });
