@@ -12,6 +12,8 @@ const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro",
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
+const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
+const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
@@ -97,6 +99,21 @@ describe("public authority pricing contract", () => {
     expect(astroLeaderboardHub).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
     expect(astroLeaderboardHub).toContain('${leaderboardCategoryCount} categories');
     expect(astroLeaderboardHub).not.toContain('11 categories');
+  });
+
+  it("keeps high-visibility astro blog authority surfaces pinned to current public truth", () => {
+    expect(astroHowToEvaluate).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroHowToEvaluate).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroHowToEvaluate).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(astroHowToEvaluate).not.toContain('665+ scored services');
+    expect(astroHowToEvaluate).not.toContain('600+ developer tools across 90+ categories');
+
+    expect(astroMultiProviderMcp).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroMultiProviderMcp).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroMultiProviderMcp).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(astroMultiProviderMcp).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
+    expect(astroMultiProviderMcp).not.toContain('The full leaderboard across 92 categories');
+    expect(astroMultiProviderMcp).not.toContain('1,000+ APIs');
   });
 
   it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {

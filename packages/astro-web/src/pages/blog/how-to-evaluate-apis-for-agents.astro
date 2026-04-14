@@ -1,6 +1,11 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+const DESCRIPTION = `Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from ${servicesLabel} scored services.`;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -9,8 +14,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-24T00:00:00Z",
   dateModified: "2026-03-24T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
-  description:
-    "Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services.",
+  description: DESCRIPTION,
   url: "https://rhumb.dev/blog/how-to-evaluate-apis-for-agents",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -18,14 +22,14 @@ const ARTICLE_JSON_LD = {
 
 <Layout
   title="How to Evaluate APIs for AI Agents: The 20-Dimension Framework | Rhumb"
-  description="Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services."
+  description={DESCRIPTION}
   canonical="/blog/how-to-evaluate-apis-for-agents"
   ogTitle="How to Evaluate APIs for AI Agents: The 20-Dimension Framework"
-  ogDescription="Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services."
+  ogDescription={DESCRIPTION}
   ogUrl="https://rhumb.dev/blog/how-to-evaluate-apis-for-agents"
   ogType="article"
   twitterTitle="How to Evaluate APIs for AI Agents: The 20-Dimension Framework"
-  twitterDescription="Most 'agent-ready' scores measure website crawlability, not API usability. Here's how to evaluate whether an API actually works for autonomous AI agents — with real data from 665+ scored services."
+  twitterDescription={DESCRIPTION}
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
@@ -79,7 +83,7 @@ const ARTICLE_JSON_LD = {
           What actually matters: execution vs. access
         </h2>
         <p class="text-slate-400 leading-relaxed mb-4">
-          After scoring 665+ developer APIs across 86 categories, we&apos;ve found that agent compatibility comes down to two axes:
+          After scoring {servicesLabel} services across {categoriesLabel} categories, we&apos;ve found that agent compatibility comes down to two axes:
         </p>
         <p class="text-slate-400 leading-relaxed mb-4">
           <strong class="text-slate-200 font-semibold">Execution (70% of what matters)</strong>
@@ -353,7 +357,7 @@ const ARTICLE_JSON_LD = {
           See how your tools score
         </h2>
         <p class="text-slate-400 text-sm mb-6">
-          We&apos;ve scored 600+ developer tools across 90+ categories. The AN Score measures real agent compatibility &mdash; not marketing claims.
+          We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories. The AN Score measures real agent compatibility &mdash; not marketing claims.
         </p>
         <a
           href="/leaderboard"

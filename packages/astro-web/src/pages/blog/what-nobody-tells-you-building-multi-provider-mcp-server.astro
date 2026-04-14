@@ -1,10 +1,15 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { ORDERED_SLUGS } from "../../lib/categories";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 const TITLE = "What Nobody Tells You About Building a Multi-Provider MCP Server";
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+const leaderboardCategoryCount = ORDERED_SLUGS.length;
 const DESCRIPTION =
-  "Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server that proxies 1,000+ APIs.";
+  `Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server on top of ${servicesLabel} scored services.`;
 const URL = "https://rhumb.dev/blog/what-nobody-tells-you-building-multi-provider-mcp-server";
 const DATE_PUBLISHED = "2026-03-28T00:00:00Z";
 const KEYWORDS = [
@@ -137,18 +142,18 @@ const RATE_LIMIT_SCORES = [
         <p class="text-lg text-slate-400 leading-relaxed max-w-3xl">
           Every MCP server tutorial follows the same script: install the SDK, define a tool, return
           a response. That works for a single API. It does not work when you need an agent to
-          reliably choose between, authenticate to, and call 1,000+ different APIs across 92
+          reliably choose between, authenticate to, and call {servicesLabel} different APIs across {categoriesLabel}
           categories &mdash; and handle everything that goes wrong at 3am with no human.
         </p>
 
         <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div class="bg-surface border border-slate-800 rounded-xl p-4">
             <p class="text-xs font-mono uppercase tracking-widest text-slate-500">APIs Scored</p>
-            <p class="mt-2 text-2xl font-display font-bold text-slate-100">1,000+</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">{servicesLabel}</p>
           </div>
           <div class="bg-surface border border-slate-800 rounded-xl p-4">
             <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Categories</p>
-            <p class="mt-2 text-2xl font-display font-bold text-slate-100">92</p>
+            <p class="mt-2 text-2xl font-display font-bold text-slate-100">{categoriesLabel}</p>
           </div>
           <div class="bg-surface border border-slate-800 rounded-xl p-4">
             <p class="text-xs font-mono uppercase tracking-widest text-slate-500">Dimensions</p>
@@ -381,7 +386,7 @@ const RATE_LIMIT_SCORES = [
         </div>
 
         <p class="mt-6 text-slate-400 leading-relaxed">
-          In our scoring of 1,000+ APIs, structured error responses (with error codes, specific
+          In our scoring of {servicesLabel} services, structured error responses (with error codes, specific
           parameters, and actionable messages) are a <em class="text-slate-300">minority</em>. Most
           APIs return human-readable error strings that agents can&apos;t reliably parse.
         </p>
@@ -605,7 +610,7 @@ const RATE_LIMIT_SCORES = [
             </table>
           </div>
           <p class="mt-4 text-sm text-slate-400">
-            The full leaderboard across 92 categories is at{" "}
+            The broader score index spans {categoriesLabel} categories, and the current ranked leaderboard hub across {leaderboardCategoryCount} categories is at{" "}
             <a href="/leaderboard" class="text-amber hover:underline underline-offset-2">rhumb.dev/leaderboard</a>.
             The MCP tools are open source:{" "}
             <code class="font-mono text-xs bg-elevated px-1.5 py-0.5 rounded text-amber">npx rhumb-mcp</code>{" "}
@@ -658,7 +663,7 @@ const RATE_LIMIT_SCORES = [
               See how your tools score
             </h2>
             <p class="text-slate-400 leading-relaxed">
-              We&apos;ve scored 1,000+ services across 92 categories on 20 dimensions. The methodology
+              We&apos;ve scored {servicesLabel} services across {categoriesLabel} categories on 20 dimensions. The methodology
               is published. The MCP server is open source.
             </p>
           </div>
@@ -691,7 +696,7 @@ const RATE_LIMIT_SCORES = [
       <!-- Footer -->
       <footer class="border-t border-slate-800 pt-8">
         <p class="text-slate-500 leading-relaxed">
-          Rhumb scores 1,000+ APIs across 92 categories on 20 dimensions. The{" "}
+          Rhumb scores {servicesLabel} services across {categoriesLabel} categories on 20 dimensions. The{" "}
           <a href="/methodology" class="text-amber hover:underline underline-offset-2">methodology is published</a>.
           The MCP server is open source at{" "}
           <a href="https://github.com/supertrained/rhumb" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">github.com/supertrained/rhumb</a>.
