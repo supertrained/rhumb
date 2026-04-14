@@ -154,7 +154,7 @@ export type DiscoverCapabilitiesOutput = {
 export const ResolveCapabilityInputSchema = {
   type: "object" as const,
   properties: {
-    capability: { type: "string" as const, description: "Capability ID from discover_capabilities (e.g. 'email.send', 'payment.charge'). Returns ranked providers with costs, health status, and fallback chains." },
+    capability: { type: "string" as const, description: "Capability ID from discover_capabilities (e.g. 'email.send', 'payment.charge'). Returns ranked providers, execute guidance, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong." },
     credential_mode: { type: "string" as const, description: "Optional credential mode filter for resolve. Use this when you want to ask whether a specific rail like 'rhumb_managed', 'byok', or 'agent_vault' is viable and still get machine-readable recovery handoffs if that filtered path dead-ends." }
   },
   required: ["capability"] as const

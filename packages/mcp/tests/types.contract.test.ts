@@ -72,6 +72,13 @@ describe("types.contract", () => {
     expect(EstimateCapabilityInputSchema.properties.credential_mode.description).not.toMatch(/fall back to byo(?:[^k]|$)/);
   });
 
+  it("resolve schema describes recovery handoffs and typo recovery", () => {
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("machine-readable recovery handoffs");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).toContain("typo recovery");
+    expect(ResolveCapabilityInputSchema.properties.capability.description).not.toContain("fallback chains.");
+    expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("machine-readable recovery handoffs");
+  });
+
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {
     // These assignments verify the TS types compile correctly.
     // At runtime we spot-check the schemas match expected shapes.
