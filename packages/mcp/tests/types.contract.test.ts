@@ -1,5 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { describe, it, expect } from "vitest";
+import { fileURLToPath } from "node:url";
+import { beforeAll, describe, it, expect } from "vitest";
 import {
   FindServiceInputSchema,
   GetScoreInputSchema,
@@ -30,8 +32,19 @@ const wellKnownAgentCapabilities = readFileSync(
   new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url),
   "utf8",
 );
+const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
+let distServerBundle = "";
+let distTypesBundle = "";
 
 describe("types.contract", () => {
+  beforeAll(() => {
+    execFileSync(npmCommand, ["run", "build"], { cwd: packageRoot, stdio: "pipe" });
+    distServerBundle = readFileSync(new URL("../dist/src/server.js", import.meta.url), "utf8");
+    distTypesBundle = readFileSync(new URL("../dist/src/types.js", import.meta.url), "utf8");
+  });
+
   it("all tool schemas are valid JSON Schema objects with required fields", () => {
     for (const [name, schema] of Object.entries(TOOL_SCHEMAS)) {
       expect(schema.type).toBe("object");
@@ -103,6 +116,18 @@ describe("types.contract", () => {
       expect(surface).toContain("machine-readable recovery handoffs");
       expect(surface).not.toContain("fallback chains");
     }
+  });
+
+  it("published MCP dist bundle stays aligned with resolve handoff wording", () => {
+    expect(distServerBundle).toContain("execute guidance");
+    expect(distServerBundle).toContain("machine-readable recovery handoffs");
+    expect(distServerBundle).toContain("which provider or recovery handoff should I use?");
+    expect(distServerBundle).not.toContain("fallback chains");
+    expect(distServerBundle).not.toContain("which provider or setup step should I use?");
+
+    expect(distTypesBundle).toContain("execute guidance");
+    expect(distTypesBundle).toContain("machine-readable recovery handoffs");
+    expect(distTypesBundle).not.toContain("fallback chains");
   });
 
   it("TypeScript types are structurally valid (compile-time + runtime spot check)", () => {
