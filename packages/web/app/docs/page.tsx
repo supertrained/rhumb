@@ -157,7 +157,7 @@ const MCP_TOOLS = [
   },
   {
     name: "estimate_capability",
-    desc: "Estimate cost, health, and the active execution rail before execution. Anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs.",
+    desc: "Estimate the active execution rail, cost, and health before execution. Anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs.",
     example: 'estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" })',
     category: "resolve",
   },
