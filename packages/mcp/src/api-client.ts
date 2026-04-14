@@ -222,6 +222,33 @@ export interface CapabilityExecuteResult {
   };
 }
 
+export interface CapabilityAuthHandoffPath {
+  kind: string;
+  recommended: boolean;
+  setupUrl: string | null;
+  retryHeader: string | null;
+  summary: string | null;
+  requiresHumanSetup: boolean | null;
+  automaticAfterSetup: boolean | null;
+  requiresWalletSupport: boolean | null;
+}
+
+export interface CapabilityAuthHandoff {
+  reason: string;
+  recommendedPath: string | null;
+  retryUrl: string | null;
+  docsUrl: string | null;
+  paths: CapabilityAuthHandoffPath[];
+}
+
+export interface CapabilityExecuteReadiness {
+  status: string;
+  message: string | null;
+  resolveUrl: string | null;
+  credentialModesUrl: string | null;
+  authHandoff: CapabilityAuthHandoff | null;
+}
+
 export interface CapabilityEstimateResult {
   capabilityId: string;
   provider: string;
@@ -229,6 +256,7 @@ export interface CapabilityEstimateResult {
   costEstimateUsd: number | null;
   circuitState: string;
   endpointPattern: string | null;
+  executeReadiness?: CapabilityExecuteReadiness | null;
 }
 
 export interface RecipeSummaryItem {
@@ -419,6 +447,45 @@ function parseRecoveryHandoff(rawHint: Record<string, unknown>): CapabilityRecov
     fallbackProviders: asStringArray(rawHint.fallback_providers),
     setupHint: asString(rawHint.setup_hint),
     setupUrl: asString(rawHint.setup_url)
+  };
+}
+
+function parseAuthHandoffPath(rawPath: Record<string, unknown>): CapabilityAuthHandoffPath {
+  return {
+    kind: asString(rawPath.kind) ?? "unknown",
+    recommended: rawPath.recommended === true,
+    setupUrl: asString(rawPath.setup_url),
+    retryHeader: asString(rawPath.retry_header),
+    summary: asString(rawPath.summary),
+    requiresHumanSetup: asBoolean(rawPath.requires_human_setup),
+    automaticAfterSetup: asBoolean(rawPath.automatic_after_setup),
+    requiresWalletSupport: asBoolean(rawPath.requires_wallet_support)
+  };
+}
+
+function parseAuthHandoff(rawHandoff: Record<string, unknown>): CapabilityAuthHandoff {
+  const rawPaths = Array.isArray(rawHandoff.paths)
+    ? rawHandoff.paths.filter((path): path is Record<string, unknown> => isRecord(path))
+    : [];
+
+  return {
+    reason: asString(rawHandoff.reason) ?? "unknown",
+    recommendedPath: asString(rawHandoff.recommended_path),
+    retryUrl: asString(rawHandoff.retry_url),
+    docsUrl: asString(rawHandoff.docs_url),
+    paths: rawPaths.map(parseAuthHandoffPath)
+  };
+}
+
+function parseExecuteReadiness(rawReadiness: Record<string, unknown>): CapabilityExecuteReadiness {
+  return {
+    status: asString(rawReadiness.status) ?? "unknown",
+    message: asString(rawReadiness.message),
+    resolveUrl: asString(rawReadiness.resolve_url),
+    credentialModesUrl: asString(rawReadiness.credential_modes_url),
+    authHandoff: isRecord(rawReadiness.auth_handoff)
+      ? parseAuthHandoff(rawReadiness.auth_handoff)
+      : null
   };
 }
 
@@ -863,7 +930,10 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         credentialMode: asCredentialMode(d.credential_mode) ?? "auto",
         costEstimateUsd: asNumber(d.cost_estimate_usd),
         circuitState: asString(d.circuit_state) ?? "unknown",
-        endpointPattern: asString(d.endpoint_pattern)
+        endpointPattern: asString(d.endpoint_pattern),
+        executeReadiness: isRecord(d.execute_readiness)
+          ? parseExecuteReadiness(d.execute_readiness)
+          : null
       };
     },
 

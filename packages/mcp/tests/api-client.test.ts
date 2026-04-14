@@ -413,7 +413,30 @@ describe("Rhumb MCP API client execute and estimate", () => {
             credential_mode: "byo",
             cost_estimate_usd: null,
             circuit_state: "closed",
-            endpoint_pattern: "POST /emails"
+            endpoint_pattern: "POST /emails",
+            execute_readiness: {
+              status: "auth_required",
+              message: "Add X-Rhumb-Key before execute.",
+              resolve_url: "/v1/capabilities/email.send/resolve",
+              credential_modes_url: "/v1/capabilities/email.send/credential-modes",
+              auth_handoff: {
+                reason: "auth_required",
+                recommended_path: "governed_api_key",
+                retry_url: "/v1/capabilities/email.send/execute",
+                docs_url: "/docs#resolve-mental-model",
+                paths: [
+                  {
+                    kind: "governed_api_key",
+                    recommended: true,
+                    setup_url: "/auth/login",
+                    retry_header: "X-Rhumb-Key",
+                    summary: "Default for most buyers and most repeat agent traffic.",
+                    requires_human_setup: true,
+                    automatic_after_setup: true
+                  }
+                ]
+              }
+            }
           }
         })
       });
@@ -428,5 +451,29 @@ describe("Rhumb MCP API client execute and estimate", () => {
 
     expect(executeResult.credentialMode).toBe("byok");
     expect(estimateResult.credentialMode).toBe("byok");
+    expect(estimateResult.executeReadiness).toEqual({
+      status: "auth_required",
+      message: "Add X-Rhumb-Key before execute.",
+      resolveUrl: "/v1/capabilities/email.send/resolve",
+      credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+      authHandoff: {
+        reason: "auth_required",
+        recommendedPath: "governed_api_key",
+        retryUrl: "/v1/capabilities/email.send/execute",
+        docsUrl: "/docs#resolve-mental-model",
+        paths: [
+          {
+            kind: "governed_api_key",
+            recommended: true,
+            setupUrl: "/auth/login",
+            retryHeader: "X-Rhumb-Key",
+            summary: "Default for most buyers and most repeat agent traffic.",
+            requiresHumanSetup: true,
+            automaticAfterSetup: true,
+            requiresWalletSupport: null
+          }
+        ]
+      }
+    });
   });
 });

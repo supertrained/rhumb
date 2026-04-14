@@ -20,7 +20,8 @@ import {
   type GetAlternativesOutput,
   type GetFailureModesInput,
   type GetFailureModesOutput,
-  type ResolveCapabilityOutput
+  type ResolveCapabilityOutput,
+  type EstimateCapabilityOutput
 } from "../src/types.js";
 
 const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
@@ -202,5 +203,39 @@ describe("types.contract", () => {
     };
     expect(resolveOutput.recoveryHint?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
     expect(resolveOutput.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
+
+    const estimateOutput: EstimateCapabilityOutput = {
+      capabilityId: "workflow_run.list",
+      provider: "github",
+      credentialMode: "byok",
+      costEstimateUsd: null,
+      circuitState: "closed",
+      endpointPattern: "POST /v2/capabilities/workflow_run.list/execute",
+      executeReadiness: {
+        status: "auth_required",
+        message: "Add X-Rhumb-Key before execute.",
+        resolveUrl: "/v2/capabilities/workflow_run.list/resolve",
+        credentialModesUrl: "/v2/capabilities/workflow_run.list/credential-modes",
+        authHandoff: {
+          reason: "auth_required",
+          recommendedPath: "governed_api_key",
+          retryUrl: "/v2/capabilities/workflow_run.list/execute",
+          docsUrl: "/docs#resolve-mental-model",
+          paths: [
+            {
+              kind: "governed_api_key",
+              recommended: true,
+              setupUrl: "/auth/login",
+              retryHeader: "X-Rhumb-Key",
+              summary: "Default for most buyers and most repeat agent traffic.",
+              requiresHumanSetup: true,
+              automaticAfterSetup: true,
+              requiresWalletSupport: null,
+            },
+          ],
+        },
+      },
+    };
+    expect(estimateOutput.executeReadiness?.authHandoff?.paths[0]?.retryHeader).toBe("X-Rhumb-Key");
   });
 });

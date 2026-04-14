@@ -22,6 +22,7 @@ import type {
   GetScoreOutput,
   GetAlternativesOutput,
   GetFailureModesOutput,
+  EstimateCapabilityOutput,
   ResolveCapabilityOutput,
   ListRecipesOutput,
   GetRecipeOutput,
@@ -158,10 +159,34 @@ function createMockApiClient(): RhumbApiClient {
     estimateCapability: vi.fn().mockResolvedValue({
       capabilityId: "email.send",
       provider: "resend",
-      credentialMode: "byo",
+      credentialMode: "byok",
       costEstimateUsd: null,
       circuitState: "closed",
-      endpointPattern: "POST /emails"
+      endpointPattern: "POST /emails",
+      executeReadiness: {
+        status: "auth_required",
+        message: "Add X-Rhumb-Key before execute.",
+        resolveUrl: "/v1/capabilities/email.send/resolve",
+        credentialModesUrl: "/v1/capabilities/email.send/credential-modes",
+        authHandoff: {
+          reason: "auth_required",
+          recommendedPath: "governed_api_key",
+          retryUrl: "/v1/capabilities/email.send/execute",
+          docsUrl: "/docs#resolve-mental-model",
+          paths: [
+            {
+              kind: "governed_api_key",
+              recommended: true,
+              setupUrl: "/auth/login",
+              retryHeader: "X-Rhumb-Key",
+              summary: "Default for most buyers and most repeat agent traffic.",
+              requiresHumanSetup: true,
+              automaticAfterSetup: true,
+              requiresWalletSupport: null,
+            },
+          ],
+        },
+      },
     }),
     listRecipes: vi.fn().mockResolvedValue({
       items: [
@@ -601,6 +626,25 @@ describe("e2e: MCP server integration", () => {
       expect(parsed.recoveryHint?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
       expect(parsed.recoveryHint?.setupHandoff?.setupUrl).toBe("/v1/services/resend/ceremony");
       expect(parsed.recoveryHint?.alternateExecuteHint).toBeNull();
+    });
+  });
+
+  describe("estimate_capability", () => {
+    it("returns execute readiness handoffs when estimate is auth-blocked", async () => {
+      const apiClient = createMockApiClient();
+      const { client } = await createConnectedClient(apiClient);
+
+      const result = await client.callTool({
+        name: "estimate_capability",
+        arguments: { capability_id: "email.send" },
+      }, CallToolResultSchema);
+
+      const parsed: EstimateCapabilityOutput = JSON.parse(extractText(result));
+
+      expect(parsed.credentialMode).toBe("byok");
+      expect(parsed.executeReadiness?.status).toBe("auth_required");
+      expect(parsed.executeReadiness?.resolveUrl).toBe("/v1/capabilities/email.send/resolve");
+      expect(parsed.executeReadiness?.authHandoff?.paths[0]?.retryHeader).toBe("X-Rhumb-Key");
     });
   });
 

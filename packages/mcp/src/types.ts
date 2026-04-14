@@ -324,6 +324,33 @@ export type EstimateCapabilityInput = {
   credential_mode?: string;
 };
 
+export type EstimateCapabilityAuthHandoffPath = {
+  kind: string;
+  recommended: boolean;
+  setupUrl: string | null;
+  retryHeader: string | null;
+  summary: string | null;
+  requiresHumanSetup: boolean | null;
+  automaticAfterSetup: boolean | null;
+  requiresWalletSupport: boolean | null;
+};
+
+export type EstimateCapabilityAuthHandoff = {
+  reason: string;
+  recommendedPath: string | null;
+  retryUrl: string | null;
+  docsUrl: string | null;
+  paths: EstimateCapabilityAuthHandoffPath[];
+};
+
+export type EstimateCapabilityExecuteReadiness = {
+  status: string;
+  message: string | null;
+  resolveUrl: string | null;
+  credentialModesUrl: string | null;
+  authHandoff: EstimateCapabilityAuthHandoff | null;
+};
+
 export type EstimateCapabilityOutput = {
   capabilityId: string;
   provider: string;
@@ -331,6 +358,7 @@ export type EstimateCapabilityOutput = {
   costEstimateUsd: number | null;
   circuitState: string;
   endpointPattern: string | null;
+  executeReadiness?: EstimateCapabilityExecuteReadiness | null;
 };
 
 // ---------------------------------------------------------------------------
