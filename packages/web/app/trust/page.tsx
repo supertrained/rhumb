@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -107,8 +108,11 @@ export default function TrustPage() {
                 </Link>
               </li>
               <li>
-                <strong className="text-slate-200">Dispute path:</strong> public GitHub issue or provider email,
-                both linked below
+                <strong className="text-slate-200">Dispute path:</strong>{" "}
+                <Link href="/providers#dispute-a-score" className="text-amber hover:underline underline-offset-2">
+                  provider guide
+                </Link>{" "}
+                with public GitHub template, private email path, and a 5-business-day response target
               </li>
             </ul>
           </div>
@@ -207,12 +211,12 @@ export default function TrustPage() {
                 <p className="text-slate-400 text-sm leading-relaxed">
                   Disagree with a score? File a dispute via{" "}
                   <a
-                    href="https://github.com/supertrained/rhumb/issues/new"
+                    href="https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-amber hover:underline underline-offset-2"
                   >
-                    GitHub issue
+                    GitHub issue template
                   </a>{" "}
                   or{" "}
                   <a
@@ -221,8 +225,16 @@ export default function TrustPage() {
                   >
                     email
                   </a>
-                  . Every dispute is reviewed, and outcomes are public. We
-                  don&apos;t hide from criticism — we use it to improve.
+                  . Every dispute is reviewed, we aim to respond within 5 business days, and public outcomes live on{" "}
+                  <a
+                    href="https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-amber hover:underline underline-offset-2"
+                  >
+                    GitHub
+                  </a>
+                  . We don&apos;t hide from criticism — we use it to improve.
                 </p>
               </div>
             </div>
