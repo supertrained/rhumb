@@ -7,7 +7,7 @@ Use Rhumb through the Model Context Protocol — the fastest path to agent tool 
 For most agents, the default production path is:
 
 1. discover a **Service** or **Capability**
-2. resolve ranked providers, or the next setup step
+2. resolve ranked providers, or follow the machine-readable recovery handoff
 3. estimate the call
 4. execute through Layer 2 with `RHUMB_API_KEY`
 
@@ -67,7 +67,7 @@ In Cursor settings → MCP Servers → Add:
 - `discover_capabilities` — "What capabilities exist for payments?"
 
 ### With an API key (default production path)
-- `resolve_capability` — "Which provider or setup step should I use for email.send, and what if I only want BYOK or Rhumb-managed?"
+- `resolve_capability` — "Which provider or recovery handoff should I use for email.send, and what if I only want BYOK or Rhumb-managed?"
 - `estimate_capability` — "How much will this call cost?"
 - `execute_capability` — "Send an email through the best provider"
 - `get_receipt` — "Show me the receipt for that execution"

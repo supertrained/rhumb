@@ -236,7 +236,7 @@ Example typo-recovery payload when the capability ID is wrong:
 }
 ```
 
-Example recovery payload when providers still rank but none can execute yet and Rhumb can only hand you the next setup step:
+Example recovery payload when providers still rank but none can execute yet and Rhumb can only hand you a machine-readable setup handoff:
 
 ```json
 {
