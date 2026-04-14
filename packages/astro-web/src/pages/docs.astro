@@ -224,7 +224,7 @@ Other recovery cases reuse the same recovery_hint shape with a different reason.
   {
     method: "GET",
     path: "/v1/capabilities/{capability_id}/execute/estimate",
-    desc: "Estimate the concrete provider, cost, and circuit state for the rail you are actually about to use.",
+    desc: "Estimate the concrete provider, cost, and circuit state for the rail you are actually about to use. Anonymous direct system-of-record rails also include data.execute_readiness so the next API-key step stays machine-readable.",
     curl: `curl ${BASE_URL}/capabilities/email.send/execute/estimate`,
     response: `{
   "data": {

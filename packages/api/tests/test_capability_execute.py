@@ -1894,6 +1894,28 @@ async def test_direct_execute_with_payment_header_still_requires_api_key(app):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(("capability_id", "message"), DIRECT_AUTH_CASES)
+async def test_direct_execute_estimate_surfaces_auth_readiness_when_anonymous(app, capability_id, message):
+    """Anonymous direct estimates should still carry the next auth step for execute."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(f"/v1/capabilities/{capability_id}/execute/estimate")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    data = body["data"]
+    assert body["error"] is None
+    assert data["capability_id"] == capability_id
+    assert data["execute_readiness"]["status"] == "auth_required"
+    assert data["execute_readiness"]["message"] == message
+    assert data["execute_readiness"]["resolve_url"] == f"/v1/capabilities/{capability_id}/resolve"
+    assert data["execute_readiness"]["credential_modes_url"] == f"/v1/capabilities/{capability_id}/credential-modes"
+    assert data["execute_readiness"]["auth_handoff"]["reason"] == "auth_required"
+    assert data["execute_readiness"]["auth_handoff"]["retry_url"] == f"/v1/capabilities/{capability_id}/execute"
+    auth_paths = {item["kind"]: item for item in data["execute_readiness"]["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
+
+
+@pytest.mark.anyio
 async def test_execute_get_returns_x402_discovery(app):
     """GET execute acts as x402 discovery preflight instead of 405."""
     with patch(

@@ -86,6 +86,8 @@ _V2_NAVIGATION_URL_KEYS = {
     "resolve_url",
     "estimate_url",
     "credential_modes_url",
+    "retry_url",
+    "execute_url",
 }
 
 _v2_budget_enforcer = BudgetEnforcer()

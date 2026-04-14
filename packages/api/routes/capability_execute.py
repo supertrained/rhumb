@@ -401,6 +401,28 @@ def _direct_execute_get_not_supported_response(
     )
 
 
+def _direct_execute_estimate_readiness(capability_id: str) -> dict[str, Any] | None:
+    """Return auth guidance when estimate is anonymous but execute still needs an API key."""
+    detail = _direct_execute_auth_detail(capability_id)
+    if detail is None:
+        return None
+    return {
+        "status": "auth_required",
+        "message": detail,
+        "resolution": (
+            "Create a Rhumb API key, then retry this execute call. "
+            "Use resolve first if you need to inspect the current preferred rail."
+        ),
+        "resolve_url": _capability_resolve_url(capability_id),
+        "credential_modes_url": _capability_credential_modes_url(capability_id),
+        "auth_handoff": _execute_auth_handoff(
+            capability_id,
+            supported_paths=("governed_api_key",),
+            reason="auth_required",
+        ),
+    }
+
+
 def _execute_recovery_hints(
     *,
     capability_id: str,
@@ -1181,15 +1203,73 @@ def _prepare_upstream_payload(
 # Provider resolution helpers
 # ---------------------------------------------------------------------------
 
+
+def _direct_capability_stub(capability_id: str) -> Optional[dict[str, str]]:
+    """Return a minimal direct-capability row when the DB catalog does not carry one."""
+    descriptions = {
+        "crm.object.describe": "Describe CRM objects through a direct read-only execution rail.",
+        "crm.record.search": "Search CRM records through a direct read-only execution rail.",
+        "crm.record.get": "Fetch a CRM record through a direct read-only execution rail.",
+        "workflow_run.list": "List workflow runs through a direct read-only GitHub Actions rail.",
+        "workflow_run.get": "Fetch a workflow run through a direct read-only GitHub Actions rail.",
+        "db.query.read": "Execute a bounded read-only SQL query through a direct PostgreSQL rail.",
+        "db.schema.describe": "Inspect database schema metadata through a direct PostgreSQL rail.",
+        "db.row.get": "Fetch a single database row through a direct PostgreSQL rail.",
+        "warehouse.query.read": "Execute a bounded read-only warehouse query through a direct BigQuery rail.",
+        "warehouse.schema.describe": "Inspect warehouse schema metadata through a direct BigQuery rail.",
+        "deployment.list": "List deployments through a direct read-only Vercel rail.",
+        "deployment.get": "Fetch a deployment through a direct read-only Vercel rail.",
+        "object.list": "List storage objects through a direct read-only AWS S3 rail.",
+        "object.head": "Fetch storage object metadata through a direct read-only AWS S3 rail.",
+        "object.get": "Fetch a bounded storage object through a direct read-only AWS S3 rail.",
+        "ticket.search": "Search tickets through a direct read-only Zendesk rail.",
+        "ticket.get": "Fetch a ticket through a direct read-only Zendesk rail.",
+        "ticket.list_comments": "List ticket comments through a direct read-only Zendesk rail.",
+        "conversation.list": "List conversations through a direct read-only Intercom rail.",
+        "conversation.get": "Fetch a conversation through a direct read-only Intercom rail.",
+        "conversation.list_parts": "List conversation parts through a direct read-only Intercom rail.",
+    }
+    if capability_id not in DIRECT_EXECUTE_CAPABILITY_IDS:
+        return None
+    domain, _, action = capability_id.partition(".")
+    return {
+        "id": capability_id,
+        "domain": domain,
+        "action": action or capability_id,
+        "description": descriptions.get(capability_id, "Direct read-only execution rail."),
+    }
+
+
+def _direct_capability_service_mappings(capability_id: str) -> list[dict[str, Any]]:
+    """Mirror the direct-capability provider rows from the capability registry route."""
+    from routes import capabilities as capability_routes
+
+    if capability_id in CRM_CAPABILITY_IDS:
+        return list(capability_routes._crm_direct_provider_details(capability_id))
+    if capability_id in ACTIONS_CAPABILITY_IDS:
+        return [capability_routes._actions_direct_provider_details(capability_id)]
+    if capability_id in DB_CAPABILITY_IDS:
+        return [capability_routes._db_direct_provider_details(capability_id)]
+    if capability_id in WAREHOUSE_CAPABILITY_IDS:
+        return [capability_routes._warehouse_direct_provider_details(capability_id)]
+    if capability_id in DEPLOYMENT_CAPABILITY_IDS:
+        return [capability_routes._deployment_direct_provider_details(capability_id)]
+    if capability_id in STORAGE_CAPABILITY_IDS:
+        return [capability_routes._object_storage_direct_provider_details(capability_id)]
+    if capability_id in SUPPORT_CAPABILITY_IDS:
+        return [capability_routes._support_direct_provider_details(capability_id)]
+    return []
+
+
 async def _resolve_capability(capability_id: str) -> Optional[dict]:
     """Fetch a capability row by ID. Returns None if not found."""
     caps = await supabase_fetch(
         f"capabilities?id=eq.{quote(capability_id)}"
         f"&select=id,domain,action,description&limit=1"
     )
-    if not caps:
-        return None
-    return caps[0]
+    if caps:
+        return caps[0]
+    return _direct_capability_stub(capability_id)
 
 
 async def _get_capability_services(capability_id: str) -> list[dict]:
@@ -1199,7 +1279,9 @@ async def _get_capability_services(capability_id: str) -> list[dict]:
         f"&select=service_slug,credential_modes,auth_method,endpoint_pattern,"
         f"cost_per_call,cost_currency,free_tier_calls"
     )
-    return mappings or []
+    if mappings:
+        return mappings
+    return _direct_capability_service_mappings(capability_id)
 
 
 async def _get_service_domain(service_slug: str) -> Optional[str]:
@@ -1225,6 +1307,15 @@ async def _auto_select_provider(
     if not mappings:
         return None
 
+    breaker_reg = get_breaker_registry()
+    if len(mappings) == 1:
+        only_mapping = mappings[0]
+        only_slug = normalize_proxy_slug(only_mapping["service_slug"])
+        breaker = breaker_reg.get(only_slug, agent_id)
+        if breaker.allow_request():
+            return only_mapping
+        return None
+
     slugs = [m["service_slug"] for m in mappings]
     slug_filter = ",".join(f'"{s}"' for s in slugs)
 
@@ -1242,7 +1333,6 @@ async def _auto_select_provider(
             if slug and agg is not None and slug not in scores_by_slug:
                 scores_by_slug[slug] = float(agg)
 
-    breaker_reg = get_breaker_registry()
     circuit_states: dict[str, str] = {}
     for m in mappings:
         slug = m["service_slug"]
@@ -3578,6 +3668,11 @@ async def estimate_capability(
         "circuit_state": circuit_state,
         "endpoint_pattern": chosen.get("endpoint_pattern"),
     }
+
+    if is_anonymous_estimate and capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
+        execute_readiness = _direct_execute_estimate_readiness(capability_id)
+        if execute_readiness is not None:
+            estimate_data["execute_readiness"] = execute_readiness
 
     # Include budget status only for authenticated agents
     if not is_anonymous_estimate:

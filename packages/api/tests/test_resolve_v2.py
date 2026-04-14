@@ -606,6 +606,43 @@ async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
 
 
 @pytest.mark.anyio
+async def test_v2_estimate_rewrites_direct_execute_readiness_handoff(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 200
+    estimate_resp.json.return_value = {
+        "data": {
+            "capability_id": "workflow_run.list",
+            "provider": "github",
+            "credential_mode": "byok",
+            "endpoint_pattern": "POST /v1/capabilities/workflow_run.list/execute",
+            "execute_readiness": {
+                "status": "auth_required",
+                "resolve_url": "/v1/capabilities/workflow_run.list/resolve",
+                "credential_modes_url": "/v1/capabilities/workflow_run.list/credential-modes",
+                "auth_handoff": {
+                    "reason": "auth_required",
+                    "retry_url": "/v1/capabilities/workflow_run.list/execute",
+                    "paths": [{"kind": "governed_api_key", "retry_header": "X-Rhumb-Key"}],
+                },
+            },
+        },
+        "error": None,
+    }
+    estimate_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/workflow_run.list/execute/estimate")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["endpoint_pattern"] == "POST /v2/capabilities/workflow_run.list/execute"
+    assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/workflow_run.list/resolve"
+    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/workflow_run.list/credential-modes"
+    assert data["execute_readiness"]["auth_handoff"]["retry_url"] == "/v2/capabilities/workflow_run.list/execute"
+
+
+@pytest.mark.anyio
 async def test_policy_engine_matches_provider_preference_aliases():
     engine = PolicyEngine()
     auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
