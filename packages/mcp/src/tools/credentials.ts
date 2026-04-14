@@ -1,7 +1,7 @@
 /**
  * check_credentials tool handler
  *
- * Returns the agent's credential status across all three modes:
+ * Returns which credential modes are available to the agent across all three rails:
  * - Mode 1 (BYOK): which Services have agent-provided credentials
  * - Mode 2 (Rhumb Resolve): which Capabilities are zero-config
  * - Mode 3 (Agent Vault): which Services have ceremony skills available
