@@ -16,6 +16,7 @@ from resolve_helpers import (
     describe_recovery_hint,
     preferred_execute_provider,
     preferred_recovery_handoff,
+    recovery_credential_modes_url,
     recovery_resolve_url,
 )
 
@@ -68,6 +69,7 @@ def main():
     preferred_provider = preferred_execute_provider(data)
     recovery_summary = describe_recovery_hint(data)
     recovery_handoff = preferred_recovery_handoff(data)
+    credential_modes_url = recovery_credential_modes_url(data)
     resolve_url = recovery_resolve_url(data)
     if preferred_provider:
         print(f"\n🧭 Preferred execute provider: {preferred_provider}")
@@ -89,8 +91,12 @@ def main():
             print(f"  Setup hint: {handoff['setup_hint']}")
         if resolve_url:
             print(f"  Resolve URL: {resolve_url}")
+        if credential_modes_url:
+            print(f"  Credential modes URL: {credential_modes_url}")
     elif resolve_url:
         print(f"\n🧭 Resolve URL: {resolve_url}")
+        if credential_modes_url:
+            print(f"  Credential modes URL: {credential_modes_url}")
 
     if recovery_summary:
         print(f"  Recovery hint: {recovery_summary}")

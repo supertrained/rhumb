@@ -34,6 +34,7 @@ from resolve_helpers import (
     describe_recovery_hint,
     execute_ready_provider_slugs,
     preferred_recovery_handoff,
+    recovery_credential_modes_url,
     recovery_resolve_url,
 )
 
@@ -87,7 +88,7 @@ def _get_json(client: httpx.Client, path: str, *, params: dict[str, Any] | None 
 
 def _resolve_execute_context(
     client: httpx.Client,
-) -> tuple[list[str], str | None, tuple[str, dict[str, Any]] | None, str | None]:
+) -> tuple[list[str], str | None, tuple[str, dict[str, Any]] | None, str | None, str | None]:
     payload = _get_json(client, f"/capabilities/{CAPABILITY}/resolve")
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
     providers = execute_ready_provider_slugs(data, limit=PROVIDER_COUNT)
@@ -95,6 +96,7 @@ def _resolve_execute_context(
         providers,
         describe_recovery_hint(data),
         preferred_recovery_handoff(data),
+        recovery_credential_modes_url(data),
         recovery_resolve_url(data),
     )
 
@@ -165,7 +167,7 @@ def main() -> None:
     queries = _queries()
     with httpx.Client(timeout=30.0) as client:
         before = _usage_summary(client)
-        providers, recovery_summary, recovery_handoff, resolve_url = _resolve_execute_context(client)
+        providers, recovery_summary, recovery_handoff, credential_modes_url, resolve_url = _resolve_execute_context(client)
 
         if not providers:
             print(f"No execute-ready providers resolved for {CAPABILITY}.")
@@ -185,6 +187,8 @@ def main() -> None:
                     print(f"  Setup hint: {handoff['setup_hint']}")
             if resolve_url:
                 print(f"  Resolve URL: {resolve_url}")
+            if credential_modes_url:
+                print(f"  Credential modes URL: {credential_modes_url}")
             if recovery_summary:
                 print(f"Recovery hint: {recovery_summary}")
             sys.exit(1)

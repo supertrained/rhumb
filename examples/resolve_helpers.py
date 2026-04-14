@@ -89,6 +89,18 @@ def recovery_resolve_url(resolve_data: dict[str, Any]) -> str | None:
     return None
 
 
+def recovery_credential_modes_url(resolve_data: dict[str, Any]) -> str | None:
+    recovery_hint = resolve_data.get("recovery_hint")
+    if not isinstance(recovery_hint, dict):
+        return None
+
+    credential_modes_url = recovery_hint.get("credential_modes_url")
+    if isinstance(credential_modes_url, str) and credential_modes_url:
+        return credential_modes_url
+
+    return None
+
+
 def _handoff_summary(prefix: str, handoff: Any) -> list[str]:
     if not isinstance(handoff, dict):
         return []
@@ -131,6 +143,10 @@ def describe_recovery_hint(resolve_data: dict[str, Any]) -> str | None:
     resolve_url = recovery_hint.get("resolve_url")
     if isinstance(resolve_url, str) and resolve_url:
         parts.append(f"resolve_url={resolve_url}")
+
+    credential_modes_url = recovery_hint.get("credential_modes_url")
+    if isinstance(credential_modes_url, str) and credential_modes_url:
+        parts.append(f"credential_modes_url={credential_modes_url}")
 
     unavailable = _slug_list(recovery_hint.get("unavailable_provider_slugs"))
     if unavailable:
