@@ -122,7 +122,7 @@ const failureModes: FailureMode[] = [
     agentSees: "HTTP 402 with payment instructions in the response body, including: wallet address, exact USDC amount, network (Base), and contract address.",
     blastRadius: "Single execution attempt. No charge occurs — you only pay when payment is confirmed on-chain.",
     recovery: "Verify: (1) the exact asset and amount from the 402 response were sent, (2) the exact destination address and network from the 402 response were used, (3) the transaction is confirmed, and (4) the retry included X-Payment with tx_hash, network, and wallet_address from the payer wallet. If you are using a smart wallet that only emits wrapped authorization payloads, switch to wallet-prefund or the API-key rail instead of looping retries.",
-    prevention: "Use a wallet with sufficient balance and gas on the network returned by the 402 response. Double-check asset + amount + address + network before sending funds. Treat x402 buyer-wallet compatibility as an explicit integration check, and use the /v1/capabilities/{id}/execute/estimate endpoint to preview cost before committing.",
+    prevention: "Use a wallet with sufficient balance and gas on the network returned by the 402 response. Double-check asset + amount + address + network before sending funds. Treat x402 buyer-wallet compatibility as an explicit integration check, and use the /v1/capabilities/{id}/execute/estimate endpoint to check the active execution rail, health, and cost before committing.",
     affects: "Single x402 execution attempt",
   },
   {
