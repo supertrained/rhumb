@@ -49,7 +49,7 @@ Discovery breadth is wider than current execution breadth: Rhumb scores **1,038 
 - **Capability** = executable action your MCP client can route and execute
 - **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
 - **Layer 2 is the default path** — discover → resolve → estimate → execute
-- **Default auth for repeat traffic** = `RHUMB_API_KEY` via governed account or wallet-prefund
+- **Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`
 - **Bring BYOK** only when provider control is the point
 - **Use x402** only when zero-signup per-call payment is the point
 

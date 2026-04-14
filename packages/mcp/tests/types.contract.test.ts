@@ -155,9 +155,10 @@ describe("types.contract", () => {
     expect(rootReadme).toContain("Bring BYOK** only when provider control is the point");
     expect(rootReadme).not.toContain("wallet-prefunded API key");
 
-    expect(mcpReadme).toContain("Default auth for repeat traffic** = `RHUMB_API_KEY` via governed account or wallet-prefund");
+    expect(mcpReadme).toContain("Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`");
     expect(mcpReadme).toContain("Bring BYOK** only when provider control is the point");
     expect(mcpReadme).not.toContain("wallet-prefunded API key");
+    expect(mcpReadme).not.toContain("`RHUMB_API_KEY` via governed account or wallet-prefund");
 
     expect(mcpQuickstartExample).toContain("For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK only when provider control is the point.");
     expect(mcpQuickstartExample).not.toContain("For repeat wallet traffic, use wallet-prefund and then execute with `X-Rhumb-Key`.");
