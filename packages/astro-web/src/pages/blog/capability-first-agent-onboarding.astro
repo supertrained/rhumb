@@ -1,0 +1,289 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const HERO_POINTS = [
+  "Immediate value before setup fatigue",
+  "One bounded capability surface instead of a connector graveyard",
+  "Secure bridges into customer systems only when the workflow really needs them",
+  "Authority stays legible as the surface expands",
+];
+
+const CONNECTOR_FIRST_COSTS = [
+  "operators have to reverse-engineer value from a long connector catalog",
+  "customer-system setup shows up before the first useful action",
+  "the model sees a pile of names instead of a clear capability surface",
+  "read-only, reversible, and high-side-effect actions get mentally flattened into one pool",
+];
+
+const SUPERPOWER_EXAMPLES = [
+  "search the right service when context is missing",
+  "extract structured signal from messy inputs",
+  "summarize a corpus without turning setup into a project",
+  "generate a useful artifact before asking for a deeper integration",
+];
+
+const LANES = [
+  {
+    title: "Lane 1, managed capabilities first",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    body:
+      "Lead with the superpower the agent gets right now. That is the shortest path to first value, the clearest story for the operator, and the least confusing surface for the model.",
+  },
+  {
+    title: "Lane 2, secure bridges only when needed",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    body:
+      "Bring customer-owned systems in when the workflow actually needs them. That keeps the broader story honest instead of forcing every buyer through a mini integration project on day one.",
+  },
+];
+
+const BETTER_METRICS = [
+  "time to first useful action",
+  "repeat usage after the first success",
+  "whether the operator can explain the value in one sentence",
+  "how often the workflow stays inside the surface before a bridge is needed",
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/governed-capability-surfaces-agent-integrations",
+    title: "Governed Capabilities Are Becoming the Real Control Plane",
+    description: "Why safer agent interfaces narrow authority instead of mirroring raw API sprawl.",
+  },
+  {
+    href: "/blog/securing-keys-for-agents",
+    title: "How to Secure Your API Keys for Agent Use",
+    description: "Why bridges and credentials need honest threat boundaries instead of generic secret-management theater.",
+  },
+  {
+    href: "/blog/how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents",
+    description: "The broader evaluation lens for whether an API is actually useful to an autonomous system.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist",
+    title: "A Production Readiness Checklist for Remote MCP Servers",
+    description: "What changes once the agent surface becomes shared, remote, or unattended infrastructure.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Capability-First Agent Onboarding: One Key, Many Superpowers",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Connector catalogs describe implementation inventory. Agents and operators adopt clear capabilities first. The better onboarding model is one key, many superpowers, then secure bridges only when needed.",
+  url: "https://rhumb.dev/blog/capability-first-agent-onboarding",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/capability-first-agent-onboarding",
+};
+---
+
+<Layout
+  title="Capability-First Agent Onboarding: One Key, Many Superpowers | Rhumb"
+  description="Connector catalogs describe implementation inventory. Agents and operators adopt clear capabilities first. The better onboarding model is one key, many superpowers, then secure bridges only when needed."
+  canonical="/blog/capability-first-agent-onboarding"
+  ogTitle="Capability-First Agent Onboarding: One Key, Many Superpowers"
+  ogDescription="The better onboarding story is one key, many superpowers, then secure bridges into customer systems only when the workflow actually needs them."
+  ogUrl="https://rhumb.dev/blog/capability-first-agent-onboarding"
+  ogType="article"
+  twitterTitle="Capability-First Agent Onboarding: One Key, Many Superpowers"
+  twitterDescription="Lead with the agent superpower, not the connector catalog. Bring secure bridges in only when the workflow needs them."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-emerald-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-emerald-400 uppercase tracking-widest">Onboarding</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">7 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              Capability-First Agent Onboarding: One Key, Many Superpowers
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              Connector catalogs describe implementation inventory. Agents and operators adopt a clear capability first. The better onboarding story is one key, many superpowers, then secure bridges into customer systems only when the workflow actually needs them.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">Why this lands faster</div>
+            <div class="space-y-3">
+              {HERO_POINTS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful frame</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The adoption unit is not the connector list. It is the first new thing the agent can do well enough that the operator immediately understands why the surface matters.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Connector-first onboarding feels bigger than it feels useful
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                A connector catalog can make a product look comprehensive. It does not automatically make the product feel adoptable. Most operators are not trying to buy thirty integrations. They are trying to get one workflow unstuck.
+              </p>
+              <p>
+                That is why connector-first onboarding usually creates the same kinds of drag.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CONNECTOR_FIRST_COSTS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. The thing people adopt is the superpower
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Operators usually reason in capability language, not inventory language. They want to audit something, extract signal, summarize a corpus, search the right record, or generate an artifact that did not exist before.
+              </p>
+              <p>
+                If one key gives the agent a bounded capability that becomes useful immediately, the product becomes legible. The operator understands what changed. The model sees a cleaner surface. First value arrives before setup fatigue wins.
+              </p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {SUPERPOWER_EXAMPLES.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. The better product story is two lanes, not one
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                The stronger model for Rhumb Resolve is simple. Lead with Rhumb-managed capabilities first. Then introduce secure bridges into customer-owned systems only when the workflow actually needs them.
+              </p>
+              <p>
+                Lane one is the front door. Lane two is the expansion path. Reversing that order makes every new user solve the hard edge case before they have even seen the easy win.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              {LANES.map((lane) => (
+                <div class={`rounded-[28px] border p-6 ${lane.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-3 ${lane.accent}`}>{lane.title}</div>
+                  <p class="text-slate-300 leading-relaxed">{lane.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. Honest bridges beat fake simplicity
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Capability-first onboarding only works if the boundary stays honest. Some customer systems will require admin work. Some bridges are worth doing only after the managed lane has already proven useful. That is not a weakness. It is the correct separation between immediate value and deeper system integration.
+              </p>
+              <p>
+                The mistake is pretending every system belongs in the first-run experience. A clean first win is more credible than a giant catalog that quietly hides setup debt behind every promising label.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. Measure time to value, not connector breadth
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Connector-first stories optimize for catalog size. Capability-first stories optimize for whether the surface becomes necessary. The better scoreboard looks like this.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {BETTER_METRICS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                That is a much stronger test of whether the product is becoming a real part of the workflow instead of just an impressive inventory page.
+              </p>
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Closing</div>
+            <p class="text-slate-300 leading-relaxed text-lg">
+              The onboarding unit should be the superpower, not the plumbing. One key, many superpowers is a better product story because it is a better adoption story. Show the value first. Add the bridges when the workflow earns them.
+            </p>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 self-start">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Decision rule</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              If the first-run story mostly sounds like a setup matrix, the product is leading with plumbing instead of power.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">What to preserve</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Smaller capability surfaces only stay trustworthy when the authority boundary stays visible. Compress the interface, not the truth about what the agent can actually do.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100 group-hover:text-amber transition-colors">{item.title}</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
