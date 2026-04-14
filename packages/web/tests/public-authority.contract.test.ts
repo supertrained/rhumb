@@ -4,9 +4,11 @@ import { describe, expect, it } from "vitest";
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
+const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
+const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
 const apiDocs = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
@@ -66,6 +68,16 @@ describe("public authority pricing contract", () => {
     expect(astroHome).toContain('Search ${servicesLabel} services');
     expect(astroHome).toContain('Search ${servicesLabel} scored services');
     expect(astroHome).not.toContain('getServiceCount');
+  });
+
+  it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {
+    expect(astroAbout).toContain('PUBLIC_TRUTH.servicesLabel');
+    expect(astroAbout).toContain('PUBLIC_TRUTH.categoriesLabel');
+    expect(astroAbout).not.toContain('const services = await getServices()');
+
+    expect(astroSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroSearch).toContain('Search across {servicesLabel} scored services.');
+    expect(astroSearch).not.toContain('getServiceCount');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {

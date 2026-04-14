@@ -1,11 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../layouts/Layout.astro";
-import { getServices } from "../lib/api";
-
-const services = await getServices();
-const serviceCount = services.length;
-const categoryCount = new Set(services.map((service) => service.category)).size;
+import { PUBLIC_TRUTH } from "../lib/public-truth";
 
 const ORG_JSON_LD = {
   "@context": "https://schema.org",
@@ -13,7 +9,7 @@ const ORG_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    `Agent-native tool scoring, discovery, and access. ${serviceCount} scored services for AI agents.`,
+    `Agent-native tool scoring, discovery, and access. ${PUBLIC_TRUTH.servicesLabel} scored services for AI agents.`,
   foundingDate: "2026-03",
   parentOrganization: {
     "@type": "Organization",
@@ -153,7 +149,7 @@ const PERSON_PEDRO_JSON_LD = {
               href="/leaderboard"
               class="text-amber hover:underline underline-offset-2"
             >
-              {serviceCount} scored services across {categoryCount} categories
+              {PUBLIC_TRUTH.servicesLabel} scored services across {PUBLIC_TRUTH.categoriesLabel} categories
             </a>{" "}
             on{" "}
             <a
