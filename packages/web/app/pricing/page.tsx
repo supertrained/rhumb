@@ -4,39 +4,121 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Pricing & How to Pay",
   description:
-    "Rhumb charges cost + 20%. No subscriptions, no tiers. Pay with Stripe credits or USDC on Base via x402. Agent-native payment instructions included.",
+    "Pay for what you use. Choose governed API key, wallet-prefund, x402 per-call, or BYOK, and inspect the active execution rail before you run it.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing & How to Pay — Rhumb",
     description:
-      "Transparent usage-based pricing. Pay with prepaid credits or on-chain USDC. Instructions for both humans and agents.",
+      "Transparent usage-based pricing with governed API key, wallet-prefund, x402 per-call, and BYOK paths.",
     type: "website",
     url: "https://rhumb.dev/pricing",
     siteName: "Rhumb",
   },
 };
 
+const rails = [
+  {
+    badge: "Default",
+    badgeClass: "text-amber bg-amber/10 border-amber/20",
+    title: "Governed API key",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Rhumb-managed account billing and controls.",
+    useWhen: "Default production path for teams that want the lowest-heroics repeat workflow.",
+    tradeoff: "Requires account signup before the first paid call.",
+  },
+  {
+    badge: "Wallet-first",
+    badgeClass: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+    title: "Wallet-prefund",
+    authHeader: "X-Rhumb-Key",
+    moneyFlow: "Top up reusable balance from a wallet, then spend from that balance.",
+    useWhen: "Best when wallet identity matters, but repeat throughput matters more than zero-signup purity.",
+    tradeoff: "Adds a funding step before the steady-state execute path.",
+  },
+  {
+    badge: "Zero signup",
+    badgeClass: "text-amber bg-amber/10 border-amber/20",
+    title: "x402 per-call",
+    authHeader: "X-Payment",
+    moneyFlow: "USDC on Base, authorized per request.",
+    useWhen: "Best for one-off calls, demos, and request-level payment authorization.",
+    tradeoff: "Not the easiest repeat-traffic rail today, and tx-hash proof shape still matters.",
+  },
+  {
+    badge: "Provider control",
+    badgeClass: "text-slate-300 bg-slate-800 border-slate-700",
+    title: "BYOK",
+    authHeader: "Provider credential via Rhumb",
+    moneyFlow: "You pay the provider directly; Rhumb routes without markup on the credential itself.",
+    useWhen: "Best when you must keep vendor contracts, credentials, or compliance boundaries under your control.",
+    tradeoff: "You keep the credential-management burden.",
+  },
+] as const;
+
+const agentPaths = [
+  {
+    title: "Governed API key",
+    summary: "Create an account, estimate first, then execute with one stable header.",
+    steps: [
+      "Get X-Rhumb-Key from your org.",
+      "Call estimate_capability or GET /v1/capabilities/{id}/execute/estimate before paid execution.",
+      "Execute repeat traffic with X-Rhumb-Key.",
+    ],
+  },
+  {
+    title: "Wallet-prefund",
+    summary: "Fund reusable balance from a wallet, then execute on the same X-Rhumb-Key rail as the default path.",
+    steps: [
+      "Use the wallet funding flow once.",
+      "Top up reusable balance instead of paying every request individually.",
+      "Keep steady-state execution on X-Rhumb-Key.",
+    ],
+  },
+  {
+    title: "x402 per-call",
+    summary: "Use payment-as-authorization when zero-signup or per-request payment proof is the point.",
+    steps: [
+      "Call execute and read the HTTP 402 payment requirement.",
+      "Send the exact asset and amount to the exact address on the exact network in the response.",
+      "Retry with X-Payment from the same wallet.",
+    ],
+  },
+  {
+    title: "BYOK",
+    summary: "Resolve the capability on the byok rail, then execute with your provider credential instead of Rhumb-managed billing.",
+    steps: [
+      "Use resolve_capability with credential_mode=byok when you need the direct provider path.",
+      "Follow the machine-readable setup or recovery handoff if the preferred provider is not ready yet.",
+      "Execute through Rhumb with your provider-controlled credential path.",
+    ],
+  },
+] as const;
+
 export default function PricingPage() {
   return (
     <div className="bg-navy min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 pt-14 pb-24">
-        {/* Header */}
-        <header className="mb-16">
+      <div className="max-w-5xl mx-auto px-6 pt-14 pb-24">
+        <header className="mb-16 max-w-3xl">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
               Pricing
             </span>
           </div>
           <h1 className="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
-            Cost + 20%. That&apos;s it.
+            Pay for what you use.
+            <span className="block text-slate-400 mt-2">
+              Pick the rail that matches your authorization model.
+            </span>
           </h1>
           <p className="text-lg text-slate-400 leading-relaxed">
-            No subscriptions. No tiers. No monthly fees. You pay for what
-            you use — upstream provider cost plus a transparent 20% markup.
+            Discovery, scoring, and browsing are always free. When your agent
+            runs a capability through Rhumb, you pay upstream cost plus a
+            transparent 20% markup, and you can inspect the active execution
+            rail, health, and exact cost before you commit. No subscriptions,
+            no seat fees, no minimums.
           </p>
         </header>
 
-        {/* ── Section 1: Pricing Model ── */}
         <section className="mb-16">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
             Pricing model
@@ -46,32 +128,26 @@ export default function PricingPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <h3 className="font-display font-semibold text-lg text-slate-100 mb-3">
-                  How it works
+                  What stays true
                 </h3>
                 <ul className="space-y-2.5 text-sm text-slate-400">
                   <li className="flex items-start gap-2.5">
                     <span className="text-amber mt-0.5 text-xs">✓</span>
                     <span>
-                      Rhumb charges{" "}
-                      <strong className="text-slate-200">
-                        upstream cost + 20%
-                      </strong>
+                      Rhumb charges <strong className="text-slate-200">upstream cost + 20%</strong>
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="text-amber mt-0.5 text-xs">✓</span>
-                    <span>No subscriptions, no tiers, no monthly fees</span>
+                    <span>Discovery, scoring, and browsing are always free</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="text-amber mt-0.5 text-xs">✓</span>
-                    <span>Pay only for what you use</span>
+                    <span>Failed provider calls are not charged</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="text-amber mt-0.5 text-xs">✓</span>
-                    <span>
-                      Minimum top-up:{" "}
-                      <strong className="text-slate-200">$5</strong>
-                    </span>
+                    <span>No subscriptions, no seat fees, no minimums</span>
                   </li>
                 </ul>
               </div>
@@ -102,251 +178,109 @@ export default function PricingPage() {
             <div className="flex items-start gap-3">
               <span className="text-amber text-lg">💡</span>
               <div className="text-slate-400 text-sm leading-relaxed">
-                <strong className="text-slate-200">
-                  Check the active rail before execution.
-                </strong>{" "}
-                Use the{" "}
-                <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
-                  estimate_capability
-                </code>{" "}
+                <strong className="text-slate-200">Check the active rail before execution.</strong>{" "}
+                Use the <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">estimate_capability</code>{" "}
                 MCP tool or the REST API to see the active execution rail,
                 health, and exact cost before you run it. Anonymous direct
-                system-of-record paths also preserve machine-readable{" "}
-                <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">
-                  execute_readiness
-                </code>{" "}
+                system-of-record paths also preserve machine-readable <code className="font-mono text-xs bg-surface px-1.5 py-0.5 rounded text-amber">execute_readiness</code>{" "}
                 handoffs.
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Section 2: How to Pay (Humans) ── */}
-        <section className="mb-16">
-          <h2 className="font-display font-bold text-2xl text-slate-100 mb-6 tracking-tight">
-            How to pay{" "}
-            <span className="text-slate-600 font-normal text-sm">
-              for humans
-            </span>
-          </h2>
-
-          <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden mb-6">
-            <div className="p-5 border-b border-slate-800">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                  Stripe
-                </span>
-                <span className="font-display font-semibold text-slate-200">
-                  Prepaid Credits
-                </span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                Top up your org&apos;s credit wallet via Stripe checkout.
-                Credits are deducted per-execution.
-              </p>
-            </div>
-
-            <div className="p-5">
-              <div className="space-y-4">
-                {[
-                  {
-                    step: "1",
-                    title: "Get your API key",
-                    desc: "Create an org and generate an API key from the dashboard.",
-                  },
-                  {
-                    step: "2",
-                    title: "Create a checkout session",
-                    desc: (
-                      <>
-                        <code className="font-mono text-xs text-amber">
-                          POST /v1/billing/checkout
-                        </code>{" "}
-                        with your desired amount (min $5).
-                      </>
-                    ),
-                  },
-                  {
-                    step: "3",
-                    title: "Pay via Stripe",
-                    desc: "Follow the checkout URL. Card, Apple Pay, Google Pay accepted.",
-                  },
-                  {
-                    step: "4",
-                    title: "Credits added",
-                    desc: "Balance updates instantly. Your agents can start spending.",
-                  },
-                ].map((s) => (
-                  <div key={s.step} className="flex items-start gap-4">
-                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center font-mono text-xs font-bold text-amber">
-                      {s.step}
-                    </span>
-                    <div>
-                      <h4 className="font-display font-semibold text-sm text-slate-200">
-                        {s.title}
-                      </h4>
-                      <p className="text-slate-400 text-sm mt-0.5">
-                        {s.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="bg-surface border border-slate-800 rounded-lg p-5">
-              <h4 className="font-mono text-sm font-semibold text-slate-200 mb-2">
-                Auto-reload
-              </h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Set a balance threshold. When credits drop below it, Rhumb
-                automatically tops up via your saved payment method. Never
-                let your agents run dry.
-              </p>
-            </div>
-            <div className="bg-surface border border-slate-800 rounded-lg p-5">
-              <h4 className="font-mono text-sm font-semibold text-slate-200 mb-2">
-                Check balance
-              </h4>
-              <div className="bg-elevated rounded-md p-3 mt-2">
-                <pre className="text-sm font-mono text-slate-300 overflow-x-auto">
-                  <code>{`GET /v1/billing/balance
-Headers: X-Rhumb-Key: <your-key>`}</code>
-                </pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Section 3: How to Pay (Agents) ── */}
         <section className="mb-16">
           <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            How to pay{" "}
-            <span className="text-amber font-normal text-sm">
-              for agents
-            </span>
+            Choose your rail
           </h2>
-          <p className="text-slate-400 leading-relaxed mb-8">
-            If you&apos;re an agent reading this page, the following
-            instructions are for you. Pick the option that matches your
-            setup.
+          <p className="text-slate-400 leading-relaxed mb-8 max-w-3xl">
+            Same capability directory, different authorization and payment
+            models. Most buyers should start with the governed API-key path,
+            widen into wallet-prefund or x402 only when those payment
+            properties matter, and use BYOK when provider control is the real
+            requirement.
           </p>
 
-          {/* Option A: Pre-funded credits */}
-          <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden mb-6">
-            <div className="p-5 border-b border-slate-800">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
-                  Option A
-                </span>
-                <span className="font-display font-semibold text-slate-200">
-                  Pre-funded Credits
-                </span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                Your org has a credit balance. Spend from it.
-              </p>
-            </div>
-
-            <div className="p-5 bg-elevated">
-              <pre className="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed">
-                <code>{`# 1. Check your balance
-GET /v1/billing/balance
-Headers: X-Rhumb-Key: <your-key>
-
-# 2. If balance is sufficient, execute normally
-POST /v1/capabilities/{id}/execute
-Headers: X-Rhumb-Key: <your-key>
-
-# 3. If you get HTTP 402, check the response body
-#    for payment options (see Option B below)`}</code>
-              </pre>
-            </div>
-          </div>
-
-          {/* Option B: x402 Protocol */}
-          <div className="bg-surface border border-amber/20 rounded-xl overflow-hidden mb-6">
-            <div className="p-5 border-b border-amber/20">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-xs font-bold text-amber bg-amber/10 px-2 py-0.5 rounded">
-                  Option B
-                </span>
-                <span className="font-display font-semibold text-slate-200">
-                  x402 Protocol — USDC on Base
-                </span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                Pay on-chain per-request. No pre-funding needed.
-              </p>
-            </div>
-
-            <div className="p-5 bg-elevated">
-              <pre className="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed">
-                <code>{`# 1. Call execute. If insufficient credits, you get HTTP 402:
-{
-  "x402Version": 1,
-  "accepts": [
-    {
-      "scheme": "exact",
-      "network": "<network-from-402>",
-      "asset": "<asset-from-402>",
-      "payTo": "<address>",
-      "maxAmountRequired": "<amount-in-wei>"
-    }
-  ]
-}
-
-# 2. Send the exact asset + amount to the exact address on the exact network in the 402 response
-
-# 3. Retry the same request with the payment proof from the same wallet:
-POST /v1/capabilities/{id}/execute
-Headers:
-  X-Payment: {"tx_hash": "0x...", "network": "<network-from-402>", "wallet_address": "0x..."}
-Content-Type: application/json
-Body:
-  {"body": {...}}
-
-# 4. Rhumb verifies the on-chain transfer and executes your request`}</code>
-              </pre>
-            </div>
-          </div>
-
-          {/* Option C: MCP Tools */}
-          <div className="bg-surface border border-slate-800 rounded-xl overflow-hidden">
-            <div className="p-5 border-b border-slate-800">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                  Option C
-                </span>
-                <span className="font-display font-semibold text-slate-200">
-                  MCP Tools
-                </span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                If you have the Rhumb MCP server installed, use these
-                tools directly.
-              </p>
-            </div>
-
-            <div className="p-5 bg-elevated">
-              <pre className="text-sm font-mono text-slate-300 overflow-x-auto whitespace-pre leading-relaxed">
-                <code>{`# Check your budget
-rhumb budget
-
-# Check the active execution rail, health, and cost before execution
-# Anonymous direct system-of-record estimates also preserve execute_readiness handoffs
-rhumb estimate_capability --capability_id email.send
-
-# Execute (uses credits or returns 402 with payment instructions)
-rhumb execute_capability --capability_id email.send --body {...}`}</code>
-              </pre>
-            </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {rails.map((rail) => (
+              <article
+                key={rail.title}
+                className="bg-surface border border-slate-800 rounded-xl p-5"
+              >
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="font-display font-semibold text-lg text-slate-100">
+                    {rail.title}
+                  </h3>
+                  <span
+                    className={`border px-2 py-0.5 rounded font-mono text-[10px] uppercase tracking-widest ${rail.badgeClass}`}
+                  >
+                    {rail.badge}
+                  </span>
+                </div>
+                <dl className="space-y-3 text-sm leading-relaxed">
+                  <div>
+                    <dt className="text-slate-500 font-mono uppercase tracking-wider text-[10px]">
+                      Auth header
+                    </dt>
+                    <dd className="text-slate-200 mt-1">{rail.authHeader}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500 font-mono uppercase tracking-wider text-[10px]">
+                      Money flow
+                    </dt>
+                    <dd className="text-slate-400 mt-1">{rail.moneyFlow}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500 font-mono uppercase tracking-wider text-[10px]">
+                      Use when
+                    </dt>
+                    <dd className="text-slate-400 mt-1">{rail.useWhen}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500 font-mono uppercase tracking-wider text-[10px]">
+                      Tradeoff
+                    </dt>
+                    <dd className="text-slate-400 mt-1">{rail.tradeoff}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
           </div>
         </section>
 
-        {/* ── Section 4: Agent-Native Metadata ── */}
+        <section className="mb-16">
+          <h2 className="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            Agent route selection
+          </h2>
+          <p className="text-slate-400 leading-relaxed mb-8 max-w-3xl">
+            If you are an agent reading this page, pick the path that matches
+            your integration goal. The common rule across all four paths is the
+            same: estimate first, then execute on the rail you actually mean to
+            use.
+          </p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {agentPaths.map((path) => (
+              <article
+                key={path.title}
+                className="bg-surface border border-slate-800 rounded-xl p-5"
+              >
+                <h3 className="font-display font-semibold text-lg text-slate-100 mb-2">
+                  {path.title}
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                  {path.summary}
+                </p>
+                <ol className="space-y-2.5 text-sm text-slate-400 list-decimal list-inside">
+                  {path.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="bg-surface border border-amber/20 rounded-xl p-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
@@ -354,23 +288,20 @@ rhumb execute_capability --capability_id email.send --body {...}`}</code>
             </span>
           </div>
           <h2 className="font-display font-bold text-xl text-slate-100 mb-4">
-            For agents reading this page
+            Canonical instructions
           </h2>
           <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            This page is designed to be read by both humans and agents. If
-            you&apos;re an agent, the code blocks above are your
-            integration guide.
+            Use this page to choose the right pricing rail. Use the links below
+            for the machine-readable contract and the fuller onboarding path.
           </p>
 
           <div className="space-y-3">
             <div className="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3">
               <span className="text-amber mt-0.5 text-xs">→</span>
               <div>
-                <strong className="text-slate-200 text-sm">
-                  llms.txt
-                </strong>
+                <strong className="text-slate-200 text-sm">llms.txt</strong>
                 <p className="text-slate-400 text-sm mt-0.5">
-                  Machine-readable discovery:{" "}
+                  Machine-readable discovery: {" "}
                   <Link
                     href="/llms.txt"
                     className="text-amber hover:underline underline-offset-2 font-mono text-xs"
@@ -384,16 +315,14 @@ rhumb execute_capability --capability_id email.send --body {...}`}</code>
             <div className="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3">
               <span className="text-amber mt-0.5 text-xs">→</span>
               <div>
-                <strong className="text-slate-200 text-sm">
-                  API Documentation
-                </strong>
+                <strong className="text-slate-200 text-sm">API Documentation</strong>
                 <p className="text-slate-400 text-sm mt-0.5">
-                  Full REST API reference:{" "}
+                  Resolve mental model, estimate flow, and execution contract: {" "}
                   <Link
-                    href="/docs"
+                    href="/docs#resolve-mental-model"
                     className="text-amber hover:underline underline-offset-2 font-mono text-xs"
                   >
-                    rhumb.dev/docs
+                    rhumb.dev/docs#resolve-mental-model
                   </Link>
                 </p>
               </div>
@@ -402,27 +331,26 @@ rhumb execute_capability --capability_id email.send --body {...}`}</code>
             <div className="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3">
               <span className="text-amber mt-0.5 text-xs">→</span>
               <div>
-                <strong className="text-slate-200 text-sm">
-                  MCP Server
-                </strong>
-                <div className="bg-surface rounded-md p-2.5 mt-2">
-                  <code className="font-mono text-sm text-amber">
-                    npx rhumb-mcp@0.5.0
-                  </code>
-                </div>
+                <strong className="text-slate-200 text-sm">Wallet-first detail</strong>
+                <p className="text-slate-400 text-sm mt-0.5">
+                  Wallet-prefund and x402 specifics live here: {" "}
+                  <Link
+                    href="/payments/agent"
+                    className="text-amber hover:underline underline-offset-2 font-mono text-xs"
+                  >
+                    rhumb.dev/payments/agent
+                  </Link>
+                </p>
               </div>
             </div>
 
             <div className="bg-elevated border border-slate-700 rounded-lg p-4 flex items-start gap-3">
               <span className="text-amber mt-0.5 text-xs">→</span>
               <div>
-                <strong className="text-slate-200 text-sm">
-                  Two payment rails
-                </strong>
+                <strong className="text-slate-200 text-sm">MCP Server</strong>
                 <p className="text-slate-400 text-sm mt-0.5">
-                  Stripe prepaid credits (check balance → spend) or x402
-                  USDC on Base (HTTP 402 → on-chain payment → retry with
-                  tx hash).
+                  Use MCP when you want Rhumb inside an agent loop instead of
+                  wiring raw HTTP yourself.
                 </p>
               </div>
             </div>

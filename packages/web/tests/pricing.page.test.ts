@@ -24,4 +24,17 @@ describe("pricing page", () => {
     expect(html).not.toContain("Estimate cost before execution");
     expect(html).not.toContain("will cost before you run it");
   });
+
+  it("aligns the public rail chooser with current pricing truth", async () => {
+    const html = await renderPricingPage();
+
+    expect(html).toContain("Governed API key");
+    expect(html).toContain("Wallet-prefund");
+    expect(html).toContain("x402 per-call");
+    expect(html).toContain("BYOK");
+    expect(html).toContain("No subscriptions, no seat fees, no minimums");
+
+    expect(html).not.toContain("Minimum top-up");
+    expect(html).not.toContain("Two payment rails");
+  });
 });
