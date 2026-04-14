@@ -275,7 +275,7 @@ curl -X POST "${API}/capabilities/search.query/execute" \
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# 1) Discover the capability you need
 curl "${API}/capabilities?search=email"
 
-# 2) Resolve ranked providers, or the next setup step
+# 2) Resolve ranked providers, or follow the machine-readable recovery handoff
 curl "${API}/capabilities/email.send/resolve?credential_mode=byok"
 
 # 3) Estimate before paying
@@ -286,6 +286,9 @@ curl -X POST "${API}/capabilities/email.send/execute" \
   -H "X-Rhumb-Key: rhumb_live_..." \
   -H "Content-Type: application/json" \
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
+          <p class="text-sm text-slate-400 mt-4 leading-6">
+            If the requested rail dead-ends, Resolve returns machine-readable recovery handoffs like <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">alternate_execute_hint</code> or <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">setup_handoff</code> instead of forcing another discovery pass. If the capability ID is wrong, you get search suggestions rather than a blank dead end.
+          </p>
         </div>
 
         <div class="grid sm:grid-cols-4 gap-4 mb-8">
