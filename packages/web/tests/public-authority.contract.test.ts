@@ -16,6 +16,7 @@ const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro"
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroBlogIndex = readFileSync(new URL("../../astro-web/src/pages/blog/index.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
+const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
@@ -189,6 +190,13 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).toContain('Bring BYOK only when provider control is the point.');
     expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
+  });
+
+  it("keeps the astro MCP getting-started auth rail aligned with the live execution rails", () => {
+    expect(astroGettingStartedMcp).toContain('For repeat traffic, use governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
+    expect(astroGettingStartedMcp).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
+    expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
   });
 
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
