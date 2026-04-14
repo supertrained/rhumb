@@ -7,6 +7,11 @@ const failureModesSource = readFileSync(
   new URL("../../astro-web/src/pages/docs/failure-modes.astro", import.meta.url),
   "utf8",
 );
+const astroDocsSource = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
+const astroGettingStartedSource = readFileSync(
+  new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url),
+  "utf8",
+);
 const mcpQuickstartSource = readFileSync(
   new URL("../../../examples/mcp-quickstart.md", import.meta.url),
   "utf8",
@@ -78,5 +83,17 @@ describe("docs page", () => {
     expect(apiDocSource).toContain("recovery_hint.setup_handoff");
     expect(apiDocSource).not.toContain("Use `alternate_execute_hint` when");
     expect(apiDocSource).not.toContain("plus `resolve_url` and `credential_modes_url`");
+  });
+
+  it("keeps the hand-written Astro docs surfaces aligned with the full recovery_hint field set", () => {
+    for (const source of [astroDocsSource, astroGettingStartedSource]) {
+      expect(source).toContain("recovery_hint.resolve_url");
+      expect(source).toContain("recovery_hint.credential_modes_url");
+      expect(source).toContain("recovery_hint.alternate_execute_hint");
+      expect(source).toContain("recovery_hint.setup_handoff");
+    }
+
+    expect(astroDocsSource).not.toContain("recovery_hint.resolve_url and recovery_hint.setup_handoff");
+    expect(astroGettingStartedSource).not.toContain("recovery_hint.resolve_url and recovery_hint.setup_handoff");
   });
 });
