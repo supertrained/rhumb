@@ -71,10 +71,10 @@ import Layout from "../layouts/Layout.astro";
               available without authentication.
             </li>
             <li>
-              <strong class="text-slate-200">API with key (free tier + paid):</strong>{" "}
-              Authenticated API access requires an API key obtained through OAuth sign-up.
-              A free tier provides 1,000 calls per month. Paid usage is billed via
-              prepaid Stripe balance or x402 (USDC on Base) micropayments.
+              <strong class="text-slate-200">Execution rails (paid as used):</strong>{" "}
+              Authenticated execution may use governed API key, wallet-prefund,
+              or BYOK depending on the rail you choose. Discovery remains free,
+              and current pricing and markup terms are published at <a href="/pricing" class="text-amber hover:underline underline-offset-2">/pricing</a>.
             </li>
             <li>
               <strong class="text-slate-200">x402 zero-signup (paid):</strong>{" "}
@@ -83,7 +83,7 @@ import Layout from "../layouts/Layout.astro";
             </li>
           </ul>
           <p class="mt-3">
-            We reserve the right to modify tier boundaries, pricing, and free-tier limits
+            We reserve the right to modify access rails, pricing, and billing terms
             with reasonable notice.
           </p>
         </section>
@@ -107,8 +107,8 @@ import Layout from "../layouts/Layout.astro";
               the upstream service
             </li>
             <li>
-              &bull; We apply a markup to upstream costs (currently 20% for standard
-              billing, 15% for x402/USDC)
+              &bull; For Rhumb-managed execution rails, we apply the current markup
+              disclosed at <a href="/pricing" class="text-amber hover:underline underline-offset-2">/pricing</a>; BYOK routes do not add markup to the credential itself
             </li>
             <li>
               &bull; We are not liable for upstream service outages, errors, or
