@@ -177,9 +177,12 @@ def _resolve_handoff_summary(handoff: dict[str, Any] | None) -> str | None:
         parts.append(f"mode={handoff['preferred_credential_mode']}")
     if isinstance(handoff.get("endpoint_pattern"), str):
         parts.append(f"endpoint={handoff['endpoint_pattern']}")
-    next_url = handoff.get("setup_url") or handoff.get("resolve_url") or handoff.get("credential_modes_url")
-    if isinstance(next_url, str):
-        parts.append(f"next_url={next_url}")
+    if isinstance(handoff.get("setup_url"), str):
+        parts.append(f"setup_url={handoff['setup_url']}")
+    if isinstance(handoff.get("resolve_url"), str):
+        parts.append(f"resolve_url={handoff['resolve_url']}")
+    if isinstance(handoff.get("credential_modes_url"), str):
+        parts.append(f"credential_modes_url={handoff['credential_modes_url']}")
     if not parts:
         return None
     return "Resolve next step: " + ", ".join(parts)

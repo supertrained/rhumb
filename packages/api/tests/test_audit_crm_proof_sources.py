@@ -299,7 +299,7 @@ def test_summarize_provider_includes_resolve_handoff_summary_when_available() ->
 
     assert summary["resolve_step"] == (
         "Resolve next step: source=setup_handoff, provider=hubspot, mode=byok, "
-        "next_url=/v1/services/hubspot/ceremony"
+        "setup_url=/v1/services/hubspot/ceremony, resolve_url=/v1/capabilities/crm.record.search/resolve"
     )
     assert summary["resolve_handoff_summary"] == summary["resolve_step"]
     assert "Resolve next step: source=setup_handoff" in summary["assessment"]

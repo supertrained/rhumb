@@ -144,5 +144,5 @@ def test_main_preflight_only_summary_includes_resolve_step(monkeypatch, capsys) 
     assert "blocked_on=hosted_storage_ref_config" in summary
     assert (
         "resolve_step=Resolve next step: source=execute_hint, provider=aws-s3, mode=byok, "
-        "next_url=/v1/capabilities/object.list/credential-modes"
+        "credential_modes_url=/v1/capabilities/object.list/credential-modes"
     ) in summary

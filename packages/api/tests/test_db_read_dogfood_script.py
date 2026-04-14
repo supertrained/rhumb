@@ -99,7 +99,7 @@ def test_failure_summary_includes_next_step_handoff() -> None:
     assert summary == (
         "execute db.query.read failed: missing token; "
         "Resolve next step: source=execute_hint, provider=postgresql, mode=agent_vault, "
-        "selection_reason=highest_ranked_provider, next_url=/v1/services/postgresql/ceremony"
+        "selection_reason=highest_ranked_provider, setup_url=/v1/services/postgresql/ceremony"
     )
 
 
@@ -123,5 +123,5 @@ def test_attach_resolve_step_promotes_handoff_to_top_level_failed_payload() -> N
 
     assert payload["resolve_step"] == (
         "Resolve next step: source=setup_handoff, provider=postgresql, mode=agent_vault, "
-        "next_url=/v1/services/postgresql/ceremony"
+        "setup_url=/v1/services/postgresql/ceremony"
     )
