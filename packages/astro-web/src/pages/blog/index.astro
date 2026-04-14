@@ -361,6 +361,23 @@ const POSTS: Post[] = [
     ],
   },
   {
+    slug: "static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
+    date: "April 14, 2026",
+    dateISO: "2026-04-14T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "Methodology",
+    difficulty: "Intermediate",
+    timeEstimate: "~8 min",
+    related: [
+      { slug: "remote-mcp-liveness-vs-production-readiness", title: "Remote MCP Uptime Is Not Production Readiness" },
+      { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
+      { slug: "how-to-evaluate-apis-for-agents", title: "How to Evaluate APIs for AI Agents" },
+    ],
+  },
+  {
     slug: "what-nobody-tells-you-building-multi-provider-mcp-server",
     title: "What Nobody Tells You About Building a Multi-Provider MCP Server",
     description: `Every MCP tutorial shows you 'hello world.' None of them warn you about the 16 different ways real APIs break when agents call them. Here's what we learned building an MCP server on top of ${servicesLabel} scored services.`,

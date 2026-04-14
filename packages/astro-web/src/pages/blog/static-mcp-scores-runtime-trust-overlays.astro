@@ -1,0 +1,306 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const LAYERS = [
+  {
+    label: "Baseline map",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Structural evaluation explains what the service appears to be before live use: auth shape, scope, failure semantics, and likely operator fit.",
+  },
+  {
+    label: "Live overlay",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "Runtime evidence captures what callers are seeing now: auth viability, latency drift, and caller-visible failure patterns.",
+  },
+  {
+    label: "Drift signal",
+    accent: "text-rose-400",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "The useful moment is when current behavior stops matching the trust class and readiness model suggested by the baseline.",
+  },
+  {
+    label: "Operator decision",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Promotion, quarantine, demotion, or task-specific restriction should happen after interpreting both structure and live behavior together.",
+  },
+];
+
+const RUNTIME_SIGNALS = [
+  {
+    title: "Reachability is not enough",
+    body: "A transport success still hides the hard questions. A server can answer while becoming less trustworthy for unattended use.",
+  },
+  {
+    title: "Auth viability matters",
+    body: "The useful runtime signal is whether the intended caller class can still complete the auth path cleanly, not only whether a socket opened.",
+  },
+  {
+    title: "Failure shape matters",
+    body: "Operators need typed, legible failure patterns, not a single blended uptime number that erases why the system is risky.",
+  },
+  {
+    title: "Trust class still applies",
+    body: "Runtime evidence should preserve whether the surface behaves like inspect-only, bounded write, or something broader than advertised.",
+  },
+];
+
+const REGISTRY_FIELDS = [
+  "baseline readiness class or structural score",
+  "freshness window on live observations",
+  "auth viability instead of raw responsiveness alone",
+  "separate reachability, handshake, and post-auth usability",
+  "trust-class-aware runtime evidence",
+  "drift alerts when current behavior diverges from the baseline model",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
+  url: "https://rhumb.dev/blog/static-mcp-scores-runtime-trust-overlays",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/static-mcp-scores-runtime-trust-overlays",
+};
+---
+
+<Layout
+  title="Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay | Rhumb"
+  description="Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns."
+  canonical="/blog/static-mcp-scores-runtime-trust-overlays"
+  ogTitle="Static MCP Scores Need Runtime Trust Overlays | Rhumb"
+  ogDescription="The stronger model is structural readiness first, then a live runtime overlay that catches auth drift, failure clustering, and caller-visible reliability changes."
+  ogUrl="https://rhumb.dev/blog/static-mcp-scores-runtime-trust-overlays"
+  ogType="article"
+  twitterTitle="Static MCP Scores Need Runtime Trust Overlays"
+  twitterDescription="Baseline scoring and runtime trust are useful together. The operator problem is structural evaluation plus live drift detection."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Methodology</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay.
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              Static scoring and runtime trust are not competing answers. The stronger operator model is a baseline map of structural readiness plus a live overlay that catches auth breakage, failure drift, and caller-visible reliability changes.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">Overlay model</div>
+            <div class="space-y-3">
+              {LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-4 ${layer.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-10">
+        {RUNTIME_SIGNALS.map((signal) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="font-display font-semibold text-lg text-slate-100 tracking-tight mb-2">{signal.title}</h2>
+            <p class="text-sm text-slate-400 leading-relaxed">{signal.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The real question is not <span class="text-slate-100">“Did the service respond?”</span>
+          It is <span class="text-slate-100">“Is this service behaving, right now, like the trust class and readiness model we thought we were exposing?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Static scores still solve a real pre-runtime problem
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A static score is most useful before the first live call. It tells an operator what kind of thing they are evaluating before runtime evidence exists.
+              </p>
+              <p>
+                That baseline can capture the structure that actually matters: auth shape, scope clarity, failure semantics, visible capability boundaries, and whether the surface looks closer to a solo helper, a shared remote tool, or production infrastructure.
+              </p>
+              <p>
+                Without that map, operators choose blind. Stars, launch-day excitement, directory listings, and protocol-level compatibility all make services look more similar than they really are. Structural evaluation matters because it compresses the risk model before live evidence arrives.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. Runtime trust sees the movement that a baseline cannot
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                The critique of static scoring becomes valid the moment behavior starts moving underneath the model. Auth paths drift, latency shifts, failures cluster, and a surface that looked clean on paper becomes brittle for the callers that matter.
+              </p>
+              <p>
+                That is where runtime trust earns its place. The useful live signal is not just transport success. It is whether the right caller class can still authenticate, whether the action completes inside the expected boundary, and whether failures stay typed and recoverable.
+              </p>
+              <p>
+                Once runtime trust preserves those distinctions, it stops being uptime theater and starts becoming an operator overlay.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. Behavioral feeds without structural context still blur the risk story
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A raw stream of success and failure reports can still mislead. One caller may use a very different auth path than another. A read-only lookup tool and a write-capable control surface can both look “healthy” in aggregate while carrying very different blast radius.
+              </p>
+              <p>
+                That is why runtime trust should not replace the baseline. Without structural context, live signals overfit to recent noise and erase why one service is riskier than another in the first place.
+              </p>
+              <p>
+                The useful model preserves both views at once: what this service appeared to be before use, and what it is doing now under real traffic.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. The stronger operator model is baseline map plus live overlay
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Static score and runtime trust become much more useful when they are layered instead of forced to compete.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              {LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-5 ${layer.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-2 ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm text-slate-300 leading-relaxed">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                The baseline gives the first-pass readiness model. The overlay updates current conditions. Drift tells you when the map and the road no longer match. That is a better operator system than either one alone.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. MCP directories should expose layers, not flatten them into one verdict
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                If directories and trust registries want to become genuinely useful, they should stop collapsing everything into stars, metadata, or one summary score. Operators need a baseline plus a freshness-aware overlay.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">A stronger registry surface</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {REGISTRY_FIELDS.map((field) => (
+                  <li>{field}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. Rhumb should treat readiness as a changing relationship, not a fixed badge
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A service can be structurally strong and currently degraded. It can look alive at the protocol layer while becoming less safe operationally. It can pass handshake and still fail the real test of unattended, trust-boundary-safe use.
+              </p>
+              <p>
+                That is why static scoring is best understood as a baseline, not a verdict. Runtime trust is best understood as an overlay, not a replacement. The operator job is to decide whether current behavior still matches the class of system they are willing to let into the loop.
+              </p>
+              <p>
+                The goal is not to win an argument about static versus live systems. The goal is to reduce guesswork when deciding whether a service still deserves to sit inside an agent’s action loop.
+              </p>
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
+            <ul class="space-y-3 text-slate-300">
+              <li>
+                <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                  Remote MCP Uptime Is Not Production Readiness
+                </a>
+              </li>
+              <li>
+                <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                  Governed Capabilities Are Becoming the Real Control Plane
+                </a>
+              </li>
+              <li>
+                <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                  How to Evaluate APIs for AI Agents
+                </a>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 self-start">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">What the baseline should preserve</div>
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed">
+              <li>auth shape and principal boundaries</li>
+              <li>scope and capability visibility</li>
+              <li>failure semantics before first use</li>
+              <li>trust class and likely operator fit</li>
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">What the overlay should catch</div>
+            <ul class="space-y-2 text-sm text-slate-300 leading-relaxed">
+              <li>auth drift and human-dependent breakage</li>
+              <li>latency or timeout regression</li>
+              <li>failure clustering by caller path</li>
+              <li>behavior that no longer matches the declared trust class</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
