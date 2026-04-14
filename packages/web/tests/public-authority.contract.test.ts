@@ -6,6 +6,14 @@ const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", impo
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
+const rootAgentCapabilities = readFileSync(
+  new URL("../../../agent-capabilities.json", import.meta.url),
+  "utf8",
+);
+const wellKnownAgentCapabilities = readFileSync(
+  new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url),
+  "utf8",
+);
 
 describe("public authority pricing contract", () => {
   it("keeps the sitewide web metadata aligned with current pricing truth", () => {
@@ -44,5 +52,22 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).not.toContain("Free tier: 1,000 calls/month");
 
     expect(webPublicLlms).toBe(rootLlms);
+  });
+
+  it("keeps agent-capabilities pricing truth aligned with live rail-based pricing story", () => {
+    const rootCaps = JSON.parse(rootAgentCapabilities);
+    const wellKnownCaps = JSON.parse(wellKnownAgentCapabilities);
+
+    for (const caps of [rootCaps, wellKnownCaps]) {
+      expect(caps).toHaveProperty("pricing");
+      expect(caps.pricing.discovery).toBe("free");
+      expect(caps.pricing.execution).toBe("rail_based");
+      expect(caps.pricing.free_tier).toBeNull();
+      expect(caps.pricing.details).toBe("https://rhumb.dev/pricing");
+    }
+
+    expect(rootCaps).toEqual(wellKnownCaps);
+    expect(rootAgentCapabilities).not.toContain("1000_calls_per_month");
+    expect(wellKnownAgentCapabilities).not.toContain("1000_calls_per_month");
   });
 });

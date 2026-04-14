@@ -7,6 +7,29 @@ from fastapi.testclient import TestClient
 from app import create_app
 
 
+def test_api_pricing_fallback_catalog_matches_shared_catalog() -> None:
+    """Keep API-only pricing fallback aligned with canonical shared pricing truth.
+
+    The API prefers packages/shared/pricing.json in the monorepo, but API-only Docker
+    builds fall back to packages/api/pricing.json.
+    """
+
+    import json
+    from pathlib import Path
+
+    packages_root = Path(__file__).resolve().parents[2]
+    shared_pricing = packages_root / "shared" / "pricing.json"
+    api_fallback_pricing = Path(__file__).resolve().parents[1] / "pricing.json"
+
+    assert shared_pricing.exists()
+    assert api_fallback_pricing.exists()
+
+    shared = json.loads(shared_pricing.read_text("utf-8"))
+    fallback = json.loads(api_fallback_pricing.read_text("utf-8"))
+
+    assert fallback == shared
+
+
 def test_get_pricing_returns_public_contract() -> None:
     client = TestClient(create_app())
 

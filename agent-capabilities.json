@@ -170,8 +170,8 @@
   },
   "pricing": {
     "discovery": "free",
-    "execution": "prepaid_or_x402",
-    "free_tier": "1000_calls_per_month",
+    "execution": "rail_based",
+    "free_tier": null,
     "details": "https://rhumb.dev/pricing"
   },
   "links": {

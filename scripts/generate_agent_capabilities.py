@@ -200,8 +200,8 @@ def build_agent_capabilities() -> dict:
         },
         "pricing": {
             "discovery": "free",
-            "execution": "prepaid_or_x402",
-            "free_tier": "1000_calls_per_month",
+            "execution": "rail_based",
+            "free_tier": None,
             "details": "https://rhumb.dev/pricing",
         },
         "links": {
