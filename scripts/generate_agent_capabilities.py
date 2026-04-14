@@ -42,7 +42,7 @@ GROUPS: list[tuple[str, str, bool, list[str]]] = [
     ),
     (
         "execution",
-        "Execute capabilities through Resolve with managed auth and cost-aware routing",
+        "Execute capabilities through Resolve on the live rail returned by resolve: governed API key, wallet-prefund, x402 per-call, or BYOK where supported",
         True,
         [
             "execute_capability",
@@ -154,7 +154,10 @@ def build_agent_capabilities() -> dict:
         "npm_package": "rhumb-mcp",
         "auth": {
             "discovery": "none",
-            "execution": "api_key_or_x402",
+            "execution": "rail_based",
+            "repeat_traffic": "governed_api_key_or_wallet_prefund_on_x_rhumb_key",
+            "zero_signup": "x402_usdc",
+            "provider_control": "byok_or_agent_vault",
             "signup_url": "https://rhumb.dev/auth/login",
         },
         "capabilities": capabilities,

@@ -141,7 +141,7 @@ describe("types.contract", () => {
     expect(rootReadme).not.toContain("Ranked providers + recovery handoffs");
   });
 
-  it("generated llms and MCP metadata stay aligned with the live rail-based execution story", () => {
+  it("generated llms, agent capabilities, and MCP metadata stay aligned with the live rail-based execution story", () => {
     for (const surface of [rootLlms, webPublicLlms]) {
       expect(surface).toContain("## Execution (requires a live rail)");
       expect(surface).toContain("Governed API key");
@@ -162,6 +162,16 @@ describe("types.contract", () => {
 
     expect(mcpQuickstartExample).toContain("For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK only when provider control is the point.");
     expect(mcpQuickstartExample).not.toContain("For repeat wallet traffic, use wallet-prefund and then execute with `X-Rhumb-Key`.");
+
+    for (const surface of [rootAgentCapabilities, wellKnownAgentCapabilities]) {
+      expect(surface).toContain('"execution": "rail_based"');
+      expect(surface).toContain('"repeat_traffic": "governed_api_key_or_wallet_prefund_on_x_rhumb_key"');
+      expect(surface).toContain('"zero_signup": "x402_usdc"');
+      expect(surface).toContain('"provider_control": "byok_or_agent_vault"');
+      expect(surface).toContain("Execute capabilities through Resolve on the live rail returned by resolve: governed API key, wallet-prefund, x402 per-call, or BYOK where supported");
+      expect(surface).not.toContain('"execution": "api_key_or_x402"');
+      expect(surface).not.toContain("Execute capabilities through Resolve with managed auth and cost-aware routing");
+    }
 
     for (const description of [mcpPackageJson.description, mcpServerManifest.description]) {
       expect(description.toLowerCase()).toContain("agent-native tool intelligence");

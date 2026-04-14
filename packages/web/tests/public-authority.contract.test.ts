@@ -276,7 +276,7 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).toBe(rootLlms);
   });
 
-  it("keeps agent-capabilities pricing truth aligned with live rail-based pricing story", () => {
+  it("keeps agent-capabilities pricing and auth truth aligned with the live rail-based story", () => {
     const rootCaps = JSON.parse(rootAgentCapabilities);
     const wellKnownCaps = JSON.parse(wellKnownAgentCapabilities);
 
@@ -286,11 +286,20 @@ describe("public authority pricing contract", () => {
       expect(caps.pricing.execution).toBe("rail_based");
       expect(caps.pricing.free_tier).toBeNull();
       expect(caps.pricing.details).toBe("https://rhumb.dev/pricing");
+
+      expect(caps.auth.discovery).toBe("none");
+      expect(caps.auth.execution).toBe("rail_based");
+      expect(caps.auth.repeat_traffic).toBe("governed_api_key_or_wallet_prefund_on_x_rhumb_key");
+      expect(caps.auth.zero_signup).toBe("x402_usdc");
+      expect(caps.auth.provider_control).toBe("byok_or_agent_vault");
+      expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK where supported");
     }
 
     expect(rootCaps).toEqual(wellKnownCaps);
     expect(rootAgentCapabilities).not.toContain("1000_calls_per_month");
     expect(wellKnownAgentCapabilities).not.toContain("1000_calls_per_month");
+    expect(rootAgentCapabilities).not.toContain("api_key_or_x402");
+    expect(wellKnownAgentCapabilities).not.toContain("api_key_or_x402");
   });
 
   it("keeps the API pricing example aligned with canonical pricing truth", () => {
