@@ -302,7 +302,7 @@ When `POST /v1/capabilities/{capability_id}/execute` returns HTTP 402, Rhumb now
 Current product truth:
 - **default path:** governed API key via `/auth/login`, then retry with `X-Rhumb-Key`
 - **wallet repeat traffic:** wallet-prefund via `/payments/agent`, then retry with `X-Rhumb-Key`
-- **zero-signup per-call:** x402 via `/payments/agent`, then retry with `X-Payment`
+- **zero-signup per-call:** x402 via `/payments/agent`, then retry with `X-Payment` carrying `tx_hash`, `network`, and `wallet_address`; if your buyer only emits wrapped authorization payloads, use wallet-prefund instead of the direct per-call retry
 
 That means agents should not treat a 402 as a generic dead end. They should either follow the structured next step automatically when their runtime supports the rail, or surface the exact human setup action when it does not.
 

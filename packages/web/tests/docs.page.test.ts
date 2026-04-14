@@ -81,6 +81,8 @@ describe("docs page", () => {
     expect(apiDocSource).toContain("recovery_hint.credential_modes_url");
     expect(apiDocSource).toContain("recovery_hint.alternate_execute_hint");
     expect(apiDocSource).toContain("recovery_hint.setup_handoff");
+    expect(apiDocSource).toContain("retry with `X-Payment` carrying `tx_hash`, `network`, and `wallet_address`");
+    expect(apiDocSource).toContain("wrapped authorization payloads, use wallet-prefund instead of the direct per-call retry");
     expect(apiDocSource).not.toContain("Use `alternate_execute_hint` when");
     expect(apiDocSource).not.toContain("plus `resolve_url` and `credential_modes_url`");
   });
