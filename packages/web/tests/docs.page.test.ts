@@ -46,7 +46,11 @@ describe("docs page", () => {
     expect(html).toContain("get_receipt");
     expect(html).toContain("92 scored categories");
     expect(html).toContain("the ranked leaderboard hub currently covers 11 categories");
+    expect(html).toContain("Execution requires a live rail");
+    expect(html).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(html).toContain("to inspect the available credential modes");
 
+    expect(html).not.toContain("requires an API key or x402 payment");
     expect(html).not.toContain("92 categories — browse all at");
     expect(html).not.toContain("estimate_cost");
     expect(html).not.toContain("get_credentials");

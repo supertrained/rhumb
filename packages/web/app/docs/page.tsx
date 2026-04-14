@@ -413,17 +413,22 @@ export default function DocsPage() {
               <span className="text-amber mt-0.5">•</span>
               <span>
                 <strong className="text-slate-200">
-                  Execution requires auth
+                  Execution requires a live rail
                 </strong>{" "}
-                — capability execution via Rhumb Resolve requires an API
-                key or x402 payment. Sign up at{" "}
+                — capability execution via Rhumb Resolve runs through
+                governed API key, wallet-prefund, x402 per-call, or BYOK
+                depending on the provider. Start with{" "}
+                <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
+                  resolve_capability
+                </code>{" "}
+                to inspect the available credential modes, or sign up at{" "}
                 <a
                   href="https://rhumb.dev/auth/login"
                   className="text-amber hover:underline underline-offset-2"
                 >
                   rhumb.dev/auth/login
-                </a>
-                .
+                </a>{" "}
+                when you want the default governed API key path.
               </span>
             </li>
             <li className="flex items-start gap-2">
