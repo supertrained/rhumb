@@ -118,6 +118,37 @@ export default function PricingPage() {
             rail, health, and exact cost before you commit. No subscriptions,
             no seat fees, no minimums.
           </p>
+
+          <div className="mt-8 rounded-2xl border border-amber/20 bg-surface/80 p-5 backdrop-blur-sm">
+            <p className="text-xs font-mono text-amber uppercase tracking-widest">
+              Before you choose a payment rail
+            </p>
+            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+              Check the trust posture, scoring methodology, and provider dispute path first so
+              your payment choice stays anchored to what Rhumb actually proves and how providers
+              can challenge stale score assumptions.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/trust"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Trust →
+              </Link>
+              <Link
+                href="/methodology"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Methodology →
+              </Link>
+              <Link
+                href="/providers#dispute-a-score"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Dispute a score →
+              </Link>
+            </div>
+          </div>
         </header>
 
         <section className="mb-16">

@@ -49,6 +49,11 @@ describe("docs page", () => {
     expect(html).toContain("Execution requires a live rail");
     expect(html).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(html).toContain("to inspect the available credential modes");
+    expect(html).toContain("Before you wire these routes into production");
+    expect(html).toContain("Trust →");
+    expect(html).toContain("Methodology →");
+    expect(html).toContain("Dispute a score →");
+    expect(html).toContain("/providers#dispute-a-score");
 
     expect(html).not.toContain("requires an API key or x402 payment");
     expect(html).not.toContain("92 categories — browse all at");

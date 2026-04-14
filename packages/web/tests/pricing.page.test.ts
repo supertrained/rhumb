@@ -41,6 +41,11 @@ describe("pricing page", () => {
     expect(html).toContain("No subscriptions, no seat fees, no minimums");
     expect(html).toContain("Adds a funding step before the steady-state execute path.");
     expect(html).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
+    expect(html).toContain("Before you choose a payment rail");
+    expect(html).toContain("Trust →");
+    expect(html).toContain("Methodology →");
+    expect(html).toContain("Dispute a score →");
+    expect(html).toContain("/providers#dispute-a-score");
 
     expect(html).not.toContain("Minimum top-up");
     expect(html).not.toContain("Two payment rails");

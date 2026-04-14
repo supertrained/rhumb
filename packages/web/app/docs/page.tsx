@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ORDERED_SLUGS } from "../../lib/categories";
 import { PUBLIC_TRUTH } from "../../lib/public-truth";
@@ -275,6 +276,37 @@ export default function DocsPage() {
           <div className="bg-surface border border-slate-800 rounded-lg p-4 font-mono text-sm">
             <span className="text-slate-500">Base URL:</span>{" "}
             <span className="text-amber">{BASE_URL}</span>
+          </div>
+
+          <div className="mt-8 rounded-2xl border border-amber/20 bg-surface/80 p-5 backdrop-blur-sm">
+            <p className="text-xs font-mono text-amber uppercase tracking-widest">
+              Before you wire these routes into production
+            </p>
+            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+              Check the trust posture, scoring methodology, and provider dispute path first so
+              your docs stay honest before a score, ranking, or route choice turns into agent
+              logic.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/trust"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Trust →
+              </Link>
+              <Link
+                href="/methodology"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Methodology →
+              </Link>
+              <Link
+                href="/providers#dispute-a-score"
+                className="inline-flex rounded-lg border border-slate-700 px-4 py-2 text-slate-300 transition-colors duration-200 hover:border-slate-500 hover:text-slate-100"
+              >
+                Dispute a score →
+              </Link>
+            </div>
           </div>
         </header>
 
