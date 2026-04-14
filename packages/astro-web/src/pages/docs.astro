@@ -314,7 +314,7 @@ const MCP_TOOLS = [
   { name: "get_failure_modes", desc: "Inspect known breakage patterns before integrating.", example: 'get_failure_modes({ slug: "stripe" })' },
   { name: "discover_capabilities", desc: "Browse capabilities like email.send or scrape.extract.", example: 'discover_capabilities({ search: "email" })' },
   { name: "resolve_capability", desc: "Rank providers, filter by credential mode, surface recovery handoffs, and recover typoed capability IDs with search suggestions.", example: 'resolve_capability({ capability: "email.send", credential_mode: "byok" })' },
-  { name: "estimate_capability", desc: "Estimate cost and routing before execution.", example: 'estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" })' },
+  { name: "estimate_capability", desc: "Estimate the active execution rail, cost, and health before execution. Anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs.", example: 'estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" })' },
   { name: "execute_capability", desc: "Execute a capability through Rhumb Resolve.", example: 'execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed", body: { to: "user@example.com" } })' },
   { name: "credential_ceremony", desc: "Get self-service credential setup instructions.", example: 'credential_ceremony({ service: "github" })' },
   { name: "check_credentials", desc: "See which credential modes are available to you.", example: 'check_credentials({ capability: "email.send" })' },
