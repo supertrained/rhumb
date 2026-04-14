@@ -78,7 +78,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
-- `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
+- `estimate_capability` — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
 
@@ -127,7 +127,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 
 **Execution**
 - `execute_capability` — Call a Capability through Rhumb Resolve
-- `estimate_capability` — Get the cost of a Capability call WITHOUT making the call
+- `estimate_capability` — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - `credential_ceremony` — Get step-by-step instructions to obtain API credentials for a Service
 - `check_credentials` — Check what credential modes are available to you
 - `rhumb_list_recipes` — List the current published Rhumb Layer 3 recipe catalog

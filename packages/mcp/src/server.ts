@@ -187,7 +187,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- estimate_capability -----------------------------------------------
   server.tool(
     "estimate_capability",
-    "Get the cost of a Capability call WITHOUT making the call. Returns cost in USD, circuit health, and endpoint pattern. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byok. Legacy 'byo' is still accepted as an input alias. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
+    "Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs. Returns cost in USD, circuit health, and endpoint pattern. Default credential mode is auto: Rhumb uses Rhumb Resolve when an active managed config exists, otherwise falls back to byok. Legacy 'byo' is still accepted as an input alias. Always call this before execute_capability for cost-sensitive workflows — no charge for estimates.",
     {
       capability_id: z.string().describe(EstimateCapabilityInputSchema.properties.capability_id.description),
       provider: z.string().optional().describe(EstimateCapabilityInputSchema.properties.provider.description),

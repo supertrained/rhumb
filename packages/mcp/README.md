@@ -115,7 +115,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 | Tool | What it does |
 |------|-------------|
 | `execute_capability` | Call a Capability through Rhumb Resolve |
-| `estimate_capability` | Get the cost of a Capability call WITHOUT making the call |
+| `estimate_capability` | Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs |
 | `credential_ceremony` | Get step-by-step instructions to obtain API credentials for a Service |
 | `check_credentials` | Check what credential modes are available to you |
 | `rhumb_list_recipes` | List the current published Rhumb Layer 3 recipe catalog |

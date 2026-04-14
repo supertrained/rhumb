@@ -52,7 +52,7 @@
         },
         {
           "name": "estimate_capability",
-          "description": "Get the cost of a Capability call WITHOUT making the call"
+          "description": "Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs"
         },
         {
           "name": "credential_ceremony",
