@@ -1,0 +1,344 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const HERO_SIGNALS = [
+  "signed receipts make tool-call history more verifiable after execution",
+  "a tamper-evident record does not answer whether the call should have been allowed",
+  "authority failures usually happen before the receipt layer can help",
+  "the strongest MCP systems pair bounded admission control with post-call evidence",
+];
+
+const RECEIPT_STRENGTHS = [
+  "caller identity or proxy session identity",
+  "tool name and execution ordering",
+  "request arguments or stable digests",
+  "response body or result hash",
+  "tamper evidence through signing and chaining",
+  "reviewable artifacts for incident response and compliance",
+];
+
+const AUTHORITY_QUESTIONS = [
+  "should this caller have seen this tool in discovery at all?",
+  "was the caller in the right trust class for this action?",
+  "did auth establish identity only, or actual authority for the tool?",
+  "was the side-effect class acceptable for the workflow?",
+  "should the runtime have blocked the call because the capability boundary was too broad?",
+  "was the backend principal mapped correctly before execution began?",
+];
+
+const PRE_CALL_BOUNDARIES = [
+  "scoped discovery",
+  "trust-class-aware exposure",
+  "principal-to-tool mapping",
+  "clear side-effect classes",
+  "bounded capability surfaces",
+  "pre-request governors and typed denials",
+];
+
+const LAYERS = [
+  {
+    title: "Layer 1, pre-call control",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    body:
+      "Before execution, the runtime needs to decide what the caller can see, what trust class applies, and what authority is actually being delegated. This is where the safety story lives.",
+  },
+  {
+    title: "Layer 2, execution evidence",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    body:
+      "Once a call is allowed, signed receipts make the execution trail more verifiable. This is where accountability gets stronger, not where permission is created.",
+  },
+  {
+    title: "Layer 3, post-call review",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    body:
+      "After execution, operators need verification, incident handling, dispute resolution, and compliance review. This is where evidence becomes operationally useful.",
+  },
+];
+
+const CONTEXT_FIELDS = [
+  "trust class",
+  "side-effect class",
+  "caller identity",
+  "policy decision",
+  "backend principal mapping",
+  "environment or tenant boundary",
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/governed-capability-surfaces-agent-integrations",
+    title: "Governed Capabilities Are Becoming the Real Control Plane",
+    description: "Why safer agent interfaces narrow authority instead of mirroring raw API sprawl.",
+  },
+  {
+    href: "/blog/read-only-mcp-trust-class",
+    title: "Read-Only MCP as a Trust Class",
+    description: "Why a safer trust class starts with fewer allowed effects, not better retrospective storytelling.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "Why structural evaluation still needs live evidence about how the surface behaves now.",
+  },
+  {
+    href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
+    title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
+    description: "Another place where agent safety depends on legible signals before runtime ambiguity becomes production damage.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Signed MCP tool-call receipts improve auditability and forensic confidence after execution, but they do not replace scope control, trust-class filtering, or authority checks before the call.",
+  url: "https://rhumb.dev/blog/signed-mcp-receipts-evidence-not-authority",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/signed-mcp-receipts-evidence-not-authority",
+};
+---
+
+<Layout
+  title="Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe | Rhumb"
+  description="Signed MCP tool-call receipts improve auditability and forensic confidence after execution, but they do not replace scope control, trust-class filtering, or authority checks before the call."
+  canonical="/blog/signed-mcp-receipts-evidence-not-authority"
+  ogTitle="Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe"
+  ogDescription="Receipts strengthen evidence after execution. They do not replace authority, scope control, or admission decisions before the call."
+  ogUrl="https://rhumb.dev/blog/signed-mcp-receipts-evidence-not-authority"
+  ogType="article"
+  twitterTitle="Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe"
+  twitterDescription="Receipts make tool-call history more verifiable. They do not decide whether the call should have been allowed in the first place."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="absolute -top-24 right-0 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">Auditability</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.9fr,1fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-amber/20 bg-amber/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">
+              Evidence is not authority
+            </div>
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              Signed tool-call receipts close a real auditability gap. They make execution history more verifiable after the fact. But the dangerous MCP failures usually happen earlier, when discovery, scope, or authority boundaries were wrong before the call ever ran.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">What receipts change</div>
+            <div class="space-y-3">
+              {HERO_SIGNALS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful distinction</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          A receipt can help prove that a call happened. It cannot prove that the runtime should have exposed or admitted the call in the first place.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Ordinary MCP logs are often too soft for proof
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Most tool-call traces still answer only one question well: what does this system say happened? That is helpful for debugging. It is not always enough for review, dispute resolution, or compliance.
+              </p>
+              <p>
+                Once agents can mutate repos, file tickets, send messages, touch customer data, or spend money, operators need something stronger than a mutable runtime narrative. They need execution artifacts another party can verify later.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. Signed receipts strengthen evidence after execution
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                This is where signed receipts matter. They can turn a tool call into a verifiable artifact instead of a soft log line.
+              </p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {RECEIPT_STRENGTHS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                That makes receipts useful for incident review, forensic reconstruction, compliance evidence, and multi-agent accountability. They close the gap between logging for operations and evidence for later review.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. The trap is confusing evidence with permission
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                A perfectly documented bad tool call is still a bad tool call. Receipts can prove that execution happened. They do not answer the admission-control questions that determine whether the execution should have happened.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Questions receipts do not answer</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {AUTHORITY_QUESTIONS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. The dangerous failures usually happen before the receipt layer can help
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                In MCP systems, the costly failures tend to be upstream of evidence. A runtime exposed too many tools, treated server auth as if it implied per-tool authority, flattened read and write into one trust blob, or shared backend credentials too broadly behind a neat front door.
+              </p>
+              <p>
+                Receipts make those mistakes easier to prove later. They are not what prevents them.
+              </p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {PRE_CALL_BOUNDARIES.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                The stronger model is simple: bounded authority makes the call safer, and signed receipts make the call more accountable afterward.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. The clean architecture is three layers, not one
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                The mistake is collapsing safety, evidence, and review into one story. Stronger operator systems separate them.
+              </p>
+            </div>
+            <div class="grid gap-4">
+              {LAYERS.map((layer) => (
+                <div class={`rounded-[28px] border p-6 ${layer.className}`}>
+                  <div class={`text-[11px] font-mono uppercase tracking-[0.22em] mb-3 ${layer.accent}`}>{layer.title}</div>
+                  <p class="text-slate-300 leading-relaxed">{layer.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. Receipts get stronger when joined to policy context
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                A signed blob alone is not the whole trust story. The strongest audit trail is a verifiable execution record that can be joined back to the policy and trust context that made the call admissible.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Context worth preserving</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CONTEXT_FIELDS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                That is the difference between receipts as a neat debugging feature and receipts as part of a real trust architecture.
+              </p>
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Closing</div>
+            <p class="text-slate-300 leading-relaxed text-lg">
+              Signed receipts close a real evidence gap. They just do not replace scope control, trust-class filtering, or authority decisions before execution. Proof matters most when the control plane was careful before the call ever ran.
+            </p>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 self-start">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Boundary line</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              A receipt is proof. It is not permission.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Pre-call question</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Should this caller have seen or been allowed to invoke this tool at all?
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Why Rhumb cares</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Agent operators need both sides of the trust story: bounded authority before execution, then verifiable evidence after execution. Collapsing those layers hides the failure mode instead of removing it.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100 group-hover:text-amber transition-colors">{item.title}</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>

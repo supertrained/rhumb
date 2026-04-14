@@ -1,0 +1,337 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const HERO_SIGNALS = [
+  "versioning marks a boundary, but it does not tell an agent when reality drifted",
+  "silent contract change usually arrives as a reliability incident before it shows up as a docs problem",
+  "non-human clients need changes they can monitor, diff, classify, and fail closed against",
+  "wrapper layers pay the drift tax twice when providers communicate change only in prose",
+];
+
+const DRIFT_FAILURES = [
+  "parser failures after a field moves, disappears, or turns nullable",
+  "retry storms on deterministic errors that look transient from stale assumptions",
+  "duplicate side effects when partial success becomes ambiguous",
+  "dropped records because old mappings quietly stop matching the live shape",
+  "monitoring noise that looks like flaky infrastructure instead of contract drift",
+  "emergency patches in MCP or orchestration wrappers that were supposed to stabilize the provider surface",
+];
+
+const CHANGE_SURFACES = [
+  "machine-readable changelogs",
+  "structured schema diff feeds",
+  "deprecation metadata with dates and replacement targets",
+  "version headers or capability metadata that can be checked in preflight",
+  "contract-test-friendly schemas and examples",
+  "typed runtime errors when stale assumptions are no longer safe",
+];
+
+const GOOD_PROPERTIES = [
+  {
+    title: "Structured, not buried",
+    body: "Change information should be retrievable in a format suitable for monitoring and diffing, not only in prose written for humans.",
+  },
+  {
+    title: "Breaking risk is explicit",
+    body: "Additive, behavioral, and breaking changes should be separated clearly enough that callers can apply different handling rules.",
+  },
+  {
+    title: "Deprecation has lead time",
+    body: "The provider should say not just what is old, but when it stops being safe and what replaces it.",
+  },
+  {
+    title: "Runtime and docs agree",
+    body: "If a caller is stale, the wire should fail in a typed, classifiable way instead of contradicting the documentation story.",
+  },
+  {
+    title: "Contract testing is practical",
+    body: "Schemas, examples, and metadata should be stable enough that consumers can catch drift before side effects happen.",
+  },
+];
+
+const EVALUATION_DIMENSIONS = [
+  "machine-readable changelog quality",
+  "schema diff legibility",
+  "deprecation signaling quality",
+  "compatibility-window clarity",
+  "contract-test friendliness",
+  "runtime error clarity under stale assumptions",
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents",
+    description: "The broader readiness lens for whether an API actually works for unattended systems.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist",
+    title: "A Production Readiness Checklist for Remote MCP Servers",
+    description: "Why principal model, governors, recovery, and auditability matter more than raw reachability.",
+  },
+  {
+    href: "/blog/signed-mcp-receipts-evidence-not-authority",
+    title: "Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe",
+    description: "Another operator boundary where legible evidence matters, but does not replace authority before execution.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "Why structural evaluation still needs live evidence about how the surface behaves now.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
+  datePublished: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-14T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
+  url: "https://rhumb.dev/blog/machine-parseable-change-communication-for-agent-ready-apis",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/machine-parseable-change-communication-for-agent-ready-apis",
+};
+---
+
+<Layout
+  title="API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication | Rhumb"
+  description="An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely."
+  canonical="/blog/machine-parseable-change-communication-for-agent-ready-apis"
+  ogTitle="API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication"
+  ogDescription="Versioning is useful, but unattended systems need change surfaces they can monitor, diff, and classify before runtime ambiguity becomes production damage."
+  ogUrl="https://rhumb.dev/blog/machine-parseable-change-communication-for-agent-ready-apis"
+  ogType="article"
+  twitterTitle="API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication"
+  twitterDescription="The harder readiness question is not whether an API is versioned. It is whether a non-human client can detect drift in time to fail safely."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber/10 blur-3xl pointer-events-none"></div>
+      <div class="relative max-w-5xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-sky-400 uppercase tracking-widest">API Readiness</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.9fr,1fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">
+              Machine-readable change is a runtime safety feature
+            </div>
+            <h1 class="max-w-4xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+              API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication
+            </h1>
+            <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+              A provider can add <code class="text-slate-200">/v1/</code>, publish release notes, and still leave unattended consumers mostly blind. The real readiness test is whether a non-human client can detect drift in time to fail safely.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-4">What changes for agents</div>
+            <div class="space-y-3">
+              {HERO_SIGNALS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-5xl mx-auto px-6 pt-10 pb-24">
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The useful question</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          For agent systems, MCP wrappers, and long-running integrations, the hard question is not <span class="text-slate-100">did they version it?</span> It is <span class="text-slate-100">can a non-human client detect change in time to fail safely?</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="lg:col-span-2 max-w-3xl space-y-12">
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              1. Versioning helps, but it does not solve operational drift
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Versioning still matters. It can preserve a contract for some period, create a migration boundary, and make support conversations cleaner when breaking changes do arrive.
+              </p>
+              <p>
+                But versioning mostly says there is a boundary. It does not guarantee that an automated consumer can tell when behavior is changing in ways that matter operationally.
+              </p>
+              <p>
+                An API can be formally versioned and still create chaos when response fields appear or disappear without structured notice, deprecations live only in prose, enum expansions are invisible to automation, or error payloads drift before the docs do.
+              </p>
+              <p>
+                From an operator perspective, those are not minor DX annoyances. They are contract-governance failures.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              2. Silent schema drift usually shows up as a reliability failure first
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Teams often frame schema drift as a docs problem. Unattended systems experience it as reliability breakage. The first symptom is often not a changelog miss. It is a 3am incident.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DRIFT_FAILURES.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                That is why the line between reliability and schema stability is thinner than most API evaluations admit. A silent contract change rarely announces itself as a clean “breaking change.” It often arrives disguised as flaky infrastructure or weird production noise.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              3. Agents need change surfaces they can monitor, diff, and classify
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Human-readable release notes are better than silence, but they are not enough for agent-grade integrations. Non-human consumers need change surfaces that can be checked automatically before execution becomes ambiguous.
+              </p>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {CHANGE_SURFACES.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5 text-sm text-slate-300 leading-relaxed">{item}</div>
+              ))}
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                The exact implementation matters less than the outcome. A good change surface helps the caller answer five questions quickly: did the contract change, what changed, how risky is it, when does the old behavior stop being safe, and should the system keep running or fail closed.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              4. MCP and wrapper layers pay the drift tax twice
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Agent builders often are not integrating with a provider directly. They are normalizing the provider first through an MCP server, a capability layer, a gateway, or an internal orchestration surface.
+              </p>
+              <p>
+                Those layers make the model’s interface cleaner, but they create a second place where drift has to be absorbed. Now the wrapper owner has to manage upstream provider changes, internal contract stability, backward compatibility for the agent-facing layer, and failure semantics when upstream shape no longer matches downstream assumptions.
+              </p>
+              <p>
+                That is why weak change communication creates disproportionate maintenance cost in agent systems. An API can be easy to integrate once and still be expensive to keep integrated.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. What good change communicability actually looks like
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                The goal is not perfect foresight. It is safe adaptation. Strong change communication makes drift legible early enough that consumers can classify it and adapt without relying on heroic human rereads of docs.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              {GOOD_PROPERTIES.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+                  <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-amber mb-3">{item.title}</div>
+                  <p class="text-slate-300 leading-relaxed text-sm">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. This belongs in how API readiness gets evaluated
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                If API readiness is supposed to reflect unattended use, then change detectability belongs in the methodology. Reliability, docs, and auth readiness still matter, but there is a more specific question underneath them: how detectable is change before it becomes production damage?
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Useful evaluation dimensions</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {EVALUATION_DIMENSIONS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="space-y-4 text-slate-400 leading-relaxed mt-6">
+              <p>
+                An API with mediocre version branding but strong structured change surfaces may be safer for agents than an API with tidy semantic versioning and weak operational signaling. That inversion is worth making explicit.
+              </p>
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Closing</div>
+            <p class="text-slate-300 leading-relaxed text-lg">
+              Versioning is valuable, but versioning alone is not what keeps a 3am workflow safe. Machine-parseable change communication does. An API can be versioned while still being operationally unstable for agents.
+            </p>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24 self-start">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Failure signature</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              If the only place to learn about contract drift is a docs page written for humans, the integration is still partially blind.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Operator question</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              How legibly does this API communicate change before runtime behavior becomes ambiguous?
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Why Rhumb cares</div>
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Long-tail provider integrations stay expensive when wrappers have to compensate for drift manually. Change communication is part of agent readiness because it determines whether the surface can stay governable over time.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100 group-hover:text-amber transition-colors">{item.title}</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
