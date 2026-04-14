@@ -19,6 +19,8 @@ class _FakeResponse:
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
 SCRIPT_PATH = EXAMPLES_DIR / "resolve-and-execute.py"
+ROOT_README_PATH = Path(__file__).resolve().parents[1] / "README.md"
+EXAMPLES_README_PATH = EXAMPLES_DIR / "README.md"
 
 
 def _load_module(name: str) -> ModuleType:
@@ -144,3 +146,22 @@ def test_no_auth_walkthrough_shows_setup_handoff_before_auth_hint(monkeypatch, c
     assert out.index("  Resolve URL: /v1/capabilities/search.query/resolve?credential_mode=byok") < out.index(
         "💡 Set RHUMB_API_KEY to continue with estimation and execution."
     )
+
+
+def test_resolve_example_docs_keep_machine_readable_handoff_wording() -> None:
+    root_readme = ROOT_README_PATH.read_text()
+    examples_readme = EXAMPLES_README_PATH.read_text()
+    script_source = SCRIPT_PATH.read_text()
+
+    assert "Resolve → machine-readable recovery handoff → Estimate → Execute" in root_readme
+    assert "Resolve → machine-readable recovery handoff → Estimate → Execute" in examples_readme
+    assert (
+        "will still show the ranked providers plus any machine-readable recovery handoff Rhumb already identified"
+        in root_readme
+    )
+    assert "Inspect any machine-readable recovery handoff Rhumb already identified" in script_source
+
+    assert "Resolve → recovery handoff → Estimate → Execute" not in root_readme
+    assert "Resolve → recovery handoff → Estimate → Execute" not in examples_readme
+    assert "will still show the ranked providers plus any recovery handoff Rhumb already identified" not in root_readme
+    assert "Inspect any recovery handoff Rhumb already identified" not in script_source

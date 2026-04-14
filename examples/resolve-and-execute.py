@@ -3,7 +3,7 @@ Rhumb Example: Resolve a capability to the best provider and execute it.
 
 This script shows the core Rhumb Resolve flow:
 1. Resolve a capability to ranked providers
-2. Inspect any recovery handoff Rhumb already identified
+2. Inspect any machine-readable recovery handoff Rhumb already identified
 3. Estimate cost before committing
 4. Execute through Resolve with managed credentials
 

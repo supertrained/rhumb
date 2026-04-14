@@ -13,7 +13,7 @@ pip install httpx  # only dependency for Python examples
 | File | What it shows | Auth needed? |
 |------|--------------|-------------|
 | [discover-and-evaluate.py](discover-and-evaluate.py) | Search → Score → Failure modes | No |
-| [resolve-and-execute.py](resolve-and-execute.py) | Resolve → recovery handoff → Estimate → Execute | No for resolve, yes for estimate/execute |
+| [resolve-and-execute.py](resolve-and-execute.py) | Resolve → machine-readable recovery handoff → Estimate → Execute | No for resolve, yes for estimate/execute |
 | [budget-aware-routing.py](budget-aware-routing.py) | Budget + cost-optimal routing | Yes |
 | [dogfood-telemetry-loop.py](dogfood-telemetry-loop.py) | Repeatable Resolve → telemetry verification loop | Yes |
 | [mcp-quickstart.md](mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |

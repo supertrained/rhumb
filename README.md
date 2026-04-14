@@ -183,7 +183,7 @@ See [`examples/`](examples/) for runnable scripts:
 | Example | What it shows | Auth needed? |
 |---------|--------------|-------------|
 | [discover-and-evaluate.py](examples/discover-and-evaluate.py) | Search → Score → Failure modes | No |
-| [resolve-and-execute.py](examples/resolve-and-execute.py) | Resolve → recovery handoff → Estimate → Execute | No for resolve, yes for estimate/execute |
+| [resolve-and-execute.py](examples/resolve-and-execute.py) | Resolve → machine-readable recovery handoff → Estimate → Execute | No for resolve, yes for estimate/execute |
 | [budget-aware-routing.py](examples/budget-aware-routing.py) | Budget + cost-optimal routing | Yes |
 | [dogfood-telemetry-loop.py](examples/dogfood-telemetry-loop.py) | Repeatable Resolve → telemetry verification loop | Yes |
 | [mcp-quickstart.md](examples/mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |
@@ -196,7 +196,7 @@ pip install httpx && python examples/discover-and-evaluate.py
 python examples/resolve-and-execute.py
 ```
 
-`resolve-and-execute.py` will still show the ranked providers plus any recovery handoff Rhumb already identified. Set `RHUMB_API_KEY` only when you want to continue into estimate and execute.
+`resolve-and-execute.py` will still show the ranked providers plus any machine-readable recovery handoff Rhumb already identified. Set `RHUMB_API_KEY` only when you want to continue into estimate and execute.
 
 ---
 
