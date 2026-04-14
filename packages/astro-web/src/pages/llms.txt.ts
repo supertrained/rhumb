@@ -2,14 +2,6 @@ import type { APIRoute } from 'astro';
 import { getServices, getCategories } from '../lib/api';
 import { PRIMARY_ACTIVATION_PATHS } from '../lib/activation-paths';
 import { PUBLIC_TRUTH } from '../lib/public-truth';
-// Pricing values inlined to avoid cross-package JSON import failures on Vercel
-const pricing = {
-  free_tier: null,
-  modes: {
-    rhumb_managed: { margin_percent: 20 },
-    x402: { margin_percent: 15, token: "USDC", network: "Base" },
-  },
-};
 
 export const GET: APIRoute = async () => {
   const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
@@ -96,9 +88,9 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 
 ## Pricing
 - Discovery (search, scores, browsing): Always free
-- Rhumb-managed billing: upstream cost + ${pricing.modes.rhumb_managed.margin_percent} percent
-- x402: ${pricing.modes.x402.token} on ${pricing.modes.x402.network}, upstream cost + ${pricing.modes.x402.margin_percent} percent
-- BYOK: no Rhumb markup, provider charges pass through directly
+- Execution: governed API key, wallet-prefund, x402 per-call, or BYOK
+- No subscriptions, no seat fees, no minimums
+- Live pricing and markup terms: https://rhumb.dev/pricing
 
 ## Categories
 ${categoryList}

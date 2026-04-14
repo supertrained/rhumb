@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", import.meta.url), "utf8");
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
+const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
 const rootAgentCapabilities = readFileSync(
@@ -41,6 +42,11 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
+    expect(astroLlmsRoute).toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(astroLlmsRoute).toContain("No subscriptions, no seat fees, no minimums");
+    expect(astroLlmsRoute).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
+    expect(astroLlmsRoute).not.toContain("upstream cost +");
+
     expect(rootLlms).toContain("wallet-prefund");
     expect(rootLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(rootLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
