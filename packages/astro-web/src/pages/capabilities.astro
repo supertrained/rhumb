@@ -318,7 +318,9 @@ const CAPABILITY_STARTER_QUERIES = [
         </h2>
         <p class="text-slate-400 text-sm mb-6 max-w-lg mx-auto">
           Discover capability definitions, resolve providers, and execute the subset that is live through
-          a single MCP server. Discovery works without a key; governed execution uses <code class="text-amber">RHUMB_API_KEY</code> or wallet-prefund.
+          a single MCP server. Discovery works without a key. Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>
+          on the governed or wallet-prefund path, can carry BYOK credentials where supported, and can pass <code class="text-amber">x_payment</code>
+          only on capabilities that expose x402 per-call.
         </p>
         <div class="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-navy border border-slate-700 font-mono text-sm text-amber mb-4">
           <code>npx rhumb-mcp@latest</code>

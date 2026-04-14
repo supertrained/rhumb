@@ -24,6 +24,7 @@ const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-ag
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
+const astroCapabilities = readFileSync(new URL("../../astro-web/src/pages/capabilities.astro", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
 const apiDocs = readFileSync(new URL("../../../docs/API.md", import.meta.url), "utf8");
@@ -173,6 +174,15 @@ describe("public authority pricing contract", () => {
     expect(astroSecurity).toContain('x402 per-call uses X-Payment from the payer wallet');
     expect(astroSecurity).toContain('BYOK routes through provider-scoped credentials via Rhumb');
     expect(astroSecurity).not.toContain('API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents.');
+  });
+
+  it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
+    expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
+    expect(astroCapabilities).toContain('governed or wallet-prefund path');
+    expect(astroCapabilities).toContain('BYOK credentials where supported');
+    expect(astroCapabilities).toContain('<code class="text-amber">x_payment</code>');
+    expect(astroCapabilities).toContain('capabilities that expose x402 per-call');
+    expect(astroCapabilities).not.toContain('Discovery works without a key; governed execution uses <code class="text-amber">RHUMB_API_KEY</code> or wallet-prefund.');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
