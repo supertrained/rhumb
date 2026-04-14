@@ -97,7 +97,7 @@ const BUYER_PATHS = [
     summary: "Start with governed API key unless you have a strong reason not to.",
     steps: [
       "Create an account and get X-Rhumb-Key.",
-      "Estimate the capability cost before execution.",
+      "Check the active execution rail, health, and cost before execution.",
       "Execute through Layer 2 with Rhumb-managed routing and billing.",
     ],
     href: "/auth/login",
@@ -628,7 +628,7 @@ const PRICING_JSON_LD = {
         >
           <h2 class="font-display text-xl font-semibold text-slate-100">What you get</h2>
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
-            <li>Pre-call route, health, and cost checks — know the path and price before you execute.</li>
+            <li>Route, health, and cost checks before execution — know the path and price before you execute.</li>
             <li>Smart provider routing — Rhumb picks the best provider for each call.</li>
             <li>Fail-closed billing — you're never charged for failed calls.</li>
           </ul>
