@@ -40,7 +40,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 
 ## Execution (requires API key or x402 payment)
 - POST https://api.rhumb.dev/v1/capabilities/{id}/execute — execute a capability
-- GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — cost estimate
+- GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — estimate the active execution rail, cost, and health before execution; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 
 ## Auth paths
 1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header

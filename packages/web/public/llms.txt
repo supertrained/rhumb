@@ -40,7 +40,7 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 
 ## Execution (requires API key or x402 payment)
 - POST https://api.rhumb.dev/v1/capabilities/{id}/execute — execute a capability
-- GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — cost estimate
+- GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — estimate the active execution rail, cost, and health before execution; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 
 ## Auth paths
 1. API key: sign up at https://rhumb.dev/auth/login, send X-Rhumb-Key header
@@ -58,7 +58,7 @@ Operations: routing, usage_telemetry
 - get_score — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness
 - resolve_capability — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, fallback chains, machine-readable recovery handoffs, and typo recovery when the capability ID is wrong
 - execute_capability — Call a Capability through Rhumb Resolve
-- estimate_capability — Get the cost of a Capability call WITHOUT making the call
+- estimate_capability — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - get_receipt — Retrieve an execution receipt by ID
 - usage_telemetry — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
 

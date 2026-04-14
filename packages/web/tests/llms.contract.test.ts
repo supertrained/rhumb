@@ -9,6 +9,9 @@ describe("llms.txt contract", () => {
     expect(WEB_LLMS).toBe(ROOT_LLMS);
     expect(WEB_LLMS).toContain("resolve_capability");
     expect(WEB_LLMS).toContain("estimate_capability");
+    expect(WEB_LLMS).toContain("active execution rail, cost, and health before execution");
+    expect(WEB_LLMS).toContain("machine-readable execute_readiness handoffs");
+    expect(WEB_LLMS).not.toContain("GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — cost estimate");
     expect(WEB_LLMS).not.toContain("estimate_cost");
     expect(WEB_LLMS).not.toContain("get_budget_status");
   });
