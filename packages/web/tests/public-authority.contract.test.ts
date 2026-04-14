@@ -176,6 +176,12 @@ describe("public authority pricing contract", () => {
     expect(astroSearch).not.toContain('getServiceCount');
   });
 
+  it("keeps the shared astro public truth default path aligned with the live execution rails", () => {
+    expect(astroPublicTruth).toContain('then execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
+    expect(astroPublicTruth).toContain('Bring BYOK or Agent Vault only when the workflow touches your own systems.');
+    expect(astroPublicTruth).not.toContain('wallet-prefunded API key');
+  });
+
   it("keeps the astro security auth surface aligned with the live execution rails", () => {
     expect(astroSecurity).toContain('wallet-prefund repeat traffic authenticate with X-Rhumb-Key');
     expect(astroSecurity).toContain('x402 per-call uses X-Payment from the payer wallet');
