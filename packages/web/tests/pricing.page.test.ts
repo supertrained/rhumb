@@ -39,6 +39,7 @@ describe("pricing page", () => {
     expect(html).toContain("x402 per-call");
     expect(html).toContain("BYOK");
     expect(html).toContain("No subscriptions, no seat fees, no minimums");
+    expect(html).toContain("Adds a funding step before the steady-state execute path.");
 
     expect(html).not.toContain("Minimum top-up");
     expect(html).not.toContain("Two payment rails");
@@ -56,13 +57,15 @@ describe("pricing page", () => {
     expect(html).not.toContain("machine-readable setup or recovery handoff");
   });
 
-  it("keeps the Astro pricing BYOK surface aligned with explicit resolve recovery fields", () => {
+  it("keeps the Astro pricing surface aligned with current chooser and resolve recovery truth", () => {
+    expect(astroPricingSource).toContain("tradeoff: \"Adds a funding step before the steady-state execute path.\"");
     expect(astroPricingSource).toContain("resolve_capability");
     expect(astroPricingSource).toContain("recovery_hint.resolve_url");
     expect(astroPricingSource).toContain("recovery_hint.credential_modes_url");
     expect(astroPricingSource).toContain("recovery_hint.alternate_execute_hint");
     expect(astroPricingSource).toContain("recovery_hint.setup_handoff");
 
+    expect(astroPricingSource).not.toContain("Has a setup step before the first repeatable execution path.");
     expect(astroPricingSource).not.toContain(
       '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',
     );
