@@ -75,7 +75,7 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 - Capabilities are abstract actions (e.g. search.query, email.send) that map to concrete providers
 - Use find_services() when the question is which vendor should I use
 - Use discover_capabilities() when the question is what exact action slug should I call
-- Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, follow recovery handoffs when a filtered route dead-ends, and get search suggestions when the capability ID is wrong
+- Use discover_capabilities() in MCP to browse, then resolve_capability() to compare ranked providers, optionally filter by credential mode, follow recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff when a filtered route dead-ends, and get search suggestions when the capability ID is wrong
 
 ## API Endpoints
 - GET ${apiBase}/pricing - machine-readable public pricing contract

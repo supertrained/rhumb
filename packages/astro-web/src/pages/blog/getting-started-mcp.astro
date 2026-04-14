@@ -59,7 +59,7 @@ const workflows: Workflow[] = [
       {
         tool: "resolve_capability",
         input: '{ capability: "email.send", credential_mode: "byok" }',
-        whatHappens: "Returns ranked providers plus machine-readable execute guidance like cost per call, auth method, endpoint pattern, configured state, and preferred credential mode. If the requested mode dead-ends, Rhumb also returns machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, alternate_execute_hint, or setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
+        whatHappens: "Returns ranked providers plus machine-readable execute guidance like cost per call, auth method, endpoint pattern, configured state, and preferred credential mode. If the requested mode dead-ends, Rhumb also returns machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff. If the capability ID is wrong, Rhumb returns search suggestions instead of a blank dead end.",
       },
       {
         tool: "estimate_capability",
@@ -107,7 +107,7 @@ type McpTool = {
 const mcpTools: McpTool[] = [
   { name: "find_services", description: "Search for services by what you need", category: "discover" },
   { name: "discover_capabilities", description: "Browse capabilities by domain", category: "discover" },
-  { name: "resolve_capability", description: "Rank providers, filter by credential mode, surface recovery handoffs, and recover typoed capability IDs with search suggestions", category: "discover" },
+  { name: "resolve_capability", description: "Rank providers, filter by credential mode, surface machine-readable recovery fields like recovery_hint.resolve_url and recovery_hint.setup_handoff, and recover typoed capability IDs with search suggestions", category: "discover" },
   { name: "get_score", description: "Full AN Score breakdown for a service", category: "score" },
   { name: "get_alternatives", description: "Similar services, ranked", category: "score" },
   { name: "get_failure_modes", description: "Known failure patterns", category: "score" },

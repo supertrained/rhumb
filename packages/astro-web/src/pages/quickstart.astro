@@ -287,7 +287,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \
   -H "Content-Type: application/json" \
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
           <p class="text-sm text-slate-400 mt-4 leading-6">
-            If the requested rail dead-ends, Resolve returns machine-readable recovery fields like <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.resolve_url</code>, <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.credential_modes_url</code>, <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">alternate_execute_hint</code>, or <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">setup_handoff</code> instead of forcing another discovery pass. If the capability ID is wrong, you get search suggestions rather than a blank dead end.
+            If the requested rail dead-ends, Resolve returns machine-readable recovery fields like <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.resolve_url</code>, <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.credential_modes_url</code>, and, when applicable, <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.alternate_execute_hint</code> or <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">recovery_hint.setup_handoff</code> instead of forcing another discovery pass. If the capability ID is wrong, you get search suggestions rather than a blank dead end.
           </p>
         </div>
 
