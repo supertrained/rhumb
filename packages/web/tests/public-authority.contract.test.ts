@@ -19,6 +19,7 @@ const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", i
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
+const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
@@ -197,6 +198,13 @@ describe("public authority pricing contract", () => {
     expect(astroGettingStartedMcp).toContain('Bring BYOK only when provider control is the point.');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
     expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
+  });
+
+  it("keeps the astro agent-payments default production path aligned with the live execution rails", () => {
+    expect(astroPaymentsAgent).toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
+    expect(astroPaymentsAgent).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroPaymentsAgent).toContain('Zero-signup, request-level payment authorization matters more than repeat throughput');
+    expect(astroPaymentsAgent).not.toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with a governed API key or wallet-prefunded API key.');
   });
 
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
