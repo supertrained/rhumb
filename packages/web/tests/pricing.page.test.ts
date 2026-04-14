@@ -40,6 +40,7 @@ describe("pricing page", () => {
     expect(html).toContain("BYOK");
     expect(html).toContain("No subscriptions, no seat fees, no minimums");
     expect(html).toContain("Adds a funding step before the steady-state execute path.");
+    expect(html).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
 
     expect(html).not.toContain("Minimum top-up");
     expect(html).not.toContain("Two payment rails");
@@ -59,6 +60,7 @@ describe("pricing page", () => {
 
   it("keeps the Astro pricing surface aligned with current chooser and resolve recovery truth", () => {
     expect(astroPricingSource).toContain("tradeoff: \"Adds a funding step before the steady-state execute path.\"");
+    expect(astroPricingSource).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
     expect(astroPricingSource).toContain("resolve_capability");
     expect(astroPricingSource).toContain("recovery_hint.resolve_url");
     expect(astroPricingSource).toContain("recovery_hint.credential_modes_url");

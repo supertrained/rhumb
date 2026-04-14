@@ -81,6 +81,7 @@ const agentPaths = [
       "Call execute and read the HTTP 402 payment requirement.",
       "Send the exact asset and amount to the exact address on the exact network in the response.",
       "Retry with X-Payment from the same wallet.",
+      "If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.",
     ],
   },
   {
