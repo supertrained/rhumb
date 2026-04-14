@@ -106,6 +106,10 @@ describe("public authority pricing contract", () => {
     expect(webAbout).toContain('const leaderboardCategoryCount = ORDERED_SLUGS.length;');
     expect(webAbout).toContain('PUBLIC_TRUTH.servicesLabel');
     expect(webAbout).toContain('PUBLIC_TRUTH.categoriesLabel');
+    expect(webAbout).toContain('Before you rely on Rhumb’s claims');
+    expect(webAbout).toContain('href="/trust"');
+    expect(webAbout).toContain('href="/methodology"');
+    expect(webAbout).toContain('href="/providers#dispute-a-score"');
     expect(webAbout).not.toContain('645+ services across 90+ categories');
 
     expect(webSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
