@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { buildTrackedOutboundHref } from "../../lib/tracking";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 export const metadata: Metadata = {
   title: "For API Providers",
@@ -79,13 +80,13 @@ const FAQ = [
   },
   {
     q: "My score seems unfair. What can I do?",
-    a: "File a dispute via GitHub issue (public) or email providers@supertrained.ai (private). Include specific data points you believe are incorrect and why. We review every dispute.",
+    a: "File a dispute via the public GitHub template or email providers@supertrained.ai for a private path. Include the specific data point you believe is wrong, the evidence we should review, and why the current score is inaccurate. We review every dispute and target an initial response within 5 business days.",
   },
 ];
 
 export default function ProvidersPage() {
   const githubDisputeHref = buildTrackedOutboundHref({
-    destinationUrl: "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
+    destinationUrl: PUBLIC_TRUTH.publicDisputeTemplateUrl,
     eventType: "github_dispute_click",
     pagePath: "/providers",
     sourceSurface: "providers_page",
@@ -189,7 +190,7 @@ export default function ProvidersPage() {
           </h2>
           <p className="text-slate-400 leading-relaxed mb-4">
             If you believe a score is inaccurate, we want to know.
-            Disputes can be filed publicly or privately:
+            Disputes can be filed publicly or privately, and we target an initial response within {PUBLIC_TRUTH.disputeResponseSlaBusinessDays} business days.
           </p>
           <div className="flex flex-wrap gap-3 mb-4">
             <a
@@ -207,10 +208,29 @@ export default function ProvidersPage() {
               Private: Email →
             </a>
           </div>
+          <div className="bg-elevated border border-slate-800 rounded-lg p-5 mb-4">
+            <h3 className="font-display font-semibold text-base text-slate-100 mb-3">
+              What to include
+            </h3>
+            <ul className="space-y-2 text-sm text-slate-400 leading-relaxed list-disc pl-5">
+              <li>The specific service, score, or data point you believe is wrong</li>
+              <li>The evidence source we should review, like docs, changelogs, or live behavior</li>
+              <li>Why the current score or explanation is inaccurate or stale</li>
+              <li>Whether your report can be handled publicly or needs a private path first</li>
+            </ul>
+          </div>
           <p className="text-slate-500 text-sm">
             Every dispute is reviewed. Public disputes and outcomes are
-            tracked on GitHub. Private disputes are handled via email — we
-            won&apos;t publish your correspondence without permission.
+            tracked on GitHub at{" "}
+            <a
+              href={PUBLIC_TRUTH.publicDisputesUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber hover:underline underline-offset-2"
+            >
+              the public dispute log
+            </a>
+            . Private disputes are handled via email — we won&apos;t publish your correspondence without permission.
           </p>
         </section>
 
