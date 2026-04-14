@@ -37,4 +37,16 @@ describe("pricing page", () => {
     expect(html).not.toContain("Minimum top-up");
     expect(html).not.toContain("Two payment rails");
   });
+
+  it("keeps the BYOK rail chooser aligned with explicit resolve recovery fields", async () => {
+    const html = await renderPricingPage();
+
+    expect(html).toContain("resolve_capability with credential_mode=byok");
+    expect(html).toContain("recovery_hint.resolve_url");
+    expect(html).toContain("recovery_hint.credential_modes_url");
+    expect(html).toContain("recovery_hint.alternate_execute_hint");
+    expect(html).toContain("recovery_hint.setup_handoff");
+
+    expect(html).not.toContain("machine-readable setup or recovery handoff");
+  });
 });

@@ -88,7 +88,7 @@ const agentPaths = [
     summary: "Resolve the capability on the byok rail, then execute with your provider credential instead of Rhumb-managed billing.",
     steps: [
       "Use resolve_capability with credential_mode=byok when you need the direct provider path.",
-      "Follow the machine-readable setup or recovery handoff if the preferred provider is not ready yet.",
+      "If the preferred provider is not ready yet, follow machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, recovery_hint.alternate_execute_hint, or recovery_hint.setup_handoff.",
       "Execute through Rhumb with your provider-controlled credential path.",
     ],
   },
