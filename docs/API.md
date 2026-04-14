@@ -570,6 +570,134 @@ The runtime enforces:
 - bounded search and comment limits
 - honest provider attribution as `zendesk`
 
+## Direct Vercel Deployment Read-First Capabilities (AUD-18)
+
+Rhumb now exposes two direct Vercel deployment read-first capabilities:
+
+- `deployment.list`
+- `deployment.get`
+
+These run through the normal capability surface:
+
+- `GET /v1/capabilities/{capability_id}`
+- `GET /v1/capabilities/{capability_id}/resolve`
+- `GET /v1/capabilities/{capability_id}/credential-modes`
+- `POST /v1/capabilities/{capability_id}/execute`
+
+### Credential posture
+
+For the first Vercel slice, only `credential_mode="byok"` is supported.
+
+Requests must include a `deployment_ref` that resolves on the server to an env-backed bundle:
+
+- `RHUMB_DEPLOYMENT_<REF>`
+
+Bundle shape:
+
+```json
+{
+  "provider": "vercel",
+  "auth_mode": "bearer_token",
+  "bearer_token": "vercel_pat",
+  "allowed_project_ids": ["prj_123"],
+  "allowed_targets": ["production"],
+  "team_id": "team_abc"
+}
+```
+
+`allowed_targets` and `team_id` are optional. Omitting `allowed_targets` means the bundle can access any target inside the allowlisted projects.
+
+### Helper + proof script
+
+Use `scripts/vercel_deployment_read_dogfood.py` for the hosted proof bundle:
+
+```bash
+python3 scripts/vercel_deployment_read_dogfood.py \
+  --deployment-ref dep_rhumb \
+  --project-id prj_xkjVLZiODE5z9WVa9mNyMnNroJBf \
+  --deployment-id dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63 \
+  --allowed-target production
+```
+
+The hosted proof artifact now preserves the same machine-readable preflight contract in both blocked/preflight-only and full-proof runs, so automation can keep the next setup context after success or denial checks too: `configured`, `available_for_execute`, `resolve_handoff`, `resolve`, and `credential_modes`.
+
+### Example request
+
+```bash
+curl -X POST http://localhost:8000/v1/capabilities/deployment.get/execute \
+  -H "Content-Type: application/json" \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  -d '{
+    "credential_mode": "byok",
+    "deployment_ref": "dep_rhumb",
+    "deployment_id": "dpl_XDnnZwuVtFCKtaqWxxRUNWLVBa63"
+  }'
+```
+
+The first slice stays deliberately bounded to read-only deployment metadata with explicit project scope and optional target bounds. It does not expose deploy, redeploy, rollback, or deployment-event log fetches.
+
+## Direct GitHub Actions Workflow-Run Read-First Capabilities (AUD-18)
+
+Rhumb now exposes two direct GitHub Actions workflow-run read-first capabilities:
+
+- `workflow_run.list`
+- `workflow_run.get`
+
+These run through the normal capability surface:
+
+- `GET /v1/capabilities/{capability_id}`
+- `GET /v1/capabilities/{capability_id}/resolve`
+- `GET /v1/capabilities/{capability_id}/credential-modes`
+- `POST /v1/capabilities/{capability_id}/execute`
+
+### Credential posture
+
+For the first GitHub Actions slice, only `credential_mode="byok"` is supported.
+
+Requests must include an `actions_ref` that resolves on the server to an env-backed bundle:
+
+- `RHUMB_ACTIONS_<REF>`
+
+Bundle shape:
+
+```json
+{
+  "provider": "github",
+  "auth_mode": "bearer_token",
+  "bearer_token": "ghp_xxx",
+  "allowed_repositories": ["cli/cli"]
+}
+```
+
+### Helper + proof script
+
+Use `scripts/github_actions_read_dogfood.py` for the hosted proof bundle:
+
+```bash
+python3 scripts/github_actions_read_dogfood.py \
+  --actions-ref gh_cli \
+  --repository cli/cli \
+  --run-id 24204222943
+```
+
+The hosted proof artifact now preserves the same machine-readable preflight contract in both blocked/preflight-only and full-proof runs, so automation can keep the next setup context after success or denial checks too: `configured`, `available_for_execute`, `resolve_handoff`, `resolve`, and `credential_modes`.
+
+### Example request
+
+```bash
+curl -X POST http://localhost:8000/v1/capabilities/workflow_run.get/execute \
+  -H "Content-Type: application/json" \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  -d '{
+    "credential_mode": "byok",
+    "actions_ref": "gh_cli",
+    "repository": "cli/cli",
+    "run_id": 24204222943
+  }'
+```
+
+The first slice stays deliberately bounded to read-only workflow-run metadata with explicit repository scope. It does not expose workflow logs, artifacts, dispatch, or mutation paths.
+
 ## Pricing Endpoint
 
 ### `GET /v1/pricing`
