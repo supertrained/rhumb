@@ -64,8 +64,9 @@ Operations: routing, usage_telemetry
 
 ## Pricing
 - Discovery: free, no auth
-- Execution: prepaid credits or x402 per-call
-- Free tier: 1,000 calls/month
+- Execution: governed API key, wallet-prefund, x402 per-call, or BYOK
+- No subscriptions, no seat fees, no minimums
+- Live pricing and markup terms: https://rhumb.dev/pricing
 
 ## Trust and disputes
 - Trust overview: https://rhumb.dev/trust

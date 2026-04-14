@@ -14,6 +14,7 @@ PUBLIC_TRUTH_TS = ROOT / "packages/astro-web/src/lib/public-truth.ts"
 OUTPUT_JSON = ROOT / "agent-capabilities.json"
 WELL_KNOWN_OUTPUT_JSON = ROOT / "packages/astro-web/public/.well-known/agent-capabilities.json"
 LLMS_TXT = ROOT / "llms.txt"
+WEB_PUBLIC_LLMS_TXT = ROOT / "packages/web/public/llms.txt"
 ROOT_README = ROOT / "README.md"
 MCP_README = ROOT / "packages/mcp/README.md"
 
@@ -349,8 +350,9 @@ Operations: {', '.join(GROUPS[3][3])}
 
 ## Pricing
 - Discovery: free, no auth
-- Execution: prepaid credits or x402 per-call
-- Free tier: 1,000 calls/month
+- Execution: governed API key, wallet-prefund, x402 per-call, or BYOK
+- No subscriptions, no seat fees, no minimums
+- Live pricing and markup terms: https://rhumb.dev/pricing
 
 ## Trust and disputes
 - Trust overview: {public_truth['trustOverviewUrl']}
@@ -404,10 +406,13 @@ def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, st
         render_mcp_readme_tool_surface(public_truth, tools),
     )
 
+    llms_txt = render_llms_txt(public_truth, tools)
+
     return {
         OUTPUT_JSON: agent_contract,
         WELL_KNOWN_OUTPUT_JSON: agent_contract,
-        LLMS_TXT: render_llms_txt(public_truth, tools),
+        LLMS_TXT: llms_txt,
+        WEB_PUBLIC_LLMS_TXT: llms_txt,
         ROOT_README: root_readme,
         MCP_README: mcp_readme,
     }
