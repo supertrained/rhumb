@@ -44,7 +44,10 @@ describe("docs page", () => {
     expect(html).toContain("check_credentials");
     expect(html).toContain("rhumb_list_recipes");
     expect(html).toContain("get_receipt");
+    expect(html).toContain("92 scored categories");
+    expect(html).toContain("the ranked leaderboard hub currently covers 11 categories");
 
+    expect(html).not.toContain("92 categories — browse all at");
     expect(html).not.toContain("estimate_cost");
     expect(html).not.toContain("get_credentials");
     expect(html).not.toContain("search_services");

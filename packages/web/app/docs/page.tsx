@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { ORDERED_SLUGS } from "../../lib/categories";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -17,6 +20,7 @@ export const metadata: Metadata = {
 };
 
 const BASE_URL = "https://api.rhumb.dev/v1";
+const leaderboardCategoryCount = ORDERED_SLUGS.length;
 
 const ENDPOINTS = [
   {
@@ -442,9 +446,9 @@ export default function DocsPage() {
               <span className="text-amber mt-0.5">•</span>
               <span>
                 <strong className="text-slate-200">
-                  92 categories
+                  {PUBLIC_TRUTH.categoriesLabel} scored categories
                 </strong>{" "}
-                — browse all at{" "}
+                — the ranked leaderboard hub currently covers {leaderboardCategoryCount} categories at{" "}
                 <a
                   href="https://rhumb.dev/leaderboard"
                   className="text-amber hover:underline underline-offset-2"
