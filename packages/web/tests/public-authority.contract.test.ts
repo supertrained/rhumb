@@ -276,7 +276,7 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro MCP getting-started auth rail aligned with the live execution rails", () => {
-    const gettingStartedManagedCard = 'Governed path</span>\n                <span class="font-semibold text-slate-200">Rhumb-Managed</span>';
+    const gettingStartedManagedCard = 'Governed path</span>\n                <span class="font-semibold text-slate-200">Rhumb-managed</span>';
     const gettingStartedByokCard = 'Provider-controlled</span>\n                <span class="font-semibold text-slate-200">BYOK</span>';
     const gettingStartedVaultCard = 'Provider-controlled</span>\n                <span class="font-semibold text-slate-200">Agent Vault</span>';
 
@@ -289,6 +289,7 @@ describe("public authority pricing contract", () => {
     expect(astroGettingStartedMcp.indexOf(gettingStartedManagedCard)).toBeLessThan(astroGettingStartedMcp.indexOf(gettingStartedByokCard));
     expect(astroGettingStartedMcp.indexOf(gettingStartedByokCard)).toBeLessThan(astroGettingStartedMcp.indexOf(gettingStartedVaultCard));
     expect(astroGettingStartedMcp).not.toContain('Rhumb supports three live credential paths. Keep provider-controlled execution on BYOK or Agent Vault, and use the Rhumb-managed path when zero-config governed execution is the point.');
+    expect(astroGettingStartedMcp).not.toContain('Rhumb-Managed');
     expect(astroGettingStartedMcp).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroGettingStartedMcp).not.toContain('Mode 1');
     expect(astroGettingStartedMcp).not.toContain('Mode 2');
@@ -420,8 +421,9 @@ describe("public authority pricing contract", () => {
     expect(astroLlmsRoute).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(astroLlmsRoute).toContain("credential paths explained");
     expect(astroLlmsRoute).toContain("three credential paths (Rhumb-managed, BYOK, Agent Vault)");
-    expect(astroLlmsRoute).toContain("Three credential paths: Rhumb-Managed, BYOK, Agent Vault");
-    expect(astroLlmsRoute).not.toContain("Three credential paths: BYOK, Rhumb-Managed, Agent Vault");
+    expect(astroLlmsRoute).toContain("Three credential paths: Rhumb-managed, BYOK, Agent Vault");
+    expect(astroLlmsRoute).not.toContain("Three credential paths: BYOK, Rhumb-managed, Agent Vault");
+    expect(astroLlmsRoute).not.toContain("Three credential paths: Rhumb-Managed, BYOK, Agent Vault");
     expect(astroLlmsRoute).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(astroLlmsRoute).toContain("where x402 fits as a payment rail");
     expect(astroLlmsRoute).toContain("No subscriptions, no seat fees, no minimums");

@@ -123,6 +123,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="older credential-mode shorthand on authority surfaces that should now say credential path",
         regex=re.compile(r"the change is the credential mode, not the product mental model", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="rhumb-managed-label-casing",
+        note="older governed-path label casing that should now stay `Rhumb-managed`",
+        regex=re.compile(r"\bRhumb-Managed\b"),
+    ),
 )
 
 
