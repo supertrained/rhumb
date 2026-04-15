@@ -90,8 +90,8 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     ),
     DriftPattern(
         key="own-credentials-shorthand",
-        note="generic \"your own credentials\" wording can hide Agent Vault",
-        regex=re.compile(r"your own credentials", re.IGNORECASE),
+        note="generic \"your own credentials\" wording can obscure BYOK or Agent Vault",
+        regex=re.compile(r"your own (?:provider )?credentials", re.IGNORECASE),
     ),
     DriftPattern(
         key="legacy-wallet-prefund-name",
