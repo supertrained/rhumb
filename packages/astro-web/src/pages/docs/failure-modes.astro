@@ -95,7 +95,7 @@ const failureModes: FailureMode[] = [
     severity: "high",
     httpStatus: 401,
     errorCode: "credential_invalid",
-    agentSees: "HTTP 401 with JSON body: {\"error\": {\"code\": \"credential_invalid\", \"message\": \"The provided credential is invalid or expired\", \"resolution\": \"Re-authenticate at /auth/login or provide a valid API key\", \"request_id\": \"req_...\"}}",
+    agentSees: "HTTP 401 with JSON body: {\"error\": {\"code\": \"credential_invalid\", \"message\": \"The provided credential is invalid or expired\", \"resolution\": \"Re-authenticate at /auth/login or provide a valid governed API key\", \"request_id\": \"req_...\"}}", 
     blastRadius: "Single agent session. Other agents and other authentication methods are unaffected.",
     recovery: "For governed API key or wallet-prefund: generate a new key from the dashboard. For BYOK or Agent Vault: check your provider credential is still valid. For x402: no credentials are required, so you can switch rails if payment-as-auth fits the workflow.",
     prevention: "Monitor credential expiry. Rotate governed keys periodically. Use Agent Vault or x402 when reducing raw credential sprawl matters more than direct key handling.",

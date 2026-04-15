@@ -59,14 +59,14 @@ In Cursor settings → MCP Servers → Add:
 
 ## What you can do
 
-### Without an API key (free, no signup)
+### Without a governed API key (free, no signup)
 - `find_services` — "Find the best email API for agents"
 - `get_score` — "What's Stripe's agent-native score?"
 - `get_alternatives` — "What are alternatives to SendGrid?"
 - `get_failure_modes` — "What breaks when agents use HubSpot?"
 - `discover_capabilities` — "What capabilities exist for payments?"
 
-### With an API key (default production path)
+### With a governed API key (default production path)
 - `resolve_capability` — "Which provider or recovery handoff should I use for email.send, and what if I only want BYOK or Rhumb-managed?"
 - `estimate_capability` — "What execution rail, health, and cost should I expect before this call runs?"
 - `execute_capability` — "Send an email through the best provider"

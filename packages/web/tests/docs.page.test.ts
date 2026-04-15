@@ -77,10 +77,12 @@ describe("docs page", () => {
     expect(failureModesSource).toContain("All execution paths (Rhumb-managed, Agent Vault, BYOK, x402)");
     expect(failureModesSource).toContain("Governed API key and wallet-prefund billing paths only. x402, BYOK, and Agent Vault are unaffected.");
     expect(failureModesSource).toContain("Rhumb-managed execution only. Agent Vault, BYOK, and x402 are unaffected.");
+    expect(failureModesSource).toContain("provide a valid governed API key");
     expect(failureModesSource).not.toContain("Build routing fallback chains: primary → alternative → manual.");
     expect(failureModesSource).not.toContain("All modes (Managed, x402, BYOK)");
     expect(failureModesSource).not.toContain("Managed billing (Mode 2) executions only. x402 and BYOK continue working because they don't depend on Rhumb's billing database.");
     expect(failureModesSource).not.toContain("All managed execution (Mode 2). BYOK and x402 continue working.");
+    expect(failureModesSource).not.toContain("provide a valid API key");
   });
 
   it("keeps the MCP quickstart estimate guidance aligned with the live preflight contract", () => {
@@ -90,6 +92,8 @@ describe("docs page", () => {
     expect(mcpQuickstartSource).toContain(
       "check the active execution rail, health, and cost before execution",
     );
+    expect(mcpQuickstartSource).toContain("### Without a governed API key (free, no signup)");
+    expect(mcpQuickstartSource).toContain("### With a governed API key (default production path)");
     expect(mcpQuickstartSource).toContain("recovery_hint.resolve_url");
     expect(mcpQuickstartSource).toContain("recovery_hint.credential_modes_url");
     expect(mcpQuickstartSource).toContain("recovery_hint.alternate_execute_hint");
@@ -97,6 +101,8 @@ describe("docs page", () => {
     expect(mcpQuickstartSource).not.toContain("recovery handoffs");
     expect(mcpQuickstartSource).not.toContain('`estimate_capability` — "How much will this call cost?"');
     expect(mcpQuickstartSource).not.toContain("`estimate_capability` — check cost before paying");
+    expect(mcpQuickstartSource).not.toContain("### Without an API key (free, no signup)");
+    expect(mcpQuickstartSource).not.toContain("### With an API key (default production path)");
   });
 
   it("keeps the owned API docs aligned with explicit recovery_hint field names", () => {

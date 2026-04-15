@@ -350,7 +350,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \
 
         <div class="bg-surface border border-amber/20 rounded-lg p-5">
           <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Execute via x402 (zero signup)</p>
-          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# Step 1: Request execution without an API key
+          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`# Step 1: Request execution without a governed API key
 curl -X POST "${API}/capabilities/email.send/execute" \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'
@@ -371,7 +371,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
               standard x402 authorization path; direct execute is not. Some smart-wallet or wrapped authorization
               payloads still hit a production compatibility boundary on the direct execute rail because the facilitator path is not wired.
               If your buyer emits wrapped proofs, switch to <a href="#wallet-prefund" class="text-amber hover:underline underline-offset-2">wallet-prefund</a>
-              or use the standard API-key rail.
+              or use the standard governed API key rail.
             </p>
           </div>
         </div>

@@ -14,7 +14,7 @@ const FLOW_STEPS = [
     step: "1",
     title: "Request execution",
     description:
-      "Call the execution endpoint without an API key when you want the payment rail to handle authorization.",
+      "Call the execution endpoint without a governed API key when you want the payment rail to handle authorization.",
   },
   {
     step: "2",
@@ -128,7 +128,7 @@ const FIRST_SUCCESS_PATHS = [
     summary:
       "Use x402 when the payment authorization itself is the product requirement, not just a funding source behind repeat traffic.",
     setup:
-      "Request execution without a key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.",
+      "Request execution without a governed API key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.",
     snippet: `# One-off zero-signup request\ncurl -X POST "${executeEndpoint}" \\\n+  -H '${x402.execution_auth[0]}: {"tx_hash":"0x...","network":"<network-from-402>","wallet_address":"0x..."}' \\\n+  -H "Content-Type: application/json" \\\n+  -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'`,
   },
 ];
@@ -327,7 +327,7 @@ const AGENT_PAYMENTS_JSON_LD = {
           <h2 class="font-display text-2xl font-bold text-slate-100">What x402 means here</h2>
           <p class="mt-3 text-slate-400 leading-7">
             x402 is the payment-first execution rail. Instead of creating an account and receiving a
-            reusable API key, an agent asks to run a capability, receives payment requirements on HTTP 402,
+            reusable governed API key, an agent asks to run a capability, receives payment requirements on HTTP 402,
             pays that request, and then proves payment to complete execution.
           </p>
           <p class="mt-4 text-slate-400 leading-7">
@@ -343,7 +343,7 @@ const AGENT_PAYMENTS_JSON_LD = {
               facilitator path that is not wired in current production. Wallet-prefund top-up verification is the
               standard x402 authorization path today. If your buyer emits wrapped proofs,
               use <a href="#wallet-prefund" class="text-amber hover:underline underline-offset-2">wallet-prefund</a>
-              or the standard API-key rail instead of assuming drop-in x402 interoperability.
+              or the standard governed API key rail instead of assuming drop-in x402 interoperability.
             </p>
           </div>
         </div>
@@ -412,7 +412,7 @@ const AGENT_PAYMENTS_JSON_LD = {
 
         <div class="mt-6 bg-surface border border-slate-800 rounded-2xl p-6">
           <p class="text-xs font-mono uppercase tracking-widest text-slate-500 mb-2">Execution flow</p>
-          <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>{`# Step 1: request execution without an API key
+          <pre class="text-sm font-mono text-slate-200 overflow-x-auto"><code>{`# Step 1: request execution without a governed API key
 curl -X POST "${executeEndpoint}" \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello from Rhumb"}}'
