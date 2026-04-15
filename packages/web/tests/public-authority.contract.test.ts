@@ -26,6 +26,7 @@ const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pag
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
+const astroX402Dogfood = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-actually-pay-x402-dogfood.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
@@ -148,6 +149,11 @@ describe("public authority pricing contract", () => {
     expect(astroWallets).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroWallets).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroWallets).not.toContain('We score 1,000+ APIs on 20 dimensions for AI agent compatibility.');
+
+    expect(astroX402Dogfood).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroX402Dogfood).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroX402Dogfood).toContain('Search {servicesLabel} scored services');
+    expect(astroX402Dogfood).not.toContain('Search 1,000+ scored services');
   });
 
   it("keeps high-visibility web authority surfaces pinned to current public truth", () => {
