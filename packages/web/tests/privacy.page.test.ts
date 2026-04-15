@@ -16,6 +16,10 @@ describe("privacy page", () => {
     expect(html).toContain("rhumb_session");
     expect(html).toContain("Execution records:");
     expect(html).toContain("Managed credentials");
+    expect(html).toContain("bring-your-own-key (BYOK)");
+    expect(html).toContain("Agent Vault");
+    expect(html).toContain("encrypted provider credential scoped to your agent");
+    expect(html).toContain("injects it only at call time");
     expect(html).toContain("Railway Privacy Policy");
     expect(html).toContain("We will respond within 30 days.");
     expect(html).toContain("Children&#x27;s privacy");

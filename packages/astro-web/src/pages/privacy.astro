@@ -169,6 +169,9 @@ import Layout from "../layouts/Layout.astro";
             If you use <strong class="text-slate-200">bring-your-own-key (BYOK)</strong>{" "}
             mode, your credentials are passed through to the upstream service in the same
             request and are <strong class="text-slate-200">not stored</strong> by Rhumb.
+            If you use <strong class="text-slate-200">Agent Vault</strong>, Rhumb stores an encrypted
+            provider credential scoped to your agent, injects it only at call time,
+            and does not share it across accounts.
           </p>
         </section>
 

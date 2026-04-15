@@ -209,6 +209,10 @@ export default function PrivacyPage() {
               mode, your credentials are passed through to the upstream service
               in the same request and are{" "}
               <strong className="text-slate-200">not stored</strong> by Rhumb.
+              If you use <strong className="text-slate-200">Agent Vault</strong>,
+              Rhumb stores an encrypted provider credential scoped to your
+              agent, injects it only at call time, and does not share it across
+              accounts.
             </p>
           </section>
 

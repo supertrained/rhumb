@@ -15,7 +15,9 @@ const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", impo
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroBlogIndex = readFileSync(new URL("../../astro-web/src/pages/blog/index.astro", import.meta.url), "utf8");
+const astroDashboard = readFileSync(new URL("../../astro-web/src/pages/dashboard.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
+const astroPrivacy = readFileSync(new URL("../../astro-web/src/pages/privacy.astro", import.meta.url), "utf8");
 const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-truth.ts", import.meta.url), "utf8");
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
@@ -301,6 +303,19 @@ describe("public authority pricing contract", () => {
     expect(astroLogin).toContain('Run traffic through x402,');
     expect(astroLogin).toContain('use BYOK or Agent Vault where supported, or add funded balance in the dashboard.');
     expect(astroLogin).not.toContain('use your own provider credentials where supported');
+  });
+
+  it("keeps the dashboard funding note aligned with the live access model", () => {
+    expect(astroDashboard).toContain('default to the governed API key path by adding funded balance below');
+    expect(astroDashboard).toContain('use BYOK or Agent Vault only when provider control is the point');
+    expect(astroDashboard).not.toContain('use BYOK only when you need your own provider account');
+  });
+
+  it("keeps the privacy source aligned with the full provider-control model", () => {
+    expect(astroPrivacy).toContain('If you use <strong class="text-slate-200">Agent Vault</strong>, Rhumb stores an encrypted');
+    expect(astroPrivacy).toContain('provider credential scoped to your agent, injects it only at call time,');
+    expect(astroPrivacy).toContain('and does not share it across accounts.');
+    expect(astroPrivacy).not.toContain('If you use <strong class="text-slate-200">bring-your-own-key (BYOK)</strong>{" "}\n            mode, your credentials are passed through to the upstream service in the same\n            request and are <strong class="text-slate-200">not stored</strong> by Rhumb.\n          </p>');
   });
 
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
