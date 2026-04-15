@@ -209,8 +209,9 @@ describe("public authority pricing contract", () => {
     expect(astroX402Dogfood).not.toContain('Search 1,000+ scored services');
     expect(astroX402Dogfood).not.toContain('or use a Rhumb API key / Stripe checkout.');
 
-    expect(astroBlogHowAgentsPay).toContain("budget-controlled governed API keys");
-    expect(astroBlogHowAgentsPay).not.toContain("budget-controlled API keys");
+    expect(astroBlogHowAgentsPay).toContain("wallet-prefund");
+    expect(astroBlogHowAgentsPay).toContain("BYOK or Agent Vault");
+    expect(astroBlogHowAgentsPayGuide).toContain("On Rhumb, you choose an execution rail first");
     expect(astroBlogHowAgentsPayGuide).not.toContain("hands the agent an API key");
     expect(astroBlogHowAgentsPayGuide).not.toContain("X-Api-Key: rhumb_live_");
     expect(astroBlogHowAgentsPayGuide).not.toContain("rhumb_live_");

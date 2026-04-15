@@ -1,6 +1,6 @@
 # How AI Agents Get Wallets and Pay for Things
 
-AI agents need to pay for API calls, compute, and data — but they can't enter a credit card number or complete a checkout flow. The payment infrastructure that works for humans doesn't work for autonomous software. This guide covers the three ways agents acquire wallets and pay for services today, with working code for each path.
+AI agents need to pay for API calls, compute, and data — but they can't enter a credit card number or complete a checkout flow. The payment infrastructure that works for humans doesn't work for autonomous software. This guide covers three ways agents acquire wallets and pay for services today, with working code for each path.
 
 ## The Problem: Agents Can't Click "Buy Now"
 
@@ -10,7 +10,9 @@ The cost of this wall is measurable. An agent that needs to pause execution, sur
 
 Three solutions have emerged, each with different tradeoffs in autonomy, security, and complexity.
 
-## Path 1: Prepaid Credit Wallets (Simplest)
+> Rhumb note: On Rhumb, you choose an execution rail first: **governed API key**, **wallet-prefund**, or **x402 per-call**. **BYOK** and **Agent Vault** are provider-control modes where supported. See [/pricing](/pricing) for the current rails.
+
+## Path 1: Account-funded credits (governed API key on Rhumb)
 
 **How it works:** A human pre-funds a credit balance. The agent spends from that balance via API calls. When the balance gets low, it auto-reloads from a saved payment method.
 
@@ -18,9 +20,9 @@ Three solutions have emerged, each with different tradeoffs in autonomy, securit
 
 **Setup time:** Under 5 minutes.
 
-### How an Agent Gets a Wallet
+### How an Agent Gets Access
 
-The developer (human) creates an account, tops up credits via Stripe Checkout, and hands the agent a billing key (often an API key). The agent never sees a payment form — it just uses the key, and costs are deducted from the credit balance automatically.
+The developer (human) creates an account, tops up credits via Stripe Checkout, and hands the agent a billing key (often an API key). On Rhumb, this is a **governed API key** sent on `X-Rhumb-Key`. This is account-funded billing, not wallet-prefund (wallet-prefund starts with wallet auth, then funds reusable balance behind `X-Rhumb-Key`). The agent never sees a payment form — it just uses the key, and costs are deducted from the credit balance automatically.
 
 ```bash
 # Developer: top up credits (opens Stripe Checkout)
@@ -57,7 +59,9 @@ curl https://api.example.com/v1/billing/balance \
 
 ## Path 2: x402 Protocol — Pay-Per-Request with USDC (Most Agent-Native)
 
-**How it works:** When an API returns HTTP 402 (Payment Required), the response includes machine-readable payment instructions. The agent reads the instructions, signs a USDC transfer on Base, and retries with a payment proof header. No accounts, no sessions, no human in the loop.
+**How it works:** When an API returns HTTP 402 (Payment Required), the response includes machine-readable payment instructions. The agent reads the instructions, signs a USDC transfer on Base, and retries with a payment proof header. No account signup for the x402 rail, no long-lived sessions, no human in the loop.
+
+On Rhumb, x402 is the **zero-signup per-call rail**. For repeat traffic, default to **governed API key** or **wallet-prefund**.
 
 **Who it's for:** Agents operating with their own crypto wallets, paying for exactly what they use at the moment they use it.
 
@@ -199,7 +203,7 @@ Agent                          Paid API
 | Best for | Individual developers | Agent-to-agent commerce | Enterprise compliance |
 | Works with | Any API key service | x402-enabled services | Card-accepting services |
 
-**Start with prepaid credits** if you want the fastest path to an agent that can pay for things. **Move to x402** when your agents need to pay other agents or services without any human in the loop. **Use enterprise cards** when compliance and audit requirements demand it.
+**Start with account-funded credits** if you want the fastest path to an agent that can pay for things. **Move to x402** when zero-signup per-call payment is the point. **Use enterprise cards** when compliance and audit requirements demand it. On Rhumb, repeat traffic defaults to **governed API key** or **wallet-prefund**, and x402 is the exception rail.
 
 ## The Convergence: All Three at Once
 
@@ -209,7 +213,7 @@ The most robust agent payment architecture supports all three paths simultaneous
 2. **Fall back to x402 USDC** if credits are exhausted (no human needed)
 3. **Fall back to enterprise card** for services that only accept cards
 
-This is the x402 protocol in action: the 402 response includes multiple payment options, and the agent picks the best one based on what it has available.
+The key idea is simple: the agent picks the best payment path it can satisfy based on what it has available.
 
 ```json
 {
@@ -221,10 +225,6 @@ This is the x402 protocol in action: the 402 response includes multiple payment 
       "asset": "USDC",
       "amount": "0.01",
       "payTo": "0xDEF..."
-    },
-    {
-      "scheme": "stripe",
-      "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_..."
     }
   ],
   "balanceRequired": 1,
