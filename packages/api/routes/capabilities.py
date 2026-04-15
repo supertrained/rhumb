@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from routes._supabase import cached_query, supabase_fetch
 from services.actions_connection_registry import has_any_actions_bundle_configured
 from services.crm_connection_registry import has_any_crm_bundle_configured
+from services.db_connection_registry import has_any_db_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
@@ -304,6 +305,21 @@ def _crm_direct_provider_name(provider_slug: str) -> str:
     return _CRM_HUBSPOT_DIRECT_PROVIDER_NAME
 
 
+def _db_direct_configured_by_mode() -> dict[str, bool]:
+    return {
+        "byok": has_any_db_bundle_configured(),
+        "agent_vault": False,
+    }
+
+
+def _db_direct_configured_credential_modes(configured_by_mode: dict[str, bool]) -> list[str]:
+    return [
+        mode
+        for mode in _DB_DIRECT_CREDENTIAL_MODES
+        if configured_by_mode.get(mode, False)
+    ]
+
+
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
     hosted_posture_suffix = (
         " Hosted Rhumb should use agent_vault; env-backed connection_ref setup is "
@@ -491,6 +507,7 @@ def _support_direct_provider_details(capability_id: str) -> dict[str, object]:
 
 
 def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured_by_mode = _db_direct_configured_by_mode()
     provider = {
         "service_slug": _DB_DIRECT_PROVIDER_SLUG,
         "service_name": _DB_DIRECT_PROVIDER_NAME,
@@ -510,7 +527,9 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "recommendation_reason": "Direct read-only PostgreSQL execution. Hosted Rhumb uses agent_vault; env-backed connection_ref is self-hosted/internal only.",
         "circuit_state": "n/a",
         "available_for_execute": True,
-        "configured": False,
+        "configured": any(configured_by_mode.values()),
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _db_direct_configured_credential_modes(configured_by_mode),
     }
     return {
         "capability": capability_id,
@@ -963,6 +982,13 @@ def _apply_direct_resolve_credential_mode_filter(
         if isinstance(provider, dict)
         and _supports_requested_credential_mode(provider.get("credential_modes"), credential_mode)
     ]
+    filtered_providers = [
+        _provider_with_requested_mode_configuration(
+            provider,
+            requested_credential_mode=credential_mode,
+        )
+        for provider in filtered_providers
+    ]
 
     filtered_payload = dict(payload)
     filtered_payload["providers"] = filtered_providers
@@ -1047,15 +1073,52 @@ def _provider_can_back_execute_hint(provider: dict[str, object]) -> bool:
     return bool(provider.get("available_for_execute") and provider.get("endpoint_pattern"))
 
 
+def _provider_configured_for_requested_mode(
+    provider: dict[str, object],
+    *,
+    requested_credential_mode: str | None = None,
+) -> bool:
+    requested_mode = _canonicalize_credential_mode(requested_credential_mode)
+    configured_by_mode = provider.get("configured_by_mode")
+    if requested_mode and isinstance(configured_by_mode, dict):
+        return bool(configured_by_mode.get(requested_mode))
+    return bool(provider.get("configured"))
+
+
+def _provider_with_requested_mode_configuration(
+    provider: dict[str, object],
+    *,
+    requested_credential_mode: str | None = None,
+) -> dict[str, object]:
+    configured = _provider_configured_for_requested_mode(
+        provider,
+        requested_credential_mode=requested_credential_mode,
+    )
+    if provider.get("configured") == configured:
+        return provider
+    updated_provider = dict(provider)
+    updated_provider["configured"] = configured
+    return updated_provider
+
+
 def _preferred_credential_mode_for_execute_hint(
     credential_modes: object,
     *,
     requested_credential_mode: str | None = None,
+    configured_credential_modes: object = None,
 ) -> str | None:
     normalized_modes = _canonicalize_credential_modes(credential_modes)
     requested_mode = _canonicalize_credential_mode(requested_credential_mode)
     if requested_mode and requested_mode in normalized_modes:
         return requested_mode
+    normalized_configured_modes = [
+        mode
+        for mode in _canonicalize_credential_modes(configured_credential_modes, default=())
+        if mode in normalized_modes
+    ]
+    for mode in ("rhumb_managed", "agent_vault", "byok"):
+        if mode in normalized_configured_modes:
+            return mode
     for mode in ("rhumb_managed", "agent_vault", "byok"):
         if mode in normalized_modes:
             return mode
@@ -1072,7 +1135,10 @@ def _execute_hint_from_provider(
 ) -> dict[str, object]:
     credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
     auth_method = str(provider.get("auth_method") or "")
-    configured = bool(provider.get("configured"))
+    configured = _provider_configured_for_requested_mode(
+        provider,
+        requested_credential_mode=requested_credential_mode,
+    )
     execute_hint = {
         "preferred_provider": provider["service_slug"],
         "endpoint_pattern": provider.get("endpoint_pattern"),
@@ -1085,6 +1151,7 @@ def _execute_hint_from_provider(
     preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
         credential_modes,
         requested_credential_mode=requested_credential_mode,
+        configured_credential_modes=provider.get("configured_credential_modes"),
     )
     if preferred_credential_mode is not None:
         execute_hint["preferred_credential_mode"] = preferred_credential_mode
@@ -1117,7 +1184,10 @@ def _setup_handoff_from_provider(
 
     credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
     auth_method = str(provider.get("auth_method") or "")
-    configured = bool(provider.get("configured"))
+    configured = _provider_configured_for_requested_mode(
+        provider,
+        requested_credential_mode=requested_credential_mode,
+    )
     setup_handoff = {
         "preferred_provider": service_slug,
         "estimated_cost_usd": provider.get("cost_per_call"),
@@ -1129,6 +1199,7 @@ def _setup_handoff_from_provider(
     preferred_credential_mode = _preferred_credential_mode_for_execute_hint(
         credential_modes,
         requested_credential_mode=requested_credential_mode,
+        configured_credential_modes=provider.get("configured_credential_modes"),
     )
     if preferred_credential_mode is None:
         return None
@@ -1450,6 +1521,7 @@ def _pick_setup_handoff(
 
 
 def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured_by_mode = _db_direct_configured_by_mode()
     return {
         "capability_id": capability_id,
         "providers": [
@@ -1460,17 +1532,17 @@ def _db_direct_credential_modes(capability_id: str) -> dict[str, object]:
                     {
                         "mode": "byok",
                         "available": True,
-                        "configured": False,
+                        "configured": configured_by_mode["byok"],
                         "setup_hint": _provider_mode_setup_hint(_DB_DIRECT_PROVIDER_SLUG, "connection_ref", "byok"),
                     },
                     {
                         "mode": "agent_vault",
                         "available": True,
-                        "configured": False,
+                        "configured": configured_by_mode["agent_vault"],
                         "setup_hint": _provider_mode_setup_hint(_DB_DIRECT_PROVIDER_SLUG, "connection_ref", "agent_vault"),
                     }
                 ],
-                "any_configured": False,
+                "any_configured": any(configured_by_mode.values()),
             }
         ],
     }

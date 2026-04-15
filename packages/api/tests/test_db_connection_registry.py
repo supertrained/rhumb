@@ -8,6 +8,7 @@ from services.db_connection_registry import (
     AgentVaultDsnError,
     ConnectionRefError,
     detect_postgres_provider,
+    has_any_db_bundle_configured,
     issue_agent_vault_dsn_token,
     resolve_agent_vault_dsn,
     resolve_dsn,
@@ -24,6 +25,19 @@ def test_resolve_dsn_missing_env_raises(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
     with pytest.raises(ConnectionRefError, match="No DSN configured"):
         resolve_dsn("conn_reader")
+
+
+def test_has_any_db_bundle_configured_ignores_invalid_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+    monkeypatch.setenv("RHUMB_DB_BROKEN", "disabled")
+    monkeypatch.setenv(
+        "RHUMB_DB_CONN_READER",
+        "postgresql://reader:pass@localhost:5432/app",
+    )
+
+    assert has_any_db_bundle_configured() is True
 
 
 def test_resolve_dsn_rejects_disabled_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:

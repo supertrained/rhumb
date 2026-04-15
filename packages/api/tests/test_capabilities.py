@@ -1965,6 +1965,53 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
 
 
 @pytest.mark.anyio
+async def test_db_direct_capability_marks_env_bundle_as_configured(
+    app,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv(
+        "RHUMB_DB_CONN_READER",
+        "postgresql://reader:pass@localhost:5432/app",
+    )
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resolve_resp = await client.get("/v1/capabilities/db.query.read/resolve")
+            byok_resp = await client.get(
+                "/v1/capabilities/db.query.read/resolve",
+                params={"credential_mode": "byok"},
+            )
+            agent_vault_resp = await client.get(
+                "/v1/capabilities/db.query.read/resolve",
+                params={"credential_mode": "agent_vault"},
+            )
+            modes_resp = await client.get("/v1/capabilities/db.query.read/credential-modes")
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["configured"] is True
+    assert resolve_data["execute_hint"]["configured"] is True
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert "setup_hint" not in resolve_data["execute_hint"]
+
+    byok_data = byok_resp.json()["data"]
+    assert byok_data["providers"][0]["configured"] is True
+    assert byok_data["execute_hint"]["configured"] is True
+    assert byok_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert "setup_hint" not in byok_data["execute_hint"]
+
+    agent_vault_data = agent_vault_resp.json()["data"]
+    assert agent_vault_data["providers"][0]["configured"] is False
+    assert agent_vault_data["execute_hint"]["configured"] is False
+    assert agent_vault_data["execute_hint"]["preferred_credential_mode"] == "agent_vault"
+    assert "X-Agent-Token" in agent_vault_data["execute_hint"]["setup_hint"]
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["modes"][0]["configured"] is True
+    assert mode_data["providers"][0]["modes"][1]["configured"] is False
+    assert mode_data["providers"][0]["any_configured"] is True
+
+
+@pytest.mark.anyio
 async def test_db_direct_resolve_respects_credential_mode_filter(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

@@ -72,6 +72,20 @@ def validate_connection_ref(connection_ref: str) -> None:
         )
 
 
+def has_any_db_bundle_configured() -> bool:
+    """Return True when at least one env-backed DB bundle resolves cleanly."""
+    for env_key in os.environ:
+        if not env_key.startswith("RHUMB_DB_"):
+            continue
+        connection_ref = env_key.removeprefix("RHUMB_DB_").lower()
+        try:
+            resolve_dsn(connection_ref)
+        except ConnectionRefError:
+            continue
+        return True
+    return False
+
+
 def issue_db_agent_vault_token(
     dsn: str,
     *,
