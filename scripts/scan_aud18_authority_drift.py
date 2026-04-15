@@ -169,6 +169,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key", re.IGNORECASE),
     ),
     DriftPattern(
+        key="governed-api-key-discovery-shorthand",
+        note="MCP or example onboarding wording that drops `governed` from the Rhumb API key path",
+        regex=re.compile(r"Run discovery \(no API key needed\)|Run resolve walkthrough \(no API key needed\)|Run full execution \(API key required\)|Run the dogfood loop \(API key required\)|No API key needed for discovery(?: and scoring)?\.|No API key required for discovery and scoring\.|No API key needed for read endpoints\.|## Get an API key|Get an API key at \[rhumb\.dev/auth/login\]|Get a key at https://rhumb\.dev/auth/login|Copy your API key from the dashboard", re.IGNORECASE),
+    ),
+    DriftPattern(
         key="provider-keys-shorthand",
         note="Smithery migration wording that says generic `provider keys` instead of explicit provider API keys",
         regex=re.compile(r"Bring BYOK if you already have provider keys", re.IGNORECASE),

@@ -83,11 +83,11 @@ In Cursor settings → MCP Servers → Add:
 
 If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is execute-ready, `resolve_capability` can still return the next action as machine-readable `recovery_hint.alternate_execute_hint` or `recovery_hint.setup_handoff` instead of leaving you to rediscover it manually. If you typo the capability ID, it can also return a capability search URL plus suggested capabilities instead of a blank dead end.
 
-## Get an API key
+## Get a governed API key
 
 1. Go to [rhumb.dev/auth/login](https://rhumb.dev/auth/login)
 2. Sign in with GitHub or Google
-3. Copy your API key from the dashboard
+3. Copy your governed API key from the dashboard
 
 ## Example conversation
 

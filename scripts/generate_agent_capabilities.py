@@ -271,7 +271,7 @@ def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, s
 def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
     sections: list[str] = []
     sections.append(f"## Discovery tools (no auth, {len(GROUPS[0][3])} tools)\n\n{render_tool_table(GROUPS[0][3], tools)}")
-    sections.append(f"## Execution tools (auth required, {len(GROUPS[1][3])} tools)\n\n```json\n{{\n  \"mcpServers\": {{\n    \"rhumb\": {{\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"rhumb-mcp@latest\"],\n      \"env\": {{\n        \"RHUMB_API_KEY\": \"rk_your_key_here\"\n      }}\n    }}\n  }}\n}}\n```\n\nGet a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).\n\n{render_tool_table(GROUPS[1][3], tools)}")
+    sections.append(f"## Execution tools (auth required, {len(GROUPS[1][3])} tools)\n\n```json\n{{\n  \"mcpServers\": {{\n    \"rhumb\": {{\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"rhumb-mcp@latest\"],\n      \"env\": {{\n        \"RHUMB_API_KEY\": \"rk_your_key_here\"\n      }}\n    }}\n  }}\n}}\n```\n\nGet a governed API key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).\n\n{render_tool_table(GROUPS[1][3], tools)}")
     sections.append(f"## Financial tools (auth required, {len(GROUPS[2][3])} tools)\n\n{render_tool_table(GROUPS[2][3], tools)}")
     sections.append(f"## Operations tools (auth required, {len(GROUPS[3][3])} tools)\n\n{render_tool_table(GROUPS[3][3], tools)}")
     sections.append(

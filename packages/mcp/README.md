@@ -11,7 +11,7 @@ Three execution layers: raw provider access (Layer 1), intelligent routing (Laye
 
 ## Zero-config quickstart
 
-**No API key needed for discovery.** Install and start immediately:
+**No governed API key needed for discovery.** Install and start immediately:
 
 ```bash
 npx rhumb-mcp@latest
@@ -111,7 +111,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 }
 ```
 
-Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).
+Get a governed API key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 seconds).
 
 | Tool | What it does |
 |------|-------------|

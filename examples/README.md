@@ -18,13 +18,13 @@ pip install httpx  # only dependency for Python examples
 | [dogfood-telemetry-loop.py](dogfood-telemetry-loop.py) | Repeatable Resolve → telemetry verification loop | Yes |
 | [mcp-quickstart.md](mcp-quickstart.md) | MCP setup for Claude, Cursor, etc. | Optional |
 
-## Run discovery (no API key needed)
+## Run discovery (no governed API key needed)
 
 ```bash
 python examples/discover-and-evaluate.py
 ```
 
-## Run resolve walkthrough (no API key needed)
+## Run resolve walkthrough (no governed API key needed)
 
 ```bash
 python examples/resolve-and-execute.py
@@ -32,18 +32,18 @@ python examples/resolve-and-execute.py
 
 The script will still show the ranked providers plus any machine-readable recovery handoff Rhumb already chose. Set `RHUMB_API_KEY` only when you want to continue into estimate and execute.
 
-## Run full execution (API key required)
+## Run full execution (governed API key required)
 
 ```bash
 export RHUMB_API_KEY=your_key_here
 python examples/resolve-and-execute.py
 ```
 
-## Run the dogfood loop (API key required)
+## Run the dogfood loop (governed API key required)
 
 ```bash
 export RHUMB_API_KEY=your_key_here
 python examples/dogfood-telemetry-loop.py
 ```
 
-Get an API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).
+Get a governed API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).

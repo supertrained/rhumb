@@ -301,6 +301,7 @@ describe("public authority pricing contract", () => {
     const gettingStartedByokCard = 'Provider-controlled</span>\n                <span class="font-semibold text-slate-200">BYOK</span>';
     const gettingStartedVaultCard = 'Provider-controlled</span>\n                <span class="font-semibold text-slate-200">Agent Vault</span>';
 
+    expect(astroGettingStartedMcp).toContain('No governed API key required for discovery and scoring. Add to any MCP-compatible client.');
     expect(astroGettingStartedMcp).toContain('For repeat traffic, use governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
     expect(astroGettingStartedMcp).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroGettingStartedMcp).toContain('Rhumb supports three live credential paths. Start with the Rhumb-managed path when zero-config governed execution is the point, then bring BYOK or Agent Vault in only when provider control matters.');
@@ -312,11 +313,14 @@ describe("public authority pricing contract", () => {
     expect(astroGettingStartedMcp).not.toContain('Rhumb supports three live credential paths. Keep provider-controlled execution on BYOK or Agent Vault, and use the Rhumb-managed path when zero-config governed execution is the point.');
     expect(astroGettingStartedMcp).not.toContain('Rhumb-Managed');
     expect(astroGettingStartedMcp).not.toContain('Bring BYOK only when provider control is the point.');
+    expect(astroGettingStartedMcp).not.toContain('No API key required for discovery and scoring. Add to any MCP-compatible client.');
+    expect(astroGettingStartedMcp).not.toContain('No API key needed for read endpoints.');
     expect(astroGettingStartedMcp).not.toContain('Mode 1');
     expect(astroGettingStartedMcp).not.toContain('Mode 2');
     expect(astroGettingStartedMcp).not.toContain('Mode 3');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
     expect(astroGettingStartedMcp).toContain('Get step-by-step instructions for obtaining provider credentials');
+    expect(astroGettingStartedMcp).toContain('No governed API key needed for read endpoints.');
     expect(astroGettingStartedMcp).toContain('Pass your own provider API key at execution time. Rhumb routes the request, you keep control of the provider credential.');
     expect(astroGettingStartedMcp).not.toContain('Pass your own API keys at execution time. Rhumb routes the request, you own the credential.');
     expect(astroGettingStartedMcp).not.toContain('Setup guides for credential modes');

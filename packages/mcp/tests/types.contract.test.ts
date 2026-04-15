@@ -28,6 +28,7 @@ import {
 const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
 const mcpReadme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const mcpQuickstartExample = readFileSync(new URL("../../../examples/mcp-quickstart.md", import.meta.url), "utf8");
+const examplesReadme = readFileSync(new URL("../../../examples/README.md", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../../web/public/llms.txt", import.meta.url), "utf8");
 const rootAgentCapabilities = readFileSync(new URL("../../../agent-capabilities.json", import.meta.url), "utf8");
@@ -182,13 +183,32 @@ describe("types.contract", () => {
     expect(rootReadme).toContain("Bring BYOK or Agent Vault** only when provider control is the point");
     expect(rootReadme).not.toContain("wallet-prefunded API key");
 
+    expect(mcpReadme).toContain("**No governed API key needed for discovery.** Install and start immediately:");
     expect(mcpReadme).toContain("Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`");
     expect(mcpReadme).toContain("Bring BYOK or Agent Vault** only when provider control is the point");
+    expect(mcpReadme).toContain("Get a governed API key at https://rhumb.dev/auth/login");
     expect(mcpReadme).not.toContain("wallet-prefunded API key");
     expect(mcpReadme).not.toContain("`RHUMB_API_KEY` via governed account or wallet-prefund");
+    expect(mcpReadme).not.toContain("**No API key needed for discovery.** Install and start immediately:");
+    expect(mcpReadme).not.toContain("Get a key at https://rhumb.dev/auth/login");
 
     expect(mcpQuickstartExample).toContain("For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK or Agent Vault only when provider control is the point.");
+    expect(mcpQuickstartExample).toContain("## Get a governed API key");
+    expect(mcpQuickstartExample).toContain("Copy your governed API key from the dashboard");
     expect(mcpQuickstartExample).not.toContain("For repeat wallet traffic, use wallet-prefund and then execute with `X-Rhumb-Key`.");
+    expect(mcpQuickstartExample).not.toContain("## Get an API key");
+    expect(mcpQuickstartExample).not.toContain("Copy your API key from the dashboard");
+
+    expect(examplesReadme).toContain("## Run discovery (no governed API key needed)");
+    expect(examplesReadme).toContain("## Run resolve walkthrough (no governed API key needed)");
+    expect(examplesReadme).toContain("## Run full execution (governed API key required)");
+    expect(examplesReadme).toContain("## Run the dogfood loop (governed API key required)");
+    expect(examplesReadme).toContain("Get a governed API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).");
+    expect(examplesReadme).not.toContain("## Run discovery (no API key needed)");
+    expect(examplesReadme).not.toContain("## Run resolve walkthrough (no API key needed)");
+    expect(examplesReadme).not.toContain("## Run full execution (API key required)");
+    expect(examplesReadme).not.toContain("## Run the dogfood loop (API key required)");
+    expect(examplesReadme).not.toContain("Get an API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).");
 
     for (const surface of [rootAgentCapabilities, wellKnownAgentCapabilities]) {
       expect(surface).toContain('"execution": "rail_based"');
