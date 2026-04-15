@@ -94,11 +94,13 @@ describe("docs page", () => {
     );
     expect(mcpQuickstartSource).toContain("### Without a governed API key (free, no signup)");
     expect(mcpQuickstartSource).toContain("### With a governed API key (default production path)");
+    expect(mcpQuickstartSource).toContain("The governed API key is optional — discovery tools work without it. Add it to enable execution.");
     expect(mcpQuickstartSource).toContain("recovery_hint.resolve_url");
     expect(mcpQuickstartSource).toContain("recovery_hint.credential_modes_url");
     expect(mcpQuickstartSource).toContain("recovery_hint.alternate_execute_hint");
     expect(mcpQuickstartSource).toContain("recovery_hint.setup_handoff");
     expect(mcpQuickstartSource).not.toContain("recovery handoffs");
+    expect(mcpQuickstartSource).not.toContain("The API key is optional — discovery tools work without it. Add it to enable execution.");
     expect(mcpQuickstartSource).not.toContain('`estimate_capability` — "How much will this call cost?"');
     expect(mcpQuickstartSource).not.toContain("`estimate_capability` — check cost before paying");
     expect(mcpQuickstartSource).not.toContain("### Without an API key (free, no signup)");

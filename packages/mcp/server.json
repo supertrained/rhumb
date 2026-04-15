@@ -18,7 +18,7 @@
       },
       "environmentVariables": [
         {
-          "description": "Rhumb API key for authenticated access (optional \u2014 discovery works without auth, execution requires auth or x402 payment)",
+          "description": "Governed API key for authenticated repeat traffic on X-Rhumb-Key (optional \u2014 discovery works without auth; execution otherwise needs x402 payment)",
           "isRequired": false,
           "format": "string",
           "isSecret": true,

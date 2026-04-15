@@ -39,7 +39,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-The API key is optional — discovery tools work without it. Add it to enable execution.
+The governed API key is optional — discovery tools work without it. Add it to enable execution.
 
 ## Add to Cursor
 

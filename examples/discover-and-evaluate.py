@@ -6,7 +6,7 @@ This script shows the core Rhumb Index flow:
 2. Get the AN Score breakdown for the top result
 3. Check known failure modes before integrating
 
-No API key needed — all discovery endpoints are public.
+No governed API key needed — all discovery endpoints are public.
 """
 
 import httpx

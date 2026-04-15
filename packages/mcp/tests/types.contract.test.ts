@@ -29,6 +29,7 @@ const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), 
 const mcpReadme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const mcpQuickstartExample = readFileSync(new URL("../../../examples/mcp-quickstart.md", import.meta.url), "utf8");
 const examplesReadme = readFileSync(new URL("../../../examples/README.md", import.meta.url), "utf8");
+const discoverAndEvaluateExample = readFileSync(new URL("../../../examples/discover-and-evaluate.py", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../../web/public/llms.txt", import.meta.url), "utf8");
 const rootAgentCapabilities = readFileSync(new URL("../../../agent-capabilities.json", import.meta.url), "utf8");
@@ -41,6 +42,12 @@ const mcpPackageJson = JSON.parse(readFileSync(new URL("../package.json", import
 };
 const mcpServerManifest = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8")) as {
   description: string;
+  packages: Array<{
+    environmentVariables: Array<{
+      description: string;
+      name: string;
+    }>;
+  }>;
 };
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
@@ -192,10 +199,18 @@ describe("types.contract", () => {
     expect(mcpReadme).not.toContain("**No API key needed for discovery.** Install and start immediately:");
     expect(mcpReadme).not.toContain("Get a key at https://rhumb.dev/auth/login");
 
+    expect(mcpServerManifest.packages[0].environmentVariables[0].name).toBe("RHUMB_API_KEY");
+    expect(mcpServerManifest.packages[0].environmentVariables[0].description).toContain("Governed API key for authenticated repeat traffic on X-Rhumb-Key");
+    expect(mcpServerManifest.packages[0].environmentVariables[0].description).toContain("discovery works without auth");
+    expect(mcpServerManifest.packages[0].environmentVariables[0].description).not.toContain("Rhumb API key for authenticated access");
+    expect(mcpServerManifest.packages[0].environmentVariables[0].description).not.toContain("execution requires auth or x402 payment");
+
     expect(mcpQuickstartExample).toContain("For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK or Agent Vault only when provider control is the point.");
+    expect(mcpQuickstartExample).toContain("The governed API key is optional — discovery tools work without it. Add it to enable execution.");
     expect(mcpQuickstartExample).toContain("## Get a governed API key");
     expect(mcpQuickstartExample).toContain("Copy your governed API key from the dashboard");
     expect(mcpQuickstartExample).not.toContain("For repeat wallet traffic, use wallet-prefund and then execute with `X-Rhumb-Key`.");
+    expect(mcpQuickstartExample).not.toContain("The API key is optional — discovery tools work without it. Add it to enable execution.");
     expect(mcpQuickstartExample).not.toContain("## Get an API key");
     expect(mcpQuickstartExample).not.toContain("Copy your API key from the dashboard");
 
@@ -209,6 +224,9 @@ describe("types.contract", () => {
     expect(examplesReadme).not.toContain("## Run full execution (API key required)");
     expect(examplesReadme).not.toContain("## Run the dogfood loop (API key required)");
     expect(examplesReadme).not.toContain("Get an API key at [rhumb.dev/auth/login](https://rhumb.dev/auth/login).");
+
+    expect(discoverAndEvaluateExample).toContain("No governed API key needed — all discovery endpoints are public.");
+    expect(discoverAndEvaluateExample).not.toContain("No API key needed — all discovery endpoints are public.");
 
     for (const surface of [rootAgentCapabilities, wellKnownAgentCapabilities]) {
       expect(surface).toContain('"execution": "rail_based"');

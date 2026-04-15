@@ -106,7 +106,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="legacy-api-key-or-x402",
         note="older auth/payment framing that predates the live rail story",
-        regex=re.compile(r"api key or x402 payment", re.IGNORECASE),
+        regex=re.compile(r"api key or x402 payment|execution requires auth or x402 payment", re.IGNORECASE),
     ),
     DriftPattern(
         key="legacy-machine-auth-tag",
@@ -171,12 +171,12 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-discovery-shorthand",
         note="MCP or example onboarding wording that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"Run discovery \(no API key needed\)|Run resolve walkthrough \(no API key needed\)|Run full execution \(API key required\)|Run the dogfood loop \(API key required\)|No API key needed for discovery(?: and scoring)?\.|No API key required for discovery and scoring\.|No API key needed for read endpoints\.|## Get an API key|Get an API key at \[rhumb\.dev/auth/login\]|Get a key at https://rhumb\.dev/auth/login|Copy your API key from the dashboard", re.IGNORECASE),
+        regex=re.compile(r"Run discovery \(no API key needed\)|Run resolve walkthrough \(no API key needed\)|Run full execution \(API key required\)|Run the dogfood loop \(API key required\)|No API key needed for discovery(?: and scoring)?\.|No API key required for discovery and scoring\.|No API key needed for read endpoints\.|No API key needed — all discovery endpoints are public\.|The API key is optional — discovery tools work without it\. Add it to enable execution\.|## Get an API key|Get an API key at \[rhumb\.dev/auth/login\]|Get a key at https://rhumb\.dev/auth/login|Copy your API key from the dashboard", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-auth-surface-shorthand",
         note="login, dashboard, or privacy authority wording that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"Sign in to Rhumb to get your API key and access the developer dashboard\.|access your dashboard, API key, and billing controls\.|Your Rhumb developer dashboard — API key, usage, and quickstart\.|Your dashboard access and API key are active\.|>Your API Key</h2>|>Copy your API key</p>|Rotate your API key\? The old key will stop working immediately\.|Authenticated requests are associated with your API key\.|An API key we generate for your account|(?<!governed )API key for authentication\.|Account deletion removes all associated data: API keys,|Your Rhumb API key is the only credential to protect\.|single Rhumb API key"),
+        regex=re.compile(r"Sign in to Rhumb to get your API key and access the developer dashboard\.|access your dashboard, API key, and billing controls\.|Your Rhumb developer dashboard — API key, usage, and quickstart\.|Your dashboard access and API key are active\.|>Your API Key</h2>|>Copy your API key</p>|Rotate your API key\? The old key will stop working immediately\.|Authenticated requests are associated with your API key\.|An API key we generate for your account|(?<!governed )API key for authentication\.|Rhumb API key for authenticated access|Account deletion removes all associated data: API keys,|Your Rhumb API key is the only credential to protect\.|single Rhumb API key"),
     ),
     DriftPattern(
         key="provider-keys-shorthand",
