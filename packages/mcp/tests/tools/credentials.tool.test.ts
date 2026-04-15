@@ -58,7 +58,8 @@ describe("check_credentials", () => {
       {
         mode: "rhumb_managed",
         available: true,
-        detail: "1 zero-config Capability(ies) available through Rhumb Resolve. No credentials needed — omit credential_mode or use credential_mode=auto to prefer Rhumb Resolve when available.",
+        detail:
+          "1 governed Capability(ies) available through Rhumb Resolve. Execution uses X-Rhumb-Key (governed API key or wallet-prefund). No provider API keys needed. Omit credential_mode or use credential_mode=auto to prefer governed execution when available.",
       },
       {
         mode: "agent_vault",
@@ -182,7 +183,8 @@ describe("check_credentials", () => {
       {
         mode: "rhumb_managed",
         available: true,
-        detail: "Zero-config Rhumb-managed execution is ready through rhumb-resend.",
+        detail:
+          "Governed execution (X-Rhumb-Key) is available through rhumb-resend. No provider API key required for those providers.",
       },
       {
         mode: "agent_vault",

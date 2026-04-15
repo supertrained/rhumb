@@ -155,6 +155,21 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"BYOK is the default fallback rail", re.IGNORECASE),
     ),
     DriftPattern(
+        key="mcp-no-credentials-needed-shorthand",
+        note="MCP managed credential guidance that incorrectly claims no credentials are needed",
+        regex=re.compile(r"No credentials needed\s*[—-]\s*omit credential_mode", re.IGNORECASE),
+    ),
+    DriftPattern(
+        key="mcp-zero-config-managed-execution-shorthand",
+        note="MCP wording that blurs governed execution into generic 'zero-config Rhumb-managed execution'",
+        regex=re.compile(r"Zero-config\s+Rhumb-managed\s+execution", re.IGNORECASE),
+    ),
+    DriftPattern(
+        key="mcp-managed-rails-shorthand",
+        note="MCP wording that calls governed rails generic 'managed rails'",
+        regex=re.compile(r"ready now through managed rails", re.IGNORECASE),
+    ),
+    DriftPattern(
         key="one-key-onboarding-shorthand",
         note="onboarding shorthand that can blur governed API key with provider API keys",
         regex=re.compile(r"Execute through one key first|Layer 2 with one key", re.IGNORECASE),

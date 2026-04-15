@@ -116,8 +116,8 @@ export async function handleCheckCredentials(
           mode: "rhumb_managed",
           available: managedProviders.length > 0,
           detail: managedProviders.length > 0
-            ? `Zero-config Rhumb-managed execution is ready through ${summarizeList(managedProviders.map((provider) => provider.service))}.`
-            : `No zero-config Rhumb-managed path is exposed for ${capabilityReadiness.capabilityId}.`,
+            ? `Governed execution (X-Rhumb-Key) is available through ${summarizeList(managedProviders.map((provider) => provider.service))}. No provider API key required for those providers.`
+            : `No governed execution (X-Rhumb-Key) path is exposed for ${capabilityReadiness.capabilityId}.`,
         },
         {
           mode: "agent_vault",
@@ -143,7 +143,7 @@ export async function handleCheckCredentials(
   const byokDetail = agentReadiness
     ? agentReadiness.configuredCount > 0
       ? `${agentReadiness.configuredCount} BYOK bridge(s) or direct bundle(s) are already configured: ${summarizeList(agentReadiness.configuredServices)}. ${agentReadiness.unlockedCount} capability(ies) are ready now, ${agentReadiness.lockedCount} still need setup.`
-      : `${agentReadiness.unlockedCount} capability(ies) are ready now through managed rails, but no BYOK bridges or direct bundles are configured on this agent yet.`
+      : `${agentReadiness.unlockedCount} capability(ies) are ready now through governed rails (X-Rhumb-Key), but no BYOK bridges or direct bundles are configured on this agent yet.`
     : "Set RHUMB_API_KEY to see your configured BYOK bridges and direct bundles.";
 
   const modes = [
@@ -156,7 +156,7 @@ export async function handleCheckCredentials(
       mode: "rhumb_managed",
       available: managed.length > 0,
       detail: managed.length > 0
-        ? `${managed.length} zero-config Capability(ies) available through Rhumb Resolve. No credentials needed — omit credential_mode or use credential_mode=auto to prefer Rhumb Resolve when available.`
+        ? `${managed.length} governed Capability(ies) available through Rhumb Resolve. Execution uses X-Rhumb-Key (governed API key or wallet-prefund). No provider API keys needed. Omit credential_mode or use credential_mode=auto to prefer governed execution when available.`
         : "No managed capabilities currently available.",
     },
     {
