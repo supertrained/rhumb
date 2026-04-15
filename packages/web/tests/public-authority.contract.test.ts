@@ -291,6 +291,7 @@ describe("public authority pricing contract", () => {
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
     expect(astroQuickstart).toContain('Use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code> for repeat calls.');
     expect(astroQuickstart).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroQuickstart).toContain('Execute through governed API key first');
     expect(astroQuickstart).toContain('BYOK / Agent Vault');
     expect(astroQuickstart).toContain('Use BYOK for direct pass-through, or Agent Vault for encrypted provider credential injection when provider control is the point.');
     expect(astroQuickstart).toContain('BYOK, Agent Vault, governed API key, wallet-prefund, x402 — which path fits your agent');
@@ -306,6 +307,8 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).not.toContain('The change is the credential mode, not the product mental model.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
     expect(astroQuickstart).not.toContain('BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent');
+    expect(astroQuickstart).not.toContain('Execute through one key first');
+    expect(astroQuickstart).not.toContain('Layer 2 with one key');
     expect(astroQuickstart).not.toContain('API Key</h3>');
     expect(astroQuickstart).not.toContain('Execute via API key');
     expect(astroQuickstart).not.toContain('Execute via wallet-prefunded balance');

@@ -149,6 +149,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"Use BYOK, Agent Vault, or your existing stack", re.IGNORECASE),
     ),
     DriftPattern(
+        key="one-key-onboarding-shorthand",
+        note="onboarding shorthand that can blur governed API key with provider API keys",
+        regex=re.compile(r"Execute through one key first|Layer 2 with one key", re.IGNORECASE),
+    ),
+    DriftPattern(
         key="ambiguous-byok-api-key-shorthand",
         note="BYOK wording that can blur provider API keys with the governed Rhumb API key",
         regex=re.compile(r"Bring your own API key|Pass your own API keys? at execution time", re.IGNORECASE),
