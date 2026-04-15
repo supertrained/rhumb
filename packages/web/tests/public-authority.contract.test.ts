@@ -251,8 +251,13 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).not.toContain('for that, use API key or wallet-prefund.');
   });
 
-  it("keeps the astro key-security x402 note aligned with the live execution rails", () => {
-    expect(astroSecuringKeys).toContain('default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
+  it("keeps the astro key-security guide aligned with the live credential-mode and payment-rail model", () => {
+    expect(astroSecuringKeys).toContain('### Mode 3: Agent Vault');
+    expect(astroSecuringKeys).toContain('## x402 is a payment path, not a credential mode');
+    expect(astroSecuringKeys).toContain('bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroSecuringKeys).toContain('three credential modes (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).not.toContain('### Mode 3: x402 per-call payment');
+    expect(astroSecuringKeys).not.toContain('three credential modes (BYOK, managed, x402)');
     expect(astroSecuringKeys).not.toContain('For repeat traffic, prefer wallet-prefund or a governed API key.');
   });
 
@@ -277,8 +282,11 @@ describe("public authority pricing contract", () => {
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
     expect(astroLlmsRoute).toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(astroLlmsRoute).toContain("three credential modes (BYOK, managed, Agent Vault)");
+    expect(astroLlmsRoute).toContain("where x402 fits as a payment rail");
     expect(astroLlmsRoute).toContain("No subscriptions, no seat fees, no minimums");
     expect(astroLlmsRoute).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
+    expect(astroLlmsRoute).not.toContain("three credential modes (BYOK, managed, x402)");
     expect(astroLlmsRoute).not.toContain("upstream cost +");
 
     expect(rootLlms).toContain("## Execution (requires a live rail)");
@@ -298,6 +306,11 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).not.toContain("## Execution (requires API key or x402 payment)");
 
     expect(webPublicLlms).toBe(rootLlms);
+  });
+
+  it("keeps the astro blog index aligned with the live credential-mode story", () => {
+    expect(astroBlogIndex).toContain("Three credential modes (BYOK, managed, Agent Vault)");
+    expect(astroBlogIndex).not.toContain("Three credential modes (BYOK, managed, x402)");
   });
 
   it("keeps agent-capabilities pricing and auth truth aligned with the live rail-based story", () => {

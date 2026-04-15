@@ -13,7 +13,7 @@ const ARTICLE_JSON_LD = {
     name: "Pedro Nunes",
   },
   description:
-    "A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and what to avoid. Three credential modes explained.",
+    "A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and how BYOK, Rhumb-managed, and Agent Vault compare, plus where x402 fits as a payment rail.",
   url: "https://rhumb.dev/blog/securing-keys-for-agents",
   publisher: {
     "@type": "Organization",
@@ -116,9 +116,17 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
 
 **Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
 
-### Mode 3: x402 per-call payment
+### Mode 3: Agent Vault
 
-No account signup on this rail. Payment proof authorizes the request. For repeat traffic, default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.
+Rhumb stores or brokers the provider credential for you and injects it at call time, so the workflow can still touch your own systems without spraying raw provider secrets across every agent runtime.
+
+**When to use it:** You need provider control or access to your own systems of record, but you want a tighter trust boundary than raw BYOK everywhere. This is the middle path between fully managed Rhumb rails and handing every runtime a live upstream key.
+
+**Security posture:** The agent still uses your systems, but the raw provider secret stays behind the vault boundary. You reduce copy-paste exposure and make rotation or revocation more surgical.
+
+## x402 is a payment path, not a credential mode
+
+No account signup on this rail. Payment proof authorizes the request. For repeat traffic, default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK or Agent Vault only when provider control is the point.
 
 \`\`\`bash
 # First call: get payment instructions
@@ -188,7 +196,7 @@ We don't use phrases like "enterprise-grade security" or "bank-level encryption"
 3. **Never commit keys to git.** Use \`.env\` files with \`.gitignore\`, or better yet, use a secret manager reference.
 4. **One key per agent.** If you run multiple agents, give each one its own API key. Makes revocation surgical.
 5. **Monitor usage.** Rhumb's API shows per-key execution history. Watch for anomalies.
-6. **Prefer managed or x402 over BYOK** when possible. Fewer credentials to manage = smaller attack surface.
+6. **Prefer managed, Agent Vault, or x402 over raw BYOK** when possible. Fewer raw credentials in more places = smaller attack surface.
 7. **Use secret references in config, not raw values.** Instead of the key itself, store a reference to where the key lives:
 
 \`\`\`json
@@ -199,7 +207,7 @@ We don't use phrases like "enterprise-grade security" or "bank-level encryption"
 
 ## The bottom line
 
-The safest credential is the one that doesn't exist. x402 payments eliminate credentials entirely. Managed capabilities reduce your credential surface to a single Rhumb API key. BYOK gives you full control when you need it.
+The safest credential is the one that doesn't exist. x402 is the no-credential payment rail when per-call payment is the point. Managed capabilities reduce your credential surface to a single Rhumb API key. Agent Vault is the middle path when you need provider control without exposing raw provider secrets everywhere. BYOK gives you full control when you need it.
 
 Pick the mode that matches your trust model. Store credentials in the highest-security option available. Be specific about what you're protecting against.
 
@@ -210,10 +218,10 @@ const rendered = markdownToHtml(CONTENT);
 
 <Layout
   title="How to Secure Your API Keys for Agent Use — Rhumb"
-  description="A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and three credential modes (BYOK, managed, x402)."
+  description="A practical guide to credential security for AI agents: OS keychains, environment variables, secret references, and three credential modes (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail."
   canonical="https://rhumb.dev/blog/securing-keys-for-agents"
   ogTitle="How to Secure Your API Keys for Agent Use"
-  ogDescription="A practical guide to credential security for AI agents. Three credential modes, storage hierarchy, and honest threat modeling."
+  ogDescription="A practical guide to credential security for AI agents. BYOK, managed, and Agent Vault compared, plus where x402 fits as a payment rail."
   ogUrl="https://rhumb.dev/blog/securing-keys-for-agents"
   jsonLd={ARTICLE_JSON_LD}
 >
