@@ -84,6 +84,7 @@ describe("pricing page", () => {
     expect(astroPricingSource).toContain("BYOK / Vault");
     expect(astroPricingSource).toContain("Agent Vault setup");
     expect(astroPricingSource).toContain("governed API-key path, BYOK, or Agent Vault");
+    expect(astroPricingSource).toContain("Already have provider credentials? BYOK or Agent Vault routes through Rhumb at zero");
     expect(astroPricingSource).toContain("agent_vault");
     expect(astroPricingSource).toContain("resolve_capability");
     expect(astroPricingSource).toContain("recovery_hint.resolve_url");
@@ -93,6 +94,7 @@ describe("pricing page", () => {
 
     expect(astroPricingSource).not.toContain("Has a setup step before the first repeatable execution path.");
     expect(astroPricingSource).not.toContain("account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.");
+    expect(astroPricingSource).not.toContain("Already have provider API keys? BYOK passthrough routes through Rhumb at zero");
     expect(astroPricingSource).not.toContain(
       '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',
     );

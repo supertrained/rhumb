@@ -91,8 +91,11 @@ describe("public authority pricing contract", () => {
 
     expect(glossary).toContain("wallet-prefund");
     expect(glossary).toContain("provider-controlled paths through BYOK or Agent Vault");
+    expect(glossary).toContain("Confirm per-call pricing, x402 rail, and BYOK or Agent Vault terms.");
+    expect(glossary).toContain("x402, BYOK, Agent Vault, managed mode, and more.");
     expect(glossary).toContain("Discovery is free, and execution pricing lives on /pricing.");
     expect(glossary).not.toContain("public free tier includes 1,000 calls per month");
+    expect(glossary).not.toContain("Confirm per-call pricing, x402 rail, and BYOK terms.");
     expect(glossary).not.toContain("x402 per-call, or BYOK");
   });
 
@@ -232,6 +235,10 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
+    expect(astroHome).toContain('Use BYOK, Agent Vault, or your existing stack');
+    expect(astroHome).toContain('Bring your own provider credentials directly or keep them in Agent Vault when provider control is the point.');
+    expect(astroHome).toContain('BYOK / Agent Vault');
+    expect(astroHome).toContain('use Agent Vault when you need encrypted injection at call time, enterprise boundaries, or existing vendor accounts.');
     expect(astroHome).toContain('zero-signup, request-level payment authorization is the point');
     expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
     expect(astroHome).toContain('use BYOK or Agent Vault when provider control is the point');
@@ -242,7 +249,11 @@ describe("public authority pricing contract", () => {
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
     expect(astroQuickstart).toContain('Use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code> for repeat calls.');
     expect(astroQuickstart).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroQuickstart).toContain('BYOK / Agent Vault');
+    expect(astroQuickstart).toContain('Use BYOK for direct pass-through, or Agent Vault for encrypted provider credential injection when provider control is the point.');
+    expect(astroQuickstart).toContain('BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent');
     expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
+    expect(astroQuickstart).not.toContain('Pass your service API key directly. BYOK = full control.');
     expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
   });
