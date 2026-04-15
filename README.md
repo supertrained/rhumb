@@ -103,7 +103,7 @@ Treat broader multi-system business automation as future scope, not the current 
 - **Service** = vendor Rhumb evaluates and compares
 - **Capability** = executable action like `email.send`
 - **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
-- **Layer 2 is the default path** — give your agent one key, discover a Service, choose a Capability, estimate, then execute
+- **Layer 2 is the default path** — start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate, then execute
 - **Start with managed superpowers first** — bring BYOK or Agent Vault only when the workflow touches your own systems
 - **Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`
 - **Bring BYOK or Agent Vault** only when provider control is the point

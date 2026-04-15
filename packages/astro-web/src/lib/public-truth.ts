@@ -33,7 +33,7 @@ export const PUBLIC_TRUTH = {
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
   resolveMentalModel: {
     defaultPath:
-      "Default path: give your agent one key, discover a Service, choose a Capability, estimate the call, then execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`. Start with Rhumb-managed superpowers first. Bring BYOK or Agent Vault only when the workflow touches your own systems. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",
+      "Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2. Start with Rhumb-managed superpowers first. Bring BYOK or Agent Vault only when the workflow touches your own systems. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",
     surfaces: [
       {
         name: "REST API",

@@ -252,9 +252,10 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the shared astro public truth default path aligned with the live execution rails", () => {
-    expect(astroPublicTruth).toContain('then execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
+    expect(astroPublicTruth).toContain('Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2.');
     expect(astroPublicTruth).toContain('Bring BYOK or Agent Vault only when the workflow touches your own systems.');
     expect(astroPublicTruth).not.toContain('wallet-prefunded API key');
+    expect(astroPublicTruth).not.toContain('give your agent one key');
   });
 
   it("keeps the astro security auth surface aligned with the live execution rails", () => {
@@ -506,6 +507,7 @@ describe("public authority pricing contract", () => {
     expect(rootReadme.indexOf(rootReadmeManagedRow)).toBeLessThan(rootReadme.indexOf(rootReadmeByokRow));
     expect(rootReadme.indexOf(rootReadmeByokRow)).toBeLessThan(rootReadme.indexOf(rootReadmeVaultRow));
     expect(rootReadme).toContain('**Governed API key** — sign up, get a key, prepaid credits');
+    expect(rootReadme).toContain('start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate, then execute');
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('### Three credential modes');
@@ -516,10 +518,12 @@ describe("public authority pricing contract", () => {
     expect(rootReadme).not.toContain('**API key** — sign up, get a key, prepaid credits');
     expect(rootReadme).not.toContain('Bring your own API key — Rhumb routes, you authenticate');
     expect(rootReadme).not.toContain('wallet-prefunded API key');
+    expect(rootReadme).not.toContain('give your agent one key');
 
-    expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
+    expect(astroPublicTruth).toContain('Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2.');
     expect(astroPublicTruth).toContain('Bring BYOK or Agent Vault only when the workflow touches your own systems.');
     expect(astroPublicTruth).not.toContain('governed API key or wallet-prefunded API key');
+    expect(astroPublicTruth).not.toContain('give your agent one key');
 
     expect(astroResolve).toContain('const credentialPaths = [');
     expect(astroResolve).toContain('Three credential paths, one trust story');
@@ -536,6 +540,11 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain('label: "Agent-native custody"');
     expect(astroResolve).toContain(resolveVaultCard);
     expect(astroResolve).toContain('Use when the credential should stay encrypted in Rhumb custody, scoped to the agent, and be injected only at execution time.');
+    expect(astroResolve).toContain('title="Resolve | Managed superpowers first"');
+    expect(astroResolve).toContain('description="Resolve gives agents managed superpowers first, then secure bridges into operator-owned systems when the workflow needs them."');
+    expect(astroResolve).toContain('Managed superpowers first.');
+    expect(astroResolve).toContain('title: "Managed superpowers first"');
+    expect(astroResolve).toContain('starts agents on Rhumb-managed capabilities through governed API key or wallet-prefund');
     expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
     expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
     expect(astroResolve).toContain('href="/start-managed-execution?');
@@ -544,14 +553,22 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).not.toContain('Three modes, one trust story');
     expect(astroResolve).not.toContain('Use managed mode first');
     expect(astroResolve).not.toContain('agent-controlled storage');
+    expect(astroResolve).not.toContain('One key, many superpowers');
+    expect(astroResolve).not.toContain('Resolve gives agents one key for managed superpowers');
 
     expect(astroCapabilityFirstOnboarding).toContain('The honest production default today is still simple: start with the governed API key when you want repeat managed execution');
     expect(astroCapabilityFirstOnboarding).toContain('use x402 only when zero-signup per-call payment is the point');
     expect(astroCapabilityFirstOnboarding).toContain('bring BYOK or Agent Vault only when provider control is the point');
+    expect(astroCapabilityFirstOnboarding).toContain('Capability-First Agent Onboarding: Managed Superpowers First');
+    expect(astroCapabilityFirstOnboarding).toContain('The better onboarding model is managed superpowers first, then secure bridges only when needed.');
+    expect(astroCapabilityFirstOnboarding).toContain('If the managed lane gives the agent a bounded capability that becomes useful immediately');
+    expect(astroCapabilityFirstOnboarding).toContain('Managed superpowers first is a better product story because it is a better adoption story.');
     expect(astroCapabilityFirstOnboarding).not.toContain('bring wallet or provider-controlled paths');
     expect(astroCapabilityFirstOnboarding).toContain('href="/start-managed-execution?');
     expect(astroCapabilityFirstOnboarding).toContain('Start managed execution');
     expect(astroCapabilityFirstOnboarding).not.toContain('The honest production default today is still simple: start with the API key when you want repeat managed execution');
+    expect(astroCapabilityFirstOnboarding).not.toContain('One Key, Many Superpowers');
+    expect(astroCapabilityFirstOnboarding).not.toContain('one key, many superpowers');
 
     expect(astroStartManagedExecution).toContain('The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads.');
     expect(astroStartManagedExecution).toContain('If you want repeat managed execution, the honest default is governed API key first.');
@@ -629,10 +646,14 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro blog index aligned with the live credential-path story", () => {
     expect(astroBlogIndex).toContain("Three credential paths (Rhumb-managed, BYOK, Agent Vault)");
+    expect(astroBlogIndex).toContain("Capability-First Agent Onboarding: Managed Superpowers First");
+    expect(astroBlogIndex).toContain("The better onboarding model is managed superpowers first, then secure bridges only when needed.");
     expect(astroBlogIndex).not.toContain("Three credential paths (managed, BYOK, Agent Vault)");
     expect(astroBlogIndex).not.toContain("Three credential paths (BYOK, managed, Agent Vault)");
     expect(astroBlogIndex).not.toContain("Three credential modes (BYOK, managed, Agent Vault)");
     expect(astroBlogIndex).not.toContain("Three credential modes (BYOK, managed, x402)");
+    expect(astroBlogIndex).not.toContain("Capability-First Agent Onboarding: One Key, Many Superpowers");
+    expect(astroBlogIndex).not.toContain("one key, many superpowers");
   });
 
   it("keeps agent-capabilities pricing and auth truth aligned with the live rail-based story", () => {
