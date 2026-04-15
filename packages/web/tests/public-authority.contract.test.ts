@@ -27,6 +27,7 @@ const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/s
 const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pages/blog/switching-from-smithery.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
 const astroBlogAag = readFileSync(new URL("../../astro-web/src/pages/blog/aag-framework.astro", import.meta.url), "utf8");
+const astroAwsStorageCompare = readFileSync(new URL("../../astro-web/src/pages/blog/aws-s3-vs-cloudflare-r2-vs-backblaze-b2.astro", import.meta.url), "utf8");
 const astroBlogPayments = readFileSync(new URL("../../astro-web/src/pages/blog/payments-for-agents.astro", import.meta.url), "utf8");
 const astroBlogSelfScore = readFileSync(new URL("../../astro-web/src/pages/blog/self-score.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
@@ -261,9 +262,21 @@ describe("public authority pricing contract", () => {
   it("keeps the astro MCP getting-started auth rail aligned with the live execution rails", () => {
     expect(astroGettingStartedMcp).toContain('For repeat traffic, use governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
     expect(astroGettingStartedMcp).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroGettingStartedMcp).toContain('Rhumb supports three live credential paths. Keep provider-controlled execution on BYOK or Agent Vault, and use the Rhumb-managed path when zero-config governed execution is the point.');
+    expect(astroGettingStartedMcp).toContain('Provider-controlled</span>\n                <span class="font-semibold text-slate-200">BYOK</span>');
+    expect(astroGettingStartedMcp).toContain('Governed path</span>\n                <span class="font-semibold text-slate-200">Rhumb-Managed</span>');
+    expect(astroGettingStartedMcp).toContain('Provider-controlled</span>\n                <span class="font-semibold text-slate-200">Agent Vault</span>');
     expect(astroGettingStartedMcp).not.toContain('Bring BYOK only when provider control is the point.');
+    expect(astroGettingStartedMcp).not.toContain('Mode 1');
+    expect(astroGettingStartedMcp).not.toContain('Mode 2');
+    expect(astroGettingStartedMcp).not.toContain('Mode 3');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
     expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
+  });
+
+  it("keeps storage comparison copy aligned with the full provider-control model", () => {
+    expect(astroAwsStorageCompare).toContain('IAM scoping enables secure provider-controlled patterns, whether you pass BYOK directly or inject credentials through Agent Vault.');
+    expect(astroAwsStorageCompare).not.toContain('IAM scoping enables secure BYOK patterns.');
   });
 
   it("keeps the astro agent-payments default production path aligned with the live execution rails", () => {

@@ -461,16 +461,16 @@ const frameworks: Framework[] = [
     <section class="border-b border-slate-800/60">
       <div class="max-w-6xl mx-auto px-6 py-14">
         <div class="max-w-3xl">
-          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Three ways to bring credentials</h2>
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Credential paths that match your trust boundary</h2>
           <p class="text-slate-400 leading-relaxed mb-6">
-            When executing capabilities, Rhumb supports three credential modes — pick the one that fits your security model.
+            Rhumb supports three live credential paths. Keep provider-controlled execution on BYOK or Agent Vault, and use the Rhumb-managed path when zero-config governed execution is the point.
           </p>
 
           <div class="space-y-4">
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
               <div class="flex items-center gap-3 mb-2">
-                <span class="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider">Mode 1</span>
-                <span class="font-semibold text-slate-200">BYOK (Bring Your Own Key)</span>
+                <span class="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider">Provider-controlled</span>
+                <span class="font-semibold text-slate-200">BYOK</span>
               </div>
               <p class="text-sm text-slate-400 leading-relaxed">
                 Pass your own API keys at execution time. Rhumb routes the request, you own the credential.
@@ -479,7 +479,7 @@ const frameworks: Framework[] = [
             </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
               <div class="flex items-center gap-3 mb-2">
-                <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider">Mode 2</span>
+                <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider">Governed path</span>
                 <span class="font-semibold text-slate-200">Rhumb-Managed</span>
               </div>
               <p class="text-sm text-slate-400 leading-relaxed">
@@ -489,7 +489,7 @@ const frameworks: Framework[] = [
             </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
               <div class="flex items-center gap-3 mb-2">
-                <span class="text-xs font-mono font-semibold text-purple-400 uppercase tracking-wider">Mode 3</span>
+                <span class="text-xs font-mono font-semibold text-purple-400 uppercase tracking-wider">Provider-controlled</span>
                 <span class="font-semibold text-slate-200">Agent Vault</span>
               </div>
               <p class="text-sm text-slate-400 leading-relaxed">
