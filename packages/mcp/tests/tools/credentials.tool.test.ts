@@ -63,7 +63,7 @@ describe("check_credentials", () => {
       {
         mode: "agent_vault",
         available: true,
-        detail: "2 ceremony guide(s) available. Get your own API key following the guide, then pass it per call via the agent_token parameter.",
+        detail: "2 ceremony guide(s) available. Get your own provider API key following the guide, then pass it per call via the agent_token parameter.",
       },
     ]);
 

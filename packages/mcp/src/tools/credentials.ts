@@ -163,7 +163,7 @@ export async function handleCheckCredentials(
       mode: "agent_vault",
       available: ceremonies.length > 0,
       detail: ceremonies.length > 0
-        ? `${ceremonies.length} ceremony guide(s) available. Get your own API key following the guide, then pass it per call via the agent_token parameter.`
+        ? `${ceremonies.length} ceremony guide(s) available. Get your own provider API key following the guide, then pass it per call via the agent_token parameter.`
         : "No ceremony guides available yet.",
     },
   ];

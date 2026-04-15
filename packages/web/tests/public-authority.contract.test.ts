@@ -427,8 +427,9 @@ describe("public authority pricing contract", () => {
     expect(astroCapabilities).toContain('resolve ranked providers or follow the machine-readable recovery handoff');
     expect(astroCapabilities).toContain('resolve returns search suggestions instead of a blank dead end');
     expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
-    expect(astroCapabilities).toContain('governed or wallet-prefund path');
-    expect(astroCapabilities).toContain('BYOK or Agent Vault where supported');
+    expect(astroCapabilities).toContain('(your governed API key)');
+    expect(astroCapabilities).toContain('governed API key or wallet-prefund rails');
+    expect(astroCapabilities).toContain('Bring BYOK or Agent Vault only when provider control is the point');
     expect(astroCapabilities).toContain('<code class="text-amber">x_payment</code>');
     expect(astroCapabilities).toContain('capabilities that expose x402 per-call');
     expect(astroCapabilities).not.toContain('Once you have the capability ID, resolve providers, estimate the active rail, then execute through quickstart or MCP.');

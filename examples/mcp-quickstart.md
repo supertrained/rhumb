@@ -115,6 +115,6 @@ If you ask for a specific mode such as `byok` or `rhumb_managed` and nothing is 
 ## Notes
 
 - Discovery works with no key.
-- Execution generally means `RHUMB_API_KEY`.
-- Use x402 through the REST API when zero-signup per-call payment matters.
+- Execution through governed API key or wallet-prefund uses `RHUMB_API_KEY` (your governed API key).
+- Use x402 through the REST API when zero-signup per-call payment matters (no `RHUMB_API_KEY` required).
 - Use wallet-prefund when the same wallet needs repeat traffic.

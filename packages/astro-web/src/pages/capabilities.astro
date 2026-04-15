@@ -319,8 +319,8 @@ const CAPABILITY_STARTER_QUERIES = [
         <p class="text-slate-400 text-sm mb-6 max-w-lg mx-auto">
           Discover capability definitions, resolve ranked providers or follow the machine-readable recovery handoff, and execute the subset that is live through
           a single MCP server. Discovery works without a key, and if you guessed the wrong capability slug, resolve returns search suggestions instead of a blank dead end.
-          Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code> on the governed or wallet-prefund path, can carry BYOK or Agent Vault where supported,
-          and can pass <code class="text-amber">x_payment</code> only on capabilities that expose x402 per-call.
+          Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code> (your governed API key) on the governed API key or wallet-prefund rails. Bring BYOK or Agent Vault only when provider control is the point,
+          and pass <code class="text-amber">x_payment</code> only on capabilities that expose x402 per-call.
         </p>
         <div class="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-navy border border-slate-700 font-mono text-sm text-amber mb-4">
           <code>npx rhumb-mcp@latest</code>
