@@ -26,8 +26,14 @@ describe("terms page", () => {
     expect(html).toContain("Supertrained Inc.");
     expect(html).toContain("Service tiers and access");
     expect(html).toContain("Execution rails (paid as used):");
+    expect(html).toContain("governed API key or wallet-prefund on");
+    expect(html).toContain("X-Rhumb-Key");
+    expect(html).toContain("BYOK or Agent Vault where supported");
     expect(html).toContain("x402 zero-signup (paid):");
     expect(html).toContain("Managed capabilities and proxy services");
+    expect(html).toContain("BYOK or Agent Vault provider-controlled routes do not add markup to the credential itself");
+    expect(html).not.toContain("or BYOK depending on the rail you choose");
+    expect(html).not.toContain("BYOK routes do not add markup to the credential itself");
     expect(html).toContain("billing@supertrained.ai");
     expect(html).toContain("State of Florida, United States");
     expect(html).toContain("7901 4th St N STE 300");

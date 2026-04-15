@@ -78,10 +78,11 @@ export default function TermsPage() {
                 <strong className="text-slate-200">
                   Execution rails (paid as used):
                 </strong>{" "}
-                Authenticated execution may use governed API key,
-                wallet-prefund, or BYOK depending on the rail you choose.
-                Discovery remains free, and current pricing and markup terms are
-                published at{" "}
+                Authenticated execution may use governed API key or
+                wallet-prefund on <code className="text-amber">X-Rhumb-Key</code>,
+                while provider-controlled paths use BYOK or Agent Vault where
+                supported. Discovery remains free, and current pricing and
+                markup terms are published at{" "}
                 <a
                   href="/pricing"
                   className="text-amber hover:underline underline-offset-2"
@@ -132,7 +133,8 @@ export default function TermsPage() {
                 >
                   /pricing
                 </a>
-                ; BYOK routes do not add markup to the credential itself
+                ; BYOK or Agent Vault provider-controlled routes do not add
+                markup to the credential itself
               </li>
               <li>
                 &bull; We are not liable for upstream service outages, errors,

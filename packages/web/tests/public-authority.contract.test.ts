@@ -78,11 +78,14 @@ describe("public authority pricing contract", () => {
   });
 
   it("removes stale free-tier and split-markup claims from legal and glossary surfaces", () => {
-    expect(terms).toContain("wallet-prefund");
-    expect(terms).toContain("BYOK");
+    expect(terms).toContain("governed API key or wallet-prefund on <code class=\"text-amber\">X-Rhumb-Key</code>");
+    expect(terms).toContain("BYOK or Agent Vault where supported");
+    expect(terms).toContain("BYOK or Agent Vault provider-controlled routes do not add markup to the credential itself");
     expect(terms).toContain("current pricing and markup terms are published");
     expect(terms).not.toContain("A free tier provides 1,000 calls per month");
     expect(terms).not.toContain("15% for x402/USDC");
+    expect(terms).not.toContain("or BYOK depending on the rail you choose");
+    expect(terms).not.toContain("BYOK routes do not add markup to the credential itself");
 
     expect(glossary).toContain("wallet-prefund");
     expect(glossary).toContain("provider-controlled paths through BYOK or Agent Vault");
