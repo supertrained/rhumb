@@ -1,7 +1,7 @@
 /**
  * check_credentials tool handler
  *
- * Returns live credential-mode readiness to the agent across all three rails,
+ * Returns live credential-mode readiness to the agent across the available credential paths,
  * now anchored to the same readiness surfaces the product exposes:
  * - /v1/agent/credentials for account-specific configured bridges and direct bundles
  * - /v1/capabilities/{id}/credential-modes for capability-specific provider readiness
@@ -50,7 +50,7 @@ export async function handleCheckCredentials(
           {
             mode: "byok",
             available: true,
-            detail: "BYOK is the default fallback rail. Set RHUMB_API_KEY and bring provider credentials per call when the capability exposes a BYOK path.",
+            detail: `Credential readiness did not load for ${input.capability}. BYOK and Agent Vault are provider-controlled paths and may or may not be available for this capability. Retry this check, or call resolve to see live providers and setup hints.`,
           },
           {
             mode: "rhumb_managed",

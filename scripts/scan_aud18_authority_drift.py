@@ -42,6 +42,7 @@ DEFAULT_SCAN_PATHS = (
     Path("packages/mcp/README.md"),
     Path("packages/mcp/package.json"),
     Path("packages/mcp/server.json"),
+    Path("packages/mcp/src/tools/credentials.ts"),
     Path("scripts/generate_agent_capabilities.py"),
 )
 
@@ -147,6 +148,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         key="existing-stack-third-path-shorthand",
         note="homepage wording that makes existing stack sound like a third path instead of BYOK or Agent Vault",
         regex=re.compile(r"Use BYOK, Agent Vault, or your existing stack", re.IGNORECASE),
+    ),
+    DriftPattern(
+        key="byok-default-fallback-rail-shorthand",
+        note="MCP credential guidance that incorrectly calls BYOK a default fallback rail",
+        regex=re.compile(r"BYOK is the default fallback rail", re.IGNORECASE),
     ),
     DriftPattern(
         key="one-key-onboarding-shorthand",

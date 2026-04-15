@@ -191,4 +191,20 @@ describe("check_credentials", () => {
       },
     ]);
   });
+
+  it("does not overstate BYOK when capability readiness fails to load", async () => {
+    const client = {
+      listManagedCapabilities: vi.fn().mockResolvedValue([]),
+      listCeremonies: vi.fn().mockResolvedValue([]),
+      getAgentCredentialReadiness: vi.fn().mockResolvedValue(null),
+      getCapabilityCredentialModes: vi.fn().mockResolvedValue(null),
+    } as unknown as RhumbApiClient;
+
+    const result = await handleCheckCredentials({ capability: "email.send" }, client);
+
+    expect(result.error).toContain("Couldn't load credential-mode readiness");
+    expect(result.modes[0].mode).toBe("byok");
+    expect(result.modes[0].detail).toContain("Credential readiness did not load");
+    expect(result.modes[0].detail).not.toContain("default fallback rail");
+  });
 });
