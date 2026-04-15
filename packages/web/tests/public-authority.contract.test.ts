@@ -212,7 +212,9 @@ describe("public authority pricing contract", () => {
     expect(astroBlogHowAgentsPay).toContain("wallet-prefund");
     expect(astroBlogHowAgentsPay).toContain("BYOK or Agent Vault");
     expect(astroBlogHowAgentsPayGuide).toContain("On Rhumb, you choose an execution rail first");
+    expect(astroBlogHowAgentsPayGuide).toContain("how Rhumb maps governed API key, wallet-prefund, and x402 rails");
     expect(astroBlogHowAgentsPayGuide).not.toContain("hands the agent an API key");
+    expect(astroBlogHowAgentsPayGuide).not.toContain("how Rhumb implements all three payment paths");
     expect(astroBlogHowAgentsPayGuide).not.toContain("X-Api-Key: rhumb_live_");
     expect(astroBlogHowAgentsPayGuide).not.toContain("rhumb_live_");
   });

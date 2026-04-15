@@ -193,6 +193,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="blog payment guide wording that implies a Rhumb API key via `rhumb_live_` tokens or stale phrasing",
         regex=re.compile(r"hands the agent an API key|X-Api-Key:\s*rhumb_live_", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="payment-paths-taxonomy-shorthand",
+        note="Rhumb payment guide wording that collapses the live rail model back into generic `three payment paths` taxonomy",
+        regex=re.compile(r"how Rhumb implements all three payment paths", re.IGNORECASE),
+    ),
 )
 
 

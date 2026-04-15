@@ -246,4 +246,4 @@ Your API returns 402 with payment instructions when an unauthenticated or underf
 - [x402 Protocol Specification](https://www.x402.org/x402-whitepaper.pdf) — the HTTP-native payment standard
 - [Coinbase AgentKit Documentation](https://docs.cdp.coinbase.com/agent-kit/welcome) — agent wallet SDK
 - [Coinbase Agentic Wallets](https://docs.cdp.coinbase.com/agentic-wallet/welcome) — purpose-built agent wallets
-- [Rhumb Pricing](/pricing) — how Rhumb implements all three payment paths
+- [Rhumb Pricing](/pricing) — how Rhumb maps governed API key, wallet-prefund, and x402 rails, with BYOK or Agent Vault where provider control is the point
