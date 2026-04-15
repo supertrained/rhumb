@@ -1,6 +1,10 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -25,7 +29,7 @@ const comparisons: ComparisonRow[] = [
   {
     dimension: "Catalog size",
     smithery: "4,000+ MCP servers indexed",
-    rhumb: "525+ services scored across 86 categories",
+    rhumb: `${servicesLabel} services scored across ${categoriesLabel} categories`,
     verdict: "smithery",
   },
   {
@@ -43,7 +47,7 @@ const comparisons: ComparisonRow[] = [
   {
     dimension: "Credential modes",
     smithery: "Managed OAuth (human-session-oriented)",
-    rhumb: "Three modes: BYOK (your keys), Rhumb-managed (we hold keys), x402 USDC (no account needed)",
+    rhumb: "Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault (encrypted provider credentials Rhumb injects at call time). x402 stays separate as the zero-signup payment rail.",
     verdict: "rhumb",
   },
   {
@@ -96,7 +100,7 @@ const verdictColors = {
   description="An honest comparison of Smithery and Rhumb for AI agent tool discovery. Where each product wins, catalog overlap, and migration steps."
   canonical="/blog/switching-from-smithery"
   ogTitle="Switching from Smithery to Rhumb — Honest Comparison"
-  ogDescription="Smithery has 4,000+ MCP servers. Rhumb has 525+ scored services with failure modes and agent-native payments. Here's how they compare."
+  ogDescription={`Smithery has 4,000+ MCP servers. Rhumb has ${servicesLabel} scored services with failure modes and agent-native payments. Here's how they compare.`}
   ogUrl="https://rhumb.dev/blog/switching-from-smithery"
   jsonLd={ARTICLE_JSON_LD}
 >
@@ -239,8 +243,8 @@ const verdictColors = {
           <div class="flex gap-4">
             <span class="flex items-center justify-center w-8 h-8 rounded-full bg-amber/10 text-amber font-mono font-bold text-sm shrink-0">3</span>
             <div>
-              <h3 class="text-sm font-semibold text-slate-200">Choose your credential mode</h3>
-              <p class="text-sm text-slate-400 mt-1">BYOK if you already have provider keys. Rhumb-managed if you want us to handle credentials. x402 if your agent should pay autonomously. <a href="/quickstart" class="text-amber hover:underline">Quickstart guide →</a></p>
+              <h3 class="text-sm font-semibold text-slate-200">Choose your access path</h3>
+              <p class="text-sm text-slate-400 mt-1">BYOK if you already have provider keys. Rhumb-managed if you want us to handle credentials. Agent Vault if you want Rhumb to inject your encrypted provider credential at call time. Use x402 only when zero-signup per-call payment is the point. <a href="/quickstart" class="text-amber hover:underline">Quickstart guide →</a></p>
             </div>
           </div>
           <div class="flex gap-4">
@@ -266,7 +270,7 @@ const verdictColors = {
         <ul class="mt-3 space-y-2 text-sm text-slate-400">
           <li class="flex gap-2"><span class="text-slate-600">•</span> Visual web UI for browsing tools (API and MCP only today)</li>
           <li class="flex gap-2"><span class="text-slate-600">•</span> Hosted MCP servers (Rhumb is a layer, not a host)</li>
-          <li class="flex gap-2"><span class="text-slate-600">•</span> 4,000+ server catalog (we're at 525+ and growing daily)</li>
+          <li class="flex gap-2"><span class="text-slate-600">•</span> 4,000+ server catalog (we're at {servicesLabel} scored services and growing daily)</li>
           <li class="flex gap-2"><span class="text-slate-600">•</span> Team management and role-based access (planned)</li>
           <li class="flex gap-2"><span class="text-slate-600">•</span> Usage analytics dashboard (planned)</li>
         </ul>
