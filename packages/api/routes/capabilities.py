@@ -20,6 +20,7 @@ from services.warehouse_connection_registry import has_any_warehouse_bundle_conf
 from services.proxy_auth import AuthInjector
 from services.service_slugs import normalize_proxy_slug
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
+from services.storage_connection_registry import has_any_storage_bundle_configured
 from services.support_connection_registry import has_any_support_bundle_configured
 
 
@@ -559,6 +560,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 
 
 def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, object]:
+    configured = has_any_storage_bundle_configured("aws-s3")
     provider = {
         "service_slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
         "service_name": _OBJECT_STORAGE_DIRECT_PROVIDER_NAME,
@@ -578,7 +580,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "recommendation_reason": "Direct read-only AWS S3 execution via storage_ref with bucket/prefix allowlists and bounded byte limits.",
         "circuit_state": "n/a",
         "available_for_execute": True,
-        "configured": False,
+        "configured": configured,
     }
     return {
         "capability": capability_id,
@@ -1497,6 +1499,7 @@ def _warehouse_direct_credential_modes(capability_id: str) -> dict[str, object]:
 
 
 def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, object]:
+    configured = has_any_storage_bundle_configured("aws-s3")
     return {
         "capability_id": capability_id,
         "providers": [
@@ -1507,11 +1510,11 @@ def _object_storage_direct_credential_modes(capability_id: str) -> dict[str, obj
                     {
                         "mode": "byok",
                         "available": True,
-                        "configured": False,
+                        "configured": configured,
                         "setup_hint": _provider_mode_setup_hint(_OBJECT_STORAGE_DIRECT_PROVIDER_SLUG, "storage_ref", "byok"),
                     }
                 ],
-                "any_configured": False,
+                "any_configured": configured,
             }
         ],
     }

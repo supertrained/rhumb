@@ -67,8 +67,50 @@ async def test_resolve_and_credential_modes_work_for_synthetic_object_storage_ca
     resolve_body = resolve_response.json()["data"]
     assert resolve_body["providers"][0]["service_slug"] == "aws-s3"
     assert resolve_body["providers"][0]["auth_method"] == "storage_ref"
+    assert resolve_body["providers"][0]["configured"] is False
+    assert resolve_body["execute_hint"]["configured"] is False
 
     assert modes_response.status_code == 200
     providers = modes_response.json()["data"]["providers"]
     assert providers[0]["service_slug"] == "aws-s3"
     assert providers[0]["modes"][0]["mode"] == "byok"
+    assert providers[0]["modes"][0]["configured"] is False
+    assert providers[0]["any_configured"] is False
+
+
+@pytest.mark.asyncio
+async def test_resolve_and_credential_modes_mark_object_storage_bundle_as_configured(
+    app,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_STORAGE_ST_DOCS",
+        "{"
+        '"provider":"aws-s3",'
+        '"region":"us-west-1",'
+        '"aws_access_key_id":"AKIA...",'
+        '"aws_secret_access_key":"secret",'
+        '"allowed_buckets":["docs-bucket"]'
+        "}",
+    )
+
+    async def fake_fetch(path: str):
+        if path.startswith("capabilities?id=eq.object.get"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new=AsyncMock(side_effect=fake_fetch)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resolve_response = await client.get("/v1/capabilities/object.get/resolve")
+            modes_response = await client.get("/v1/capabilities/object.get/credential-modes")
+
+    assert resolve_response.status_code == 200
+    resolve_body = resolve_response.json()["data"]
+    assert resolve_body["providers"][0]["configured"] is True
+    assert resolve_body["execute_hint"]["configured"] is True
+    assert "setup_hint" not in resolve_body["execute_hint"]
+
+    assert modes_response.status_code == 200
+    providers = modes_response.json()["data"]["providers"]
+    assert providers[0]["modes"][0]["configured"] is True
+    assert providers[0]["any_configured"] is True

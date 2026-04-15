@@ -9,6 +9,7 @@ import pytest
 from services.storage_connection_registry import (
     StorageRefError,
     ensure_storage_access,
+    has_any_storage_bundle_configured,
     resolve_storage_bundle,
 )
 
@@ -61,6 +62,24 @@ def test_resolve_storage_bundle_missing_env_raises(monkeypatch: pytest.MonkeyPat
     monkeypatch.delenv("RHUMB_STORAGE_ST_DOCS", raising=False)
     with pytest.raises(StorageRefError, match="No storage bundle configured"):
         resolve_storage_bundle("st_docs")
+
+
+def test_has_any_storage_bundle_configured_ignores_invalid_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RHUMB_STORAGE_BROKEN", "not-json")
+    monkeypatch.setenv(
+        "RHUMB_STORAGE_ST_DOCS",
+        json.dumps(
+            {
+                "provider": "aws-s3",
+                "region": "us-west-1",
+                "aws_access_key_id": "AKIA...",
+                "aws_secret_access_key": "secret",
+                "allowed_buckets": ["docs-bucket"],
+            }
+        ),
+    )
+
+    assert has_any_storage_bundle_configured("aws-s3") is True
 
 
 def test_resolve_storage_bundle_requires_keys_for_access_key_mode(monkeypatch: pytest.MonkeyPatch) -> None:

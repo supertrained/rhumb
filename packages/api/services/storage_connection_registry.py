@@ -36,6 +36,22 @@ def validate_storage_ref(storage_ref: str) -> None:
         )
 
 
+def has_any_storage_bundle_configured(provider: str | None = None) -> bool:
+    provider_filter = str(provider or "").strip().lower() or None
+    for env_key in os.environ:
+        if not env_key.startswith("RHUMB_STORAGE_"):
+            continue
+        storage_ref = env_key.removeprefix("RHUMB_STORAGE_").lower()
+        try:
+            bundle = resolve_storage_bundle(storage_ref)
+        except StorageRefError:
+            continue
+        if provider_filter and bundle.provider != provider_filter:
+            continue
+        return True
+    return False
+
+
 def resolve_storage_bundle(storage_ref: str) -> AwsS3StorageBundle:
     validate_storage_ref(storage_ref)
     env_key = f"RHUMB_STORAGE_{storage_ref.upper()}"
