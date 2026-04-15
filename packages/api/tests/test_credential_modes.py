@@ -217,6 +217,78 @@ async def test_agent_credentials_returns_status(app, monkeypatch):
     pc._credential_store = None
 
 
+@pytest.mark.anyio
+async def test_agent_credentials_counts_rhumb_managed_modes_as_unlocked(app):
+    """Rhumb-managed modes should unlock capabilities without agent BYOK setup."""
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return [
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "credential_modes": ["rhumb_managed"],
+                    "auth_method": "api_key",
+                }
+            ]
+        return []
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "test-agent"},
+            )
+
+    data = resp.json()["data"]
+    assert data["configured_services"] == []
+    assert "search.query" in data["unlocked_capabilities"]
+    assert "search.query" not in data["locked_capabilities"]
+
+
+@pytest.mark.anyio
+async def test_agent_credentials_counts_direct_bundles_as_configured(app):
+    """Direct bundle-backed rails should count as configured and unlocked."""
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return [
+                {
+                    "capability_id": "deployment.list",
+                    "service_slug": "vercel",
+                    "credential_modes": ["byo"],
+                    "auth_method": "deployment_ref",
+                }
+            ]
+        return []
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ), patch("routes.capabilities.has_any_deployment_bundle_configured", return_value=True):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "test-agent"},
+            )
+
+    data = resp.json()["data"]
+    assert "vercel" in data["configured_services"]
+    assert "deployment.list" in data["unlocked_capabilities"]
+    assert data["locked_capabilities"] == []
+
+
 # ── resolve with configured field ──────────────────────────────
 
 @pytest.mark.anyio

@@ -1606,6 +1606,65 @@ def _support_direct_credential_modes(capability_id: str) -> dict[str, object]:
     }
 
 
+def _direct_capability_credential_modes(capability_id: str) -> dict[str, object] | None:
+    if _is_db_direct_capability(capability_id):
+        return _db_direct_credential_modes(capability_id)
+    if _is_warehouse_direct_capability(capability_id):
+        return _warehouse_direct_credential_modes(capability_id)
+    if _is_object_storage_direct_capability(capability_id):
+        return _object_storage_direct_credential_modes(capability_id)
+    if _is_deployment_direct_capability(capability_id):
+        return _deployment_direct_credential_modes(capability_id)
+    if _is_actions_direct_capability(capability_id):
+        return _actions_direct_credential_modes(capability_id)
+    if _is_crm_direct_capability(capability_id):
+        return _crm_direct_credential_modes(capability_id)
+    if _is_support_direct_capability(capability_id):
+        return _support_direct_credential_modes(capability_id)
+    return None
+
+
+def _agent_credentials_mapping_readiness(mapping: dict[str, object]) -> tuple[bool, bool]:
+    capability_id = str(mapping.get("capability_id") or "")
+    service_slug = str(mapping.get("service_slug") or "")
+    auth_method = _effective_auth_method(
+        service_slug,
+        str(mapping.get("auth_method") or "api_key"),
+    )
+    credential_modes = _canonicalize_credential_modes(
+        mapping.get("credential_modes") or ["byok"],
+    )
+
+    byok_configured = False
+    if "byok" in credential_modes:
+        byok_configured = _has_proxy_credential_configured(service_slug, auth_method)
+
+    capability_ready = _mapped_provider_is_configured(
+        credential_modes,
+        byok_configured=byok_configured,
+    )
+    if capability_ready:
+        return byok_configured, True
+
+    direct_modes = _direct_capability_credential_modes(capability_id)
+    if direct_modes is None:
+        return False, False
+
+    provider = next(
+        (
+            item
+            for item in direct_modes.get("providers", [])
+            if item.get("service_slug") == service_slug
+        ),
+        None,
+    )
+    if provider is None:
+        return False, False
+
+    any_configured = bool(provider.get("any_configured"))
+    return any_configured, any_configured
+
+
 def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None:
 
     db_records = {
@@ -2997,7 +3056,7 @@ async def get_credential_modes(
             "error": None,
         }
 
-    # Check BYO credential status per provider
+    # Check per-provider credential-mode readiness
     providers = []
     for m in mappings:
         slug = m["service_slug"]
@@ -3082,13 +3141,14 @@ async def get_ceremony(service_slug: str) -> dict:
 async def get_agent_credentials(
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
-    """Return the agent's full credential status.
+    """Return the agent's credential-mode readiness.
 
-    Shows which services have BYOK credentials configured, which capabilities
-    those credentials unlock, and which capabilities need credentials.
+    Shows which BYOK bridges or direct connection bundles are configured,
+    which capabilities are already available through those paths or
+    Rhumb-managed rails, and which capabilities still need setup.
 
     Requires a valid API key — this endpoint exposes Rhumb's managed
-    credential inventory and must not be accessible to unauthenticated callers.
+    readiness state and must not be accessible to unauthenticated callers.
     """
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
@@ -3117,21 +3177,8 @@ async def get_agent_credentials(
             "error": None,
         }
 
-    # Check which services have credentials
+    # Check which services or direct bundles are ready for this agent
     configured_services = set()
-    try:
-        from services.proxy_credentials import get_credential_store
-        store = get_credential_store()
-
-        seen_slugs = {m["service_slug"] for m in all_mappings}
-        for slug in seen_slugs:
-            # Try common auth method keys
-            for key in ("api_key", "oauth_token", "api_token", "basic_auth"):
-                if store.get_credential(slug, key) is not None:
-                    configured_services.add(slug)
-                    break
-    except Exception:
-        pass
 
     # Categorize capabilities
     unlocked = set()
@@ -3141,7 +3188,11 @@ async def get_agent_credentials(
         cap_id = m["capability_id"]
         slug = m["service_slug"]
 
-        if slug in configured_services:
+        service_ready, capability_ready = _agent_credentials_mapping_readiness(m)
+        if service_ready:
+            configured_services.add(slug)
+
+        if capability_ready:
             unlocked.add(cap_id)
         else:
             # Only locked if no provider for this capability is configured
