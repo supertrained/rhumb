@@ -226,27 +226,31 @@ describe("public authority pricing contract", () => {
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
     expect(astroHome).toContain('zero-signup, request-level payment authorization is the point');
     expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
-    expect(astroHome).toContain('use BYOK when provider control is the point');
+    expect(astroHome).toContain('use BYOK or Agent Vault when provider control is the point');
+    expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
   });
 
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
     expect(astroQuickstart).toContain('Use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code> for repeat calls.');
-    expect(astroQuickstart).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroQuickstart).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
   });
 
   it("keeps the astro MCP getting-started auth rail aligned with the live execution rails", () => {
     expect(astroGettingStartedMcp).toContain('For repeat traffic, use governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
-    expect(astroGettingStartedMcp).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroGettingStartedMcp).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroGettingStartedMcp).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
     expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
   });
 
   it("keeps the astro agent-payments default production path aligned with the live execution rails", () => {
     expect(astroPaymentsAgent).toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
-    expect(astroPaymentsAgent).toContain('Bring BYOK only when provider control is the point.');
+    expect(astroPaymentsAgent).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroPaymentsAgent).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroPaymentsAgent).toContain('Zero-signup, request-level payment authorization matters more than repeat throughput');
     expect(astroPaymentsAgent).not.toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with a governed API key or wallet-prefunded API key.');
   });
@@ -255,7 +259,8 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroSwitchingFromSmithery).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroSwitchingFromSmithery).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
-    expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
+    expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroSwitchingFromSmithery).not.toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
     expect(astroSwitchingFromSmithery).toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
     expect(astroSwitchingFromSmithery).toContain('x402 stays separate as the zero-signup payment rail.');
     expect(astroSwitchingFromSmithery).toContain('Use x402 only when zero-signup per-call payment is the point.');
