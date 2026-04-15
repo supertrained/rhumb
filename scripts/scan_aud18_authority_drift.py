@@ -138,6 +138,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="older checklist shorthand that should now name the governed path as `Rhumb-managed`",
         regex=re.compile(r"Prefer managed, Agent Vault, or x402 over raw BYOK", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="existing-stack-third-path-shorthand",
+        note="homepage wording that makes existing stack sound like a third path instead of BYOK or Agent Vault",
+        regex=re.compile(r"Use BYOK, Agent Vault, or your existing stack", re.IGNORECASE),
+    ),
 )
 
 

@@ -244,7 +244,7 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
-    expect(astroHome).toContain('Use BYOK, Agent Vault, or your existing stack');
+    expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
     expect(astroHome).toContain('Use BYOK for direct pass-through, or Agent Vault when you need encrypted provider credential injection at call time, enterprise boundaries, or existing vendor accounts.');
@@ -258,6 +258,7 @@ describe("public authority pricing contract", () => {
     expect(astroHome).not.toContain('Guide &middot; Three credential modes');
     expect(astroHome).not.toContain('See credential modes &rarr;');
     expect(astroHome).not.toContain('Bring your own provider credentials directly');
+    expect(astroHome).not.toContain('Use BYOK, Agent Vault, or your existing stack');
     expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
   });
