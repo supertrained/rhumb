@@ -97,6 +97,9 @@ describe("public authority pricing contract", () => {
     expect(glossary).toContain("x402, BYOK, Agent Vault, Rhumb-managed capabilities, and more.");
     expect(glossary).toContain("Choosing a credential path? Check <a href=\"/pricing\"");
     expect(glossary).toContain("Rhumb-managed");
+    expect(glossary).toContain('href: "#rhumb-managed"');
+    expect(glossary).toContain('url: `https://rhumb.dev/glossary#${term.id}`');
+    expect(glossary).toContain('id: "rhumb-managed"');
     expect(glossary).toContain("Discovery is free, and execution pricing lives on /pricing.");
     expect(glossary).not.toContain("public free tier includes 1,000 calls per month");
     expect(glossary).not.toContain("Confirm per-call pricing, x402 rail, and BYOK terms.");
@@ -104,6 +107,9 @@ describe("public authority pricing contract", () => {
     expect(glossary).not.toContain("call modes");
     expect(glossary).not.toContain("credential mode");
     expect(glossary).not.toContain("managed mode");
+    expect(glossary).not.toContain('#managed-mode');
+    expect(glossary).not.toContain('id: "managed-mode"');
+    expect(glossary).not.toContain('https://rhumb.dev/glossary#managed-mode');
   });
 
   it("keeps the astro docs authority surface pinned to canonical public truth", () => {
@@ -300,6 +306,8 @@ describe("public authority pricing contract", () => {
     expect(astroGettingStartedMcp).not.toContain('Mode 3');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
     expect(astroGettingStartedMcp).toContain('Get step-by-step instructions for obtaining provider credentials');
+    expect(astroGettingStartedMcp).toContain('Pass your own provider API key at execution time. Rhumb routes the request, you keep control of the provider credential.');
+    expect(astroGettingStartedMcp).not.toContain('Pass your own API keys at execution time. Rhumb routes the request, you own the credential.');
     expect(astroGettingStartedMcp).not.toContain('Setup guides for credential modes');
     expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
   });
@@ -399,7 +407,7 @@ describe("public authority pricing contract", () => {
 
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
     const rootReadmeManagedRow = '| **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |';
-    const rootReadmeByokRow = '| **BYOK** | Bring your own API key — Rhumb routes, you authenticate |';
+    const rootReadmeByokRow = '| **BYOK** | Bring your own provider API key. Rhumb routes, you authenticate |';
     const rootReadmeVaultRow = '| **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |';
 
     expect(rootReadme).toContain('### Three credential paths');
@@ -413,6 +421,7 @@ describe("public authority pricing contract", () => {
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('### Three credential modes');
     expect(rootReadme).not.toContain('| Mode | How it works |');
+    expect(rootReadme).not.toContain('Bring your own API key — Rhumb routes, you authenticate');
     expect(rootReadme).not.toContain('wallet-prefunded API key');
 
     expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');

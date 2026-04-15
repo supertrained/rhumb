@@ -139,9 +139,19 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"Prefer managed, Agent Vault, or x402 over raw BYOK", re.IGNORECASE),
     ),
     DriftPattern(
+        key="legacy-managed-anchor",
+        note="older glossary anchor still leaks `managed-mode` instead of `rhumb-managed`",
+        regex=re.compile(r"#managed-mode\b|\bid:\s*[\"']managed-mode[\"']"),
+    ),
+    DriftPattern(
         key="existing-stack-third-path-shorthand",
         note="homepage wording that makes existing stack sound like a third path instead of BYOK or Agent Vault",
         regex=re.compile(r"Use BYOK, Agent Vault, or your existing stack", re.IGNORECASE),
+    ),
+    DriftPattern(
+        key="ambiguous-byok-api-key-shorthand",
+        note="BYOK wording that can blur provider API keys with the governed Rhumb API key",
+        regex=re.compile(r"Bring your own API key|Pass your own API keys? at execution time", re.IGNORECASE),
     ),
 )
 

@@ -90,7 +90,7 @@ Treat broader multi-system business automation as future scope, not the current 
 | Path | How it works |
 |------|-------------|
 | **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |
-| **BYOK** | Bring your own API key — Rhumb routes, you authenticate |
+| **BYOK** | Bring your own provider API key. Rhumb routes, you authenticate |
 | **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |
 
 ### Payment paths
