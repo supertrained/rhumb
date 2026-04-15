@@ -404,6 +404,10 @@ describe("e2e: MCP server integration", () => {
           capability: expect.any(Object),
         }),
       });
+
+      const executeCapabilityTool = tools.find((tool) => tool.name === "execute_capability");
+      expect(executeCapabilityTool?.description).toContain("inspect live readiness globally or for a specific Capability");
+      expect(executeCapabilityTool?.description).not.toContain("see which modes are available");
     });
   });
 

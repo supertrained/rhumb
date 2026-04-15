@@ -130,6 +130,8 @@ describe("types.contract", () => {
 
     expect(distServerBundle).toContain("Call without params to see which BYOK bridges or direct bundles are already configured");
     expect(distServerBundle).toContain("Pass a Capability to inspect provider-level mode status");
+    expect(distServerBundle).toContain("Use check_credentials to inspect live readiness globally or for a specific Capability before choosing a rail.");
+    expect(distServerBundle).not.toContain("Use check_credentials to see which modes are available.");
     expect(distTypesBundle).toContain("configured BYOK/direct-bundle readiness");
     expect(distTypesBundle).toContain("provider-level mode status");
   });
