@@ -180,7 +180,7 @@ const MCP_TOOLS = [
   },
   {
     name: "check_credentials",
-    desc: "Check which credential modes are available to you.",
+    desc: "Inspect live credential-mode readiness, globally or for a specific Capability.",
     example: 'check_credentials({ capability: "email.send" })',
     category: "resolve",
   },
@@ -453,7 +453,13 @@ export default function DocsPage() {
                 <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
                   resolve_capability
                 </code>{" "}
-                to inspect the available credential modes, or sign up at{" "}
+                to rank providers and surface machine-readable recovery
+                fields, then use{" "}
+                <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
+                  check_credentials
+                </code>{" "}
+                to inspect live readiness globally or for a specific
+                Capability before choosing a rail, or sign up at{" "}
                 <a
                   href="https://rhumb.dev/auth/login"
                   className="text-amber hover:underline underline-offset-2"

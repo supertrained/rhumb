@@ -315,7 +315,7 @@ const MCP_TOOLS = [
   { name: "estimate_capability", desc: "Estimate the active execution rail, cost, and health before execution. Anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs.", example: 'estimate_capability({ capability_id: "email.send", credential_mode: "rhumb_managed" })' },
   { name: "execute_capability", desc: "Execute a capability through Rhumb Resolve.", example: 'execute_capability({ capability_id: "email.send", credential_mode: "rhumb_managed", body: { to: "user@example.com" } })' },
   { name: "credential_ceremony", desc: "Get self-service credential setup instructions.", example: 'credential_ceremony({ service: "github" })' },
-  { name: "check_credentials", desc: "See which credential modes are available to you.", example: 'check_credentials({ capability: "email.send" })' },
+  { name: "check_credentials", desc: "Inspect live credential-mode readiness, globally or for a specific Capability.", example: 'check_credentials({ capability: "email.send" })' },
   { name: "budget", desc: "Check or set spend limits.", example: 'budget({ action: "get" })' },
   { name: "spend", desc: "Review spending by period, capability, and provider.", example: 'spend({ period: "30d" })' },
   { name: "routing", desc: "Get or set routing preferences.", example: 'routing({ action: "get" })' },

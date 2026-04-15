@@ -305,6 +305,10 @@ describe("public authority pricing contract", () => {
     const wellKnownCaps = JSON.parse(wellKnownAgentCapabilities);
 
     for (const caps of [rootCaps, wellKnownCaps]) {
+      const checkCredentialsTool = caps.capabilities.execution.tools.find(
+        (tool: { name: string; description: string }) => tool.name === "check_credentials",
+      );
+
       expect(caps).toHaveProperty("pricing");
       expect(caps.pricing.discovery).toBe("free");
       expect(caps.pricing.execution).toBe("rail_based");
@@ -317,6 +321,9 @@ describe("public authority pricing contract", () => {
       expect(caps.auth.zero_signup).toBe("x402_usdc");
       expect(caps.auth.provider_control).toBe("byok_or_agent_vault");
       expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK where supported");
+      expect(checkCredentialsTool?.description).toBe(
+        "Inspect live credential-mode readiness, globally or for a specific Capability",
+      );
     }
 
     expect(rootCaps).toEqual(wellKnownCaps);
@@ -324,6 +331,8 @@ describe("public authority pricing contract", () => {
     expect(wellKnownAgentCapabilities).not.toContain("1000_calls_per_month");
     expect(rootAgentCapabilities).not.toContain("api_key_or_x402");
     expect(wellKnownAgentCapabilities).not.toContain("api_key_or_x402");
+    expect(rootAgentCapabilities).not.toContain("Check what credential modes are available to you");
+    expect(wellKnownAgentCapabilities).not.toContain("Check what credential modes are available to you");
   });
 
   it("keeps the API pricing example aligned with canonical pricing truth", () => {

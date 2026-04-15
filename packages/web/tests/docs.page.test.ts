@@ -42,13 +42,15 @@ describe("docs page", () => {
     expect(html).toContain("Estimate the active execution rail, cost, and health before execution.");
     expect(html).toContain("machine-readable execute_readiness handoffs");
     expect(html).toContain("check_credentials");
+    expect(html).toContain("Inspect live credential-mode readiness, globally or for a specific Capability.");
     expect(html).toContain("rhumb_list_recipes");
     expect(html).toContain("get_receipt");
     expect(html).toContain("92 scored categories");
     expect(html).toContain("the ranked leaderboard hub currently covers 11 categories");
     expect(html).toContain("Execution requires a live rail");
     expect(html).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK");
-    expect(html).toContain("to inspect the available credential modes");
+    expect(html).toContain("rank providers and surface machine-readable recovery fields");
+    expect(html).toContain("inspect live readiness globally or for a specific Capability before choosing a rail");
     expect(html).toContain("Before you wire these routes into production");
     expect(html).toContain("Trust →");
     expect(html).toContain("Methodology →");
@@ -57,6 +59,7 @@ describe("docs page", () => {
 
     expect(html).not.toContain("requires an API key or x402 payment");
     expect(html).not.toContain("92 categories — browse all at");
+    expect(html).not.toContain("to inspect the available credential modes");
     expect(html).not.toContain("estimate_cost");
     expect(html).not.toContain("get_credentials");
     expect(html).not.toContain("search_services");
@@ -105,6 +108,8 @@ describe("docs page", () => {
       expect(source).toContain("recovery_hint.credential_modes_url");
       expect(source).toContain("recovery_hint.alternate_execute_hint");
       expect(source).toContain("recovery_hint.setup_handoff");
+      expect(source).toContain("Inspect live credential-mode readiness, globally or for a specific Capability");
+      expect(source).not.toContain("which credential modes are available to you");
     }
 
     expect(astroDocsSource).not.toContain("recovery_hint.resolve_url and recovery_hint.setup_handoff");

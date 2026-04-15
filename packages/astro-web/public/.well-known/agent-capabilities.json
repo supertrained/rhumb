@@ -63,7 +63,7 @@
         },
         {
           "name": "check_credentials",
-          "description": "Check what credential modes are available to you"
+          "description": "Inspect live credential-mode readiness, globally or for a specific Capability"
         },
         {
           "name": "rhumb_list_recipes",

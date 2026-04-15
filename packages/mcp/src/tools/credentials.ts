@@ -1,7 +1,7 @@
 /**
  * check_credentials tool handler
  *
- * Returns which credential modes are available to the agent across all three rails,
+ * Returns live credential-mode readiness to the agent across all three rails,
  * now anchored to the same readiness surfaces the product exposes:
  * - /v1/agent/credentials for account-specific configured bridges and direct bundles
  * - /v1/capabilities/{id}/credential-modes for capability-specific provider readiness
