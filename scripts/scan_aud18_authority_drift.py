@@ -166,7 +166,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-rail-shorthand",
         note="x402 or auth-failure guidance that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key|provisioning an API key would add avoidable friction", re.IGNORECASE),
+        regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key|provisioning an API key would add avoidable friction|Rhumb API key / Stripe checkout", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-discovery-shorthand",

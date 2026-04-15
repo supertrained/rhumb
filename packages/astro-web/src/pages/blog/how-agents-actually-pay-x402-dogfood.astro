@@ -106,7 +106,7 @@ const AUTHORIZATION_PROOF_CODE = String.raw`{
 const COMPATIBILITY_ERROR_CODE = String.raw`{
   "error": "x402_proof_format_unsupported",
   "message": "Detected a standard x402 authorization payload, but this execute endpoint currently verifies direct USDC transfer receipts by tx_hash.",
-  "resolution": "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, or use a Rhumb API key / Stripe checkout.",
+  "resolution": "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, or use a governed API key / Stripe checkout.",
   "compatibility": {
     "detected_format": "standard_authorization_payload",
     "supported_formats": ["legacy_tx_hash"],

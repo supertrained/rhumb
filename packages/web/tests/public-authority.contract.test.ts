@@ -203,7 +203,9 @@ describe("public authority pricing contract", () => {
     expect(astroX402Dogfood).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroX402Dogfood).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroX402Dogfood).toContain('Search {servicesLabel} scored services');
+    expect(astroX402Dogfood).toContain('or use a governed API key / Stripe checkout.');
     expect(astroX402Dogfood).not.toContain('Search 1,000+ scored services');
+    expect(astroX402Dogfood).not.toContain('or use a Rhumb API key / Stripe checkout.');
   });
 
   it("keeps high-visibility web authority surfaces pinned to current public truth", () => {
