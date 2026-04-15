@@ -118,7 +118,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 | `execute_capability` | Call a Capability through Rhumb Resolve |
 | `estimate_capability` | Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs |
 | `credential_ceremony` | Get step-by-step instructions to obtain API credentials for a Service |
-| `check_credentials` | Check what credential modes are available to you |
+| `check_credentials` | Inspect live credential-mode readiness, globally or for a specific Capability |
 | `rhumb_list_recipes` | List the current published Rhumb Layer 3 recipe catalog |
 | `rhumb_get_recipe` | Get the full published definition for a Rhumb recipe, including input/output schemas and step topology |
 | `rhumb_recipe_execute` | Execute a published Rhumb Layer 3 recipe once one is live in the public catalog |
@@ -173,7 +173,13 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 - `discover_capabilities` → find the capability ID
 - `resolve_capability` → get ranked providers, optional credential-mode filtering, machine-readable recovery fields like `recovery_hint.resolve_url`, `recovery_hint.credential_modes_url`, and, when applicable, `recovery_hint.alternate_execute_hint` or `recovery_hint.setup_handoff`, or search suggestions when the capability ID is wrong
 
-### 3) Execute (auth required)
+### 3) Check readiness (auth required)
+
+> "Can I call `deployment.list` right now, and on which rail?"
+
+- `check_credentials` → call without params for account-wide configured BYOK/direct-bundle readiness, or pass a capability to inspect provider-level mode status and ceremony availability
+
+### 4) Execute (auth required)
 
 > "Send the email with the cheapest provider above my quality floor."
 
@@ -181,7 +187,7 @@ Get a key at https://rhumb.dev/auth/login (GitHub, Google, or email — 30 secon
 - `execute_capability` → perform the action
 - `get_receipt` → verify the HMAC-signed execution record
 
-### 4) Check recipe availability / run a recipe (auth required)
+### 5) Check recipe availability / run a recipe (auth required)
 
 > "Is there already a published Rhumb workflow for this?"
 

@@ -222,7 +222,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
   // -- check_credentials ------------------------------------------------
   server.tool(
     "check_credentials",
-    "Check what credential modes are available to you. Shows: (1) which Capabilities have Rhumb Resolve credentials (ready to call immediately), (2) which Services have ceremony guides (self-provision in minutes), and (3) BYOK status. Start here when you're new to Rhumb or unsure what you can call.",
+    "Check live credential-mode readiness. Call without params to see which BYOK bridges or direct bundles are already configured and which Capabilities are ready now through Rhumb-managed rails. Pass a Capability to inspect provider-level mode status, configured readiness, and ceremony availability for that specific path.",
     {
       capability: z.string().optional().describe(CheckCredentialsInputSchema.properties.capability.description)
     },

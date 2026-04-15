@@ -394,6 +394,16 @@ describe("e2e: MCP server integration", () => {
         expect(tool.description).toBeTruthy();
         expect(tool.inputSchema).toBeDefined();
       }
+
+      const checkCredentialsTool = tools.find((tool) => tool.name === "check_credentials");
+      expect(checkCredentialsTool?.description).toContain("direct bundles");
+      expect(checkCredentialsTool?.description).toContain("specific path");
+      expect(checkCredentialsTool?.inputSchema).toMatchObject({
+        type: "object",
+        properties: expect.objectContaining({
+          capability: expect.any(Object),
+        }),
+      });
     });
   });
 

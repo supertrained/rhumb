@@ -130,7 +130,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `estimate_capability` — Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 - `credential_ceremony` — Get step-by-step instructions to obtain API credentials for a Service
-- `check_credentials` — Check what credential modes are available to you
+- `check_credentials` — Inspect live credential-mode readiness, globally or for a specific Capability
 - `rhumb_list_recipes` — List the current published Rhumb Layer 3 recipe catalog
 - `rhumb_get_recipe` — Get the full published definition for a Rhumb recipe, including input/output schemas and step topology
 - `rhumb_recipe_execute` — Execute a published Rhumb Layer 3 recipe once one is live in the public catalog

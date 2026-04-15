@@ -10,6 +10,7 @@ import {
   ResolveCapabilityInputSchema,
   ExecuteCapabilityInputSchema,
   EstimateCapabilityInputSchema,
+  CheckCredentialsInputSchema,
   TOOL_SCHEMAS,
   TOOL_NAMES,
   type FindServiceInput,
@@ -117,6 +118,20 @@ describe("types.contract", () => {
     expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.alternate_execute_hint");
     expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).toContain("recovery_hint.setup_handoff");
     expect(ResolveCapabilityInputSchema.properties.credential_mode?.description).not.toContain("machine-readable recovery handoffs");
+  });
+
+  it("check_credentials surfaces live readiness globally and per capability", () => {
+    expect(CheckCredentialsInputSchema.properties.capability.description).toContain("configured BYOK/direct-bundle readiness");
+    expect(CheckCredentialsInputSchema.properties.capability.description).toContain("provider-level mode status");
+
+    expect(rootReadme).toContain("Inspect live credential-mode readiness, globally or for a specific Capability");
+    expect(mcpReadme).toContain("| `check_credentials` | Inspect live credential-mode readiness, globally or for a specific Capability |");
+    expect(mcpReadme).toContain("call without params for account-wide configured BYOK/direct-bundle readiness");
+
+    expect(distServerBundle).toContain("Call without params to see which BYOK bridges or direct bundles are already configured");
+    expect(distServerBundle).toContain("Pass a Capability to inspect provider-level mode status");
+    expect(distTypesBundle).toContain("configured BYOK/direct-bundle readiness");
+    expect(distTypesBundle).toContain("provider-level mode status");
   });
 
   it("generated public resolve surfaces describe explicit recovery fields instead of fallback chains", () => {

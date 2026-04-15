@@ -414,7 +414,7 @@ export type CredentialCeremonyOutput = {
 export const CheckCredentialsInputSchema = {
   type: "object" as const,
   properties: {
-    capability: { type: "string" as const, description: "Check a specific Capability (e.g. 'email.send'). Omit to see all modes and managed Capabilities. Start here to understand what you can call and how." }
+    capability: { type: "string" as const, description: "Check a specific Capability (e.g. 'email.send'). Omit to see account-wide configured BYOK/direct-bundle readiness plus managed coverage. Pass a Capability to inspect provider-level mode status, configuration, and ceremony availability for that path." }
   },
   required: [] as const
 };
