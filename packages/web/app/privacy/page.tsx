@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -19,7 +20,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-sm text-slate-500 font-mono">
-            Last updated: March 11, 2026
+            Last updated: March 20, 2026
           </p>
         </header>
 
@@ -29,14 +30,16 @@ export default function PrivacyPage() {
               Overview
             </h2>
             <p>
-              Rhumb (operated by Supertrained LLC) is a developer tool that
-              scores APIs for AI agent compatibility. We are committed to
-              transparency about what we collect and why.
+              Rhumb (operated by Supertrained Inc.) is a developer tool that
+              scores APIs for AI agent compatibility and provides managed
+              capability execution. We are committed to transparency about what
+              we collect and why.
             </p>
             <p className="mt-3">
               <strong className="text-slate-200">
-                The short version: we collect minimal data, we don&apos;t
-                sell any of it, and we don&apos;t track you across sites.
+                The short version: we collect what we need to operate the
+                service, we don&apos;t sell any of it, and we don&apos;t track
+                you across sites.
               </strong>
             </p>
           </section>
@@ -45,33 +48,105 @@ export default function PrivacyPage() {
             <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
               What we collect
             </h2>
-            <ul className="space-y-3 mt-3">
+
+            <h3 className="font-display font-semibold text-base text-slate-200 mt-6 mb-2">
+              Account data (if you sign up)
+            </h3>
+            <p>
+              When you create an account via GitHub or Google OAuth, we receive
+              and store:
+            </p>
+            <ul className="space-y-2 mt-2">
               <li>
-                <strong className="text-slate-200">
-                  API query logs:
-                </strong>{" "}
-                When you use our API or MCP server, we log search terms and
-                timestamps to improve relevance. These logs do not contain
-                personally identifiable information (PII).
+                &bull; Your display name and email address (from your OAuth
+                provider)
               </li>
               <li>
-                <strong className="text-slate-200">
-                  Web analytics:
-                </strong>{" "}
-                We use Google Analytics 4 and Microsoft Clarity for
-                anonymized usage analytics. These tools collect standard
-                web metrics (page views, session duration, device type).
-                Both are configured with IP anonymization enabled.
+                &bull; Your OAuth provider identifier (GitHub user ID or Google
+                sub)
+              </li>
+              <li>&bull; An API key we generate for your account</li>
+            </ul>
+            <p className="mt-3">
+              We do <strong className="text-slate-200">not</strong> receive or
+              store your OAuth provider password. We use the standard OAuth 2.0
+              authorization code flow with CSRF protection.
+            </p>
+
+            <h3 className="font-display font-semibold text-base text-slate-200 mt-6 mb-2">
+              Session data
+            </h3>
+            <p>
+              When you sign in, we set a{" "}
+              <code className="text-amber/80 bg-slate-800 px-1 rounded">
+                rhumb_session
+              </code>{" "}
+              cookie containing a signed JWT token. This cookie is:
+            </p>
+            <ul className="space-y-2 mt-2">
+              <li>&bull; HttpOnly (not accessible to JavaScript)</li>
+              <li>&bull; Secure (only transmitted over HTTPS)</li>
+              <li>&bull; SameSite=Lax (not sent on cross-site requests)</li>
+              <li>&bull; Valid for 7 days</li>
+            </ul>
+
+            <h3 className="font-display font-semibold text-base text-slate-200 mt-6 mb-2">
+              API and execution data
+            </h3>
+            <ul className="space-y-2 mt-2">
+              <li>
+                <strong className="text-slate-200">API query logs:</strong>{" "}
+                Search terms, capability execution requests, and timestamps.
+                Authenticated requests are associated with your API key.
               </li>
               <li>
-                <strong className="text-slate-200">
-                  Error logs:
-                </strong>{" "}
+                <strong className="text-slate-200">Execution records:</strong>{" "}
+                When you use managed capability execution, we log the capability
+                called, provider used, latency, cost, and success/failure
+                status. We do <strong className="text-slate-200">not</strong>{" "}
+                log the contents of your request bodies or upstream responses.
+              </li>
+              <li>
+                <strong className="text-slate-200">Error logs:</strong>{" "}
                 Server error logs may contain request metadata (URL, HTTP
-                method, status code) for debugging. These are retained for
-                30 days and contain no PII.
+                method, status code) for debugging. These are retained for 30
+                days.
               </li>
             </ul>
+
+            <h3 className="font-display font-semibold text-base text-slate-200 mt-6 mb-2">
+              Payment data
+            </h3>
+            <ul className="space-y-2 mt-2">
+              <li>
+                <strong className="text-slate-200">Stripe:</strong>{" "}
+                Payment processing is handled by Stripe. We store your Stripe
+                customer ID and transaction records (amounts, dates). We do{" "}
+                <strong className="text-slate-200">not</strong> store your
+                credit card number or payment method details, those are held by
+                Stripe.
+              </li>
+              <li>
+                <strong className="text-slate-200">x402/USDC:</strong>{" "}
+                For on-chain payments, we record the transaction hash and wallet
+                address used for payment verification. Blockchain transactions
+                are inherently public.
+              </li>
+            </ul>
+
+            <h3 className="font-display font-semibold text-base text-slate-200 mt-6 mb-2">
+              Web analytics
+            </h3>
+            <p>
+              We use Google Analytics 4 and Microsoft Clarity for anonymized
+              usage analytics on{" "}
+              <code className="text-amber/80 bg-slate-800 px-1 rounded">
+                rhumb.dev
+              </code>
+              . These tools collect standard web metrics (page views, session
+              duration, device type). Both are configured with IP anonymization
+              enabled.
+            </p>
           </section>
 
           <section>
@@ -79,40 +154,80 @@ export default function PrivacyPage() {
               What we do NOT collect
             </h2>
             <ul className="space-y-2 mt-3">
+              <li>&bull; We do not store your OAuth provider password</li>
               <li>
-                • We do not collect personal information (names, emails,
-                addresses)
+                &bull; We do not store credit card numbers (Stripe handles
+                payment details)
               </li>
               <li>
-                • We do not collect payment information or authentication
-                tokens
+                &bull; We do not log upstream API request/response bodies from
+                managed executions
               </li>
-              <li>• We do not use cookies for tracking or advertising</li>
-              <li>• We do not track you across other websites</li>
+              <li>&bull; We do not track you across other websites</li>
               <li>
-                • We do not build user profiles or sell data to third
-                parties
+                &bull; We do not build advertising profiles or sell data to
+                third parties
               </li>
               <li>
-                • We do not use your API queries to train machine learning
-                models
+                &bull; We do not use your API queries or execution data to
+                train machine learning models
               </li>
             </ul>
           </section>
 
           <section>
             <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
+              Managed credentials
+            </h2>
+            <p>
+              When you use Rhumb-managed capability execution, we hold API
+              credentials for upstream services on your behalf. These
+              credentials:
+            </p>
+            <ul className="space-y-2 mt-3">
+              <li>
+                &bull; Are stored in encrypted secret management infrastructure
+              </li>
+              <li>
+                &bull; Are never exposed in API responses, logs, or error
+                messages
+              </li>
+              <li>
+                &bull; Are used only to execute the specific capability you
+                request
+              </li>
+              <li>
+                &bull; Are shared across users of managed capabilities (they are
+                Rhumb&apos;s credentials, not per-user credentials)
+              </li>
+            </ul>
+            <p className="mt-3">
+              If you use{" "}
+              <strong className="text-slate-200">
+                bring-your-own-key (BYOK)
+              </strong>{" "}
+              mode, your credentials are passed through to the upstream service
+              in the same request and are{" "}
+              <strong className="text-slate-200">not stored</strong> by Rhumb.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
               How we use your data
             </h2>
-            <p>Data collected is used solely to:</p>
+            <p>Data collected is used to:</p>
             <ul className="space-y-2 mt-3">
-              <li>• Improve search relevance and service coverage</li>
-              <li>• Monitor API performance and uptime</li>
+              <li>&bull; Authenticate your identity and manage your account</li>
+              <li>&bull; Process payments and maintain billing records</li>
+              <li>&bull; Execute capability requests on your behalf</li>
+              <li>&bull; Enforce budget limits and rate controls</li>
+              <li>&bull; Improve search relevance and service coverage</li>
+              <li>&bull; Monitor API performance, uptime, and error rates</li>
               <li>
-                • Understand aggregate usage patterns (which categories are
-                most searched, which services are most viewed)
+                &bull; Understand aggregate usage patterns (which capabilities
+                are most used, which services are most queried)
               </li>
-              <li>• Debug errors and improve reliability</li>
             </ul>
           </section>
 
@@ -122,9 +237,40 @@ export default function PrivacyPage() {
             </h2>
             <ul className="space-y-3 mt-3">
               <li>
-                <strong className="text-slate-200">
-                  Google Analytics 4
-                </strong>{" "}
+                <strong className="text-slate-200">GitHub / Google</strong>{" "}
+                — OAuth identity providers.{" "}
+                <a
+                  href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+                  className="text-amber hover:underline underline-offset-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub Privacy
+                </a>{" "}
+                /{" "}
+                <a
+                  href="https://policies.google.com/privacy"
+                  className="text-amber hover:underline underline-offset-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Google Privacy
+                </a>
+              </li>
+              <li>
+                <strong className="text-slate-200">Stripe</strong> — payment
+                processing.{" "}
+                <a
+                  href="https://stripe.com/privacy"
+                  className="text-amber hover:underline underline-offset-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Stripe Privacy Policy
+                </a>
+              </li>
+              <li>
+                <strong className="text-slate-200">Google Analytics 4</strong>{" "}
                 — anonymized web analytics.{" "}
                 <a
                   href="https://policies.google.com/privacy"
@@ -136,9 +282,7 @@ export default function PrivacyPage() {
                 </a>
               </li>
               <li>
-                <strong className="text-slate-200">
-                  Microsoft Clarity
-                </strong>{" "}
+                <strong className="text-slate-200">Microsoft Clarity</strong>{" "}
                 — session recordings and heatmaps (anonymized).{" "}
                 <a
                   href="https://privacy.microsoft.com/en-us/privacystatement"
@@ -150,7 +294,7 @@ export default function PrivacyPage() {
                 </a>
               </li>
               <li>
-                <strong className="text-slate-200">Vercel</strong> —
+                <strong className="text-slate-200">Vercel</strong> — frontend
                 hosting.{" "}
                 <a
                   href="https://vercel.com/legal/privacy-policy"
@@ -159,6 +303,18 @@ export default function PrivacyPage() {
                   rel="noopener noreferrer"
                 >
                   Vercel Privacy Policy
+                </a>
+              </li>
+              <li>
+                <strong className="text-slate-200">Railway</strong> — API
+                hosting.{" "}
+                <a
+                  href="https://railway.com/legal/privacy"
+                  className="text-amber hover:underline underline-offset-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Railway Privacy Policy
                 </a>
               </li>
               <li>
@@ -174,35 +330,44 @@ export default function PrivacyPage() {
                 </a>
               </li>
             </ul>
+            <p className="mt-3">
+              When using managed capabilities, your requests are proxied through
+              upstream service APIs (e.g., Stripe, GitHub, Twilio, Slack). Each
+              upstream service has its own privacy policy governing data they
+              receive through API calls.
+            </p>
           </section>
 
           <section>
             <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
               Your rights (GDPR / CCPA)
             </h2>
-            <p>
-              Since we collect minimal, anonymized data, most rights
-              (access, deletion, portability) apply to very limited data.
-              However, you have the right to:
-            </p>
+            <p>You have the right to:</p>
             <ul className="space-y-2 mt-3">
               <li>
-                • <strong className="text-slate-200">Access</strong> —
-                request a copy of any data associated with your usage
+                &bull; <strong className="text-slate-200">Access</strong> —
+                request a copy of all data associated with your account
               </li>
               <li>
-                • <strong className="text-slate-200">Deletion</strong> —
-                request deletion of any stored data
+                &bull; <strong className="text-slate-200">Correction</strong> —
+                request correction of inaccurate data
               </li>
               <li>
-                • <strong className="text-slate-200">Opt-out</strong> —
-                disable analytics by using a browser ad blocker or
-                do-not-track setting
+                &bull; <strong className="text-slate-200">Deletion</strong> —
+                request deletion of your account and associated data
               </li>
               <li>
-                •{" "}
-                <strong className="text-slate-200">Data portability</strong>{" "}
-                — request your data in a machine-readable format
+                &bull; <strong className="text-slate-200">Opt-out of analytics</strong> —
+                disable web analytics by using a browser ad blocker or Do Not
+                Track setting
+              </li>
+              <li>
+                &bull; <strong className="text-slate-200">Data portability</strong> —
+                request your data in a machine-readable format
+              </li>
+              <li>
+                &bull; <strong className="text-slate-200">Non-discrimination</strong> —
+                exercising these rights will not affect your service access
               </li>
             </ul>
             <p className="mt-3">
@@ -213,7 +378,7 @@ export default function PrivacyPage() {
               >
                 privacy@supertrained.ai
               </a>
-              .
+              . We will respond within 30 days.
             </p>
           </section>
 
@@ -222,13 +387,40 @@ export default function PrivacyPage() {
               Data retention
             </h2>
             <ul className="space-y-2 mt-3">
-              <li>• API query logs: retained for 90 days</li>
-              <li>• Error logs: retained for 30 days</li>
               <li>
-                • Web analytics: per Google Analytics and Microsoft Clarity
-                default retention policies
+                &bull; Account data: retained while your account is active;
+                deleted within 30 days of account deletion request
+              </li>
+              <li>&bull; API query and execution logs: retained for 90 days</li>
+              <li>&bull; Error logs: retained for 30 days</li>
+              <li>
+                &bull; Billing records: retained for 7 years (tax/legal
+                compliance)
+              </li>
+              <li>
+                &bull; Web analytics: per Google Analytics and Microsoft
+                Clarity default retention policies
               </li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="font-display font-bold text-xl text-slate-100 mb-3">
+              Children&apos;s privacy
+            </h2>
+            <p>
+              Rhumb is a developer tool not intended for use by children under
+              13. We do not knowingly collect data from children under 13. If
+              you believe a child has provided us with personal information,
+              please contact us at{" "}
+              <a
+                href="mailto:privacy@supertrained.ai"
+                className="text-amber hover:underline underline-offset-2"
+              >
+                privacy@supertrained.ai
+              </a>
+              .
+            </p>
           </section>
 
           <section>
@@ -263,9 +455,11 @@ export default function PrivacyPage() {
               </a>
             </p>
             <p className="mt-3">
-              Supertrained LLC
+              Supertrained Inc.
               <br />
-              Los Angeles, CA
+              7901 4th St N STE 300
+              <br />
+              St Petersburg, FL 33702
             </p>
           </section>
         </div>
