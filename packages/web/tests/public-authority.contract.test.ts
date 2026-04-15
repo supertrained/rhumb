@@ -35,6 +35,7 @@ const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro
 const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
 const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
 const astroCapabilities = readFileSync(new URL("../../astro-web/src/pages/capabilities.astro", import.meta.url), "utf8");
+const astroLogin = readFileSync(new URL("../../astro-web/src/pages/auth/login.astro", import.meta.url), "utf8");
 const rootReadme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../public/llms.txt", import.meta.url), "utf8");
@@ -285,15 +286,21 @@ describe("public authority pricing contract", () => {
   it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
     expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
     expect(astroCapabilities).toContain('governed or wallet-prefund path');
-    expect(astroCapabilities).toContain('BYOK credentials where supported');
+    expect(astroCapabilities).toContain('BYOK or Agent Vault where supported');
     expect(astroCapabilities).toContain('<code class="text-amber">x_payment</code>');
     expect(astroCapabilities).toContain('capabilities that expose x402 per-call');
     expect(astroCapabilities).not.toContain('Discovery works without a key; governed execution uses <code class="text-amber">RHUMB_API_KEY</code> or wallet-prefund.');
   });
 
+  it("keeps the login execution-credit note aligned with the live access model", () => {
+    expect(astroLogin).toContain('Run traffic through x402,');
+    expect(astroLogin).toContain('use BYOK or Agent Vault where supported, or add funded balance in the dashboard.');
+    expect(astroLogin).not.toContain('use your own provider credentials where supported');
+  });
+
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
-    expect(rootReadme).toContain('**Bring BYOK** only when provider control is the point');
+    expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('wallet-prefunded API key');
 
     expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');

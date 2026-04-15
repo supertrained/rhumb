@@ -11,7 +11,7 @@ For most agents, the default production path is:
 3. estimate the call
 4. execute through Layer 2 with `RHUMB_API_KEY`
 
-Use x402 only when zero-signup per-call payment is the point. For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK only when provider control is the point.
+Use x402 only when zero-signup per-call payment is the point. For repeat traffic, use governed API key or wallet-prefund on `X-Rhumb-Key`, and bring BYOK or Agent Vault only when provider control is the point.
 
 ## Install
 

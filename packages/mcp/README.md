@@ -50,7 +50,7 @@ Discovery breadth is wider than current execution breadth: Rhumb scores **1,038 
 - **Recipe** = deterministic multi-step workflow on top of capabilities (beta, sparse public catalog)
 - **Layer 2 is the default path** — discover → resolve → estimate → execute
 - **Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`
-- **Bring BYOK** only when provider control is the point
+- **Bring BYOK or Agent Vault** only when provider control is the point
 - **Use x402** only when zero-signup per-call payment is the point
 
 Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
