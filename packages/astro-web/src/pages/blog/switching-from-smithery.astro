@@ -47,7 +47,7 @@ const comparisons: ComparisonRow[] = [
   {
     dimension: "Credential paths",
     smithery: "Managed OAuth (human-session-oriented)",
-    rhumb: "Three credential paths: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault (encrypted provider credentials Rhumb injects at call time). x402 stays separate as the zero-signup payment rail.",
+    rhumb: "Three credential paths: Rhumb-managed (we hold keys), BYOK (your keys), Agent Vault (encrypted provider credentials Rhumb injects at call time). x402 stays separate as the zero-signup payment rail.",
     verdict: "rhumb",
   },
   {
@@ -244,7 +244,7 @@ const verdictColors = {
             <span class="flex items-center justify-center w-8 h-8 rounded-full bg-amber/10 text-amber font-mono font-bold text-sm shrink-0">3</span>
             <div>
               <h3 class="text-sm font-semibold text-slate-200">Choose your access path</h3>
-              <p class="text-sm text-slate-400 mt-1">BYOK if you already have provider keys. Rhumb-managed if you want us to handle credentials. Agent Vault if you want Rhumb to inject your encrypted provider credential at call time. Use x402 only when zero-signup per-call payment is the point. <a href="/quickstart" class="text-amber hover:underline">Quickstart guide →</a></p>
+              <p class="text-sm text-slate-400 mt-1">Start with Rhumb-managed if you want us to handle credentials. Bring BYOK if you already have provider keys. Use Agent Vault if you want Rhumb to inject your encrypted provider credential at call time. Use x402 only when zero-signup per-call payment is the point. <a href="/quickstart" class="text-amber hover:underline">Quickstart guide →</a></p>
             </div>
           </div>
           <div class="flex gap-4">

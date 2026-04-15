@@ -319,12 +319,15 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroSwitchingFromSmithery).not.toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
     expect(astroSwitchingFromSmithery).toContain('dimension: "Credential paths"');
-    expect(astroSwitchingFromSmithery).toContain('Three credential paths: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).toContain('Three credential paths: Rhumb-managed (we hold keys), BYOK (your keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).toContain('Start with Rhumb-managed if you want us to handle credentials. Bring BYOK if you already have provider keys. Use Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
     expect(astroSwitchingFromSmithery).toContain('x402 stays separate as the zero-signup payment rail.');
     expect(astroSwitchingFromSmithery).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroSwitchingFromSmithery).toContain('4,000+ server catalog (we\'re at {servicesLabel} scored services and growing daily)');
     expect(astroSwitchingFromSmithery).toContain('zero-signup, request-level payment authorization is the point');
     expect(astroSwitchingFromSmithery).not.toContain('dimension: "Credential modes"');
+    expect(astroSwitchingFromSmithery).not.toContain('Three credential paths: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).not.toContain('BYOK if you already have provider keys. Rhumb-managed if you want us to handle credentials. Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
     expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
     expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), x402 USDC (no account needed)');
     expect(astroSwitchingFromSmithery).not.toContain('x402 if your agent should pay autonomously.');
@@ -337,8 +340,13 @@ describe("public authority pricing contract", () => {
     expect(astroSecuringKeys).toContain('### Agent Vault');
     expect(astroSecuringKeys).toContain('## x402 is a payment path, not a credential mode');
     expect(astroSecuringKeys).toContain('bring BYOK or Agent Vault only when provider control is the point.');
-    expect(astroSecuringKeys).toContain('three credential paths (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).toContain('three credential paths (managed, BYOK, Agent Vault), plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).toContain('Rhumb-managed, BYOK, and Agent Vault compared, plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).toContain('Three credential paths, a storage hierarchy, and honest threat modeling. No "enterprise-grade" theater.');
+    expect(astroSecuringKeys).toContain('Pick the path that matches your trust model.');
+    expect(astroSecuringKeys).not.toContain('Pick the mode that matches your trust model.');
+    expect(astroSecuringKeys).not.toContain('three credential paths (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).not.toContain('BYOK, managed, and Agent Vault compared, plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).not.toContain('### Mode 1:');
     expect(astroSecuringKeys).not.toContain('### Mode 2:');
     expect(astroSecuringKeys).not.toContain('### Mode 3:');
@@ -377,8 +385,17 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
+    const rootReadmeManagedRow = '| **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |';
+    const rootReadmeByokRow = '| **BYOK** | Bring your own API key — Rhumb routes, you authenticate |';
+    const rootReadmeVaultRow = '| **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |';
+
     expect(rootReadme).toContain('### Three credential paths');
     expect(rootReadme).toContain('| Path | How it works |');
+    expect(rootReadme).toContain(rootReadmeManagedRow);
+    expect(rootReadme).toContain(rootReadmeByokRow);
+    expect(rootReadme).toContain(rootReadmeVaultRow);
+    expect(rootReadme.indexOf(rootReadmeManagedRow)).toBeLessThan(rootReadme.indexOf(rootReadmeByokRow));
+    expect(rootReadme.indexOf(rootReadmeByokRow)).toBeLessThan(rootReadme.indexOf(rootReadmeVaultRow));
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('### Three credential modes');
@@ -401,7 +418,7 @@ describe("public authority pricing contract", () => {
     expect(astroLlmsRoute).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
     expect(astroLlmsRoute).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(astroLlmsRoute).toContain("credential paths explained");
-    expect(astroLlmsRoute).toContain("three credential paths (BYOK, managed, Agent Vault)");
+    expect(astroLlmsRoute).toContain("three credential paths (managed, BYOK, Agent Vault)");
     expect(astroLlmsRoute).toContain("Three credential paths: Rhumb-Managed, BYOK, Agent Vault");
     expect(astroLlmsRoute).not.toContain("Three credential paths: BYOK, Rhumb-Managed, Agent Vault");
     expect(astroLlmsRoute).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
@@ -409,6 +426,7 @@ describe("public authority pricing contract", () => {
     expect(astroLlmsRoute).toContain("No subscriptions, no seat fees, no minimums");
     expect(astroLlmsRoute).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(astroLlmsRoute).not.toContain("credential modes explained");
+    expect(astroLlmsRoute).not.toContain("three credential paths (BYOK, managed, Agent Vault)");
     expect(astroLlmsRoute).not.toContain("three credential modes (BYOK, managed, Agent Vault)");
     expect(astroLlmsRoute).not.toContain("three credential modes (BYOK, managed, x402)");
     expect(astroLlmsRoute).not.toContain("upstream cost +");
@@ -453,7 +471,8 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro blog index aligned with the live credential-path story", () => {
-    expect(astroBlogIndex).toContain("Three credential paths (BYOK, managed, Agent Vault)");
+    expect(astroBlogIndex).toContain("Three credential paths (managed, BYOK, Agent Vault)");
+    expect(astroBlogIndex).not.toContain("Three credential paths (BYOK, managed, Agent Vault)");
     expect(astroBlogIndex).not.toContain("Three credential modes (BYOK, managed, Agent Vault)");
     expect(astroBlogIndex).not.toContain("Three credential modes (BYOK, managed, x402)");
   });
