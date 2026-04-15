@@ -54,13 +54,13 @@ const STEPS = [
         </p>
 
         <div class="mt-8 flex flex-wrap gap-3">
-          <a href="/auth/login?rhumb_experiment=e004&rhumb_source=start-managed-execution-primary" class="px-5 py-3 rounded-xl bg-emerald-400 text-navy font-display font-semibold text-sm hover:bg-emerald-300 transition-colors duration-200">
+          <a data-rhumb-propagate href="/auth/login?rhumb_experiment=e004&rhumb_source=start-managed-execution-primary" class="px-5 py-3 rounded-xl bg-emerald-400 text-navy font-display font-semibold text-sm hover:bg-emerald-300 transition-colors duration-200">
             Get governed API key
           </a>
-          <a href="/pricing?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-200 hover:border-emerald-400/50 hover:text-slate-100 transition-colors duration-200">
+          <a data-rhumb-propagate href="/pricing?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-200 hover:border-emerald-400/50 hover:text-slate-100 transition-colors duration-200">
             Review pricing
           </a>
-          <a href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+          <a data-rhumb-propagate href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
             Stay on free quickstart
           </a>
         </div>
@@ -102,4 +102,32 @@ const STEPS = [
       </div>
     </section>
   </div>
+  <script is:inline>
+    (() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const experiment = params.get("rhumb_experiment");
+      const source = params.get("rhumb_source");
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
+
+      document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
+        if (experiment && !url.searchParams.has("rhumb_experiment")) {
+          url.searchParams.set("rhumb_experiment", experiment);
+        }
+        if (source) {
+          url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
+        }
+
+        link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
+      });
+    })();
+  </script>
 </Layout>
