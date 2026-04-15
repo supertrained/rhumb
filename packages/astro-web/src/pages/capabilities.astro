@@ -142,7 +142,7 @@ const CAPABILITY_STARTER_QUERIES = [
         <div class="rounded-2xl border border-emerald-500/20 bg-surface p-5">
           <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Ready to run it?</p>
           <p class="text-sm text-slate-300 leading-6">
-            Once you have the capability ID, resolve providers, estimate the active rail, then execute through quickstart or MCP.
+            Once you have the capability ID, resolve ranked providers or follow the recovery handoff, then estimate the active rail and execute through quickstart or MCP.
           </p>
           <a href="/quickstart#execute-path" class="mt-4 inline-flex text-xs font-mono text-slate-400 hover:text-emerald-300 transition-colors">Go to execute flow →</a>
         </div>
@@ -317,10 +317,10 @@ const CAPABILITY_STARTER_QUERIES = [
           Use these definitions through MCP
         </h2>
         <p class="text-slate-400 text-sm mb-6 max-w-lg mx-auto">
-          Discover capability definitions, resolve providers, and execute the subset that is live through
-          a single MCP server. Discovery works without a key. Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>
-          on the governed or wallet-prefund path, can carry BYOK or Agent Vault where supported, and can pass <code class="text-amber">x_payment</code>
-          only on capabilities that expose x402 per-call.
+          Discover capability definitions, resolve ranked providers or follow the machine-readable recovery handoff, and execute the subset that is live through
+          a single MCP server. Discovery works without a key, and if you guessed the wrong capability slug, resolve returns search suggestions instead of a blank dead end.
+          Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code> on the governed or wallet-prefund path, can carry BYOK or Agent Vault where supported,
+          and can pass <code class="text-amber">x_payment</code> only on capabilities that expose x402 per-call.
         </p>
         <div class="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-navy border border-slate-700 font-mono text-sm text-amber mb-4">
           <code>npx rhumb-mcp@latest</code>

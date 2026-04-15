@@ -360,12 +360,17 @@ describe("public authority pricing contract", () => {
     expect(astroSecuringKeys).not.toContain('For repeat traffic, prefer wallet-prefund or a governed API key.');
   });
 
-  it("keeps the capabilities MCP CTA aligned with the live execution rails", () => {
+  it("keeps the capabilities discovery CTA aligned with resolve handoff truth", () => {
+    expect(astroCapabilities).toContain('resolve ranked providers or follow the recovery handoff');
+    expect(astroCapabilities).toContain('resolve ranked providers or follow the machine-readable recovery handoff');
+    expect(astroCapabilities).toContain('resolve returns search suggestions instead of a blank dead end');
     expect(astroCapabilities).toContain('Most MCP execution starts with <code class="text-amber">RHUMB_API_KEY</code>');
     expect(astroCapabilities).toContain('governed or wallet-prefund path');
     expect(astroCapabilities).toContain('BYOK or Agent Vault where supported');
     expect(astroCapabilities).toContain('<code class="text-amber">x_payment</code>');
     expect(astroCapabilities).toContain('capabilities that expose x402 per-call');
+    expect(astroCapabilities).not.toContain('Once you have the capability ID, resolve providers, estimate the active rail, then execute through quickstart or MCP.');
+    expect(astroCapabilities).not.toContain('Discover capability definitions, resolve providers, and execute the subset that is live through');
     expect(astroCapabilities).not.toContain('Discovery works without a key; governed execution uses <code class="text-amber">RHUMB_API_KEY</code> or wallet-prefund.');
   });
 
