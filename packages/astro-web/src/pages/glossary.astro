@@ -141,7 +141,7 @@ const TERMS: GlossaryTerm[] = [
     detail:
       "A capability is narrower than a category and operational enough to route or execute. Multiple services may satisfy the same capability, which lets Rhumb compare options instead of hard-coding a single provider.",
     whyItMatters:
-      "Capabilities are the bridge between discovery and action: find the job, rank the providers, then execute with the right credential mode.",
+      "Capabilities are the bridge between discovery and action: find the job, rank the providers, then execute with the right credential path.",
     related: [
       { label: "Quickstart", href: "/quickstart" },
       { label: "Docs", href: "/docs" },
@@ -251,7 +251,7 @@ const TERMS: GlossaryTerm[] = [
     related: [
       { label: "Pricing", href: "/pricing" },
       { label: "Quickstart", href: "/quickstart" },
-      { label: "Managed Mode", href: "#managed-mode" },
+      { label: "Rhumb-managed", href: "#managed-mode" },
     ],
   },
   {
@@ -259,26 +259,26 @@ const TERMS: GlossaryTerm[] = [
     name: "BYOK",
     aliases: ["Bring Your Own Key"],
     category: "Calls and Billing",
-    summary: "A mode where you pass your own upstream API credential through Rhumb.",
+    summary: "A provider-controlled credential path where you pass your own upstream API credential through Rhumb.",
     detail:
-      "In BYOK, Rhumb helps with routing and interface consistency, but the provider account remains yours. Rhumb adds no markup in this mode.",
+      "In BYOK, Rhumb helps with routing and interface consistency, but the provider account remains yours. Rhumb adds no markup on this path.",
     whyItMatters:
       "BYOK is the control-maximizing option for teams that already have provider accounts and want Rhumb's routing and scoring layer at zero additional cost.",
     related: [
       { label: "Pricing", href: "/pricing" },
       { label: "Trust", href: "/trust" },
-      { label: "Managed Mode", href: "#managed-mode" },
+      { label: "Rhumb-managed", href: "#managed-mode" },
     ],
   },
   {
     id: "managed-mode",
-    name: "Managed Mode",
+    name: "Rhumb-managed",
     category: "Calls and Billing",
-    summary: "A mode where Rhumb holds the upstream connection so you do not need your own provider account.",
+    summary: "A credential path where Rhumb holds the upstream connection so you do not need your own provider account.",
     detail:
-      "Managed mode uses per-call pricing. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
+      "The Rhumb-managed path uses per-call pricing. It is the simplest path when you want Rhumb to handle the provider-side credential and billing relationship.",
     whyItMatters:
-      "This is the lowest-friction path from intent to a completed call — Rhumb handles credentials, routing, and billing.",
+      "This is the lowest-friction credential path from intent to a completed call, Rhumb handles credentials, routing, and billing.",
     related: [
       { label: "Pricing", href: "/pricing" },
       { label: "Call", href: "#call" },
@@ -330,7 +330,7 @@ const GLOSSARY_JSON_LD = {
   name: "Rhumb Glossary",
   url: "https://rhumb.dev/glossary",
   description:
-    "Canonical definitions for Rhumb terminology, scoring language, and call modes for developers and agents.",
+    "Canonical definitions for Rhumb terminology, scoring language, and credential paths for developers and agents.",
   dateModified: `${LAST_UPDATED_ISO}T00:00:00Z`,
   hasDefinedTerm: TERMS.map((term) => ({
     "@type": "DefinedTerm",
@@ -344,10 +344,10 @@ const GLOSSARY_JSON_LD = {
 
 <Layout
   title="Glossary"
-  description="Canonical Rhumb definitions for developers and agents: AN Score, evidence tiers, capabilities, x402, BYOK, Agent Vault, managed mode, and more."
+  description="Canonical Rhumb definitions for developers and agents: AN Score, evidence tiers, capabilities, x402, BYOK, Agent Vault, Rhumb-managed capabilities, and more."
   canonical="/glossary"
   ogTitle="Rhumb Glossary"
-  ogDescription="A public glossary of Rhumb terms, scoring language, and call modes for humans and agents."
+  ogDescription="A public glossary of Rhumb terms, scoring language, and credential paths for humans and agents."
   ogUrl="https://rhumb.dev/glossary"
   jsonLd={GLOSSARY_JSON_LD}
 >
@@ -404,7 +404,7 @@ const GLOSSARY_JSON_LD = {
               Evaluating trust claims? Read <a href="/trust" class="text-amber hover:underline underline-offset-2">Trust</a>.
             </li>
             <li>
-              Choosing credential mode? Check <a href="/pricing" class="text-amber hover:underline underline-offset-2">Pricing</a>.
+              Choosing a credential path? Check <a href="/pricing" class="text-amber hover:underline underline-offset-2">Pricing</a>.
             </li>
           </ul>
         </aside>

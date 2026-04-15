@@ -21,6 +21,7 @@ const astroPrivacy = readFileSync(new URL("../../astro-web/src/pages/privacy.ast
 const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-truth.ts", import.meta.url), "utf8");
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
+const astroResolve = readFileSync(new URL("../../astro-web/src/pages/resolve.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
 const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/securing-keys-for-agents.astro", import.meta.url), "utf8");
@@ -93,11 +94,16 @@ describe("public authority pricing contract", () => {
     expect(glossary).toContain("wallet-prefund");
     expect(glossary).toContain("provider-controlled paths through BYOK or Agent Vault");
     expect(glossary).toContain("Confirm per-call pricing, x402 rail, and BYOK or Agent Vault terms.");
-    expect(glossary).toContain("x402, BYOK, Agent Vault, managed mode, and more.");
+    expect(glossary).toContain("x402, BYOK, Agent Vault, Rhumb-managed capabilities, and more.");
+    expect(glossary).toContain("Choosing a credential path? Check <a href=\"/pricing\"");
+    expect(glossary).toContain("Rhumb-managed");
     expect(glossary).toContain("Discovery is free, and execution pricing lives on /pricing.");
     expect(glossary).not.toContain("public free tier includes 1,000 calls per month");
     expect(glossary).not.toContain("Confirm per-call pricing, x402 rail, and BYOK terms.");
     expect(glossary).not.toContain("x402 per-call, or BYOK");
+    expect(glossary).not.toContain("call modes");
+    expect(glossary).not.toContain("credential mode");
+    expect(glossary).not.toContain("managed mode");
   });
 
   it("keeps the astro docs authority surface pinned to canonical public truth", () => {
@@ -373,6 +379,13 @@ describe("public authority pricing contract", () => {
     expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
     expect(astroPublicTruth).toContain('Bring BYOK or Agent Vault only when the workflow touches your own systems.');
     expect(astroPublicTruth).not.toContain('governed API key or wallet-prefunded API key');
+
+    expect(astroResolve).toContain('const credentialPaths = [');
+    expect(astroResolve).toContain('Three credential paths, one trust story');
+    expect(astroResolve).toContain('Use the managed path first');
+    expect(astroResolve).not.toContain('const modes = [');
+    expect(astroResolve).not.toContain('Three modes, one trust story');
+    expect(astroResolve).not.toContain('Use managed mode first');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
