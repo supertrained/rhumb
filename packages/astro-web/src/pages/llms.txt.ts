@@ -155,7 +155,7 @@ the specific friction of a tool before integrating.
 - https://rhumb.dev/blog/getting-started-mcp — MCP install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential paths explained
 - https://rhumb.dev/blog/securing-keys-for-agents — How to secure API keys for agent use: three credential paths (BYOK, managed, Agent Vault), storage hierarchy, honest threat modeling, and where x402 fits as a payment rail
 - MCP tools reference with examples for all ${PUBLIC_TRUTH.mcpToolsLabel} tools
-- Three credential paths: BYOK, Rhumb-Managed, Agent Vault
+- Three credential paths: Rhumb-Managed, BYOK, Agent Vault
 - End-to-end workflow example: find → evaluate → resolve → execute
 
 ## Trust and disputes

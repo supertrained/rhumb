@@ -463,20 +463,10 @@ const frameworks: Framework[] = [
         <div class="max-w-3xl">
           <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Credential paths that match your trust boundary</h2>
           <p class="text-slate-400 leading-relaxed mb-6">
-            Rhumb supports three live credential paths. Keep provider-controlled execution on BYOK or Agent Vault, and use the Rhumb-managed path when zero-config governed execution is the point.
+            Rhumb supports three live credential paths. Start with the Rhumb-managed path when zero-config governed execution is the point, then bring BYOK or Agent Vault in only when provider control matters.
           </p>
 
           <div class="space-y-4">
-            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
-              <div class="flex items-center gap-3 mb-2">
-                <span class="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider">Provider-controlled</span>
-                <span class="font-semibold text-slate-200">BYOK</span>
-              </div>
-              <p class="text-sm text-slate-400 leading-relaxed">
-                Pass your own API keys at execution time. Rhumb routes the request, you own the credential.
-                Full control, no credential storage.
-              </p>
-            </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
               <div class="flex items-center gap-3 mb-2">
                 <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider">Governed path</span>
@@ -485,6 +475,16 @@ const frameworks: Framework[] = [
               <p class="text-sm text-slate-400 leading-relaxed">
                 Rhumb holds the upstream credential. Agent provides capability + body, Rhumb handles auth.
                 Zero-config for the agent. Per-call pricing with pre-call estimates.
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider">Provider-controlled</span>
+                <span class="font-semibold text-slate-200">BYOK</span>
+              </div>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                Pass your own API keys at execution time. Rhumb routes the request, you own the credential.
+                Full control, no credential storage.
               </p>
             </div>
             <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
