@@ -1,0 +1,105 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const pageJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Start Managed Execution | Rhumb",
+  url: "https://rhumb.dev/start-managed-execution",
+  description:
+    "The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads.",
+};
+
+const STEPS = [
+  {
+    title: "1. Start with governed API key",
+    body:
+      "If you want repeat managed execution, this is the default production path today. It keeps one stable execution header and the simplest operational model.",
+  },
+  {
+    title: "2. Check pricing before the first paid call",
+    body:
+      "Discovery stays free. Execution is pay-per-call, so review the rail chooser and cost model before you wire it deeper.",
+  },
+  {
+    title: "3. Keep quickstart for free reads",
+    body:
+      "If you are still evaluating, stay on the no-signup read path first. Paid execution should follow a real workflow, not curiosity clicks.",
+  },
+];
+---
+
+<Layout
+  title="Start Managed Execution | Rhumb"
+  description="The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads."
+  canonical="/start-managed-execution"
+  ogTitle="Start Managed Execution | Rhumb"
+  ogDescription="Governed API key is the default production path for repeat managed execution. Pricing before execution, quickstart for free reads."
+  ogUrl="https://rhumb.dev/start-managed-execution"
+  jsonLd={pageJsonLd}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 pointer-events-none" style="background: radial-gradient(circle at 20% 20%, rgba(16,185,129,0.12), transparent 36%), radial-gradient(circle at 80% 10%, rgba(245,158,11,0.08), transparent 34%);"></div>
+
+      <div class="relative max-w-5xl mx-auto px-6 pt-18 pb-14">
+        <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.3em] mb-4">Managed execution</p>
+        <h1 class="max-w-4xl font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
+          Start with the production path that exists today.
+        </h1>
+        <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+          If you want repeat managed execution, the honest default is governed API key first. Use pricing to understand the rail, use quickstart for free reads, use x402 only when zero-signup per-call payment is the point, and bring BYOK or Agent Vault only when provider control is the point.
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/auth/login?rhumb_experiment=e004&rhumb_source=start-managed-execution-primary" class="px-5 py-3 rounded-xl bg-emerald-400 text-navy font-display font-semibold text-sm hover:bg-emerald-300 transition-colors duration-200">
+            Get governed API key
+          </a>
+          <a href="/pricing?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-200 hover:border-emerald-400/50 hover:text-slate-100 transition-colors duration-200">
+            Review pricing
+          </a>
+          <a href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-secondary" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+            Stay on free quickstart
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 py-12">
+      <div class="grid gap-4 md:grid-cols-3">
+        {STEPS.map((step) => (
+          <div class="rounded-3xl border border-slate-800 bg-surface/85 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500 mb-3">Default path</div>
+            <h2 class="font-display font-bold text-xl text-slate-100 tracking-tight mb-3">{step.title}</h2>
+            <p class="text-sm leading-6 text-slate-400">{step.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-20">
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 sm:p-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div>
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Decision rule</div>
+          <p class="text-slate-300 leading-relaxed">
+            Use this path when the question is not "can Rhumb answer a free read call?" but "am I ready to put managed execution into a real workflow?"
+          </p>
+          <p class="mt-4 text-sm text-slate-400 leading-6">
+            If you still need to inspect trust boundaries, read <a href="/resolve" class="text-amber hover:text-amber-200 transition-colors">Resolve</a>, <a href="/pricing" class="text-amber hover:text-amber-200 transition-colors">Pricing</a>, and <a href="/blog/capability-first-agent-onboarding" class="text-amber hover:text-amber-200 transition-colors">Capability-First Agent Onboarding</a> first.
+          </p>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Current truth</div>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-sm text-slate-300 leading-6">
+            <li>Governed API key is the cleanest repeat-traffic rail today.</li>
+            <li>Pricing, route checks, and cost checks should come before the first paid execution call.</li>
+            <li>Use x402 only when zero-signup per-call payment is the point, and bring BYOK or Agent Vault only when provider control is the point.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

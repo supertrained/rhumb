@@ -15,6 +15,7 @@ const terms = readFileSync(new URL("../../astro-web/src/pages/terms.astro", impo
 const glossary = readFileSync(new URL("../../astro-web/src/pages/glossary.astro", import.meta.url), "utf8");
 const astroAbout = readFileSync(new URL("../../astro-web/src/pages/about.astro", import.meta.url), "utf8");
 const astroBlogIndex = readFileSync(new URL("../../astro-web/src/pages/blog/index.astro", import.meta.url), "utf8");
+const astroCapabilityFirstOnboarding = readFileSync(new URL("../../astro-web/src/pages/blog/capability-first-agent-onboarding.astro", import.meta.url), "utf8");
 const astroDashboard = readFileSync(new URL("../../astro-web/src/pages/dashboard.astro", import.meta.url), "utf8");
 const astroDocs = readFileSync(new URL("../../astro-web/src/pages/docs.astro", import.meta.url), "utf8");
 const astroPrivacy = readFileSync(new URL("../../astro-web/src/pages/privacy.astro", import.meta.url), "utf8");
@@ -36,6 +37,7 @@ const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-ag
 const astroX402Dogfood = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-actually-pay-x402-dogfood.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
+const astroStartManagedExecution = readFileSync(new URL("../../astro-web/src/pages/start-managed-execution.astro", import.meta.url), "utf8");
 const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
 const astroSecurity = readFileSync(new URL("../../astro-web/src/pages/security.astro", import.meta.url), "utf8");
 const astroCapabilities = readFileSync(new URL("../../astro-web/src/pages/capabilities.astro", import.meta.url), "utf8");
@@ -481,9 +483,35 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain('const credentialPaths = [');
     expect(astroResolve).toContain('Three credential paths, one trust story');
     expect(astroResolve).toContain('Use the managed path first');
+    expect(astroResolve).toContain('href="/start-managed-execution?');
+    expect(astroResolve).toContain('Start managed execution');
     expect(astroResolve).not.toContain('const modes = [');
     expect(astroResolve).not.toContain('Three modes, one trust story');
     expect(astroResolve).not.toContain('Use managed mode first');
+    expect(astroResolve).not.toContain('agent-controlled storage');
+
+    expect(astroCapabilityFirstOnboarding).toContain('The honest production default today is still simple: start with the governed API key when you want repeat managed execution');
+    expect(astroCapabilityFirstOnboarding).toContain('use x402 only when zero-signup per-call payment is the point');
+    expect(astroCapabilityFirstOnboarding).toContain('bring BYOK or Agent Vault only when provider control is the point');
+    expect(astroCapabilityFirstOnboarding).not.toContain('bring wallet or provider-controlled paths');
+    expect(astroCapabilityFirstOnboarding).toContain('href="/start-managed-execution?');
+    expect(astroCapabilityFirstOnboarding).toContain('Start managed execution');
+    expect(astroCapabilityFirstOnboarding).not.toContain('The honest production default today is still simple: start with the API key when you want repeat managed execution');
+
+    expect(astroStartManagedExecution).toContain('The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads.');
+    expect(astroStartManagedExecution).toContain('If you want repeat managed execution, the honest default is governed API key first.');
+    expect(astroStartManagedExecution).toContain('use x402 only when zero-signup per-call payment is the point');
+    expect(astroStartManagedExecution).toContain('bring BYOK or Agent Vault only when provider control is the point');
+    expect(astroStartManagedExecution).not.toContain('bring wallet or provider-controlled paths');
+    expect(astroStartManagedExecution).toContain('Get governed API key');
+    expect(astroStartManagedExecution).toContain('Review pricing');
+    expect(astroStartManagedExecution).toContain('Stay on free quickstart');
+    expect(astroStartManagedExecution).toContain('Governed API key is the cleanest repeat-traffic rail today.');
+    expect(astroStartManagedExecution).toContain('Pricing, route checks, and cost checks should come before the first paid execution call.');
+    expect(astroStartManagedExecution).toContain('Use x402 only when zero-signup per-call payment is the point, and bring BYOK or Agent Vault only when provider control is the point.');
+    expect(astroStartManagedExecution).not.toContain('The shortest honest path into Rhumb managed execution: API key first, pricing before execution, and quickstart for free reads.');
+    expect(astroStartManagedExecution).not.toContain('If you want repeat managed execution, the honest default is API key first.');
+    expect(astroStartManagedExecution).not.toContain('Get API key');
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
