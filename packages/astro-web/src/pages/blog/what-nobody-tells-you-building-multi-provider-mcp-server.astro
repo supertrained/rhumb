@@ -96,6 +96,33 @@ const RATE_LIMIT_SCORES = [
   { service: "GitHub", score: "7.8", headers: "✅", retryAfter: "⚠️", burstDocs: "⚠️ (secondary limits not in headers)" },
   { service: "PayPal", score: "4.9", headers: "Inconsistent", retryAfter: "❌", burstDocs: "❌" },
 ];
+
+const RELATED_READING = [
+  {
+    eyebrow: "MCP Methodology",
+    href: "/blog/how-to-evaluate-mcp-servers",
+    title: "How to Evaluate MCP Servers",
+    description: "Use workflow fit, trust class, capability shape, auth viability, and runtime reality instead of flat popularity lists.",
+  },
+  {
+    eyebrow: "Production Checklist",
+    href: "/blog/remote-mcp-production-readiness-checklist",
+    title: "A Production Readiness Checklist for Remote MCP Servers",
+    description: "The live operator screen for scope constraints, auth drift, retry behavior, and shared-remote safety.",
+  },
+  {
+    eyebrow: "Trust Boundary",
+    href: "/blog/read-only-mcp-trust-class",
+    title: "Read-Only MCP as a Trust Class",
+    description: "Why inspect-only boundaries deserve their own category, and when read-only is a real constraint versus a comforting label.",
+  },
+  {
+    eyebrow: "Auditability",
+    href: "/blog/signed-mcp-receipts-evidence-not-authority",
+    title: "Signed MCP Receipts Are Evidence, Not Authority",
+    description: "Receipts help after the call. They do not make the original authority surface safe enough to expose.",
+  },
+];
 ---
 
 <Layout
@@ -703,36 +730,30 @@ const RATE_LIMIT_SCORES = [
         </p>
 
         <section class="mt-10">
-          <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+          <div class="flex items-center gap-3 mb-4">
+            <h2 class="font-display font-semibold text-lg text-slate-100">Related reading</h2>
+            <span class="h-px flex-1 bg-slate-800"></span>
+          </div>
+          <p class="text-sm text-slate-400 leading-relaxed mb-4 max-w-3xl">
+            The live MCP issue stream still clusters around scope constraints, credential models, remote-hosted ops, and operator evidence. If you&apos;re taking a server beyond hello-world, start with these follow-through pieces.
+          </p>
           <div class="grid gap-4 sm:grid-cols-2">
-            <a
-              href="/blog/how-agents-actually-pay-x402-dogfood"
-              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
-            >
-              <span class="text-xs font-mono text-amber uppercase tracking-widest">
-                x402 Dogfood
-              </span>
-              <h3 class="font-display font-semibold text-slate-100 mt-2">
-                How Agents Actually Pay: What We Learned Dogfooding x402
-              </h3>
-              <p class="text-sm text-slate-500 mt-1">
-                We implemented x402 as a seller. Here&apos;s what happened when a real agent tried to pay us.
-              </p>
-            </a>
-            <a
-              href="/blog/getting-started-mcp"
-              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
-            >
-              <span class="text-xs font-mono text-amber uppercase tracking-widest">
-                Getting Started
-              </span>
-              <h3 class="font-display font-semibold text-slate-100 mt-2">
-                Getting Started with Rhumb MCP
-              </h3>
-              <p class="text-sm text-slate-500 mt-1">
-                Set up Rhumb&apos;s MCP server in your agent stack and start querying API scores and alternatives.
-              </p>
-            </a>
+            {RELATED_READING.map((item) => (
+              <a
+                href={item.href}
+                class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+              >
+                <span class="text-xs font-mono text-amber uppercase tracking-widest">
+                  {item.eyebrow}
+                </span>
+                <h3 class="font-display font-semibold text-slate-100 mt-2">
+                  {item.title}
+                </h3>
+                <p class="text-sm text-slate-500 mt-1">
+                  {item.description}
+                </p>
+              </a>
+            ))}
           </div>
         </section>
       </footer>
