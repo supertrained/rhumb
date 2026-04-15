@@ -159,6 +159,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"What is the difference between API key, wallet-prefund, and x402|(?<!Governed )API key and wallet-prefund both execute with X-Rhumb-Key|governed rail \(API key or wallet-prefund\)", re.IGNORECASE),
     ),
     DriftPattern(
+        key="governed-api-key-label-shorthand",
+        note="launch or onboarding labels that drop `governed` from the Rhumb API key path",
+        regex=re.compile(r"For execution, pass your Rhumb API key:|Get an API key →|\*\*API key\*\* — sign up, get a key, prepaid credits|>API key</h3>|Execute via API key|BYOK, Agent Vault, API key, wallet-prefund, x402|Start with API key|account billing with API keys,|Create an API key for standard pricing|Get API key", re.IGNORECASE),
+    ),
+    DriftPattern(
         key="provider-keys-shorthand",
         note="Smithery migration wording that says generic `provider keys` instead of explicit provider API keys",
         regex=re.compile(r"Bring BYOK if you already have provider keys", re.IGNORECASE),

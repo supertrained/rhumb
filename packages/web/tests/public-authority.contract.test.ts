@@ -250,6 +250,7 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
+    expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
     expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
@@ -264,6 +265,7 @@ describe("public authority pricing contract", () => {
     expect(astroHome).not.toContain('Guide &middot; Three credential modes');
     expect(astroHome).not.toContain('See credential modes &rarr;');
     expect(astroHome).not.toContain('Bring your own provider credentials directly');
+    expect(astroHome).not.toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">API key</h3>');
     expect(astroHome).not.toContain('Use BYOK, Agent Vault, or your existing stack');
     expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
@@ -274,7 +276,9 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroQuickstart).toContain('BYOK / Agent Vault');
     expect(astroQuickstart).toContain('Use BYOK for direct pass-through, or Agent Vault for encrypted provider credential injection when provider control is the point.');
-    expect(astroQuickstart).toContain('BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent');
+    expect(astroQuickstart).toContain('BYOK, Agent Vault, governed API key, wallet-prefund, x402 — which path fits your agent');
+    expect(astroQuickstart).toContain('Execute via governed API key');
+    expect(astroQuickstart).toContain('Governed API key</h3>');
     expect(astroQuickstart).toContain('Execute via wallet-prefund');
     expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroQuickstart).not.toContain('Pass your service API key directly. BYOK = full control.');
@@ -282,6 +286,9 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).toContain('The change is the credential path, not the product mental model.');
     expect(astroQuickstart).not.toContain('The change is the credential mode, not the product mental model.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
+    expect(astroQuickstart).not.toContain('BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent');
+    expect(astroQuickstart).not.toContain('API Key</h3>');
+    expect(astroQuickstart).not.toContain('Execute via API key');
     expect(astroQuickstart).not.toContain('Execute via wallet-prefunded balance');
   });
 
@@ -413,16 +420,22 @@ describe("public authority pricing contract", () => {
     const rootReadmeVaultRow = '| **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |';
 
     expect(rootReadme).toContain('### Three credential paths');
+    expect(rootReadme).toContain('For execution, pass your governed API key:');
+    expect(rootReadme).toContain('[Get a governed API key →](https://rhumb.dev/auth/login)');
     expect(rootReadme).toContain('| Path | How it works |');
     expect(rootReadme).toContain(rootReadmeManagedRow);
     expect(rootReadme).toContain(rootReadmeByokRow);
     expect(rootReadme).toContain(rootReadmeVaultRow);
     expect(rootReadme.indexOf(rootReadmeManagedRow)).toBeLessThan(rootReadme.indexOf(rootReadmeByokRow));
     expect(rootReadme.indexOf(rootReadmeByokRow)).toBeLessThan(rootReadme.indexOf(rootReadmeVaultRow));
+    expect(rootReadme).toContain('**Governed API key** — sign up, get a key, prepaid credits');
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('### Three credential modes');
+    expect(rootReadme).not.toContain('For execution, pass your Rhumb API key:');
+    expect(rootReadme).not.toContain('[Get an API key →](https://rhumb.dev/auth/login)');
     expect(rootReadme).not.toContain('| Mode | How it works |');
+    expect(rootReadme).not.toContain('**API key** — sign up, get a key, prepaid credits');
     expect(rootReadme).not.toContain('Bring your own API key — Rhumb routes, you authenticate');
     expect(rootReadme).not.toContain('wallet-prefunded API key');
 

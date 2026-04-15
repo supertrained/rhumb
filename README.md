@@ -22,13 +22,13 @@ npx rhumb-mcp@latest
 
 Zero config. Discovery tools work immediately — no signup, no API key.
 
-For execution, pass your Rhumb API key:
+For execution, pass your governed API key:
 
 ```bash
 RHUMB_API_KEY=your_key npx rhumb-mcp@latest
 ```
 
-[Get an API key →](https://rhumb.dev/auth/login)
+[Get a governed API key →](https://rhumb.dev/auth/login)
 
 ### API (read-only, no auth)
 
@@ -95,7 +95,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 ### Payment paths
 
-- **API key** — sign up, get a key, prepaid credits
+- **Governed API key** — sign up, get a key, prepaid credits
 - **x402 / USDC** — no signup, pay per call on-chain
 
 ### Resolve mental model

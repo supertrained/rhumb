@@ -293,7 +293,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \
 
         <div class="grid sm:grid-cols-4 gap-4 mb-8">
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
-            <h3 class="font-display font-semibold text-slate-100 mb-2">API Key</h3>
+            <h3 class="font-display font-semibold text-slate-100 mb-2">Governed API key</h3>
             <p class="text-xs text-slate-400 mb-3">Sign up, add credits, then pass the key as <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">X-Rhumb-Key</code>.</p>
             <span class="text-xs font-mono text-slate-500">Best for: default production path</span>
           </div>
@@ -315,7 +315,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \
         </div>
 
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-4">
-          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Execute via API key</p>
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Execute via governed API key</p>
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`curl -X POST "${API}/capabilities/email.send/execute" \\
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\
@@ -428,7 +428,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
           </a>
           <a href="/blog/securing-keys-for-agents" class="group block bg-surface border border-slate-800 rounded-lg p-5 hover:border-slate-600 transition-colors">
             <span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Credential Security</span>
-            <span class="block text-xs text-slate-500 mt-1">BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent</span>
+            <span class="block text-xs text-slate-500 mt-1">BYOK, Agent Vault, governed API key, wallet-prefund, x402 — which path fits your agent</span>
           </a>
           <a href="/compare" class="group block bg-surface border border-slate-800 rounded-lg p-5 hover:border-slate-600 transition-colors">
             <span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Tool Comparisons</span>
