@@ -91,9 +91,13 @@ describe("pricing page", () => {
     expect(astroPricingSource).toContain("recovery_hint.credential_modes_url");
     expect(astroPricingSource).toContain("recovery_hint.alternate_execute_hint");
     expect(astroPricingSource).toContain("recovery_hint.setup_handoff");
+    expect(astroPricingSource).toContain("wallet-prefund, or x402 per-call settlement");
+    expect(astroPricingSource).toContain('>Wallet-prefund</td>');
+    expect(astroPricingSource).toContain("For wallet-first flows (x402 per-call and wallet-prefund), see our");
 
     expect(astroPricingSource).not.toContain("Has a setup step before the first repeatable execution path.");
     expect(astroPricingSource).not.toContain("account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.");
+    expect(astroPricingSource).not.toContain("wallet-prefunded balance");
     expect(astroPricingSource).not.toContain("Already have provider API keys? BYOK passthrough routes through Rhumb at zero");
     expect(astroPricingSource).not.toContain(
       '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',

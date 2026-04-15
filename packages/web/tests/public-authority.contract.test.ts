@@ -267,12 +267,14 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).toContain('BYOK / Agent Vault');
     expect(astroQuickstart).toContain('Use BYOK for direct pass-through, or Agent Vault for encrypted provider credential injection when provider control is the point.');
     expect(astroQuickstart).toContain('BYOK, Agent Vault, API key, wallet-prefund, x402 — which path fits your agent');
+    expect(astroQuickstart).toContain('Execute via wallet-prefund');
     expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroQuickstart).not.toContain('Pass your service API key directly. BYOK = full control.');
     expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroQuickstart).toContain('The change is the credential path, not the product mental model.');
     expect(astroQuickstart).not.toContain('The change is the credential mode, not the product mental model.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
+    expect(astroQuickstart).not.toContain('Execute via wallet-prefunded balance');
   });
 
   it("keeps the astro MCP getting-started auth rail aligned with the live execution rails", () => {
