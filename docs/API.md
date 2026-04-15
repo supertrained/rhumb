@@ -724,8 +724,10 @@ Returns Rhumb's current machine-readable public pricing contract.
         "token": "USDC"
       },
       "byok": {
+        "label": "BYOK or Agent Vault",
         "upstream_passthrough": true,
-        "margin_percent": 0
+        "margin_percent": 0,
+        "passthrough_note": "Rhumb adds no markup in BYOK or Agent Vault mode. Provider charges bill directly to your provider account."
       }
     }
   },
@@ -734,6 +736,7 @@ Returns Rhumb's current machine-readable public pricing contract.
 ```
 
 The pricing contract intentionally omits unfinished volume-discount tiers.
+The provider-controlled pricing path covers both direct BYOK and Agent Vault when the capability supports that credential mode.
 
 ## Probe Endpoints
 

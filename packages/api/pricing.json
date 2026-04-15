@@ -40,7 +40,7 @@
       ]
     },
     "byok": {
-      "label": "Bring your own key",
+      "label": "BYOK or Agent Vault",
       "execution_auth": [
         "provider credential"
       ],
@@ -50,10 +50,10 @@
       "margin_bps": 0,
       "rhumb_markup": false,
       "upstream_passthrough": true,
-      "passthrough_note": "Rhumb adds no markup in BYOK mode. Provider charges bill directly to your provider account.",
+      "passthrough_note": "Rhumb adds no markup in BYOK or Agent Vault mode. Provider charges bill directly to your provider account.",
       "notes": [
-        "BYOK keeps billing with the upstream provider.",
-        "Rhumb does not add a markup to BYOK usage."
+        "BYOK and Agent Vault keep billing with the upstream provider.",
+        "Rhumb does not add a markup to BYOK or Agent Vault usage."
       ]
     }
   },

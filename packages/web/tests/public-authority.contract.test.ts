@@ -412,10 +412,15 @@ describe("public authority pricing contract", () => {
     expect(pricingExample.data.modes.byok.upstream_passthrough).toBe(
       canonicalPricing.modes.byok.upstream_passthrough,
     );
+    expect(pricingExample.data.modes.byok.label).toBe(canonicalPricing.modes.byok.label);
     expect(pricingExample.data.modes.byok.margin_percent).toBe(
       canonicalPricing.modes.byok.margin_percent,
     );
+    expect(pricingExample.data.modes.byok.passthrough_note).toBe(
+      canonicalPricing.modes.byok.passthrough_note,
+    );
 
     expect(apiDocs).not.toContain("included_executions_per_month");
+    expect(apiDocs).not.toContain('"label": "Bring your own key"');
   });
 });

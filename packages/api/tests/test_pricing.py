@@ -46,8 +46,10 @@ def test_get_pricing_returns_public_contract() -> None:
     assert data["modes"]["x402"]["margin_percent"] == 15
     assert data["modes"]["x402"]["network"] == "Base"
     assert data["modes"]["x402"]["token"] == "USDC"
+    assert data["modes"]["byok"]["label"] == "BYOK or Agent Vault"
     assert data["modes"]["byok"]["upstream_passthrough"] is True
     assert data["modes"]["byok"]["margin_percent"] == 0
+    assert "Agent Vault" in data["modes"]["byok"]["passthrough_note"]
 
 
 def test_get_pricing_omits_finalized_volume_discount_tiers() -> None:
