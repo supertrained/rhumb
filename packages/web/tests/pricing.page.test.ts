@@ -22,8 +22,14 @@ describe("pricing page", () => {
     expect(pricingPageSource).toContain("governed API key, wallet-prefund, or x402 per-call rails");
     expect(pricingPageSource).toContain("BYOK or Agent Vault when provider control is the point");
     expect(pricingPageSource).toContain("BYOK and Agent Vault provider-control modes");
+    expect(pricingPageSource).toContain("Create an account, estimate first, then execute repeat traffic with X-Rhumb-Key.");
+    expect(pricingPageSource).toContain("Get your governed API key from the dashboard.");
+    expect(pricingPageSource).toContain("Fund reusable balance from a wallet, then execute on the same X-Rhumb-Key repeat-traffic rail as the governed default path.");
     expect(pricingPageSource).not.toContain("Choose governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(pricingPageSource).not.toContain("x402 per-call, and BYOK paths");
+    expect(pricingPageSource).not.toContain("Create an account, estimate first, then execute with one stable header.");
+    expect(pricingPageSource).not.toContain("Get X-Rhumb-Key from your org.");
+    expect(pricingPageSource).not.toContain("Fund reusable balance from a wallet, then execute on the same X-Rhumb-Key rail as the default path.");
   });
 
   it("renders the current estimate handoff truth for agents", async () => {

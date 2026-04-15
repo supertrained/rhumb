@@ -61,16 +61,16 @@ const rails = [
 const agentPaths = [
   {
     title: "Governed API key",
-    summary: "Create an account, estimate first, then execute with one stable header.",
+    summary: "Create an account, estimate first, then execute repeat traffic with X-Rhumb-Key.",
     steps: [
-      "Get X-Rhumb-Key from your org.",
+      "Get your governed API key from the dashboard.",
       "Call estimate_capability or GET /v1/capabilities/{id}/execute/estimate before paid execution.",
       "Execute repeat traffic with X-Rhumb-Key.",
     ],
   },
   {
     title: "Wallet-prefund",
-    summary: "Fund reusable balance from a wallet, then execute on the same X-Rhumb-Key rail as the default path.",
+    summary: "Fund reusable balance from a wallet, then execute on the same X-Rhumb-Key repeat-traffic rail as the governed default path.",
     steps: [
       "Use the wallet funding flow once.",
       "Top up reusable balance instead of paying every request individually.",

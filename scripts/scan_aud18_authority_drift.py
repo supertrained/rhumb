@@ -172,7 +172,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="one-key-onboarding-shorthand",
         note="onboarding shorthand that can blur governed API key with provider API keys",
-        regex=re.compile(r"Execute through one key first|Layer 2 with one key|behind one key|under one key|one stable execution header|one key, many superpowers|give your agent one key|gives agents one key for managed superpowers|If one key gives the agent", re.IGNORECASE),
+        regex=re.compile(r"Execute through one key first|Layer 2 with one key|behind one key|under one key|one stable execution header|one stable header|one key, many superpowers|give your agent one key|gives agents one key for managed superpowers|If one key gives the agent", re.IGNORECASE),
     ),
     DriftPattern(
         key="ambiguous-byok-api-key-shorthand",
@@ -187,7 +187,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-label-shorthand",
         note="launch or onboarding labels that drop `governed` from the Rhumb API key path",
-        regex=re.compile(r"For execution, pass your Rhumb API key:|Get an API key →|\*\*API key\*\* — sign up, get a key, prepaid credits|>API key</h3>|Execute via API key|BYOK, Agent Vault, API key, wallet-prefund, x402|Start with API key|account billing with API keys,|Create an API key for standard pricing|Get API key|via API keys or on-chain USDC", re.IGNORECASE),
+        regex=re.compile(r"For execution, pass your Rhumb API key:|Get an API key →|\*\*API key\*\* — sign up, get a key, prepaid credits|>API key</h3>|Execute via API key|BYOK, Agent Vault, API key, wallet-prefund, x402|Start with API key|account billing with API keys,|Create an API key for standard pricing|Get API key|Get X-Rhumb-Key from your org\.|via API keys or on-chain USDC", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-rail-shorthand",
