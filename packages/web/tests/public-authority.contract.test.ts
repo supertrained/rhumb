@@ -218,9 +218,11 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro security auth surface aligned with the live execution rails", () => {
+    expect(astroSecurity).toContain('BYOK and Agent Vault credentials are scoped per-agent and never shared across accounts');
     expect(astroSecurity).toContain('wallet-prefund repeat traffic authenticate with X-Rhumb-Key');
     expect(astroSecurity).toContain('x402 per-call uses X-Payment from the payer wallet');
-    expect(astroSecurity).toContain('BYOK routes through provider-scoped credentials via Rhumb');
+    expect(astroSecurity).toContain('BYOK and Agent Vault provider-control paths route through provider-scoped credentials via Rhumb');
+    expect(astroSecurity).not.toContain('BYOK routes through provider-scoped credentials via Rhumb');
     expect(astroSecurity).not.toContain('API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents.');
   });
 
