@@ -113,7 +113,7 @@ const mcpTools: McpTool[] = [
   { name: "get_failure_modes", description: "Known failure patterns", category: "score" },
   { name: "estimate_capability", description: "Estimate the active execution rail, cost, and health before execution, with direct-rail execute_readiness handoffs when applicable", category: "execute" },
   { name: "execute_capability", description: "Execute through Rhumb proxy", category: "execute" },
-  { name: "credential_ceremony", description: "Setup guides for credential modes", category: "execute" },
+  { name: "credential_ceremony", description: "Get step-by-step instructions for obtaining provider credentials", category: "execute" },
   { name: "check_credentials", description: "Inspect live credential-mode readiness, globally or for a specific Capability", category: "execute" },
   { name: "routing", description: "Routing strategy configuration", category: "execute" },
   { name: "usage_telemetry", description: "Execution analytics and provider health", category: "execute" },
@@ -457,7 +457,7 @@ const frameworks: Framework[] = [
       </div>
     </section>
 
-    <!-- Credential modes -->
+    <!-- Credential paths -->
     <section class="border-b border-slate-800/60">
       <div class="max-w-6xl mx-auto px-6 py-14">
         <div class="max-w-3xl">

@@ -103,6 +103,8 @@ describe("public authority pricing contract", () => {
   it("keeps the astro docs authority surface pinned to canonical public truth", () => {
     expect(astroDocs).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroDocs).toContain('Search ${servicesLabel} scored services');
+    expect(astroDocs).toContain('>Credential paths</p>');
+    expect(astroDocs).not.toContain('>Credential modes</p>');
     expect(astroDocs).not.toContain('getServiceCount');
   });
 
@@ -277,6 +279,8 @@ describe("public authority pricing contract", () => {
     expect(astroGettingStartedMcp).not.toContain('Mode 2');
     expect(astroGettingStartedMcp).not.toContain('Mode 3');
     expect(astroGettingStartedMcp).toContain('Zero-signup per-call payment matters more than repeat throughput.');
+    expect(astroGettingStartedMcp).toContain('Get step-by-step instructions for obtaining provider credentials');
+    expect(astroGettingStartedMcp).not.toContain('Setup guides for credential modes');
     expect(astroGettingStartedMcp).not.toContain('For repeat traffic, use <strong class="text-slate-100">RHUMB_API_KEY</strong> via governed account or wallet-prefund.');
   });
 
