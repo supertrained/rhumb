@@ -477,3 +477,117 @@ describe("Rhumb MCP API client execute and estimate", () => {
     });
   });
 });
+
+describe("Rhumb MCP API client credential readiness", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("parses capability credential-mode readiness", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          capability_id: "email.send",
+          providers: [
+            {
+              service_slug: "resend",
+              auth_method: "api_key",
+              any_configured: true,
+              modes: [
+                {
+                  mode: "byo",
+                  available: true,
+                  configured: true,
+                  setup_hint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY"
+                },
+                {
+                  mode: "agent_vault",
+                  available: true,
+                  configured: false,
+                  setup_hint: "Use the Resend ceremony"
+                }
+              ]
+            }
+          ]
+        }
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const result = await client.getCapabilityCredentialModes!("email.send");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/v1/capabilities/email.send/credential-modes",
+      expect.objectContaining({ headers: expect.any(Object) })
+    );
+    expect(result).toEqual({
+      capabilityId: "email.send",
+      providers: [
+        {
+          serviceSlug: "resend",
+          authMethod: "api_key",
+          anyConfigured: true,
+          modes: [
+            {
+              mode: "byok",
+              available: true,
+              configured: true,
+              setupHint: "Set RHUMB_CREDENTIAL_RESEND_API_KEY"
+            },
+            {
+              mode: "agent_vault",
+              available: true,
+              configured: false,
+              setupHint: "Use the Resend ceremony"
+            }
+          ]
+        }
+      ]
+    });
+  });
+
+  it("parses agent credential readiness", async () => {
+    vi.stubEnv("RHUMB_API_KEY", "rk_test_123");
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          agent_id: "agent_123",
+          configured_services: ["resend", "vercel"],
+          configured_count: 2,
+          unlocked_capabilities: ["email.send", "deployment.get"],
+          unlocked_count: 2,
+          locked_capabilities: ["payment.charge"],
+          locked_count: 1,
+          total_capabilities: 3
+        }
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+    const result = await client.getAgentCredentialReadiness!();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.com/v1/agent/credentials",
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Rhumb-Key": "rk_test_123" })
+      })
+    );
+    expect(result).toEqual({
+      agentId: "agent_123",
+      configuredServices: ["resend", "vercel"],
+      configuredCount: 2,
+      unlockedCapabilities: ["email.send", "deployment.get"],
+      unlockedCount: 2,
+      lockedCapabilities: ["payment.charge"],
+      lockedCount: 1,
+      totalCapabilities: 3
+    });
+  });
+});

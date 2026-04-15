@@ -429,6 +429,29 @@ export type CredentialModeStatus = {
   detail: string;
 };
 
+export type CheckCredentialsCapabilityProvider = {
+  service: string;
+  authMethod: string;
+  anyConfigured: boolean;
+  modes: Array<{
+    mode: string;
+    available: boolean;
+    configured: boolean;
+    setupHint: string | null;
+    ceremonyAvailable: boolean;
+  }>;
+};
+
+export type CheckCredentialsAgentReadiness = {
+  configuredServices: string[];
+  configuredCount: number;
+  unlockedCapabilities: string[];
+  unlockedCount: number;
+  lockedCapabilities: string[];
+  lockedCount: number;
+  totalCapabilities: number;
+};
+
 export type CheckCredentialsOutput = {
   modes: CredentialModeStatus[];
   managedCapabilities: Array<{
@@ -437,6 +460,10 @@ export type CheckCredentialsOutput = {
     description: string;
   }>;
   availableCeremonies: number;
+  capability?: string;
+  providers?: CheckCredentialsCapabilityProvider[];
+  agentReadiness?: CheckCredentialsAgentReadiness;
+  error?: string;
 };
 
 // ---------------------------------------------------------------------------

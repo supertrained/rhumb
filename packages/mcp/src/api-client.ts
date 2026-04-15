@@ -335,6 +335,36 @@ export interface ManagedCapabilityItem {
   capability_description?: string;
 }
 
+export interface CapabilityCredentialModeDetailItem {
+  mode: string;
+  available: boolean;
+  configured: boolean;
+  setupHint: string | null;
+}
+
+export interface CapabilityCredentialModeProviderItem {
+  serviceSlug: string;
+  authMethod: string;
+  anyConfigured: boolean;
+  modes: CapabilityCredentialModeDetailItem[];
+}
+
+export interface CapabilityCredentialModesResult {
+  capabilityId: string;
+  providers: CapabilityCredentialModeProviderItem[];
+}
+
+export interface AgentCredentialReadinessResult {
+  agentId: string;
+  configuredServices: string[];
+  configuredCount: number;
+  unlockedCapabilities: string[];
+  unlockedCount: number;
+  lockedCapabilities: string[];
+  lockedCount: number;
+  totalCapabilities: number;
+}
+
 export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
@@ -377,6 +407,8 @@ export interface RhumbApiClient {
   listCeremonies(): Promise<CeremonySummaryItem[]>;
   getCeremony(serviceSlug: string): Promise<CeremonyDetailItem | null>;
   listManagedCapabilities(): Promise<ManagedCapabilityItem[]>;
+  getCapabilityCredentialModes?(capabilityId: string): Promise<CapabilityCredentialModesResult | null>;
+  getAgentCredentialReadiness?(): Promise<AgentCredentialReadinessResult | null>;
   // Phase 4: Budget + Routing + Spend
   getBudget(): Promise<Record<string, unknown>>;
   setBudget(budgetUsd: number, period?: string, hardLimit?: boolean): Promise<Record<string, unknown>>;
@@ -1117,6 +1149,72 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
       return Array.isArray(payload.data.managed_capabilities)
         ? payload.data.managed_capabilities
         : [];
+    },
+
+    async getCapabilityCredentialModes(capabilityId: string): Promise<CapabilityCredentialModesResult | null> {
+      const url = `${base}/capabilities/${encodeURIComponent(capabilityId)}/credential-modes`;
+      const apiKey = process.env.RHUMB_API_KEY;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders };
+      if (apiKey) reqHeaders["X-Rhumb-Key"] = apiKey;
+
+      const res = await fetch(url, { headers: reqHeaders });
+      if (!res.ok) return null;
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return null;
+
+      const rawProviders = Array.isArray(payload.data.providers) ? payload.data.providers : [];
+
+      return {
+        capabilityId: asString(payload.data.capability_id) ?? capabilityId,
+        providers: rawProviders
+          .filter((provider: unknown): provider is Record<string, unknown> => isRecord(provider))
+          .map((provider) => {
+            const rawModes = Array.isArray(provider.modes) ? provider.modes : [];
+            return {
+              serviceSlug: asString(provider.service_slug) ?? "unknown",
+              authMethod: asString(provider.auth_method) ?? "unknown",
+              anyConfigured: provider.any_configured === true,
+              modes: rawModes
+                .filter((mode: unknown): mode is Record<string, unknown> => isRecord(mode))
+                .map((mode) => ({
+                  mode: asCredentialMode(mode.mode) ?? "unknown",
+                  available: mode.available !== false,
+                  configured: mode.configured === true,
+                  setupHint: asString(mode.setup_hint),
+                })),
+            };
+          }),
+      };
+    },
+
+    async getAgentCredentialReadiness(): Promise<AgentCredentialReadinessResult | null> {
+      const apiKey = process.env.RHUMB_API_KEY;
+      if (!apiKey) return null;
+
+      const url = `${base}/agent/credentials`;
+      const reqHeaders: Record<string, string> = { ...defaultHeaders, "X-Rhumb-Key": apiKey };
+      const res = await fetch(url, { headers: reqHeaders });
+      if (!res.ok) return null;
+
+      const payload: unknown = await res.json();
+      if (!isRecord(payload) || !isRecord(payload.data)) return null;
+
+      const configuredServices = asStringArray(payload.data.configured_services);
+      const unlockedCapabilities = asStringArray(payload.data.unlocked_capabilities);
+      const lockedCapabilities = asStringArray(payload.data.locked_capabilities);
+
+      return {
+        agentId: asString(payload.data.agent_id) ?? "unknown",
+        configuredServices,
+        configuredCount: asNumber(payload.data.configured_count) ?? configuredServices.length,
+        unlockedCapabilities,
+        unlockedCount: asNumber(payload.data.unlocked_count) ?? unlockedCapabilities.length,
+        lockedCapabilities,
+        lockedCount: asNumber(payload.data.locked_count) ?? lockedCapabilities.length,
+        totalCapabilities: asNumber(payload.data.total_capabilities)
+          ?? new Set([...unlockedCapabilities, ...lockedCapabilities]).size,
+      };
     },
 
     // -- Phase 4: Budget + Routing + Spend --------------------------------
