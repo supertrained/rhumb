@@ -239,7 +239,7 @@ Other recovery cases reuse the same recovery_hint shape with a different reason.
   {
     method: "POST",
     path: "/v1/capabilities/{capability_id}/execute",
-    desc: "Execute through Rhumb with the rail returned by resolve: governed API key, wallet-prefund, BYOK, or x402 where supported.",
+    desc: "Execute through Rhumb with the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call where supported. Some providers also support provider-controlled paths through BYOK or Agent Vault.",
     curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
   -H "X-Rhumb-Key: rhumb_live_..." \\
   -H "Content-Type: application/json" \\

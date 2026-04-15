@@ -120,6 +120,9 @@ describe("docs page", () => {
       expect(source).not.toContain("which credential modes are available to you");
     }
 
+    expect(astroDocsSource).toContain("governed API key, wallet-prefund, or x402 per-call where supported");
+    expect(astroDocsSource).toContain("provider-controlled paths through BYOK or Agent Vault");
+    expect(astroDocsSource).not.toContain("governed API key, wallet-prefund, BYOK, or x402 where supported");
     expect(astroDocsSource).not.toContain("recovery_hint.resolve_url and recovery_hint.setup_handoff");
     expect(astroGettingStartedSource).not.toContain("recovery_hint.resolve_url and recovery_hint.setup_handoff");
   });

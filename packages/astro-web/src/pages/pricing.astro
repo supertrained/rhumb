@@ -238,9 +238,9 @@ const PRICING_JSON_LD = {
         <div class="bg-surface border border-slate-800 rounded-2xl p-6 sm:p-8">
           <div class="max-w-3xl mb-6">
             <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Choose your path</p>
-            <h2 class="font-display text-2xl font-bold text-slate-100">Same directory, different execution rails.</h2>
+            <h2 class="font-display text-2xl font-bold text-slate-100">Same directory, different ways to execute.</h2>
             <p class="mt-3 text-slate-400 leading-7">
-              Discovery is always free. Execution depends on how you want authorization and payment to work: account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.
+              Discovery is always free. Execution depends on whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.
             </p>
           </div>
 
@@ -279,10 +279,10 @@ const PRICING_JSON_LD = {
 
             <a href="/blog/securing-keys-for-agents" class="group rounded-xl border border-slate-800 bg-navy p-5 hover:border-slate-600 transition-colors">
               <div class="flex items-center justify-between gap-3 mb-2">
-                <h3 class="font-display text-lg font-semibold text-slate-100">BYOK</h3>
-                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Zero markup</span>
+                <h3 class="font-display text-lg font-semibold text-slate-100">Provider control</h3>
+                <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">BYOK / Vault</span>
               </div>
-              <p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries. Start with <code class="text-amber font-mono text-xs">resolve_capability</code> on the <code class="text-amber font-mono text-xs">byok</code> rail, and if the preferred path is not ready yet follow <code class="text-amber font-mono text-xs">recovery_hint.resolve_url</code>, <code class="text-amber font-mono text-xs">recovery_hint.credential_modes_url</code>, <code class="text-amber font-mono text-xs">recovery_hint.alternate_execute_hint</code>, or <code class="text-amber font-mono text-xs">recovery_hint.setup_handoff</code>.</p>
+              <p class="text-sm leading-6 text-slate-400">Route through Rhumb with provider-controlled credentials when you need direct vendor control or enterprise boundaries. Use BYOK when you want Rhumb to reference your own provider key, or Agent Vault when you want Rhumb to inject your encrypted provider credential at call time. Start with <code class="text-amber font-mono text-xs">resolve_capability</code> on the <code class="text-amber font-mono text-xs">byok</code> or <code class="text-amber font-mono text-xs">agent_vault</code> mode, and if the preferred path is not ready yet follow <code class="text-amber font-mono text-xs">recovery_hint.resolve_url</code>, <code class="text-amber font-mono text-xs">recovery_hint.credential_modes_url</code>, <code class="text-amber font-mono text-xs">recovery_hint.alternate_execute_hint</code>, or <code class="text-amber font-mono text-xs">recovery_hint.setup_handoff</code>.</p>
             </a>
           </div>
         </div>

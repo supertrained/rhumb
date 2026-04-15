@@ -75,6 +75,10 @@ describe("pricing page", () => {
   it("keeps the Astro pricing surface aligned with current chooser and resolve recovery truth", () => {
     expect(astroPricingSource).toContain("tradeoff: \"Adds a funding step before the steady-state execute path.\"");
     expect(astroPricingSource).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
+    expect(astroPricingSource).toContain("whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.");
+    expect(astroPricingSource).toContain("Provider control");
+    expect(astroPricingSource).toContain("BYOK / Vault");
+    expect(astroPricingSource).toContain("agent_vault");
     expect(astroPricingSource).toContain("resolve_capability");
     expect(astroPricingSource).toContain("recovery_hint.resolve_url");
     expect(astroPricingSource).toContain("recovery_hint.credential_modes_url");
@@ -82,6 +86,7 @@ describe("pricing page", () => {
     expect(astroPricingSource).toContain("recovery_hint.setup_handoff");
 
     expect(astroPricingSource).not.toContain("Has a setup step before the first repeatable execution path.");
+    expect(astroPricingSource).not.toContain("account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.");
     expect(astroPricingSource).not.toContain(
       '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',
     );
