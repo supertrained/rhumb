@@ -144,7 +144,7 @@ export async function handleCheckCredentials(
     ? agentReadiness.configuredCount > 0
       ? `${agentReadiness.configuredCount} BYOK bridge(s) or direct bundle(s) are already configured: ${summarizeList(agentReadiness.configuredServices)}. ${agentReadiness.unlockedCount} capability(ies) are ready now, ${agentReadiness.lockedCount} still need setup.`
       : `${agentReadiness.unlockedCount} capability(ies) are ready now through governed rails (X-Rhumb-Key), but no BYOK bridges or direct bundles are configured on this agent yet.`
-    : "Set RHUMB_API_KEY to see your configured BYOK bridges and direct bundles.";
+    : "Set RHUMB_API_KEY (your governed API key) to see your configured BYOK bridges and direct bundles.";
 
   const modes = [
     {

@@ -6,7 +6,7 @@ This script shows how to:
 2. Use cost-optimal routing to pick the cheapest provider above a quality floor
 3. Check spend against budget
 
-Requires: RHUMB_API_KEY environment variable.
+Requires: RHUMB_API_KEY (your governed API key) environment variable.
 """
 
 import os
@@ -26,8 +26,8 @@ API_KEY = os.environ.get("RHUMB_API_KEY")
 
 def main():
     if not API_KEY:
-        print("⚠️  Set RHUMB_API_KEY to run this example.")
-        print("   Get one at https://rhumb.dev/auth/login")
+        print("⚠️  Set RHUMB_API_KEY (your governed API key) to run this example.")
+        print("   Get a governed API key at https://rhumb.dev/auth/login")
         return
 
     headers = {"X-Rhumb-Key": API_KEY, "Content-Type": "application/json"}

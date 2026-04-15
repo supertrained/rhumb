@@ -16,7 +16,7 @@ describe("check_credentials", () => {
     expect(result.modes[0]).toEqual({
       mode: "byok",
       available: true,
-      detail: "Set RHUMB_API_KEY to see your configured BYOK bridges and direct bundles.",
+      detail: "Set RHUMB_API_KEY (your governed API key) to see your configured BYOK bridges and direct bundles.",
     });
     expect(result.modes.map((mode) => mode.mode)).not.toContain("byo");
   });

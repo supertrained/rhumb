@@ -30,6 +30,9 @@ const mcpReadme = readFileSync(new URL("../README.md", import.meta.url), "utf8")
 const mcpQuickstartExample = readFileSync(new URL("../../../examples/mcp-quickstart.md", import.meta.url), "utf8");
 const examplesReadme = readFileSync(new URL("../../../examples/README.md", import.meta.url), "utf8");
 const discoverAndEvaluateExample = readFileSync(new URL("../../../examples/discover-and-evaluate.py", import.meta.url), "utf8");
+const resolveAndExecuteExample = readFileSync(new URL("../../../examples/resolve-and-execute.py", import.meta.url), "utf8");
+const dogfoodTelemetryExample = readFileSync(new URL("../../../examples/dogfood-telemetry-loop.py", import.meta.url), "utf8");
+const budgetAwareRoutingExample = readFileSync(new URL("../../../examples/budget-aware-routing.py", import.meta.url), "utf8");
 const rootLlms = readFileSync(new URL("../../../llms.txt", import.meta.url), "utf8");
 const webPublicLlms = readFileSync(new URL("../../web/public/llms.txt", import.meta.url), "utf8");
 const rootAgentCapabilities = readFileSync(new URL("../../../agent-capabilities.json", import.meta.url), "utf8");
@@ -227,6 +230,29 @@ describe("types.contract", () => {
 
     expect(discoverAndEvaluateExample).toContain("No governed API key needed — all discovery endpoints are public.");
     expect(discoverAndEvaluateExample).not.toContain("No API key needed — all discovery endpoints are public.");
+
+    expect(resolveAndExecuteExample).toContain("RHUMB_API_KEY (your governed API key) is required for estimation and execution.");
+    expect(resolveAndExecuteExample).toContain("Set RHUMB_API_KEY (your governed API key) only if you want to continue into estimate and execute.");
+    expect(resolveAndExecuteExample).toContain("Set RHUMB_API_KEY (your governed API key) to continue with estimation and execution.");
+    expect(resolveAndExecuteExample).toContain("Get a governed API key at https://rhumb.dev/auth/login");
+    expect(resolveAndExecuteExample).not.toContain("RHUMB_API_KEY is required for estimation and execution.");
+    expect(resolveAndExecuteExample).not.toContain("Set RHUMB_API_KEY only if you want to continue into estimate and execute.");
+    expect(resolveAndExecuteExample).not.toContain("Set RHUMB_API_KEY to continue with estimation and execution.");
+    expect(resolveAndExecuteExample).not.toContain("Get one at https://rhumb.dev/auth/login");
+
+    expect(dogfoodTelemetryExample).toContain("Set RHUMB_API_KEY (your governed API key) to run the dogfood loop.");
+    expect(dogfoodTelemetryExample).toContain("Get a governed API key at https://rhumb.dev/auth/login");
+    expect(dogfoodTelemetryExample).toContain("Requires: RHUMB_API_KEY (your governed API key) environment variable.");
+    expect(dogfoodTelemetryExample).not.toContain("Set RHUMB_API_KEY to run the dogfood loop.");
+    expect(dogfoodTelemetryExample).not.toContain("Requires: RHUMB_API_KEY environment variable.");
+    expect(dogfoodTelemetryExample).not.toContain("Get one at https://rhumb.dev/auth/login");
+
+    expect(budgetAwareRoutingExample).toContain("Requires: RHUMB_API_KEY (your governed API key) environment variable.");
+    expect(budgetAwareRoutingExample).toContain("Set RHUMB_API_KEY (your governed API key) to run this example.");
+    expect(budgetAwareRoutingExample).toContain("Get a governed API key at https://rhumb.dev/auth/login");
+    expect(budgetAwareRoutingExample).not.toContain("Requires: RHUMB_API_KEY environment variable.");
+    expect(budgetAwareRoutingExample).not.toContain("Set RHUMB_API_KEY to run this example.");
+    expect(budgetAwareRoutingExample).not.toContain("Get one at https://rhumb.dev/auth/login");
 
     for (const surface of [rootAgentCapabilities, wellKnownAgentCapabilities]) {
       expect(surface).toContain('"execution": "rail_based"');

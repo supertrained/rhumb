@@ -8,7 +8,7 @@ This script turns the one-off internal validation into a reusable harness:
 4. Verify those calls show up in recent telemetry
 5. Print a compact dogfood summary you can paste into a log or review
 
-Requires: RHUMB_API_KEY environment variable.
+Requires: RHUMB_API_KEY (your governed API key) environment variable.
 Optional:
   RHUMB_BASE_URL=https://api.rhumb.dev/v1
   RHUMB_DOGFOOD_CAPABILITY=search.query
@@ -70,8 +70,8 @@ def _queries() -> list[str]:
 
 def _headers() -> dict[str, str]:
     if not API_KEY:
-        print("⚠️  Set RHUMB_API_KEY to run the dogfood loop.")
-        print("   Get one at https://rhumb.dev/auth/login")
+        print("⚠️  Set RHUMB_API_KEY (your governed API key) to run the dogfood loop.")
+        print("   Get a governed API key at https://rhumb.dev/auth/login")
         sys.exit(1)
     return {
         "X-Rhumb-Key": API_KEY,

@@ -8,8 +8,8 @@ This script shows the core Rhumb Resolve flow:
 4. Execute through Resolve with managed credentials
 
 No auth is needed for the initial resolve walkthrough.
-RHUMB_API_KEY is required for estimation and execution.
-Get one at https://rhumb.dev/auth/login
+RHUMB_API_KEY (your governed API key) is required for estimation and execution.
+Get a governed API key at https://rhumb.dev/auth/login
 """
 
 import os
@@ -51,10 +51,10 @@ def _print_recovery_handoff(recovery_handoff: tuple[str, dict[str, object]] | No
 
 def main():
     if not API_KEY:
-        print("ℹ️  No RHUMB_API_KEY set, so this run will stop after resolve.")
+        print("ℹ️  No RHUMB_API_KEY (governed API key) set, so this run will stop after resolve.")
         print("   Resolve itself works without auth.")
-        print("   Set RHUMB_API_KEY only if you want to continue into estimate and execute.")
-        print("   Get one at https://rhumb.dev/auth/login\n")
+        print("   Set RHUMB_API_KEY (your governed API key) only if you want to continue into estimate and execute.")
+        print("   Get a governed API key at https://rhumb.dev/auth/login\n")
 
     headers = {"X-Rhumb-Key": API_KEY} if API_KEY else {}
 
@@ -99,7 +99,7 @@ def main():
                 print(f"  Resolve URL: {resolve_url}")
             if credential_modes_url:
                 print(f"  Credential modes URL: {credential_modes_url}")
-        print("\n💡 Set RHUMB_API_KEY to continue with estimation and execution.")
+        print("\n💡 Set RHUMB_API_KEY (your governed API key) to continue with estimation and execution.")
         return
 
     # Step 2: Estimate cost before committing
