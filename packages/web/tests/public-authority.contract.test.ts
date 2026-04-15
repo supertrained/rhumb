@@ -240,9 +240,15 @@ describe("public authority pricing contract", () => {
     expect(astroHome).toContain('Bring your own provider credentials directly or keep them in Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
     expect(astroHome).toContain('use Agent Vault when you need encrypted injection at call time, enterprise boundaries, or existing vendor accounts.');
+    expect(astroHome).toContain('Start with the path that matches your job.');
+    expect(astroHome).toContain('Guide &middot; Credential paths and storage');
+    expect(astroHome).toContain('See secure credential paths &rarr;');
     expect(astroHome).toContain('zero-signup, request-level payment authorization is the point');
     expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
     expect(astroHome).toContain('use BYOK or Agent Vault when provider control is the point');
+    expect(astroHome).not.toContain('Start with the mode that matches your job.');
+    expect(astroHome).not.toContain('Guide &middot; Three credential modes');
+    expect(astroHome).not.toContain('See credential modes &rarr;');
     expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
   });
@@ -305,10 +311,14 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro key-security guide aligned with the live credential-mode and payment-rail model", () => {
-    expect(astroSecuringKeys).toContain('### Mode 3: Agent Vault');
+    expect(astroSecuringKeys).toContain('## Three credential paths');
+    expect(astroSecuringKeys).toContain('### Agent Vault');
     expect(astroSecuringKeys).toContain('## x402 is a payment path, not a credential mode');
     expect(astroSecuringKeys).toContain('bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroSecuringKeys).toContain('three credential modes (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).not.toContain('### Mode 1:');
+    expect(astroSecuringKeys).not.toContain('### Mode 2:');
+    expect(astroSecuringKeys).not.toContain('### Mode 3:');
     expect(astroSecuringKeys).not.toContain('### Mode 3: x402 per-call payment');
     expect(astroSecuringKeys).not.toContain('three credential modes (BYOK, managed, x402)');
     expect(astroSecuringKeys).not.toContain('For repeat traffic, prefer wallet-prefund or a governed API key.');

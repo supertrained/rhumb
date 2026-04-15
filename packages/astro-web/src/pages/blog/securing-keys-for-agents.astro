@@ -71,11 +71,11 @@ Most credential advice is written for human developers deploying web apps. Agent
 
 This guide covers what actually works.
 
-## Three credential modes
+## Three credential paths
 
-There's no single right answer. The right approach depends on how much you trust the infrastructure and how much operational control you want.
+There's no single right answer. The right approach depends on how much you trust the infrastructure, how much operational control you want, and whether provider control or governed execution is the point.
 
-### Mode 1: Bring Your Own Key (BYOK)
+### Bring Your Own Key (BYOK)
 
 You pass your existing API key to the tool or agent framework. The key stays under your control.
 
@@ -101,7 +101,7 @@ export STRIPE_API_KEY=sk_live_...
 
 **Security posture:** The key is only as safe as where you store it. OS keychain > environment variable > config file > hardcoded string.
 
-### Mode 2: Managed capabilities
+### Managed capabilities
 
 Rhumb holds the service credential and delivers the capability. You never touch the underlying API key.
 
@@ -116,7 +116,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
 
 **Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
 
-### Mode 3: Agent Vault
+### Agent Vault
 
 Rhumb stores or brokers the provider credential for you and injects it at call time, so the workflow can still touch your own systems without spraying raw provider secrets across every agent runtime.
 
