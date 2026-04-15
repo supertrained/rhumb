@@ -332,7 +332,7 @@ curl -X POST "${API}/auth/wallet/request-challenge" \
 curl -X POST "${API}/auth/wallet/verify" \
   -H "Content-Type: application/json" \
   -d '{"challenge_id":"...","signature":"0x..."}'
-# Returns wallet session + wallet-scoped API key
+# Returns wallet session + wallet-scoped X-Rhumb-Key credential
 
 # Step 2: Top up reusable balance via x402 settlement
 curl -X POST "${API}/billing/x402/topup/request" \

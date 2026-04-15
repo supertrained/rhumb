@@ -102,6 +102,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         regex=re.compile(r"wallet-prefunded API key", re.IGNORECASE),
     ),
     DriftPattern(
+        key="wallet-scoped-api-key-shorthand",
+        note="wallet-prefund wording that blurs the X-Rhumb-Key repeat-traffic credential back into generic API-key wording",
+        regex=re.compile(r"wallet-scoped API key|wallet-scoped key", re.IGNORECASE),
+    ),
+    DriftPattern(
         key="legacy-wallet-prefund-balance-name",
         note="older wallet-prefunded balance phrasing",
         regex=re.compile(r"wallet-prefunded balance", re.IGNORECASE),

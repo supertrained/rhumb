@@ -302,6 +302,7 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).toContain('Execute via governed API key');
     expect(astroQuickstart).toContain('Governed API key</h3>');
     expect(astroQuickstart).toContain('Execute via wallet-prefund');
+    expect(astroQuickstart).toContain('wallet-scoped X-Rhumb-Key credential');
     expect(astroQuickstart).toContain('Request execution without a governed API key');
     expect(astroQuickstart).toContain('use the standard governed API key rail.');
     expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
@@ -316,6 +317,7 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).not.toContain('API Key</h3>');
     expect(astroQuickstart).not.toContain('Execute via API key');
     expect(astroQuickstart).not.toContain('Execute via wallet-prefunded balance');
+    expect(astroQuickstart).not.toContain('wallet-scoped API key');
     expect(astroQuickstart).not.toContain('Request execution without an API key');
     expect(astroQuickstart).not.toContain('use the standard API-key rail.');
   });
@@ -365,12 +367,15 @@ describe("public authority pricing contract", () => {
     expect(astroPaymentsAgent).toContain('standard governed API key rail instead of assuming drop-in x402 interoperability.');
     expect(astroPaymentsAgent).toContain('request execution without a governed API key');
     expect(astroPaymentsAgent).toContain('Request execution without a governed API key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.');
+    expect(astroPaymentsAgent).toContain('wallet-scoped X-Rhumb-Key credential');
     expect(astroPaymentsAgent).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroPaymentsAgent).toContain('Zero-signup, request-level payment authorization matters more than repeat throughput');
     expect(astroPaymentsAgent).not.toContain('provisioning an API key would add avoidable friction.');
     expect(astroPaymentsAgent).not.toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with a governed API key or wallet-prefunded API key.');
     expect(astroPaymentsAgent).not.toContain('Call the execution endpoint without an API key when you want the payment rail to handle authorization.');
     expect(astroPaymentsAgent).not.toContain('reusable API key');
+    expect(astroPaymentsAgent).not.toContain('wallet-scoped key');
+    expect(astroPaymentsAgent).not.toContain('wallet-scoped API key');
     expect(astroPaymentsAgent).not.toContain('standard API-key rail instead of assuming drop-in x402 interoperability.');
     expect(astroPaymentsAgent).not.toContain('request execution without an API key');
     expect(astroPaymentsAgent).not.toContain('Request execution without a key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.');
