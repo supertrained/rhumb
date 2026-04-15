@@ -46,7 +46,8 @@ describe("pricing page", () => {
     expect(html).toContain("Governed API key");
     expect(html).toContain("Wallet-prefund");
     expect(html).toContain("x402 per-call");
-    expect(html).toContain("BYOK");
+    expect(html).toContain("BYOK or Agent Vault");
+    expect(html).toContain("Agent Vault");
     expect(html).toContain("No subscriptions, no seat fees, no minimums");
     expect(html).toContain("Adds a funding step before the steady-state execute path.");
     expect(html).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
@@ -60,10 +61,12 @@ describe("pricing page", () => {
     expect(html).not.toContain("Two payment rails");
   });
 
-  it("keeps the BYOK rail chooser aligned with explicit resolve recovery fields", async () => {
+  it("keeps the provider-control chooser aligned with explicit resolve recovery fields", async () => {
     const html = await renderPricingPage();
 
     expect(html).toContain("resolve_capability with credential_mode=byok");
+    expect(html).toContain("credential_mode=agent_vault");
+    expect(html).toContain("Agent Vault");
     expect(html).toContain("recovery_hint.resolve_url");
     expect(html).toContain("recovery_hint.credential_modes_url");
     expect(html).toContain("recovery_hint.alternate_execute_hint");
@@ -76,8 +79,11 @@ describe("pricing page", () => {
     expect(astroPricingSource).toContain("tradeoff: \"Adds a funding step before the steady-state execute path.\"");
     expect(astroPricingSource).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
     expect(astroPricingSource).toContain("whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.");
+    expect(astroPricingSource).toContain("name: \"BYOK or Agent Vault\"");
     expect(astroPricingSource).toContain("Provider control");
     expect(astroPricingSource).toContain("BYOK / Vault");
+    expect(astroPricingSource).toContain("Agent Vault setup");
+    expect(astroPricingSource).toContain("governed API-key path, BYOK, or Agent Vault");
     expect(astroPricingSource).toContain("agent_vault");
     expect(astroPricingSource).toContain("resolve_capability");
     expect(astroPricingSource).toContain("recovery_hint.resolve_url");

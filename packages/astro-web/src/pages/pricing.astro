@@ -79,15 +79,18 @@ const RAIL_CHOOSER = [
     tradeoff: "Not the easiest repeat-traffic rail today; tx-hash proof shape matters.",
   },
   {
-    name: "BYOK",
+    name: "BYOK or Agent Vault",
     badge: "Provider control",
     badgeClass:
       "text-[11px] font-mono text-slate-300 uppercase tracking-widest bg-slate-800 rounded-full px-2.5 py-1",
-    useWhen: "You already have provider contracts, credentials, or compliance boundaries you must keep.",
+    useWhen:
+      "You already have provider contracts, credentials, or compliance boundaries you must keep, or you want Rhumb to inject an encrypted provider credential at call time.",
     authHeader: "Provider credential via Rhumb",
-    moneyFlow: "You pay the provider directly; Rhumb routes without markup on the credential itself.",
-    bestFor: "Enterprise teams and direct vendor-control cases.",
-    tradeoff: "You keep the credential-management burden.",
+    moneyFlow:
+      "You pay the provider directly; Rhumb routes with your provider-controlled credential instead of Rhumb-managed billing.",
+    bestFor: "Enterprise teams and provider-controlled execution paths.",
+    tradeoff:
+      "You keep the provider-credential management burden, either directly or through Agent Vault setup.",
   },
 ];
 
@@ -142,7 +145,7 @@ const FAQ = [
   },
   {
     q: "Do I need crypto to use Rhumb?",
-    a: "No. Most buyers should not start with crypto. If you are using the governed API-key path or BYOK, you do not need wallet setup. Wallet-prefund and x402 are wallet-first rails for teams that explicitly want those payment properties.",
+    a: "No. Most buyers should not start with crypto. If you are using the governed API-key path, BYOK, or Agent Vault, you do not need wallet setup. Wallet-prefund and x402 are wallet-first rails for teams that explicitly want those payment properties.",
   },
 ];
 

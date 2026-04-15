@@ -47,11 +47,14 @@ const rails = [
   {
     badge: "Provider control",
     badgeClass: "text-slate-300 bg-slate-800 border-slate-700",
-    title: "BYOK",
+    title: "BYOK or Agent Vault",
     authHeader: "Provider credential via Rhumb",
-    moneyFlow: "You pay the provider directly; Rhumb routes without markup on the credential itself.",
-    useWhen: "Best when you must keep vendor contracts, credentials, or compliance boundaries under your control.",
-    tradeoff: "You keep the credential-management burden.",
+    moneyFlow:
+      "You pay the provider directly; Rhumb routes with your provider-controlled credential instead of Rhumb-managed billing.",
+    useWhen:
+      "Best when you must keep vendor contracts under your control or inject an encrypted provider credential at execution time.",
+    tradeoff:
+      "You keep the provider-credential management burden, either directly or through Agent Vault setup.",
   },
 ] as const;
 
@@ -85,10 +88,11 @@ const agentPaths = [
     ],
   },
   {
-    title: "BYOK",
-    summary: "Resolve the capability on the byok rail, then execute with your provider credential instead of Rhumb-managed billing.",
+    title: "BYOK or Agent Vault",
+    summary:
+      "Resolve the capability on the byok or agent_vault mode, then execute with your provider-controlled credential instead of Rhumb-managed billing.",
     steps: [
-      "Use resolve_capability with credential_mode=byok when you need the direct provider path.",
+      "Use resolve_capability with credential_mode=byok when you want Rhumb to reference your provider key, or credential_mode=agent_vault when you want Rhumb to inject an encrypted provider credential at execution time.",
       "If the preferred provider is not ready yet, follow machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, recovery_hint.alternate_execute_hint, or recovery_hint.setup_handoff.",
       "Execute through Rhumb with your provider-controlled credential path.",
     ],
@@ -229,8 +233,8 @@ export default function PricingPage() {
             Same capability directory, different authorization and payment
             models. Most buyers should start with the governed API-key path,
             widen into wallet-prefund or x402 only when those payment
-            properties matter, and use BYOK when provider control is the real
-            requirement.
+            properties matter, and use BYOK or Agent Vault when provider
+            control is the real requirement.
           </p>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
