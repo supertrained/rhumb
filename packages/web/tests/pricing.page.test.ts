@@ -97,6 +97,7 @@ describe("pricing page", () => {
     expect(astroPricingSource).toContain("recovery_hint.setup_handoff");
     expect(astroPricingSource).toContain("wallet-prefund, or x402 per-call settlement");
     expect(astroPricingSource).toContain("account billing with governed API keys,");
+    expect(astroPricingSource).toContain("Rhumb handles routing, failover, and billing on the governed API key rail.");
     expect(astroPricingSource).toContain('>Wallet-prefund</td>');
     expect(astroPricingSource).toContain("For wallet-first flows (x402 per-call and wallet-prefund), see our");
     expect(astroPricingSource).toContain('Create a governed API key for standard pricing');
@@ -114,6 +115,7 @@ describe("pricing page", () => {
     expect(astroPricingSource).not.toContain('Create an API key for standard pricing');
     expect(astroPricingSource).not.toContain('Get API key');
     expect(astroPricingSource).not.toContain("Already have provider API keys? BYOK passthrough routes through Rhumb at zero");
+    expect(astroPricingSource).not.toContain("Rhumb handles routing, failover, and billing behind one key.");
     expect(astroPricingSource).not.toContain(
       '<p class="text-sm leading-6 text-slate-400">Route through Rhumb with your own provider credentials when you need direct vendor control or enterprise boundaries.</p>',
     );

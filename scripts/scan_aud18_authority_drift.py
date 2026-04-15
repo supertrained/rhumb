@@ -172,7 +172,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="one-key-onboarding-shorthand",
         note="onboarding shorthand that can blur governed API key with provider API keys",
-        regex=re.compile(r"Execute through one key first|Layer 2 with one key", re.IGNORECASE),
+        regex=re.compile(r"Execute through one key first|Layer 2 with one key|behind one key", re.IGNORECASE),
     ),
     DriftPattern(
         key="ambiguous-byok-api-key-shorthand",
