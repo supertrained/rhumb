@@ -299,11 +299,14 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
     expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroSwitchingFromSmithery).not.toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
-    expect(astroSwitchingFromSmithery).toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).toContain('dimension: "Credential paths"');
+    expect(astroSwitchingFromSmithery).toContain('Three credential paths: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
     expect(astroSwitchingFromSmithery).toContain('x402 stays separate as the zero-signup payment rail.');
     expect(astroSwitchingFromSmithery).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroSwitchingFromSmithery).toContain('4,000+ server catalog (we\'re at {servicesLabel} scored services and growing daily)');
     expect(astroSwitchingFromSmithery).toContain('zero-signup, request-level payment authorization is the point');
+    expect(astroSwitchingFromSmithery).not.toContain('dimension: "Credential modes"');
+    expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
     expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), x402 USDC (no account needed)');
     expect(astroSwitchingFromSmithery).not.toContain('x402 if your agent should pay autonomously.');
     expect(astroSwitchingFromSmithery).not.toContain('525+ services scored across 86 categories');
