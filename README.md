@@ -85,9 +85,9 @@ Treat broader multi-system business automation as future scope, not the current 
 > Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise.
 <!-- GENERATED:README_PRODUCT_SURFACE_END -->
 
-### Three credential modes
+### Three credential paths
 
-| Mode | How it works |
+| Path | How it works |
 |------|-------------|
 | **BYOK** | Bring your own API key — Rhumb routes, you authenticate |
 | **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |

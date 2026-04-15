@@ -355,8 +355,12 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {
+    expect(rootReadme).toContain('### Three credential paths');
+    expect(rootReadme).toContain('| Path | How it works |');
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
+    expect(rootReadme).not.toContain('### Three credential modes');
+    expect(rootReadme).not.toContain('| Mode | How it works |');
     expect(rootReadme).not.toContain('wallet-prefunded API key');
 
     expect(astroPublicTruth).toContain('execute through Layer 2 with governed API key or wallet-prefund on `X-Rhumb-Key`.');
