@@ -24,6 +24,9 @@ const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payme
 const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/securing-keys-for-agents.astro", import.meta.url), "utf8");
 const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pages/blog/switching-from-smithery.astro", import.meta.url), "utf8");
 const astroHowToEvaluate = readFileSync(new URL("../../astro-web/src/pages/blog/how-to-evaluate-apis-for-agents.astro", import.meta.url), "utf8");
+const astroBlogAag = readFileSync(new URL("../../astro-web/src/pages/blog/aag-framework.astro", import.meta.url), "utf8");
+const astroBlogPayments = readFileSync(new URL("../../astro-web/src/pages/blog/payments-for-agents.astro", import.meta.url), "utf8");
+const astroBlogSelfScore = readFileSync(new URL("../../astro-web/src/pages/blog/self-score.astro", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroX402Dogfood = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-actually-pay-x402-dogfood.astro", import.meta.url), "utf8");
@@ -134,6 +137,21 @@ describe("public authority pricing contract", () => {
     expect(astroHowToEvaluate).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
     expect(astroHowToEvaluate).not.toContain('665+ scored services');
     expect(astroHowToEvaluate).not.toContain('600+ developer tools across 90+ categories');
+
+    expect(astroBlogAag).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroBlogAag).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroBlogAag).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(astroBlogAag).not.toContain('We\'ve scored 55 developer tools across 10 categories');
+
+    expect(astroBlogPayments).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroBlogPayments).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroBlogPayments).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(astroBlogPayments).not.toContain('We\'ve scored 50+ developer tools across 10 categories.');
+
+    expect(astroBlogSelfScore).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroBlogSelfScore).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroBlogSelfScore).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
+    expect(astroBlogSelfScore).not.toContain('We\'ve scored 53 developer tools across 10 categories.');
 
     expect(astroMultiProviderMcp).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroMultiProviderMcp).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');

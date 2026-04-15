@@ -1,7 +1,11 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 import { getTierInfo } from "../../lib/utils";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -358,7 +362,8 @@ const TOOLS = [
           Want to see how your tools stack up?
         </h2>
         <p class="text-slate-400 text-sm mb-6">
-          We&apos;ve scored 50+ developer tools across 10 categories.
+          We&apos;ve scored {servicesLabel} services across {categoriesLabel}
+          categories.
         </p>
         <a
           href="/leaderboard"
