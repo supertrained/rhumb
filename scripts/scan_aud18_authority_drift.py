@@ -118,6 +118,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="older numbered Mode framing on public authority surfaces",
         regex=re.compile(r"\bMode\s+[1-4]\b", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="credential-mode-mental-model-shorthand",
+        note="older credential-mode shorthand on authority surfaces that should now say credential path",
+        regex=re.compile(r"the change is the credential mode, not the product mental model", re.IGNORECASE),
+    ),
 )
 
 

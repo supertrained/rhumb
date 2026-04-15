@@ -270,6 +270,8 @@ describe("public authority pricing contract", () => {
     expect(astroQuickstart).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroQuickstart).not.toContain('Pass your service API key directly. BYOK = full control.');
     expect(astroQuickstart).toContain('Use x402 only when zero-signup per-call payment is the point.');
+    expect(astroQuickstart).toContain('The change is the credential path, not the product mental model.');
+    expect(astroQuickstart).not.toContain('The change is the credential mode, not the product mental model.');
     expect(astroQuickstart).not.toContain('Use a governed API key or wallet-prefunded API key for repeat calls. Use x402 only when zero-signup per-call payment is the point.');
   });
 
