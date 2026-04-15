@@ -42,11 +42,14 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - POST https://api.rhumb.dev/v1/capabilities/{id}/execute — execute a capability
 - GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — estimate the active execution rail, cost, and health before execution; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs
 
-## Auth paths
+## Execution rails
 1. Governed API key: sign up at https://rhumb.dev/auth/login, then send X-Rhumb-Key on the governed rail
 2. Wallet-prefund: add balance first, then execute with X-Rhumb-Key on the governed rail
 3. x402 / USDC: no signup, pay per call, send X-Payment header
-4. BYOK credentials: pass your own upstream API keys
+
+## Operator-controlled credential modes
+- BYOK credentials: pass your own upstream API keys when provider control is the point
+- Agent Vault: when supported, let Rhumb inject the provider credential at call time while keeping the raw secret behind Rhumb
 
 ## MCP tools (21 total)
 Discovery: find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability

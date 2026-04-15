@@ -161,10 +161,14 @@ describe("types.contract", () => {
   it("generated llms, agent capabilities, and MCP metadata stay aligned with the live rail-based execution story", () => {
     for (const surface of [rootLlms, webPublicLlms]) {
       expect(surface).toContain("## Execution (requires a live rail)");
+      expect(surface).toContain("## Execution rails");
+      expect(surface).toContain("## Operator-controlled credential modes");
       expect(surface).toContain("Governed API key");
       expect(surface).toContain("Wallet-prefund");
       expect(surface).toContain("x402 / USDC");
       expect(surface).toContain("BYOK credentials");
+      expect(surface).toContain("Agent Vault");
+      expect(surface).not.toContain("## Auth paths");
       expect(surface).not.toContain("## Execution (requires API key or x402 payment)");
     }
 
