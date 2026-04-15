@@ -283,6 +283,47 @@ async def test_agent_credentials_includes_direct_bundle_capabilities_when_catalo
     assert "workflow_run.list" in data["locked_capabilities"]
 
 
+@pytest.mark.anyio
+async def test_agent_credentials_includes_db_and_storage_direct_bundles_when_catalog_is_empty(app):
+    """DB and object-storage direct rails should remain discoverable during catalog outages."""
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return []
+        return []
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ), patch("routes.capabilities.has_any_db_bundle_configured", return_value=True), patch(
+        "routes.capabilities.has_any_storage_bundle_configured", return_value=True
+    ), patch("routes.capabilities.has_any_deployment_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_warehouse_bundle_configured", return_value=False
+    ), patch("routes.capabilities.has_any_actions_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_crm_bundle_configured", return_value=False
+    ), patch("routes.capabilities.has_any_support_bundle_configured", return_value=False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "test-agent"},
+            )
+
+    data = resp.json()["data"]
+    assert "postgresql" in data["configured_services"]
+    assert "aws-s3" in data["configured_services"]
+    assert "db.query.read" in data["unlocked_capabilities"]
+    assert "db.schema.describe" in data["unlocked_capabilities"]
+    assert "db.row.get" in data["unlocked_capabilities"]
+    assert "object.list" in data["unlocked_capabilities"]
+    assert "object.head" in data["unlocked_capabilities"]
+    assert "object.get" in data["unlocked_capabilities"]
+    assert "deployment.list" in data["locked_capabilities"]
+
+
 # ── resolve with configured field ──────────────────────────────
 
 @pytest.mark.anyio
