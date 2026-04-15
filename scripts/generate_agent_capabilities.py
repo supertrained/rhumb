@@ -42,7 +42,7 @@ GROUPS: list[tuple[str, str, bool, list[str]]] = [
     ),
     (
         "execution",
-        "Execute capabilities through Resolve on the live rail returned by resolve: governed API key, wallet-prefund, x402 per-call, or BYOK where supported",
+        "Execute capabilities through Resolve on the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported",
         True,
         [
             "execute_capability",
@@ -357,7 +357,8 @@ Operations: {', '.join(GROUPS[3][3])}
 
 ## Pricing
 - Discovery: free, no auth
-- Execution: governed API key, wallet-prefund, x402 per-call, or BYOK
+- Execution rails: governed API key, wallet-prefund, or x402 per-call
+- Provider-control modes where supported: BYOK and Agent Vault
 - No subscriptions, no seat fees, no minimums
 - Live pricing and markup terms: https://rhumb.dev/pricing
 

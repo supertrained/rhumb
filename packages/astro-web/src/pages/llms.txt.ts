@@ -88,7 +88,8 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 
 ## Pricing
 - Discovery (search, scores, browsing): Always free
-- Execution: governed API key, wallet-prefund, x402 per-call, or BYOK
+- Execution rails: governed API key, wallet-prefund, or x402 per-call
+- Provider-control modes where supported: BYOK and Agent Vault
 - No subscriptions, no seat fees, no minimums
 - Live pricing and markup terms: https://rhumb.dev/pricing
 

@@ -163,12 +163,15 @@ describe("types.contract", () => {
       expect(surface).toContain("## Execution (requires a live rail)");
       expect(surface).toContain("## Execution rails");
       expect(surface).toContain("## Operator-controlled credential modes");
+      expect(surface).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
+      expect(surface).toContain("Provider-control modes where supported: BYOK and Agent Vault");
       expect(surface).toContain("Governed API key");
       expect(surface).toContain("Wallet-prefund");
       expect(surface).toContain("x402 / USDC");
       expect(surface).toContain("BYOK credentials");
       expect(surface).toContain("Agent Vault");
       expect(surface).not.toContain("## Auth paths");
+      expect(surface).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
       expect(surface).not.toContain("## Execution (requires API key or x402 payment)");
     }
 
@@ -189,7 +192,7 @@ describe("types.contract", () => {
       expect(surface).toContain('"repeat_traffic": "governed_api_key_or_wallet_prefund_on_x_rhumb_key"');
       expect(surface).toContain('"zero_signup": "x402_usdc"');
       expect(surface).toContain('"provider_control": "byok_or_agent_vault"');
-      expect(surface).toContain("Execute capabilities through Resolve on the live rail returned by resolve: governed API key, wallet-prefund, x402 per-call, or BYOK where supported");
+      expect(surface).toContain("Execute capabilities through Resolve on the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported");
       expect(surface).not.toContain('"execution": "api_key_or_x402"');
       expect(surface).not.toContain("Execute capabilities through Resolve with managed auth and cost-aware routing");
     }

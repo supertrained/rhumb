@@ -246,8 +246,18 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro Smithery migration auth rail aligned with the live execution rails", () => {
+    expect(astroSwitchingFromSmithery).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
+    expect(astroSwitchingFromSmithery).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
+    expect(astroSwitchingFromSmithery).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
     expect(astroSwitchingFromSmithery).toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
+    expect(astroSwitchingFromSmithery).toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).toContain('x402 stays separate as the zero-signup payment rail.');
+    expect(astroSwitchingFromSmithery).toContain('Use x402 only when zero-signup per-call payment is the point.');
+    expect(astroSwitchingFromSmithery).toContain('4,000+ server catalog (we\'re at {servicesLabel} scored services and growing daily)');
     expect(astroSwitchingFromSmithery).toContain('zero-signup, request-level payment authorization is the point');
+    expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), x402 USDC (no account needed)');
+    expect(astroSwitchingFromSmithery).not.toContain('x402 if your agent should pay autonomously.');
+    expect(astroSwitchingFromSmithery).not.toContain('525+ services scored across 86 categories');
     expect(astroSwitchingFromSmithery).not.toContain('for that, use API key or wallet-prefund.');
   });
 
@@ -281,8 +291,10 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {
-    expect(astroLlmsRoute).toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(astroLlmsRoute).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
+    expect(astroLlmsRoute).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(astroLlmsRoute).toContain("three credential modes (BYOK, managed, Agent Vault)");
+    expect(astroLlmsRoute).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(astroLlmsRoute).toContain("where x402 fits as a payment rail");
     expect(astroLlmsRoute).toContain("No subscriptions, no seat fees, no minimums");
     expect(astroLlmsRoute).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
@@ -293,11 +305,14 @@ describe("public authority pricing contract", () => {
     expect(rootLlms).toContain("## Execution rails");
     expect(rootLlms).toContain("## Operator-controlled credential modes");
     expect(rootLlms).toContain("Wallet-prefund: add balance first");
+    expect(rootLlms).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
+    expect(rootLlms).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(rootLlms).toContain("Agent Vault");
     expect(rootLlms).toContain("wallet-prefund");
     expect(rootLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(rootLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(rootLlms).not.toContain("## Auth paths");
+    expect(rootLlms).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(rootLlms).not.toContain("Free tier: 1,000 calls/month");
     expect(rootLlms).not.toContain("## Execution (requires API key or x402 payment)");
 
@@ -305,11 +320,14 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).toContain("## Execution rails");
     expect(webPublicLlms).toContain("## Operator-controlled credential modes");
     expect(webPublicLlms).toContain("Wallet-prefund: add balance first");
+    expect(webPublicLlms).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
+    expect(webPublicLlms).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(webPublicLlms).toContain("Agent Vault");
     expect(webPublicLlms).toContain("wallet-prefund");
     expect(webPublicLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(webPublicLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(webPublicLlms).not.toContain("## Auth paths");
+    expect(webPublicLlms).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(webPublicLlms).not.toContain("Free tier: 1,000 calls/month");
     expect(webPublicLlms).not.toContain("## Execution (requires API key or x402 payment)");
 
@@ -341,7 +359,7 @@ describe("public authority pricing contract", () => {
       expect(caps.auth.repeat_traffic).toBe("governed_api_key_or_wallet_prefund_on_x_rhumb_key");
       expect(caps.auth.zero_signup).toBe("x402_usdc");
       expect(caps.auth.provider_control).toBe("byok_or_agent_vault");
-      expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK where supported");
+      expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported");
       expect(checkCredentialsTool?.description).toBe(
         "Inspect live credential-mode readiness, globally or for a specific Capability",
       );
