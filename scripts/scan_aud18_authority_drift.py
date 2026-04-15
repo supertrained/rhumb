@@ -153,6 +153,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="BYOK wording that can blur provider API keys with the governed Rhumb API key",
         regex=re.compile(r"Bring your own API key|Pass your own API keys? at execution time", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="key-ownership-shorthand",
+        note="Smithery migration wording that blurs credential ownership into `we hold keys / your keys` shorthand",
+        regex=re.compile(r"Three credential paths:\s*Rhumb-managed \(we hold keys\), BYOK \(your keys\)", re.IGNORECASE),
+    ),
 )
 
 
