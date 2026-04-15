@@ -97,7 +97,7 @@ export default function PrivacyPage() {
               <li>
                 <strong className="text-slate-200">API query logs:</strong>{" "}
                 Search terms, capability execution requests, and timestamps.
-                Authenticated requests are associated with your API key.
+                Authenticated requests are associated with your governed API key.
               </li>
               <li>
                 <strong className="text-slate-200">Execution records:</strong>{" "}

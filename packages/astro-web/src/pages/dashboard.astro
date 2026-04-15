@@ -6,7 +6,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
 <Layout
   title="Dashboard | Rhumb"
-  description="Your Rhumb developer dashboard — API key, usage, and quickstart."
+  description="Your Rhumb developer dashboard — governed API key, usage, and quickstart."
   noindex={true}
 >
   <main class="min-h-screen bg-midnight px-4 py-12">
@@ -59,7 +59,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
             <div>
               <h2 class="text-sm font-semibold text-amber mb-2">Email sign-in does not include starter execution credit</h2>
               <p class="text-sm text-slate-300 mb-3">
-                Your dashboard access and API key are active, but execution starts only when you bring a payment path.
+                Your dashboard access and governed API key are active, but execution starts only when you bring a payment path.
               </p>
               <p class="text-xs text-slate-400">
                 For repeat traffic, default to the governed API key path by adding funded balance below. Use x402 per-call only when zero-signup, request-level payment authorization is the point, and use BYOK or Agent Vault only when provider control is the point.
@@ -74,7 +74,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
             <svg class="w-5 h-5 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
-            <h2 class="text-sm font-semibold text-score-native">Your API Key</h2>
+            <h2 class="text-sm font-semibold text-score-native">Your governed API key</h2>
           </div>
           <p class="text-xs text-slate-400 mb-3">Save this key — it won't be shown again.</p>
           <div class="flex items-center gap-2">
@@ -91,7 +91,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         <!-- API Key card -->
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-white">API Key</h2>
+            <h2 class="text-sm font-semibold text-white">Governed API key</h2>
             <button
               id="rotate-btn"
               class="text-xs text-slate-400 hover:text-red-400 transition-colors"
@@ -172,7 +172,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
             <div class="flex items-start gap-3">
               <div id="step2-circle" class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
               <div>
-                <p class="text-sm text-white">Copy your API key</p>
+                <p class="text-sm text-white">Copy your governed API key</p>
                 <p class="text-xs text-slate-500">Use the key above in your requests.</p>
               </div>
             </div>
@@ -284,7 +284,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
     // Rotate key button
     document.getElementById("rotate-btn")?.addEventListener("click", async () => {
-      if (!confirm("Rotate your API key? The old key will stop working immediately.")) return;
+      if (!confirm("Rotate your governed API key? The old key will stop working immediately.")) return;
       try {
         const resp = await fetch(`${API_URL}/v1/auth/rotate-key`, {
           method: "POST",

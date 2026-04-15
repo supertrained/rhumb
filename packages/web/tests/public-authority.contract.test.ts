@@ -414,14 +414,29 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the login execution-credit note aligned with the live access model", () => {
+    expect(astroLogin).toContain('get your governed API key and access the developer dashboard.');
+    expect(astroLogin).toContain('access your dashboard, governed API key, and billing controls.');
     expect(astroLogin).toContain('Run traffic through x402,');
     expect(astroLogin).toContain('use BYOK or Agent Vault where supported, or add funded balance in the dashboard.');
+    expect(astroLogin).not.toContain('get your API key and access the developer dashboard.');
+    expect(astroLogin).not.toContain('access your dashboard, API key, and billing controls.');
     expect(astroLogin).not.toContain('use your own provider credentials where supported');
   });
 
   it("keeps the dashboard funding note aligned with the live access model", () => {
+    expect(astroDashboard).toContain('governed API key, usage, and quickstart.');
+    expect(astroDashboard).toContain('Your dashboard access and governed API key are active');
+    expect(astroDashboard).toContain('Your governed API key');
+    expect(astroDashboard).toContain('Governed API key');
+    expect(astroDashboard).toContain('Copy your governed API key');
+    expect(astroDashboard).toContain('Rotate your governed API key? The old key will stop working immediately.');
     expect(astroDashboard).toContain('default to the governed API key path by adding funded balance below');
     expect(astroDashboard).toContain('use BYOK or Agent Vault only when provider control is the point');
+    expect(astroDashboard).not.toContain('Your Rhumb developer dashboard — API key, usage, and quickstart.');
+    expect(astroDashboard).not.toContain('Your dashboard access and API key are active');
+    expect(astroDashboard).not.toContain('Your API Key');
+    expect(astroDashboard).not.toContain('Copy your API key');
+    expect(astroDashboard).not.toContain('Rotate your API key? The old key will stop working immediately.');
     expect(astroDashboard).not.toContain('use BYOK only when you need your own provider account');
   });
 
@@ -429,6 +444,8 @@ describe("public authority pricing contract", () => {
     expect(astroPrivacy).toContain('If you use <strong class="text-slate-200">Agent Vault</strong>, Rhumb stores an encrypted');
     expect(astroPrivacy).toContain('provider credential scoped to your agent, injects it only at call time,');
     expect(astroPrivacy).toContain('and does not share it across accounts.');
+    expect(astroPrivacy).toContain('Authenticated requests are associated with your governed API key.');
+    expect(astroPrivacy).not.toContain('Authenticated requests are associated with your API key.');
     expect(astroPrivacy).not.toContain('If you use <strong class="text-slate-200">bring-your-own-key (BYOK)</strong>{" "}\n            mode, your credentials are passed through to the upstream service in the same\n            request and are <strong class="text-slate-200">not stored</strong> by Rhumb.\n          </p>');
   });
 

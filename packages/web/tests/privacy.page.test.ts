@@ -20,6 +20,8 @@ describe("privacy page", () => {
     expect(html).toContain("Agent Vault");
     expect(html).toContain("encrypted provider credential scoped to your agent");
     expect(html).toContain("injects it only at call time");
+    expect(html).toContain("Authenticated requests are associated with your governed API key.");
+    expect(html).not.toContain("Authenticated requests are associated with your API key.");
     expect(html).toContain("Railway Privacy Policy");
     expect(html).toContain("We will respond within 30 days.");
     expect(html).toContain("Children&#x27;s privacy");
