@@ -455,6 +455,9 @@ describe("public authority pricing contract", () => {
     const rootReadmeManagedRow = '| **Rhumb-managed** | Rhumb holds the credential — zero setup for the agent |';
     const rootReadmeByokRow = '| **BYOK** | Bring your own provider API key. Rhumb routes, you authenticate |';
     const rootReadmeVaultRow = '| **Agent Vault** | Your key, encrypted and stored — Rhumb injects at call time |';
+    const resolveManagedCard = 'name: "Rhumb-managed"';
+    const resolveByokCard = 'name: "BYOK"';
+    const resolveVaultCard = 'name: "Agent Vault"';
 
     expect(rootReadme).toContain('### Three credential paths');
     expect(rootReadme).toContain('For execution, pass your governed API key:');
@@ -483,6 +486,20 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain('const credentialPaths = [');
     expect(astroResolve).toContain('Three credential paths, one trust story');
     expect(astroResolve).toContain('Use the managed path first');
+    expect(astroResolve).toContain('{PUBLIC_TRUTH.beachheadSummary}');
+    expect(astroResolve).toContain('{PUBLIC_TRUTH.callableRealitySummary}');
+    expect(astroResolve).toContain('Resolve should not force every capability through the same trust model. Rhumb-managed, BYOK, and Agent Vault each exist for a reason.');
+    expect(astroResolve).toContain('label: "Default magic"');
+    expect(astroResolve).toContain(resolveManagedCard);
+    expect(astroResolve).toContain('Best for zero-config utility capabilities where Rhumb can own the provider account and expose the capability as the product.');
+    expect(astroResolve).toContain('label: "Your systems"');
+    expect(astroResolve).toContain(resolveByokCard);
+    expect(astroResolve).toContain('Use when the capability touches your account data, workspace, or production systems and you want direct control over the upstream credential.');
+    expect(astroResolve).toContain('label: "Agent-native custody"');
+    expect(astroResolve).toContain(resolveVaultCard);
+    expect(astroResolve).toContain('Use when the credential should stay encrypted in Rhumb custody, scoped to the agent, and be injected only at execution time.');
+    expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
+    expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
     expect(astroResolve).toContain('href="/start-managed-execution?');
     expect(astroResolve).toContain('Start managed execution');
     expect(astroResolve).not.toContain('const modes = [');
