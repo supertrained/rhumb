@@ -32,6 +32,8 @@ const astroBlogAag = readFileSync(new URL("../../astro-web/src/pages/blog/aag-fr
 const astroAwsStorageCompare = readFileSync(new URL("../../astro-web/src/pages/blog/aws-s3-vs-cloudflare-r2-vs-backblaze-b2.astro", import.meta.url), "utf8");
 const astroBlogPayments = readFileSync(new URL("../../astro-web/src/pages/blog/payments-for-agents.astro", import.meta.url), "utf8");
 const astroBlogSelfScore = readFileSync(new URL("../../astro-web/src/pages/blog/self-score.astro", import.meta.url), "utf8");
+const astroBlogHowAgentsPay = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-pay.astro", import.meta.url), "utf8");
+const astroBlogHowAgentsPayGuide = readFileSync(new URL("../../astro-web/public/guides/blog-how-agents-pay.md", import.meta.url), "utf8");
 const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/blog/what-nobody-tells-you-building-multi-provider-mcp-server.astro", import.meta.url), "utf8");
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroX402Dogfood = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-actually-pay-x402-dogfood.astro", import.meta.url), "utf8");
@@ -206,6 +208,12 @@ describe("public authority pricing contract", () => {
     expect(astroX402Dogfood).toContain('or use a governed API key / Stripe checkout.');
     expect(astroX402Dogfood).not.toContain('Search 1,000+ scored services');
     expect(astroX402Dogfood).not.toContain('or use a Rhumb API key / Stripe checkout.');
+
+    expect(astroBlogHowAgentsPay).toContain("budget-controlled governed API keys");
+    expect(astroBlogHowAgentsPay).not.toContain("budget-controlled API keys");
+    expect(astroBlogHowAgentsPayGuide).not.toContain("hands the agent an API key");
+    expect(astroBlogHowAgentsPayGuide).not.toContain("X-Api-Key: rhumb_live_");
+    expect(astroBlogHowAgentsPayGuide).not.toContain("rhumb_live_");
   });
 
   it("keeps high-visibility web authority surfaces pinned to current public truth", () => {

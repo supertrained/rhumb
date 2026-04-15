@@ -188,6 +188,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="Smithery migration wording that blurs credential ownership into `we hold keys / your keys` shorthand",
         regex=re.compile(r"Three credential paths:\s*Rhumb-managed \(we hold keys\), BYOK \(your keys\)", re.IGNORECASE),
     ),
+    DriftPattern(
+        key="prepaid-credits-key-shorthand",
+        note="blog payment guide wording that implies a Rhumb API key via `rhumb_live_` tokens or stale phrasing",
+        regex=re.compile(r"hands the agent an API key|X-Api-Key:\s*rhumb_live_", re.IGNORECASE),
+    ),
 )
 
 

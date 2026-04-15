@@ -20,24 +20,24 @@ Three solutions have emerged, each with different tradeoffs in autonomy, securit
 
 ### How an Agent Gets a Wallet
 
-The developer (human) creates an account, tops up credits via Stripe Checkout, and hands the agent an API key. The agent never sees a payment form — it just uses the key, and costs are deducted from the credit balance automatically.
+The developer (human) creates an account, tops up credits via Stripe Checkout, and hands the agent a billing key (often an API key). The agent never sees a payment form — it just uses the key, and costs are deducted from the credit balance automatically.
 
 ```bash
 # Developer: top up credits (opens Stripe Checkout)
 curl -X POST https://api.example.com/v1/billing/checkout \
-  -H "X-Api-Key: rhumb_live_abc123" \
+  -H "X-Api-Key: api_live_abc123" \
   -H "Content-Type: application/json" \
   -d '{"amount_usd": 25}'
 
 # Agent: just call APIs — billing is invisible
 curl https://api.example.com/v1/capability/execute \
-  -H "X-Api-Key: rhumb_live_abc123" \
+  -H "X-Api-Key: api_live_abc123" \
   -H "Content-Type: application/json" \
   -d '{"capability": "web.scrape", "params": {"url": "https://example.com"}}'
 
 # Agent: check remaining balance
 curl https://api.example.com/v1/billing/balance \
-  -H "X-Api-Key: rhumb_live_abc123"
+  -H "X-Api-Key: api_live_abc123"
 ```
 
 ### How Payment Happens
