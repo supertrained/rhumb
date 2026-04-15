@@ -72,7 +72,13 @@ describe("docs page", () => {
     expect(failureModesSource).toContain("recovery_hint.credential_modes_url");
     expect(failureModesSource).toContain("alternate_execute_hint");
     expect(failureModesSource).toContain("setup_handoff");
+    expect(failureModesSource).toContain("All execution paths (Rhumb-managed, Agent Vault, BYOK, x402)");
+    expect(failureModesSource).toContain("Governed API key and wallet-prefund billing paths only. x402, BYOK, and Agent Vault are unaffected.");
+    expect(failureModesSource).toContain("Rhumb-managed execution only. Agent Vault, BYOK, and x402 are unaffected.");
     expect(failureModesSource).not.toContain("Build routing fallback chains: primary → alternative → manual.");
+    expect(failureModesSource).not.toContain("All modes (Managed, x402, BYOK)");
+    expect(failureModesSource).not.toContain("Managed billing (Mode 2) executions only. x402 and BYOK continue working because they don't depend on Rhumb's billing database.");
+    expect(failureModesSource).not.toContain("All managed execution (Mode 2). BYOK and x402 continue working.");
   });
 
   it("keeps the MCP quickstart estimate guidance aligned with the live preflight contract", () => {
