@@ -1665,6 +1665,78 @@ def _agent_credentials_mapping_readiness(mapping: dict[str, object]) -> tuple[bo
     return any_configured, any_configured
 
 
+def _direct_agent_credentials_mappings() -> list[dict[str, object]]:
+    mappings: list[dict[str, object]] = []
+
+    def add_mapping(
+        capability_id: str,
+        service_slug: str,
+        credential_modes: list[str],
+        auth_method: str,
+    ) -> None:
+        mappings.append(
+            {
+                "capability_id": capability_id,
+                "service_slug": service_slug,
+                "credential_modes": list(credential_modes),
+                "auth_method": auth_method,
+            }
+        )
+
+    for capability_id in ("db.query.read", "db.schema.describe", "db.row.get"):
+        add_mapping(capability_id, _DB_DIRECT_PROVIDER_SLUG, _DB_DIRECT_CREDENTIAL_MODES, "connection_ref")
+
+    for capability_id in ("warehouse.query.read", "warehouse.schema.describe"):
+        add_mapping(capability_id, _WAREHOUSE_DIRECT_PROVIDER_SLUG, _WAREHOUSE_DIRECT_CREDENTIAL_MODES, "warehouse_ref")
+
+    for capability_id in ("object.list", "object.head", "object.get"):
+        add_mapping(capability_id, _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG, _OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES, "storage_ref")
+
+    for capability_id in ("deployment.list", "deployment.get"):
+        add_mapping(capability_id, _DEPLOYMENT_DIRECT_PROVIDER_SLUG, _DEPLOYMENT_DIRECT_CREDENTIAL_MODES, "deployment_ref")
+
+    for capability_id in ("workflow_run.list", "workflow_run.get"):
+        add_mapping(capability_id, _ACTIONS_DIRECT_PROVIDER_SLUG, _ACTIONS_DIRECT_CREDENTIAL_MODES, "actions_ref")
+
+    for capability_id in ("crm.object.describe", "crm.record.search", "crm.record.get"):
+        for provider_slug in (_CRM_HUBSPOT_DIRECT_PROVIDER_SLUG, _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG):
+            add_mapping(capability_id, provider_slug, _CRM_DIRECT_CREDENTIAL_MODES, "crm_ref")
+
+    for capability_id in (
+        "ticket.search",
+        "ticket.get",
+        "ticket.list_comments",
+        "conversation.list",
+        "conversation.get",
+        "conversation.list_parts",
+    ):
+        add_mapping(
+            capability_id,
+            _support_direct_provider_slug(capability_id),
+            _SUPPORT_DIRECT_CREDENTIAL_MODES,
+            "support_ref",
+        )
+
+    return mappings
+
+
+def _agent_credentials_mappings(raw_mappings: object) -> list[dict[str, object]]:
+    combined: list[dict[str, object]] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    for mapping in [*(raw_mappings or []), *_direct_agent_credentials_mappings()]:
+        capability_id = str(mapping.get("capability_id") or "")
+        service_slug = str(mapping.get("service_slug") or "")
+        auth_method = str(mapping.get("auth_method") or "")
+        key = (capability_id, service_slug, auth_method)
+        if key in seen:
+            continue
+        seen.add(key)
+        combined.append(mapping)
+
+    return combined
+
+
 def _synthetic_capability_record(capability_id: str) -> dict[str, object] | None:
 
     db_records = {
@@ -3160,11 +3232,13 @@ async def get_agent_credentials(
 
     agent_id = agent.agent_id
 
-    # Get all capability-service mappings
-    all_mappings = await _cached_fetch(
-        "capability_services",
-        "capability_services?select=capability_id,service_slug,credential_modes,auth_method"
-        "&order=capability_id.asc"
+    # Get all mapped capability-service rows, then merge in direct rails that live outside the catalog table
+    all_mappings = _agent_credentials_mappings(
+        await _cached_fetch(
+            "capability_services",
+            "capability_services?select=capability_id,service_slug,credential_modes,auth_method"
+            "&order=capability_id.asc"
+        )
     )
     if not all_mappings:
         return {

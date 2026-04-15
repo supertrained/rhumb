@@ -254,18 +254,11 @@ async def test_agent_credentials_counts_rhumb_managed_modes_as_unlocked(app):
 
 
 @pytest.mark.anyio
-async def test_agent_credentials_counts_direct_bundles_as_configured(app):
-    """Direct bundle-backed rails should count as configured and unlocked."""
+async def test_agent_credentials_includes_direct_bundle_capabilities_when_catalog_is_empty(app):
+    """Direct bundle-backed rails should still appear when the catalog table is empty."""
     async def mock_fetch(path):
         if "capability_services?" in path:
-            return [
-                {
-                    "capability_id": "deployment.list",
-                    "service_slug": "vercel",
-                    "credential_modes": ["byo"],
-                    "auth_method": "deployment_ref",
-                }
-            ]
+            return []
         return []
 
     class MockIdentityStore:
@@ -286,7 +279,8 @@ async def test_agent_credentials_counts_direct_bundles_as_configured(app):
     data = resp.json()["data"]
     assert "vercel" in data["configured_services"]
     assert "deployment.list" in data["unlocked_capabilities"]
-    assert data["locked_capabilities"] == []
+    assert "deployment.get" in data["unlocked_capabilities"]
+    assert "workflow_run.list" in data["locked_capabilities"]
 
 
 # ── resolve with configured field ──────────────────────────────
