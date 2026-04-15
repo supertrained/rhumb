@@ -268,6 +268,7 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
     expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
+    expect(astroHome).toContain('Use governed API key when you want routing, failover, and billing under one key.');
     expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
@@ -286,6 +287,7 @@ describe("public authority pricing contract", () => {
     expect(astroHome).not.toContain('Use BYOK, Agent Vault, or your existing stack');
     expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
+    expect(astroHome).not.toContain('Use Rhumb-managed execution when you want routing, failover, and billing under one key.');
   });
 
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
