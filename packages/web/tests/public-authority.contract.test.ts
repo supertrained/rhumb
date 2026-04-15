@@ -386,6 +386,8 @@ describe("public authority pricing contract", () => {
     expect(rootLlms).toContain("## Execution (requires a live rail)");
     expect(rootLlms).toContain("## Execution rails");
     expect(rootLlms).toContain("## Operator-controlled credential modes");
+    expect(rootLlms).toContain("3 execution rails: governed API key, wallet-prefund, x402 / USDC");
+    expect(rootLlms).toContain("2 operator-controlled credential modes where supported: BYOK, Agent Vault");
     expect(rootLlms).toContain("Wallet-prefund: add balance first");
     expect(rootLlms).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
     expect(rootLlms).toContain("Provider-control modes where supported: BYOK and Agent Vault");
@@ -394,6 +396,7 @@ describe("public authority pricing contract", () => {
     expect(rootLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(rootLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(rootLlms).not.toContain("## Auth paths");
+    expect(rootLlms).not.toContain("3 credential modes: BYOK, Rhumb-managed, Agent Vault");
     expect(rootLlms).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(rootLlms).not.toContain("Free tier: 1,000 calls/month");
     expect(rootLlms).not.toContain("## Execution (requires API key or x402 payment)");
@@ -401,6 +404,8 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).toContain("## Execution (requires a live rail)");
     expect(webPublicLlms).toContain("## Execution rails");
     expect(webPublicLlms).toContain("## Operator-controlled credential modes");
+    expect(webPublicLlms).toContain("3 execution rails: governed API key, wallet-prefund, x402 / USDC");
+    expect(webPublicLlms).toContain("2 operator-controlled credential modes where supported: BYOK, Agent Vault");
     expect(webPublicLlms).toContain("Wallet-prefund: add balance first");
     expect(webPublicLlms).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
     expect(webPublicLlms).toContain("Provider-control modes where supported: BYOK and Agent Vault");
@@ -409,6 +414,7 @@ describe("public authority pricing contract", () => {
     expect(webPublicLlms).toContain("No subscriptions, no seat fees, no minimums");
     expect(webPublicLlms).toContain("Live pricing and markup terms: https://rhumb.dev/pricing");
     expect(webPublicLlms).not.toContain("## Auth paths");
+    expect(webPublicLlms).not.toContain("3 credential modes: BYOK, Rhumb-managed, Agent Vault");
     expect(webPublicLlms).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(webPublicLlms).not.toContain("Free tier: 1,000 calls/month");
     expect(webPublicLlms).not.toContain("## Execution (requires API key or x402 payment)");

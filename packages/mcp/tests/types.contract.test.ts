@@ -163,6 +163,8 @@ describe("types.contract", () => {
       expect(surface).toContain("## Execution (requires a live rail)");
       expect(surface).toContain("## Execution rails");
       expect(surface).toContain("## Operator-controlled credential modes");
+      expect(surface).toContain("3 execution rails: governed API key, wallet-prefund, x402 / USDC");
+      expect(surface).toContain("2 operator-controlled credential modes where supported: BYOK, Agent Vault");
       expect(surface).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
       expect(surface).toContain("Provider-control modes where supported: BYOK and Agent Vault");
       expect(surface).toContain("Governed API key");
@@ -171,6 +173,7 @@ describe("types.contract", () => {
       expect(surface).toContain("BYOK credentials");
       expect(surface).toContain("Agent Vault");
       expect(surface).not.toContain("## Auth paths");
+      expect(surface).not.toContain("3 credential modes: BYOK, Rhumb-managed, Agent Vault");
       expect(surface).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
       expect(surface).not.toContain("## Execution (requires API key or x402 payment)");
     }

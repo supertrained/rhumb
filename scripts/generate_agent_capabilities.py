@@ -309,7 +309,8 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - {public_truth['categoriesLabel']} categories
 - {public_truth['callableProvidersLabel']} callable providers
 - {public_truth['mcpToolsLabel']} MCP tools
-- 3 credential modes: BYOK, Rhumb-managed, Agent Vault
+- 3 execution rails: governed API key, wallet-prefund, x402 / USDC
+- 2 operator-controlled credential modes where supported: BYOK, Agent Vault
 
 ## Honest current state
 - Discovery breadth is wider than execution breadth

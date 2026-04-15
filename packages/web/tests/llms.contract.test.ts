@@ -13,6 +13,8 @@ describe("llms.txt contract", () => {
     expect(WEB_LLMS).toContain("machine-readable execute_readiness handoffs");
     expect(WEB_LLMS).toContain("## Execution rails");
     expect(WEB_LLMS).toContain("## Operator-controlled credential modes");
+    expect(WEB_LLMS).toContain("3 execution rails: governed API key, wallet-prefund, x402 / USDC");
+    expect(WEB_LLMS).toContain("2 operator-controlled credential modes where supported: BYOK, Agent Vault");
     expect(WEB_LLMS).toContain("Execution rails: governed API key, wallet-prefund, or x402 per-call");
     expect(WEB_LLMS).toContain("Provider-control modes where supported: BYOK and Agent Vault");
     expect(WEB_LLMS).toContain("Agent Vault");
@@ -21,6 +23,7 @@ describe("llms.txt contract", () => {
     expect(WEB_LLMS).toContain("recovery_hint.alternate_execute_hint");
     expect(WEB_LLMS).toContain("recovery_hint.setup_handoff");
     expect(WEB_LLMS).not.toContain("## Auth paths");
+    expect(WEB_LLMS).not.toContain("3 credential modes: BYOK, Rhumb-managed, Agent Vault");
     expect(WEB_LLMS).not.toContain("Execution: governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(WEB_LLMS).not.toContain("machine-readable recovery handoffs");
     expect(WEB_LLMS).not.toContain("GET https://api.rhumb.dev/v1/capabilities/{id}/execute/estimate — cost estimate");
