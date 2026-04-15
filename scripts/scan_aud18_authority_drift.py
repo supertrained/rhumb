@@ -128,6 +128,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         note="older governed-path label casing that should now stay `Rhumb-managed`",
         regex=re.compile(r"\bRhumb-Managed\b"),
     ),
+    DriftPattern(
+        key="managed-checklist-shorthand",
+        note="older checklist shorthand that should now name the governed path as `Rhumb-managed`",
+        regex=re.compile(r"Prefer managed, Agent Vault, or x402 over raw BYOK", re.IGNORECASE),
+    ),
 )
 
 

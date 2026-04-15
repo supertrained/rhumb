@@ -345,10 +345,12 @@ describe("public authority pricing contract", () => {
     expect(astroSecuringKeys).toContain('Rhumb-managed, BYOK, and Agent Vault compared, plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).toContain('Three credential paths, a storage hierarchy, and honest threat modeling. No "enterprise-grade" theater.');
     expect(astroSecuringKeys).toContain('Pick the path that matches your trust model.');
+    expect(astroSecuringKeys).toContain('Prefer Rhumb-managed, Agent Vault, or x402 over raw BYOK');
     expect(astroSecuringKeys).not.toContain('Pick the mode that matches your trust model.');
     expect(astroSecuringKeys).not.toContain('three credential paths (managed, BYOK, Agent Vault), plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).not.toContain('three credential paths (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).not.toContain('BYOK, managed, and Agent Vault compared, plus where x402 fits as a payment rail.');
+    expect(astroSecuringKeys).not.toContain('Prefer managed, Agent Vault, or x402 over raw BYOK');
     expect(astroSecuringKeys).not.toContain('### Mode 1:');
     expect(astroSecuringKeys).not.toContain('### Mode 2:');
     expect(astroSecuringKeys).not.toContain('### Mode 3:');

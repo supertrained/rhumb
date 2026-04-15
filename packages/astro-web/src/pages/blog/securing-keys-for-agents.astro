@@ -196,7 +196,7 @@ We don't use phrases like "enterprise-grade security" or "bank-level encryption"
 3. **Never commit keys to git.** Use \`.env\` files with \`.gitignore\`, or better yet, use a secret manager reference.
 4. **One key per agent.** If you run multiple agents, give each one its own API key. Makes revocation surgical.
 5. **Monitor usage.** Rhumb's API shows per-key execution history. Watch for anomalies.
-6. **Prefer managed, Agent Vault, or x402 over raw BYOK** when possible. Fewer raw credentials in more places = smaller attack surface.
+6. **Prefer Rhumb-managed, Agent Vault, or x402 over raw BYOK** when possible. Fewer raw credentials in more places = smaller attack surface.
 7. **Use secret references in config, not raw values.** Instead of the key itself, store a reference to where the key lives:
 
 \`\`\`json
