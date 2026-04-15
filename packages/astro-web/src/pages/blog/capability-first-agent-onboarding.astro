@@ -54,14 +54,24 @@ const RELATED_READING = [
     description: "Why safer agent interfaces narrow authority instead of mirroring raw API sprawl.",
   },
   {
-    href: "/blog/securing-keys-for-agents",
-    title: "How to Secure Your API Keys for Agent Use",
-    description: "Why bridges and credentials need honest threat boundaries instead of generic secret-management theater.",
-  },
-  {
     href: "/blog/how-to-evaluate-apis-for-agents",
     title: "How to Evaluate APIs for AI Agents",
     description: "The broader evaluation lens for whether an API is actually useful to an autonomous system.",
+  },
+  {
+    href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
+    title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
+    description: "Why capability-first expansion only stays safe when downstream systems communicate contract drift in ways non-human clients can monitor.",
+  },
+  {
+    href: "/blog/signed-mcp-receipts-evidence-not-authority",
+    title: "Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe",
+    description: "Why post-call evidence matters once a bounded capability surface starts making higher-side-effect decisions.",
+  },
+  {
+    href: "/blog/securing-keys-for-agents",
+    title: "How to Secure Your API Keys for Agent Use",
+    description: "Why bridges and credentials need honest threat boundaries instead of generic secret-management theater.",
   },
   {
     href: "/blog/remote-mcp-production-readiness-checklist",
@@ -218,6 +228,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 The mistake is pretending every system belongs in the first-run experience. A clean first win is more credible than a giant catalog that quietly hides setup debt behind every promising label.
+              </p>
+              <p>
+                Once the surface expands into customer systems, the trust story has to mature with it. Capability-first onboarding only stays legible if the downstream bridge can communicate drift before runtime ambiguity becomes damage and leave behind reviewable evidence after higher-side-effect calls. That is why <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:text-amber-200 transition-colors">machine-parseable change communication</a> and <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="text-amber hover:text-amber-200 transition-colors">post-call evidence</a> belong in the expansion path, not as afterthoughts.
               </p>
             </div>
           </section>
