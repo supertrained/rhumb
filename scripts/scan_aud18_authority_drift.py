@@ -43,6 +43,8 @@ DEFAULT_SCAN_PATHS = (
     Path("packages/mcp/package.json"),
     Path("packages/mcp/server.json"),
     Path("packages/mcp/src/tools/credentials.ts"),
+    Path("packages/mcp/src/tools/execute.ts"),
+    Path("packages/mcp/src/types.ts"),
     Path("scripts/generate_agent_capabilities.py"),
 )
 
@@ -193,6 +195,11 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
         key="governed-api-key-rail-shorthand",
         note="x402 or auth-failure guidance that drops `governed` from the Rhumb API key path",
         regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key|provisioning an API key would add avoidable friction|Rhumb API key / Stripe checkout", re.IGNORECASE),
+    ),
+    DriftPattern(
+        key="governed-api-key-x402-helper-shorthand",
+        note="x402 helper wording that blurs the repeat-traffic X-Rhumb-Key rail back into generic API-key wording",
+        regex=re.compile(r"without API key or payment|instead of an API key\. Pass the proof from a payment_required \(402\) response", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-discovery-shorthand",

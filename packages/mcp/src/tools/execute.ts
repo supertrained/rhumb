@@ -6,7 +6,7 @@
  * provider used and cost.
  *
  * Supports x402 zero-signup payment flow:
- *   1. Call without API key or payment → get paymentRequired with instructions
+ *   1. Call without X-Rhumb-Key or x_payment → get paymentRequired with instructions
  *   2. Submit on-chain USDC payment
  *   3. Call again with x_payment containing tx proof → execution proceeds
  */

@@ -110,6 +110,9 @@ describe("types.contract", () => {
     expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).toContain("fall back to byok");
     expect(ExecuteCapabilityInputSchema.properties.credential_mode.description).not.toMatch(/fall back to byo(?:[^k]|$)/);
     expect(ExecuteCapabilityInputSchema.properties.agent_token.description).toContain("byok or agent_vault");
+    expect(ExecuteCapabilityInputSchema.properties.x_payment.description).toContain("repeat-traffic X-Rhumb-Key rail");
+    expect(ExecuteCapabilityInputSchema.properties.x_payment.description).toContain("governed API key or wallet-prefund");
+    expect(ExecuteCapabilityInputSchema.properties.x_payment.description).not.toContain("instead of an API key");
     expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("'byok'");
     expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("legacy 'byo' alias still accepted");
     expect(EstimateCapabilityInputSchema.properties.credential_mode.description).toContain("fall back to byok");

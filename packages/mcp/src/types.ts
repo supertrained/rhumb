@@ -261,7 +261,7 @@ export const ExecuteCapabilityInputSchema = {
     credential_mode: { type: "string" as const, description: "'auto' (default: use Rhumb Resolve when an active managed config exists, otherwise fall back to byok), 'rhumb_managed' (Rhumb Resolve zero-config call path), 'byok' (legacy 'byo' alias still accepted — requires method+path), or 'agent_vault' (key from credential_ceremony — requires method+path)." },
     idempotency_key: { type: "string" as const, description: "UUID for safe retry — if this request was already processed, returns the cached result instead of re-calling the provider. Required to enable automatic fallback to backup providers on failure." },
     agent_token: { type: "string" as const, description: "Your API token for byok or agent_vault mode. Legacy 'byo' is still accepted as an input alias. For agent_vault: obtain via credential_ceremony first. Never stored by Rhumb — used for this single call only." },
-    x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Use this to pay per-call with USDC instead of an API key. Pass the proof from a payment_required (402) response. No account or signup needed." }
+    x_payment: { type: "string" as const, description: "x402 payment proof (base64 or JSON). Use this to pay per-call with USDC instead of the repeat-traffic X-Rhumb-Key rail (governed API key or wallet-prefund). Pass the proof from a payment_required (402) response. No account or signup needed." }
   },
   required: ["capability_id"] as const
 };
