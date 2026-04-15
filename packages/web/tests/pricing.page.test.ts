@@ -78,11 +78,13 @@ describe("pricing page", () => {
   it("keeps the Astro pricing surface aligned with current chooser and resolve recovery truth", () => {
     expect(astroPricingSource).toContain("tradeoff: \"Adds a funding step before the steady-state execute path.\"");
     expect(astroPricingSource).toContain("If your buyer emits wrapped proofs instead of the supported tx-hash flow, switch to wallet-prefund.");
-    expect(astroPricingSource).toContain("whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.");
+    expect(astroPricingSource).toContain("whether you want a governed rail (governed API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.");
     expect(astroPricingSource).toContain("name: \"BYOK or Agent Vault\"");
     expect(astroPricingSource).toContain("Provider control");
     expect(astroPricingSource).toContain("BYOK / Vault");
     expect(astroPricingSource).toContain("Agent Vault setup");
+    expect(astroPricingSource).toContain('q: "What is the difference between governed API key, wallet-prefund, and x402?"');
+    expect(astroPricingSource).toContain("Governed API key and wallet-prefund both execute with X-Rhumb-Key. Governed API key is account-first billing;");
     expect(astroPricingSource).toContain("governed API-key path, BYOK, or Agent Vault");
     expect(astroPricingSource).toContain("Already have provider credentials? BYOK or Agent Vault routes through Rhumb at zero");
     expect(astroPricingSource).toContain("agent_vault");
@@ -97,6 +99,9 @@ describe("pricing page", () => {
 
     expect(astroPricingSource).not.toContain("Has a setup step before the first repeatable execution path.");
     expect(astroPricingSource).not.toContain("account API key, wallet-prefunded balance, zero-signup x402 per-call, or BYOK passthrough.");
+    expect(astroPricingSource).not.toContain('q: "What is the difference between API key, wallet-prefund, and x402?"');
+    expect(astroPricingSource).not.toContain("API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing;");
+    expect(astroPricingSource).not.toContain("whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.");
     expect(astroPricingSource).not.toContain("wallet-prefunded balance");
     expect(astroPricingSource).not.toContain("Already have provider API keys? BYOK passthrough routes through Rhumb at zero");
     expect(astroPricingSource).not.toContain(

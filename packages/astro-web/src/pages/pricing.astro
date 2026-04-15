@@ -140,8 +140,8 @@ const FAQ = [
     a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it gives you one stable execution header, route, health, and cost checks before execution, and simpler repeat-traffic operations.",
   },
   {
-    q: "What is the difference between API key, wallet-prefund, and x402?",
-    a: "API key and wallet-prefund both execute with X-Rhumb-Key. API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance and currently uses the standard x402 authorization settlement path during top-up verification. x402 direct per-call execute is payment-as-auth using X-Payment, but today the repeatable public execute path expects legacy tx-hash proof rather than wrapped authorization payloads.",
+    q: "What is the difference between governed API key, wallet-prefund, and x402?",
+    a: "Governed API key and wallet-prefund both execute with X-Rhumb-Key. Governed API key is account-first billing; wallet-prefund is wallet-first funding that tops up reusable balance and currently uses the standard x402 authorization settlement path during top-up verification. x402 direct per-call execute is payment-as-auth using X-Payment, but today the repeatable public execute path expects legacy tx-hash proof rather than wrapped authorization payloads.",
   },
   {
     q: "Do I need crypto to use Rhumb?",
@@ -243,7 +243,7 @@ const PRICING_JSON_LD = {
             <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Choose your path</p>
             <h2 class="font-display text-2xl font-bold text-slate-100">Same directory, different ways to execute.</h2>
             <p class="mt-3 text-slate-400 leading-7">
-              Discovery is always free. Execution depends on whether you want a governed rail (API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.
+              Discovery is always free. Execution depends on whether you want a governed rail (governed API key or wallet-prefund), zero-signup x402 per-call, or provider-controlled paths like BYOK or Agent Vault.
             </p>
           </div>
 
