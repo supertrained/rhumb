@@ -269,7 +269,7 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
     expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
-    expect(astroHome).toContain('Use governed API key when you want routing, failover, and billing under one key.');
+    expect(astroHome).toContain('Use governed API key when you want account-funded routing, failover, and billing on the default repeat-traffic rail.');
     expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
@@ -289,6 +289,7 @@ describe("public authority pricing contract", () => {
     expect(astroHome).not.toContain('use BYOK when provider control is the point');
     expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
     expect(astroHome).not.toContain('Use Rhumb-managed execution when you want routing, failover, and billing under one key.');
+    expect(astroHome).not.toContain('Use governed API key when you want routing, failover, and billing under one key.');
   });
 
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
@@ -572,6 +573,7 @@ describe("public authority pricing contract", () => {
 
     expect(astroStartManagedExecution).toContain('The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads.');
     expect(astroStartManagedExecution).toContain('If you want repeat managed execution, the honest default is governed API key first.');
+    expect(astroStartManagedExecution).toContain('It keeps repeat traffic on the stable X-Rhumb-Key execution header and the simplest operational model.');
     expect(astroStartManagedExecution).toContain('use x402 only when zero-signup per-call payment is the point');
     expect(astroStartManagedExecution).toContain('bring BYOK or Agent Vault only when provider control is the point');
     expect(astroStartManagedExecution).not.toContain('bring wallet or provider-controlled paths');
@@ -583,6 +585,7 @@ describe("public authority pricing contract", () => {
     expect(astroStartManagedExecution).toContain('Use x402 only when zero-signup per-call payment is the point, and bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroStartManagedExecution).not.toContain('The shortest honest path into Rhumb managed execution: API key first, pricing before execution, and quickstart for free reads.');
     expect(astroStartManagedExecution).not.toContain('If you want repeat managed execution, the honest default is API key first.');
+    expect(astroStartManagedExecution).not.toContain('It keeps one stable execution header and the simplest operational model.');
     expect(astroStartManagedExecution).not.toContain('Get API key');
   });
 
