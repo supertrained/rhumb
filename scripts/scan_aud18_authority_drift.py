@@ -176,7 +176,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-auth-surface-shorthand",
         note="login, dashboard, or privacy authority wording that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"Sign in to Rhumb to get your API key and access the developer dashboard\.|access your dashboard, API key, and billing controls\.|Your Rhumb developer dashboard — API key, usage, and quickstart\.|Your dashboard access and API key are active\.|>Your API Key</h2>|>Copy your API key</p>|Rotate your API key\? The old key will stop working immediately\.|Authenticated requests are associated with your API key\."),
+        regex=re.compile(r"Sign in to Rhumb to get your API key and access the developer dashboard\.|access your dashboard, API key, and billing controls\.|Your Rhumb developer dashboard — API key, usage, and quickstart\.|Your dashboard access and API key are active\.|>Your API Key</h2>|>Copy your API key</p>|Rotate your API key\? The old key will stop working immediately\.|Authenticated requests are associated with your API key\.|An API key we generate for your account|(?<!governed )API key for authentication\.|Account deletion removes all associated data: API keys,|Your Rhumb API key is the only credential to protect\.|single Rhumb API key"),
     ),
     DriftPattern(
         key="provider-keys-shorthand",

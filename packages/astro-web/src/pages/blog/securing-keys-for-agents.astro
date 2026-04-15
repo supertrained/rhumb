@@ -114,7 +114,7 @@ curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
 
 **When to use it:** You don't want to manage individual service accounts. You want Rhumb to handle authentication, rate limits, and failover. You want per-call pricing with route, health, and cost checks before execution.
 
-**Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your Rhumb API key is the only credential to protect.
+**Security posture:** You trust Rhumb with the service credential. You don't need to store or rotate individual service keys. Your governed API key is the only credential to protect.
 
 ### Agent Vault
 
@@ -207,7 +207,7 @@ We don't use phrases like "enterprise-grade security" or "bank-level encryption"
 
 ## The bottom line
 
-The safest credential is the one that doesn't exist. x402 is the no-credential payment rail when per-call payment is the point. Managed capabilities reduce your credential surface to a single Rhumb API key. Agent Vault is the middle path when you need provider control without exposing raw provider secrets everywhere. BYOK gives you full control when you need it.
+The safest credential is the one that doesn't exist. x402 is the no-credential payment rail when per-call payment is the point. Managed capabilities reduce your credential surface to a single governed API key. Agent Vault is the middle path when you need provider control without exposing raw provider secrets everywhere. BYOK gives you full control when you need it.
 
 Pick the path that matches your trust model. Store credentials in the highest-security option available. Be specific about what you're protecting against.
 

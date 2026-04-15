@@ -54,9 +54,9 @@ const sections: SecuritySection[] = [
     items: [
       { label: "Execution data", detail: "Request and response payloads for executed capabilities are proxied in real-time and not stored. Rhumb logs execution metadata (timestamp, capability, cost, status) but not the payload content.", status: "live" },
       { label: "Score data", detail: "AN Scores, reviews, and service metadata are public by design. No personal data is included in scoring.", status: "live" },
-      { label: "Agent identity", detail: "Minimal data collection: email address for account creation, API key for authentication. No phone numbers, addresses, or payment details stored by Rhumb (Stripe handles payment data).", status: "live" },
+      { label: "Agent identity", detail: "Minimal data collection: email address for account creation, governed API key for authentication. No phone numbers, addresses, or payment details stored by Rhumb (Stripe handles payment data).", status: "live" },
       { label: "Data residency", detail: "Application infrastructure runs on Railway (US regions). Database on Supabase (AWS us-east-1). All data is currently US-hosted.", status: "live" },
-      { label: "Data deletion", detail: "Account deletion removes all associated data: API keys, execution logs, billing records, and stored credentials. Contact team@supertrained.ai to request deletion.", status: "live" },
+      { label: "Data deletion", detail: "Account deletion removes all associated data: governed API keys, execution logs, billing records, and stored credentials. Contact team@supertrained.ai to request deletion.", status: "live" },
     ],
   },
   {

@@ -387,7 +387,11 @@ describe("public authority pricing contract", () => {
     expect(astroSecuringKeys).toContain('Three credential paths, a storage hierarchy, and honest threat modeling. No "enterprise-grade" theater.');
     expect(astroSecuringKeys).toContain('Pick the path that matches your trust model.');
     expect(astroSecuringKeys).toContain('Prefer Rhumb-managed, Agent Vault, or x402 over raw BYOK');
+    expect(astroSecuringKeys).toContain('Your governed API key is the only credential to protect.');
+    expect(astroSecuringKeys).toContain('Managed capabilities reduce your credential surface to a single governed API key.');
     expect(astroSecuringKeys).not.toContain('Pick the mode that matches your trust model.');
+    expect(astroSecuringKeys).not.toContain('Your Rhumb API key is the only credential to protect.');
+    expect(astroSecuringKeys).not.toContain('Managed capabilities reduce your credential surface to a single Rhumb API key.');
     expect(astroSecuringKeys).not.toContain('three credential paths (managed, BYOK, Agent Vault), plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).not.toContain('three credential paths (BYOK, managed, Agent Vault), plus where x402 fits as a payment rail.');
     expect(astroSecuringKeys).not.toContain('BYOK, managed, and Agent Vault compared, plus where x402 fits as a payment rail.');
@@ -443,12 +447,21 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the privacy source aligned with the full provider-control model", () => {
+    expect(astroPrivacy).toContain('A governed API key we generate for your account');
     expect(astroPrivacy).toContain('If you use <strong class="text-slate-200">Agent Vault</strong>, Rhumb stores an encrypted');
     expect(astroPrivacy).toContain('provider credential scoped to your agent, injects it only at call time,');
     expect(astroPrivacy).toContain('and does not share it across accounts.');
     expect(astroPrivacy).toContain('Authenticated requests are associated with your governed API key.');
+    expect(astroPrivacy).not.toContain('An API key we generate for your account');
     expect(astroPrivacy).not.toContain('Authenticated requests are associated with your API key.');
     expect(astroPrivacy).not.toContain('If you use <strong class="text-slate-200">bring-your-own-key (BYOK)</strong>{" "}\n            mode, your credentials are passed through to the upstream service in the same\n            request and are <strong class="text-slate-200">not stored</strong> by Rhumb.\n          </p>');
+  });
+
+  it("keeps the astro security page aligned with governed API key auth wording", () => {
+    expect(astroSecurity).toContain('Minimal data collection: email address for account creation, governed API key for authentication.');
+    expect(astroSecurity).toContain('Account deletion removes all associated data: governed API keys, execution logs, billing records, and stored credentials.');
+    expect(astroSecurity).not.toContain('Minimal data collection: email address for account creation, API key for authentication.');
+    expect(astroSecurity).not.toContain('Account deletion removes all associated data: API keys, execution logs, billing records, and stored credentials.');
   });
 
   it("keeps the shared resolve mental-model auth surfaces aligned with the live execution rails", () => {

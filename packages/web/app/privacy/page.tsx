@@ -65,7 +65,7 @@ export default function PrivacyPage() {
                 &bull; Your OAuth provider identifier (GitHub user ID or Google
                 sub)
               </li>
-              <li>&bull; An API key we generate for your account</li>
+              <li>&bull; A governed API key we generate for your account</li>
             </ul>
             <p className="mt-3">
               We do <strong className="text-slate-200">not</strong> receive or

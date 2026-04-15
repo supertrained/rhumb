@@ -18,9 +18,11 @@ describe("privacy page", () => {
     expect(html).toContain("Managed credentials");
     expect(html).toContain("bring-your-own-key (BYOK)");
     expect(html).toContain("Agent Vault");
+    expect(html).toContain("A governed API key we generate for your account");
     expect(html).toContain("encrypted provider credential scoped to your agent");
     expect(html).toContain("injects it only at call time");
     expect(html).toContain("Authenticated requests are associated with your governed API key.");
+    expect(html).not.toContain("An API key we generate for your account");
     expect(html).not.toContain("Authenticated requests are associated with your API key.");
     expect(html).toContain("Railway Privacy Policy");
     expect(html).toContain("We will respond within 30 days.");
