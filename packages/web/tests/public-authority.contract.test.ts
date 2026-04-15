@@ -333,7 +333,7 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).not.toContain('use governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK only when provider control is the point.');
     expect(astroSwitchingFromSmithery).toContain('dimension: "Credential paths"');
     expect(astroSwitchingFromSmithery).toContain('Three credential paths: Rhumb-managed (Rhumb holds the provider credential), BYOK (you keep the provider API key), Agent Vault');
-    expect(astroSwitchingFromSmithery).toContain('Start with Rhumb-managed if you want us to handle credentials. Bring BYOK if you already have provider keys. Use Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
+    expect(astroSwitchingFromSmithery).toContain('Start with Rhumb-managed if you want us to handle credentials. Bring BYOK if you already have provider API keys. Use Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
     expect(astroSwitchingFromSmithery).toContain('x402 stays separate as the zero-signup payment rail.');
     expect(astroSwitchingFromSmithery).toContain('Use x402 only when zero-signup per-call payment is the point.');
     expect(astroSwitchingFromSmithery).toContain('4,000+ server catalog (we\'re at {servicesLabel} scored services and growing daily)');
@@ -341,6 +341,7 @@ describe("public authority pricing contract", () => {
     expect(astroSwitchingFromSmithery).not.toContain('dimension: "Credential modes"');
     expect(astroSwitchingFromSmithery).not.toContain('Three credential paths: Rhumb-managed (we hold keys), BYOK (your keys), Agent Vault');
     expect(astroSwitchingFromSmithery).not.toContain('Three credential paths: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
+    expect(astroSwitchingFromSmithery).not.toContain('Start with Rhumb-managed if you want us to handle credentials. Bring BYOK if you already have provider keys. Use Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
     expect(astroSwitchingFromSmithery).not.toContain('BYOK if you already have provider keys. Rhumb-managed if you want us to handle credentials. Agent Vault if you want Rhumb to inject your encrypted provider credential at call time.');
     expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), Agent Vault');
     expect(astroSwitchingFromSmithery).not.toContain('Three modes: BYOK (your keys), Rhumb-managed (we hold keys), x402 USDC (no account needed)');
