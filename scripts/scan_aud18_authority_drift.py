@@ -161,12 +161,12 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-label-shorthand",
         note="launch or onboarding labels that drop `governed` from the Rhumb API key path",
-        regex=re.compile(r"For execution, pass your Rhumb API key:|Get an API key →|\*\*API key\*\* — sign up, get a key, prepaid credits|>API key</h3>|Execute via API key|BYOK, Agent Vault, API key, wallet-prefund, x402|Start with API key|account billing with API keys,|Create an API key for standard pricing|Get API key", re.IGNORECASE),
+        regex=re.compile(r"For execution, pass your Rhumb API key:|Get an API key →|\*\*API key\*\* — sign up, get a key, prepaid credits|>API key</h3>|Execute via API key|BYOK, Agent Vault, API key, wallet-prefund, x402|Start with API key|account billing with API keys,|Create an API key for standard pricing|Get API key|via API keys or on-chain USDC", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-rail-shorthand",
         note="x402 or auth-failure guidance that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key", re.IGNORECASE),
+        regex=re.compile(r"without an API key|with an API key \(default production path\)|reusable API key|standard API-key rail|provide a valid API key|request execution without a key|provisioning an API key would add avoidable friction", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-discovery-shorthand",

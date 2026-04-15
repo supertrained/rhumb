@@ -229,7 +229,9 @@ describe("public authority pricing contract", () => {
   it("keeps the astro about and search authority surfaces pinned to canonical public truth", () => {
     expect(astroAbout).toContain('PUBLIC_TRUTH.servicesLabel');
     expect(astroAbout).toContain('PUBLIC_TRUTH.categoriesLabel');
+    expect(astroAbout).toContain('accepts payment\n            via governed API key, wallet-prefund, or on-chain USDC.');
     expect(astroAbout).not.toContain('const services = await getServices()');
+    expect(astroAbout).not.toContain('accepts payment\n            via API keys or on-chain USDC.');
 
     expect(astroSearch).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
     expect(astroSearch).toContain('Search across {servicesLabel} scored services.');
@@ -338,12 +340,14 @@ describe("public authority pricing contract", () => {
     expect(astroPaymentsAgent).toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with governed API key or wallet-prefund on <strong class="text-slate-100">X-Rhumb-Key</strong>.');
     expect(astroPaymentsAgent).toContain('Bring BYOK or Agent Vault only when provider control is the point.');
     expect(astroPaymentsAgent).toContain('Call the execution endpoint without a governed API key when you want the payment rail to handle authorization.');
+    expect(astroPaymentsAgent).toContain('provisioning a governed API key would add avoidable friction.');
     expect(astroPaymentsAgent).toContain('reusable governed API key');
     expect(astroPaymentsAgent).toContain('standard governed API key rail instead of assuming drop-in x402 interoperability.');
     expect(astroPaymentsAgent).toContain('request execution without a governed API key');
     expect(astroPaymentsAgent).toContain('Request execution without a governed API key, pay the exact 402 requirement, then retry with X-Payment from the same wallet.');
     expect(astroPaymentsAgent).not.toContain('Bring BYOK only when provider control is the point.');
     expect(astroPaymentsAgent).toContain('Zero-signup, request-level payment authorization matters more than repeat throughput');
+    expect(astroPaymentsAgent).not.toContain('provisioning an API key would add avoidable friction.');
     expect(astroPaymentsAgent).not.toContain('Most repeat traffic should run through <strong class="text-slate-100">Layer 2</strong> with a governed API key or wallet-prefunded API key.');
     expect(astroPaymentsAgent).not.toContain('Call the execution endpoint without an API key when you want the payment rail to handle authorization.');
     expect(astroPaymentsAgent).not.toContain('reusable API key');
