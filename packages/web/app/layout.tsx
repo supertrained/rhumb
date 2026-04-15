@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s | Rhumb",
   },
   description:
-    "Rhumb scores hundreds of external APIs for AI agent compatibility. Discover, evaluate, and use tools via MCP or REST, then execute with governed API key, wallet-prefund, x402 per-call, or BYOK. Discovery, scoring, and browsing are free.",
+    "Rhumb scores hundreds of external APIs for AI agent compatibility. Discover, evaluate, and use tools via MCP or REST, then execute through governed API key, wallet-prefund, or x402 per-call rails, with BYOK or Agent Vault where provider control matters. Discovery, scoring, and browsing are free.",
   metadataBase: new URL("https://rhumb.dev"),
   other: {
     "ai:capabilities": "tool-discovery,an-scoring,mcp,rest-api,x402-payment",
@@ -64,7 +64,7 @@ const jsonLd = {
   "@type": "SoftwareApplication",
   name: "Rhumb",
   description:
-    "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores hundreds of APIs for AI agent compatibility, supports MCP and REST, and executes through governed API key, wallet-prefund, x402 per-call, or BYOK rails.",
+    "Agent-native infrastructure for discovering, evaluating, and using external tools. Scores hundreds of APIs for AI agent compatibility, supports MCP and REST, and executes through governed API key, wallet-prefund, or x402 per-call rails, with BYOK or Agent Vault where provider control matters.",
   url: "https://rhumb.dev",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "Any",
@@ -81,14 +81,15 @@ const jsonLd = {
       name: "Pay-as-you-go execution",
       priceCurrency: "USD",
       description:
-        "Execute through governed API key, wallet-prefund, x402 per-call, or BYOK depending on the rail you choose.",
+        "Execute through governed API key, wallet-prefund, or x402 per-call rails, with BYOK or Agent Vault where provider control matters.",
     },
   ],
   featureList: [
     "AN (Agent-Nativeness) Scores for hundreds of services",
     "MCP server: npx rhumb-mcp@latest",
     "REST API at api.rhumb.dev",
-    "Governed API key, wallet-prefund, x402 per-call, and BYOK execution rails",
+    "Governed API key, wallet-prefund, and x402 per-call execution rails",
+    "BYOK and Agent Vault provider-control modes",
     "BYOK (bring your own key)",
     "Pay-as-you-go execution with free discovery",
     "Zero-signup agent activation",

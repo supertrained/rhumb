@@ -48,7 +48,8 @@ describe("docs page", () => {
     expect(html).toContain("92 scored categories");
     expect(html).toContain("the ranked leaderboard hub currently covers 11 categories");
     expect(html).toContain("Execution requires a live rail");
-    expect(html).toContain("governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(html).toContain("governed API key, wallet-prefund, or x402 per-call rails");
+    expect(html).toContain("Bring BYOK or Agent Vault when provider control is the point");
     expect(html).toContain("rank providers and surface machine-readable recovery fields");
     expect(html).toContain("inspect live readiness globally or for a specific Capability before choosing a rail");
     expect(html).toContain("Before you wire these routes into production");
@@ -58,6 +59,7 @@ describe("docs page", () => {
     expect(html).toContain("/providers#dispute-a-score");
 
     expect(html).not.toContain("requires an API key or x402 payment");
+    expect(html).not.toContain("governed API key, wallet-prefund, x402 per-call, or BYOK");
     expect(html).not.toContain("92 categories — browse all at");
     expect(html).not.toContain("to inspect the available credential modes");
     expect(html).not.toContain("estimate_cost");

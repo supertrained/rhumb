@@ -63,13 +63,17 @@ describe("public authority pricing contract", () => {
   it("keeps the sitewide web metadata aligned with current pricing truth", () => {
     expect(layout).toContain("npx rhumb-mcp@latest");
     expect(layout).toContain("wallet-prefund");
-    expect(layout).toContain("BYOK");
+    expect(layout).toContain("BYOK or Agent Vault");
+    expect(layout).toContain("BYOK and Agent Vault provider-control modes");
     expect(layout).toContain("Discovery, scoring, and browsing are free");
+    expect(layout).toContain("governed API key, wallet-prefund, or x402 per-call rails");
 
     expect(layout).not.toContain("Free tier: 1,000 executions/month");
     expect(layout).not.toContain('"ai:free-tier": "1000 executions/month"');
     expect(layout).not.toContain('name: "Free Tier"');
     expect(layout).not.toContain("npx rhumb-mcp@0.6.0");
+    expect(layout).not.toContain("x402 per-call, or BYOK");
+    expect(layout).not.toContain("BYOK execution rails");
   });
 
   it("removes stale free-tier and split-markup claims from legal and glossary surfaces", () => {
@@ -80,8 +84,10 @@ describe("public authority pricing contract", () => {
     expect(terms).not.toContain("15% for x402/USDC");
 
     expect(glossary).toContain("wallet-prefund");
+    expect(glossary).toContain("provider-controlled paths through BYOK or Agent Vault");
     expect(glossary).toContain("Discovery is free, and execution pricing lives on /pricing.");
     expect(glossary).not.toContain("public free tier includes 1,000 calls per month");
+    expect(glossary).not.toContain("x402 per-call, or BYOK");
   });
 
   it("keeps the astro docs authority surface pinned to canonical public truth", () => {

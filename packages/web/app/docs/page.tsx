@@ -448,8 +448,9 @@ export default function DocsPage() {
                   Execution requires a live rail
                 </strong>{" "}
                 — capability execution via Rhumb Resolve runs through
-                governed API key, wallet-prefund, x402 per-call, or BYOK
-                depending on the provider. Start with{" "}
+                governed API key, wallet-prefund, or x402 per-call rails.
+                Bring BYOK or Agent Vault when provider control is the
+                point. Start with{" "}
                 <code className="font-mono text-xs bg-surface px-1 rounded text-amber">
                   resolve_capability
                 </code>{" "}

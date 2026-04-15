@@ -4,12 +4,12 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Pricing & How to Pay",
   description:
-    "Pay for what you use. Choose governed API key, wallet-prefund, x402 per-call, or BYOK, and inspect the active execution rail before you run it.",
+    "Pay for what you use. Choose governed API key, wallet-prefund, or x402 per-call rails, with BYOK or Agent Vault when provider control is the point, and inspect the active execution rail before you run it.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing & How to Pay — Rhumb",
     description:
-      "Transparent usage-based pricing with governed API key, wallet-prefund, x402 per-call, and BYOK paths.",
+      "Transparent usage-based pricing with governed API key, wallet-prefund, and x402 per-call rails, plus BYOK and Agent Vault provider-control modes.",
     type: "website",
     url: "https://rhumb.dev/pricing",
     siteName: "Rhumb",

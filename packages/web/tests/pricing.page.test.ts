@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
+const pricingPageSource = readFileSync(new URL("../app/pricing/page.tsx", import.meta.url), "utf8");
 const astroPricingSource = readFileSync(
   new URL("../../astro-web/src/pages/pricing.astro", import.meta.url),
   "utf8",
@@ -17,6 +18,14 @@ async function renderPricingPage(): Promise<string> {
 }
 
 describe("pricing page", () => {
+  it("keeps pricing metadata aligned with rail and provider-control truth", () => {
+    expect(pricingPageSource).toContain("governed API key, wallet-prefund, or x402 per-call rails");
+    expect(pricingPageSource).toContain("BYOK or Agent Vault when provider control is the point");
+    expect(pricingPageSource).toContain("BYOK and Agent Vault provider-control modes");
+    expect(pricingPageSource).not.toContain("Choose governed API key, wallet-prefund, x402 per-call, or BYOK");
+    expect(pricingPageSource).not.toContain("x402 per-call, and BYOK paths");
+  });
+
   it("renders the current estimate handoff truth for agents", async () => {
     const html = await renderPricingPage();
 
