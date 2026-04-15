@@ -171,7 +171,7 @@ DRIFT_PATTERNS: tuple[DriftPattern, ...] = (
     DriftPattern(
         key="governed-api-key-discovery-shorthand",
         note="MCP or example onboarding wording that drops `governed` from the Rhumb API key path",
-        regex=re.compile(r"Run discovery \(no API key needed\)|Run resolve walkthrough \(no API key needed\)|Run full execution \(API key required\)|Run the dogfood loop \(API key required\)|No API key needed for discovery(?: and scoring)?\.|No API key required for discovery and scoring\.|No API key needed for read endpoints\.|No API key needed — all discovery endpoints are public\.|The API key is optional — discovery tools work without it\. Add it to enable execution\.|## Get an API key|Get an API key at \[rhumb\.dev/auth/login\]|Get a key at https://rhumb\.dev/auth/login|Copy your API key from the dashboard", re.IGNORECASE),
+        regex=re.compile(r"Run discovery \(no API key needed\)|Run resolve walkthrough \(no API key needed\)|Run full execution \(API key required\)|Run the dogfood loop \(API key required\)|No API key needed for discovery(?: and scoring)?\.|No API key required for discovery and scoring\.|No API key needed for read endpoints\.|No API key needed — all discovery endpoints are public\.|no signup, no API key\.|The API key is optional — discovery tools work without it\. Add it to enable execution\.|## Get an API key|Get an API key at \[rhumb\.dev/auth/login\]|Get a key at https://rhumb\.dev/auth/login|Copy your API key from the dashboard", re.IGNORECASE),
     ),
     DriftPattern(
         key="governed-api-key-auth-surface-shorthand",

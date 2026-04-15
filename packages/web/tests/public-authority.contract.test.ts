@@ -479,6 +479,7 @@ describe("public authority pricing contract", () => {
     const resolveVaultCard = 'name: "Agent Vault"';
 
     expect(rootReadme).toContain('### Three credential paths');
+    expect(rootReadme).toContain('Zero config. Discovery tools work immediately — no signup, no governed API key.');
     expect(rootReadme).toContain('For execution, pass your governed API key:');
     expect(rootReadme).toContain('[Get a governed API key →](https://rhumb.dev/auth/login)');
     expect(rootReadme).toContain('| Path | How it works |');
@@ -491,6 +492,7 @@ describe("public authority pricing contract", () => {
     expect(rootReadme).toContain('Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`');
     expect(rootReadme).toContain('**Bring BYOK or Agent Vault** only when provider control is the point');
     expect(rootReadme).not.toContain('### Three credential modes');
+    expect(rootReadme).not.toContain('Zero config. Discovery tools work immediately — no signup, no API key.');
     expect(rootReadme).not.toContain('For execution, pass your Rhumb API key:');
     expect(rootReadme).not.toContain('[Get an API key →](https://rhumb.dev/auth/login)');
     expect(rootReadme).not.toContain('| Mode | How it works |');

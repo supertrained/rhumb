@@ -20,7 +20,7 @@
 npx rhumb-mcp@latest
 ```
 
-Zero config. Discovery tools work immediately — no signup, no API key.
+Zero config. Discovery tools work immediately — no signup, no governed API key.
 
 For execution, pass your governed API key:
 
