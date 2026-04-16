@@ -72,6 +72,18 @@ def test_query_receipts_with_results(client):
         assert body["data"]["count"] == 2
 
 
+def test_query_receipts_canonicalizes_alias_backed_provider_ids(client):
+    receipts = [{"receipt_id": "rcpt_1", "provider_id": "brave-search"}]
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = receipts
+        resp = client.get("/v2/receipts?provider_id=brave-search-api")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
+        query = mock_fetch.await_args.args[0]
+        assert "provider_id=in.(brave-search-api,brave-search)" in query
+
+
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):
     """GET /v2/receipts/{id}/explanation falls back to persisted route_explanations by receipt_id."""
     receipt_data = {

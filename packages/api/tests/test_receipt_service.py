@@ -179,6 +179,33 @@ async def test_get_receipt_returns_none_for_missing():
 
 
 @pytest.mark.anyio
+async def test_get_receipt_canonicalizes_alias_backed_provider_id():
+    service = ReceiptService()
+
+    with patch(
+        "services.receipt_service.supabase_fetch",
+        new=AsyncMock(return_value=[{"receipt_id": "rcpt_123", "provider_id": "brave-search"}]),
+    ):
+        result = await service.get_receipt("rcpt_123")
+
+    assert result is not None
+    assert result["provider_id"] == "brave-search-api"
+
+
+@pytest.mark.anyio
+async def test_query_receipts_matches_alias_backed_provider_ids_and_returns_canonical_ids():
+    service = ReceiptService()
+    mock_fetch = AsyncMock(return_value=[{"receipt_id": "rcpt_123", "provider_id": "brave-search"}])
+
+    with patch("services.receipt_service.supabase_fetch", new=mock_fetch):
+        result = await service.query_receipts(provider_id="brave-search-api", limit=10)
+
+    assert result == [{"receipt_id": "rcpt_123", "provider_id": "brave-search-api"}]
+    query = mock_fetch.await_args.args[0]
+    assert "provider_id=in.(brave-search-api,brave-search)" in query
+
+
+@pytest.mark.anyio
 async def test_verify_chain_intact():
     service = ReceiptService()
 

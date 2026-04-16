@@ -27,11 +27,23 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
 
 _RECEIPT_VERSION = "1.0"
 _MAX_CHAIN_RETRIES = 3
+
+
+def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Normalize provider identity for API-facing receipt reads."""
+    if row is None:
+        return None
+    normalized = dict(row)
+    provider_id = public_service_slug(normalized.get("provider_id"))
+    if provider_id:
+        normalized["provider_id"] = provider_id
+    return normalized
 
 
 def _generate_receipt_id() -> str:
@@ -319,7 +331,7 @@ class ReceiptService:
         )
         if not rows:
             return None
-        return rows[0]
+        return _public_receipt_row(rows[0])
 
     async def get_receipt_by_execution(self, execution_id: str) -> dict[str, Any] | None:
         """Fetch the most recent receipt for an execution."""
@@ -329,7 +341,7 @@ class ReceiptService:
         )
         if not rows:
             return None
-        return rows[0]
+        return _public_receipt_row(rows[0])
 
     async def query_receipts(
         self,
@@ -351,7 +363,11 @@ class ReceiptService:
         if capability_id:
             filters.append(f"capability_id=eq.{capability_id}")
         if provider_id:
-            filters.append(f"provider_id=eq.{provider_id}")
+            provider_candidates = public_service_slug_candidates(provider_id)
+            if len(provider_candidates) == 1:
+                filters.append(f"provider_id=eq.{provider_candidates[0]}")
+            elif provider_candidates:
+                filters.append(f"provider_id=in.({','.join(provider_candidates)})")
         if status:
             filters.append(f"status=eq.{status}")
 
@@ -361,7 +377,8 @@ class ReceiptService:
             f"&order=chain_sequence.desc"
             f"&limit={limit}&offset={offset}"
         )
-        return await supabase_fetch(query) or []
+        rows = await supabase_fetch(query) or []
+        return [_public_receipt_row(row) for row in rows]
 
     async def verify_chain(
         self,
