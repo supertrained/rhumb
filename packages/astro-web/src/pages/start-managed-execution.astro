@@ -28,6 +28,39 @@ const STEPS = [
       "If you are still evaluating, stay on the no-signup read path first. Paid execution should follow a real workflow, not curiosity clicks.",
   },
 ];
+
+const PATH_CHOICES = [
+  {
+    eyebrow: "Default production path",
+    title: "Governed API key",
+    body:
+      "Use this when you want repeat managed execution on the cleanest rail Rhumb exposes today.",
+    href: "/auth/login?rhumb_experiment=e004&rhumb_source=start-managed-execution-path-governed",
+    cta: "Get governed API key",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    accent: "text-emerald-300",
+  },
+  {
+    eyebrow: "Still evaluating",
+    title: "Quickstart first",
+    body:
+      "Stay on free reads when you are still testing capability fit and do not want to wire paid execution yet.",
+    href: "/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-path-quickstart",
+    cta: "Use free quickstart",
+    className: "border-slate-800 bg-surface/80",
+    accent: "text-amber",
+  },
+  {
+    eyebrow: "Touches your systems",
+    title: "BYOK or Agent Vault",
+    body:
+      "If the workflow needs your own provider accounts, workspace data, or production systems, review the credential paths before you execute.",
+    href: "/resolve?rhumb_experiment=e004&rhumb_source=start-managed-execution-path-credentials#credential-paths",
+    cta: "Review credential paths",
+    className: "border-sky-500/20 bg-sky-500/5",
+    accent: "text-sky-300",
+  },
+];
 ---
 
 <Layout
@@ -79,6 +112,30 @@ const STEPS = [
       </div>
     </section>
 
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Pick the path that matches the job</div>
+          <p class="text-slate-300 leading-relaxed">
+            The honest default is governed API key, but the right next step still depends on whether you are evaluating, putting managed execution into repeat use, or crossing into your own systems.
+          </p>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {PATH_CHOICES.map((choice) => (
+            <div class={`rounded-3xl border p-6 ${choice.className}`}>
+              <div class={`text-[11px] font-mono uppercase tracking-[0.24em] mb-3 ${choice.accent}`}>{choice.eyebrow}</div>
+              <h2 class="font-display font-bold text-xl text-slate-100 tracking-tight mb-3">{choice.title}</h2>
+              <p class="text-sm leading-6 text-slate-300 mb-5">{choice.body}</p>
+              <a data-rhumb-propagate href={choice.href} class="inline-flex items-center rounded-xl border border-slate-700 px-4 py-2.5 text-sm text-slate-100 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">
+                {choice.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
     <section class="max-w-5xl mx-auto px-6 pb-20">
       <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 sm:p-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
@@ -87,7 +144,7 @@ const STEPS = [
             Use this path when the question is not "can Rhumb answer a free read call?" but "am I ready to put managed execution into a real workflow?"
           </p>
           <p class="mt-4 text-sm text-slate-400 leading-6">
-            If you still need to inspect trust boundaries, read <a href="/resolve" class="text-amber hover:text-amber-200 transition-colors">Resolve</a>, <a href="/pricing" class="text-amber hover:text-amber-200 transition-colors">Pricing</a>, and <a href="/blog/capability-first-agent-onboarding" class="text-amber hover:text-amber-200 transition-colors">Capability-First Agent Onboarding</a> first.
+            If you still need to inspect trust boundaries, read <a data-rhumb-propagate href="/resolve" class="text-amber hover:text-amber-200 transition-colors">Resolve</a>, <a data-rhumb-propagate href="/pricing" class="text-amber hover:text-amber-200 transition-colors">Pricing</a>, and <a data-rhumb-propagate href="/blog/capability-first-agent-onboarding" class="text-amber hover:text-amber-200 transition-colors">Capability-First Agent Onboarding</a> first.
           </p>
         </div>
 
