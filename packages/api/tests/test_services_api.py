@@ -462,6 +462,21 @@ def test_service_detail_canonicalizes_alias_backed_scores_and_alternatives(clien
     ]
 
 
+def test_service_detail_accepts_mixed_case_alias_inputs(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["an_score"] == 8.7
+
+
 def test_service_score_canonicalizes_alias_backed_score_rows(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -484,6 +499,21 @@ def test_service_history_reads_alias_backed_score_rows(client) -> None:
         side_effect=_mock_alias_supabase_fetch,
     ):
         resp = client.get("/v1/services/brave-search-api/history")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert [entry["an_score"] for entry in payload["data"]["history"]] == [8.7, 8.4]
+
+
+def test_service_history_accepts_mixed_case_alias_inputs(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search-Api/history")
 
     assert resp.status_code == 200
     payload = resp.json()
@@ -538,3 +568,44 @@ def test_service_failures_reads_alias_backed_failure_rows(client) -> None:
             "evidence_count": 2,
         }
     ]
+
+
+def test_service_score_accepts_mixed_case_alias_inputs(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search-Api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["an_score"] == 8.7
+
+
+
+def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["failure_modes"][0]["pattern"] == "Session tokens expire early"
+
+
+
+def test_service_schema_and_report_normalize_mixed_case_alias_inputs(client) -> None:
+    schema_resp = client.get("/v1/services/Brave-Search-Api/schema")
+    report_resp = client.post("/v1/services/PDL/report")
+
+    assert schema_resp.status_code == 200
+    assert schema_resp.json()["data"]["slug"] == "brave-search-api"
+    assert report_resp.status_code == 200
+    assert report_resp.json()["data"]["slug"] == "people-data-labs"

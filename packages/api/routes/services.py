@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
-from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -137,7 +137,7 @@ async def list_services(
 @router.get("/services/{slug}")
 async def get_service(slug: str, raw_request: Request):
     """Fetch a service profile by slug, including latest score."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
 
     # Get service info
     services = await _cached_fetch(
@@ -232,7 +232,7 @@ async def get_service(slug: str, raw_request: Request):
 @router.get("/services/{slug}/score", response_model=None)
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
     service_rows = await _cached_fetch(
         "services",
         f"services?slug=eq.{quote(canonical_slug)}"
@@ -354,7 +354,7 @@ async def get_service_score(slug: str, raw_request: Request):
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
     failure_query_slugs = _score_query_slugs([canonical_slug])
     failures = await _cached_fetch(
         "failure_modes",
@@ -391,7 +391,7 @@ async def get_failures(slug: str) -> dict:
 @router.get("/services/{slug}/history")
 async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -> dict:
     """Fetch historical AN score entries for a service."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
     score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
@@ -426,12 +426,12 @@ async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -
 @router.get("/services/{slug}/schema")
 async def get_schema(slug: str) -> dict:
     """Fetch the latest schema snapshot for a service."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
     return {"data": {"slug": canonical_slug, "schema": None}, "error": None}
 
 
 @router.post("/services/{slug}/report")
 async def report_failure(slug: str) -> dict:
     """Submit a failure report for a service."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or slug
     return {"data": {"slug": canonical_slug, "accepted": True}, "error": None}
