@@ -1655,6 +1655,69 @@ async def test_v2_policy_put_and_get_round_trip(app, _mock_policy_store):
 
 
 @pytest.mark.anyio
+async def test_v2_policy_put_and_get_preserve_alias_backed_public_ids(app, _mock_policy_store):
+    stored_policy = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=["brave-search-api", "people-data-labs"],
+        provider_deny=["people-data-labs"],
+        allow_only=["brave-search-api"],
+        max_cost_usd=0.02,
+        updated_at="2026-03-31T07:05:00Z",
+    )
+    _mock_policy_store.put_policy.return_value = stored_policy
+    _mock_policy_store.get_policy.return_value = stored_policy
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        put_resp = await client.put(
+            "/v2/policy",
+            json={
+                "pin": "brave-search-api",
+                "provider_preference": ["brave-search-api", "people-data-labs"],
+                "provider_deny": ["people-data-labs"],
+                "allow_only": ["brave-search-api"],
+                "max_cost_usd": 0.02,
+            },
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+        )
+        get_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": FAKE_RHUMB_KEY})
+
+    assert put_resp.status_code == 200
+    put_body = put_resp.json()
+    assert put_body["error"] is None
+    assert put_body["data"]["policy"] == {
+        "pin": "brave-search-api",
+        "provider_preference": ["brave-search-api", "people-data-labs"],
+        "provider_deny": ["people-data-labs"],
+        "allow_only": ["brave-search-api"],
+        "max_cost_usd": 0.02,
+    }
+    assert put_body["data"]["has_policy"] is True
+
+    _mock_policy_store.put_policy.assert_awaited_once_with(
+        "org_v2_test",
+        pin="brave-search-api",
+        provider_preference=["brave-search-api", "people-data-labs"],
+        provider_deny=["people-data-labs"],
+        allow_only=["brave-search-api"],
+        max_cost_usd=0.02,
+    )
+
+    assert get_resp.status_code == 200
+    get_body = get_resp.json()
+    assert get_body["error"] is None
+    assert get_body["data"]["policy"] == {
+        "pin": "brave-search-api",
+        "provider_preference": ["brave-search-api", "people-data-labs"],
+        "provider_deny": ["people-data-labs"],
+        "allow_only": ["brave-search-api"],
+        "max_cost_usd": 0.02,
+    }
+    assert get_body["data"]["has_policy"] is True
+    assert get_body["data"]["updated_at"] == "2026-03-31T07:05:00Z"
+
+
+@pytest.mark.anyio
 async def test_v2_execute_merges_account_policy_with_inline_override(app, _mock_policy_store):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
