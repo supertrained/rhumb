@@ -820,6 +820,30 @@ async def test_v2_estimate_direct_capability_ignores_stale_catalog_mapping_rows(
 
 
 @pytest.mark.anyio
+async def test_v2_estimate_direct_capability_rejects_stale_provider_query(app):
+    breaker = SimpleNamespace(
+        state=SimpleNamespace(value="closed"),
+        allow_request=lambda: True,
+    )
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_db_direct_supabase_with_stale_mapping,
+        ),
+        patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/execute/estimate?provider=stale-db-proxy")
+
+    assert resp.status_code == 503
+    assert "stale-db-proxy" in resp.text
+    assert "db.query.read" in resp.text
+
+
+@pytest.mark.anyio
 async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(app):
     estimate_resp = MagicMock(spec=httpx.Response)
     estimate_resp.status_code = 200
