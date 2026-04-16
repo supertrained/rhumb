@@ -499,6 +499,44 @@ async def test_get_capability_not_found_suggests_capability_for_provider_alias(a
 
 
 @pytest.mark.anyio
+async def test_direct_capability_search_ignores_stale_provider_alias_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            if "id=eq.Resend" in path:
+                return []
+            return [SAMPLE_CAPABILITIES[0], DB_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            if "select=capability_id,service_slug" in path:
+                return [
+                    {"capability_id": "email.send", "service_slug": "resend"},
+                    {"capability_id": "db.query.read", "service_slug": "resend"},
+                ]
+            if "capability_id=in." in path:
+                return [{"capability_id": "email.send", "service_slug": "resend"}]
+            return []
+        if path.startswith("services?"):
+            return [{"slug": "resend", "name": "Resend"}]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            search_resp = await client.get("/v1/capabilities", params={"search": "resend"})
+            suggest_resp = await client.get("/v1/capabilities/Resend")
+
+    assert search_resp.status_code == 200
+    items = search_resp.json()["data"]["items"]
+    assert items
+    assert items[0]["id"] == "email.send"
+    assert all(item["id"] != "db.query.read" for item in items)
+
+    assert suggest_resp.status_code == 404
+    body = suggest_resp.json()
+    assert body["search_url"] == "/v1/capabilities?search=Resend"
+    assert body["suggested_capabilities"][0]["id"] == "email.send"
+    assert all(item["id"] != "db.query.read" for item in body["suggested_capabilities"])
+
+
+@pytest.mark.anyio
 async def test_resolve_capability(app):
     """GET /v1/capabilities/email.send/resolve returns ranked providers with recommendations."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):

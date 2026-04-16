@@ -2162,18 +2162,75 @@ def _normalize_intent_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", value.lower())).strip()
 
 
+def _direct_provider_aliases_by_capability() -> dict[str, set[str]]:
+    aliases_by_capability: dict[str, set[str]] = {}
+
+    def add_aliases(capability_id: str, *aliases: str) -> None:
+        alias_set = aliases_by_capability.setdefault(capability_id, set())
+        for alias in aliases:
+            value = str(alias or "").strip()
+            if value:
+                alias_set.add(value)
+
+    for capability_id in ("db.query.read", "db.schema.describe", "db.row.get"):
+        add_aliases(capability_id, _DB_DIRECT_PROVIDER_SLUG, _DB_DIRECT_PROVIDER_NAME)
+
+    for capability_id in ("warehouse.query.read", "warehouse.schema.describe"):
+        add_aliases(capability_id, _WAREHOUSE_DIRECT_PROVIDER_SLUG, _WAREHOUSE_DIRECT_PROVIDER_NAME)
+
+    for capability_id in ("object.list", "object.head", "object.get"):
+        add_aliases(capability_id, _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG, _OBJECT_STORAGE_DIRECT_PROVIDER_NAME)
+
+    for capability_id in ("deployment.list", "deployment.get"):
+        add_aliases(capability_id, _DEPLOYMENT_DIRECT_PROVIDER_SLUG, _DEPLOYMENT_DIRECT_PROVIDER_NAME)
+
+    for capability_id in ("workflow_run.list", "workflow_run.get"):
+        add_aliases(capability_id, _ACTIONS_DIRECT_PROVIDER_SLUG, _ACTIONS_DIRECT_PROVIDER_NAME)
+
+    for capability_id in ("crm.object.describe", "crm.record.search", "crm.record.get"):
+        add_aliases(
+            capability_id,
+            _CRM_HUBSPOT_DIRECT_PROVIDER_SLUG,
+            _CRM_HUBSPOT_DIRECT_PROVIDER_NAME,
+            _CRM_SALESFORCE_DIRECT_PROVIDER_SLUG,
+            _CRM_SALESFORCE_DIRECT_PROVIDER_NAME,
+        )
+
+    for capability_id in (
+        "ticket.search",
+        "ticket.get",
+        "ticket.list_comments",
+        "conversation.list",
+        "conversation.get",
+        "conversation.list_parts",
+    ):
+        add_aliases(
+            capability_id,
+            _support_direct_provider_slug(capability_id),
+            _support_direct_provider_name(capability_id),
+        )
+
+    return aliases_by_capability
+
+
 async def _provider_aliases_by_capability() -> dict[str, str]:
     mappings = await _cached_fetch(
         "capability_services",
         "capability_services?select=capability_id,service_slug",
     )
-    if not mappings:
+    direct_aliases_by_capability = _direct_provider_aliases_by_capability()
+    filtered_mappings = [
+        mapping
+        for mapping in mappings or []
+        if not _is_direct_capability(str(mapping.get("capability_id") or "").strip())
+    ]
+    if not filtered_mappings and not direct_aliases_by_capability:
         return {}
 
     service_slugs = sorted(
         {
             str(mapping.get("service_slug") or "").strip()
-            for mapping in mappings
+            for mapping in filtered_mappings
             if str(mapping.get("service_slug") or "").strip()
         }
     )
@@ -2192,7 +2249,7 @@ async def _provider_aliases_by_capability() -> dict[str, str]:
                     service_names_by_slug[slug] = name
 
     aliases_by_capability: dict[str, set[str]] = {}
-    for mapping in mappings:
+    for mapping in filtered_mappings:
         capability_id = str(mapping.get("capability_id") or "").strip()
         service_slug = str(mapping.get("service_slug") or "").strip()
         if not capability_id or not service_slug:
@@ -2202,6 +2259,9 @@ async def _provider_aliases_by_capability() -> dict[str, str]:
         aliases.add(service_slug)
         if service_name := service_names_by_slug.get(service_slug):
             aliases.add(service_name)
+
+    for capability_id, direct_aliases in direct_aliases_by_capability.items():
+        aliases_by_capability.setdefault(capability_id, set()).update(direct_aliases)
 
     return {
         capability_id: _normalize_intent_text(" ".join(sorted(aliases)))
