@@ -173,3 +173,52 @@ def test_credential_store_prefers_sop_over_env(
     store._load_service("slack")
 
     assert store.get_credential("slack", "oauth_token") == "xoxb-sop-token"
+
+
+def test_credential_store_loads_exa_from_canonical_item_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[str] = []
+
+    class _Result:
+        returncode = 0
+        stdout = "exa-sop-token\n"
+
+    def fake_run(args: list[str], **kwargs: Any) -> _Result:
+        seen.append(args[3])
+        return _Result()
+
+    monkeypatch.setattr(proxy_credentials_module.subprocess, "run", fake_run)
+
+    store = proxy_credentials_module.CredentialStore(auto_load=False)
+    store._load_service("exa")
+
+    assert seen == ["Exa API Key"]
+    assert store.get_credential("exa", "api_key") == "exa-sop-token"
+
+
+def test_credential_store_tries_legacy_alias_when_canonical_item_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[str] = []
+
+    class _Result:
+        def __init__(self, returncode: int, stdout: str = "") -> None:
+            self.returncode = returncode
+            self.stdout = stdout
+
+    def fake_run(args: list[str], **kwargs: Any) -> _Result:
+        seen.append(args[3])
+        if args[3] == "Tavily API Key":
+            return _Result(1, "")
+        if args[3] == "Tavily":
+            return _Result(0, "tavily-sop-token\n")
+        return _Result(1, "")
+
+    monkeypatch.setattr(proxy_credentials_module.subprocess, "run", fake_run)
+
+    store = proxy_credentials_module.CredentialStore(auto_load=False)
+    store._load_service("tavily")
+
+    assert seen == ["Tavily API Key", "Tavily"]
+    assert store.get_credential("tavily", "api_key") == "tavily-sop-token"

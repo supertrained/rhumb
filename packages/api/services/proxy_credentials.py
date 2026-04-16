@@ -53,25 +53,47 @@ class ProviderCredentials:
 
 
 # Mapping of 1Password item names to (service, credential_key) pairs.
+# Keep canonical human-readable titles first, then legacy aliases.
 _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "stripe_api_key": ("stripe", "api_key"),
     "slack_app_token": ("slack", "oauth_token"),
+    "GitHub PAT - rhumb-proxy (supertrained)": ("github", "api_token"),
     "github_token": ("github", "api_token"),
     "twilio_credentials": ("twilio", "basic_auth"),
     "sendgrid_api_key": ("sendgrid", "api_key"),
+    "Firecrawl API Key": ("firecrawl", "api_key"),
+    "Firecrawl": ("firecrawl", "api_key"),
     "firecrawl_api_key": ("firecrawl", "api_key"),
+    "Apify API Token": ("apify", "api_token"),
+    "Apify": ("apify", "api_token"),
     "apify_api_token": ("apify", "api_token"),
+    "Apollo API Key": ("apollo", "api_key"),
+    "Apollo": ("apollo", "api_key"),
     "apollo_api_key": ("apollo", "api_key"),
+    "People Data Labs API Key": ("pdl", "api_key"),
+    "People Data Labs": ("pdl", "api_key"),
     "pdl_api_key": ("pdl", "api_key"),
     # Stateless utility APIs (Rhumb-managed, free-tier)
+    "Tavily API Key": ("tavily", "api_key"),
+    "Tavily": ("tavily", "api_key"),
     "tavily_api_key": ("tavily", "api_key"),
+    "Exa API Key": ("exa", "api_key"),
+    "Exa": ("exa", "api_key"),
     "exa_api_key": ("exa", "api_key"),
+    "Brave Search API Key": ("brave-search", "api_key"),
     "brave_search_api_key": ("brave-search", "api_key"),
+    "Replicate API Token": ("replicate", "api_token"),
     "replicate_api_token": ("replicate", "api_token"),
     "algolia_api_key": ("algolia", "api_key"),
+    "E2B API Key": ("e2b", "api_key"),
     "e2b_api_key": ("e2b", "api_key"),
+    "Unstructured API Key": ("unstructured", "api_key"),
     "unstructured_api_key": ("unstructured", "api_key"),
+    "Google Gemini API Key": ("google-ai", "api_key"),
     "google_gemini_api_key": ("google-ai", "api_key"),
+    "IPinfo API Token": ("ipinfo", "bearer_token"),
+    "ScraperAPI API Key": ("scraperapi", "api_key"),
+    "Deepgram API Key": ("deepgram", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -134,41 +156,47 @@ class CredentialStore:
 
         Override / mock in tests.  In production calls ``sop`` CLI.
         """
-        item_name = self._item_name_for(service)
-        if item_name is None:
+        item_names = self._item_names_for(service)
+        if not item_names:
             return
 
         try:
-            result = subprocess.run(
-                [
-                    "sop",
-                    "item",
-                    "get",
-                    item_name,
-                    "--vault",
-                    "OpenClaw Agents",
-                    "--fields",
-                    "credential",
-                    "--reveal",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if result.returncode == 0:
+            for item_name in item_names:
+                result = subprocess.run(
+                    [
+                        "sop",
+                        "item",
+                        "get",
+                        item_name,
+                        "--vault",
+                        "OpenClaw Agents",
+                        "--fields",
+                        "credential",
+                        "--reveal",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode != 0:
+                    continue
+
                 value = result.stdout.strip()
-                if value:
-                    _, cred_key = _1PASSWORD_MAP.get(item_name, (service, "default"))
-                    entry = CredentialEntry(
-                        credential_type=cred_key,
-                        value=value,
-                        loaded_at=_utcnow(),
-                    )
-                    self._cache[service] = ProviderCredentials(
-                        service=service,
-                        credentials={cred_key: entry},
-                        last_refreshed=_utcnow(),
-                    )
+                if not value:
+                    continue
+
+                _, cred_key = _1PASSWORD_MAP.get(item_name, (service, "default"))
+                entry = CredentialEntry(
+                    credential_type=cred_key,
+                    value=value,
+                    loaded_at=_utcnow(),
+                )
+                self._cache[service] = ProviderCredentials(
+                    service=service,
+                    credentials={cred_key: entry},
+                    last_refreshed=_utcnow(),
+                )
+                break
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
@@ -199,12 +227,9 @@ class CredentialStore:
         )
 
     @staticmethod
-    def _item_name_for(service: str) -> Optional[str]:
-        """Map service name to 1Password item name."""
-        for item, (svc, _) in _1PASSWORD_MAP.items():
-            if svc == service:
-                return item
-        return None
+    def _item_names_for(service: str) -> list[str]:
+        """Return candidate 1Password item names for a service, in priority order."""
+        return [item for item, (svc, _) in _1PASSWORD_MAP.items() if svc == service]
 
     # ------------------------------------------------------------------
     # Access
