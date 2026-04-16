@@ -1,9 +1,9 @@
 """Tests for Round 10 Slice C — Credential injection, agent identity, auth, rate limiting.
 
-Covers:
-  - CredentialStore (load, cache, refresh, expiration, audit)
-  - AgentIdentityVerifier (Bearer token, service access, cache)
-  - AuthInjector (all 5 providers, error paths)
+    Covers:
+      - CredentialStore (load, cache, refresh, expiration, audit)
+      - AgentIdentityVerifier (Bearer token, service access, cache)
+      - AuthInjector (provider auth patterns, error paths)
   - RateLimiter (sliding window, 429 semantics, fail-open)
   - Integration: full pipeline (auth → inject → rate-limit → proxy)
 
@@ -49,12 +49,13 @@ def _utcnow() -> datetime:
 def credential_store() -> CredentialStore:
     """CredentialStore with auto_load disabled (no 1Password calls)."""
     store = CredentialStore(auto_load=False)
-    # Seed with test credentials for all 5 providers
+    # Seed with test credentials for the provider auth patterns under test.
     store.set_credential("stripe", "api_key", "sk_test_stripe_key_123")
     store.set_credential("slack", "oauth_token", "xoxb-slack-token-456")
     store.set_credential("github", "api_token", "ghp_github_token_789")
     store.set_credential("twilio", "basic_auth", "AC_sid:auth_token_abc")
     store.set_credential("sendgrid", "api_key", "SG.sendgrid_key_xyz")
+    store.set_credential("e2b", "api_key", "e2b_test_key_123")
     return store
 
 
@@ -118,13 +119,14 @@ class TestCredentialStore:
         val = credential_store.get_credential("stripe", "api_key")
         assert val == "sk_test_stripe_key_123"
 
-    def test_load_all_five_providers(self, credential_store: CredentialStore) -> None:
-        """All 5 provider credentials are present."""
+    def test_load_all_seeded_providers(self, credential_store: CredentialStore) -> None:
+        """All seeded provider credentials are present."""
         assert credential_store.get_credential("stripe", "api_key") is not None
         assert credential_store.get_credential("slack", "oauth_token") is not None
         assert credential_store.get_credential("github", "api_token") is not None
         assert credential_store.get_credential("twilio", "basic_auth") is not None
         assert credential_store.get_credential("sendgrid", "api_key") is not None
+        assert credential_store.get_credential("e2b", "api_key") is not None
 
     def test_credential_not_found_unknown_service(
         self, credential_store: CredentialStore
@@ -365,6 +367,19 @@ class TestAuthInjector:
         assert headers["Accept"] == "application/json"
         assert "Authorization" in headers
 
+    def test_inject_e2b_api_key_header(self, auth_injector: AuthInjector) -> None:
+        """E2B uses X-API-Key instead of Authorization."""
+        req = AuthInjectionRequest(
+            service="e2b",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+            existing_headers={"Accept": "application/json"},
+        )
+        headers = auth_injector.inject(req)
+        assert headers["Accept"] == "application/json"
+        assert headers["X-API-Key"] == "e2b_test_key_123"
+        assert "Authorization" not in headers
+
     def test_inject_writes_audit_entry(
         self, credential_store: CredentialStore, auth_injector: AuthInjector
     ) -> None:
@@ -388,6 +403,7 @@ class TestAuthInjector:
         assert AuthInjector.default_method_for("twilio") == AuthMethod.BASIC_AUTH
         assert AuthInjector.default_method_for("sendgrid") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("brave-search") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("e2b") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("nonexistent") is None
 
 

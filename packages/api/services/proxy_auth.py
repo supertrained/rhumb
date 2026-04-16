@@ -93,6 +93,11 @@ class AuthInjector:
             "header": "X-Subscription-Token",
             "format": "{credential}",
         },
+        "e2b": {
+            "methods": ["api_key"],
+            "header": "X-API-Key",
+            "format": "{credential}",
+        },
     }
 
     def __init__(
