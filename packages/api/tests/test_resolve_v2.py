@@ -206,6 +206,23 @@ def _mock_db_direct_supabase(path: str):
     return []
 
 
+def _mock_db_direct_supabase_with_stale_mapping(path: str):
+    if path.startswith("capability_services?") and "capability_id=eq.db.query.read" in path:
+        return [
+            {
+                "capability_id": "db.query.read",
+                "service_slug": "stale-db-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-db",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }
+        ]
+    return _mock_db_direct_supabase(path)
+
+
 def _make_mock_response(status_code: int = 202, json_body: dict | None = None):
     resp = MagicMock(spec=httpx.Response)
     resp.status_code = status_code
@@ -547,6 +564,23 @@ async def test_v2_resolve_rewrites_direct_recovery_alternate_execute_endpoint_pa
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_direct_capability_ignores_stale_catalog_mapping_rows(app):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_db_direct_supabase_with_stale_mapping,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert [provider["service_slug"] for provider in data["providers"]] == ["postgresql"]
+    assert data["execute_hint"]["preferred_provider"] == "postgresql"
+    assert data["execute_hint"]["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
+
+
+@pytest.mark.anyio
 async def test_v2_credential_modes_wraps_metadata(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -640,6 +674,33 @@ async def test_v2_estimate_rewrites_direct_execute_readiness_handoff(app):
     assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/workflow_run.list/resolve"
     assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/workflow_run.list/credential-modes"
     assert data["execute_readiness"]["auth_handoff"]["retry_url"] == "/v2/capabilities/workflow_run.list/execute"
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_direct_capability_ignores_stale_catalog_mapping_rows(app):
+    breaker = SimpleNamespace(
+        state=SimpleNamespace(value="closed"),
+        allow_request=lambda: True,
+    )
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_db_direct_supabase_with_stale_mapping,
+        ),
+        patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/execute/estimate")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "postgresql"
+    assert data["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
+    assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/db.query.read/resolve"
+    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/db.query.read/credential-modes"
 
 
 @pytest.mark.anyio
