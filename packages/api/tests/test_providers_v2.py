@@ -287,6 +287,20 @@ class TestListProviders:
         assert brave["tier"] == "Native"
         assert brave["callable"] is True
 
+    def test_list_with_status_listed_keeps_alias_backed_callable_provider(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
+            resp = client.get("/v2/providers?status=listed")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        assert "brave-search" not in providers_by_id
+        brave = providers_by_id["brave-search-api"]
+        assert brave["name"] == "Brave Search"
+        assert brave["description"] == _BRAVE_ALIAS_SERVICE_DETAIL["description"]
+        assert brave["category"] == "search"
+        assert brave["callable"] is True
+
 
 # ---------------------------------------------------------------------------
 # GET /v2/providers/{provider_id}
