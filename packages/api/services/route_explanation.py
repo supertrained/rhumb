@@ -22,6 +22,7 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch, supabase_insert
+from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,27 @@ def _generate_explanation_id(capability_id: str, timestamp_ms: int) -> str:
 # Explanation builder
 # ---------------------------------------------------------------------------
 
+def _normalize_slug(slug: str | None) -> str | None:
+    if slug is None:
+        return None
+    cleaned = str(slug).strip().lower()
+    if not cleaned:
+        return None
+    return normalize_proxy_slug(canonicalize_service_slug(cleaned))
+
+
+def _normalize_slug_list(values: list[str] | None) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values or []:
+        slug = _normalize_slug(value)
+        if not slug or slug in seen:
+            continue
+        normalized.append(slug)
+        seen.add(slug)
+    return normalized
+
+
 def build_explanation(
     *,
     capability_id: str,
@@ -173,9 +195,11 @@ def build_explanation(
     ts = int(time.time() * 1000)
     explanation_id = _generate_explanation_id(capability_id, ts)
 
-    deny_set = set(policy_deny or [])
-    allow_set = set(policy_allow_only or [])
-    policy_active = bool(policy_pin or deny_set or allow_set)
+    normalized_selected_provider = _normalize_slug(selected_provider) or selected_provider
+    normalized_policy_pin = _normalize_slug(policy_pin)
+    deny_set = set(_normalize_slug_list(policy_deny))
+    allow_set = set(_normalize_slug_list(policy_allow_only))
+    policy_active = bool(normalized_policy_pin or deny_set or allow_set)
 
     # Find max cost for normalization
     costs = [
@@ -198,7 +222,7 @@ def build_explanation(
 
         # Policy checks
         checks: dict[str, bool] = {
-            "pinned": policy_pin == slug if policy_pin else False,
+            "pinned": normalized_policy_pin == slug if normalized_policy_pin else False,
             "denied": slug in deny_set,
             "cost_ceiling_ok": (
                 cost <= max_cost_usd if max_cost_usd is not None else True
@@ -284,38 +308,38 @@ def build_explanation(
         )
         candidates.append(candidate)
 
-        if slug == selected_provider:
+        if slug == normalized_selected_provider:
             winner_candidate = candidate
 
     # Sort candidates: eligible first (by composite desc), then ineligible
     candidates.sort(key=lambda c: (-int(c.eligible), -c.composite_score))
 
     # Determine selection reason
-    if policy_pin and selected_provider == policy_pin:
+    if normalized_policy_pin and normalized_selected_provider == normalized_policy_pin:
         selection_reason = "agent_pinned"
     elif len(candidates) == 1 and candidates[0].eligible:
         selection_reason = "only_eligible_provider"
-    elif selected_provider and winner_candidate:
+    elif normalized_selected_provider and winner_candidate:
         selection_reason = "highest_composite_score_within_policy"
-    elif selected_provider:
+    elif normalized_selected_provider:
         selection_reason = "routing_engine_selected"
     else:
         selection_reason = "no_provider_available"
 
     # Build human summary
     human_summary = _build_human_summary(
-        selected_provider=selected_provider,
+        selected_provider=normalized_selected_provider,
         candidates=candidates,
         selection_reason=selection_reason,
         strategy=strategy,
-        policy_pin=policy_pin,
+        policy_pin=normalized_policy_pin,
         deny_set=deny_set,
     )
 
     return RouteExplanation(
         explanation_id=explanation_id,
         capability_id=capability_id,
-        winner_provider_id=selected_provider,
+        winner_provider_id=normalized_selected_provider,
         winner_composite_score=(
             winner_candidate.composite_score if winner_candidate else None
         ),

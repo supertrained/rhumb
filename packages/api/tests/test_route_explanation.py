@@ -69,6 +69,37 @@ def _make_circuits() -> dict[str, str]:
     }
 
 
+def _make_alias_mappings() -> list[dict]:
+    return [
+        {
+            "service_slug": "brave-search",
+            "capability_id": "search.query",
+            "cost_per_call": 0.01,
+            "credential_modes": ["byo"],
+        },
+        {
+            "service_slug": "pdl",
+            "capability_id": "search.query",
+            "cost_per_call": 0.03,
+            "credential_modes": ["byo"],
+        },
+    ]
+
+
+def _make_alias_scores() -> dict[str, float]:
+    return {
+        "brave-search": 8.7,
+        "pdl": 7.9,
+    }
+
+
+def _make_alias_circuits() -> dict[str, str]:
+    return {
+        "brave-search": "closed",
+        "pdl": "closed",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Explanation building
 # ---------------------------------------------------------------------------
@@ -145,6 +176,29 @@ class TestBuildExplanation:
         assert exp.selection_reason == "agent_pinned"
         assert exp.policy_active is True
 
+    def test_alias_backed_public_pin_is_normalized_for_explanation(self):
+        exp = build_explanation(
+            capability_id="search.query",
+            mappings=_make_alias_mappings(),
+            scores_by_slug=_make_alias_scores(),
+            circuit_states=_make_alias_circuits(),
+            selected_provider="brave-search",
+            policy_pin="brave-search-api",
+            policy_allow_only=["brave-search-api"],
+        )
+
+        brave = [c for c in exp.candidates if c.provider_id == "brave-search"][0]
+        pdl = [c for c in exp.candidates if c.provider_id == "pdl"][0]
+
+        assert exp.selection_reason == "agent_pinned"
+        assert exp.winner_provider_id == "brave-search"
+        assert exp.policy_active is True
+        assert brave.policy_checks["pinned"] is True
+        assert brave.policy_checks["allow_list_ok"] is True
+        assert brave.eligible is True
+        assert pdl.policy_checks["allow_list_ok"] is False
+        assert pdl.ineligible_reason == "not_in_allow_list"
+
     def test_no_provider_available(self):
         exp = build_explanation(
             capability_id="ai.generate_text",
@@ -179,6 +233,23 @@ class TestPolicyFiltering:
         assert denied.eligible is False
         assert denied.ineligible_reason == "excluded_by_deny_list"
         assert denied.policy_checks["denied"] is True
+
+    def test_alias_backed_public_deny_is_normalized_for_explanation(self):
+        exp = build_explanation(
+            capability_id="search.query",
+            mappings=_make_alias_mappings(),
+            scores_by_slug=_make_alias_scores(),
+            circuit_states=_make_alias_circuits(),
+            selected_provider="brave-search",
+            policy_deny=["people-data-labs"],
+        )
+
+        denied = [c for c in exp.candidates if c.provider_id == "pdl"][0]
+        allowed = [c for c in exp.candidates if c.provider_id == "brave-search"][0]
+        assert denied.eligible is False
+        assert denied.ineligible_reason == "excluded_by_deny_list"
+        assert denied.policy_checks["denied"] is True
+        assert allowed.eligible is True
 
     def test_allow_only(self):
         exp = build_explanation(
