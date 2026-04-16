@@ -172,13 +172,33 @@ class TestListProviders:
         assert "name" in provider
         assert "callable" in provider
 
-    def test_list_with_capability_filter(self, client):
+    def test_list_with_capability_filter_and_status_listed(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
-            resp = client.get(f"/v2/providers?capability={_TEST_CAPABILITY}")
+            resp = client.get(f"/v2/providers?capability={_TEST_CAPABILITY}&status=listed")
         assert resp.status_code == 200
         data = resp.json()["data"]
         slugs = [p["id"] for p in data["providers"]]
         assert _TEST_PROVIDER_SLUG in slugs
+
+    def test_list_hides_noncallable_stale_catalog_rows_by_default(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
+            resp = client.get("/v2/providers")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        slugs = [p["id"] for p in data["providers"]]
+        assert _DIRECT_PROVIDER_SLUG in slugs
+        assert "resend" not in slugs
+
+    def test_list_with_status_listed_keeps_noncallable_catalog_rows(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
+            resp = client.get("/v2/providers?status=listed")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        assert _DIRECT_PROVIDER_SLUG in providers_by_id
+        assert providers_by_id["resend"]["callable"] is False
 
     def test_list_with_direct_capability_filter_ignores_stale_catalog_mapping_rows(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):

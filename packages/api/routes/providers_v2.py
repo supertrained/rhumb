@@ -469,18 +469,20 @@ async def list_providers(
         canonical_slug = canonicalize_service_slug(service_slug)
         direct_mappings_by_provider.setdefault(canonical_slug, []).append(mapping)
 
-    provider_slugs = {
+    callable_provider_slugs = {
         canonicalize_service_slug(slug)
         for slug in SERVICE_REGISTRY
     }
-    provider_slugs.update(direct_mappings_by_provider.keys())
+    callable_provider_slugs.update(direct_mappings_by_provider.keys())
 
-    mapping_rows = await supabase_fetch("capability_services?select=service_slug") or []
-    provider_slugs.update(
-        canonicalize_service_slug(str(row["service_slug"]))
-        for row in mapping_rows
-        if row.get("service_slug")
-    )
+    provider_slugs = set(callable_provider_slugs)
+    if status_filter in {"listed", "scored"}:
+        mapping_rows = await supabase_fetch("capability_services?select=service_slug") or []
+        provider_slugs.update(
+            canonicalize_service_slug(str(row["service_slug"]))
+            for row in mapping_rows
+            if row.get("service_slug")
+        )
 
     if capability:
         direct_capability_rows = v1_execute._direct_capability_service_mappings(capability)
