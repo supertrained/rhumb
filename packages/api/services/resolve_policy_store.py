@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch, supabase_insert_returning, supabase_patch
+from services.service_slugs import canonicalize_service_slug
 
 _POLICY_TABLE = "resolve_account_policies"
 
@@ -91,7 +92,9 @@ class ResolvePolicyStore:
         if value is None:
             return None
         slug = str(value).strip().lower()
-        return slug or None
+        if not slug:
+            return None
+        return canonicalize_service_slug(slug)
 
     def _normalize_slug_list(self, values: list[Any] | None) -> list[str]:
         normalized: list[str] = []
