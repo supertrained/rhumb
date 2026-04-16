@@ -324,6 +324,52 @@ async def test_agent_credentials_includes_db_and_storage_direct_bundles_when_cat
     assert "deployment.list" in data["locked_capabilities"]
 
 
+@pytest.mark.anyio
+async def test_agent_credentials_includes_remaining_direct_bundles_when_catalog_is_empty(app):
+    """Warehouse, actions, CRM, and support direct rails should stay discoverable during catalog outages."""
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return []
+        return []
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ), patch("routes.capabilities.has_any_db_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_storage_bundle_configured", return_value=False
+    ), patch("routes.capabilities.has_any_deployment_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_warehouse_bundle_configured", return_value=True
+    ), patch("routes.capabilities.has_any_actions_bundle_configured", return_value=True), patch(
+        "routes.capabilities.has_any_crm_bundle_configured",
+        side_effect=lambda provider_slug: provider_slug == "hubspot",
+    ), patch(
+        "routes.capabilities.has_any_support_bundle_configured",
+        side_effect=lambda provider_slug: provider_slug == "zendesk",
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "test-agent"},
+            )
+
+    data = resp.json()["data"]
+    assert "bigquery" in data["configured_services"]
+    assert "github" in data["configured_services"]
+    assert "hubspot" in data["configured_services"]
+    assert "zendesk" in data["configured_services"]
+    assert "warehouse.query.read" in data["unlocked_capabilities"]
+    assert "workflow_run.list" in data["unlocked_capabilities"]
+    assert "crm.record.search" in data["unlocked_capabilities"]
+    assert "ticket.search" in data["unlocked_capabilities"]
+    assert "deployment.list" in data["locked_capabilities"]
+    assert "conversation.list" in data["locked_capabilities"]
+
+
 # ── resolve with configured field ──────────────────────────────
 
 @pytest.mark.anyio
