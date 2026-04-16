@@ -745,6 +745,106 @@ async def test_v2_estimate_direct_capability_ignores_stale_catalog_mapping_rows(
 
 
 @pytest.mark.anyio
+async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 200
+    estimate_resp.json.return_value = {
+        "data": {
+            "capability_id": "db.query.read",
+            "provider": "postgresql",
+            "credential_mode": "byok",
+            "cost_estimate_usd": None,
+            "endpoint_pattern": "POST /v1/capabilities/db.query.read/execute",
+        },
+        "error": None,
+    }
+    estimate_resp.headers = {}
+
+    execute_resp = MagicMock(spec=httpx.Response)
+    execute_resp.status_code = 200
+    execute_resp.json.return_value = {
+        "data": {
+            "execution_id": "exec_db_v2_test",
+            "provider_used": "postgresql",
+            "credential_mode": "byok",
+            "upstream_status": 200,
+            "result": {"rows": [{"n": 1}]},
+        },
+        "error": None,
+    }
+    execute_resp.headers = {}
+
+    mock_receipt = MagicMock()
+    mock_receipt.receipt_id = "rcpt_db_v2_test"
+
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {
+        "X-Rhumb-Receipt-Id": "rcpt_db_v2_test",
+        "X-Rhumb-Provider": "postgresql",
+        "X-Rhumb-Layer": "2",
+    }
+    mock_attribution.to_rhumb_block.return_value = {"receipt_id": "rcpt_db_v2_test"}
+
+    breaker = SimpleNamespace(state=SimpleNamespace(value="closed"))
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+    mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_db_direct_supabase_with_stale_mapping,
+        ),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
+        patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_db_v2_test")) as mock_build_explanation,
+        patch("routes.resolve_v2.store_explanation"),
+        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/db.query.read/execute",
+                json={
+                    "parameters": {"connection_ref": "conn_reader", "query": "select 1 as n"},
+                    "policy": {"provider_preference": ["postgresql"]},
+                    "credential_mode": "byok",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "postgresql"
+    assert data["credential_mode"] == "byok"
+    assert data["_rhumb_v2"]["selected_provider"] == "postgresql"
+    assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
+    assert data["_rhumb_v2"]["policy_candidates"] == ["postgresql"]
+    assert data["receipt_id"] == "rcpt_db_v2_test"
+
+    estimate_call = mock_forward.await_args_list[0]
+    execute_call = mock_forward.await_args_list[1]
+    assert estimate_call.kwargs["params"] == {
+        "credential_mode": "byok",
+        "provider": "postgresql",
+    }
+    assert execute_call.kwargs["json_body"] == {
+        "provider": "postgresql",
+        "credential_mode": "byok",
+        "idempotency_key": None,
+        "interface": "rest-v2",
+        "body": {"connection_ref": "conn_reader", "query": "select 1 as n"},
+        "method": "POST",
+        "path": "/v2/capabilities/db.query.read/execute",
+    }
+    assert [m["service_slug"] for m in mock_build_explanation.call_args.kwargs["mappings"]] == ["postgresql"]
+
+
+@pytest.mark.anyio
 async def test_policy_engine_matches_provider_preference_aliases():
     engine = PolicyEngine()
     auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
