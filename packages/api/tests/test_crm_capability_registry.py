@@ -45,6 +45,29 @@ async def _mock_supabase_empty(_path: str):
     return []
 
 
+async def _mock_supabase_with_stale_mapping(path: str):
+    if path.startswith("capability_services?"):
+        return [
+            {
+                "capability_id": "crm.record.search",
+                "service_slug": "stale-crm-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-crm",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }
+        ]
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    return []
+
+
 @pytest.fixture
 def app():
     return create_app()
@@ -91,6 +114,50 @@ async def test_crm_direct_capability_surfaces_prefer_hubspot_direct(app):
     assert mode_data["providers"][0]["any_configured"] is False
     assert mode_data["providers"][1]["any_configured"] is False
     assert "RHUMB_CRM_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_crm_direct_capability_ignores_catalog_mapping_rows(app):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_with_stale_mapping,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/crm.record.search")
+            resolve_resp = await client.get("/v1/capabilities/crm.record.search/resolve")
+            modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
+
+    list_item = next(item for item in list_resp.json()["data"]["items"] if item["id"] == "crm.record.search")
+    assert list_item["provider_count"] == 2
+    assert list_item["top_provider"]["slug"] == "hubspot"
+
+    get_data = get_resp.json()["data"]
+    assert [provider["service_slug"] for provider in get_data["providers"]] == [
+        "hubspot",
+        "salesforce",
+    ]
+
+    resolve_data = resolve_resp.json()["data"]
+    assert [provider["service_slug"] for provider in resolve_data["providers"]] == [
+        "hubspot",
+        "salesforce",
+    ]
+    assert [provider["auth_method"] for provider in resolve_data["providers"]] == [
+        "crm_ref",
+        "crm_ref",
+    ]
+
+    mode_data = modes_resp.json()["data"]
+    assert [provider["service_slug"] for provider in mode_data["providers"]] == [
+        "hubspot",
+        "salesforce",
+    ]
+    assert [provider["modes"][0]["mode"] for provider in mode_data["providers"]] == [
+        "byok",
+        "byok",
+    ]
 
 
 @pytest.mark.anyio

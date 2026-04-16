@@ -33,6 +33,29 @@ async def _mock_supabase_empty(_path: str):
     return []
 
 
+async def _mock_supabase_with_stale_mapping(path: str):
+    if path.startswith("capability_services?"):
+        return [
+            {
+                "capability_id": "warehouse.query.read",
+                "service_slug": "stale-warehouse-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-warehouse",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }
+        ]
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    return []
+
+
 @pytest.fixture
 def app():
     return create_app()
@@ -79,6 +102,43 @@ async def test_warehouse_direct_capability_surfaces_prefer_bigquery_direct(app):
     assert "billing_project_id" in mode_data["providers"][0]["modes"][0]["setup_hint"]
     assert "location" in mode_data["providers"][0]["modes"][0]["setup_hint"]
     assert "allowed_dataset_refs and allowed_table_refs" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_warehouse_direct_capability_ignores_catalog_mapping_rows(app):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_with_stale_mapping,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/warehouse.query.read")
+            resolve_resp = await client.get("/v1/capabilities/warehouse.query.read/resolve")
+            modes_resp = await client.get(
+                "/v1/capabilities/warehouse.query.read/credential-modes"
+            )
+
+    list_item = next(
+        item for item in list_resp.json()["data"]["items"] if item["id"] == "warehouse.query.read"
+    )
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "bigquery"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "bigquery"
+    assert get_data["providers"][0]["auth_method"] == "warehouse_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "bigquery"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "warehouse_ref"
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "bigquery"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert mode_data["providers"][0]["modes"][0]["configured"] is False
 
 
 @pytest.mark.anyio

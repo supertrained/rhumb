@@ -2573,9 +2573,27 @@ async def list_capabilities(
 
         # Find top provider by AN score
         top_provider = None
-        if _is_support_direct_capability(cid):
+        if _is_db_direct_capability(cid):
+            provider_count = 1
+            top_provider = _db_direct_top_provider()
+        elif _is_warehouse_direct_capability(cid):
+            provider_count = 1
+            top_provider = _warehouse_direct_top_provider()
+        elif _is_object_storage_direct_capability(cid):
+            provider_count = 1
+            top_provider = _object_storage_direct_top_provider()
+        elif _is_support_direct_capability(cid):
             provider_count = 1
             top_provider = _support_direct_top_provider(cid)
+        elif _is_deployment_direct_capability(cid):
+            provider_count = 1
+            top_provider = _deployment_direct_top_provider()
+        elif _is_actions_direct_capability(cid):
+            provider_count = 1
+            top_provider = _actions_direct_top_provider()
+        elif _is_crm_direct_capability(cid):
+            provider_count = len(_crm_direct_provider_order())
+            top_provider = _crm_direct_top_provider()
         elif provider_slugs:
             best_slug = None
             best_score = -1.0
@@ -2592,24 +2610,6 @@ async def list_capabilities(
                     "an_score": sc.get("aggregate_recommendation_score"),
                     "tier_label": sc.get("tier_label"),
                 }
-        elif _is_db_direct_capability(cid):
-            provider_count = 1
-            top_provider = _db_direct_top_provider()
-        elif _is_warehouse_direct_capability(cid):
-            provider_count = 1
-            top_provider = _warehouse_direct_top_provider()
-        elif _is_object_storage_direct_capability(cid):
-            provider_count = 1
-            top_provider = _object_storage_direct_top_provider()
-        elif _is_deployment_direct_capability(cid):
-            provider_count = 1
-            top_provider = _deployment_direct_top_provider()
-        elif _is_actions_direct_capability(cid):
-            provider_count = 1
-            top_provider = _actions_direct_top_provider()
-        elif _is_crm_direct_capability(cid):
-            provider_count = len(_crm_direct_provider_order())
-            top_provider = _crm_direct_top_provider()
 
         items.append({
             "id": cid,
@@ -2779,6 +2779,24 @@ async def get_capability(capability_id: str, raw_request: Request):
     else:
         cap = caps[0]
 
+    if _is_db_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_db_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
+    if _is_object_storage_direct_capability(capability_id):
+        return {
+            "data": {
+                **cap,
+                "providers": [_object_storage_direct_provider_details(capability_id)],
+                "provider_count": 1,
+            },
+            "error": None,
+        }
     if _is_support_direct_capability(capability_id):
         return {
             "data": {

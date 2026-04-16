@@ -1995,6 +1995,54 @@ async def test_db_direct_credential_modes_ignores_catalog_mapping_rows(app):
 
 
 @pytest.mark.anyio
+async def test_db_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [DB_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "db.query.read",
+                "service_slug": "stale-db-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-db",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/db.query.read")
+            resolve_resp = await client.get("/v1/capabilities/db.query.read/resolve")
+            modes_resp = await client.get("/v1/capabilities/db.query.read/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "postgresql"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "postgresql"
+    assert get_data["providers"][0]["auth_method"] == "connection_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "postgresql"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok", "agent_vault"]
+    assert resolve_data["providers"][0]["auth_method"] == "connection_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "postgresql"
+    assert provider["auth_method"] == "connection_ref"
+    assert [mode["mode"] for mode in provider["modes"]] == ["byok", "agent_vault"]
+
+
+@pytest.mark.anyio
 async def test_db_direct_capability_marks_env_bundle_as_configured(
     app,
     monkeypatch: pytest.MonkeyPatch,
@@ -2160,6 +2208,55 @@ async def test_object_storage_direct_credential_modes_ignores_catalog_mapping_ro
     assert provider["modes"][0]["mode"] == "byok"
     assert provider["modes"][0]["configured"] is False
     assert "RHUMB_STORAGE_<REF>" in provider["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_object_storage_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [OBJECT_STORAGE_DIRECT_CAPABILITIES[0]]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "object.list",
+                "service_slug": "stale-object-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-object",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/object.list")
+            resolve_resp = await client.get("/v1/capabilities/object.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/object.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "aws-s3"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "aws-s3"
+    assert get_data["providers"][0]["auth_method"] == "storage_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "aws-s3"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "storage_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "aws-s3"
+    assert provider["auth_method"] == "storage_ref"
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
 
 
 @pytest.mark.anyio
