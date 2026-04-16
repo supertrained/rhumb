@@ -13,6 +13,7 @@ from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetStatus
 from services.policy_engine import PolicyEngine
+from services.provider_attribution import clear_provider_cache
 from services.resolve_policy_store import ResolvePolicyStore
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
@@ -1869,6 +1870,63 @@ async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app
         "inline_fields": [],
     }
     assert data["_rhumb_v2"]["translated_from"]["policy_pin"] is False
+
+
+@pytest.mark.anyio
+async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_alias_backed_execution(app, _mock_policy_store):
+    _, mock_pool, budget_state = _build_patches()
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    async def _mock_provider_detail_fetch(path: str):
+        if path.startswith("services?slug=eq.brave-search-api"):
+            return [{
+                "slug": "brave-search-api",
+                "name": "Brave Search",
+                "category": "search",
+                "official_docs": "https://api.search.brave.com/docs",
+                "aggregate_recommendation_score": 7.8,
+                "tier_label": "L3",
+            }]
+        return []
+
+    clear_provider_cache()
+    try:
+        with (
+            patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+            patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+            patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+            patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+            patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+            patch("services.provider_attribution.supabase_fetch", new=AsyncMock(side_effect=_mock_provider_detail_fetch)),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    "/v2/capabilities/search.query/execute",
+                    json={
+                        "parameters": {"q": "rhumb"},
+                        "credential_mode": "byo",
+                        "interface": "rest",
+                    },
+                    headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                )
+    finally:
+        clear_provider_cache()
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb"]["provider"]["id"] == "brave-search-api"
+    assert data["_rhumb"]["provider"]["name"] == "Brave Search"
+    assert resp.headers["X-Rhumb-Provider"] == "brave-search-api"
 
 
 @pytest.mark.anyio

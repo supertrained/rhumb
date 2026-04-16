@@ -208,9 +208,61 @@ class TestSyncBuilder:
         assert headers["X-Rhumb-Provider"] == "openai"
         assert headers["X-Rhumb-Provider-Region"] == "us-west-2"
 
+    def test_sync_builder_canonicalizes_runtime_alias_for_public_identity(self):
+        attr = build_attribution_sync(
+            provider_slug="pdl",
+            provider_name="People Data Labs",
+        )
+
+        block = attr.to_rhumb_block()
+        headers = attr.to_response_headers()
+
+        assert attr.provider_id == "people-data-labs"
+        assert block["provider"]["id"] == "people-data-labs"
+        assert block["provider"]["name"] == "People Data Labs"
+        assert headers["X-Rhumb-Provider"] == "people-data-labs"
+
 
 class TestAsyncBuilder:
     """Test the async builder that fetches from the database."""
+
+    @pytest.mark.asyncio
+    async def test_build_attribution_canonicalizes_runtime_alias_for_public_identity(self, monkeypatch):
+        seen_queries: list[str] = []
+
+        async def _mock_fetch(query):
+            seen_queries.append(query)
+            return [{
+                "slug": "brave-search-api",
+                "name": "Brave Search",
+                "category": "search",
+                "api_domain": "api.search.brave.com",
+                "aggregate_recommendation_score": 7.8,
+                "tier_label": "L3",
+                "official_docs": "https://api.search.brave.com/docs",
+            }]
+
+        monkeypatch.setattr(
+            "services.provider_attribution.supabase_fetch",
+            _mock_fetch,
+        )
+
+        attr = await build_attribution(
+            provider_slug="brave-search",
+            layer=2,
+            receipt_id="rcpt_brave_alias",
+        )
+
+        block = attr.to_rhumb_block()
+        headers = attr.to_response_headers()
+
+        assert seen_queries == [
+            "services?slug=eq.brave-search-api&select=slug,name,description,category,api_domain,aggregate_recommendation_score,tier_label,official_docs&limit=1"
+        ]
+        assert attr.provider_id == "brave-search-api"
+        assert block["provider"]["id"] == "brave-search-api"
+        assert block["provider"]["name"] == "Brave Search"
+        assert headers["X-Rhumb-Provider"] == "brave-search-api"
 
     @pytest.mark.asyncio
     async def test_build_attribution_with_mock(self, monkeypatch):

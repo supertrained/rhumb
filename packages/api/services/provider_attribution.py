@@ -28,6 +28,7 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch
+from services.service_slugs import canonicalize_service_slug
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,19 @@ logger = logging.getLogger(__name__)
 _provider_cache: dict[str, dict[str, Any] | None] = {}
 
 
+def _canonical_provider_slug(provider_slug: str) -> str:
+    cleaned = str(provider_slug or "unknown").strip().lower()
+    return canonicalize_service_slug(cleaned) or "unknown"
+
+
 async def _fetch_provider_detail(provider_slug: str) -> dict[str, Any] | None:
     """Fetch service row for attribution, with in-memory cache."""
-    if provider_slug in _provider_cache:
-        return _provider_cache[provider_slug]
+    canonical_slug = _canonical_provider_slug(provider_slug)
+    if canonical_slug in _provider_cache:
+        return _provider_cache[canonical_slug]
 
     rows = await supabase_fetch(
-        f"services?slug=eq.{quote(provider_slug)}"
+        f"services?slug=eq.{quote(canonical_slug)}"
         f"&select=slug,name,description,category,api_domain,"
         f"aggregate_recommendation_score,tier_label,official_docs"
         f"&limit=1"
@@ -54,7 +61,7 @@ async def _fetch_provider_detail(provider_slug: str) -> dict[str, Any] | None:
     # Cache (bounded: evict if > 200 entries)
     if len(_provider_cache) > 200:
         _provider_cache.clear()
-    _provider_cache[provider_slug] = result
+    _provider_cache[canonical_slug] = result
     return result
 
 
@@ -176,10 +183,11 @@ async def build_attribution(
     region: str | None = None,
 ) -> ProviderAttribution:
     """Build a full attribution object by fetching provider details."""
-    detail = await _fetch_provider_detail(provider_slug)
+    canonical_slug = _canonical_provider_slug(provider_slug)
+    detail = await _fetch_provider_detail(canonical_slug)
 
     return ProviderAttribution(
-        provider_id=provider_slug,
+        provider_id=str(detail.get("slug") or canonical_slug) if detail else canonical_slug,
         provider_name=detail.get("name") if detail else None,
         provider_category=detail.get("category") if detail else None,
         provider_docs_url=detail.get("official_docs") if detail else None,
@@ -218,8 +226,9 @@ def build_attribution_sync(
     region: str | None = None,
 ) -> ProviderAttribution:
     """Build an attribution object from pre-fetched data (no DB lookup)."""
+    canonical_slug = _canonical_provider_slug(provider_slug)
     return ProviderAttribution(
-        provider_id=provider_slug,
+        provider_id=canonical_slug,
         provider_name=provider_name,
         provider_category=provider_category,
         provider_docs_url=provider_docs_url,
