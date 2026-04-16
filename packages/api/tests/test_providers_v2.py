@@ -279,6 +279,18 @@ class TestListProviders:
         assert "resend" not in slugs
         assert data["total"] == 0
 
+    def test_list_with_direct_capability_filter_and_status_callable_ignores_stale_catalog_mapping_rows(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
+            resp = client.get(f"/v2/providers?capability={_DIRECT_CAPABILITY}&status=callable")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        assert _DIRECT_PROVIDER_SLUG in providers_by_id
+        assert providers_by_id[_DIRECT_PROVIDER_SLUG]["callable"] is True
+        assert "resend" not in providers_by_id
+        assert data["total"] == 1
+
     def test_list_uses_alias_backed_metadata_for_callable_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
             resp = client.get("/v2/providers?capability=search.query")
