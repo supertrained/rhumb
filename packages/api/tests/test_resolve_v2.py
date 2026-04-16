@@ -1149,6 +1149,35 @@ async def test_policy_engine_matches_allow_only_aliases():
 
 
 @pytest.mark.anyio
+async def test_policy_engine_matches_provider_deny_aliases():
+    engine = PolicyEngine()
+    auto_selector = AsyncMock(return_value={"service_slug": "brave-search"})
+    policy = SimpleNamespace(
+        pin=None,
+        provider_preference=[],
+        provider_deny=["brave-search-api"],
+        allow_only=[],
+        max_cost_usd=None,
+    )
+
+    decision = await engine.resolve_provider(
+        mappings=[
+            {"service_slug": "brave-search"},
+            {"service_slug": "elasticsearch"},
+        ],
+        agent_id="agent_v2_test",
+        policy=policy,
+        auto_selector=auto_selector,
+    )
+
+    assert decision.selected_provider == "elasticsearch"
+    assert decision.selected_reason == "policy_single_candidate"
+    assert decision.candidate_providers == ["elasticsearch"]
+    assert decision.policy_summary["provider_deny"] == ["brave-search"]
+    auto_selector.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app):
     _, mock_pool, budget_state = _build_patches()
 
@@ -1268,6 +1297,37 @@ async def test_v2_execute_honors_allow_only_alias_provider_and_reports_runtime_s
 
     request_call = mock_pool.acquire.return_value.request.await_args
     assert request_call is not None
+
+
+@pytest.mark.anyio
+async def test_v2_execute_rejects_denied_alias_provider_and_surfaces_normalized_policy(app):
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "policy": {"provider_deny": ["brave-search-api"]},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"]["code"] == "NO_PROVIDER_AVAILABLE"
+    assert "no providers satisfy the execution policy" in body["error"]["message"].lower()
+    assert body["error"]["policy"] == {
+        "pin": None,
+        "provider_preference": [],
+        "provider_deny": ["brave-search"],
+        "allow_only": [],
+    }
+    assert mock_forward.await_count == 0
 
 
 @pytest.mark.anyio
