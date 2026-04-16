@@ -23,6 +23,7 @@ from services.score_cache import (
     get_audit_chain,
     get_score_cache,
 )
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter(prefix="/v2/scores", tags=["scores-v2"])
 
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/v2/scores", tags=["scores-v2"])
 def _score_to_response(entry: CachedScore) -> dict[str, Any]:
     """Format a CachedScore into the public response shape."""
     return {
-        "service_slug": entry.service_slug,
+        "service_slug": public_service_slug(entry.service_slug) or entry.service_slug,
         "an_score": round(entry.an_score, 1),
         "execution_score": round(entry.execution_score, 1),
         "access_readiness_score": (
@@ -52,7 +53,7 @@ def _audit_entry_to_response(entry: ScoreAuditEntry) -> dict[str, Any]:
     """Format an audit entry for the public history endpoint."""
     return {
         "entry_id": entry.entry_id,
-        "service_slug": entry.service_slug,
+        "service_slug": public_service_slug(entry.service_slug) or entry.service_slug,
         "old_score": entry.old_score,
         "new_score": round(entry.new_score, 1),
         "change_reason": entry.change_reason,
@@ -62,14 +63,22 @@ def _audit_entry_to_response(entry: ScoreAuditEntry) -> dict[str, Any]:
     }
 
 
+def _cached_score_for_provider_id(provider_id: str) -> CachedScore | None:
+    cache = get_score_cache()
+    for candidate in public_service_slug_candidates(provider_id):
+        entry = cache.get(candidate)
+        if entry is not None:
+            return entry
+    return None
+
+
 @router.get("/{provider_id}")
 async def get_provider_score(provider_id: str) -> dict[str, Any]:
     """Get the current AN Score for a provider.
 
     Reads exclusively from the score cache — no direct DB access.
     """
-    cache = get_score_cache()
-    entry = cache.get(provider_id)
+    entry = _cached_score_for_provider_id(provider_id)
 
     if entry is None:
         raise HTTPException(
@@ -95,11 +104,11 @@ async def get_provider_score_history(
     """
     safe_limit = max(1, min(limit, 200))
     chain = get_audit_chain()
-    entries = chain.history(service_slug=provider_id, limit=safe_limit)
+    entries = chain.history(service_slug=public_service_slug_candidates(provider_id), limit=safe_limit)
 
     return {
         "data": {
-            "service_slug": provider_id,
+            "service_slug": public_service_slug(provider_id) or provider_id,
             "entries": [_audit_entry_to_response(e) for e in entries],
             "chain_verified": chain.verify_chain(),
             "total_chain_length": chain.length,

@@ -295,6 +295,16 @@ def client(app):
 
 
 class TestScoresV2Endpoints:
+    @pytest.fixture(autouse=True)
+    def _reset_singletons(self):
+        cache = get_score_cache()
+        cache._populate([])
+
+        chain = get_audit_chain()
+        chain._entries.clear()
+        chain._prev_hash = chain.GENESIS_HASH
+        chain._entry_counter = 0
+
     def test_get_score_not_found(self, client):
         resp = client.get("/v2/scores/nonexistent")
         assert resp.status_code == 404
@@ -313,6 +323,16 @@ class TestScoresV2Endpoints:
         assert body["data"]["an_score"] == 8.5
         assert body["data"]["source"] == "score_cache"
         assert body["error"] is None
+
+    def test_get_score_from_canonical_alias_provider_id_uses_runtime_cache_key(self, client):
+        cache = get_score_cache()
+        cache._populate([_make_score("brave-search", 8.9, tier="L4")])
+
+        resp = client.get("/v2/scores/brave-search-api")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["service_slug"] == "brave-search-api"
+        assert body["data"]["an_score"] == 8.9
 
     def test_get_score_history_empty(self, client):
         resp = client.get("/v2/scores/stripe/history")
@@ -334,6 +354,20 @@ class TestScoresV2Endpoints:
         # Check chain-hash fields are present
         assert "chain_hash" in entries[0]
         assert "prev_hash" in entries[0]
+
+    def test_get_score_history_from_canonical_alias_provider_id_uses_runtime_entries(self, client):
+        chain = get_audit_chain()
+        chain.append("brave-search", None, 8.4, "initial")
+        chain.append("brave-search", 8.4, 8.8, "evidence_update")
+
+        resp = client.get("/v2/scores/brave-search-api/history?limit=10")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["service_slug"] == "brave-search-api"
+        entries = body["data"]["entries"]
+        assert len(entries) == 2
+        assert all(entry["service_slug"] == "brave-search-api" for entry in entries)
+        assert body["data"]["chain_verified"] is True
 
     def test_cache_status(self, client):
         resp = client.get("/v2/scores/cache/status")

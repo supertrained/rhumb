@@ -291,13 +291,17 @@ class ScoreAuditChain:
 
     def history(
         self,
-        service_slug: str | None = None,
+        service_slug: str | list[str] | set[str] | tuple[str, ...] | None = None,
         limit: int = 50,
     ) -> list[ScoreAuditEntry]:
-        """Return audit entries, optionally filtered by service slug."""
+        """Return audit entries, optionally filtered by one or more service slugs."""
         with self._lock:
             if service_slug:
-                filtered = [e for e in self._entries if e.service_slug == service_slug]
+                if isinstance(service_slug, str):
+                    allowed_slugs = {service_slug}
+                else:
+                    allowed_slugs = {str(slug) for slug in service_slug if str(slug).strip()}
+                filtered = [e for e in self._entries if e.service_slug in allowed_slugs]
             else:
                 filtered = list(self._entries)
         return filtered[-limit:]
