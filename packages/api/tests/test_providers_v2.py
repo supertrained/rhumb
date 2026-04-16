@@ -420,9 +420,13 @@ class TestGetProvider:
         assert data["name"] == "PostgreSQL"
         assert data["category"] == "database"
         assert data["callable"] is True
-        capability_ids = {capability["capability_id"] for capability in data["capabilities"]}
-        assert {"db.query.read", "db.schema.describe", "db.row.get"}.issubset(capability_ids)
-        assert _DIRECT_CAPABILITY in capability_ids
+        capabilities_by_id = {capability["capability_id"]: capability for capability in data["capabilities"]}
+        assert {"db.query.read", "db.schema.describe", "db.row.get"}.issubset(capabilities_by_id)
+        direct_capability = capabilities_by_id[_DIRECT_CAPABILITY]
+        assert direct_capability["credential_modes"] == ["byok", "agent_vault"]
+        assert direct_capability["cost_per_call"] is None
+        assert direct_capability["cost_currency"] == "USD"
+        assert direct_capability["free_tier_calls"] is None
 
     def test_get_provider_accepts_alias_backed_service_and_score_rows(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
