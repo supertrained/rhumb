@@ -410,11 +410,11 @@ class TestAuditRoutes:
         trail = at_module.get_audit_trail()
         trail.record(
             AuditEventType.EXECUTION_STARTED, "Test execution started",
-            org_id="org_test", agent_id="agent_1", provider_slug="brave",
+            org_id="org_test", agent_id="agent_1", provider_slug="brave-search",
         )
         trail.record(
             AuditEventType.EXECUTION_COMPLETED, "Test execution completed",
-            org_id="org_test", agent_id="agent_1", provider_slug="brave",
+            org_id="org_test", agent_id="agent_1", provider_slug="brave-search",
             receipt_id="rcpt_001", execution_id="exec_001",
             detail={"api_key": "sk-live-12345", "latency_ms": 42},
         )
@@ -487,6 +487,15 @@ class TestAuditRoutes:
         assert completed["detail"]["api_key"] == "[REDACTED]"
         assert completed["detail"]["latency_ms"] == 42
 
+    def test_query_surfaces_canonicalize_alias_backed_provider_slug(self, client):
+        resp = client.get("/v2/audit/events", headers={"X-Rhumb-Key": "test_key"})
+        assert resp.status_code == 200
+        events = resp.json()["data"]["events"]
+        completed = next(event for event in events if event["event_type"] == "execution.completed")
+        started = next(event for event in events if event["event_type"] == "execution.started")
+        assert completed["provider_slug"] == "brave-search-api"
+        assert started["provider_slug"] == "brave-search-api"
+
     def test_get_event_by_id(self, client):
         # First get the list to find an event ID
         resp = client.get("/v2/audit/events", headers={"X-Rhumb-Key": "test_key"})
@@ -538,6 +547,8 @@ class TestAuditRoutes:
         # The export field is a JSON string
         export = json.loads(data["export"])
         assert export["event_count"] == 3  # org_test events only
+        completed = next(event for event in export["events"] if event["event_type"] == "execution.completed")
+        assert completed["provider_slug"] == "brave-search-api"
 
     def test_export_csv(self, client):
         resp = client.post(

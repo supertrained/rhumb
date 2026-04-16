@@ -23,6 +23,7 @@ from services.billing_events import (
     BillingEventType,
     get_billing_event_stream,
 )
+from services.service_slugs import public_service_slug
 
 router = APIRouter(prefix="/v2/billing", tags=["billing-v2"])
 
@@ -64,7 +65,7 @@ def _event_to_response(event: BillingEvent) -> dict[str, Any]:
         "receipt_id": event.receipt_id,
         "execution_id": event.execution_id,
         "capability_id": event.capability_id,
-        "provider_slug": event.provider_slug,
+        "provider_slug": public_service_slug(event.provider_slug),
         "metadata": event.metadata,
         "chain_hash": event.chain_hash,
     }

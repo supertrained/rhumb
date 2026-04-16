@@ -20,6 +20,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.billing_events import BillingEventType, get_billing_event_stream
 from services.score_cache import get_score_cache
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter(prefix="/v2/trust", tags=["trust-v2"])
 logger = logging.getLogger(__name__)
@@ -82,7 +83,9 @@ async def trust_summary(
     success_rate = (successful / total_executions * 100) if total_executions > 0 else 0.0
 
     unique_providers = set(
-        e.provider_slug for e in execution_events if e.provider_slug
+        public_service_slug(e.provider_slug)
+        for e in execution_events
+        if public_service_slug(e.provider_slug)
     )
     unique_capabilities = set(
         e.capability_id for e in execution_events if e.capability_id
@@ -143,7 +146,7 @@ async def trust_providers(
     # Aggregate by provider
     provider_stats: dict[str, dict[str, Any]] = {}
     for event in execution_events:
-        slug = event.provider_slug or "unknown"
+        slug = public_service_slug(event.provider_slug) or "unknown"
         if slug not in provider_stats:
             provider_stats[slug] = {
                 "provider_slug": slug,
@@ -168,7 +171,7 @@ async def trust_providers(
     ):
         total = stats["execution_count"]
         success_rate = (stats["success_count"] / total * 100) if total > 0 else 0.0
-        cached_score = cache.get(slug)
+        cached_score = _score_for_provider_slug(cache, slug)
 
         provider_list.append({
             **stats,
@@ -284,7 +287,7 @@ async def trust_reliability(
     # Per-provider reliability
     provider_reliability: dict[str, dict[str, int]] = {}
     for event in execution_events:
-        slug = event.provider_slug or "unknown"
+        slug = public_service_slug(event.provider_slug) or "unknown"
         if slug not in provider_reliability:
             provider_reliability[slug] = {"success": 0, "failure": 0}
         if event.event_type == BillingEventType.EXECUTION_CHARGED:
@@ -411,3 +414,11 @@ def _provider_health_label(success_rate: float, total_executions: int) -> str:
     if success_rate >= 80.0:
         return "unstable"
     return "unhealthy"
+
+
+def _score_for_provider_slug(cache: Any, slug: str) -> Any | None:
+    for candidate in public_service_slug_candidates(slug):
+        cached_score = cache.get(candidate)
+        if cached_score is not None:
+            return cached_score
+    return None

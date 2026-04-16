@@ -27,3 +27,29 @@ def normalize_proxy_slug(slug: str) -> str:
 def canonicalize_service_slug(slug: str) -> str:
     """Resolve a proxy-layer alias back to its canonical/public slug."""
     return PROXY_TO_CANONICAL.get(slug, slug)
+
+
+def public_service_slug(slug: str | None) -> str | None:
+    """Normalize an optional slug for public/API-facing surfaces."""
+    if slug is None:
+        return None
+    cleaned = str(slug).strip().lower()
+    if not cleaned:
+        return None
+    return canonicalize_service_slug(cleaned)
+
+
+def public_service_slug_candidates(slug: str | None) -> list[str]:
+    """Return public and runtime candidates for alias-backed lookups."""
+    raw = str(slug or "").strip().lower() or None
+    public = public_service_slug(raw)
+
+    candidates: list[str] = []
+    for candidate in (
+        public,
+        raw,
+        normalize_proxy_slug(public) if public else None,
+    ):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+    return candidates

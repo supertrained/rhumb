@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -203,6 +204,37 @@ class TestBillingEventSummary:
         assert summary_a.total_charged_usd_cents == 100
         assert summary_b.total_charged_usd_cents == 200
 
+    def test_summarize_canonicalizes_alias_backed_provider_ids(self):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            150,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            200,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            300,
+            provider_slug="pdl",
+            capability_id="people.enrich",
+        )
+
+        summary = stream.summarize("org_alias")
+
+        assert summary.by_provider == {
+            "brave-search-api": 350,
+            "people-data-labs": 300,
+        }
+
 
 # ── Tamper detection ─────────────────────────────────────────────────
 
@@ -296,3 +328,54 @@ class TestBillingV2Endpoints:
         for t in types:
             assert isinstance(t.value, str)
             assert "." in t.value  # All follow dot notation
+
+    def test_events_canonicalize_alias_backed_provider_slug(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            150,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        event = resp.json()["data"]["events"][0]
+        assert event["provider_slug"] == "brave-search-api"
+
+    def test_summary_merges_alias_backed_provider_totals_under_public_id(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            150,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            200,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["by_provider"] == {
+            "brave-search-api": {
+                "charged_usd_cents": 350,
+                "charged_usd": 3.5,
+            }
+        }

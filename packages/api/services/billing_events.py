@@ -25,6 +25,7 @@ from typing import Any
 from uuid import uuid4
 
 from services.chain_integrity import get_signing_key_version
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
 
@@ -273,9 +274,10 @@ class BillingEventStream:
 
             if event.event_type == BillingEventType.EXECUTION_CHARGED:
                 execution_count += 1
-                if event.provider_slug:
-                    by_provider[event.provider_slug] = (
-                        by_provider.get(event.provider_slug, 0) + event.amount_usd_cents
+                public_provider_slug = public_service_slug(event.provider_slug)
+                if public_provider_slug:
+                    by_provider[public_provider_slug] = (
+                        by_provider.get(public_provider_slug, 0) + event.amount_usd_cents
                     )
                 if event.capability_id:
                     by_capability[event.capability_id] = (

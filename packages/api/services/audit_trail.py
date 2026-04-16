@@ -34,6 +34,7 @@ from services.chain_integrity import (
     get_signing_key_version,
     verify_chain_hmac,
 )
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
 
@@ -717,7 +718,7 @@ class AuditTrail:
             "detail": detail,
             "receipt_id": event.receipt_id,
             "execution_id": event.execution_id,
-            "provider_slug": event.provider_slug,
+            "provider_slug": public_service_slug(event.provider_slug),
             "chain_sequence": event.chain_sequence,
             "chain_hash": event.chain_hash,
             "prev_hash": event.prev_hash,

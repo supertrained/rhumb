@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from services.billing_events import BillingEventType, BillingEventStream, get_billing_event_stream
-from services.score_cache import get_score_cache
+from services.score_cache import ScoreReadCache, get_score_cache
 from tests.test_score_cache import _make_score
 
 
@@ -164,3 +166,121 @@ class TestTrustBillingIntegration:
         openai_score = cache.get("openai")
         assert openai_score is not None
         assert openai_score.an_score == 9.1
+
+
+class TestTrustV2Endpoints:
+    def test_summary_counts_alias_and_public_provider_as_one_provider(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            100,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/trust/summary", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["unique_providers_used"] == 1
+
+    def test_providers_canonicalize_alias_backed_provider_slug_and_keep_scores(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            100,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+        cache = ScoreReadCache(ttl_seconds=300.0, max_entries=100)
+        cache._populate([_make_score("brave-search", 8.8, tier="L4")])
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
+            patch("routes.trust_v2.get_score_cache", return_value=cache),
+        ):
+            resp = client.get("/v2/trust/providers", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        providers = resp.json()["data"]["providers"]
+        assert providers == [{
+            "provider_slug": "brave-search-api",
+            "execution_count": 2,
+            "success_count": 1,
+            "failure_count": 1,
+            "total_charged_usd_cents": 100,
+            "success_rate_pct": 50.0,
+            "total_charged_usd": 1.0,
+            "an_score": 8.8,
+            "tier": "L4",
+        }]
+
+    def test_costs_and_reliability_merge_alias_backed_provider_truth(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            100,
+            provider_slug="pdl",
+            capability_id="people.enrich",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="people-data-labs",
+            capability_id="people.enrich",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            200,
+            provider_slug="people-data-labs",
+            capability_id="people.enrich",
+        )
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
+        ):
+            costs_resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
+            reliability_resp = client.get("/v2/trust/reliability", headers={"X-Rhumb-Key": "test_key"})
+
+        assert costs_resp.status_code == 200
+        assert costs_resp.json()["data"]["by_provider"] == {
+            "people-data-labs": {
+                "charged_usd_cents": 300,
+                "charged_usd": 3.0,
+                "pct_of_total": 100.0,
+            }
+        }
+
+        assert reliability_resp.status_code == 200
+        assert reliability_resp.json()["data"]["by_provider"] == [{
+            "provider_slug": "people-data-labs",
+            "total_executions": 3,
+            "successes": 2,
+            "failures": 1,
+            "success_rate_pct": 66.7,
+            "health": "unhealthy",
+        }]
