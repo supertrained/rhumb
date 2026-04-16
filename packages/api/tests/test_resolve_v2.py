@@ -920,6 +920,41 @@ async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(a
 
 
 @pytest.mark.anyio
+async def test_v2_execute_direct_capability_rejects_stale_allow_only_provider(app):
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_db_direct_supabase_with_stale_mapping,
+        ),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/db.query.read/execute",
+                json={
+                    "parameters": {"connection_ref": "conn_reader", "query": "select 1 as n"},
+                    "policy": {"allow_only": ["stale-db-proxy"]},
+                    "credential_mode": "byok",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"]["code"] == "NO_PROVIDER_AVAILABLE"
+    assert "no providers satisfy the execution policy" in body["error"]["message"].lower()
+    assert body["error"]["policy"] == {
+        "pin": None,
+        "provider_preference": [],
+        "provider_deny": [],
+        "allow_only": ["stale-db-proxy"],
+    }
+    assert mock_forward.await_count == 0
+
+
+@pytest.mark.anyio
 async def test_policy_engine_matches_provider_preference_aliases():
     engine = PolicyEngine()
     auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
