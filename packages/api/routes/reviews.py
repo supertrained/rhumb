@@ -9,7 +9,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
-from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -124,15 +124,6 @@ def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
 
 
-def _service_slug_candidates(slug: str) -> list[str]:
-    canonical_slug = canonicalize_service_slug(slug)
-    candidates: list[str] = [canonical_slug]
-    proxy_slug = normalize_proxy_slug(canonical_slug)
-    if proxy_slug not in candidates:
-        candidates.append(proxy_slug)
-    return candidates
-
-
 def _quality_floor(
     total_reviews: int,
     source_types_by_review: dict[str, list[str]],
@@ -225,8 +216,8 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 @router.get("/services/{slug}/reviews")
 async def get_service_reviews(slug: str) -> dict[str, Any]:
     """Return published reviews for one service."""
-    canonical_slug = canonicalize_service_slug(slug)
-    slug_candidates = _service_slug_candidates(slug)
+    canonical_slug = public_service_slug(slug) or slug
+    slug_candidates = public_service_slug_candidates(slug)
     reviews = await _cached_fetch(
         "service_reviews",
         "service_reviews"
@@ -301,8 +292,8 @@ async def get_service_evidence(
     slug: str, kind: str | None = Query(default=None)
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
-    canonical_slug = canonicalize_service_slug(slug)
-    slug_candidates = _service_slug_candidates(slug)
+    canonical_slug = public_service_slug(slug) or slug
+    slug_candidates = public_service_slug_candidates(slug)
     path = (
         "evidence_records"
         f"?service_slug=in.({_postgrest_in(slug_candidates)})"

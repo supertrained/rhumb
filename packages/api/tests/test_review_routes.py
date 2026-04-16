@@ -424,6 +424,88 @@ def test_get_service_reviews_falls_back_to_proxy_slug_for_canonical_alias(
     assert payload["reviews"][0]["trust_label"] == "\U0001F7E2 Runtime-verified"
 
 
+def test_get_service_reviews_normalizes_mixed_case_alias_input(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Mixed-case proxy aliases should still resolve to canonical public review slugs."""
+    fake_supabase["service_reviews"].append(
+        {
+            "id": "review-pdl-mixed-case",
+            "service_slug": "people-data-labs",
+            "review_type": "manual",
+            "review_status": "published",
+            "headline": "PDL mixed-case review",
+            "summary": "Canonical slug evidence",
+            "reviewer_label": "Rhumb editorial team",
+            "reviewed_at": "2026-03-12T00:00:00Z",
+            "confidence": 0.8,
+            "evidence_count": 1,
+            "highest_trust_source": "runtime_verified",
+        }
+    )
+    fake_supabase["review_evidence_links"].append(
+        {"review_id": "review-pdl-mixed-case", "evidence_record_id": "evidence-pdl-mixed-case"}
+    )
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-pdl-mixed-case",
+            "service_slug": "people-data-labs",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "PDL mixed-case evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-12T00:00:00Z",
+            "fresh_until": "2026-04-12T00:00:00Z",
+            "confidence": 0.9,
+            "source_ref": "facts/pdl-mixed-case",
+        }
+    )
+
+    response = client.get("/v1/services/PDL/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "people-data-labs"
+    assert payload["total_reviews"] == 1
+    assert payload["reviews"][0]["headline"] == "PDL mixed-case review"
+
+
+def test_get_service_evidence_normalizes_mixed_case_canonical_input(
+    client: TestClient,
+    fake_supabase: dict[str, list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mixed-case canonical aliases should still surface proxy-backed evidence rows."""
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-mixed-case",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "Brave mixed-case evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "facts/brave-mixed-case",
+        }
+    )
+    monkeypatch.setattr(
+        reviews_module,
+        "_utc_now",
+        lambda: datetime(2026, 3, 27, 0, 0, tzinfo=UTC),
+    )
+
+    response = client.get("/v1/services/Brave-Search-Api/evidence?kind=failure_mode")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_evidence"] == 1
+    assert payload["evidence"][0]["id"] == "evidence-brave-mixed-case"
+    assert payload["evidence"][0]["is_fresh"] is True
+
+
 def test_get_service_reviews_returns_empty_list_for_unknown_service(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:
