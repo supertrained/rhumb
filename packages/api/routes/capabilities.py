@@ -149,6 +149,18 @@ def _is_crm_direct_capability(capability_id: str) -> bool:
     }
 
 
+def _is_direct_capability(capability_id: str) -> bool:
+    return (
+        _is_db_direct_capability(capability_id)
+        or _is_warehouse_direct_capability(capability_id)
+        or _is_object_storage_direct_capability(capability_id)
+        or _is_deployment_direct_capability(capability_id)
+        or _is_support_direct_capability(capability_id)
+        or _is_actions_direct_capability(capability_id)
+        or _is_crm_direct_capability(capability_id)
+    )
+
+
 def _support_direct_provider_slug(capability_id: str) -> str:
     if capability_id.startswith("conversation."):
         return _INTERCOM_SUPPORT_DIRECT_PROVIDER_SLUG
@@ -1845,16 +1857,26 @@ def _direct_agent_credentials_mappings() -> list[dict[str, object]]:
 def _agent_credentials_mappings(raw_mappings: object) -> list[dict[str, object]]:
     combined: list[dict[str, object]] = []
     seen: set[tuple[str, str, str]] = set()
+    direct_mappings = _direct_agent_credentials_mappings()
 
-    for mapping in [*(raw_mappings or []), *_direct_agent_credentials_mappings()]:
+    def add_mapping(mapping: dict[str, object]) -> None:
         capability_id = str(mapping.get("capability_id") or "")
         service_slug = str(mapping.get("service_slug") or "")
         auth_method = str(mapping.get("auth_method") or "")
         key = (capability_id, service_slug, auth_method)
         if key in seen:
-            continue
+            return
         seen.add(key)
         combined.append(mapping)
+
+    for mapping in raw_mappings or []:
+        capability_id = str(mapping.get("capability_id") or "")
+        if _is_direct_capability(capability_id):
+            continue
+        add_mapping(mapping)
+
+    for mapping in direct_mappings:
+        add_mapping(mapping)
 
     return combined
 

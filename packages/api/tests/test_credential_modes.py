@@ -370,6 +370,59 @@ async def test_agent_credentials_includes_remaining_direct_bundles_when_catalog_
     assert "conversation.list" in data["locked_capabilities"]
 
 
+@pytest.mark.anyio
+async def test_agent_credentials_ignores_stale_catalog_mapping_rows_for_direct_capabilities(app, monkeypatch):
+    """Direct rails should not unlock from stale catalog mappings that point at proxy providers."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_RESEND_API_KEY", "re_test123")
+
+    import services.proxy_credentials as pc
+    pc._credential_store = None
+
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return [
+                {
+                    "capability_id": "db.query.read",
+                    "service_slug": "resend",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                }
+            ]
+        return []
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "test-agent"
+            return SimpleNamespace(agent_id="test-agent")
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=MockIdentityStore(),
+    ), patch("routes.capabilities.has_any_db_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_storage_bundle_configured", return_value=False
+    ), patch("routes.capabilities.has_any_deployment_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_warehouse_bundle_configured", return_value=False
+    ), patch("routes.capabilities.has_any_actions_bundle_configured", return_value=False), patch(
+        "routes.capabilities.has_any_crm_bundle_configured",
+        side_effect=lambda provider_slug: False,
+    ), patch(
+        "routes.capabilities.has_any_support_bundle_configured",
+        side_effect=lambda provider_slug: False,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "test-agent"},
+            )
+
+    data = resp.json()["data"]
+    assert data["configured_services"] == []
+    assert "db.query.read" in data["locked_capabilities"]
+    assert "db.query.read" not in data["unlocked_capabilities"]
+
+    pc._credential_store = None
+
+
 # ── resolve with configured field ──────────────────────────────
 
 @pytest.mark.anyio
