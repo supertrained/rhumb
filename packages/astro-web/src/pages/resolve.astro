@@ -100,16 +100,16 @@ const resolveJsonLd = {
           </p>
 
           <div class="mt-8 flex flex-wrap gap-3">
-            <a href="/quickstart" class="px-5 py-3 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200">
+            <a data-rhumb-propagate href="/quickstart" class="px-5 py-3 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200">
               Start with Resolve &rarr;
             </a>
-            <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=resolve-hero" class="px-5 py-3 rounded-xl border border-emerald-500/30 text-sm text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
+            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=resolve-hero" class="px-5 py-3 rounded-xl border border-emerald-500/30 text-sm text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
               Start managed execution
             </a>
-            <a href="/docs#resolve-mental-model" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+            <a data-rhumb-propagate href="/docs#resolve-mental-model" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
               Open mental model
             </a>
-            <a href="/capabilities" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
+            <a data-rhumb-propagate href="/capabilities" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
               Browse capabilities
             </a>
           </div>
@@ -130,9 +130,9 @@ const resolveJsonLd = {
       <div class="rounded-3xl border border-slate-800 bg-surface p-6 sm:p-8">
         <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Before you wire this deeper</p>
         <p class="text-sm text-slate-300 leading-6 max-w-3xl">
-          Want to inspect the trust story first? Read <a href="/trust" class="text-amber hover:underline underline-offset-2">Trust</a>,
-          inspect the public <a href="/methodology" class="text-amber hover:underline underline-offset-2">Methodology</a>,
-          or use the provider <a href="/providers#dispute-a-score" class="text-amber hover:underline underline-offset-2">dispute path</a>
+          Want to inspect the trust story first? Read <a data-rhumb-propagate href="/trust" class="text-amber hover:underline underline-offset-2">Trust</a>,
+          inspect the public <a data-rhumb-propagate href="/methodology" class="text-amber hover:underline underline-offset-2">Methodology</a>,
+          or use the provider <a data-rhumb-propagate href="/providers#dispute-a-score" class="text-amber hover:underline underline-offset-2">dispute path</a>
           if a score, coverage claim, or launch claim looks wrong.
         </p>
       </div>
@@ -276,4 +276,32 @@ const resolveJsonLd = {
       </div>
     </section>
   </div>
+  <script is:inline>
+    (() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const experiment = params.get("rhumb_experiment");
+      const source = params.get("rhumb_source");
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
+
+      document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
+        if (experiment && !url.searchParams.has("rhumb_experiment")) {
+          url.searchParams.set("rhumb_experiment", experiment);
+        }
+        if (source) {
+          url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
+        }
+
+        link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
+      });
+    })();
+  </script>
 </Layout>

@@ -325,7 +325,8 @@ const ARTICLE_JSON_LD = {
       const params = new URLSearchParams(window.location.search);
       const experiment = params.get("rhumb_experiment");
       const source = params.get("rhumb_source");
-      if (!experiment && !source) return;
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
 
       document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
         const href = link.getAttribute("href");
@@ -337,6 +338,9 @@ const ARTICLE_JSON_LD = {
         }
         if (source) {
           url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
         }
 
         link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);

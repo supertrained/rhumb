@@ -553,7 +553,15 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain('starts agents on Rhumb-managed capabilities through governed API key or wallet-prefund');
     expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
     expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
+    expect(astroResolve).toContain('data-rhumb-propagate href="/quickstart"');
     expect(astroResolve).toContain('href="/start-managed-execution?');
+    expect(astroResolve).toContain('data-rhumb-propagate href="/docs#resolve-mental-model"');
+    expect(astroResolve).toContain('data-rhumb-propagate href="/capabilities"');
+    expect(astroResolve).toContain('data-rhumb-propagate href="/trust"');
+    expect(astroResolve).toContain('const parentSource = params.get("rhumb_parent_source");');
+    expect(astroResolve).toContain('document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {');
+    expect(astroResolve).toContain('url.searchParams.set("rhumb_parent_source", source);');
+    expect(astroResolve).toContain('url.searchParams.set("rhumb_grandparent_source", parentSource);');
     expect(astroResolve).toContain('Start managed execution');
     expect(astroResolve).toContain('id="credential-paths"');
     expect(astroResolve).not.toContain('const modes = [');
@@ -572,6 +580,9 @@ describe("public authority pricing contract", () => {
     expect(astroCapabilityFirstOnboarding).toContain('Managed superpowers first is a better product story because it is a better adoption story.');
     expect(astroCapabilityFirstOnboarding).not.toContain('bring wallet or provider-controlled paths');
     expect(astroCapabilityFirstOnboarding).toContain('href="/start-managed-execution?');
+    expect(astroCapabilityFirstOnboarding).toContain('const parentSource = params.get("rhumb_parent_source");');
+    expect(astroCapabilityFirstOnboarding).toContain('if (!experiment && !source && !parentSource) return;');
+    expect(astroCapabilityFirstOnboarding).toContain('url.searchParams.set("rhumb_grandparent_source", parentSource);');
     expect(astroCapabilityFirstOnboarding).toContain('Start managed execution');
     expect(astroCapabilityFirstOnboarding).not.toContain('The honest production default today is still simple: start with the API key when you want repeat managed execution');
     expect(astroCapabilityFirstOnboarding).not.toContain('One Key, Many Superpowers');
