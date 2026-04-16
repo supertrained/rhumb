@@ -1273,7 +1273,11 @@ async def _resolve_capability(capability_id: str) -> Optional[dict]:
 
 
 async def _get_capability_services(capability_id: str) -> list[dict]:
-    """Fetch all capability_services mappings for a capability."""
+    """Fetch capability mappings, keeping direct rails on synthetic provider truth."""
+    direct_mappings = _direct_capability_service_mappings(capability_id)
+    if direct_mappings:
+        return direct_mappings
+
     mappings = await supabase_fetch(
         f"capability_services?capability_id=eq.{quote(capability_id)}"
         f"&select=service_slug,credential_modes,auth_method,endpoint_pattern,"
@@ -1281,7 +1285,7 @@ async def _get_capability_services(capability_id: str) -> list[dict]:
     )
     if mappings:
         return mappings
-    return _direct_capability_service_mappings(capability_id)
+    return []
 
 
 async def _get_service_domain(service_slug: str) -> Optional[str]:

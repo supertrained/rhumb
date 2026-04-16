@@ -227,6 +227,26 @@ def _mock_supabase_with_managed_option(path: str):
     return _mock_supabase(path)
 
 
+def _mock_supabase_with_stale_direct_db_mapping(path: str):
+    """Return a stale proxy row for a direct DB capability."""
+    if path.startswith("capabilities?") and "id=eq.db.query.read" in path:
+        return []
+    if path.startswith("capability_services?") and "capability_id=eq.db.query.read" in path:
+        return [
+            {
+                "capability_id": "db.query.read",
+                "service_slug": "stale-db-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-db",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+            }
+        ]
+    return _mock_supabase(path)
+
+
 def _mock_tool_alias_supabase(path: str):
     """Return a minimal capability set that lets tool-name aliases suggest canonical capabilities."""
     if path.startswith("capabilities?"):
@@ -1977,6 +1997,26 @@ async def test_direct_execute_estimate_surfaces_auth_readiness_when_anonymous(ap
     assert data["execute_readiness"]["auth_handoff"]["retry_url"] == f"/v1/capabilities/{capability_id}/execute"
     auth_paths = {item["kind"]: item for item in data["execute_readiness"]["auth_handoff"]["paths"]}
     assert set(auth_paths) == {"governed_api_key"}
+
+
+@pytest.mark.anyio
+async def test_direct_execute_estimate_ignores_stale_catalog_mapping_rows(app):
+    """Direct estimate should stay on synthetic provider truth even if stale catalog rows exist."""
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_with_stale_direct_db_mapping,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/db.query.read/execute/estimate")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["capability_id"] == "db.query.read"
+    assert data["provider"] == "postgresql"
+    assert data["endpoint_pattern"] == "POST /v1/capabilities/db.query.read/execute"
+    assert data["execute_readiness"]["status"] == "auth_required"
+    assert data["execute_readiness"]["resolve_url"] == "/v1/capabilities/db.query.read/resolve"
 
 
 @pytest.mark.anyio
