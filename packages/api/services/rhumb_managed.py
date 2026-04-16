@@ -695,6 +695,7 @@ class RhumbManagedExecutor:
     # Special value "query:key_name" means inject as query parameter.
     _AUTH_STRATEGIES: dict[str, tuple[str, str | None]] = {
         # Custom header auth
+        "exa": ("x-api-key", None),
         "algolia": ("X-Algolia-API-Key", None),
         "postmark": ("X-Postmark-Server-Token", None),
         "elevenlabs": ("xi-api-key", None),

@@ -138,7 +138,7 @@ SERVICE_REGISTRY = {
     },
     "exa": {
         "domain": "api.exa.ai",
-        "auth_type": "bearer_token",
+        "auth_type": "api_key",
         "rate_limit": "100/min",
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
@@ -621,6 +621,8 @@ async def proxy_request(
         path = _build_request_path(request.path)
 
         headers = request.headers or {}
+        request_params = request.params or {}
+        request_body = request.body
         auth_method = AuthInjector.default_method_for(proxy_service)
         if auth_method is None:
             raise HTTPException(
@@ -630,14 +632,19 @@ async def proxy_request(
 
         credential_start = time.perf_counter()
         try:
-            headers = _get_auth_injector().inject(
+            injected = _get_auth_injector().inject_request_parts(
                 AuthInjectionRequest(
                     service=proxy_service,
                     agent_id=agent_id,
                     auth_method=auth_method,
                     existing_headers=headers,
+                    existing_params=request_params,
+                    existing_body=request_body,
                 )
             )
+            headers = injected.headers
+            request_params = injected.params
+            request_body = injected.body
         except RuntimeError as e:
             raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
         finally:
@@ -660,8 +667,8 @@ async def proxy_request(
                     method=request.method,
                     url=path,
                     headers=headers,
-                    json=request.body,
-                    params=request.params,
+                    json=request_body,
+                    params=request_params,
                 )
             finally:
                 timings["upstream_ms"] = (time.perf_counter() - upstream_start) * 1000

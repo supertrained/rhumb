@@ -1,7 +1,8 @@
-"""Auth injection logic for the proxy service.
+"""Auth injection logic for proxy-capable providers.
 
-Injects the correct ``Authorization`` header for each supported provider
-based on credentials fetched from the :class:`CredentialStore`.
+Injects provider credentials into the correct request part, for example a
+header, query parameter, or JSON body field, based on credentials fetched from
+the :class:`CredentialStore`.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from services.proxy_credentials import CredentialStore, get_credential_store
 
@@ -30,73 +31,149 @@ class AuthMethod(str, Enum):
 
 @dataclass
 class AuthInjectionRequest:
-    """Describes a pending auth-header injection."""
+    """Describes a pending provider-auth injection."""
 
     service: str  # "stripe", "slack", etc.
     agent_id: str
     auth_method: AuthMethod
     existing_headers: Dict[str, str] = field(default_factory=dict)
+    existing_params: Dict[str, Any] = field(default_factory=dict)
+    existing_body: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class AuthInjectionResult:
+    """Result of applying provider auth to request parts."""
+
+    headers: Dict[str, str]
+    params: Dict[str, Any]
+    body: Optional[Dict[str, Any]]
 
 
 class AuthInjector:
-    """Inject ``Authorization`` headers for different providers."""
+    """Inject provider auth into request headers, params, or body."""
 
     # Per-provider auth patterns.
     AUTH_PATTERNS: Dict[str, Dict[str, object]] = {
         "stripe": {
             "methods": ["api_key"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "slack": {
             "methods": ["oauth_token", "app_token"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "github": {
             "methods": ["api_token"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "twilio": {
             "methods": ["basic_auth"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Basic {credential}",
         },
         "sendgrid": {
             "methods": ["api_key"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "firecrawl": {
             "methods": ["api_key"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "apify": {
             "methods": ["api_token"],
-            "header": "Authorization",
+            "target": "header",
+            "name": "Authorization",
             "format": "Bearer {credential}",
         },
         "apollo": {
             "methods": ["api_key"],
-            "header": "x-api-key",
+            "target": "header",
+            "name": "X-Api-Key",
             "format": "{credential}",
         },
         "pdl": {
             "methods": ["api_key"],
-            "header": "X-Api-Key",
+            "target": "header",
+            "name": "X-API-Key",
+            "format": "{credential}",
+        },
+        "tavily": {
+            "methods": ["api_key"],
+            "target": "body",
+            "name": "api_key",
+            "format": "{credential}",
+        },
+        "exa": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "x-api-key",
             "format": "{credential}",
         },
         "brave-search": {
             "methods": ["api_key"],
-            "header": "X-Subscription-Token",
+            "target": "header",
+            "name": "X-Subscription-Token",
+            "format": "{credential}",
+        },
+        "replicate": {
+            "methods": ["api_token"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "algolia": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "X-Algolia-API-Key",
             "format": "{credential}",
         },
         "e2b": {
             "methods": ["api_key"],
-            "header": "X-API-Key",
+            "target": "header",
+            "name": "X-API-Key",
             "format": "{credential}",
+        },
+        "unstructured": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "unstructured-api-key",
+            "format": "{credential}",
+        },
+        "google-ai": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "x-goog-api-key",
+            "format": "{credential}",
+        },
+        "ipinfo": {
+            "methods": ["bearer_token"],
+            "target": "query",
+            "name": "token",
+            "format": "{credential}",
+        },
+        "scraperapi": {
+            "methods": ["api_key"],
+            "target": "query",
+            "name": "api_key",
+            "format": "{credential}",
+        },
+        "deepgram": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Token {credential}",
         },
     }
 
@@ -125,22 +202,33 @@ class AuthInjector:
     # ------------------------------------------------------------------
 
     def inject(self, request: AuthInjectionRequest) -> Dict[str, str]:
-        """Inject the auth header into *request.existing_headers*.
+        """Inject auth into headers for header-based services.
 
         Args:
             request: Contains the service, agent_id, auth_method, and
                 existing headers to augment.
 
         Returns:
-            A **new** headers dict with the ``Authorization`` header set.
+            A **new** headers dict with the auth header set.
 
         Raises:
-            ValueError: If service or auth method is unsupported.
+            ValueError: If service or auth method is unsupported, or when the
+                provider requires auth in params/body instead of headers.
             RuntimeError: If the credential cannot be found in the store.
         """
+        pattern = self.AUTH_PATTERNS.get(request.service)
+        if pattern is not None and pattern.get("target", "header") != "header":
+            raise ValueError(
+                f"Service '{request.service}' requires non-header auth injection; "
+                "use inject_request_parts()"
+            )
+        return self.inject_request_parts(request).headers
+
+    def inject_request_parts(self, request: AuthInjectionRequest) -> AuthInjectionResult:
+        """Inject provider auth into request headers, params, or body."""
         service = request.service
         auth_method = request.auth_method
-        header_name: Optional[str] = None
+        injection_name: Optional[str] = None
 
         if service not in self.AUTH_PATTERNS:
             error = ValueError(
@@ -157,7 +245,7 @@ class AuthInjector:
 
         pattern = self.AUTH_PATTERNS[service]
         allowed_methods: list[str] = pattern["methods"]  # type: ignore[assignment]
-        header_name = pattern["header"]  # type: ignore[assignment]
+        injection_name = pattern["name"]  # type: ignore[assignment]
         if auth_method.value not in allowed_methods:
             error = ValueError(
                 f"Auth method '{auth_method.value}' not supported for '{service}'. "
@@ -167,7 +255,7 @@ class AuthInjector:
                 request,
                 event_type="credential_lookup_failed",
                 outcome="error",
-                header_name=header_name,
+                header_name=injection_name,
                 error=error,
             )
             raise error
@@ -180,7 +268,7 @@ class AuthInjector:
                 request,
                 event_type="credential_lookup_failed",
                 outcome="error",
-                header_name=header_name,
+                header_name=injection_name,
                 error=error,
             )
             raise
@@ -192,7 +280,7 @@ class AuthInjector:
                 request,
                 event_type="credential_missing",
                 outcome="missing",
-                header_name=header_name,
+                header_name=injection_name,
                 error=error,
             )
             raise error
@@ -206,8 +294,29 @@ class AuthInjector:
         formatted = fmt.format(credential=credential)
 
         headers = request.existing_headers.copy()
-        assert header_name is not None
-        headers[header_name] = formatted
+        params = request.existing_params.copy()
+        body = request.existing_body.copy() if request.existing_body is not None else None
+
+        target = pattern.get("target", "header")
+        assert injection_name is not None
+        if target == "header":
+            headers[injection_name] = formatted
+        elif target == "query":
+            params[injection_name] = formatted
+        elif target == "body":
+            if body is None:
+                body = {}
+            body[injection_name] = formatted
+        else:
+            error = ValueError(f"Unsupported auth injection target '{target}' for '{service}'")
+            self._emit_credential_lifecycle(
+                request,
+                event_type="credential_lookup_failed",
+                outcome="error",
+                header_name=injection_name,
+                error=error,
+            )
+            raise error
 
         # Audit
         self.credentials.audit_log(service, request.agent_id, "auth_injected")
@@ -215,10 +324,10 @@ class AuthInjector:
             request,
             event_type="credential_injected",
             outcome="success",
-            header_name=header_name,
+            header_name=injection_name,
         )
 
-        return headers
+        return AuthInjectionResult(headers=headers, params=params, body=body)
 
     def _emit_credential_lifecycle(
         self,

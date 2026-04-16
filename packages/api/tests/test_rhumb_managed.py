@@ -767,6 +767,87 @@ async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failu
 
 
 @pytest.mark.anyio
+async def test_managed_executor_exa_injects_x_api_key_header(monkeypatch):
+    """Exa managed executions should use x-api-key instead of Bearer auth."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_EXA_API_KEY", "exa_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 322,
+                    "capability_id": "search.query",
+                    "service_slug": "exa",
+                    "description": "Managed Exa search",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_EXA_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/search",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
+        if "services?slug=eq.exa" in path:
+            return [{"api_domain": "api.exa.ai"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"results": []}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="search.query",
+            agent_id="agent_exa_test",
+            params={"query": "Rhumb"},
+            service_slug="exa",
+        )
+
+    assert result["provider_used"] == "exa"
+    assert captured["base_url"] == "https://api.exa.ai"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/search"
+    assert captured["headers"]["x-api-key"] == "exa_test_secret"
+    assert "Authorization" not in captured["headers"]
+    assert captured["json"] == {"query": "Rhumb"}
+
+
+@pytest.mark.anyio
 async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
     """Brave managed executions should translate logical query fields to Brave's q/count params."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "brave_test_secret")

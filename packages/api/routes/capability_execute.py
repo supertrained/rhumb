@@ -1551,31 +1551,36 @@ def _resolve_base_url(
     )
 
 
-def _inject_auth_headers(
+def _inject_auth_request_parts(
     service_slug: str,
     auth_method: Optional[str],
     headers: dict[str, str],
-) -> dict[str, str]:
-    """Inject Authorization header for a service.
+    body: dict | None,
+    params: dict | None,
+) -> tuple[dict[str, str], dict | None, dict | None]:
+    """Inject provider auth into request headers, params, or body.
 
-    For the 5 hardcoded services, delegates to AuthInjector.
-    For dynamic services, builds a simple auth header from CredentialStore.
+    For supported proxy-managed services, delegate to :class:`AuthInjector`.
+    For dynamic services, fall back to a simple header-based injection.
     """
-    # Hardcoded services — use the full AuthInjector
+    # Supported proxy services — use the full AuthInjector
     if service_slug in AuthInjector.AUTH_PATTERNS:
         method_enum = AuthInjector.default_method_for(service_slug)
         if method_enum is None:
             raise HTTPException(status_code=500, detail=f"No auth method for '{service_slug}'")
         injector = get_auth_injector()
         try:
-            return injector.inject(
+            injected = injector.inject_request_parts(
                 AuthInjectionRequest(
                     service=service_slug,
                     agent_id="capability_execute",
                     auth_method=method_enum,
                     existing_headers=headers,
+                    existing_body=body,
+                    existing_params=params or {},
                 )
             )
+            return injected.headers, injected.body, injected.params
         except (ValueError, RuntimeError) as e:
             raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
 
@@ -1602,7 +1607,7 @@ def _inject_auth_headers(
         # bearer_token, api_key — both use Bearer
         headers["Authorization"] = f"Bearer {credential}"
 
-    return headers
+    return headers, body, params
 
 
 # ---------------------------------------------------------------------------
@@ -3259,7 +3264,13 @@ async def execute_capability(
     api_domain = await _get_service_domain(provider_slug)
     base_url = _resolve_base_url(proxy_slug, api_domain, path)
     headers: dict[str, str] = {}
-    headers = _inject_auth_headers(proxy_slug, auth_method, headers)
+    headers, auth_body, auth_params = _inject_auth_request_parts(
+        proxy_slug,
+        auth_method,
+        headers,
+        request.body,
+        request.params,
+    )
 
     request_start = time.perf_counter()
     upstream_status: Optional[int] = None
@@ -3271,8 +3282,8 @@ async def execute_capability(
     use_pool = proxy_slug in SERVICE_REGISTRY
     final_body, final_params = _prepare_upstream_payload(
         request.method,
-        request.body,
-        request.params,
+        auth_body,
+        auth_params,
     )
 
     try:

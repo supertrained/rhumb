@@ -55,7 +55,16 @@ def credential_store() -> CredentialStore:
     store.set_credential("github", "api_token", "ghp_github_token_789")
     store.set_credential("twilio", "basic_auth", "AC_sid:auth_token_abc")
     store.set_credential("sendgrid", "api_key", "SG.sendgrid_key_xyz")
+    store.set_credential("tavily", "api_key", "tvly_test_key_123")
+    store.set_credential("exa", "api_key", "exa_test_key_123")
+    store.set_credential("replicate", "api_token", "r8_test_token_123")
+    store.set_credential("algolia", "api_key", "algolia_test_key_123")
     store.set_credential("e2b", "api_key", "e2b_test_key_123")
+    store.set_credential("unstructured", "api_key", "unstructured_test_key_123")
+    store.set_credential("google-ai", "api_key", "google_ai_test_key_123")
+    store.set_credential("ipinfo", "bearer_token", "ipinfo_test_token_123")
+    store.set_credential("scraperapi", "api_key", "scraperapi_test_key_123")
+    store.set_credential("deepgram", "api_key", "deepgram_test_key_123")
     return store
 
 
@@ -126,7 +135,16 @@ class TestCredentialStore:
         assert credential_store.get_credential("github", "api_token") is not None
         assert credential_store.get_credential("twilio", "basic_auth") is not None
         assert credential_store.get_credential("sendgrid", "api_key") is not None
+        assert credential_store.get_credential("tavily", "api_key") is not None
+        assert credential_store.get_credential("exa", "api_key") is not None
+        assert credential_store.get_credential("replicate", "api_token") is not None
+        assert credential_store.get_credential("algolia", "api_key") is not None
         assert credential_store.get_credential("e2b", "api_key") is not None
+        assert credential_store.get_credential("unstructured", "api_key") is not None
+        assert credential_store.get_credential("google-ai", "api_key") is not None
+        assert credential_store.get_credential("ipinfo", "bearer_token") is not None
+        assert credential_store.get_credential("scraperapi", "api_key") is not None
+        assert credential_store.get_credential("deepgram", "api_key") is not None
 
     def test_credential_not_found_unknown_service(
         self, credential_store: CredentialStore
@@ -380,6 +398,118 @@ class TestAuthInjector:
         assert headers["X-API-Key"] == "e2b_test_key_123"
         assert "Authorization" not in headers
 
+    def test_inject_tavily_api_key_into_body(self, auth_injector: AuthInjector) -> None:
+        """Tavily requires api_key in the JSON body."""
+        req = AuthInjectionRequest(
+            service="tavily",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+            existing_headers={"Accept": "application/json"},
+            existing_body={"query": "best AI observability tools"},
+        )
+        injected = auth_injector.inject_request_parts(req)
+        assert injected.headers["Accept"] == "application/json"
+        assert injected.body == {
+            "query": "best AI observability tools",
+            "api_key": "tvly_test_key_123",
+        }
+        assert injected.params == {}
+
+    def test_inject_exa_api_key_header(self, auth_injector: AuthInjector) -> None:
+        """Exa uses x-api-key auth instead of Bearer."""
+        req = AuthInjectionRequest(
+            service="exa",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+            existing_headers={"Content-Type": "application/json"},
+        )
+        headers = auth_injector.inject(req)
+        assert headers["Content-Type"] == "application/json"
+        assert headers["x-api-key"] == "exa_test_key_123"
+        assert "Authorization" not in headers
+
+    def test_inject_replicate_bearer_header(self, auth_injector: AuthInjector) -> None:
+        """Replicate uses Authorization Bearer token auth."""
+        req = AuthInjectionRequest(
+            service="replicate",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_TOKEN,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["Authorization"] == "Bearer r8_test_token_123"
+
+    def test_inject_algolia_api_key_header(self, auth_injector: AuthInjector) -> None:
+        """Algolia uses X-Algolia-API-Key header auth."""
+        req = AuthInjectionRequest(
+            service="algolia",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["X-Algolia-API-Key"] == "algolia_test_key_123"
+        assert "Authorization" not in headers
+
+    def test_inject_unstructured_api_key_header(self, auth_injector: AuthInjector) -> None:
+        """Unstructured uses unstructured-api-key header auth."""
+        req = AuthInjectionRequest(
+            service="unstructured",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["unstructured-api-key"] == "unstructured_test_key_123"
+        assert "Authorization" not in headers
+
+    def test_inject_google_ai_api_key_header(self, auth_injector: AuthInjector) -> None:
+        """Google AI uses x-goog-api-key header auth."""
+        req = AuthInjectionRequest(
+            service="google-ai",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["x-goog-api-key"] == "google_ai_test_key_123"
+
+    def test_inject_ipinfo_token_query_param(self, auth_injector: AuthInjector) -> None:
+        """IPinfo uses token in the query string."""
+        req = AuthInjectionRequest(
+            service="ipinfo",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.BEARER_TOKEN,
+            existing_params={"ip": "8.8.8.8"},
+        )
+        injected = auth_injector.inject_request_parts(req)
+        assert injected.params == {
+            "ip": "8.8.8.8",
+            "token": "ipinfo_test_token_123",
+        }
+        assert injected.headers == {}
+
+    def test_inject_scraperapi_key_query_param(self, auth_injector: AuthInjector) -> None:
+        """ScraperAPI uses api_key in the query string."""
+        req = AuthInjectionRequest(
+            service="scraperapi",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+            existing_params={"url": "https://example.com"},
+        )
+        injected = auth_injector.inject_request_parts(req)
+        assert injected.params == {
+            "url": "https://example.com",
+            "api_key": "scraperapi_test_key_123",
+        }
+        assert injected.headers == {}
+
+    def test_inject_deepgram_token_header(self, auth_injector: AuthInjector) -> None:
+        """Deepgram uses Authorization Token auth."""
+        req = AuthInjectionRequest(
+            service="deepgram",
+            agent_id="rhumb-lead",
+            auth_method=AuthMethod.API_KEY,
+        )
+        headers = auth_injector.inject(req)
+        assert headers["Authorization"] == "Token deepgram_test_key_123"
+
     def test_inject_writes_audit_entry(
         self, credential_store: CredentialStore, auth_injector: AuthInjector
     ) -> None:
@@ -402,8 +532,17 @@ class TestAuthInjector:
         assert AuthInjector.default_method_for("github") == AuthMethod.API_TOKEN
         assert AuthInjector.default_method_for("twilio") == AuthMethod.BASIC_AUTH
         assert AuthInjector.default_method_for("sendgrid") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("tavily") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("exa") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("brave-search") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("replicate") == AuthMethod.API_TOKEN
+        assert AuthInjector.default_method_for("algolia") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("e2b") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("unstructured") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("google-ai") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("ipinfo") == AuthMethod.BEARER_TOKEN
+        assert AuthInjector.default_method_for("scraperapi") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("deepgram") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("nonexistent") is None
 
 
