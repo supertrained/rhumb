@@ -223,6 +223,38 @@ def _mock_db_direct_supabase_with_stale_mapping(path: str):
     return _mock_db_direct_supabase(path)
 
 
+def _mock_search_alias_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.search.query" in path:
+            return [{
+                "id": "search.query",
+                "domain": "search",
+                "action": "query",
+                "description": "Search the web through Brave Search",
+            }]
+        return []
+    if path.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in path:
+            return [{
+                "capability_id": "search.query",
+                "service_slug": "brave-search",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+                "cost_currency": "USD",
+                "free_tier_calls": 2000,
+            }]
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
 def _make_mock_response(status_code: int = 202, json_body: dict | None = None):
     resp = MagicMock(spec=httpx.Response)
     resp.status_code = status_code
@@ -868,6 +900,34 @@ async def test_v2_estimate_direct_capability_rejects_stale_provider_query(app):
     assert resp.status_code == 503
     assert "stale-db-proxy" in resp.text
     assert "db.query.read" in resp.text
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_alias_provider_query_accepts_canonical_provider(app):
+    breaker = SimpleNamespace(
+        state=SimpleNamespace(value="closed"),
+        allow_request=lambda: True,
+    )
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/search.query/execute/estimate?provider=brave-search-api&credential_mode=byok"
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "brave-search"
+    assert data["credential_mode"] == "byok"
+    assert data["endpoint_pattern"] == "GET /res/v1/web/search"
 
 
 @pytest.mark.anyio
