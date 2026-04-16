@@ -75,7 +75,7 @@ class CandidateExplanation:
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
-            "provider_id": self.provider_id,
+            "provider_id": _public_provider_id(self.provider_id) or self.provider_id,
             "eligible": self.eligible,
             "composite_score": round(self.composite_score, 4),
             "factors": {k: v.to_dict() for k, v in self.factors.items()},
@@ -103,11 +103,14 @@ class RouteExplanation:
     created_at_ms: int = 0
 
     def to_dict(self) -> dict[str, Any]:
+        provider_ids = [c.provider_id for c in self.candidates]
+        if self.winner_provider_id:
+            provider_ids.append(self.winner_provider_id)
         return {
             "explanation_id": self.explanation_id,
             "capability_id": self.capability_id,
             "winner": {
-                "provider_id": self.winner_provider_id,
+                "provider_id": _public_provider_id(self.winner_provider_id),
                 "composite_score": (
                     round(self.winner_composite_score, 4)
                     if self.winner_composite_score is not None
@@ -116,7 +119,7 @@ class RouteExplanation:
                 "selection_reason": self.selection_reason,
             },
             "candidates": [c.to_dict() for c in self.candidates],
-            "human_summary": self.human_summary,
+            "human_summary": _canonicalize_provider_text(self.human_summary, provider_ids),
             "layer": self.layer,
             "strategy": self.strategy,
             "policy_active": self.policy_active,
@@ -124,13 +127,16 @@ class RouteExplanation:
 
     def to_compact(self) -> dict[str, Any]:
         """Compact explanation for embedding in execution responses."""
+        provider_ids = [c.provider_id for c in self.candidates]
+        if self.winner_provider_id:
+            provider_ids.append(self.winner_provider_id)
         return {
             "explanation_id": self.explanation_id,
-            "winner": self.winner_provider_id,
+            "winner": _public_provider_id(self.winner_provider_id),
             "reason": self.selection_reason,
             "candidates_evaluated": len(self.candidates),
             "candidates_eligible": sum(1 for c in self.candidates if c.eligible),
-            "human_summary": self.human_summary,
+            "human_summary": _canonicalize_provider_text(self.human_summary, provider_ids),
         }
 
 
@@ -168,6 +174,28 @@ def _normalize_slug_list(values: list[str] | None) -> list[str]:
         normalized.append(slug)
         seen.add(slug)
     return normalized
+
+
+def _public_provider_id(slug: str | None) -> str | None:
+    if slug is None:
+        return None
+    cleaned = str(slug).strip().lower()
+    if not cleaned:
+        return None
+    return canonicalize_service_slug(cleaned)
+
+
+def _canonicalize_provider_text(text: str, provider_ids: list[str] | None) -> str:
+    canonicalized = text or ""
+    replacements: dict[str, str] = {}
+    for provider_id in provider_ids or []:
+        raw = str(provider_id or "").strip()
+        public = _public_provider_id(raw)
+        if raw and public and raw != public:
+            replacements[raw] = public
+    for raw in sorted(replacements.keys(), key=len, reverse=True):
+        canonicalized = canonicalized.replace(raw, replacements[raw])
+    return canonicalized
 
 
 def build_explanation(
@@ -360,15 +388,16 @@ def build_layer1_explanation(
 ) -> RouteExplanation:
     """Build a trivial Layer 1 explanation (agent pinned the provider)."""
     ts = int(time.time() * 1000)
+    public_provider_id = _public_provider_id(provider_id) or provider_id
     return RouteExplanation(
         explanation_id=_generate_explanation_id(capability_id, ts),
         capability_id=capability_id,
-        winner_provider_id=provider_id,
+        winner_provider_id=public_provider_id,
         winner_composite_score=None,
         selection_reason="agent_pinned_layer1",
         candidates=[],
         human_summary=(
-            f"{provider_id} selected directly by agent via Layer 1 (raw provider access). "
+            f"{public_provider_id} selected directly by agent via Layer 1 (raw provider access). "
             f"No routing intelligence applied."
         ),
         layer=1,
@@ -491,10 +520,13 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
 
     candidates_raw = row.get("candidates_json") or []
     candidates: list[CandidateExplanation] = []
+    raw_candidate_ids: list[str] = []
     if isinstance(candidates_raw, list):
         for candidate in candidates_raw:
             if not isinstance(candidate, dict):
                 continue
+            raw_provider_id = str(candidate.get("provider_id") or "unknown")
+            raw_candidate_ids.append(raw_provider_id)
             factor_objs: dict[str, CandidateFactor] = {}
             factors = candidate.get("factors") or {}
             if isinstance(factors, dict):
@@ -509,7 +541,7 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
                     )
             candidates.append(
                 CandidateExplanation(
-                    provider_id=str(candidate.get("provider_id") or "unknown"),
+                    provider_id=_public_provider_id(raw_provider_id) or "unknown",
                     eligible=bool(candidate.get("eligible", False)),
                     composite_score=float(candidate.get("composite_score") or 0.0),
                     factors=factor_objs,
@@ -518,14 +550,18 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
                 )
             )
 
+    raw_winner_provider_id = row.get("winner_provider_id")
     return RouteExplanation(
         explanation_id=str(row.get("explanation_id") or ""),
         capability_id=str(row.get("capability_id") or "unknown"),
-        winner_provider_id=row.get("winner_provider_id"),
+        winner_provider_id=_public_provider_id(raw_winner_provider_id),
         winner_composite_score=(float(row["winner_composite_score"]) if row.get("winner_composite_score") is not None else None),
         selection_reason=str(row.get("winner_reason") or "persisted_route_explanation"),
         candidates=candidates,
-        human_summary=str(row.get("human_summary") or ""),
+        human_summary=_canonicalize_provider_text(
+            str(row.get("human_summary") or ""),
+            raw_candidate_ids + ([str(raw_winner_provider_id)] if raw_winner_provider_id else []),
+        ),
         created_at_ms=created_at_ms,
     )
 

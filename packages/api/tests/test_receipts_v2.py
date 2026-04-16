@@ -88,7 +88,7 @@ def test_get_receipt_explanation_uses_persisted_receipt_link(client):
         winner_provider_id="brave-search",
         winner_composite_score=0.91,
         selection_reason="best composite score",
-        human_summary="Brave Search won on quality and price.",
+        human_summary="brave-search won on quality and price.",
     )
     with (
         patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
@@ -100,7 +100,8 @@ def test_get_receipt_explanation_uses_persisted_receipt_link(client):
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["explanation_id"] == "rexp_test123"
-        assert body["data"]["winner"]["provider_id"] == "brave-search"
+        assert body["data"]["winner"]["provider_id"] == "brave-search-api"
+        assert "brave-search-api" in body["data"]["human_summary"]
 
 
 def test_verify_chain_endpoint(client):

@@ -10,6 +10,7 @@ import pytest
 
 from services.route_explanation import (
     RouteExplanation,
+    _row_to_explanation,
     build_explanation,
     build_layer1_explanation,
     clear_explanation_store,
@@ -390,6 +391,27 @@ class TestSerialization:
         assert c["candidates_evaluated"] == 3
         assert c["candidates_eligible"] == 3
 
+    def test_alias_backed_to_dict_uses_public_provider_ids(self):
+        exp = build_explanation(
+            capability_id="search.query",
+            mappings=_make_alias_mappings(),
+            scores_by_slug=_make_alias_scores(),
+            circuit_states=_make_alias_circuits(),
+            selected_provider="brave-search",
+            policy_pin="brave-search-api",
+            policy_allow_only=["brave-search-api"],
+        )
+
+        data = exp.to_dict()
+        compact = exp.to_compact()
+
+        assert data["winner"]["provider_id"] == "brave-search-api"
+        assert data["candidates"][0]["provider_id"] == "brave-search-api"
+        assert any(candidate["provider_id"] == "people-data-labs" for candidate in data["candidates"])
+        assert "brave-search-api" in data["human_summary"]
+        assert "brave-search selected" not in data["human_summary"]
+        assert compact["winner"] == "brave-search-api"
+
     def test_candidate_factor_dict(self):
         exp = build_explanation(
             capability_id="ai.generate_text",
@@ -432,6 +454,44 @@ class TestStore:
 
     def test_retrieve_nonexistent(self):
         assert get_explanation("rexp_nonexistent") is None
+
+    def test_row_to_explanation_canonicalizes_runtime_aliases(self):
+        exp = _row_to_explanation(
+            {
+                "explanation_id": "rexp_persisted",
+                "capability_id": "search.query",
+                "winner_provider_id": "brave-search",
+                "winner_composite_score": 0.91,
+                "winner_reason": "persisted_route_explanation",
+                "human_summary": "brave-search selected over pdl.",
+                "candidates_json": [
+                    {
+                        "provider_id": "brave-search",
+                        "eligible": True,
+                        "composite_score": 0.91,
+                        "factors": {},
+                        "policy_checks": {},
+                    },
+                    {
+                        "provider_id": "pdl",
+                        "eligible": False,
+                        "composite_score": 0.0,
+                        "factors": {},
+                        "policy_checks": {},
+                        "ineligible_reason": "not_in_allow_list",
+                    },
+                ],
+            }
+        )
+
+        assert exp.winner_provider_id == "brave-search-api"
+        assert [candidate.provider_id for candidate in exp.candidates] == [
+            "brave-search-api",
+            "people-data-labs",
+        ]
+        assert "brave-search-api" in exp.human_summary
+        assert "people-data-labs" in exp.human_summary
+        assert "brave-search selected" not in exp.human_summary
 
     def test_store_eviction(self):
         """Store should evict oldest when capacity exceeded."""

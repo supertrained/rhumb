@@ -19,7 +19,7 @@ def test_get_explanation_falls_back_to_persisted_store():
         winner_provider_id="brave-search",
         winner_composite_score=0.88,
         selection_reason="persisted lookup",
-        human_summary="Persisted explanation was returned.",
+        human_summary="brave-search selected over 1 other eligible candidate.",
     )
 
     with patch(
@@ -32,4 +32,6 @@ def test_get_explanation_falls_back_to_persisted_store():
     assert resp.status_code == 200
     body = resp.json()
     assert body["data"]["explanation_id"] == "rexp_persisted"
-    assert body["data"]["winner"]["provider_id"] == "brave-search"
+    assert body["data"]["winner"]["provider_id"] == "brave-search-api"
+    assert "brave-search-api" in body["data"]["human_summary"]
+    assert "brave-search selected" not in body["data"]["human_summary"]
