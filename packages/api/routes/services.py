@@ -304,9 +304,10 @@ async def get_service_score(slug: str, raw_request: Request):
     explanation = ". ".join(parts) + "." if parts else ""
 
     # Fetch active failure modes
+    failure_query_slugs = _score_query_slugs([canonical_slug])
     failures = await _cached_fetch(
         "failure_modes",
-        f"failure_modes?service_slug=eq.{quote(canonical_slug)}"
+        f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc"
         f"&select=title,description,severity,frequency,agent_impact,workaround"
@@ -354,9 +355,10 @@ async def get_service_score(slug: str, raw_request: Request):
 async def get_failures(slug: str) -> dict:
     """Fetch active failure modes for a service."""
     canonical_slug = canonicalize_service_slug(slug)
+    failure_query_slugs = _score_query_slugs([canonical_slug])
     failures = await _cached_fetch(
         "failure_modes",
-        f"failure_modes?service_slug=eq.{quote(canonical_slug)}"
+        f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc,frequency.asc"
         f"&select=id,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"

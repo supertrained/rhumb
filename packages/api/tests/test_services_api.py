@@ -72,6 +72,22 @@ ALIAS_SCORE_ROWS = [
     },
 ]
 
+ALIAS_FAILURE_ROWS = [
+    {
+        "service_slug": "brave-search",
+        "id": "fm-brave-1",
+        "category": "auth",
+        "title": "Session tokens expire early",
+        "description": "Long-running search sessions can lose auth unexpectedly.",
+        "severity": "medium",
+        "frequency": "intermittent",
+        "agent_impact": "Agents may need to retry search requests.",
+        "workaround": "Refresh credentials before multi-step browse loops.",
+        "last_verified": "2026-04-16T15:45:00Z",
+        "evidence_count": 2,
+    }
+]
+
 
 def _parse_query(path: str) -> dict[str, list[str]]:
     if "?" not in path:
@@ -159,7 +175,10 @@ async def _mock_supabase_fetch(path: str):
             ]
         return []
 
-    if path.startswith("failure_modes?service_slug=eq.stripe"):
+    if path.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(path, "service_slug") or set()
+        if "stripe" in slugs:
+            return []
         return []
 
     if path.startswith("scores?service_slug=eq."):
@@ -221,8 +240,9 @@ async def _mock_alias_supabase_fetch(path: str):
         slugs = _parse_in_filter(decoded, "service_slug") or set()
         return [row for row in ALIAS_SCORE_ROWS if row["service_slug"] in slugs]
 
-    if decoded.startswith("failure_modes?service_slug=eq.brave-search-api"):
-        return []
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in ALIAS_FAILURE_ROWS if row["service_slug"] in slugs]
 
     raise AssertionError(f"Unexpected Supabase fetch path: {path}")
 
@@ -470,3 +490,51 @@ def test_service_history_reads_alias_backed_score_rows(client) -> None:
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert [entry["an_score"] for entry in payload["data"]["history"]] == [8.7, 8.4]
+
+
+def test_service_score_reads_alias_backed_failure_modes(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["failure_modes"] == [
+        {
+            "pattern": "Session tokens expire early",
+            "impact": "Agents may need to retry search requests.",
+            "frequency": "intermittent",
+            "workaround": "Refresh credentials before multi-step browse loops.",
+        }
+    ]
+
+
+def test_service_failures_reads_alias_backed_failure_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["failure_modes"] == [
+        {
+            "pattern": "Session tokens expire early",
+            "impact": "Agents may need to retry search requests.",
+            "frequency": "intermittent",
+            "workaround": "Refresh credentials before multi-step browse loops.",
+            "category": "auth",
+            "severity": "medium",
+            "description": "Long-running search sessions can lose auth unexpectedly.",
+            "last_verified": "2026-04-16T15:45:00Z",
+            "evidence_count": 2,
+        }
+    ]
