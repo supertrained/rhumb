@@ -306,27 +306,29 @@ async def _resolve_provider_services(provider_id: str) -> list[dict]:
 
 
 async def _resolve_provider_score(provider_id: str) -> dict | None:
-    canonical_slugs = {
-        canonicalize_service_slug(candidate)
+    score_slugs = {
+        candidate
         for candidate in _provider_slug_candidates(provider_id)
         if candidate
     }
-    if not canonical_slugs:
+    if not score_slugs:
         return None
 
     rows = await supabase_fetch(
-        f"scores?service_slug=in.({_build_in_filter(canonical_slugs)})"
+        f"scores?service_slug=in.({_build_in_filter(score_slugs)})"
         f"&select=service_slug,aggregate_recommendation_score,tier,tier_label,calculated_at"
         f"&order=calculated_at.desc"
     )
     if not rows:
         return None
 
-    for candidate in _provider_slug_candidates(provider_id):
-        canonical_candidate = canonicalize_service_slug(candidate)
-        for row in rows:
-            if row.get("service_slug") == canonical_candidate:
-                return row
+    canonical_provider_slug = canonicalize_service_slug(provider_id)
+    for row in rows:
+        row_slug = str(row.get("service_slug") or "").strip()
+        if row_slug and canonicalize_service_slug(row_slug) == canonical_provider_slug:
+            normalized_row = dict(row)
+            normalized_row["service_slug"] = canonical_provider_slug
+            return normalized_row
     return None
 
 
@@ -340,17 +342,20 @@ def _merge_provider_detail(
     direct_mappings = direct_mappings or []
     direct_primary = direct_mappings[0] if direct_mappings else {}
 
-    slug = None
-    if service_row and service_row.get("slug"):
-        slug = str(service_row["slug"])
-    elif direct_primary.get("service_slug"):
-        slug = str(direct_primary["service_slug"])
-    else:
-        for candidate in _provider_slug_candidates(provider_id):
-            canonical_candidate = canonicalize_service_slug(candidate)
-            if _runtime_provider_slug(canonical_candidate) in SERVICE_REGISTRY:
-                slug = canonical_candidate
-                break
+    canonical_provider_slug = canonicalize_service_slug(provider_id) if provider_id else None
+    runtime_slug = _runtime_provider_slug(canonical_provider_slug or provider_id)
+    has_service_row = bool(service_row and service_row.get("slug"))
+    has_direct_mapping = bool(direct_mappings)
+    is_runtime_callable = runtime_slug in SERVICE_REGISTRY
+
+    if not has_service_row and not has_direct_mapping and not is_runtime_callable:
+        return None
+
+    slug = canonical_provider_slug
+    if not slug and service_row and service_row.get("slug"):
+        slug = canonicalize_service_slug(str(service_row["slug"]))
+    elif not slug and direct_primary.get("service_slug"):
+        slug = canonicalize_service_slug(str(direct_primary["service_slug"]))
 
     if not slug:
         return None
@@ -518,12 +523,18 @@ async def list_providers(
             },
         }
 
-    slug_filter = _build_in_filter(provider_slugs)
+    provider_lookup_slugs = {
+        candidate
+        for provider_slug in provider_slugs
+        for candidate in _provider_slug_candidates(provider_slug)
+        if candidate
+    }
+    slug_filter = _build_in_filter(provider_lookup_slugs)
     service_rows = await supabase_fetch(
         f"services?slug=in.({slug_filter})&select=slug,name,description,category,official_docs"
     ) or []
     services_by_slug = {
-        str(row["slug"]): row
+        canonicalize_service_slug(str(row["slug"])): row
         for row in service_rows
         if row.get("slug")
     }
@@ -535,9 +546,14 @@ async def list_providers(
     ) or []
     scores_by_slug: dict[str, dict[str, Any]] = {}
     for row in score_rows:
-        slug = row.get("service_slug")
-        if slug and slug not in scores_by_slug:
-            scores_by_slug[str(slug)] = row
+        row_slug = str(row.get("service_slug") or "").strip()
+        if not row_slug:
+            continue
+        canonical_slug = canonicalize_service_slug(row_slug)
+        if canonical_slug in provider_slugs and canonical_slug not in scores_by_slug:
+            normalized_row = dict(row)
+            normalized_row["service_slug"] = canonical_slug
+            scores_by_slug[canonical_slug] = normalized_row
 
     providers = []
     for slug in provider_slugs:

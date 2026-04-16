@@ -116,6 +116,54 @@ _DEFUNCT_DIRECT_MAPPING_PROVIDER = {
     "tier_label": "L3",
 }
 
+_BRAVE_ALIAS_SERVICE_DETAIL = {
+    "slug": "brave-search",
+    "name": "Brave Search",
+    "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+    "category": "search",
+    "official_docs": "https://brave.com/search/api",
+}
+
+
+def _mock_supabase_fetch_with_alias_backed_callable_provider(query: str):
+    """Store Brave metadata on the runtime alias while v2 exposes the canonical provider id."""
+    if query.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in query:
+            return [{"service_slug": "brave-search"}]
+        if "service_slug=eq.brave-search" in query:
+            return [{
+                "capability_id": "search.query",
+                "service_slug": "brave-search",
+                "credential_modes": "byo,rhumb_managed",
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+                "cost_currency": "USD",
+                "free_tier_calls": 2000,
+            }]
+        if "select=service_slug" in query and "capability_id" not in query and "service_slug=eq." not in query:
+            return [{"service_slug": "brave-search"}]
+        return []
+    if query.startswith("services?"):
+        if "slug=eq.brave-search-api" in query:
+            return []
+        if "slug=eq.brave-search" in query:
+            return [_BRAVE_ALIAS_SERVICE_DETAIL]
+        if "slug=in." in query and "brave-search" in query:
+            return [_BRAVE_ALIAS_SERVICE_DETAIL]
+        return []
+    if query.startswith("scores?"):
+        if "brave-search" in query:
+            return [{
+                "service_slug": "brave-search",
+                "aggregate_recommendation_score": 8.6,
+                "tier": "native",
+                "tier_label": "Native",
+                "calculated_at": "2026-03-31T00:00:00Z",
+            }]
+        return []
+    return []
+
 
 def _mock_supabase_fetch_with_stale_direct_db_mapping(query: str):
     """Inject a stale db.query.read -> resend row and no real postgresql catalog rows."""
@@ -210,6 +258,21 @@ class TestListProviders:
         assert _DIRECT_PROVIDER_SLUG in slugs
         assert "resend" not in slugs
 
+    def test_list_uses_alias_backed_metadata_for_callable_provider(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
+            resp = client.get("/v2/providers?capability=search.query")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        brave = providers_by_id["brave-search-api"]
+        assert brave["name"] == "Brave Search"
+        assert brave["description"] == _BRAVE_ALIAS_SERVICE_DETAIL["description"]
+        assert brave["category"] == "search"
+        assert brave["an_score"] == 8.6
+        assert brave["tier"] == "Native"
+        assert brave["callable"] is True
+
 
 # ---------------------------------------------------------------------------
 # GET /v2/providers/{provider_id}
@@ -242,37 +305,16 @@ class TestGetProvider:
         assert {"db.query.read", "db.schema.describe", "db.row.get"}.issubset(capability_ids)
         assert _DIRECT_CAPABILITY in capability_ids
 
-    def test_get_provider_accepts_alias_when_detail_and_mappings_use_different_slugs(self, client):
-        def mock_fetch(query: str):
-            if query.startswith("services?") and "slug=eq.brave-search-api" in query:
-                return [{
-                    "slug": "brave-search-api",
-                    "name": "Brave Search",
-                    "description": "Brave Search API",
-                    "category": "search",
-                    "api_domain": "api.search.brave.com",
-                    "aggregate_recommendation_score": 8.1,
-                    "tier_label": "L4",
-                }]
-            if query.startswith("capability_services?") and "service_slug=eq.brave-search" in query:
-                return [{
-                    "capability_id": "search.query",
-                    "service_slug": "brave-search",
-                    "credential_modes": "byo,rhumb_managed",
-                    "auth_method": "api_key",
-                    "endpoint_pattern": "GET /res/v1/web/search",
-                    "cost_per_call": 0.003,
-                    "cost_currency": "USD",
-                    "free_tier_calls": 2000,
-                }]
-            return []
-
-        with patch("routes.providers_v2.supabase_fetch", side_effect=mock_fetch):
+    def test_get_provider_accepts_alias_backed_service_and_score_rows(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
             resp = client.get("/v2/providers/brave-search-api")
 
         assert resp.status_code == 200
         data = resp.json()["data"]
         assert data["id"] == "brave-search-api"
+        assert data["name"] == "Brave Search"
+        assert data["an_score"] == 8.6
+        assert data["tier"] == "Native"
         assert data["capabilities"][0]["capability_id"] == "search.query"
 
     def test_get_nonexistent_provider(self, client):
