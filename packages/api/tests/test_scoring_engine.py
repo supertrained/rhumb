@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -13,6 +15,7 @@ from db.repository import (
     InMemoryProbeRepository,
     InMemoryScoreRepository,
     SQLAlchemyScoreRepository,
+    StoredScore,
 )
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import (
@@ -470,6 +473,111 @@ def test_compare_route_exposes_dual_score_fields(
         assert item["execution_score"] >= 0.0
         assert item["access_readiness_score"] is not None
         assert item["autonomy_score"] is not None
+
+
+def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/services/{slug}/score should read alias-backed stored rows but return canonical ids."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="Alias-backed stored score.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    }
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/services/brave-search-api/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["service_slug"] == "brave-search-api"
+    assert body["an_score"] == 8.7
+    assert body["execution_score"] == 8.4
+    assert body["access_readiness_score"] == 8.8
+    assert body["autonomy_score"] == 8.9
+    assert body["an_score_version"] == AN_SCORE_VERSION
+
+
+def test_compare_route_canonicalizes_alias_inputs_and_alias_backed_stored_rows(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/compare should normalize alias requests and alias-backed stored rows to canonical ids."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="Alias-backed stored score.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    }
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/compare?services=brave-search-api,brave-search")
+    assert response.status_code == 200
+
+    body = response.json()["data"]
+    assert body["services"] == ["brave-search-api"]
+    assert body["comparison"] == [
+        {
+            "service_slug": "brave-search-api",
+            "an_score": 8.7,
+            "score": 8.7,
+            "execution_score": 8.4,
+            "access_readiness_score": 8.8,
+            "autonomy_score": 8.9,
+            "an_score_version": AN_SCORE_VERSION,
+            "confidence": 0.91,
+            "tier": "L4",
+            "tier_label": "Native",
+        }
+    ]
 
 
 def test_autonomy_seed_migration_covers_all_artifact_services() -> None:

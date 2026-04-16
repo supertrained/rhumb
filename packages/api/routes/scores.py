@@ -27,6 +27,7 @@ from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
+from services.service_slugs import canonicalize_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -85,7 +86,7 @@ def _result_to_schema(
         resolved_autonomy_score = float(avg_value) if avg_value is not None else None
 
     return ANScoreSchema(
-        service_slug=service_slug,
+        service_slug=canonicalize_service_slug(service_slug),
         score=round(score, 1),
         execution_score=round(execution_score, 1),
         access_readiness_score=(
@@ -105,6 +106,32 @@ def _result_to_schema(
         score_id=score_id,
         calculated_at=calculated_at,
     )
+
+
+def _stored_score_sort_key(stored: StoredScore) -> datetime:
+    calculated_at = stored.calculated_at
+    if calculated_at is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if calculated_at.tzinfo is None:
+        return calculated_at.replace(tzinfo=timezone.utc)
+    return calculated_at.astimezone(timezone.utc)
+
+
+async def _fetch_latest_score_for_public_slug(
+    scoring_service: ScoringService,
+    service_slug: str,
+) -> StoredScore | None:
+    latest: StoredScore | None = None
+    for candidate in public_service_slug_candidates(service_slug):
+        try:
+            stored = await scoring_service.fetch_latest_score(candidate)
+        except Exception:
+            stored = None
+        if stored is None:
+            continue
+        if latest is None or _stored_score_sort_key(stored) > _stored_score_sort_key(latest):
+            latest = stored
+    return latest
 
 
 def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
@@ -292,17 +319,14 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
 @router.get("/services/{slug}/score", response_model=ANScoreSchema)
 async def get_score(slug: str) -> ANScoreSchema:
     """Get the latest AN score for a service."""
+    canonical_slug = canonicalize_service_slug(slug)
     scoring_service = get_scoring_service()
 
-    try:
-        stored = await scoring_service.fetch_latest_score(slug)
-    except Exception:
-        stored = None
-
+    stored = await _fetch_latest_score_for_public_slug(scoring_service, canonical_slug)
     if stored is not None:
         return _stored_to_schema(stored)
 
-    fixture = HAND_SCORED_FIXTURES.get(slug)
+    fixture = HAND_SCORED_FIXTURES.get(canonical_slug)
     if fixture is not None:
         evidence = EvidenceInput(
             evidence_count=fixture["evidence_count"],
@@ -311,7 +335,7 @@ async def get_score(slug: str) -> ANScoreSchema:
             production_telemetry=bool(fixture["production_telemetry"]),
         )
         result = await scoring_service.score_service(
-            service_slug=slug,
+            service_slug=canonical_slug,
             dimensions=dict(fixture["dimensions"]),
             evidence=evidence,
             access_dimensions=fixture.get("access_dimensions"),
@@ -320,10 +344,10 @@ async def get_score(slug: str) -> ANScoreSchema:
         result.dimension_snapshot["active_failures"] = fixture.get("active_failures", [])
         result.dimension_snapshot["alternatives"] = fixture.get("alternatives", [])
 
-        score_id = await _persist_score_or_raise(scoring_service, slug, result)
+        score_id = await _persist_score_or_raise(scoring_service, canonical_slug, result)
 
         return _result_to_schema(
-            service_slug=slug,
+            service_slug=result.service_slug,
             score=result.score,
             execution_score=result.execution_score,
             access_readiness_score=result.access_readiness_score,
@@ -345,17 +369,20 @@ async def get_score(slug: str) -> ANScoreSchema:
 async def compare_services(services: str) -> dict:
     """Compare a comma-separated set of services."""
     scoring_service = get_scoring_service()
-    requested = [service.strip() for service in services.split(",") if service.strip()]
+    requested: list[str] = []
+    for service in services.split(","):
+        cleaned = service.strip()
+        if not cleaned:
+            continue
+        canonical_slug = canonicalize_service_slug(cleaned)
+        if canonical_slug not in requested:
+            requested.append(canonical_slug)
 
     comparisons: list[dict[str, float | str | None]] = []
     for service_slug in requested:
         schema_payload: ANScoreSchema | None = None
 
-        try:
-            latest = await scoring_service.fetch_latest_score(service_slug)
-        except Exception:
-            latest = None
-
+        latest = await _fetch_latest_score_for_public_slug(scoring_service, service_slug)
         if latest is not None:
             schema_payload = _stored_to_schema(latest)
         else:
