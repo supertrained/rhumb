@@ -3182,6 +3182,11 @@ async def get_credential_modes(
     )
     if not caps and _synthetic_capability_record(capability_id) is None:
         return await _capability_not_found(raw_request, capability_id)
+    if _is_db_direct_capability(capability_id):
+        return {
+            "data": _db_direct_credential_modes(capability_id),
+            "error": None,
+        }
     if _is_support_direct_capability(capability_id):
         return {
             "data": _support_direct_credential_modes(capability_id),
@@ -3190,6 +3195,11 @@ async def get_credential_modes(
     if _is_warehouse_direct_capability(capability_id):
         return {
             "data": _warehouse_direct_credential_modes(capability_id),
+            "error": None,
+        }
+    if _is_object_storage_direct_capability(capability_id):
+        return {
+            "data": _object_storage_direct_credential_modes(capability_id),
             "error": None,
         }
     if _is_deployment_direct_capability(capability_id):

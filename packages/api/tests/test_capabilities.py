@@ -1965,6 +1965,36 @@ async def test_db_direct_capability_surfaces_synthetic_provider(app):
 
 
 @pytest.mark.anyio
+async def test_db_direct_credential_modes_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [DB_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "db.query.read",
+                "service_slug": "stale-db-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            modes_resp = await client.get("/v1/capabilities/db.query.read/credential-modes")
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "postgresql"
+    assert provider["auth_method"] == "connection_ref"
+    assert provider["any_configured"] is False
+    assert [mode["mode"] for mode in provider["modes"]] == ["byok", "agent_vault"]
+    assert provider["modes"][0]["configured"] is False
+    assert "RHUMB_DB_<REF>" in provider["modes"][0]["setup_hint"]
+    assert provider["modes"][1]["configured"] is False
+    assert "X-Agent-Token" in provider["modes"][1]["setup_hint"]
+
+
+@pytest.mark.anyio
 async def test_db_direct_capability_marks_env_bundle_as_configured(
     app,
     monkeypatch: pytest.MonkeyPatch,
@@ -2101,6 +2131,35 @@ async def test_object_storage_direct_capability_surfaces_synthetic_provider(app)
     assert mode_data["providers"][0]["service_slug"] == "aws-s3"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "storage_ref" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_object_storage_direct_credential_modes_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [OBJECT_STORAGE_DIRECT_CAPABILITIES[0]]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "object.list",
+                "service_slug": "stale-object-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            modes_resp = await client.get("/v1/capabilities/object.list/credential-modes")
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "aws-s3"
+    assert provider["auth_method"] == "storage_ref"
+    assert provider["any_configured"] is False
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
+    assert provider["modes"][0]["configured"] is False
+    assert "RHUMB_STORAGE_<REF>" in provider["modes"][0]["setup_hint"]
 
 
 @pytest.mark.anyio
