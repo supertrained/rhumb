@@ -13,6 +13,7 @@ from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetStatus
 from services.policy_engine import PolicyEngine
+from services.resolve_policy_store import ResolvePolicyStore
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
 
@@ -1714,6 +1715,67 @@ async def test_v2_policy_put_and_get_preserve_alias_backed_public_ids(app, _mock
         "max_cost_usd": 0.02,
     }
     assert get_body["data"]["has_policy"] is True
+    assert get_body["data"]["updated_at"] == "2026-03-31T07:05:00Z"
+
+
+@pytest.mark.anyio
+async def test_v2_policy_put_and_get_canonicalize_runtime_alias_inputs_to_public_ids(app):
+    store = ResolvePolicyStore()
+    stored_row: dict[str, object] | None = None
+
+    async def _mock_fetch(_path: str):
+        return [stored_row] if stored_row is not None else []
+
+    async def _mock_insert_returning(_table: str, payload: dict[str, object]):
+        nonlocal stored_row
+        stored_row = {
+            **payload,
+            "created_at": "2026-03-31T07:00:00Z",
+            "updated_at": "2026-03-31T07:05:00Z",
+        }
+        return stored_row
+
+    with (
+        patch("routes.resolve_v2.get_resolve_policy_store", return_value=store),
+        patch("services.resolve_policy_store.supabase_fetch", new=AsyncMock(side_effect=_mock_fetch)),
+        patch("services.resolve_policy_store.supabase_insert_returning", new=AsyncMock(side_effect=_mock_insert_returning)),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            put_resp = await client.put(
+                "/v2/policy",
+                json={
+                    "pin": "brave-search",
+                    "provider_preference": ["brave-search", "pdl", "brave-search-api"],
+                    "provider_deny": ["pdl"],
+                    "allow_only": ["brave-search"],
+                    "max_cost_usd": 0.02,
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+            get_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": FAKE_RHUMB_KEY})
+
+    assert put_resp.status_code == 200
+    put_body = put_resp.json()
+    assert put_body["error"] is None
+    assert put_body["data"]["policy"] == {
+        "pin": "brave-search-api",
+        "provider_preference": ["brave-search-api", "people-data-labs"],
+        "provider_deny": ["people-data-labs"],
+        "allow_only": ["brave-search-api"],
+        "max_cost_usd": 0.02,
+    }
+    assert put_body["data"]["updated_at"] == "2026-03-31T07:05:00Z"
+
+    assert get_resp.status_code == 200
+    get_body = get_resp.json()
+    assert get_body["error"] is None
+    assert get_body["data"]["policy"] == {
+        "pin": "brave-search-api",
+        "provider_preference": ["brave-search-api", "people-data-labs"],
+        "provider_deny": ["people-data-labs"],
+        "allow_only": ["brave-search-api"],
+        "max_cost_usd": 0.02,
+    }
     assert get_body["data"]["updated_at"] == "2026-03-31T07:05:00Z"
 
 
