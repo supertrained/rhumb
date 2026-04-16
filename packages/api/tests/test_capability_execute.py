@@ -2079,6 +2079,67 @@ async def test_estimate_unknown_capability_suggests_capability_for_provider_alia
 
 
 @pytest.mark.anyio
+async def test_execute_unknown_capability_ignores_stale_direct_provider_alias_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            if "id=eq.Resend" in path:
+                return []
+            if "select=id,domain,action,description,input_hint,outcome" in path:
+                return [
+                    {
+                        "id": "email.send",
+                        "domain": "email",
+                        "action": "send",
+                        "description": "Send transactional email",
+                        "input_hint": "Email payload",
+                        "outcome": "Email accepted",
+                    },
+                    {
+                        "id": "db.query.read",
+                        "domain": "database",
+                        "action": "query_read",
+                        "description": "Run read-only SQL queries",
+                        "input_hint": "SQL query and connection_ref",
+                        "outcome": "Rows returned",
+                    },
+                ]
+        if path.startswith("capability_services?"):
+            if "select=capability_id,service_slug" in path:
+                return [
+                    {"capability_id": "email.send", "service_slug": "resend"},
+                    {"capability_id": "db.query.read", "service_slug": "resend"},
+                ]
+            return []
+        if path.startswith("services?"):
+            return [{"slug": "resend", "name": "Resend"}]
+        return []
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            execute_resp = await client.get("/v1/capabilities/Resend/execute")
+            estimate_resp = await client.get("/v1/capabilities/Resend/execute/estimate")
+
+    for resp in (execute_resp, estimate_resp):
+        assert resp.status_code == 404
+        body = resp.json()
+        assert body["error"] == "capability_not_found"
+        assert body["search_url"] == "/v1/capabilities?search=Resend"
+        assert body["suggested_capabilities"][0]["id"] == "email.send"
+        assert all(item["id"] != "db.query.read" for item in body["suggested_capabilities"])
+
+
+@pytest.mark.anyio
 async def test_estimate_auto_select(app):
     """GET estimate without provider auto-selects best."""
     with (
