@@ -33,6 +33,12 @@ _SERVICES = [
         "category": "payments",
         "description": "Accept payments API",
     },
+    {
+        "slug": "brave-search-api",
+        "name": "Brave Search API",
+        "category": "search",
+        "description": "Web search API",
+    },
 ]
 
 _SCORE_ROWS = [
@@ -62,6 +68,15 @@ _SCORE_ROWS = [
         "tier": "L3",
         "tier_label": "Ready",
         "confidence": 0.9,
+    },
+    {
+        "service_slug": "brave-search",
+        "aggregate_recommendation_score": 8.7,
+        "execution_score": 8.5,
+        "access_readiness_score": 8.6,
+        "tier": "L4",
+        "tier_label": "Strong",
+        "confidence": 0.91,
     },
 ]
 
@@ -160,7 +175,7 @@ async def test_list_categories(mock_catalog_supabase):
     assert "data" in result
     assert "categories" in result["data"]
     assert isinstance(result["data"]["categories"], list)
-    assert result["data"]["total"] == 2
+    assert result["data"]["total"] == 3
 
 
 @pytest.mark.asyncio
@@ -177,6 +192,17 @@ async def test_get_leaderboard_email(mock_catalog_supabase):
     assert "service_slug" in item
     assert "score" in item
     assert "tier" in item
+
+
+@pytest.mark.asyncio
+async def test_get_leaderboard_canonicalizes_alias_backed_scores(mock_catalog_supabase):
+    result = await get_leaderboard("search", limit=5)
+    assert result["error"] is None
+    assert result["data"]["count"] == 1
+    item = result["data"]["items"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "Brave Search API"
+    assert item["an_score"] == 8.7
 
 
 @pytest.mark.asyncio
@@ -211,6 +237,17 @@ async def test_search_by_name(mock_catalog_supabase):
     result = await search_services("Stripe")
     assert result["error"] is None
     assert len(result["data"]["results"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_search_canonicalizes_alias_backed_scores(mock_catalog_supabase):
+    result = await search_services("brave")
+    assert result["error"] is None
+    assert len(result["data"]["results"]) == 1
+    item = result["data"]["results"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["an_score"] == 8.7
+    assert item["tier"] == "L4"
 
 
 @pytest.mark.asyncio

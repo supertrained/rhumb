@@ -8,6 +8,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -15,6 +16,15 @@ _READ_CACHE_TTL_SECONDS = 60.0
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
     return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
+
+
+def _score_query_slugs(service_slugs: list[str]) -> list[str]:
+    query_slugs: list[str] = []
+    for service_slug in service_slugs:
+        for candidate in public_service_slug_candidates(service_slug):
+            if candidate not in query_slugs:
+                query_slugs.append(candidate)
+    return query_slugs
 
 
 @router.get("/leaderboard/{category}")
@@ -52,7 +62,8 @@ async def get_leaderboard(
 
     slugs = [s["slug"] for s in services]
     name_map = {s["slug"]: s["name"] for s in services}
-    slug_filter = ",".join(f'"{s}"' for s in slugs)
+    score_query_slugs = _score_query_slugs(slugs)
+    slug_filter = ",".join(f'"{s}"' for s in score_query_slugs)
 
     # Get scores for all services in category
     scores = await _cached_fetch(
@@ -68,12 +79,13 @@ async def get_leaderboard(
             "error": "Unable to load scores.",
         }
 
-    # Deduplicate: keep highest-scored entry per service_slug
+    # Deduplicate: keep highest-scored entry per canonical/public service slug
     seen: set[str] = set()
     items: list[dict] = []
     for sc in scores:
-        slug = sc.get("service_slug")
-        if slug in seen:
+        raw_slug = str(sc.get("service_slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not slug or slug in seen:
             continue
         seen.add(slug)
 
@@ -124,7 +136,11 @@ async def list_categories() -> dict:
     if scores_data is None:
         return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
 
-    scored_slugs = {str(row["service_slug"]) for row in scores_data if row.get("service_slug")}
+    scored_slugs = {
+        public_service_slug(str(row["service_slug"])) or str(row["service_slug"])
+        for row in scores_data
+        if row.get("service_slug")
+    }
     if not scored_slugs:
         return {"data": {"categories": [], "total": 0}, "error": None}
 

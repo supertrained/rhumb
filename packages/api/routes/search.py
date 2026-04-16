@@ -7,6 +7,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -14,6 +15,15 @@ _READ_CACHE_TTL_SECONDS = 60.0
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
     return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
+
+
+def _score_query_slugs(service_slugs: list[str]) -> list[str]:
+    query_slugs: list[str] = []
+    for service_slug in service_slugs:
+        for candidate in public_service_slug_candidates(service_slug):
+            if candidate not in query_slugs:
+                query_slugs.append(candidate)
+    return query_slugs
 
 
 @router.get("/search")
@@ -68,7 +78,8 @@ async def search_services(
 
     # Get scores for matching services
     slugs = [s["slug"] for s in services]
-    slug_filter = ",".join(f'"{s}"' for s in slugs)
+    score_query_slugs = _score_query_slugs(slugs)
+    slug_filter = ",".join(f'"{s}"' for s in score_query_slugs)
 
     scores_data = await _cached_fetch(
         "scores",
@@ -80,7 +91,8 @@ async def search_services(
     scores_by_slug: dict[str, dict] = {}
     if scores_data:
         for sc in scores_data:
-            slug = sc.get("service_slug")
+            raw_slug = str(sc.get("service_slug") or "").strip()
+            slug = public_service_slug(raw_slug) or raw_slug
             if slug and slug not in scores_by_slug:
                 scores_by_slug[slug] = sc
 
