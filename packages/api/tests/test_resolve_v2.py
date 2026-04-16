@@ -1093,6 +1093,33 @@ async def test_policy_engine_matches_provider_preference_aliases():
 
 
 @pytest.mark.anyio
+async def test_policy_engine_matches_pin_aliases():
+    engine = PolicyEngine()
+    auto_selector = AsyncMock(return_value={"service_slug": "elasticsearch"})
+    policy = SimpleNamespace(
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+    )
+
+    decision = await engine.resolve_provider(
+        mappings=[
+            {"service_slug": "elasticsearch"},
+            {"service_slug": "brave-search"},
+        ],
+        agent_id="agent_v2_test",
+        policy=policy,
+        auto_selector=auto_selector,
+    )
+
+    assert decision.selected_provider == "brave-search"
+    assert decision.selected_reason == "policy_pin"
+    auto_selector.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app):
     _, mock_pool, budget_state = _build_patches()
 
@@ -1135,6 +1162,44 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     request_call = mock_pool.acquire.return_value.request.await_args
     assert request_call.kwargs["json"] == {"to": "test@example.com"}
     assert request_call.args == ()
+
+
+@pytest.mark.anyio
+async def test_v2_execute_honors_pinned_alias_provider_and_reports_runtime_selection(app):
+    _, mock_pool, budget_state = _build_patches()
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "policy": {"pin": "brave-search-api"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["error"] is None
+    data = body["data"]
+    assert data["provider_used"] == "brave-search"
+    assert data["credential_mode"] == "byok"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_pin"
+    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search"
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+
+    request_call = mock_pool.acquire.return_value.request.await_args
+    assert request_call is not None
 
 
 @pytest.mark.anyio
