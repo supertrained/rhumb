@@ -820,6 +820,33 @@ async def test_v2_estimate_direct_capability_ignores_stale_catalog_mapping_rows(
 
 
 @pytest.mark.anyio
+async def test_v2_estimate_direct_capability_accepts_canonical_provider_query(app):
+    breaker = SimpleNamespace(
+        state=SimpleNamespace(value="closed"),
+        allow_request=lambda: True,
+    )
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_db_direct_supabase_with_stale_mapping,
+        ),
+        patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/execute/estimate?provider=postgresql")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "postgresql"
+    assert data["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
+    assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/db.query.read/resolve"
+    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/db.query.read/credential-modes"
+
+
+@pytest.mark.anyio
 async def test_v2_estimate_direct_capability_rejects_stale_provider_query(app):
     breaker = SimpleNamespace(
         state=SimpleNamespace(value="closed"),
