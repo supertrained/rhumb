@@ -600,6 +600,47 @@ async def test_v2_credential_modes_wraps_metadata(app):
 
 
 @pytest.mark.anyio
+async def test_v2_credential_modes_direct_capability_ignores_stale_catalog_mapping_rows(app):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_db_direct_supabase_with_stale_mapping,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/db.query.read/credential-modes")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    assert data["capability_id"] == "db.query.read"
+    assert data["providers"] == [
+        {
+            "service_slug": "postgresql",
+            "auth_method": "connection_ref",
+            "modes": [
+                {
+                    "mode": "byok",
+                    "available": True,
+                    "configured": False,
+                    "setup_hint": "Self-hosted/internal only: pass a connection_ref that resolves to a RHUMB_DB_<REF> environment variable at execution time. Hosted Rhumb should prefer agent_vault.",
+                },
+                {
+                    "mode": "agent_vault",
+                    "available": True,
+                    "configured": False,
+                    "setup_hint": "Hosted/default path: set credential_mode to 'agent_vault' and pass either a short-lived signed rhdbv1 DB vault token in X-Agent-Token or, as a compatibility bridge, a transient PostgreSQL DSN in X-Agent-Token. The raw DSN is never stored.",
+                },
+            ],
+            "any_configured": False,
+        }
+    ]
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_not_found_rewrites_search_url(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, return_value=[]):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
