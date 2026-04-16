@@ -305,6 +305,42 @@ async def test_v2_capabilities_direct_capability_ignores_stale_catalog_mapping_r
 
 
 @pytest.mark.anyio
+async def test_v2_capabilities_search_ignores_stale_direct_provider_alias_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [SAMPLE_CAP[0], DB_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            if "select=capability_id,service_slug" in path:
+                return [
+                    {"capability_id": "email.send", "service_slug": "resend"},
+                    {"capability_id": "db.query.read", "service_slug": "resend"},
+                ]
+            if "capability_id=in." in path:
+                return [{"capability_id": "email.send", "service_slug": "resend"}]
+            return []
+        if path.startswith("services?"):
+            return [{"slug": "resend", "name": "Resend"}]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params={"search": "resend"})
+
+    assert resp.status_code == 200
+
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+    items = data["items"]
+    assert items
+    assert items[0]["id"] == "email.send"
+    assert all(item["id"] != "db.query.read" for item in items)
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
