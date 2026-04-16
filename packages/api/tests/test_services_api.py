@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from urllib.parse import parse_qs
+from urllib.parse import unquote
 from unittest.mock import AsyncMock, patch
 
 
@@ -17,11 +19,76 @@ ALL_SERVICES = [
 ]
 SCORED_ROWS = [{"service_slug": service["slug"]} for service in ALL_SERVICES]
 
+ALIAS_SERVICES = [
+    {
+        "slug": "brave-search-api",
+        "name": "Brave Search API",
+        "category": "search",
+        "description": "Web search API",
+        "official_docs": "https://api.search.brave.com/app/documentation",
+    },
+    {
+        "slug": "people-data-labs",
+        "name": "People Data Labs",
+        "category": "search",
+        "description": "B2B data API",
+        "official_docs": "https://docs.peopledatalabs.com/docs",
+    },
+]
+
+ALIAS_SCORE_ROWS = [
+    {
+        "service_slug": "brave-search",
+        "aggregate_recommendation_score": 8.7,
+        "execution_score": 8.5,
+        "access_readiness_score": 8.6,
+        "confidence": 0.91,
+        "tier": "L4",
+        "tier_label": "Strong",
+        "probe_metadata": {"freshness": "5 minutes ago"},
+        "calculated_at": "2026-04-16T16:00:00Z",
+    },
+    {
+        "service_slug": "brave-search",
+        "aggregate_recommendation_score": 8.4,
+        "execution_score": 8.2,
+        "access_readiness_score": 8.3,
+        "confidence": 0.88,
+        "tier": "L4",
+        "tier_label": "Strong",
+        "probe_metadata": {"freshness": "1 day ago"},
+        "calculated_at": "2026-04-15T16:00:00Z",
+    },
+    {
+        "service_slug": "pdl",
+        "aggregate_recommendation_score": 7.9,
+        "execution_score": 7.7,
+        "access_readiness_score": 7.8,
+        "confidence": 0.87,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "probe_metadata": {"freshness": "12 minutes ago"},
+        "calculated_at": "2026-04-16T15:30:00Z",
+    },
+]
+
 
 def _parse_query(path: str) -> dict[str, list[str]]:
     if "?" not in path:
         return {}
     return parse_qs(path.split("?", 1)[1], keep_blank_values=True)
+
+
+def _parse_in_filter(path: str, key: str) -> set[str] | None:
+    decoded = unquote(path)
+    match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", decoded)
+    if not match:
+        return None
+    return {
+        part.strip().strip('"')
+        for part in match.group(1).split(",")
+        if part.strip()
+    }
 
 
 def _filtered_services(path: str) -> list[dict[str, str]]:
@@ -74,6 +141,24 @@ async def _mock_supabase_fetch(path: str):
             }
         ]
 
+    if path.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(path, "service_slug") or set()
+        if "stripe" in slugs:
+            return [
+                {
+                    "service_slug": "stripe",
+                    "aggregate_recommendation_score": 8.9,
+                    "execution_score": 9.1,
+                    "access_readiness_score": 8.4,
+                    "confidence": 0.98,
+                    "tier": "L4",
+                    "tier_label": "Agent Native",
+                    "probe_metadata": {"freshness": "12 minutes ago"},
+                    "calculated_at": "2026-03-13T00:00:00Z",
+                }
+            ]
+        return []
+
     if path.startswith("failure_modes?service_slug=eq.stripe"):
         return []
 
@@ -86,6 +171,67 @@ async def _mock_supabase_fetch(path: str):
 async def _mock_supabase_count(path: str) -> int:
     if path.startswith("services?select=slug,name,category,description"):
         return len(_filtered_services(path))
+    raise AssertionError(f"Unexpected Supabase count path: {path}")
+
+
+async def _mock_alias_supabase_fetch(path: str):
+    decoded = unquote(path)
+
+    if decoded == "scores?select=service_slug":
+        return [{"service_slug": row["service_slug"]} for row in ALIAS_SCORE_ROWS]
+
+    if decoded.startswith("services?slug=eq.brave-search-api&select=slug,name,category,description&limit=1"):
+        return [
+            {
+                "slug": "brave-search-api",
+                "name": "Brave Search API",
+                "category": "search",
+                "description": "Web search API",
+            }
+        ]
+
+    if decoded.startswith("services?slug=eq.brave-search-api&select=slug,official_docs&limit=1"):
+        return [
+            {
+                "slug": "brave-search-api",
+                "official_docs": "https://api.search.brave.com/app/documentation",
+            }
+        ]
+
+    if decoded.startswith("services?category=eq.search&slug=neq.brave-search-api&select=slug,name"):
+        return [{"slug": "people-data-labs", "name": "People Data Labs"}]
+
+    if decoded.startswith("services?select=slug,name,category,description"):
+        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in ALIAS_SERVICES}
+        query = _parse_query(decoded)
+        offset = int(query.get("offset", ["0"])[0])
+        limit = int(query.get("limit", [str(len(ALIAS_SERVICES))])[0])
+        filtered = [service for service in ALIAS_SERVICES if service["slug"] in slugs]
+        return [
+            {
+                "slug": service["slug"],
+                "name": service["name"],
+                "category": service["category"],
+                "description": service["description"],
+            }
+            for service in filtered[offset : offset + limit]
+        ]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in ALIAS_SCORE_ROWS if row["service_slug"] in slugs]
+
+    if decoded.startswith("failure_modes?service_slug=eq.brave-search-api"):
+        return []
+
+    raise AssertionError(f"Unexpected Supabase fetch path: {path}")
+
+
+async def _mock_alias_supabase_count(path: str) -> int:
+    decoded = unquote(path)
+    if decoded.startswith("services?select=slug,name,category,description"):
+        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in ALIAS_SERVICES}
+        return sum(1 for service in ALIAS_SERVICES if service["slug"] in slugs)
     raise AssertionError(f"Unexpected Supabase count path: {path}")
 
 
@@ -246,3 +392,81 @@ def test_services_limit_above_max_is_capped(client) -> None:
         and "limit=500" in path
         for path in captured_paths
     )
+
+
+def test_services_endpoint_keeps_alias_backed_services_visible(client) -> None:
+    with (
+        patch(
+            "routes.services.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_alias_supabase_fetch,
+        ),
+        patch(
+            "routes.services.supabase_count",
+            new_callable=AsyncMock,
+            side_effect=_mock_alias_supabase_count,
+        ),
+    ):
+        resp = client.get("/v1/services")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert [item["slug"] for item in payload["data"]["items"]] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+
+
+def test_service_detail_canonicalizes_alias_backed_scores_and_alternatives(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["an_score"] == 8.7
+    assert payload["data"]["alternatives"] == [
+        {
+            "slug": "people-data-labs",
+            "name": "People Data Labs",
+            "an_score": 7.9,
+            "score": 7.9,
+            "tier": "L3",
+        }
+    ]
+
+
+def test_service_score_canonicalizes_alias_backed_score_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["an_score"] == 8.7
+    assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
+
+
+def test_service_history_reads_alias_backed_score_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/history")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert [entry["an_score"] for entry in payload["data"]["history"]] == [8.7, 8.4]

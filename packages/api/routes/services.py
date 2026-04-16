@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
-from services.service_slugs import canonicalize_service_slug
+from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -32,6 +32,15 @@ async def _cached_count(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECO
 def _build_in_filter(values: set[str]) -> str:
     """Build a PostgREST `in.(...)` filter from a set of string identifiers."""
     return ",".join(f'"{value}"' for value in sorted(values))
+
+
+def _score_query_slugs(service_slugs: list[str]) -> list[str]:
+    query_slugs: list[str] = []
+    for service_slug in service_slugs:
+        for candidate in public_service_slug_candidates(service_slug):
+            if candidate not in query_slugs:
+                query_slugs.append(candidate)
+    return query_slugs
 
 
 def _not_found_response(
@@ -77,7 +86,7 @@ async def list_services(
         }
 
     scored_slugs = {
-        str(row["service_slug"])
+        public_service_slug(str(row["service_slug"])) or str(row["service_slug"])
         for row in scored_rows
         if row.get("service_slug")
     }
@@ -146,9 +155,11 @@ async def get_service(slug: str, raw_request: Request):
     service = services[0]
 
     # Get latest score
+    score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(canonical_slug)}&order=calculated_at.desc&limit=1"
+        f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
+        "&order=calculated_at.desc&limit=1"
     )
     score: dict[str, Any] = {}
     if scores:
@@ -183,22 +194,30 @@ async def get_service(slug: str, raw_request: Request):
         if alt_services:
             alt_slugs = {s["slug"] for s in alt_services}
             alt_names = {s["slug"]: s["name"] for s in alt_services}
-            # Build an IN filter for scores query — fetch only same-category scores
-            slug_filter = ",".join(quote(s) for s in sorted(alt_slugs))
+            alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
             alt_scores = await _cached_fetch(
                 "scores",
-                f"scores?service_slug=in.({slug_filter})"
-                f"&order=aggregate_recommendation_score.desc.nullslast&limit=5"
+                f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
+                "&order=aggregate_recommendation_score.desc.nullslast"
+                f"&limit={max(5, len(alt_score_query_slugs))}"
             )
             if alt_scores:
+                seen_alternatives: set[str] = set()
                 for asc in alt_scores:
+                    raw_alt_slug = str(asc.get("service_slug") or "").strip()
+                    alt_slug = public_service_slug(raw_alt_slug) or raw_alt_slug
+                    if not alt_slug or alt_slug in seen_alternatives or alt_slug not in alt_names:
+                        continue
+                    seen_alternatives.add(alt_slug)
                     alternatives.append({
-                        "slug": asc["service_slug"],
-                        "name": alt_names.get(asc["service_slug"], asc["service_slug"]),
+                        "slug": alt_slug,
+                        "name": alt_names.get(alt_slug, alt_slug),
                         "an_score": asc.get("aggregate_recommendation_score"),
                         "score": asc.get("aggregate_recommendation_score"),
                         "tier": asc.get("tier"),
                     })
+                    if len(alternatives) >= 5:
+                        break
 
     return {
         "data": {
@@ -233,9 +252,11 @@ async def get_service_score(slug: str, raw_request: Request):
             )
     service = service_rows[0]
 
+    score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(canonical_slug)}&order=calculated_at.desc&limit=1"
+        f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
+        "&order=calculated_at.desc&limit=1"
     )
     if not scores:
         return {
@@ -303,7 +324,7 @@ async def get_service_score(slug: str, raw_request: Request):
         ]
 
     return {
-        "service_slug": sc.get("service_slug", slug),
+        "service_slug": public_service_slug(sc.get("service_slug")) or canonical_slug,
         "an_score": sc.get("aggregate_recommendation_score"),
         "score": sc.get("aggregate_recommendation_score"),
         "execution_score": sc.get("execution_score"),
@@ -369,9 +390,10 @@ async def get_failures(slug: str) -> dict:
 async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -> dict:
     """Fetch historical AN score entries for a service."""
     canonical_slug = canonicalize_service_slug(slug)
+    score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=eq.{quote(canonical_slug)}"
+        f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
         f"&order=calculated_at.desc&limit={limit}"
         f"&select=aggregate_recommendation_score,execution_score,access_readiness_score,"
         f"confidence,tier,tier_label,calculated_at"
