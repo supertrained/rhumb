@@ -454,6 +454,61 @@ class TestExecuteOnProvider:
         execute_call = mock_forward.call_args_list[1]
         assert execute_call.kwargs["json_body"]["provider"] == _DIRECT_PROVIDER_SLUG
 
+    @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
+    @patch("routes.providers_v2.get_receipt_service")
+    @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider)
+    def test_execute_alias_backed_provider_uses_runtime_slug(self, mock_fetch, mock_receipt_svc, mock_budget, client):
+        mock_receipt = MagicMock()
+        mock_receipt.receipt_id = "rcpt_alias_123"
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+
+        mock_execute_response = {
+            "data": {
+                "execution_id": "exec_alias_123",
+                "result": {"items": [{"title": "Result"}]},
+                "provider_latency_ms": 45,
+                "agent_id": "test_agent",
+                "org_id": "test_org",
+            },
+            "error": None,
+        }
+
+        with patch("routes.providers_v2._forward_internal") as mock_forward:
+            estimate_resp = MagicMock()
+            estimate_resp.status_code = 200
+            estimate_resp.json.return_value = {
+                "data": {
+                    "provider": "brave-search",
+                    "cost_estimate_usd": 0.003,
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                },
+            }
+            estimate_resp.headers = {}
+
+            execute_resp = MagicMock()
+            execute_resp.status_code = 200
+            execute_resp.json.return_value = mock_execute_response
+            execute_resp.headers = {}
+
+            mock_forward.side_effect = [estimate_resp, execute_resp]
+
+            resp = client.post(
+                "/v2/providers/brave-search-api/execute",
+                json={
+                    "capability": "search.query",
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byok",
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["_rhumb_v2"]["provider"]["id"] == "brave-search-api"
+        estimate_call = mock_forward.call_args_list[0]
+        assert estimate_call.kwargs["params"]["provider"] == "brave-search"
+        execute_call = mock_forward.call_args_list[1]
+        assert execute_call.kwargs["json_body"]["provider"] == "brave-search"
+
     def test_execute_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
             resp = client.post(
