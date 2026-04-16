@@ -19,7 +19,7 @@ from services.crm_connection_registry import has_any_crm_bundle_configured
 from services.db_connection_registry import has_any_db_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
-from services.service_slugs import normalize_proxy_slug
+from services.service_slugs import normalize_proxy_slug, public_service_slug, public_service_slug_candidates
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
 from services.storage_connection_registry import has_any_storage_bundle_configured
 from services.support_connection_registry import has_any_support_bundle_configured
@@ -87,10 +87,31 @@ _SUPPORT_DIRECT_CREDENTIAL_MODES = ["byok"]
 
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
-    """Prefer hardcoded provider auth defaults over stale capability metadata."""
+    """Prefer hardcoded proxy auth defaults without overriding direct bundle refs."""
+    if auth_method.endswith("_ref"):
+        return auth_method
+
     proxy_slug = normalize_proxy_slug(service_slug)
     default_method = AuthInjector.default_method_for(proxy_slug)
     return default_method.value if default_method is not None else auth_method
+
+
+def _public_provider_slug(service_slug: str | None) -> str:
+    cleaned = str(service_slug or "").strip().lower()
+    return public_service_slug(cleaned) or cleaned
+
+
+def _provider_lookup_slugs(service_slugs: list[str]) -> list[str]:
+    lookup_slugs: list[str] = []
+    for service_slug in service_slugs:
+        for candidate in public_service_slug_candidates(service_slug):
+            if candidate not in lookup_slugs:
+                lookup_slugs.append(candidate)
+    return lookup_slugs
+
+
+def _lookup_slug_filter(service_slugs: list[str]) -> str:
+    return ",".join(f'"{slug}"' for slug in service_slugs)
 
 
 def _is_db_direct_capability(capability_id: str) -> bool:
@@ -181,8 +202,9 @@ def _support_direct_recommendation_reason(capability_id: str) -> str:
 
 def _mapped_provider_setup_hint(service_slug: str, auth_method: str, mode: str) -> str | None:
     if mode == "byok":
+        runtime_slug = normalize_proxy_slug(service_slug)
         return (
-            f"Set RHUMB_CREDENTIAL_{service_slug.upper().replace('-', '_')}_{auth_method.upper()} "
+            f"Set RHUMB_CREDENTIAL_{runtime_slug.upper().replace('-', '_')}_{auth_method.upper()} "
             f"environment variable or configure via proxy credentials"
         )
     if mode == "rhumb_managed":
@@ -1098,7 +1120,7 @@ def _has_proxy_credential_configured(service_slug: str, auth_method: str) -> boo
     try:
         from services.proxy_credentials import get_credential_store
         store = get_credential_store()
-        return store.get_credential(service_slug, auth_method) is not None
+        return store.get_credential(normalize_proxy_slug(service_slug), auth_method) is not None
     except Exception:
         return False
 
@@ -2621,22 +2643,22 @@ async def list_capabilities(
 
     # Get scores for provider ranking
     if mappings:
-        service_slugs = list({m["service_slug"] for m in mappings})
-        slug_filter = ",".join(f'"{s}"' for s in service_slugs)
+        service_slugs = [str(m["service_slug"]) for m in mappings if m.get("service_slug")]
+        lookup_slugs = _provider_lookup_slugs(service_slugs)
         scores = await _cached_fetch(
             "scores",
-            f"scores?service_slug=in.({slug_filter})"
+            f"scores?service_slug=in.({_lookup_slug_filter(lookup_slugs)})"
             f"&select=service_slug,aggregate_recommendation_score,tier_label"
             f"&order=aggregate_recommendation_score.desc.nullslast"
         )
     else:
         scores = []
 
-    # Index scores by slug (best per slug)
+    # Index scores by public slug (best per provider)
     scores_by_slug: dict[str, dict] = {}
     if scores:
         for sc in scores:
-            slug = sc.get("service_slug")
+            slug = _public_provider_slug(sc.get("service_slug"))
             if slug and slug not in scores_by_slug:
                 scores_by_slug[slug] = sc
 
@@ -2645,7 +2667,12 @@ async def list_capabilities(
     if mappings:
         for m in mappings:
             cid = m["capability_id"]
-            providers_by_cap.setdefault(cid, []).append(m["service_slug"])
+            public_slug = _public_provider_slug(m.get("service_slug"))
+            if not public_slug:
+                continue
+            providers = providers_by_cap.setdefault(cid, [])
+            if public_slug not in providers:
+                providers.append(public_slug)
 
     items = []
     for cap in page:
@@ -2937,24 +2964,24 @@ async def get_capability(capability_id: str, raw_request: Request):
     providers = []
     if mappings:
         # Get scores + service names for all mapped services
-        slugs = [m["service_slug"] for m in mappings]
-        slug_filter = ",".join(f'"{s}"' for s in slugs)
+        slugs = [str(m["service_slug"]) for m in mappings if m.get("service_slug")]
+        lookup_slugs = _provider_lookup_slugs(slugs)
 
         scores = await _cached_fetch(
             "scores",
-            f"scores?service_slug=in.({slug_filter})"
+            f"scores?service_slug=in.({_lookup_slug_filter(lookup_slugs)})"
             f"&select=service_slug,aggregate_recommendation_score,tier,tier_label"
             f"&order=aggregate_recommendation_score.desc.nullslast"
         )
         services = await _cached_fetch(
             "services",
-            f"services?slug=in.({slug_filter})&select=slug,name,category"
+            f"services?slug=in.({_lookup_slug_filter(lookup_slugs)})&select=slug,name,category"
         )
 
         scores_by_slug: dict[str, dict] = {}
         if scores:
             for sc in scores:
-                slug = sc.get("service_slug")
+                slug = _public_provider_slug(sc.get("service_slug"))
                 if slug and slug not in scores_by_slug:
                     scores_by_slug[slug] = sc
 
@@ -2962,14 +2989,20 @@ async def get_capability(capability_id: str, raw_request: Request):
         cats_by_slug: dict[str, str] = {}
         if services:
             for svc in services:
-                names_by_slug[svc["slug"]] = svc.get("name", svc["slug"])
-                cats_by_slug[svc["slug"]] = svc.get("category", "")
+                public_slug = _public_provider_slug(svc.get("slug"))
+                if public_slug and public_slug not in names_by_slug:
+                    names_by_slug[public_slug] = svc.get("name", public_slug)
+                    cats_by_slug[public_slug] = svc.get("category", "")
 
+        providers_by_slug: dict[str, dict[str, object]] = {}
         for m in mappings:
-            slug = m["service_slug"]
+            raw_slug = str(m.get("service_slug") or "")
+            slug = _public_provider_slug(raw_slug)
+            if not slug:
+                continue
             sc = scores_by_slug.get(slug, {})
-            auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
-            providers.append({
+            auth_method = _effective_auth_method(raw_slug, m.get("auth_method", "api_key"))
+            providers_by_slug.setdefault(slug, {
                 "service_slug": slug,
                 "service_name": names_by_slug.get(slug, slug),
                 "category": cats_by_slug.get(slug, ""),
@@ -2987,6 +3020,8 @@ async def get_capability(capability_id: str, raw_request: Request):
                 "notes": m.get("notes"),
                 "is_primary": m.get("is_primary", True),
             })
+
+        providers = list(providers_by_slug.values())
 
         # Sort providers by AN score descending (nulls last)
         providers.sort(key=lambda p: -(p.get("an_score") or 0))
@@ -3070,12 +3105,12 @@ async def resolve_capability(
         }
 
     # Get scores for all mapped services
-    slugs = list(dict.fromkeys(m["service_slug"] for m in all_mappings))
-    slug_filter = ",".join(f'"{s}"' for s in slugs)
+    slugs = list(dict.fromkeys(str(m["service_slug"]) for m in all_mappings if m.get("service_slug")))
+    lookup_slugs = _provider_lookup_slugs(slugs)
 
     scores = await _cached_fetch(
         "scores",
-        f"scores?service_slug=in.({slug_filter})"
+        f"scores?service_slug=in.({_lookup_slug_filter(lookup_slugs)})"
         f"&select=service_slug,aggregate_recommendation_score,execution_score,"
         f"access_readiness_score,tier,tier_label,confidence"
         f"&order=aggregate_recommendation_score.desc.nullslast"
@@ -3083,30 +3118,38 @@ async def resolve_capability(
 
     services = await _cached_fetch(
         "services",
-        f"services?slug=in.({slug_filter})&select=slug,name"
+        f"services?slug=in.({_lookup_slug_filter(lookup_slugs)})&select=slug,name"
     )
 
     scores_by_slug: dict[str, dict] = {}
     if scores:
         for sc in scores:
-            slug = sc.get("service_slug")
+            slug = _public_provider_slug(sc.get("service_slug"))
             if slug and slug not in scores_by_slug:
                 scores_by_slug[slug] = sc
 
     names_by_slug: dict[str, str] = {}
     if services:
         for svc in services:
-            names_by_slug[svc["slug"]] = svc.get("name", svc["slug"])
+            public_slug = _public_provider_slug(svc.get("slug"))
+            if public_slug and public_slug not in names_by_slug:
+                names_by_slug[public_slug] = svc.get("name", public_slug)
 
     # Build ranked provider list with recommendations
     all_providers = []
     recovery_providers = []
+    seen_provider_slugs: set[str] = set()
     for m in all_mappings:
-        slug = m["service_slug"]
+        raw_slug = str(m.get("service_slug") or "")
+        slug = _public_provider_slug(raw_slug)
+        if not slug or slug in seen_provider_slugs:
+            continue
+        seen_provider_slugs.add(slug)
+        runtime_slug = normalize_proxy_slug(slug)
         sc = scores_by_slug.get(slug, {})
         an_score = sc.get("aggregate_recommendation_score")
         tier = sc.get("tier")
-        auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
+        auth_method = _effective_auth_method(runtime_slug, m.get("auth_method", "api_key"))
         credential_modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byok"])
 
         # Determine recommendation
@@ -3140,7 +3183,7 @@ async def resolve_capability(
         available_for_execute = True
         try:
             from routes.proxy import get_breaker_registry
-            breaker = get_breaker_registry().get(slug, agent_id)
+            breaker = get_breaker_registry().get(runtime_slug, agent_id)
             circuit_state = breaker.state.value
             available_for_execute = breaker.allow_request()
         except Exception:
@@ -3148,7 +3191,7 @@ async def resolve_capability(
 
         byok_configured = False
         if "byok" in credential_modes:
-            byok_configured = _has_proxy_credential_configured(slug, auth_method)
+            byok_configured = _has_proxy_credential_configured(runtime_slug, auth_method)
 
         provider_base = {
             "service_slug": slug,
@@ -3362,14 +3405,20 @@ async def get_credential_modes(
 
     # Check per-provider credential-mode readiness
     providers = []
+    seen_provider_slugs: set[str] = set()
     for m in mappings:
-        slug = m["service_slug"]
+        raw_slug = str(m.get("service_slug") or "")
+        slug = _public_provider_slug(raw_slug)
+        if not slug or slug in seen_provider_slugs:
+            continue
+        seen_provider_slugs.add(slug)
+        runtime_slug = normalize_proxy_slug(slug)
         modes = _canonicalize_credential_modes(m.get("credential_modes") or ["byok"])
-        auth_method = _effective_auth_method(slug, m.get("auth_method", "api_key"))
+        auth_method = _effective_auth_method(runtime_slug, m.get("auth_method", "api_key"))
 
         byok_configured = False
         if "byok" in modes:
-            byok_configured = _has_proxy_credential_configured(slug, auth_method)
+            byok_configured = _has_proxy_credential_configured(runtime_slug, auth_method)
 
         mode_details = []
         for mode in modes:
@@ -3493,10 +3542,11 @@ async def get_agent_credentials(
     for m in all_mappings:
         cap_id = m["capability_id"]
         slug = m["service_slug"]
+        public_slug = _public_provider_slug(slug)
 
         service_ready, capability_ready = _agent_credentials_mapping_readiness(m)
         if service_ready:
-            configured_services.add(slug)
+            configured_services.add(public_slug or slug)
 
         if capability_ready:
             unlocked.add(cap_id)

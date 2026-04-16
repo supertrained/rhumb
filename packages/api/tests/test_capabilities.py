@@ -68,6 +68,68 @@ SAMPLE_BUNDLE_CAPS = [
     {"bundle_id": "prospect.enrich_and_verify", "capability_id": "email.verify", "sequence_order": 2},
 ]
 
+ALIAS_CAPABILITY = {
+    "id": "search.query",
+    "domain": "search",
+    "action": "query",
+    "description": "Search the web",
+    "input_hint": "query",
+    "outcome": "Search results",
+}
+
+ALIAS_MAPPINGS = [
+    {
+        "capability_id": "search.query",
+        "service_slug": "brave-search",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 2000,
+        "notes": None,
+        "is_primary": True,
+    },
+    {
+        "capability_id": "search.query",
+        "service_slug": "pdl",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "POST /person/enrich",
+        "cost_per_call": "0.01",
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+        "notes": None,
+        "is_primary": False,
+    },
+]
+
+ALIAS_SCORES = [
+    {
+        "service_slug": "brave-search",
+        "aggregate_recommendation_score": 8.8,
+        "execution_score": 9.0,
+        "access_readiness_score": 8.2,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.9,
+    },
+    {
+        "service_slug": "people-data-labs",
+        "aggregate_recommendation_score": 6.4,
+        "execution_score": 6.8,
+        "access_readiness_score": 6.1,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.7,
+    },
+]
+
+ALIAS_SERVICES = [
+    {"slug": "brave-search-api", "name": "Brave Search API", "category": "search"},
+    {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
+]
+
 INTENT_CAPABILITIES = [
     {
         "id": "scrape.extract",
@@ -315,6 +377,26 @@ def _mock_support_direct_supabase(path: str):
     return []
 
 
+def _mock_alias_backed_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.search.query" in path:
+            return [ALIAS_CAPABILITY]
+        return [ALIAS_CAPABILITY]
+    if path.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in path:
+            return ALIAS_MAPPINGS
+        if "capability_id=in." in path or "select=capability_id,service_slug" in path:
+            return ALIAS_MAPPINGS
+        return []
+    if path.startswith("scores?"):
+        return ALIAS_SCORES
+    if path.startswith("services?"):
+        return ALIAS_SERVICES
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
 class _FakeBreaker:
     def __init__(self, state: str, *, allowed: bool):
         self.state = type("State", (), {"value": state})()
@@ -435,6 +517,55 @@ async def test_get_capability(app):
     scores = [p["an_score"] for p in data["providers"] if p["an_score"] is not None]
     assert scores == sorted(scores, reverse=True)
     assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
+
+
+@pytest.mark.anyio
+async def test_alias_backed_capability_surfaces_keep_canonical_public_provider_ids(app, monkeypatch):
+    monkeypatch.setenv("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "brave_test_secret")
+
+    import services.proxy_credentials as pc
+    pc._credential_store = None
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_alias_backed_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/search.query")
+            resolve_resp = await client.get("/v1/capabilities/search.query/resolve")
+            modes_resp = await client.get("/v1/capabilities/search.query/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["top_provider"]["slug"] == "brave-search-api"
+    assert list_item["provider_count"] == 2
+
+    get_data = get_resp.json()["data"]
+    assert [provider["service_slug"] for provider in get_data["providers"]] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+    assert get_data["providers"][0]["service_name"] == "Brave Search API"
+    assert get_data["providers"][1]["service_name"] == "People Data Labs"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert [provider["service_slug"] for provider in resolve_data["providers"]] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+    assert resolve_data["fallback_chain"] == ["brave-search-api", "people-data-labs"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "brave-search-api"
+    assert resolve_data["execute_hint"]["fallback_providers"] == ["people-data-labs"]
+    assert resolve_data["execute_hint"]["configured"] is True
+
+    modes_data = modes_resp.json()["data"]
+    assert [provider["service_slug"] for provider in modes_data["providers"]] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+    brave = modes_data["providers"][0]
+    assert brave["any_configured"] is True
+    assert brave["modes"][0]["configured"] is True
+    assert "RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY" in brave["modes"][0]["setup_hint"]
+
+    pc._credential_store = None
 
 
 @pytest.mark.anyio
