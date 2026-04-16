@@ -1662,6 +1662,52 @@ async def test_v2_execute_merges_account_policy_with_inline_override(app, _mock_
 
 
 @pytest.mark.anyio
+async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app, _mock_policy_store):
+    _, mock_pool, budget_state = _build_patches()
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_pin"
+    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search"
+    assert data["_rhumb_v2"]["policy_source"] == {
+        "scope": "organization",
+        "has_account_policy": True,
+        "organization_fields": ["pin"],
+        "inline_fields": [],
+    }
+    assert data["_rhumb_v2"]["translated_from"]["policy_pin"] is False
+
+
+@pytest.mark.anyio
 async def test_v2_execute_inline_empty_list_clears_stored_preference(app, _mock_policy_store):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
