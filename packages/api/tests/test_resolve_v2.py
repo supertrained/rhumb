@@ -266,6 +266,45 @@ async def test_v2_health(app):
 
 
 @pytest.mark.anyio
+async def test_v2_capabilities_direct_capability_ignores_stale_catalog_mapping_rows(app):
+    async def mock_cached_fetch(table: str, path: str, ttl: float = 30.0):
+        del table, ttl
+        if path.startswith("capabilities?"):
+            return [DB_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?") and "capability_id=in.(\"db.query.read\")" in path:
+            return [
+                {
+                    "capability_id": "db.query.read",
+                    "service_slug": "stale-db-proxy",
+                }
+            ]
+        if path.startswith("scores?"):
+            return []
+        return []
+
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params={"domain": "database"})
+
+    assert resp.status_code == 200
+
+    data = resp.json()["data"]
+    assert data["_rhumb_v2"] == {
+        "api_version": "v2-alpha",
+        "compat_mode": "v1-translate",
+        "layer": 2,
+    }
+
+    db_item = next(item for item in data["items"] if item["id"] == "db.query.read")
+    assert db_item["provider_count"] == 1
+    assert db_item["top_provider"] == {
+        "slug": "postgresql",
+        "an_score": None,
+        "tier_label": "Direct",
+    }
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
