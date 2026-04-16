@@ -1841,6 +1841,47 @@ async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_sou
 
 
 @pytest.mark.anyio
+async def test_v2_execute_rejects_stored_denied_alias_provider_and_surfaces_normalized_policy(app, _mock_policy_store):
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin=None,
+        provider_preference=[],
+        provider_deny=["brave-search-api"],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["error"]["code"] == "NO_PROVIDER_AVAILABLE"
+    assert "no providers satisfy the execution policy" in body["error"]["message"].lower()
+    assert body["error"]["policy"] == {
+        "pin": None,
+        "provider_preference": [],
+        "provider_deny": ["brave-search"],
+        "allow_only": [],
+    }
+    assert mock_forward.await_count == 0
+    _mock_policy_store.get_policy.assert_awaited_once_with("org_v2_test")
+
+
+@pytest.mark.anyio
 async def test_v2_execute_inline_empty_list_clears_stored_preference(app, _mock_policy_store):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
