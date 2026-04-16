@@ -48,6 +48,7 @@ from services.receipt_service import (
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 from services.route_explanation import build_explanation, persist_explanation, store_explanation
+from services.service_slugs import canonicalize_service_slug
 
 router = APIRouter()
 
@@ -828,6 +829,7 @@ async def execute_capability_v2(
     is_success = execute_response.status_code == 200
 
     receipt_id: str | None = None
+    provider_public_slug = canonicalize_service_slug(selected_provider or "unknown")
     try:
         error_code, error_message = _extract_error_fields(body)
         receipt_input = ReceiptInput(
@@ -835,12 +837,12 @@ async def execute_capability_v2(
             capability_id=capability_id,
             status="success" if is_success else "failure",
             agent_id=execution_data.get("agent_id", "unknown"),
-            provider_id=selected_provider or "unknown",
+            provider_id=provider_public_slug,
             credential_mode=effective_credential_mode,
             layer=2,
             org_id=execution_data.get("org_id"),
             caller_ip_hash=hash_caller_ip(raw_request.client.host if raw_request.client else None),
-            provider_name=selected_provider,
+            provider_name=provider_public_slug,
             router_version=_COMPAT_VERSION,
             candidates_evaluated=(
                 len(provider_decision.candidate_providers)
@@ -866,7 +868,7 @@ async def execute_capability_v2(
         receipt_id = receipt.receipt_id
         logger.info(
             "v2_receipt_created receipt_id=%s execution_id=%s provider=%s status=%s",
-            receipt_id, execution_id, selected_provider, receipt_input.status,
+            receipt_id, execution_id, provider_public_slug, receipt_input.status,
         )
     except Exception:
         # Receipt creation must never block execution delivery.
@@ -973,7 +975,7 @@ async def execute_capability_v2(
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=selected_provider,
+                provider_slug=provider_public_slug,
                 metadata={"layer": 2, "credential_mode": effective_credential_mode},
             )
         elif _billing_org and not is_success:
@@ -983,7 +985,7 @@ async def execute_capability_v2(
                 amount_usd_cents=0,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=selected_provider,
+                provider_slug=provider_public_slug,
                 metadata={"layer": 2, "error": str(body.get("error", ""))[:200]},
             )
     except Exception:

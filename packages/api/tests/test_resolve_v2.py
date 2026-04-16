@@ -1930,6 +1930,61 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_a
 
 
 @pytest.mark.anyio
+async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_billing_for_alias_backed_execution(app, _mock_policy_store):
+    _, mock_pool, budget_state = _build_patches()
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    mock_receipt = SimpleNamespace(receipt_id="rcpt_alias_truth")
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {
+        "X-Rhumb-Receipt-Id": "rcpt_alias_truth",
+        "X-Rhumb-Provider": "brave-search-api",
+        "X-Rhumb-Layer": "2",
+    }
+    mock_attribution.to_rhumb_block.return_value = {"receipt_id": "rcpt_alias_truth"}
+    mock_billing_stream = SimpleNamespace(emit=MagicMock())
+
+    with (
+        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_alias_truth")),
+        patch("routes.resolve_v2.store_explanation"),
+        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+        patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
+    assert receipt_input.provider_id == "brave-search-api"
+    assert receipt_input.provider_name == "brave-search-api"
+    assert mock_billing_stream.emit.call_args.kwargs["provider_slug"] == "brave-search-api"
+
+
+@pytest.mark.anyio
 async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_policy_source(app, _mock_policy_store):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
