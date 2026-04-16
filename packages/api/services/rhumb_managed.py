@@ -31,7 +31,11 @@ from routes._supabase import (
     supabase_patch,
     supabase_patch_required,
 )
-from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.service_slugs import (
+    canonicalize_service_slug,
+    normalize_proxy_slug,
+    public_service_slug,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +139,27 @@ class RhumbManagedExecutor:
             "&select=capability_id,service_slug,description,daily_limit_per_agent"
             "&order=capability_id.asc"
         )
-        return rows or []
+        if not rows:
+            return []
+
+        normalized: list[dict] = []
+        seen: set[tuple[str | None, str | None]] = set()
+        for row in rows:
+            item = dict(row)
+            canonical_slug = public_service_slug(item.get("service_slug"))
+            if canonical_slug:
+                item["service_slug"] = canonical_slug
+
+            dedupe_key = (
+                item.get("capability_id"),
+                item.get("service_slug"),
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            normalized.append(item)
+
+        return normalized
 
     async def execute(
         self,

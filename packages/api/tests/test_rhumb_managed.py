@@ -150,6 +150,44 @@ async def test_managed_executor_list(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_list_canonicalizes_alias_backed_runtime_rows(monkeypatch):
+    """Managed catalog rows should expose canonical public service ids."""
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Search via Brave",
+                    "daily_limit_per_agent": 100,
+                },
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search-api",
+                    "description": "Search via Brave",
+                    "daily_limit_per_agent": 100,
+                },
+            ]
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        managed = await executor.list_managed()
+
+    assert managed == [
+        {
+            "capability_id": "search.query",
+            "service_slug": "brave-search-api",
+            "description": "Search via Brave",
+            "daily_limit_per_agent": 100,
+        }
+    ]
+
+
+@pytest.mark.anyio
 async def test_managed_executor_prelogged_execution_uses_required_patch(monkeypatch):
     """Precreated execution rows should be updated in place, not silently fall back to insert."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_RESEND_API_KEY", "re_test_managed")
@@ -270,6 +308,60 @@ async def test_managed_catalog_endpoint(app):
     assert data["count"] == 1
     assert data["managed_capabilities"][0]["capability_id"] == "email.send"
     assert data["managed_capabilities"][0]["domain"] == "email"
+
+
+@pytest.mark.anyio
+async def test_managed_catalog_endpoint_canonicalizes_alias_backed_runtime_rows(app):
+    """Managed catalog should keep canonical public ids on alias-backed rows."""
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Search via Brave",
+                    "daily_limit_per_agent": 100,
+                },
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search-api",
+                    "description": "Search via Brave",
+                    "daily_limit_per_agent": 100,
+                },
+            ]
+        if "capabilities?" in path and "id=in." in path:
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Search the web",
+                }
+            ]
+        return []
+
+    with (
+        patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/capabilities/rhumb-managed")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["count"] == 1
+    assert data["managed_capabilities"] == [
+        {
+            "capability_id": "search.query",
+            "service_slug": "brave-search-api",
+            "description": "Search via Brave",
+            "daily_limit_per_agent": 100,
+            "domain": "search",
+            "action": "query",
+            "capability_description": "Search the web",
+        }
+    ]
 
 
 @pytest.mark.anyio
