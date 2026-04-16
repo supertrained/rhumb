@@ -21,8 +21,13 @@ from urllib.parse import quote
 import httpx
 
 from routes._supabase import supabase_fetch
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
+
+
+def _postgrest_in(values: list[str]) -> str:
+    return ",".join(quote(value, safe="-_") for value in values)
 
 
 class AgentVaultTokenValidator:
@@ -36,16 +41,32 @@ class AgentVaultTokenValidator:
 
     async def get_ceremony(self, service_slug: str) -> dict | None:
         """Fetch ceremony skill for a service."""
+        slug_candidates = public_service_slug_candidates(service_slug)
         rows = await supabase_fetch(
-            f"ceremony_skills?service_slug=eq.{quote(service_slug)}"
+            "ceremony_skills"
+            f"?service_slug=in.({_postgrest_in(slug_candidates)})"
             f"&enabled=eq.true"
             f"&select=id,service_slug,display_name,description,auth_type,"
             f"steps,token_pattern,token_prefix,verify_endpoint,verify_method,"
             f"verify_expected_status,difficulty,estimated_minutes,requires_human,"
             f"documentation_url"
-            f"&limit=1"
         )
-        return rows[0] if rows else None
+        if not rows:
+            return None
+
+        for candidate in slug_candidates:
+            for row in rows:
+                if str(row.get("service_slug") or "").strip() == candidate:
+                    return {
+                        **row,
+                        "service_slug": public_service_slug(row.get("service_slug")) or candidate,
+                    }
+
+        row = rows[0]
+        return {
+            **row,
+            "service_slug": public_service_slug(row.get("service_slug")) or service_slug,
+        }
 
     async def list_ceremonies(self) -> list[dict]:
         """List all available ceremony skills."""
@@ -54,8 +75,27 @@ class AgentVaultTokenValidator:
             "&select=service_slug,display_name,description,auth_type,"
             "difficulty,estimated_minutes,requires_human,documentation_url"
             "&order=difficulty.asc,service_slug.asc"
-        )
-        return rows or []
+        ) or []
+
+        canonical_rows: dict[str, dict] = {}
+        for row in rows:
+            canonical_slug = public_service_slug(row.get("service_slug"))
+            if not canonical_slug:
+                continue
+            normalized_row = {
+                **row,
+                "service_slug": canonical_slug,
+            }
+            existing = canonical_rows.get(canonical_slug)
+            if existing is None:
+                canonical_rows[canonical_slug] = normalized_row
+                continue
+            existing_raw_slug = str(existing.get("service_slug") or "").strip()
+            row_raw_slug = str(row.get("service_slug") or "").strip()
+            if existing_raw_slug != canonical_slug and row_raw_slug == canonical_slug:
+                canonical_rows[canonical_slug] = normalized_row
+
+        return list(canonical_rows.values())
 
     def validate_format(
         self,
@@ -101,8 +141,9 @@ class AgentVaultTokenValidator:
             return True, None  # No verification endpoint — skip
 
         # Resolve service domain
+        service_candidates = public_service_slug_candidates(service_slug)
         svc_rows = await supabase_fetch(
-            f"services?slug=eq.{quote(service_slug)}&select=api_domain&limit=1"
+            f"services?slug=in.({_postgrest_in(service_candidates)})&select=slug,api_domain"
         )
         if not svc_rows or not svc_rows[0].get("api_domain"):
             return True, None  # Can't verify without domain — pass

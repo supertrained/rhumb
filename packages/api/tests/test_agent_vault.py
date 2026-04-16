@@ -146,6 +146,82 @@ async def test_get_ceremony_not_found(app):
     assert "not found" in resp.json()["error"].lower() or "no ceremony" in resp.json()["error"].lower()
 
 
+@pytest.mark.anyio
+async def test_get_ceremony_resolves_alias_backed_runtime_row_to_canonical_slug(app):
+    """Canonical public slugs should still resolve ceremony rows stored on runtime aliases."""
+    async def mock_fetch(path):
+        if "ceremony_skills?service_slug=in.(brave-search-api,brave-search)" in path:
+            return [{
+                "id": 1,
+                "service_slug": "brave-search",
+                "display_name": "Brave Search",
+                "description": "Get a Brave Search API key",
+                "auth_type": "api_key",
+                "steps": [{"step": 1, "action": "Open the dashboard", "type": "navigate"}],
+                "token_pattern": "[A-Za-z0-9_-]{20,}",
+                "token_prefix": None,
+                "verify_endpoint": "/res/v1/web/search",
+                "verify_method": "GET",
+                "verify_expected_status": 200,
+                "difficulty": "easy",
+                "estimated_minutes": 3,
+                "requires_human": False,
+                "documentation_url": "https://api.search.brave.com/app/documentation",
+            }]
+        return []
+
+    with patch("services.agent_vault.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/brave-search-api/ceremony")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["service_slug"] == "brave-search-api"
+    assert data["display_name"] == "Brave Search"
+
+
+@pytest.mark.anyio
+async def test_list_ceremonies_canonicalizes_alias_backed_runtime_rows(app):
+    """Ceremony listings should expose canonical public ids, not runtime aliases."""
+    async def mock_fetch(path):
+        if "ceremony_skills?enabled=eq.true" in path:
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "display_name": "Brave Search",
+                    "description": "Get a Brave Search API key",
+                    "auth_type": "api_key",
+                    "difficulty": "easy",
+                    "estimated_minutes": 3,
+                    "requires_human": False,
+                    "documentation_url": "https://api.search.brave.com/app/documentation",
+                },
+                {
+                    "service_slug": "openai",
+                    "display_name": "OpenAI",
+                    "description": "Get an OpenAI API key",
+                    "auth_type": "api_key",
+                    "difficulty": "easy",
+                    "estimated_minutes": 3,
+                    "requires_human": False,
+                    "documentation_url": "https://platform.openai.com",
+                },
+            ]
+        return []
+
+    with patch("services.agent_vault.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/ceremonies")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["count"] == 2
+    assert [item["service_slug"] for item in data["ceremonies"]] == [
+        "brave-search-api",
+        "openai",
+    ]
+
+
 # ── Execute with agent_vault mode ────────────────────────────────
 
 @pytest.mark.anyio
