@@ -312,12 +312,19 @@ def _db_direct_configured_by_mode() -> dict[str, bool]:
     }
 
 
-def _db_direct_configured_credential_modes(configured_by_mode: dict[str, bool]) -> list[str]:
+def _configured_credential_modes(
+    credential_modes: list[str],
+    configured_by_mode: dict[str, bool],
+) -> list[str]:
     return [
         mode
-        for mode in _DB_DIRECT_CREDENTIAL_MODES
+        for mode in credential_modes
         if configured_by_mode.get(mode, False)
     ]
+
+
+def _single_mode_configured_by_mode(mode: str, configured: bool) -> dict[str, bool]:
+    return {mode: configured}
 
 
 def _db_direct_provider_details(capability_id: str) -> dict[str, object]:
@@ -529,7 +536,10 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "available_for_execute": True,
         "configured": any(configured_by_mode.values()),
         "configured_by_mode": configured_by_mode,
-        "configured_credential_modes": _db_direct_configured_credential_modes(configured_by_mode),
+        "configured_credential_modes": _configured_credential_modes(
+            list(_DB_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
@@ -545,6 +555,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 
 def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     configured = has_any_warehouse_bundle_configured("bigquery")
+    configured_by_mode = _single_mode_configured_by_mode("byok", configured)
     provider = {
         "service_slug": _WAREHOUSE_DIRECT_PROVIDER_SLUG,
         "service_name": _WAREHOUSE_DIRECT_PROVIDER_NAME,
@@ -565,6 +576,11 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            list(_WAREHOUSE_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
@@ -580,6 +596,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 
 def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     configured = has_any_storage_bundle_configured("aws-s3")
+    configured_by_mode = _single_mode_configured_by_mode("byok", configured)
     provider = {
         "service_slug": _OBJECT_STORAGE_DIRECT_PROVIDER_SLUG,
         "service_name": _OBJECT_STORAGE_DIRECT_PROVIDER_NAME,
@@ -600,6 +617,11 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            list(_OBJECT_STORAGE_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
@@ -615,6 +637,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
 
 def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     configured = has_any_deployment_bundle_configured("vercel")
+    configured_by_mode = _single_mode_configured_by_mode("byok", configured)
     provider = {
         "service_slug": _DEPLOYMENT_DIRECT_PROVIDER_SLUG,
         "service_name": _DEPLOYMENT_DIRECT_PROVIDER_NAME,
@@ -635,6 +658,11 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            list(_DEPLOYMENT_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
@@ -650,6 +678,7 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 
 def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     configured = has_any_actions_bundle_configured("github")
+    configured_by_mode = _single_mode_configured_by_mode("byok", configured)
     provider = {
         "service_slug": _ACTIONS_DIRECT_PROVIDER_SLUG,
         "service_name": _ACTIONS_DIRECT_PROVIDER_NAME,
@@ -670,6 +699,11 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            list(_ACTIONS_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
@@ -686,6 +720,8 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     providers = []
     for provider_slug in _crm_direct_provider_order():
+        configured = has_any_crm_bundle_configured(provider_slug)
+        configured_by_mode = _single_mode_configured_by_mode("byok", configured)
         providers.append({
             "service_slug": provider_slug,
             "service_name": _crm_direct_provider_name(provider_slug),
@@ -709,7 +745,12 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             ),
             "circuit_state": "n/a",
             "available_for_execute": True,
-            "configured": has_any_crm_bundle_configured(provider_slug),
+            "configured": configured,
+            "configured_by_mode": configured_by_mode,
+            "configured_credential_modes": _configured_credential_modes(
+                list(_CRM_DIRECT_CREDENTIAL_MODES),
+                configured_by_mode,
+            ),
         })
     preferred_provider = providers[0]
     return {
@@ -727,6 +768,7 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
 def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
     provider_slug = _support_direct_provider_slug(capability_id)
     configured = has_any_support_bundle_configured(provider_slug)
+    configured_by_mode = _single_mode_configured_by_mode("byok", configured)
     provider = {
         "service_slug": provider_slug,
         "service_name": _support_direct_provider_name(capability_id),
@@ -747,6 +789,11 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
         "circuit_state": "n/a",
         "available_for_execute": True,
         "configured": configured,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            list(_SUPPORT_DIRECT_CREDENTIAL_MODES),
+            configured_by_mode,
+        ),
     }
     return {
         "capability": capability_id,
