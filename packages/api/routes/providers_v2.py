@@ -238,17 +238,71 @@ def _runtime_provider_slug(provider_id: str) -> str:
     return normalize_slug(canonicalize_service_slug(provider_id))
 
 
-async def _resolve_provider_services(provider_id: str) -> list[dict]:
-    """Fetch all capability mappings for a given provider slug."""
+def _all_direct_provider_mappings() -> list[dict[str, Any]]:
+    mappings: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for capability_id in sorted(v1_execute.DIRECT_EXECUTE_CAPABILITY_IDS):
+        for mapping in v1_execute._direct_capability_service_mappings(capability_id):
+            service_slug = str(mapping.get("service_slug") or "").strip()
+            capability = str(mapping.get("capability_id") or capability_id).strip()
+            if not service_slug or not capability:
+                continue
+            key = (canonicalize_service_slug(service_slug), capability)
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized_mapping = dict(mapping)
+            normalized_mapping["capability_id"] = capability
+            mappings.append(normalized_mapping)
+    return mappings
+
+
+def _direct_provider_service_mappings(provider_id: str) -> list[dict[str, Any]]:
+    return [
+        mapping
+        for mapping in _all_direct_provider_mappings()
+        if v1_execute._service_slug_matches(mapping.get("service_slug"), provider_id)
+    ]
+
+
+async def _catalog_provider_services(provider_id: str) -> list[dict[str, Any]]:
+    rows_by_key: set[tuple[str, str]] = set()
+    merged_rows: list[dict[str, Any]] = []
     for candidate in _provider_slug_candidates(provider_id):
         rows = await supabase_fetch(
             f"capability_services?service_slug=eq.{quote(candidate)}"
             f"&select=capability_id,service_slug,credential_modes,auth_method,"
             f"endpoint_pattern,cost_per_call,cost_currency,free_tier_calls"
-        )
-        if rows:
-            return rows
-    return []
+        ) or []
+        for row in rows:
+            capability = str(row.get("capability_id") or "").strip()
+            service_slug = str(row.get("service_slug") or candidate).strip()
+            if not capability or not service_slug:
+                continue
+            key = (capability, canonicalize_service_slug(service_slug))
+            if key in rows_by_key:
+                continue
+            rows_by_key.add(key)
+            merged_rows.append(row)
+    return merged_rows
+
+
+async def _resolve_provider_services(provider_id: str) -> list[dict]:
+    """Fetch all capability mappings for a given provider slug."""
+    direct_rows = _direct_provider_service_mappings(provider_id)
+    catalog_rows = await _catalog_provider_services(provider_id)
+    if not direct_rows:
+        return catalog_rows
+
+    merged_rows: list[dict[str, Any]] = []
+    seen_capabilities: set[str] = set()
+    for row in [*direct_rows, *catalog_rows]:
+        capability = str(row.get("capability_id") or "").strip()
+        if not capability or capability in seen_capabilities:
+            continue
+        seen_capabilities.add(capability)
+        merged_rows.append(row)
+    return merged_rows
 
 
 async def _resolve_provider_score(provider_id: str) -> dict | None:
@@ -281,10 +335,16 @@ def _merge_provider_detail(
     provider_id: str,
     service_row: dict[str, Any] | None,
     score_row: dict[str, Any] | None,
+    direct_mappings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
+    direct_mappings = direct_mappings or []
+    direct_primary = direct_mappings[0] if direct_mappings else {}
+
     slug = None
     if service_row and service_row.get("slug"):
         slug = str(service_row["slug"])
+    elif direct_primary.get("service_slug"):
+        slug = str(direct_primary["service_slug"])
     else:
         for candidate in _provider_slug_candidates(provider_id):
             canonical_candidate = canonicalize_service_slug(candidate)
@@ -297,19 +357,25 @@ def _merge_provider_detail(
 
     runtime_slug = _runtime_provider_slug(slug)
     runtime_meta = SERVICE_REGISTRY.get(runtime_slug, {})
+    direct_name = direct_primary.get("service_name")
+    direct_category = direct_primary.get("category")
+    direct_tier_label = direct_primary.get("tier_label") or ("Direct" if direct_mappings else None)
+    direct_description = None
+    if direct_name:
+        direct_description = f"Direct {direct_name} capability execution."
 
     return {
         "slug": slug,
         "runtime_slug": runtime_slug,
-        "name": (service_row or {}).get("name") or slug,
-        "description": (service_row or {}).get("description"),
-        "category": (service_row or {}).get("category"),
+        "name": (service_row or {}).get("name") or direct_name or slug,
+        "description": (service_row or {}).get("description") or direct_description,
+        "category": (service_row or {}).get("category") or direct_category,
         "official_docs": (service_row or {}).get("official_docs"),
         "api_domain": runtime_meta.get("domain"),
         "aggregate_recommendation_score": (score_row or {}).get("aggregate_recommendation_score"),
         "tier": (score_row or {}).get("tier"),
-        "tier_label": (score_row or {}).get("tier_label"),
-        "callable": runtime_slug in SERVICE_REGISTRY,
+        "tier_label": (score_row or {}).get("tier_label") or direct_tier_label,
+        "callable": runtime_slug in SERVICE_REGISTRY or bool(direct_mappings),
     }
 
 
@@ -327,10 +393,12 @@ async def _resolve_provider_detail(provider_id: str) -> dict | None:
             break
 
     score_row = await _resolve_provider_score(provider_id)
+    direct_mappings = _direct_provider_service_mappings(provider_id)
     return _merge_provider_detail(
         provider_id=provider_id,
         service_row=service_row,
         score_row=score_row,
+        direct_mappings=direct_mappings,
     )
 
 
@@ -392,10 +460,20 @@ async def list_providers(
     full scored catalog. Provider metadata lives in ``services`` while AN
     score/tier lives in ``scores``.
     """
+    direct_mappings = _all_direct_provider_mappings()
+    direct_mappings_by_provider: dict[str, list[dict[str, Any]]] = {}
+    for mapping in direct_mappings:
+        service_slug = str(mapping.get("service_slug") or "").strip()
+        if not service_slug:
+            continue
+        canonical_slug = canonicalize_service_slug(service_slug)
+        direct_mappings_by_provider.setdefault(canonical_slug, []).append(mapping)
+
     provider_slugs = {
         canonicalize_service_slug(slug)
         for slug in SERVICE_REGISTRY
     }
+    provider_slugs.update(direct_mappings_by_provider.keys())
 
     mapping_rows = await supabase_fetch("capability_services?select=service_slug") or []
     provider_slugs.update(
@@ -405,14 +483,22 @@ async def list_providers(
     )
 
     if capability:
-        capability_rows = await supabase_fetch(
-            f"capability_services?capability_id=eq.{quote(capability)}&select=service_slug"
-        ) or []
-        capability_slugs = {
-            canonicalize_service_slug(str(row["service_slug"]))
-            for row in capability_rows
-            if row.get("service_slug")
-        }
+        direct_capability_rows = v1_execute._direct_capability_service_mappings(capability)
+        if direct_capability_rows:
+            capability_slugs = {
+                canonicalize_service_slug(str(row["service_slug"]))
+                for row in direct_capability_rows
+                if row.get("service_slug")
+            }
+        else:
+            capability_rows = await supabase_fetch(
+                f"capability_services?capability_id=eq.{quote(capability)}&select=service_slug"
+            ) or []
+            capability_slugs = {
+                canonicalize_service_slug(str(row["service_slug"]))
+                for row in capability_rows
+                if row.get("service_slug")
+            }
         provider_slugs &= capability_slugs
 
     if not provider_slugs:
@@ -457,6 +543,7 @@ async def list_providers(
             provider_id=slug,
             service_row=services_by_slug.get(slug),
             score_row=scores_by_slug.get(slug),
+            direct_mappings=direct_mappings_by_provider.get(slug),
         )
         if detail is None:
             continue

@@ -16,6 +16,8 @@ from app import create_app
 
 _TEST_PROVIDER_SLUG = "openai"
 _TEST_CAPABILITY = "ai.generate_text"
+_DIRECT_PROVIDER_SLUG = "postgresql"
+_DIRECT_CAPABILITY = "db.query.read"
 
 _MOCK_SERVICE_DETAIL = {
     "slug": _TEST_PROVIDER_SLUG,
@@ -104,6 +106,55 @@ def _mock_supabase_fetch(query: str):
     return []
 
 
+_DEFUNCT_DIRECT_MAPPING_PROVIDER = {
+    "slug": "resend",
+    "name": "Resend",
+    "description": "Transactional email API",
+    "category": "email",
+    "official_docs": "https://resend.com/docs",
+    "aggregate_recommendation_score": 7.2,
+    "tier_label": "L3",
+}
+
+
+def _mock_supabase_fetch_with_stale_direct_db_mapping(query: str):
+    """Inject a stale db.query.read -> resend row and no real postgresql catalog rows."""
+    if query.startswith("capability_services?"):
+        if f"capability_id=eq.{_DIRECT_CAPABILITY}" in query:
+            return [{"service_slug": "resend"}]
+        if "select=service_slug" in query and "capability_id" not in query and "service_slug=eq." not in query:
+            return [{"service_slug": "resend"}]
+        if "service_slug=eq.resend" in query:
+            return [{
+                "capability_id": _DIRECT_CAPABILITY,
+                "service_slug": "resend",
+                "credential_modes": "byok",
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": 0.001,
+                "cost_currency": "USD",
+                "free_tier_calls": 100,
+            }]
+        return []
+    if query.startswith("services?"):
+        if "slug=eq.resend" in query:
+            return [_DEFUNCT_DIRECT_MAPPING_PROVIDER]
+        if "slug=in." in query and "resend" in query:
+            return [_DEFUNCT_DIRECT_MAPPING_PROVIDER]
+        return []
+    if query.startswith("scores?"):
+        if "resend" in query:
+            return [{
+                "service_slug": "resend",
+                "aggregate_recommendation_score": _DEFUNCT_DIRECT_MAPPING_PROVIDER["aggregate_recommendation_score"],
+                "tier": _DEFUNCT_DIRECT_MAPPING_PROVIDER["tier_label"],
+                "tier_label": _DEFUNCT_DIRECT_MAPPING_PROVIDER["tier_label"],
+                "calculated_at": "2026-03-31T00:00:00Z",
+            }]
+        return []
+    return []
+
+
 # ---------------------------------------------------------------------------
 # GET /v2/providers
 # ---------------------------------------------------------------------------
@@ -129,6 +180,16 @@ class TestListProviders:
         slugs = [p["id"] for p in data["providers"]]
         assert _TEST_PROVIDER_SLUG in slugs
 
+    def test_list_with_direct_capability_filter_ignores_stale_catalog_mapping_rows(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
+            resp = client.get(f"/v2/providers?capability={_DIRECT_CAPABILITY}")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        slugs = [p["id"] for p in data["providers"]]
+        assert _DIRECT_PROVIDER_SLUG in slugs
+        assert "resend" not in slugs
+
 
 # ---------------------------------------------------------------------------
 # GET /v2/providers/{provider_id}
@@ -146,6 +207,20 @@ class TestGetProvider:
         assert len(data["capabilities"]) >= 1
         assert data["pricing"]["markup_rate"] == 0.08
         assert data["pricing"]["markup_floor_usd"] == 0.0002
+
+    def test_get_direct_provider_uses_synthetic_capabilities_when_catalog_rows_stale(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
+            resp = client.get(f"/v2/providers/{_DIRECT_PROVIDER_SLUG}")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["id"] == _DIRECT_PROVIDER_SLUG
+        assert data["name"] == "PostgreSQL"
+        assert data["category"] == "database"
+        assert data["callable"] is True
+        capability_ids = {capability["capability_id"] for capability in data["capabilities"]}
+        assert {"db.query.read", "db.schema.describe", "db.row.get"}.issubset(capability_ids)
+        assert _DIRECT_CAPABILITY in capability_ids
 
     def test_get_provider_accepts_alias_when_detail_and_mappings_use_different_slugs(self, client):
         def mock_fetch(query: str):
@@ -261,6 +336,61 @@ class TestExecuteOnProvider:
 
         execute_call = mock_forward.call_args_list[1]
         assert execute_call.kwargs["extra_headers"] == {"X-Rhumb-Skip-Receipt": "true"}
+
+    @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
+    @patch("routes.providers_v2.get_receipt_service")
+    @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping)
+    def test_execute_direct_provider_ignores_stale_catalog_mapping_rows(self, mock_fetch, mock_receipt_svc, mock_budget, client):
+        mock_receipt = MagicMock()
+        mock_receipt.receipt_id = "rcpt_direct_123"
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+
+        mock_execute_response = {
+            "data": {
+                "execution_id": "exec_direct_123",
+                "result": {"rows": [{"value": 1}]},
+                "provider_latency_ms": 12,
+                "agent_id": "test_agent",
+                "org_id": "test_org",
+            },
+            "error": None,
+        }
+
+        with patch("routes.providers_v2._forward_internal") as mock_forward:
+            estimate_resp = MagicMock()
+            estimate_resp.status_code = 200
+            estimate_resp.json.return_value = {
+                "data": {
+                    "provider": _DIRECT_PROVIDER_SLUG,
+                    "cost_estimate_usd": 0,
+                    "endpoint_pattern": f"POST /v1/capabilities/{_DIRECT_CAPABILITY}/execute",
+                },
+            }
+            estimate_resp.headers = {}
+
+            execute_resp = MagicMock()
+            execute_resp.status_code = 200
+            execute_resp.json.return_value = mock_execute_response
+            execute_resp.headers = {}
+
+            mock_forward.side_effect = [estimate_resp, execute_resp]
+
+            resp = client.post(
+                f"/v2/providers/{_DIRECT_PROVIDER_SLUG}/execute",
+                json={
+                    "capability": _DIRECT_CAPABILITY,
+                    "parameters": {"sql": "select 1"},
+                    "credential_mode": "byok",
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["_rhumb_v2"]["provider"]["id"] == _DIRECT_PROVIDER_SLUG
+        estimate_call = mock_forward.call_args_list[0]
+        assert estimate_call.kwargs["params"]["provider"] == _DIRECT_PROVIDER_SLUG
+        execute_call = mock_forward.call_args_list[1]
+        assert execute_call.kwargs["json_body"]["provider"] == _DIRECT_PROVIDER_SLUG
 
     def test_execute_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
