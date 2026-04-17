@@ -356,21 +356,31 @@ const TOOLS = [
         </div>
       </section>
 
-      <!-- CTA -->
-      <section class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
-        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
-          Want to see how your tools stack up?
+      <section class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Turn the comparison into one bounded execution lane
         </h2>
-        <p class="text-slate-400 text-sm mb-6">
-          We&apos;ve scored {servicesLabel} services across {categoriesLabel}
-          categories.
+        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl mx-auto sm:mx-0">
+          If you already know which payment surface fits the job, move from scorecards into a governed path. Start capability-first, or go straight to the managed lane when repeatable execution is the real need.
         </p>
-        <a
-          href="/leaderboard"
-          class="inline-flex px-6 py-3 rounded-lg font-display font-semibold text-sm transition-colors duration-200 cta-button"
-        >
-          Browse all categories &rarr;
-        </a>
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-start">
+          <a
+            href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=payments-for-agents-onboarding"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+          >
+            See the capability-first handoff &rarr;
+          </a>
+          <a
+            href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=payments-for-agents-direct"
+            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+          >
+            Open the managed path &rarr;
+          </a>
+        </div>
+        <p class="mt-5 text-xs font-mono text-slate-500">
+          Still comparing first? <a href="/leaderboard" class="text-amber hover:underline">Browse all categories &rarr;</a>
+        </p>
       </section>
 
     </article>
