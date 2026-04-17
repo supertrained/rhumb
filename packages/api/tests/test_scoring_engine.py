@@ -523,6 +523,51 @@ def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
     assert body["an_score_version"] == AN_SCORE_VERSION
 
 
+def test_get_service_score_accepts_mixed_case_alias_input(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/services/{slug}/score should accept mixed-case canonical or alias inputs."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="Alias-backed stored score.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    }
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/services/Brave-Search-Api/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["service_slug"] == "brave-search-api"
+    assert body["an_score"] == 8.7
+    assert body["execution_score"] == 8.4
+
+
 def test_compare_route_canonicalizes_alias_inputs_and_alias_backed_stored_rows(
     client,
     monkeypatch: pytest.MonkeyPatch,
@@ -560,6 +605,63 @@ def test_compare_route_canonicalizes_alias_inputs_and_alias_backed_stored_rows(
     )
 
     response = client.get("/v1/compare?services=brave-search-api,brave-search")
+    assert response.status_code == 200
+
+    body = response.json()["data"]
+    assert body["services"] == ["brave-search-api"]
+    assert body["comparison"] == [
+        {
+            "service_slug": "brave-search-api",
+            "an_score": 8.7,
+            "score": 8.7,
+            "execution_score": 8.4,
+            "access_readiness_score": 8.8,
+            "autonomy_score": 8.9,
+            "an_score_version": AN_SCORE_VERSION,
+            "confidence": 0.91,
+            "tier": "L4",
+            "tier_label": "Native",
+        }
+    ]
+
+
+def test_compare_route_accepts_mixed_case_alias_inputs(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/compare should canonicalize mixed-case alias inputs before deduping."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="Alias-backed stored score.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    }
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/compare?services=Brave-Search-Api,Brave-Search")
     assert response.status_code == 200
 
     body = response.json()["data"]

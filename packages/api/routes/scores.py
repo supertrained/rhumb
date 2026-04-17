@@ -27,7 +27,7 @@ from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
-from services.service_slugs import canonicalize_service_slug, public_service_slug_candidates
+from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -86,7 +86,7 @@ def _result_to_schema(
         resolved_autonomy_score = float(avg_value) if avg_value is not None else None
 
     return ANScoreSchema(
-        service_slug=canonicalize_service_slug(service_slug),
+        service_slug=public_service_slug(service_slug) or canonicalize_service_slug(service_slug),
         score=round(score, 1),
         execution_score=round(execution_score, 1),
         access_readiness_score=(
@@ -319,7 +319,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
 @router.get("/services/{slug}/score", response_model=ANScoreSchema)
 async def get_score(slug: str) -> ANScoreSchema:
     """Get the latest AN score for a service."""
-    canonical_slug = canonicalize_service_slug(slug)
+    canonical_slug = public_service_slug(slug) or str(slug).strip().lower()
     scoring_service = get_scoring_service()
 
     stored = await _fetch_latest_score_for_public_slug(scoring_service, canonical_slug)
@@ -374,7 +374,7 @@ async def compare_services(services: str) -> dict:
         cleaned = service.strip()
         if not cleaned:
             continue
-        canonical_slug = canonicalize_service_slug(cleaned)
+        canonical_slug = public_service_slug(cleaned) or cleaned.lower()
         if canonical_slug not in requested:
             requested.append(canonical_slug)
 
