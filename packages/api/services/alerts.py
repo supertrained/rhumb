@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from db.repository import ProbeRepository, StoredProbe
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,9 +36,26 @@ class ProbeAlertService:
         latency_regression_min_delta_ms: int = 75,
     ) -> None:
         self._repository = repository
-        self._watched_services = watched_services
+        self._watched_services = self._normalize_watched_services(watched_services)
         self._latency_regression_ratio = latency_regression_ratio
         self._latency_regression_min_delta_ms = latency_regression_min_delta_ms
+
+    @staticmethod
+    def _normalize_service_slug(service_slug: str | None) -> str | None:
+        normalized = public_service_slug(service_slug)
+        if normalized is not None:
+            return normalized
+        cleaned = str(service_slug or "").strip().lower()
+        return cleaned or None
+
+    @classmethod
+    def _normalize_watched_services(cls, watched_services: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for service_slug in watched_services:
+            normalized_service_slug = cls._normalize_service_slug(service_slug)
+            if normalized_service_slug and normalized_service_slug not in normalized:
+                normalized.append(normalized_service_slug)
+        return normalized
 
     @staticmethod
     def _iso(value: datetime | None) -> str:
@@ -82,9 +100,34 @@ class ProbeAlertService:
             return None
         return int(probe.latency_ms)
 
+    def _recent_probes(
+        self,
+        service_slug: str,
+        *,
+        probe_type: str,
+        limit: int = 2,
+    ) -> list[StoredProbe]:
+        candidates = public_service_slug_candidates(service_slug) or [service_slug]
+        deduped_by_probe_id: dict[object, StoredProbe] = {}
+        for candidate in candidates:
+            for probe in self._repository.list_recent_probes(
+                service_slug=candidate,
+                probe_type=probe_type,
+                limit=max(2, limit),
+            ):
+                deduped_by_probe_id[probe.id] = probe
+
+        min_utc = datetime.min.replace(tzinfo=timezone.utc)
+        ordered = sorted(
+            deduped_by_probe_id.values(),
+            key=lambda probe: probe.probed_at or min_utc,
+            reverse=True,
+        )
+        return ordered[: max(1, limit)]
+
     def _schema_alert(self, service_slug: str) -> ProbeAlert | None:
-        recent = self._repository.list_recent_probes(
-            service_slug=service_slug,
+        recent = self._recent_probes(
+            service_slug,
             probe_type="schema",
             limit=2,
         )
@@ -118,8 +161,8 @@ class ProbeAlertService:
         )
 
     def _latency_alert(self, service_slug: str) -> ProbeAlert | None:
-        recent = self._repository.list_recent_probes(
-            service_slug=service_slug,
+        recent = self._recent_probes(
+            service_slug,
             probe_type="health",
             limit=2,
         )
