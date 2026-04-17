@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,14 @@ COST_PER_CALL_USD = 0.001
 
 # Canonical result values — kept explicit per GAP-3 contract.
 VALID_RESULTS = frozenset({"success", "error", "rate_limited", "auth_failed"})
+
+
+def _public_metered_service_slug(service: Any) -> str:
+    """Normalize metered service ids for billing/reporting read surfaces."""
+    cleaned = str(service or "").strip().lower()
+    if not cleaned:
+        return ""
+    return public_service_slug(cleaned) or cleaned
 
 
 @dataclass
@@ -359,7 +368,7 @@ class UsageMeterEngine:
 
             by_service_counts: Dict[str, int] = defaultdict(int)
             for r in rows:
-                by_service_counts[r["service"]] += 1
+                by_service_counts[_public_metered_service_slug(r["service"])] += 1
             total_calls = len(rows)
         else:
             month_events = [
@@ -370,7 +379,7 @@ class UsageMeterEngine:
 
             by_service_counts = defaultdict(int)
             for e in month_events:
-                by_service_counts[e.service] += 1
+                by_service_counts[_public_metered_service_slug(e.service)] += 1
             total_calls = len(month_events)
 
         by_service: Dict[str, ServiceMonthlyUsage] = {

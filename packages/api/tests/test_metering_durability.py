@@ -353,6 +353,21 @@ class TestDurableReads:
         assert summary.by_service["anthropic"].call_count == 4
         assert summary.cost_estimate == pytest.approx(4 * COST_PER_CALL_USD)
 
+    def test_get_monthly_usage_durable_canonicalizes_alias_backed_service_ids(
+        self,
+        durable_meter: UsageMeterEngine,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        agent_id = _register(identity_store)
+        _run(durable_meter.record_metered_call(agent_id, "brave-search", True, 50.0, 100))
+        _run(durable_meter.record_metered_call(agent_id, "brave-search-api", True, 60.0, 100))
+
+        month = datetime.now(tz=UTC).strftime("%Y-%m")
+        summary = _run(durable_meter.get_monthly_usage(agent_id, month))
+        assert summary.total_calls == 2
+        assert summary.by_service["brave-search-api"].call_count == 2
+        assert "brave-search" not in summary.by_service
+
     def test_get_org_monthly_usage_durable(
         self,
         durable_meter: UsageMeterEngine,
@@ -448,6 +463,21 @@ class TestInMemoryFallback:
         month = datetime.now(tz=UTC).strftime("%Y-%m")
         summary = _run(inmem_meter.get_monthly_usage(agent_id, month))
         assert summary.total_calls == 1
+
+    def test_monthly_usage_inmemory_canonicalizes_alias_backed_service_ids(
+        self,
+        inmem_meter: UsageMeterEngine,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        agent_id = _register(identity_store)
+        _run(inmem_meter.record_metered_call(agent_id, "pdl", True, 50.0, 100))
+        _run(inmem_meter.record_metered_call(agent_id, "people-data-labs", True, 60.0, 100))
+
+        month = datetime.now(tz=UTC).strftime("%Y-%m")
+        summary = _run(inmem_meter.get_monthly_usage(agent_id, month))
+        assert summary.total_calls == 2
+        assert summary.by_service["people-data-labs"].call_count == 2
+        assert "pdl" not in summary.by_service
 
     def test_org_daily_average_inmemory(
         self,

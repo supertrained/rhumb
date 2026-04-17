@@ -475,6 +475,25 @@ def test_invoice_line_items_by_service(
     assert by_service["anthropic"].call_count == 2
 
 
+def test_invoice_line_items_canonicalize_alias_backed_service_ids(
+    billing_aggregator: BillingAggregator,
+    usage_meter: UsageMeterEngine,
+    identity_store: AgentIdentityStore,
+) -> None:
+    agent_id = _register_agent(identity_store, "org_line_alias")
+    _seed_meter_events(usage_meter, agent_id, "brave-search", 2)
+    _seed_meter_events(usage_meter, agent_id, "brave-search-api", 1)
+
+    invoice = _run(
+        billing_aggregator.generate_invoice(
+            "org_line_alias", datetime.now(tz=UTC).strftime("%Y-%m")
+        )
+    )
+    by_service = {line.service: line for line in invoice.line_items}
+    assert by_service["brave-search-api"].call_count == 3
+    assert "brave-search" not in by_service
+
+
 def test_invoice_tax_calculation(
     billing_aggregator: BillingAggregator,
     usage_meter: UsageMeterEngine,
@@ -557,6 +576,26 @@ def test_get_usage_report(
     assert response.status_code == 200
     payload = response.json()
     assert payload["total_calls"] == 9
+
+
+def test_get_usage_report_canonicalizes_alias_backed_service_ids(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    identity_store: AgentIdentityStore,
+) -> None:
+    agent_id = _register_agent(identity_store, "org_route_usage_alias")
+    _seed_meter_events(usage_meter, agent_id, "pdl", 2)
+    _seed_meter_events(usage_meter, agent_id, "people-data-labs", 1)
+
+    month = datetime.now(tz=UTC).strftime("%Y-%m")
+    response = admin_client.get(
+        "/v1/admin/billing/usage",
+        params={"organization_id": "org_route_usage_alias", "month": month},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["by_service"]["people-data-labs"]["call_count"] == 3
+    assert "pdl" not in payload["by_service"]
 
 
 def test_list_invoices_empty(admin_client: TestClient) -> None:
