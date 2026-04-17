@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -35,14 +36,42 @@ _RECEIPT_VERSION = "1.0"
 _MAX_CHAIN_RETRIES = 3
 
 
+def _canonicalize_provider_text(text: Any, provider_slug: Any) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(provider_slug)
+    if canonical is None:
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
 def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     """Normalize provider identity for API-facing receipt reads."""
     if row is None:
         return None
     normalized = dict(row)
+    provider_context = normalized.get("provider_id") or normalized.get("error_provider_raw")
     provider_id = public_service_slug(normalized.get("provider_id"))
     if provider_id:
         normalized["provider_id"] = provider_id
+    if "error_message" in normalized:
+        normalized["error_message"] = _canonicalize_provider_text(
+            normalized.get("error_message"),
+            provider_context or normalized.get("provider_id"),
+        )
+    normalized.pop("error_provider_raw", None)
     return normalized
 
 

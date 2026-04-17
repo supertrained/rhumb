@@ -47,6 +47,27 @@ def test_get_receipt_found(client):
         assert body["error"] is None
 
 
+def test_get_receipt_canonicalizes_legacy_provider_error_text(client):
+    receipt_data = {
+        "receipt_id": "rcpt_test123",
+        "execution_id": "exec_001",
+        "status": "failure",
+        "provider_id": "brave-search-api",
+        "error_message": "brave-search upstream exploded",
+        "error_provider_raw": "brave-search",
+        "chain_sequence": 1,
+        "receipt_hash": "sha256:abc",
+    }
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = [receipt_data]
+        resp = client.get("/v2/receipts/rcpt_test123")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["provider_id"] == "brave-search-api"
+        assert body["data"]["error_message"] == "brave-search-api upstream exploded"
+        assert "error_provider_raw" not in body["data"]
+
+
 def test_query_receipts_empty(client):
     """GET /v2/receipts returns empty list when no receipts match."""
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
@@ -82,6 +103,23 @@ def test_query_receipts_canonicalizes_alias_backed_provider_ids(client):
         assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
         query = mock_fetch.await_args.args[0]
         assert "provider_id=in.(brave-search-api,brave-search)" in query
+
+
+def test_query_receipts_canonicalizes_alias_backed_provider_error_text(client):
+    receipts = [
+        {
+            "receipt_id": "rcpt_1",
+            "provider_id": "people-data-labs",
+            "error_message": "PDL credential unavailable",
+        }
+    ]
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = receipts
+        resp = client.get("/v2/receipts?provider_id=people-data-labs")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["receipts"][0]["provider_id"] == "people-data-labs"
+        assert body["data"]["receipts"][0]["error_message"] == "people-data-labs credential unavailable"
 
 
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):

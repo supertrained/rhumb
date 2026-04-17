@@ -225,6 +225,31 @@ async def test_get_receipt_canonicalizes_alias_backed_provider_id():
 
 
 @pytest.mark.anyio
+async def test_get_receipt_canonicalizes_alias_backed_error_message_and_hides_raw_provider_hint():
+    service = ReceiptService()
+
+    with patch(
+        "services.receipt_service.supabase_fetch",
+        new=AsyncMock(
+            return_value=[
+                {
+                    "receipt_id": "rcpt_legacy_error",
+                    "provider_id": "brave-search-api",
+                    "error_message": "Brave-Search upstream exploded",
+                    "error_provider_raw": "brave-search",
+                }
+            ]
+        ),
+    ):
+        result = await service.get_receipt("rcpt_legacy_error")
+
+    assert result is not None
+    assert result["provider_id"] == "brave-search-api"
+    assert result["error_message"] == "brave-search-api upstream exploded"
+    assert "error_provider_raw" not in result
+
+
+@pytest.mark.anyio
 async def test_query_receipts_matches_alias_backed_provider_ids_and_returns_canonical_ids():
     service = ReceiptService()
     mock_fetch = AsyncMock(return_value=[{"receipt_id": "rcpt_123", "provider_id": "brave-search"}])
@@ -235,6 +260,31 @@ async def test_query_receipts_matches_alias_backed_provider_ids_and_returns_cano
     assert result == [{"receipt_id": "rcpt_123", "provider_id": "brave-search-api"}]
     query = mock_fetch.await_args.args[0]
     assert "provider_id=in.(brave-search-api,brave-search)" in query
+
+
+@pytest.mark.anyio
+async def test_query_receipts_canonicalizes_legacy_error_text_on_public_reads():
+    service = ReceiptService()
+    mock_fetch = AsyncMock(
+        return_value=[
+            {
+                "receipt_id": "rcpt_legacy_error",
+                "provider_id": "people-data-labs",
+                "error_message": "pdl credential unavailable",
+            }
+        ]
+    )
+
+    with patch("services.receipt_service.supabase_fetch", new=mock_fetch):
+        result = await service.query_receipts(provider_id="people-data-labs", limit=10)
+
+    assert result == [
+        {
+            "receipt_id": "rcpt_legacy_error",
+            "provider_id": "people-data-labs",
+            "error_message": "people-data-labs credential unavailable",
+        }
+    ]
 
 
 @pytest.mark.anyio
