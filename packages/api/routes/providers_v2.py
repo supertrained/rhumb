@@ -377,6 +377,59 @@ def _merge_provider_detail(
     }
 
 
+def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
+    """Normalize service rows onto canonical provider ids, preferring canonical rows.
+
+    When both canonical/public and runtime-alias rows exist for the same provider,
+    keep the canonical row as the base record but backfill any missing fields from
+    the alias row so Layer 1 list responses do not drift based on row order.
+    """
+
+    if not rows:
+        return {}
+
+    canonical_rows: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        raw_slug = str(row.get("slug") or "").strip().lower()
+        canonical_slug = public_service_slug(raw_slug) or raw_slug
+        if not canonical_slug:
+            continue
+
+        normalized_row = {
+            **row,
+            "slug": canonical_slug,
+        }
+
+        existing = canonical_rows.get(canonical_slug)
+        if existing is None:
+            canonical_rows[canonical_slug] = normalized_row
+            continue
+
+        existing_raw_slug = str(existing.get("_raw_slug") or canonical_slug).strip().lower()
+        candidate_is_canonical = raw_slug == canonical_slug
+        existing_is_canonical = existing_raw_slug == canonical_slug
+
+        if candidate_is_canonical and not existing_is_canonical:
+            preferred = normalized_row
+            fallback = existing
+        else:
+            preferred = existing
+            fallback = normalized_row
+
+        merged = dict(preferred)
+        for field in ("name", "description", "category", "official_docs"):
+            if not merged.get(field) and fallback.get(field):
+                merged[field] = fallback[field]
+
+        merged["_raw_slug"] = canonical_slug if preferred is normalized_row else existing_raw_slug
+        canonical_rows[canonical_slug] = merged
+
+    for row in canonical_rows.values():
+        row.pop("_raw_slug", None)
+
+    return canonical_rows
+
+
 async def _resolve_provider_detail(provider_id: str) -> dict | None:
     """Fetch the service detail for a provider slug."""
     service_row: dict[str, Any] | None = None
@@ -526,11 +579,7 @@ async def list_providers(
     service_rows = await supabase_fetch(
         f"services?slug=in.({slug_filter})&select=slug,name,description,category,official_docs"
     ) or []
-    services_by_slug = {
-        canonicalize_service_slug(str(row["slug"])): row
-        for row in service_rows
-        if row.get("slug")
-    }
+    services_by_slug = _canonicalize_service_rows(service_rows)
 
     score_rows = await supabase_fetch(
         f"scores?service_slug=in.({slug_filter})"

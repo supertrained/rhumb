@@ -124,6 +124,14 @@ _BRAVE_ALIAS_SERVICE_DETAIL = {
     "official_docs": "https://brave.com/search/api",
 }
 
+_BRAVE_CANONICAL_SERVICE_DETAIL = {
+    "slug": "brave-search-api",
+    "name": "Brave Search API",
+    "description": "Canonical public provider record for Brave Search API.",
+    "category": "search",
+    "official_docs": "https://api.search.brave.com/docs",
+}
+
 
 def _mock_supabase_fetch_with_alias_backed_callable_provider(query: str):
     """Store Brave metadata on the runtime alias while v2 exposes the canonical provider id."""
@@ -150,6 +158,35 @@ def _mock_supabase_fetch_with_alias_backed_callable_provider(query: str):
         if "slug=eq.brave-search" in query:
             return [_BRAVE_ALIAS_SERVICE_DETAIL]
         if "slug=in." in query and "brave-search" in query:
+            return [_BRAVE_ALIAS_SERVICE_DETAIL]
+        return []
+    if query.startswith("scores?"):
+        if "brave-search" in query:
+            return [{
+                "service_slug": "brave-search",
+                "aggregate_recommendation_score": 8.6,
+                "tier": "native",
+                "tier_label": "Native",
+                "calculated_at": "2026-03-31T00:00:00Z",
+            }]
+        return []
+    return []
+
+
+def _mock_supabase_fetch_with_duplicate_canonical_and_alias_rows(query: str):
+    """Return both canonical and runtime rows, with the alias row ordered last."""
+    if query.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in query:
+            return [{"service_slug": "brave-search"}]
+        if "select=service_slug" in query and "capability_id" not in query and "service_slug=eq." not in query:
+            return [{"service_slug": "brave-search"}]
+        return []
+    if query.startswith("services?"):
+        if "slug=in." in query and "brave-search" in query:
+            return [_BRAVE_CANONICAL_SERVICE_DETAIL, _BRAVE_ALIAS_SERVICE_DETAIL]
+        if "slug=eq.brave-search-api" in query:
+            return [_BRAVE_CANONICAL_SERVICE_DETAIL]
+        if "slug=eq.brave-search" in query:
             return [_BRAVE_ALIAS_SERVICE_DETAIL]
         return []
     if query.startswith("scores?"):
@@ -388,6 +425,21 @@ class TestListProviders:
         assert brave["name"] == "Brave Search"
         assert brave["description"] == _BRAVE_ALIAS_SERVICE_DETAIL["description"]
         assert brave["category"] == "search"
+        assert brave["an_score"] == 8.6
+        assert brave["tier"] == "Native"
+        assert brave["callable"] is True
+
+    def test_list_prefers_canonical_service_metadata_when_alias_row_is_also_present(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_duplicate_canonical_and_alias_rows):
+            resp = client.get("/v2/providers?capability=search.query")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        brave = providers_by_id["brave-search-api"]
+        assert brave["name"] == _BRAVE_CANONICAL_SERVICE_DETAIL["name"]
+        assert brave["description"] == _BRAVE_CANONICAL_SERVICE_DETAIL["description"]
+        assert brave["category"] == _BRAVE_CANONICAL_SERVICE_DETAIL["category"]
         assert brave["an_score"] == 8.6
         assert brave["tier"] == "Native"
         assert brave["callable"] is True
