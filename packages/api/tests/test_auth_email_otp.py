@@ -119,6 +119,55 @@ def test_request_code_returns_generic_success_for_new_email() -> None:
     ]
 
 
+def test_oauth_login_accepts_mixed_case_provider() -> None:
+    from routes import auth as auth_routes
+
+    auth_routes._csrf_states.clear()
+    client = TestClient(_shared_app)
+    try:
+        with patch("routes.auth._get_client_credentials", return_value=("github-client", "github-secret")):
+            response = client.get("/v1/auth/login/GitHub", follow_redirects=False)
+
+        assert response.status_code == 302
+        assert response.headers["location"].startswith("https://github.com/login/oauth/authorize?")
+        assert "callback%2Fgithub" in response.headers["location"]
+        assert len(auth_routes._csrf_states) == 1
+        stored = next(iter(auth_routes._csrf_states.values()))
+        assert stored["provider"] == "github"
+    finally:
+        client.close()
+        auth_routes._csrf_states.clear()
+
+
+def test_oauth_login_unsupported_provider_normalizes_detail() -> None:
+    client = TestClient(_shared_app)
+    try:
+        response = client.get("/v1/auth/login/GiTaB", follow_redirects=False)
+    finally:
+        client.close()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported provider: gitab"
+
+
+def test_oauth_callback_accepts_mixed_case_provider_before_state_check() -> None:
+    from routes import auth as auth_routes
+
+    auth_routes._csrf_states.clear()
+    client = TestClient(_shared_app)
+    try:
+        response = client.get(
+            "/v1/auth/callback/GitHub?code=fake-code&state=missing-state",
+            follow_redirects=False,
+        )
+    finally:
+        client.close()
+        auth_routes._csrf_states.clear()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid or expired state parameter"
+
+
 def test_request_code_returns_generic_success_for_existing_email() -> None:
     with _auth_email_harness() as env:
         existing_user = _run(

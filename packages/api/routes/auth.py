@@ -81,6 +81,11 @@ _JWT_ALGORITHM = "HS256"
 _JWT_EXPIRY_HOURS = 168  # 7 days
 
 
+def _public_auth_provider(provider: str) -> str:
+    """Normalize public auth provider ids for routing and error messages."""
+    return str(provider).strip().lower()
+
+
 def _jwt_secret() -> str:
     """Return the JWT signing secret."""
     secret = settings.auth_jwt_secret or settings.rhumb_admin_secret
@@ -213,15 +218,16 @@ async def _ensure_default_identity(
 @router.get("/login/{provider}")
 async def login(provider: str) -> RedirectResponse:
     """Initiate OAuth login — redirect to provider consent screen."""
-    if provider not in _PROVIDERS:
-        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
+    provider_key = _public_auth_provider(provider)
+    if provider_key not in _PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider_key}")
 
-    client_id, _ = _get_client_credentials(provider)
-    config = _PROVIDERS[provider]
+    client_id, _ = _get_client_credentials(provider_key)
+    config = _PROVIDERS[provider_key]
 
     # Generate CSRF state
     state = secrets.token_urlsafe(32)
-    _csrf_states[state] = {"provider": provider, "created_at": time.time()}
+    _csrf_states[state] = {"provider": provider_key, "created_at": time.time()}
 
     # Clean expired states
     now = time.time()
@@ -230,7 +236,7 @@ async def login(provider: str) -> RedirectResponse:
         del _csrf_states[k]
 
     # Build the callback URL — routes through the API
-    callback_url = f"{settings.auth_api_url}/v1/auth/callback/{provider}"
+    callback_url = f"{settings.auth_api_url}/v1/auth/callback/{provider_key}"
 
     params = {
         "client_id": client_id,
@@ -241,7 +247,7 @@ async def login(provider: str) -> RedirectResponse:
     }
 
     # Google requires additional params
-    if provider == "google":
+    if provider_key == "google":
         params["access_type"] = "offline"
         params["prompt"] = "consent"
 
@@ -252,22 +258,23 @@ async def login(provider: str) -> RedirectResponse:
 @router.get("/callback/{provider}")
 async def callback(provider: str, code: str, state: str) -> RedirectResponse:
     """Handle OAuth callback — exchange code, create user, redirect to dashboard."""
-    if provider not in _PROVIDERS:
-        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
+    provider_key = _public_auth_provider(provider)
+    if provider_key not in _PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider_key}")
 
     # Verify CSRF state
     stored = _csrf_states.pop(state, None)
-    if stored is None or stored["provider"] != provider:
+    if stored is None or stored["provider"] != provider_key:
         raise HTTPException(status_code=400, detail="Invalid or expired state parameter")
 
     if time.time() - stored["created_at"] > _CSRF_TTL_SECONDS:
         raise HTTPException(status_code=400, detail="State token expired")
 
     # Exchange code for access token
-    client_id, client_secret = _get_client_credentials(provider)
-    config = _PROVIDERS[provider]
+    client_id, client_secret = _get_client_credentials(provider_key)
+    config = _PROVIDERS[provider_key]
 
-    callback_url = f"{settings.auth_api_url}/v1/auth/callback/{provider}"
+    callback_url = f"{settings.auth_api_url}/v1/auth/callback/{provider_key}"
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
