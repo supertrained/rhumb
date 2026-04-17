@@ -348,6 +348,7 @@ class AuditTrail:
         meta = _EVENT_METADATA.get(event_type, {})
         severity = meta.get("severity", AuditSeverity.INFO)
         category = meta.get("category", "unknown")
+        canonical_provider_slug = public_service_slug(provider_slug) or provider_slug
 
         with self._lock:
             self._sequence += 1
@@ -372,7 +373,7 @@ class AuditTrail:
                     "detail": detail or {},
                     "receipt_id": receipt_id,
                     "execution_id": execution_id,
-                    "provider_slug": provider_slug,
+                    "provider_slug": canonical_provider_slug,
                     "metadata": {},
                     "key_version": key_version,
                 },
@@ -393,7 +394,7 @@ class AuditTrail:
                 detail=detail or {},
                 receipt_id=receipt_id,
                 execution_id=execution_id,
-                provider_slug=provider_slug,
+                provider_slug=canonical_provider_slug,
                 chain_sequence=self._sequence,
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,

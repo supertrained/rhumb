@@ -155,6 +155,7 @@ class BillingEventStream:
         provider_slug: str | None = None,
     ) -> BillingEvent:
         """Record a billing event. Returns the event for confirmation."""
+        canonical_provider_slug = public_service_slug(provider_slug) or provider_slug
         with self._lock:
             event_id = f"bevt_{uuid4().hex[:16]}"
             now = datetime.now(timezone.utc)
@@ -172,7 +173,7 @@ class BillingEventStream:
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=provider_slug,
+                provider_slug=canonical_provider_slug,
                 chain_hash="",  # placeholder
                 prev_hash=self._prev_hash,
                 key_version=key_version,
@@ -199,7 +200,7 @@ class BillingEventStream:
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=provider_slug,
+                provider_slug=canonical_provider_slug,
                 chain_hash=chain_hash,
                 prev_hash=self._prev_hash,
                 key_version=key_version,

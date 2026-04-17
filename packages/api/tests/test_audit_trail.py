@@ -82,7 +82,27 @@ class TestRecordEvent:
         )
         assert event.receipt_id == "rcpt_123"
         assert event.execution_id == "exec_456"
-        assert event.provider_slug == "brave-search"
+        assert event.provider_slug == "brave-search-api"
+
+    def test_record_canonicalizes_alias_backed_provider_slug_before_hashing(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "done",
+            org_id="org_1",
+            provider_slug="brave-search",
+        )
+
+        assert event.provider_slug == "brave-search-api"
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != trail._compute_hash(
+            event.prev_hash,
+            replace(event, provider_slug="brave-search", chain_hash=""),
+        )
 
     def test_record_increments_sequence(self):
         trail = AuditTrail()

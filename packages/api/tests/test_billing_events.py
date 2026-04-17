@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
@@ -130,8 +131,38 @@ class TestBillingEventStream:
         assert event.receipt_id == "rcpt_abc"
         assert event.execution_id == "exec_123"
         assert event.capability_id == "search.query"
-        assert event.provider_slug == "brave-search"
+        assert event.provider_slug == "brave-search-api"
         assert event.metadata["layer"] == 2
+
+    def test_emit_canonicalizes_alias_backed_provider_slug_before_hashing(self):
+        stream = BillingEventStream()
+
+        event = stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            org_id="org_a",
+            amount_usd_cents=150,
+            provider_slug="brave-search",
+        )
+
+        assert event.provider_slug == "brave-search-api"
+        assert event.chain_hash == stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(event, provider_slug="brave-search", chain_hash=""),
+        )
 
     def test_emit_writes_to_durable_outbox_before_memory(self):
         class _Outbox:
