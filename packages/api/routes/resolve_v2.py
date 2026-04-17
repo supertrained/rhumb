@@ -856,7 +856,7 @@ async def execute_capability_v2(
         )
 
     v1_payload: dict[str, Any] = {
-        "provider": selected_provider,
+        "provider": selected_provider_public or selected_provider,
         "credential_mode": canonical_credential_mode,
         "idempotency_key": payload.idempotency_key or x_rhumb_idempotency_key,
         "interface": f"{payload.interface}-v2",
@@ -884,11 +884,17 @@ async def execute_capability_v2(
             execution_data.get("credential_mode")
         )
         execution_data["credential_mode"] = effective_credential_mode
+    provider_used_public = (
+        _public_provider_slug(execution_data.get("provider_used"))
+        or execution_data.get("provider_used")
+    )
+    if provider_used_public:
+        execution_data["provider_used"] = provider_used_public
     execution_id = execution_data.get("execution_id", "")
     is_success = execute_response.status_code == 200
 
     receipt_id: str | None = None
-    provider_public_slug = selected_provider_public or "unknown"
+    provider_public_slug = provider_used_public or selected_provider_public or "unknown"
     try:
         error_code, error_message = _extract_error_fields(body)
         receipt_input = ReceiptInput(
@@ -957,7 +963,7 @@ async def execute_capability_v2(
             mappings=policy_eval.all_mappings,
             scores_by_slug=_scores_by_slug,
             circuit_states=_circuit_states,
-            selected_provider=selected_provider,
+            selected_provider=selected_provider_public or selected_provider,
             policy_pin=effective_policy.pin if effective_policy else None,
             policy_deny=list(effective_policy.provider_deny) if effective_policy and effective_policy.provider_deny else None,
             policy_allow_only=list(effective_policy.allow_only) if effective_policy and effective_policy.allow_only else None,
@@ -974,7 +980,7 @@ async def execute_capability_v2(
     attribution_headers: dict[str, str] = {}
     try:
         attribution = await build_attribution(
-            provider_slug=selected_provider or "unknown",
+            provider_slug=provider_public_slug,
             layer=2,
             receipt_id=receipt_id,
             cost_provider_usd=float(estimated_cost) if estimated_cost else None,
