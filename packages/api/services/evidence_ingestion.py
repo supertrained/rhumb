@@ -9,6 +9,8 @@ from typing import Any, Iterable
 
 from pydantic.dataclasses import dataclass
 
+from services.service_slugs import public_service_slug, public_service_slug_candidates
+
 logger = logging.getLogger(__name__)
 
 _ADAPTER_CREATED_BY = "evidence_ingestion_adapter_v1"
@@ -166,6 +168,7 @@ class EvidenceIngestionAdapter:
                 observed_at = _parse_datetime(fact.get("observed_at"))
                 summary = _coerce_optional_text(fact.get("notes"))
                 source_type = rule.source_type
+                public_service = _public_evidence_service_slug(fact.get("service_slug"))
                 if (
                     fact_type == "provider_support_state"
                     and str(fact.get("source_type", "")) == "runtime_verified"
@@ -174,11 +177,11 @@ class EvidenceIngestionAdapter:
 
                 fresh_until = observed_at + rule.fresh_offset
                 payload = {
-                    "service_slug": str(fact.get("service_slug", "")),
+                    "service_slug": public_service,
                     "source_type": source_type,
                     "source_ref": source_ref,
                     "evidence_kind": rule.evidence_kind,
-                    "title": f"{rule.evidence_kind} for {fact.get('service_slug', '')}",
+                    "title": f"{rule.evidence_kind} for {public_service}",
                     "summary": summary,
                     "raw_payload_json": fact.get("payload") or {},
                     "normalized_payload_json": {},
@@ -221,17 +224,18 @@ class EvidenceIngestionAdapter:
         grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
         for row in rows:
             created_at = _parse_datetime(row.get("created_at"))
-            service = str(row.get("service", ""))
+            service = _public_evidence_service_slug(row.get("service"))
             group_key = (service, created_at.date().isoformat())
             grouped.setdefault(group_key, []).append(row)
 
         for (service, date_str), group_rows in grouped.items():
             try:
-                source_ref = f"usage_events:{service}:{date_str}"
-                if await self._is_duplicate(source_ref):
+                source_ref_candidates = _usage_summary_source_ref_candidates(group_rows, date_str)
+                if await self._has_any_duplicate(source_ref_candidates):
                     result.skipped_duplicate += 1
                     continue
 
+                source_ref = f"usage_events:{service}:{date_str}"
                 observed_at = max(
                     _parse_datetime(row.get("created_at")) for row in group_rows
                 )
@@ -339,6 +343,17 @@ class EvidenceIngestionAdapter:
             return len(data) > 0
         return data is not None
 
+    async def _has_any_duplicate(self, source_refs: Iterable[str]) -> bool:
+        """Check whether any candidate source_ref is already present."""
+        seen: set[str] = set()
+        for source_ref in source_refs:
+            if not source_ref or source_ref in seen:
+                continue
+            seen.add(source_ref)
+            if await self._is_duplicate(source_ref):
+                return True
+        return False
+
     @staticmethod
     def _record_rejection(result: IngestResult, fact_id: str, reason: str) -> None:
         """Add a rejection entry to the result."""
@@ -375,6 +390,31 @@ def _count_results(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
         key = str(row.get("result", "unknown"))
         counts[key] = counts.get(key, 0) + 1
     return counts
+
+
+def _public_evidence_service_slug(value: Any) -> str:
+    """Normalize evidence-facing service ids onto canonical public slugs."""
+    cleaned = str(value or "").strip().lower()
+    if not cleaned:
+        return ""
+    return public_service_slug(cleaned) or cleaned
+
+
+def _usage_summary_source_ref_candidates(
+    rows: Iterable[dict[str, Any]],
+    date_str: str,
+) -> list[str]:
+    """Return duplicate-check candidates for canonicalized usage summaries."""
+    candidates: list[str] = []
+    seen_services: set[str] = set()
+    for row in rows:
+        raw_service = str(row.get("service", "")).strip().lower()
+        for service_candidate in public_service_slug_candidates(raw_service) or [raw_service]:
+            if not service_candidate or service_candidate in seen_services:
+                continue
+            seen_services.add(service_candidate)
+            candidates.append(f"usage_events:{service_candidate}:{date_str}")
+    return candidates
 
 
 def _parse_datetime(value: Any) -> datetime:

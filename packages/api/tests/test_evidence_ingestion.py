@@ -220,6 +220,24 @@ def test_admits_latency_snapshot() -> None:
     assert evidence["fresh_until"] == (observed_at + timedelta(minutes=10)).isoformat()
 
 
+def test_admits_latency_snapshot_with_canonical_public_service_slug() -> None:
+    client = _FakeSupabaseClient()
+    observed_at = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
+    fact = _fact(fact_type="latency_snapshot", observed_at=observed_at)
+    fact["service_slug"] = "brave-search"
+    fact["provider_slug"] = "brave-search"
+    client.rows("access_operational_facts").append(fact)
+
+    adapter = EvidenceIngestionAdapter(client)
+    result = _run(adapter.ingest_operational_facts())
+
+    assert result.admitted == 1
+    evidence = client.rows("evidence_records")[0]
+    assert evidence["service_slug"] == "brave-search-api"
+    assert evidence["title"] == "latency_snapshot for brave-search-api"
+    assert evidence["source_ref"] == fact["id"]
+
+
 def test_admits_circuit_state() -> None:
     client = _FakeSupabaseClient()
     observed_at = datetime(2026, 1, 10, 14, 30, tzinfo=UTC)
@@ -381,6 +399,65 @@ def test_admits_usage_summary() -> None:
     assert evidence["fresh_until"] == (created_at + timedelta(hours=26)).isoformat()
     assert evidence["raw_payload_json"]["total_events"] == 2
     assert evidence["raw_payload_json"]["result_counts"] == {"success": 1, "error": 1}
+
+
+def test_usage_summary_canonicalizes_alias_backed_service_groups() -> None:
+    client = _FakeSupabaseClient()
+    created_at = datetime(2026, 1, 11, 8, 0, tzinfo=UTC)
+    client.rows("agent_usage_events").extend(
+        [
+            _usage_event(
+                service="brave-search",
+                created_at=created_at,
+                result="success",
+                latency_ms=100.0,
+                response_size_bytes=500,
+            ),
+            _usage_event(
+                service="brave-search-api",
+                created_at=created_at + timedelta(hours=2),
+                result="error",
+                latency_ms=200.0,
+                response_size_bytes=700,
+            ),
+        ]
+    )
+
+    adapter = EvidenceIngestionAdapter(client)
+    result = _run(adapter.ingest_usage_summaries())
+
+    assert result.admitted == 1
+    evidence = client.rows("evidence_records")[0]
+    assert evidence["service_slug"] == "brave-search-api"
+    assert evidence["source_ref"] == "usage_events:brave-search-api:2026-01-11"
+    assert evidence["title"] == "Usage summary for brave-search-api (2026-01-11)"
+    assert evidence["summary"] == "Aggregated 2 usage events for brave-search-api"
+    assert evidence["raw_payload_json"]["service"] == "brave-search-api"
+    assert evidence["raw_payload_json"]["total_events"] == 2
+    assert evidence["raw_payload_json"]["result_counts"] == {"success": 1, "error": 1}
+
+
+def test_usage_summary_skips_duplicate_when_existing_source_ref_uses_alias() -> None:
+    client = _FakeSupabaseClient()
+    created_at = datetime(2026, 1, 11, 8, 0, tzinfo=UTC)
+    client.rows("agent_usage_events").append(
+        _usage_event(service="brave-search", created_at=created_at)
+    )
+    client.rows("evidence_records").append(
+        {
+            "id": str(uuid.uuid4()),
+            "service_slug": "brave-search",
+            "source_ref": "usage_events:brave-search:2026-01-11",
+            "evidence_kind": "usage_summary",
+        }
+    )
+
+    adapter = EvidenceIngestionAdapter(client)
+    result = _run(adapter.ingest_usage_summaries())
+
+    assert result.admitted == 0
+    assert result.skipped_duplicate == 1
+    assert client.row_count("evidence_records") == 1
 
 
 def test_rejects_unknown_fact_type() -> None:
