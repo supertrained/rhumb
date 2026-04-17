@@ -3405,8 +3405,9 @@ async def execute_capability(
         else None
     )
 
+    public_provider_used = _public_provider_slug(provider_slug)
     update_payload = {
-        "provider_used": _public_provider_slug(provider_slug),
+        "provider_used": public_provider_used,
         "credential_mode": request.credential_mode,
         "method": request.method,
         "path": request.path,
@@ -3435,7 +3436,7 @@ async def execute_capability(
 
     response_data = {
         "capability_id": capability_id,
-        "provider_used": _public_provider_slug(provider_slug),
+        "provider_used": public_provider_used,
         "credential_mode": request.credential_mode,
         "upstream_status": upstream_status,
         "upstream_response": upstream_response,
@@ -3491,7 +3492,7 @@ async def execute_capability(
                 capability_id=capability_id,
                 status="success" if success else "failure",
                 agent_id=agent_id,
-                provider_id=provider_slug,
+                provider_id=public_provider_used,
                 credential_mode=request.credential_mode,
                 org_id=org_id,
                 caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
@@ -3521,7 +3522,7 @@ async def execute_capability(
         org_id=org_id,
         execution_id=execution_id,
         capability_id=capability_id,
-        provider_slug=provider_slug,
+        provider_slug=public_provider_used,
         credential_mode=request.credential_mode,
         amount_usd_cents=actual_billed_cents,
         receipt_id=response_data.get("receipt_id"),
@@ -3535,7 +3536,7 @@ async def execute_capability(
         agent_id=agent_id,
         execution_id=execution_id,
         capability_id=capability_id,
-        provider_slug=provider_slug,
+        provider_slug=public_provider_used,
         credential_mode=request.credential_mode,
         interface=request.interface,
         upstream_status=upstream_status,
@@ -3548,7 +3549,7 @@ async def execute_capability(
     # ── Provider attribution (WU-41.2) ──────────────────────────────
     try:
         attribution = await build_attribution(
-            provider_slug=provider_slug,
+            provider_slug=public_provider_used,
             layer=2,
             receipt_id=response_data.get("receipt_id"),
             cost_provider_usd=cost_per_call,
