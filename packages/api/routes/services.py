@@ -270,6 +270,12 @@ async def get_service(slug: str, raw_request: Request):
     score: dict[str, Any] = {}
     if scores:
         sc = scores[0]
+        dimension_snapshot = _score_dimension_snapshot(sc)
+        autonomy = dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
+        autonomy_score = _coerce_float(sc.get("autonomy_score"))
+        if autonomy_score is None and isinstance(autonomy, dict):
+            autonomy_score = _coerce_float(autonomy.get("avg"))
+
         score = {
             "an_score": sc.get("aggregate_recommendation_score"),
             "execution_score": sc.get("execution_score"),
@@ -285,7 +291,10 @@ async def get_service(slug: str, raw_request: Request):
             "payment_autonomy_rationale": sc.get("payment_autonomy_rationale"),
             "governance_readiness_rationale": sc.get("governance_readiness_rationale"),
             "web_accessibility_rationale": sc.get("web_accessibility_rationale"),
-            "autonomy_score": sc.get("autonomy_score"),
+            "autonomy_score": autonomy_score,
+            "autonomy": autonomy,
+            "an_score_version": "0.3",
+            "dimension_snapshot": dimension_snapshot,
         }
 
     # Get alternatives (same category, different slug, ranked by score)

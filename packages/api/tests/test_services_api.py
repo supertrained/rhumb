@@ -42,10 +42,20 @@ ALIAS_SCORE_ROWS = [
         "aggregate_recommendation_score": 8.7,
         "execution_score": 8.5,
         "access_readiness_score": 8.6,
+        "autonomy_score": 8.4,
         "confidence": 0.91,
         "tier": "L4",
         "tier_label": "Strong",
         "probe_metadata": {"freshness": "5 minutes ago"},
+        "payment_autonomy": 8.8,
+        "payment_autonomy_rationale": "Direct billing and retry-safe checkout path.",
+        "payment_autonomy_confidence": 0.89,
+        "governance_readiness": 8.0,
+        "governance_readiness_rationale": "Team controls and audit history are available.",
+        "governance_readiness_confidence": 0.86,
+        "web_accessibility": 8.3,
+        "web_accessibility_rationale": "Docs and dashboard flows stay scriptable.",
+        "web_accessibility_confidence": 0.82,
         "calculated_at": "2026-04-16T16:00:00Z",
     },
     {
@@ -490,6 +500,11 @@ def test_service_detail_canonicalizes_alias_backed_scores_and_alternatives(clien
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert payload["data"]["an_score"] == 8.7
+    assert payload["data"]["autonomy_score"] == 8.4
+    assert payload["data"]["autonomy"]["avg"] == 8.4
+    assert payload["data"]["an_score_version"] == "0.3"
+    assert payload["data"]["dimension_snapshot"]["autonomy"]["avg"] == 8.4
+    assert payload["data"]["dimension_snapshot"]["probe_freshness"] == "5 minutes ago"
     assert payload["data"]["alternatives"] == [
         {
             "slug": "people-data-labs",
