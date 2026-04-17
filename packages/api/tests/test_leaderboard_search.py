@@ -80,6 +80,15 @@ _SCORE_ROWS = [
     },
 ]
 
+_ALIAS_BACKED_SERVICES = [
+    {
+        "slug": "brave-search",
+        "name": "Brave Search API",
+        "category": "search",
+        "description": "Web search API",
+    }
+]
+
 
 def _parse_in_filter(path: str, key: str) -> set[str] | None:
     match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", unquote(path))
@@ -158,6 +167,40 @@ def _mock_catalog_supabase(path: str):
     return []
 
 
+def _mock_alias_backed_catalog_supabase(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?category=eq.search"):
+        return [{"slug": service["slug"], "name": service["name"]} for service in _ALIAS_BACKED_SERVICES]
+
+    if decoded.startswith("services?select=category"):
+        return [{"category": service["category"]} for service in _ALIAS_BACKED_SERVICES]
+
+    if decoded.startswith("services?select=slug,category"):
+        return [
+            {"slug": service["slug"], "category": service["category"]}
+            for service in _ALIAS_BACKED_SERVICES
+        ]
+
+    if decoded.startswith("services?or=("):
+        query = _extract_search_query(decoded)
+        if not query:
+            return []
+        return [service for service in _ALIAS_BACKED_SERVICES if _service_matches_query(service, query)]
+
+    if decoded.startswith("scores?select=service_slug"):
+        return [{"service_slug": "brave-search"}]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _SCORE_ROWS if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return [row for row in _SCORE_ROWS if row["service_slug"] == "brave-search"]
+
+    return []
+
+
 @pytest.fixture
 def mock_catalog_supabase():
     with (
@@ -197,6 +240,19 @@ async def test_get_leaderboard_email(mock_catalog_supabase):
 @pytest.mark.asyncio
 async def test_get_leaderboard_canonicalizes_alias_backed_scores(mock_catalog_supabase):
     result = await get_leaderboard("search", limit=5)
+    assert result["error"] is None
+    assert result["data"]["count"] == 1
+    item = result["data"]["items"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "Brave Search API"
+    assert item["an_score"] == 8.7
+
+
+@pytest.mark.asyncio
+async def test_get_leaderboard_canonicalizes_alias_backed_service_rows():
+    with patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_alias_backed_catalog_supabase):
+        result = await get_leaderboard("search", limit=5)
+
     assert result["error"] is None
     assert result["data"]["count"] == 1
     item = result["data"]["items"][0]
@@ -248,6 +304,19 @@ async def test_search_canonicalizes_alias_backed_scores(mock_catalog_supabase):
     assert item["service_slug"] == "brave-search-api"
     assert item["an_score"] == 8.7
     assert item["tier"] == "L4"
+
+
+@pytest.mark.asyncio
+async def test_search_canonicalizes_alias_backed_service_rows():
+    with patch("routes.search.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_alias_backed_catalog_supabase):
+        result = await search_services("brave")
+
+    assert result["error"] is None
+    assert len(result["data"]["results"]) == 1
+    item = result["data"]["results"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "Brave Search API"
+    assert item["an_score"] == 8.7
 
 
 @pytest.mark.asyncio
@@ -323,6 +392,15 @@ async def test_leaderboard_uses_stale_cache_during_catalog_outage():
     assert degraded["error"] is None
     assert degraded["data"]["items"] == warm["data"]["items"]
     assert degraded["data"]["count"] == warm["data"]["count"]
+
+
+@pytest.mark.asyncio
+async def test_list_categories_canonicalizes_alias_backed_service_rows():
+    with patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_alias_backed_catalog_supabase):
+        result = await list_categories()
+
+    assert result["error"] is None
+    assert result["data"]["categories"] == [{"slug": "search", "service_count": 1}]
 
 
 @pytest.mark.asyncio

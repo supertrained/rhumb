@@ -60,8 +60,21 @@ async def get_leaderboard(
             "error": "Unable to load categories.",
         }
 
-    slugs = [s["slug"] for s in services]
-    name_map = {s["slug"]: s["name"] for s in services}
+    normalized_services: list[dict] = []
+    seen_services: set[str] = set()
+    for service in services:
+        raw_slug = str(service.get("slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not slug or slug in seen_services:
+            continue
+        seen_services.add(slug)
+        normalized_services.append({
+            **service,
+            "slug": slug,
+        })
+
+    slugs = [s["slug"] for s in normalized_services]
+    name_map = {s["slug"]: s["name"] for s in normalized_services}
     score_query_slugs = _score_query_slugs(slugs)
     slug_filter = ",".join(f'"{s}"' for s in score_query_slugs)
 
@@ -149,11 +162,18 @@ async def list_categories() -> dict:
         return {"data": {"categories": [], "total": 0}, "error": "Unable to load categories."}
 
     counts: dict[str, int] = {}
+    seen_category_services: set[tuple[str, str]] = set()
     for row in data:
         cat = row.get("category")
-        slug = row.get("slug")
-        if cat and slug in scored_slugs:
-            counts[cat] = counts.get(cat, 0) + 1
+        raw_slug = str(row.get("slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not cat or not slug or slug not in scored_slugs:
+            continue
+        key = (str(cat), slug)
+        if key in seen_category_services:
+            continue
+        seen_category_services.add(key)
+        counts[str(cat)] = counts.get(str(cat), 0) + 1
 
     # Exclude categories with zero scored services
     categories = [

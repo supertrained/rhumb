@@ -76,8 +76,22 @@ async def search_services(
             "error": None,
         }
 
+    # Normalize matching services onto canonical/public slugs before joining scores.
+    normalized_services: list[dict] = []
+    seen_services: set[str] = set()
+    for svc in services:
+        raw_slug = str(svc.get("slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not slug or slug in seen_services:
+            continue
+        seen_services.add(slug)
+        normalized_services.append({
+            **svc,
+            "slug": slug,
+        })
+
     # Get scores for matching services
-    slugs = [s["slug"] for s in services]
+    slugs = [s["slug"] for s in normalized_services]
     score_query_slugs = _score_query_slugs(slugs)
     slug_filter = ",".join(f'"{s}"' for s in score_query_slugs)
 
@@ -87,7 +101,7 @@ async def search_services(
         f"&order=aggregate_recommendation_score.desc.nullslast"
     )
 
-    # Index scores by slug (keep best per slug)
+    # Index scores by slug (keep best per canonical/public slug)
     scores_by_slug: dict[str, dict] = {}
     if scores_data:
         for sc in scores_data:
@@ -98,7 +112,7 @@ async def search_services(
 
     # Build results with scores
     results = []
-    for svc in services:
+    for svc in normalized_services:
         slug = svc["slug"]
         sc = scores_by_slug.get(slug, {})
         an_score = sc.get("aggregate_recommendation_score")
