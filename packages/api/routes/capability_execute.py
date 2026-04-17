@@ -1200,6 +1200,25 @@ def _public_provider_label(provider_slug: str | None) -> str:
     return str(_public_provider_slug(provider_slug) or provider_slug or "unknown")
 
 
+def _canonicalize_public_provider_message(
+    message: str | None,
+    provider_slug: str | None,
+) -> str | None:
+    """Rewrite exact quoted provider mentions onto canonical public slugs."""
+    if message is None:
+        return None
+
+    public_provider = _public_provider_slug(provider_slug)
+    if not public_provider:
+        return message
+
+    rewritten = str(message)
+    for candidate in public_service_slug_candidates(provider_slug):
+        if candidate and candidate != public_provider:
+            rewritten = rewritten.replace(f"'{candidate}'", f"'{public_provider}'")
+    return rewritten
+
+
 def _prepare_upstream_payload(
     method: str | None,
     body: dict | None,
@@ -2942,7 +2961,10 @@ async def execute_capability(
                             if authority_unavailable
                             else "provider_budget_exhausted"
                         ),
-                        "message": budget_reason,
+                        "message": _canonicalize_public_provider_message(
+                            budget_reason,
+                            provider_slug,
+                        ),
                         "resolution": (
                             "Retry after the managed budget authority is restored, or use credential_mode: byok with your own API key if you need an immediate bypass"
                             if authority_unavailable

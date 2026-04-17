@@ -2744,6 +2744,75 @@ async def test_execute_managed_canonicalizes_alias_backed_provider_ids_for_recei
 
 
 @pytest.mark.anyio
+async def test_execute_managed_budget_exhaustion_keeps_canonical_public_provider_id(app):
+    managed_mapping = {
+        "capability_id": "search.query",
+        "service_slug": "brave-search",
+        "credential_modes": ["byo", "rhumb_managed"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    }
+
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [managed_mapping]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ),
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(
+                False,
+                "Provider 'brave-search' free-tier budget exhausted (2000/2000 requests). Use BYO credentials or try again after budget reset.",
+            ),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    data = resp.json()
+    assert data["error"] == "provider_budget_exhausted"
+    assert data["message"] == (
+        "Provider 'brave-search-api' free-tier budget exhausted (2000/2000 requests). "
+        "Use BYO credentials or try again after budget reset."
+    )
+
+
+@pytest.mark.anyio
 async def test_auto_resolves_to_byo_when_no_config(app):
     """Execute defaults auto to byo when no managed config exists."""
     _, mock_pool = _build_patches()
