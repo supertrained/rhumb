@@ -149,6 +149,37 @@ def test_build_launch_dashboard_canonicalizes_alias_backed_service_slugs() -> No
     ]
 
 
+def test_build_launch_dashboard_canonicalizes_alias_backed_provider_domain_fallbacks() -> None:
+    payload = build_launch_dashboard(
+        query_logs=[],
+        click_events=[
+            {
+                "created_at": "2026-03-13T07:00:00Z",
+                "event_type": "provider_click",
+                "service_slug": "brave-search",
+                "destination_domain": None,
+                "source_surface": "service_page_hero",
+                "page_path": "/service/brave-search-api",
+            },
+            {
+                "created_at": "2026-03-13T07:30:00Z",
+                "event_type": "provider_click",
+                "service_slug": "brave-search-api",
+                "destination_domain": None,
+                "source_surface": "service_page_sidebar",
+                "page_path": "/service/brave-search-api",
+            },
+        ],
+        execution_rows=[],
+        service_rows=[{"slug": "brave-search-api"}],
+        window="launch",
+    )
+
+    assert payload["clicks"]["top_provider_domains"] == [
+        {"key": "brave-search-api", "count": 2}
+    ]
+
+
 def test_launch_dashboard_route_returns_aggregated_metrics(
     client: TestClient,
     monkeypatch,

@@ -53,6 +53,16 @@ def _normalize_service_slug(value: Any) -> str | None:
     return public_service_slug(cleaned) or cleaned
 
 
+def _provider_click_target(row: dict[str, Any]) -> str:
+    destination_domain = str(row.get("destination_domain") or "").strip()
+    if destination_domain:
+        return destination_domain
+    service_slug = _normalize_service_slug(row.get("service_slug"))
+    if service_slug:
+        return service_slug
+    return "unknown"
+
+
 def _safe_label(value: Any, *, max_length: int = 120) -> str | None:
     sanitized = sanitize_external_payload(
         value,
@@ -634,8 +644,7 @@ def build_launch_dashboard(
             service_page_cta_clicks_by_surface[surface] += 1
 
         if event_type == "provider_click":
-            domain = str(row.get("destination_domain") or row.get("service_slug") or "unknown")
-            provider_clicks[domain] += 1
+            provider_clicks[_provider_click_target(row)] += 1
             provider_clicks_by_surface[surface] += 1
             service_slug = _normalize_service_slug(row.get("service_slug"))
             if service_slug:
