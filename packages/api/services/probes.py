@@ -5,13 +5,15 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any
 
 import httpx
 
 from db.repository import ProbeRepository, StoredProbe
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 
 @dataclass(slots=True)
@@ -32,6 +34,42 @@ class ProbeService:
 
     def __init__(self, repository: ProbeRepository | None = None) -> None:
         self._repository = repository
+
+    @staticmethod
+    def _normalize_service_slug(service_slug: str | None) -> str | None:
+        normalized = public_service_slug(service_slug)
+        if normalized is not None:
+            return normalized
+        cleaned = str(service_slug or "").strip().lower()
+        return cleaned or None
+
+    @classmethod
+    def _normalize_stored_probe(cls, stored: StoredProbe) -> StoredProbe:
+        normalized_service_slug = cls._normalize_service_slug(stored.service_slug)
+        if normalized_service_slug is None:
+            return stored
+
+        probe_metadata = stored.probe_metadata
+        if isinstance(probe_metadata, dict) and probe_metadata.get("service_slug") != normalized_service_slug:
+            probe_metadata = {**probe_metadata, "service_slug": normalized_service_slug}
+
+        raw_response = stored.raw_response
+        if isinstance(raw_response, dict) and raw_response.get("service_slug") != normalized_service_slug:
+            raw_response = {**raw_response, "service_slug": normalized_service_slug}
+
+        if (
+            normalized_service_slug == stored.service_slug
+            and probe_metadata is stored.probe_metadata
+            and raw_response is stored.raw_response
+        ):
+            return stored
+
+        return replace(
+            stored,
+            service_slug=normalized_service_slug,
+            probe_metadata=probe_metadata,
+            raw_response=raw_response,
+        )
 
     @staticmethod
     def _percentile(latencies: list[int], percentile: int) -> int | None:
@@ -302,8 +340,9 @@ class ProbeService:
         trigger_source: str = "internal",
         sample_count: int = 1,
     ) -> StoredProbe | None:
+        normalized_service_slug = self._normalize_service_slug(service_slug) or service_slug
         execution = await self._execute_probe(
-            service_slug=service_slug,
+            service_slug=normalized_service_slug,
             probe_type=probe_type,
             target_url=target_url,
             payload=payload,
@@ -313,8 +352,8 @@ class ProbeService:
         if self._repository is None:
             return None
 
-        return self._repository.save_probe(
-            service_slug=service_slug,
+        stored = self._repository.save_probe(
+            service_slug=normalized_service_slug,
             probe_type=probe_type,
             status=execution.status,
             latency_ms=execution.latency_ms,
@@ -326,6 +365,7 @@ class ProbeService:
             runner_version="scaffold-v1",
             error_message=execution.error_message,
         )
+        return self._normalize_stored_probe(stored)
 
     @property
     def repository(self) -> ProbeRepository | None:
@@ -338,7 +378,19 @@ class ProbeService:
         """Fetch the latest stored probe for a service."""
         if self._repository is None:
             return None
-        return self._repository.fetch_latest_probe(service_slug=service_slug, probe_type=probe_type)
+
+        candidates = public_service_slug_candidates(service_slug)
+        matches = [
+            self._repository.fetch_latest_probe(service_slug=candidate, probe_type=probe_type)
+            for candidate in candidates
+        ]
+        available = [match for match in matches if match is not None]
+        if not available:
+            return None
+
+        min_utc = datetime.min.replace(tzinfo=timezone.utc)
+        latest = sorted(available, key=lambda row: row.probed_at or min_utc)[-1]
+        return self._normalize_stored_probe(latest)
 
     def list_recent_probes(
         self,
@@ -349,8 +401,21 @@ class ProbeService:
         """Fetch a descending list of recent probes for a service."""
         if self._repository is None:
             return []
-        return self._repository.list_recent_probes(
-            service_slug=service_slug,
-            probe_type=probe_type,
-            limit=limit,
-        )
+
+        seen_probe_ids: set[str] = set()
+        matches: list[StoredProbe] = []
+        for candidate in public_service_slug_candidates(service_slug):
+            for probe in self._repository.list_recent_probes(
+                service_slug=candidate,
+                probe_type=probe_type,
+                limit=limit,
+            ):
+                probe_id = str(probe.id)
+                if probe_id in seen_probe_ids:
+                    continue
+                seen_probe_ids.add(probe_id)
+                matches.append(self._normalize_stored_probe(probe))
+
+        min_utc = datetime.min.replace(tzinfo=timezone.utc)
+        ordered = sorted(matches, key=lambda row: row.probed_at or min_utc, reverse=True)
+        return ordered[: max(1, limit)]

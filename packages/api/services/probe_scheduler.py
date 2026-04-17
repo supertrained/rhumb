@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Sequence
 
 from services.probes import ProbeService
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 MIN_INTERVAL_MINUTES = 5
 MAX_INTERVAL_MINUTES = 24 * 60
@@ -79,6 +80,14 @@ class ProbeScheduler:
         self._specs = tuple(specs or DEFAULT_PROBE_SPECS)
 
     @staticmethod
+    def _normalize_service_slug(service_slug: str | None) -> str | None:
+        normalized = public_service_slug(service_slug)
+        if normalized is not None:
+            return normalized
+        cleaned = str(service_slug or "").strip().lower()
+        return cleaned or None
+
+    @staticmethod
     def _normalize_interval_minutes(interval_minutes: int) -> int:
         return max(MIN_INTERVAL_MINUTES, min(MAX_INTERVAL_MINUTES, int(interval_minutes)))
 
@@ -126,18 +135,26 @@ class ProbeScheduler:
     def list_specs(self, service_slugs: list[str] | None = None) -> list[ProbeSpec]:
         """Return selected probe specs, optionally filtered by service slug."""
         if service_slugs:
-            allowed = set(service_slugs)
-            candidate = [spec for spec in self._specs if spec.service_slug in allowed]
+            allowed: set[str] = set()
+            for slug in service_slugs:
+                allowed.update(public_service_slug_candidates(slug))
+
+            candidate = [
+                spec
+                for spec in self._specs
+                if any(candidate in allowed for candidate in public_service_slug_candidates(spec.service_slug))
+            ]
         else:
             candidate = list(self._specs)
 
         selected: list[ProbeSpec] = []
         seen_services: set[str] = set()
         for spec in candidate:
-            if spec.service_slug in seen_services:
+            normalized_service_slug = self._normalize_service_slug(spec.service_slug) or spec.service_slug
+            if normalized_service_slug in seen_services:
                 continue
-            seen_services.add(spec.service_slug)
-            selected.append(spec)
+            seen_services.add(normalized_service_slug)
+            selected.append(replace(spec, service_slug=normalized_service_slug))
 
         return selected
 

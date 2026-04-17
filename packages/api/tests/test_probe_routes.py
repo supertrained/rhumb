@@ -53,6 +53,72 @@ def test_probe_run_and_latest_fetch_round_trip(client, monkeypatch: pytest.Monke
     assert latest_body["trigger_source"] == "internal-test"
 
 
+def test_probe_routes_canonicalize_alias_backed_service_slugs(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Alias-backed probe writes and reads should stay on canonical public ids."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    repository = InMemoryProbeRepository()
+    service = ProbeService(repository=repository)
+    monkeypatch.setattr(probe_routes, "get_probe_service", lambda: service)
+
+    run_response = client.post(
+        "/v1/probes/run",
+        json={
+            "service_slug": "Brave-Search",
+            "probe_type": "health",
+            "trigger_source": "internal-test",
+        },
+    )
+    assert run_response.status_code == 200
+
+    run_body = run_response.json()
+    assert run_body["service_slug"] == "brave-search-api"
+    assert run_body["metadata"]["service_slug"] == "brave-search-api"
+    assert run_body["raw_response"]["service_slug"] == "brave-search-api"
+
+    latest_response = client.get("/v1/services/brave-search-api/probes/latest")
+    assert latest_response.status_code == 200
+
+    latest_body = latest_response.json()
+    assert latest_body["probe_id"] == run_body["probe_id"]
+    assert latest_body["service_slug"] == "brave-search-api"
+    assert latest_body["metadata"]["service_slug"] == "brave-search-api"
+    assert latest_body["raw_response"]["service_slug"] == "brave-search-api"
+
+
+def test_scheduler_dry_run_accepts_alias_filters_and_serializes_canonical_service_ids(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scheduler dry-run should match alias-backed specs by canonical ids and report canonical keys."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    scheduler = ProbeScheduler(
+        probe_service=ProbeService(repository=InMemoryProbeRepository()),
+        specs=[ProbeSpec(service_slug="brave-search")],
+    )
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", lambda: scheduler)
+
+    response = client.post(
+        "/v1/probes/schedule/run",
+        json={"service_slugs": ["brave-search-api"], "dry_run": True},
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["selected_services"] == ["brave-search-api"]
+    assert sorted(body["cadence_by_service"].keys()) == ["brave-search-api"]
+
+
 @pytest.mark.parametrize(
     ("probe_type", "expected_behavior"),
     [
