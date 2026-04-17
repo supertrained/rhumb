@@ -270,6 +270,45 @@ const rendered = markdownToHtml(CONTENT);
         </div>
       </div>
 
+      <div class="mt-8 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Failure-mode evidence</div>
+        <p class="text-slate-400 leading-relaxed mb-5">
+          Credential shape changes more than setup friction. It changes what the agent can safely assume, retry, and recover from once the call is live.
+        </p>
+        <div class="grid gap-4 md:grid-cols-3">
+          <a
+            href="/blog/salesforce-api-autopsy"
+            class="block rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono uppercase tracking-widest text-amber">OAuth + tenancy</span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">Salesforce API Autopsy</h3>
+            <p class="text-sm text-slate-500 mt-2">
+              Governance is strong, but auth ceremony, sandbox splits, and metadata complexity raise the real operator cost.
+            </p>
+          </a>
+          <a
+            href="/blog/twilio-api-autopsy"
+            class="block rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono uppercase tracking-widest text-amber">Self-provisioned keys</span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">Twilio API Autopsy</h3>
+            <p class="text-sm text-slate-500 mt-2">
+              A cleaner key story reduces credential drag, but carrier constraints and external side effects still need explicit handling.
+            </p>
+          </a>
+          <a
+            href="/blog/shopify-api-autopsy"
+            class="block rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono uppercase tracking-widest text-amber">Permanent tokens</span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">Shopify API Autopsy</h3>
+            <p class="text-sm text-slate-500 mt-2">
+              Permanent access helps, but query-cost budgets and version churn still define whether unattended execution stays safe.
+            </p>
+          </a>
+        </div>
+      </div>
+
       <!-- Footer nav -->
       <div class="mt-16 pt-8 border-t border-slate-800 flex flex-wrap gap-4">
         <a
