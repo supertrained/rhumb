@@ -6,6 +6,8 @@ store/retrieve, and Layer 1 explanations.
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from services.route_explanation import (
@@ -508,6 +510,41 @@ class TestStore:
         # Should not exceed max capacity (1000)
         from services.route_explanation import _explanation_store
         assert len(_explanation_store) <= 1000
+
+
+@pytest.mark.anyio
+async def test_persist_explanation_canonicalizes_alias_backed_winner_and_summary_on_write():
+    exp = build_explanation(
+        capability_id="search.query",
+        mappings=_make_alias_mappings(),
+        scores_by_slug=_make_alias_scores(),
+        circuit_states=_make_alias_circuits(),
+        selected_provider="brave-search",
+        policy_pin="brave-search-api",
+        policy_allow_only=["brave-search-api"],
+    )
+
+    with patch(
+        "services.route_explanation.supabase_insert",
+        new=AsyncMock(return_value=True),
+    ) as mock_insert:
+        from services.route_explanation import persist_explanation
+
+        ok = await persist_explanation(exp, receipt_id="rcpt_test_alias")
+
+    assert ok is True
+    mock_insert.assert_awaited_once()
+    inserted_table, inserted_payload = mock_insert.await_args.args
+    assert inserted_table == "route_explanations"
+    assert inserted_payload["receipt_id"] == "rcpt_test_alias"
+    assert inserted_payload["winner_provider_id"] == "brave-search-api"
+    assert inserted_payload["candidates_json"][0]["provider_id"] == "brave-search-api"
+    assert any(
+        candidate["provider_id"] == "people-data-labs"
+        for candidate in inserted_payload["candidates_json"]
+    )
+    assert "brave-search-api" in inserted_payload["human_summary"]
+    assert "brave-search pinned" not in inserted_payload["human_summary"]
 
 
 # ---------------------------------------------------------------------------

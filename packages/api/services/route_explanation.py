@@ -576,17 +576,27 @@ async def persist_explanation(
     The hot in-memory cache remains useful for immediate same-process reads, but
     the durable source of truth for read surfaces should be Supabase.
     """
+    provider_ids = [candidate.provider_id for candidate in explanation.candidates]
+    if explanation.winner_provider_id:
+        provider_ids.append(explanation.winner_provider_id)
+
     return await supabase_insert(
         "route_explanations",
         {
             "explanation_id": explanation.explanation_id,
             "receipt_id": receipt_id,
             "capability_id": explanation.capability_id,
-            "winner_provider_id": explanation.winner_provider_id,
+            "winner_provider_id": (
+                _public_provider_id(explanation.winner_provider_id)
+                or explanation.winner_provider_id
+            ),
             "winner_composite_score": explanation.winner_composite_score,
             "winner_reason": explanation.selection_reason,
             "candidates_json": [candidate.to_dict() for candidate in explanation.candidates],
-            "human_summary": explanation.human_summary,
+            "human_summary": _canonicalize_provider_text(
+                explanation.human_summary,
+                provider_ids,
+            ),
         },
     )
 
