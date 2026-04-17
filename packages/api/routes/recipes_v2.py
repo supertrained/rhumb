@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from collections.abc import Mapping
 from copy import deepcopy
@@ -40,7 +41,7 @@ from services.recipe_engine import (
     compile_recipe,
 )
 from services.recipe_safety import RecipeSafetyGate, get_safety_gate
-from services.service_slugs import public_service_slug
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -186,6 +187,31 @@ def _public_provider_used(provider_used: str | None) -> str | None:
     return public_service_slug(provider_used) or provider_used
 
 
+def _canonicalize_provider_text(text: Any, provider_used: Any) -> str | None:
+    if text is None:
+        return None
+
+    canonical = _public_provider_used(provider_used)
+    if canonical is None:
+        return str(text)
+
+    raw_provider_used = str(provider_used).strip().lower() if provider_used else None
+    if raw_provider_used == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
 def _build_step_result_payload(step: StepDefinition | None, result: StepResult) -> dict[str, Any]:
     return {
         "step_id": result.step_id,
@@ -195,7 +221,7 @@ def _build_step_result_payload(step: StepDefinition | None, result: StepResult) 
         "cost_usd": result.cost_usd,
         "duration_ms": result.duration_ms,
         "receipt_id": result.receipt_id,
-        "error": result.error,
+        "error": _canonicalize_provider_text(result.error, result.provider_used),
         "retries_used": result.retries_used,
         "provider_used": _public_provider_used(result.provider_used),
     }
@@ -255,7 +281,7 @@ def _build_execution_payload_from_rows(
             "cost_usd": row.get("cost_usd", 0.0),
             "duration_ms": row.get("duration_ms", 0),
             "receipt_id": row.get("receipt_id"),
-            "error": row.get("error"),
+            "error": _canonicalize_provider_text(row.get("error"), row.get("provider_used")),
             "retries_used": row.get("retries_used", 0),
             "provider_used": _public_provider_used(row.get("provider_used")),
         }
@@ -532,7 +558,7 @@ async def _persist_execution(
                 "receipt_id": result.receipt_id or None,
                 "provider_used": _public_provider_used(result.provider_used),
                 "retries_used": result.retries_used,
-                "error": result.error,
+                "error": _canonicalize_provider_text(result.error, result.provider_used),
                 "outputs": result.outputs,
                 "started_at": execution.started_at.isoformat(),
                 "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
