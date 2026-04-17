@@ -92,6 +92,26 @@ def _canonicalize_service_text(
     return canonicalized
 
 
+def _canonicalize_service_payload(
+    value: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> Any:
+    if isinstance(value, str):
+        return _canonicalize_service_text(value, response_service_slug, stored_service_slug)
+    if isinstance(value, list):
+        return [
+            _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for item in value
+        ]
+    if isinstance(value, dict):
+        return {
+            key: _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for key, item in value.items()
+        }
+    return value
+
+
 def _score_query_slugs(service_slugs: list[str]) -> list[str]:
     query_slugs: list[str] = []
     for service_slug in service_slugs:
@@ -130,12 +150,18 @@ def _coerce_float(value: Any) -> float | None:
         return None
 
 
-def _autonomy_section(score_row: dict[str, Any]) -> dict[str, Any] | None:
+def _autonomy_section(
+    score_row: dict[str, Any], response_service_slug: str | None = None
+) -> dict[str, Any] | None:
     dimension_snapshot = score_row.get("dimension_snapshot")
     if isinstance(dimension_snapshot, dict):
         candidate = dimension_snapshot.get("autonomy")
         if isinstance(candidate, dict):
-            return candidate
+            return _canonicalize_service_payload(
+                candidate,
+                response_service_slug,
+                score_row.get("service_slug"),
+            )
 
     dimensions: list[dict[str, Any]] = []
     confidence_values: list[float] = []
@@ -154,7 +180,12 @@ def _autonomy_section(score_row: dict[str, Any]) -> dict[str, Any] | None:
                 "code": code,
                 "name": name,
                 "score": round(score, 1),
-                "rationale": score_row.get(rationale_field) or "",
+                "rationale": _canonicalize_service_text(
+                    score_row.get(rationale_field) or "",
+                    response_service_slug,
+                    score_row.get("service_slug"),
+                )
+                or "",
                 "confidence": None if confidence is None else round(confidence, 2),
             }
         )
@@ -177,7 +208,9 @@ def _autonomy_section(score_row: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _score_dimension_snapshot(score_row: dict[str, Any]) -> dict[str, Any]:
+def _score_dimension_snapshot(
+    score_row: dict[str, Any], response_service_slug: str | None = None
+) -> dict[str, Any]:
     snapshot = score_row.get("dimension_snapshot")
     if not isinstance(snapshot, dict):
         snapshot = {}
@@ -190,7 +223,7 @@ def _score_dimension_snapshot(score_row: dict[str, Any]) -> dict[str, Any]:
         if freshness is not None:
             snapshot["probe_freshness"] = freshness
 
-    autonomy = _autonomy_section(score_row)
+    autonomy = _autonomy_section(score_row, response_service_slug)
     if autonomy is not None:
         snapshot["autonomy"] = autonomy
         snapshot.setdefault(
@@ -202,7 +235,11 @@ def _score_dimension_snapshot(score_row: dict[str, Any]) -> dict[str, Any]:
             },
         )
 
-    return snapshot
+    return _canonicalize_service_payload(
+        snapshot,
+        response_service_slug,
+        score_row.get("service_slug"),
+    )
 
 
 def _not_found_response(
@@ -328,7 +365,7 @@ async def get_service(slug: str, raw_request: Request):
     score: dict[str, Any] = {}
     if scores:
         sc = scores[0]
-        dimension_snapshot = _score_dimension_snapshot(sc)
+        dimension_snapshot = _score_dimension_snapshot(sc, canonical_slug)
         autonomy = dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
         autonomy_score = _coerce_float(sc.get("autonomy_score"))
         if autonomy_score is None and isinstance(autonomy, dict):
@@ -346,9 +383,15 @@ async def get_service(slug: str, raw_request: Request):
             "payment_autonomy": sc.get("payment_autonomy"),
             "governance_readiness": sc.get("governance_readiness"),
             "web_accessibility": sc.get("web_accessibility"),
-            "payment_autonomy_rationale": sc.get("payment_autonomy_rationale"),
-            "governance_readiness_rationale": sc.get("governance_readiness_rationale"),
-            "web_accessibility_rationale": sc.get("web_accessibility_rationale"),
+            "payment_autonomy_rationale": _canonicalize_service_text(
+                sc.get("payment_autonomy_rationale"), canonical_slug, sc.get("service_slug")
+            ),
+            "governance_readiness_rationale": _canonicalize_service_text(
+                sc.get("governance_readiness_rationale"), canonical_slug, sc.get("service_slug")
+            ),
+            "web_accessibility_rationale": _canonicalize_service_text(
+                sc.get("web_accessibility_rationale"), canonical_slug, sc.get("service_slug")
+            ),
             "autonomy_score": autonomy_score,
             "autonomy": autonomy,
             "an_score_version": "0.3",
@@ -464,7 +507,7 @@ async def get_service_score(slug: str, raw_request: Request):
         }
 
     sc = scores[0]
-    dimension_snapshot = _score_dimension_snapshot(sc)
+    dimension_snapshot = _score_dimension_snapshot(sc, canonical_slug)
     autonomy = dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
     autonomy_score = _coerce_float(sc.get("autonomy_score"))
     if autonomy_score is None and isinstance(autonomy, dict):
@@ -485,7 +528,7 @@ async def get_service_score(slug: str, raw_request: Request):
         ("governance_readiness_rationale", "Governance"),
         ("web_accessibility_rationale", "Web accessibility"),
     ]:
-        val = sc.get(field)
+        val = _canonicalize_service_text(sc.get(field), canonical_slug, sc.get("service_slug"))
         if val:
             # Take first sentence only
             first_sentence = val.split(". ")[0].rstrip(".")

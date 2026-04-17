@@ -415,6 +415,74 @@ async def _mock_canonical_failure_text_supabase_fetch(path: str):
     raise AssertionError(f"Unexpected Supabase fetch path: {path}")
 
 
+async def _mock_alias_score_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if {"brave-search", "brave-search-api"} & slugs:
+            return [
+                {
+                    **ALIAS_SCORE_ROWS[0],
+                    "service_slug": "brave-search",
+                    "payment_autonomy_rationale": "brave-search supports direct billing.",
+                    "governance_readiness_rationale": "brave-search audit history is available.",
+                    "web_accessibility_rationale": "brave-search docs stay scriptable.",
+                    "dimension_snapshot": {
+                        "notes": {"summary": "brave-search stays easy to script."},
+                        "autonomy": {
+                            "avg": 8.4,
+                            "confidence": 0.85,
+                            "dimensions": [
+                                {
+                                    "code": "P1",
+                                    "name": "payment_autonomy",
+                                    "score": 8.8,
+                                    "rationale": "brave-search supports direct billing.",
+                                    "confidence": 0.89,
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        return []
+    return await _mock_alias_supabase_fetch(path)
+
+
+async def _mock_canonical_score_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if {"people-data-labs", "pdl"} & slugs:
+            return [
+                {
+                    **ALIAS_SCORE_ROWS[2],
+                    "service_slug": "people-data-labs",
+                    "payment_autonomy_rationale": "PDL supports direct billing.",
+                    "governance_readiness_rationale": "PDL audit history is available.",
+                    "web_accessibility_rationale": "PDL docs stay scriptable.",
+                    "dimension_snapshot": {
+                        "notes": {"summary": "PDL stays easy to script."},
+                        "autonomy": {
+                            "avg": 7.9,
+                            "confidence": 0.87,
+                            "dimensions": [
+                                {
+                                    "code": "P1",
+                                    "name": "payment_autonomy",
+                                    "score": 7.9,
+                                    "rationale": "PDL supports direct billing.",
+                                    "confidence": 0.87,
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        return []
+    return await _mock_alias_supabase_fetch(path)
+
+
 def test_unknown_service_slug_returns_404(client) -> None:
     """Unknown services should return a route-level 404 envelope."""
     with patch(
@@ -754,6 +822,42 @@ def test_service_detail_reads_runtime_alias_service_rows(client) -> None:
     ]
 
 
+def test_service_detail_canonicalizes_alias_backed_score_rationales(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_score_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["payment_autonomy_rationale"] == "brave-search-api supports direct billing."
+    assert payload["data"]["autonomy"]["dimensions"][0]["rationale"] == "brave-search-api supports direct billing."
+    assert payload["data"]["dimension_snapshot"]["notes"]["summary"] == "brave-search-api stays easy to script."
+
+
+
+def test_service_detail_preserves_human_shorthand_on_canonical_score_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_score_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/people-data-labs")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "people-data-labs"
+    assert payload["data"]["payment_autonomy_rationale"] == "PDL supports direct billing."
+    assert payload["data"]["autonomy"]["dimensions"][0]["rationale"] == "PDL supports direct billing."
+    assert payload["data"]["dimension_snapshot"]["notes"]["summary"] == "PDL stays easy to script."
+
+
+
 def test_service_score_canonicalizes_alias_backed_score_rows(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -833,6 +937,23 @@ def test_service_score_reads_runtime_alias_service_docs(client) -> None:
     assert payload["service_slug"] == "brave-search-api"
     assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
     assert payload["an_score"] == 8.7
+
+
+def test_service_score_canonicalizes_alias_backed_score_explanation_and_snapshot(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_score_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert "Payment: brave-search-api supports direct billing" in payload["explanation"]
+    assert payload["autonomy"]["dimensions"][0]["rationale"] == "brave-search-api supports direct billing."
+    assert payload["dimension_snapshot"]["notes"]["summary"] == "brave-search-api stays easy to script."
+
 
 
 def test_service_score_canonicalizes_legacy_alias_mentions_in_failure_copy(client) -> None:
