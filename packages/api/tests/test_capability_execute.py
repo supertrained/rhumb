@@ -337,7 +337,8 @@ async def test_execute_explicit_provider(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ) as mock_insert,
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -426,7 +427,8 @@ async def test_execute_supports_query_envelope_and_top_level_body(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -496,7 +498,8 @@ async def test_twilio_lookup_uses_lookups_domain(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -625,7 +628,8 @@ async def test_billable_execution_checks_billing_health_before_execute(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -667,7 +671,8 @@ async def test_billable_execution_blocks_when_billing_health_fails(app, billing_
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ) as mock_insert,
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -712,7 +717,8 @@ async def test_execute_auto_select_provider(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         # resend is NOT in SERVICE_REGISTRY, so it takes the httpx.AsyncClient path
         patch("httpx.AsyncClient") as MockHttpxClient,
@@ -1122,7 +1128,8 @@ async def test_execution_logging(app):
             side_effect=capture_patch,
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -1182,7 +1189,8 @@ async def test_byo_4xx_marks_execution_failed_and_refunded(app):
             side_effect=capture_patch,
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -1394,6 +1402,117 @@ async def test_execute_canonicalizes_alias_backed_provider_ids_on_response_and_p
     assert mock_insert_required.await_args.args[1]["provider_used"] == "brave-search-api"
     assert mock_patch_required.await_args.args[1]["provider_used"] == "brave-search-api"
     assert mock_patch_required.await_args.args[1]["fallback_provider"] is None
+
+
+@pytest.mark.anyio
+async def test_execute_no_api_domain_error_uses_canonical_public_provider_id(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
+        if path.startswith("services?") or path.startswith("capability_executions?"):
+            return []
+        return []
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch.dict("routes.capability_execute.SERVICE_REGISTRY", {}, clear=True),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "No API domain configured for provider 'brave-search-api'"
+
+
+@pytest.mark.anyio
+async def test_execute_credential_unavailable_error_uses_canonical_public_provider_id(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
+        if path.startswith("services?"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    broken_injector = MagicMock()
+    broken_injector.inject_request_parts.side_effect = RuntimeError("missing brave-search credential")
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("routes.capability_execute.get_auth_injector", return_value=broken_injector),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Credential unavailable for provider 'brave-search-api'"
 
 
 @pytest.mark.anyio
@@ -1778,7 +1897,8 @@ async def test_auto_resolves_to_byo_when_no_config(app):
             return_value=None,
         ) as mock_resolve_managed,
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("httpx.AsyncClient") as MockHttpxClient,
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
@@ -1826,7 +1946,8 @@ async def test_explicit_byo_overrides_auto(app):
             new_callable=AsyncMock,
         ) as mock_resolve_managed,
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -1971,7 +2092,8 @@ async def test_execute_fails_when_final_execution_record_patch_unavailable(app):
             side_effect=SupabaseWriteUnavailable("down"),
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):
@@ -2214,7 +2336,8 @@ async def test_execute_post_raw_json_without_content_type_accepts_authenticated_
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
     ):

@@ -1188,6 +1188,10 @@ def _public_provider_slug(provider_slug: str | None) -> str | None:
     return public_service_slug(provider_slug) or provider_slug
 
 
+def _public_provider_label(provider_slug: str | None) -> str:
+    return str(_public_provider_slug(provider_slug) or provider_slug or "unknown")
+
+
 def _prepare_upstream_payload(
     method: str | None,
     body: dict | None,
@@ -1537,6 +1541,7 @@ def _resolve_base_url(
     Resolve execution receives an explicit provider-native path, so route to the
     correct product domain when the request path makes that intent unambiguous.
     """
+    public_provider = _public_provider_label(service_slug)
     normalized_path = request_path or ""
     if normalized_path and not normalized_path.startswith("/"):
         normalized_path = f"/{normalized_path}"
@@ -1557,7 +1562,7 @@ def _resolve_base_url(
         return domain
     raise HTTPException(
         status_code=500,
-        detail=f"No API domain configured for service '{service_slug}'",
+        detail=f"No API domain configured for provider '{public_provider}'",
     )
 
 
@@ -1573,11 +1578,13 @@ def _inject_auth_request_parts(
     For supported proxy-managed services, delegate to :class:`AuthInjector`.
     For dynamic services, fall back to a simple header-based injection.
     """
+    public_provider = _public_provider_label(service_slug)
+
     # Supported proxy services — use the full AuthInjector
     if service_slug in AuthInjector.AUTH_PATTERNS:
         method_enum = AuthInjector.default_method_for(service_slug)
         if method_enum is None:
-            raise HTTPException(status_code=500, detail=f"No auth method for '{service_slug}'")
+            raise HTTPException(status_code=500, detail=f"No auth method for provider '{public_provider}'")
         injector = get_auth_injector()
         try:
             injected = injector.inject_request_parts(
@@ -1592,13 +1599,22 @@ def _inject_auth_request_parts(
             )
             return injected.headers, injected.body, injected.params
         except (ValueError, RuntimeError) as e:
-            raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
+            logger.warning(
+                "capability_execute auth injection unavailable provider=%s runtime_provider=%s error=%s",
+                public_provider,
+                service_slug,
+                e,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=f"Credential unavailable for provider '{public_provider}'",
+            )
 
     # Dynamic services — simple credential lookup
     if not auth_method:
         raise HTTPException(
             status_code=500,
-            detail=f"No auth_method defined for service '{service_slug}'",
+            detail=f"No auth_method defined for provider '{public_provider}'",
         )
 
     store = get_credential_store()
@@ -1606,7 +1622,7 @@ def _inject_auth_request_parts(
     if credential is None:
         raise HTTPException(
             status_code=503,
-            detail=f"No credential found for {service_slug}/{auth_method}",
+            detail=f"No credential found for {public_provider}/{auth_method}",
         )
 
     headers = headers.copy()
@@ -3673,6 +3689,8 @@ async def estimate_capability(
                 status_code=503,
                 detail=f"Provider '{provider}' not available for capability '{capability_id}'",
             )
+    elif capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
+        chosen = mappings[0]
     else:
         chosen = await _auto_select_provider(mappings, agent_id)
         if chosen is None:
