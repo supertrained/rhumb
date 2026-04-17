@@ -483,6 +483,95 @@ async def _mock_canonical_score_text_supabase_fetch(path: str):
     return await _mock_alias_supabase_fetch(path)
 
 
+async def _mock_preferred_canonical_service_row_supabase_fetch(path: str):
+    decoded = unquote(path)
+    services = [
+        {
+            "slug": "brave-search",
+            "name": "Legacy brave-search",
+            "category": "search",
+            "description": "Legacy brave-search docs.",
+            "official_docs": "https://legacy.example/brave-search",
+        },
+        {
+            "slug": "brave-search-api",
+            "name": "Brave Search API",
+            "category": "search",
+            "description": "Canonical brave-search-api docs.",
+            "official_docs": "https://api.search.brave.com/app/documentation",
+        },
+        {
+            "slug": "people-data-labs",
+            "name": "People Data Labs",
+            "category": "search",
+            "description": "PDL data API.",
+            "official_docs": "https://docs.peopledatalabs.com/docs",
+        },
+    ]
+
+    if decoded == "scores?select=service_slug":
+        return [
+            {"service_slug": "brave-search"},
+            {"service_slug": "pdl"},
+        ]
+
+    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in services}
+        return [
+            {
+                "slug": service["slug"],
+                "name": service["name"],
+                "category": service["category"],
+                "description": service["description"],
+            }
+            for service in services
+            if service["slug"] in slugs
+        ]
+
+    if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
+        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in services}
+        return [
+            {
+                "slug": service["slug"],
+                "official_docs": service["official_docs"],
+            }
+            for service in services
+            if service["slug"] in slugs
+        ]
+
+    if decoded.startswith("services?category=eq.search&select=slug,name"):
+        return [
+            {"slug": service["slug"], "name": service["name"]}
+            for service in services
+        ]
+
+    if decoded.startswith("services?select=slug,name,category,description"):
+        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in services}
+        query = _parse_query(decoded)
+        offset = int(query.get("offset", ["0"])[0])
+        limit = int(query.get("limit", [str(len(services))])[0])
+        filtered = [service for service in services if service["slug"] in slugs]
+        return [
+            {
+                "slug": service["slug"],
+                "name": service["name"],
+                "category": service["category"],
+                "description": service["description"],
+            }
+            for service in filtered[offset : offset + limit]
+        ]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in ALIAS_SCORE_ROWS if row["service_slug"] in slugs]
+
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in ALIAS_FAILURE_ROWS if row["service_slug"] in slugs]
+
+    raise AssertionError(f"Unexpected Supabase fetch path: {path}")
+
+
 def test_unknown_service_slug_returns_404(client) -> None:
     """Unknown services should return a route-level 404 envelope."""
     with patch(
@@ -820,6 +909,43 @@ def test_service_detail_reads_runtime_alias_service_rows(client) -> None:
             "tier": "L3",
         }
     ]
+
+
+
+def test_services_list_prefers_canonical_service_row_copy_and_preserves_shorthand(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_preferred_canonical_service_row_supabase_fetch,
+    ):
+        resp = client.get("/v1/services")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    brave = next(item for item in payload["data"]["items"] if item["slug"] == "brave-search-api")
+    pdl = next(item for item in payload["data"]["items"] if item["slug"] == "people-data-labs")
+    assert brave["name"] == "Brave Search API"
+    assert brave["description"] == "Canonical brave-search-api docs."
+    assert pdl["description"] == "PDL data API."
+
+
+
+def test_service_detail_prefers_canonical_service_row_copy_when_alias_row_also_exists(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_preferred_canonical_service_row_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["name"] == "Brave Search API"
+    assert payload["data"]["description"] == "Canonical brave-search-api docs."
+
 
 
 def test_service_detail_canonicalizes_alias_backed_score_rationales(client) -> None:

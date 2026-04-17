@@ -89,6 +89,27 @@ _ALIAS_BACKED_SERVICES = [
     }
 ]
 
+_MIXED_ORDER_ALIAS_BACKED_SERVICES = [
+    {
+        "slug": "brave-search",
+        "name": "Legacy brave-search",
+        "category": "search",
+        "description": "Legacy brave-search docs.",
+    },
+    {
+        "slug": "brave-search-api",
+        "name": "Brave Search API",
+        "category": "search",
+        "description": "Canonical brave-search-api docs.",
+    },
+    {
+        "slug": "people-data-labs",
+        "name": "People Data Labs",
+        "category": "search",
+        "description": "PDL data API.",
+    },
+]
+
 
 def _parse_in_filter(path: str, key: str) -> set[str] | None:
     match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", unquote(path))
@@ -197,6 +218,51 @@ def _mock_alias_backed_catalog_supabase(path: str):
 
     if decoded.startswith("scores?"):
         return [row for row in _SCORE_ROWS if row["service_slug"] == "brave-search"]
+
+    return []
+
+
+def _mock_mixed_order_alias_catalog_supabase(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?category=eq.search"):
+        return [
+            {"slug": service["slug"], "name": service["name"]}
+            for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES
+        ]
+
+    if decoded.startswith("services?select=category"):
+        return [{"category": service["category"]} for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES]
+
+    if decoded.startswith("services?select=slug,category"):
+        return [
+            {"slug": service["slug"], "category": service["category"]}
+            for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES
+        ]
+
+    if decoded.startswith("services?or=("):
+        query = _extract_search_query(decoded)
+        if not query:
+            return []
+        return [
+            service
+            for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES
+            if _service_matches_query(service, query)
+        ]
+
+    if decoded.startswith("scores?select=service_slug"):
+        return [{"service_slug": "brave-search"}, {"service_slug": "pdl"}]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _SCORE_ROWS if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return [
+            row
+            for row in _SCORE_ROWS
+            if row["service_slug"] in {"brave-search", "pdl"}
+        ]
 
     return []
 
@@ -320,6 +386,19 @@ async def test_search_canonicalizes_alias_backed_service_rows():
 
 
 @pytest.mark.asyncio
+async def test_search_prefers_canonical_service_row_copy_when_alias_row_also_exists():
+    with patch("routes.search.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_mixed_order_alias_catalog_supabase):
+        result = await search_services("brave")
+
+    assert result["error"] is None
+    assert len(result["data"]["results"]) == 1
+    item = result["data"]["results"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "Brave Search API"
+    assert item["description"] == "Canonical brave-search-api docs."
+
+
+@pytest.mark.asyncio
 async def test_search_by_category(mock_catalog_supabase):
     """Test search by category."""
     result = await search_services("email")
@@ -401,6 +480,18 @@ async def test_list_categories_canonicalizes_alias_backed_service_rows():
 
     assert result["error"] is None
     assert result["data"]["categories"] == [{"slug": "search", "service_count": 1}]
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_prefers_canonical_service_row_copy_when_alias_row_also_exists():
+    with patch("routes.leaderboard.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_mixed_order_alias_catalog_supabase):
+        result = await get_leaderboard("search", limit=5)
+
+    assert result["error"] is None
+    assert result["data"]["count"] == 1
+    item = result["data"]["items"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "Brave Search API"
 
 
 @pytest.mark.asyncio

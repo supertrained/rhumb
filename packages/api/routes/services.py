@@ -121,24 +121,53 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
     return query_slugs
 
 
+def _merge_service_row_fields(
+    preferred: dict[str, Any], fallback: dict[str, Any]
+) -> dict[str, Any]:
+    merged = dict(preferred)
+    for key, value in fallback.items():
+        if key == "slug":
+            merged[key] = preferred.get("slug") or value
+            continue
+        if merged.get(key) in (None, "") and value not in (None, ""):
+            merged[key] = value
+    return merged
+
+
+
 def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     if not rows:
         return []
 
     canonical_rows: dict[str, dict[str, Any]] = {}
+    canonical_sources: dict[str, str] = {}
     for row in rows:
         raw_slug = str(row.get("slug") or "").strip()
         slug = public_service_slug(raw_slug) or raw_slug
         if not slug:
             continue
 
-        canonical_rows.setdefault(
-            slug,
-            {
-                **row,
-                "slug": slug,
-            },
-        )
+        normalized_row = {
+            **row,
+            "slug": slug,
+            "name": _canonicalize_service_text(row.get("name"), slug, raw_slug),
+            "description": _canonicalize_service_text(row.get("description"), slug, raw_slug),
+        }
+        existing = canonical_rows.get(slug)
+        if existing is None:
+            canonical_rows[slug] = normalized_row
+            canonical_sources[slug] = raw_slug.lower()
+            continue
+
+        raw_source = raw_slug.lower()
+        raw_is_canonical = raw_source == slug.lower()
+        existing_is_canonical = canonical_sources.get(slug) == slug.lower()
+        if raw_is_canonical and not existing_is_canonical:
+            canonical_rows[slug] = _merge_service_row_fields(normalized_row, existing)
+            canonical_sources[slug] = raw_source
+            continue
+
+        canonical_rows[slug] = _merge_service_row_fields(existing, normalized_row)
 
     return list(canonical_rows.values())
 

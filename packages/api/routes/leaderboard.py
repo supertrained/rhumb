@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Optional
+import re
+from typing import Any, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Query
@@ -25,6 +26,88 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
             if candidate not in query_slugs:
                 query_slugs.append(candidate)
     return query_slugs
+
+
+
+def _canonicalize_service_text(
+    text: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+    if raw_stored_slug == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
+
+def _merge_service_row_fields(
+    preferred: dict[str, Any], fallback: dict[str, Any]
+) -> dict[str, Any]:
+    merged = dict(preferred)
+    for key, value in fallback.items():
+        if key == "slug":
+            merged[key] = preferred.get("slug") or value
+            continue
+        if merged.get(key) in (None, "") and value not in (None, ""):
+            merged[key] = value
+    return merged
+
+
+
+def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+
+    canonical_rows: dict[str, dict[str, Any]] = {}
+    canonical_sources: dict[str, str] = {}
+    for row in rows:
+        raw_slug = str(row.get("slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not slug:
+            continue
+
+        normalized_row = {
+            **row,
+            "slug": slug,
+            "name": _canonicalize_service_text(row.get("name"), slug, raw_slug),
+            "description": _canonicalize_service_text(row.get("description"), slug, raw_slug),
+        }
+        existing = canonical_rows.get(slug)
+        if existing is None:
+            canonical_rows[slug] = normalized_row
+            canonical_sources[slug] = raw_slug.lower()
+            continue
+
+        raw_source = raw_slug.lower()
+        raw_is_canonical = raw_source == slug.lower()
+        existing_is_canonical = canonical_sources.get(slug) == slug.lower()
+        if raw_is_canonical and not existing_is_canonical:
+            canonical_rows[slug] = _merge_service_row_fields(normalized_row, existing)
+            canonical_sources[slug] = raw_source
+            continue
+
+        canonical_rows[slug] = _merge_service_row_fields(existing, normalized_row)
+
+    return list(canonical_rows.values())
 
 
 @router.get("/leaderboard/{category}")
@@ -60,18 +143,7 @@ async def get_leaderboard(
             "error": "Unable to load categories.",
         }
 
-    normalized_services: list[dict] = []
-    seen_services: set[str] = set()
-    for service in services:
-        raw_slug = str(service.get("slug") or "").strip()
-        slug = public_service_slug(raw_slug) or raw_slug
-        if not slug or slug in seen_services:
-            continue
-        seen_services.add(slug)
-        normalized_services.append({
-            **service,
-            "slug": slug,
-        })
+    normalized_services = _canonicalize_service_rows(services)
 
     slugs = [s["slug"] for s in normalized_services]
     name_map = {s["slug"]: s["name"] for s in normalized_services}
