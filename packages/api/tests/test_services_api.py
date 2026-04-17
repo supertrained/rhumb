@@ -149,10 +149,20 @@ async def _mock_supabase_fetch(path: str):
                 "aggregate_recommendation_score": 8.9,
                 "execution_score": 9.1,
                 "access_readiness_score": 8.4,
+                "autonomy_score": 9.0,
                 "confidence": 0.98,
                 "tier": "L4",
                 "tier_label": "Agent Native",
                 "probe_metadata": {"freshness": "12 minutes ago"},
+                "payment_autonomy": 10.0,
+                "payment_autonomy_rationale": "x402 / API-native payments",
+                "payment_autonomy_confidence": 0.9,
+                "governance_readiness": 9.0,
+                "governance_readiness_rationale": "RBAC + audit logs",
+                "governance_readiness_confidence": 0.85,
+                "web_accessibility": 8.0,
+                "web_accessibility_rationale": "AAG AA navigable UI",
+                "web_accessibility_confidence": 0.8,
                 "calculated_at": "2026-03-13T00:00:00Z",
             }
         ]
@@ -166,10 +176,20 @@ async def _mock_supabase_fetch(path: str):
                     "aggregate_recommendation_score": 8.9,
                     "execution_score": 9.1,
                     "access_readiness_score": 8.4,
+                    "autonomy_score": 9.0,
                     "confidence": 0.98,
                     "tier": "L4",
                     "tier_label": "Agent Native",
                     "probe_metadata": {"freshness": "12 minutes ago"},
+                    "payment_autonomy": 10.0,
+                    "payment_autonomy_rationale": "x402 / API-native payments",
+                    "payment_autonomy_confidence": 0.9,
+                    "governance_readiness": 9.0,
+                    "governance_readiness_rationale": "RBAC + audit logs",
+                    "governance_readiness_confidence": 0.85,
+                    "web_accessibility": 8.0,
+                    "web_accessibility_rationale": "AAG AA navigable UI",
+                    "web_accessibility_confidence": 0.8,
                     "calculated_at": "2026-03-13T00:00:00Z",
                 }
             ]
@@ -313,6 +333,25 @@ def test_service_score_uses_official_docs_column(client) -> None:
     assert payload["base_url"] is None
     assert payload["openapi_url"] is None
     assert payload["mcp_server_url"] is None
+
+
+def test_service_score_exposes_autonomy_contract_fields(client) -> None:
+    """GET /v1/services/{slug}/score should expose the nested autonomy contract on stored rows."""
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/stripe/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["autonomy_score"] == 9.0
+    assert payload["autonomy"]["avg"] == 9.0
+    assert payload["autonomy"]["confidence"] == 0.85
+    assert len(payload["autonomy"]["dimensions"]) == 3
+    assert payload["autonomy"]["dimensions"][0]["code"] == "P1"
+    assert payload["dimension_snapshot"]["autonomy"]["avg"] == 9.0
 
 
 def test_services_endpoint_returns_paginated_results_with_total_count(client) -> None:

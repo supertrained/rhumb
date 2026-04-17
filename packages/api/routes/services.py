@@ -14,6 +14,30 @@ from services.service_slugs import public_service_slug, public_service_slug_cand
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
 
+_AUTONOMY_DIMENSION_FIELDS: tuple[tuple[str, str, str, str, str], ...] = (
+    (
+        "P1",
+        "payment_autonomy",
+        "payment_autonomy_rationale",
+        "payment_autonomy_confidence",
+        "payment_autonomy",
+    ),
+    (
+        "G1",
+        "governance_readiness",
+        "governance_readiness_rationale",
+        "governance_readiness_confidence",
+        "governance_readiness",
+    ),
+    (
+        "W1",
+        "web_accessibility",
+        "web_accessibility_rationale",
+        "web_accessibility_confidence",
+        "web_accessibility",
+    ),
+)
+
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
     return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
@@ -41,6 +65,88 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
             if candidate not in query_slugs:
                 query_slugs.append(candidate)
     return query_slugs
+
+
+def _coerce_float(value: Any) -> float | None:
+    try:
+        return None if value is None else float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _autonomy_section(score_row: dict[str, Any]) -> dict[str, Any] | None:
+    dimension_snapshot = score_row.get("dimension_snapshot")
+    if isinstance(dimension_snapshot, dict):
+        candidate = dimension_snapshot.get("autonomy")
+        if isinstance(candidate, dict):
+            return candidate
+
+    dimensions: list[dict[str, Any]] = []
+    confidence_values: list[float] = []
+
+    for code, value_field, rationale_field, confidence_field, name in _AUTONOMY_DIMENSION_FIELDS:
+        score = _coerce_float(score_row.get(value_field))
+        if score is None:
+            continue
+
+        confidence = _coerce_float(score_row.get(confidence_field))
+        if confidence is not None:
+            confidence_values.append(confidence)
+
+        dimensions.append(
+            {
+                "code": code,
+                "name": name,
+                "score": round(score, 1),
+                "rationale": score_row.get(rationale_field) or "",
+                "confidence": None if confidence is None else round(confidence, 2),
+            }
+        )
+
+    if not dimensions:
+        return None
+
+    autonomy_score = _coerce_float(score_row.get("autonomy_score"))
+    if autonomy_score is None:
+        autonomy_score = round(sum(item["score"] for item in dimensions) / len(dimensions), 1)
+
+    confidence = None
+    if confidence_values:
+        confidence = round(sum(confidence_values) / len(confidence_values), 2)
+
+    return {
+        "avg": round(autonomy_score, 1),
+        "confidence": confidence,
+        "dimensions": dimensions,
+    }
+
+
+def _score_dimension_snapshot(score_row: dict[str, Any]) -> dict[str, Any]:
+    snapshot = score_row.get("dimension_snapshot")
+    if not isinstance(snapshot, dict):
+        snapshot = {}
+    else:
+        snapshot = dict(snapshot)
+
+    probe_metadata = score_row.get("probe_metadata")
+    if isinstance(probe_metadata, dict):
+        freshness = probe_metadata.get("freshness")
+        if freshness is not None:
+            snapshot["probe_freshness"] = freshness
+
+    autonomy = _autonomy_section(score_row)
+    if autonomy is not None:
+        snapshot["autonomy"] = autonomy
+        snapshot.setdefault(
+            "autonomy_dimensions",
+            {
+                item["code"]: item["score"]
+                for item in autonomy.get("dimensions", [])
+                if item.get("code") is not None
+            },
+        )
+
+    return snapshot
 
 
 def _not_found_response(
@@ -265,6 +371,8 @@ async def get_service_score(slug: str, raw_request: Request):
             "score": None,
             "execution_score": None,
             "access_readiness_score": None,
+            "autonomy_score": None,
+            "autonomy": None,
             "confidence": 0,
             "tier": "unknown",
             "tier_label": "Unknown",
@@ -279,7 +387,11 @@ async def get_service_score(slug: str, raw_request: Request):
         }
 
     sc = scores[0]
-    probe_metadata = sc.get("probe_metadata") or {}
+    dimension_snapshot = _score_dimension_snapshot(sc)
+    autonomy = dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
+    autonomy_score = _coerce_float(sc.get("autonomy_score"))
+    if autonomy_score is None and isinstance(autonomy, dict):
+        autonomy_score = _coerce_float(autonomy.get("avg"))
 
     # Synthesize explanation from available rationale fields
     parts: list[str] = []
@@ -330,15 +442,14 @@ async def get_service_score(slug: str, raw_request: Request):
         "score": sc.get("aggregate_recommendation_score"),
         "execution_score": sc.get("execution_score"),
         "access_readiness_score": sc.get("access_readiness_score"),
-        "autonomy_score": sc.get("autonomy_score"),
+        "autonomy_score": autonomy_score,
+        "autonomy": autonomy,
         "an_score_version": "0.3",
         "confidence": sc.get("confidence", 0),
         "tier": sc.get("tier", "unknown"),
         "tier_label": sc.get("tier_label", "Unknown"),
         "explanation": explanation,
-        "dimension_snapshot": {
-            "probe_freshness": probe_metadata.get("freshness"),
-        },
+        "dimension_snapshot": dimension_snapshot,
         "calculated_at": sc.get("calculated_at"),
         "payment_autonomy": sc.get("payment_autonomy"),
         "governance_readiness": sc.get("governance_readiness"),
