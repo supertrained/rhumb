@@ -106,6 +106,32 @@ const ARTICLE_HTML = "<p class=\"text-slate-400 leading-relaxed mb-4\">A lot of 
         </div>
 
         <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Failure-mode evidence</div>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            If you want to see what inspect-only boundaries are protecting you from in real systems,
+            jump from the trust-class theory into concrete provider failure paths.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <a href="/blog/hubspot-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">HubSpot API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Broad CRM surface, weak idempotency, and association complexity show how fast write-capable drift turns into operator pain.</p>
+            </a>
+            <a href="/blog/salesforce-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Salesforce API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">A good study in why governance-heavy systems still fail agents when auth ceremony and runtime complexity stay too high.</p>
+            </a>
+            <a href="/blog/twilio-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Twilio API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">A useful near-best-case reference for typed failures, simple auth, and what cleaner automation ergonomics actually look like.</p>
+            </a>
+            <a href="/blog/shopify-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Shopify API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Shows how strong platform fundamentals can still hide real agent friction in version churn, query costs, and GraphQL complexity.</p>
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
           <ul class="space-y-3 text-slate-300">
             <li>

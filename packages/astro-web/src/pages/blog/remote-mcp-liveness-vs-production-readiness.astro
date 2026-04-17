@@ -303,6 +303,31 @@ const EVALUATION_AXES = [
         </div>
 
         <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Failure-mode evidence</div>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            If you want proof that a green uptime check can still hide a bad dependency, these autopsies show where auth, scope, and recovery break after the endpoint responds.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <a href="/blog/hubspot-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">HubSpot API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Healthy-looking transport still leaves agents exposed when retries, associations, and write recovery stay ambiguous.</p>
+            </a>
+            <a href="/blog/salesforce-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Salesforce API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">A strong example of how auth ceremony and runtime complexity can keep a remote surface operationally unready even when it is up.</p>
+            </a>
+            <a href="/blog/twilio-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Twilio API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Shows what cleaner failure semantics, idempotency, and simpler auth look like when a remote surface is closer to operator-safe.</p>
+            </a>
+            <a href="/blog/shopify-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Shopify API Autopsy</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">A reminder that platform maturity does not erase production friction when cost budgets, migrations, and query shape stay non-obvious.</p>
+            </a>
+          </div>
+        </div>
+
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
           <ul class="space-y-3 text-slate-300">
             <li>
