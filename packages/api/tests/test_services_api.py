@@ -220,6 +220,24 @@ async def _mock_supabase_count(path: str) -> int:
     raise AssertionError(f"Unexpected Supabase count path: {path}")
 
 
+async def _mock_empty_alias_score_supabase_fetch(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        if {"brave-search", "brave-search-api"} & slugs:
+            return [{
+                "slug": "brave-search-api",
+                "official_docs": "https://api.search.brave.com/app/documentation",
+            }]
+        return []
+
+    if decoded.startswith("scores?service_slug=in.("):
+        return []
+
+    return await _mock_supabase_fetch(path)
+
+
 async def _mock_alias_supabase_fetch(path: str):
     decoded = unquote(path)
 
@@ -372,6 +390,26 @@ def test_unknown_service_slug_returns_404(client) -> None:
     }
 
 
+def test_unknown_service_score_alias_input_returns_canonical_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/Brave-Search/score",
+            headers={"X-Request-ID": "req-service-alias-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'brave-search-api'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-alias-404",
+    }
+
+
 def test_unknown_service_detail_returns_404(client) -> None:
     """GET /v1/services/{slug} should return the standardized 404 envelope."""
     with patch(
@@ -390,6 +428,26 @@ def test_unknown_service_detail_returns_404(client) -> None:
         "message": "No service found with slug 'unknown-service'",
         "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
         "request_id": "req-service-detail-404",
+    }
+
+
+def test_unknown_service_detail_alias_input_returns_canonical_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/Brave-Search",
+            headers={"X-Request-ID": "req-service-detail-alias-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'brave-search-api'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-detail-alias-404",
     }
 
 
@@ -428,6 +486,21 @@ def test_service_score_exposes_autonomy_contract_fields(client) -> None:
     assert len(payload["autonomy"]["dimensions"]) == 3
     assert payload["autonomy"]["dimensions"][0]["code"] == "P1"
     assert payload["dimension_snapshot"]["autonomy"]["avg"] == 9.0
+
+
+def test_service_score_empty_state_canonicalizes_alias_input(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_empty_alias_score_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["explanation"] == "No score found for 'brave-search-api'"
+    assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
 
 
 def test_services_endpoint_returns_paginated_results_with_total_count(client) -> None:

@@ -58,6 +58,10 @@ def _build_in_filter(values: set[str]) -> str:
     return ",".join(f'"{value}"' for value in sorted(values))
 
 
+def _public_service_input_slug(service_slug: str | None) -> str:
+    return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
+
+
 def _score_query_slugs(service_slugs: list[str]) -> list[str]:
     query_slugs: list[str] = []
     for service_slug in service_slugs:
@@ -265,7 +269,7 @@ async def list_services(
 @router.get("/services/{slug}")
 async def get_service(slug: str, raw_request: Request):
     """Fetch a service profile by slug, including latest score."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
 
     # Get service info
     services = _canonicalize_service_rows(
@@ -280,7 +284,7 @@ async def get_service(slug: str, raw_request: Request):
         return _not_found_response(
             raw_request,
             error="service_not_found",
-            message=f"No service found with slug '{slug}'",
+            message=f"No service found with slug '{canonical_slug}'",
             resolution="Check available services at GET /v1/services or /v1/search?q=...",
         )
 
@@ -379,7 +383,7 @@ async def get_service(slug: str, raw_request: Request):
 @router.get("/services/{slug}/score", response_model=None)
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
     service_rows = _canonicalize_service_rows(
         await _cached_fetch(
             "services",
@@ -397,7 +401,7 @@ async def get_service_score(slug: str, raw_request: Request):
             return _not_found_response(
                 raw_request,
                 error="service_not_found",
-                message=f"No service found with slug '{slug}'",
+                message=f"No service found with slug '{canonical_slug}'",
                 resolution="Check available services at GET /v1/services or /v1/search?q=...",
             )
 
@@ -419,7 +423,7 @@ async def get_service_score(slug: str, raw_request: Request):
             "confidence": 0,
             "tier": "unknown",
             "tier_label": "Unknown",
-            "explanation": f"No score found for '{slug}'",
+            "explanation": f"No score found for '{canonical_slug}'",
             "an_score_version": "0.3",
             "dimension_snapshot": {},
             "calculated_at": None,
