@@ -35,7 +35,7 @@ from services.budget_enforcer import BudgetStatus
 from services.error_envelope import RhumbError
 from services.provider_attribution import build_attribution_sync
 from services.route_explanation import build_layer1_explanation, store_explanation
-from services.service_slugs import canonicalize_service_slug
+from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
 from services.receipt_service import (
     ReceiptInput,
     get_receipt_service,
@@ -131,15 +131,7 @@ class L1ExecuteRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _provider_slug_candidates(provider_id: str) -> list[str]:
-    candidates: list[str] = []
-    for candidate in (
-        provider_id,
-        normalize_slug(provider_id),
-        canonicalize_service_slug(provider_id),
-    ):
-        if candidate and candidate not in candidates:
-            candidates.append(candidate)
-    return candidates
+    return public_service_slug_candidates(provider_id)
 
 
 def _compat_headers() -> dict[str, str]:
@@ -235,7 +227,8 @@ def _build_in_filter(values: set[str]) -> str:
 
 
 def _runtime_provider_slug(provider_id: str) -> str:
-    return normalize_slug(canonicalize_service_slug(provider_id))
+    public_slug = public_service_slug(provider_id) or str(provider_id).strip().lower()
+    return normalize_slug(public_slug)
 
 
 def _all_direct_provider_mappings() -> list[dict[str, Any]]:
@@ -322,7 +315,7 @@ async def _resolve_provider_score(provider_id: str) -> dict | None:
     if not rows:
         return None
 
-    canonical_provider_slug = canonicalize_service_slug(provider_id)
+    canonical_provider_slug = public_service_slug(provider_id) or str(provider_id).strip().lower()
     for row in rows:
         row_slug = str(row.get("service_slug") or "").strip()
         if row_slug and canonicalize_service_slug(row_slug) == canonical_provider_slug:
@@ -342,7 +335,7 @@ def _merge_provider_detail(
     direct_mappings = direct_mappings or []
     direct_primary = direct_mappings[0] if direct_mappings else {}
 
-    canonical_provider_slug = canonicalize_service_slug(provider_id) if provider_id else None
+    canonical_provider_slug = public_service_slug(provider_id) if provider_id else None
     runtime_slug = _runtime_provider_slug(canonical_provider_slug or provider_id)
     has_service_row = bool(service_row and service_row.get("slug"))
     has_direct_mapping = bool(direct_mappings)
@@ -353,9 +346,9 @@ def _merge_provider_detail(
 
     slug = canonical_provider_slug
     if not slug and service_row and service_row.get("slug"):
-        slug = canonicalize_service_slug(str(service_row["slug"]))
+        slug = public_service_slug(str(service_row["slug"])) or str(service_row["slug"]).strip().lower()
     elif not slug and direct_primary.get("service_slug"):
-        slug = canonicalize_service_slug(str(direct_primary["service_slug"]))
+        slug = public_service_slug(str(direct_primary["service_slug"])) or str(direct_primary["service_slug"]).strip().lower()
 
     if not slug:
         return None
@@ -679,7 +672,7 @@ async def execute_on_provider(
             detail="Check the provider slug at GET /v2/providers.",
         )
 
-    provider_public_slug = detail.get("slug", canonicalize_service_slug(provider_id))
+    provider_public_slug = detail.get("slug", public_service_slug(provider_id) or str(provider_id).strip().lower())
     provider_runtime_slug = detail.get("runtime_slug") or _runtime_provider_slug(provider_public_slug)
 
     # ── Validate the provider supports the requested capability ──────
