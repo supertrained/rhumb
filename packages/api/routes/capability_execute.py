@@ -1402,6 +1402,7 @@ async def _select_provider_mapping(
         )
 
     if requested_provider:
+        public_requested_provider = _public_provider_label(requested_provider)
         chosen = next(
             (
                 m for m in mappings
@@ -1412,13 +1413,13 @@ async def _select_provider_mapping(
         if chosen is None:
             raise HTTPException(
                 status_code=503,
-                detail=f"Provider '{requested_provider}' not available for capability '{capability_id}'",
+                detail=f"Provider '{public_requested_provider}' not available for capability '{capability_id}'",
             )
         breaker = get_breaker_registry().get(normalize_proxy_slug(chosen["service_slug"]), agent_id)
         if not breaker.allow_request():
             raise HTTPException(
                 status_code=503,
-                detail=f"Provider '{requested_provider}' circuit is open — try later",
+                detail=f"Provider '{public_requested_provider}' circuit is open — try later",
             )
         return chosen
 
@@ -3089,7 +3090,7 @@ async def execute_capability(
             await _release_reservations()
             raise HTTPException(
                 status_code=500,
-                detail=f"No API domain for provider '{request.provider}'",
+                detail=f"No API domain for provider '{_public_provider_label(request.provider)}'",
             )
         base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"
 
@@ -3677,6 +3678,7 @@ async def estimate_capability(
                 available_managed_mappings=[fallback_managed_mapping] if fallback_managed_mapping else [],
             )
     elif provider:
+        public_provider = _public_provider_label(provider)
         chosen = next(
             (
                 m for m in mappings
@@ -3687,7 +3689,7 @@ async def estimate_capability(
         if chosen is None:
             raise HTTPException(
                 status_code=503,
-                detail=f"Provider '{provider}' not available for capability '{capability_id}'",
+                detail=f"Provider '{public_provider}' not available for capability '{capability_id}'",
             )
     elif capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
         chosen = mappings[0]

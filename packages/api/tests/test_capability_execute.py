@@ -911,6 +911,26 @@ async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
 
 
 @pytest.mark.anyio
+async def test_estimate_provider_unavailable_error_uses_canonical_public_provider_id(app):
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/execute/estimate",
+                params={"provider": "pdl", "credential_mode": "byok"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Provider 'people-data-labs' not available for capability 'email.send'"
+
+
+@pytest.mark.anyio
 async def test_estimate_auto_resolves_to_managed_when_config_exists(app):
     """GET estimate defaults auto to rhumb_managed when a managed config exists."""
     managed_mapping = MANAGED_SAMPLE_MAPPINGS[1]
@@ -1513,6 +1533,151 @@ async def test_execute_credential_unavailable_error_uses_canonical_public_provid
 
     assert resp.status_code == 503
     assert resp.json()["detail"] == "Credential unavailable for provider 'brave-search-api'"
+
+
+@pytest.mark.anyio
+async def test_execute_provider_unavailable_error_uses_canonical_public_provider_id(app):
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "pdl",
+                    "credential_mode": "byo",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Provider 'people-data-labs' not available for capability 'email.send'"
+
+
+@pytest.mark.anyio
+async def test_execute_circuit_open_error_uses_canonical_public_provider_id(app):
+    from services.proxy_breaker import BreakerRegistry
+
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    broken_registry = BreakerRegistry()
+    breaker = broken_registry.get("brave-search", "agent_cap_exec_test")
+    for _ in range(10):
+        breaker.record_failure(status_code=500)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("routes.capability_execute.get_breaker_registry", return_value=broken_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == "Provider 'brave-search-api' circuit is open — try later"
+
+
+@pytest.mark.anyio
+async def test_execute_agent_vault_no_api_domain_error_uses_canonical_public_provider_id(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("services?") or path.startswith("capability_executions?"):
+            return []
+        return []
+
+    mock_validator = MagicMock()
+    mock_validator.get_ceremony = AsyncMock(return_value=None)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("services.agent_vault.get_vault_validator", return_value=mock_validator),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "agent_vault",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "agent_vault_test_token",
+                },
+            )
+
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "No API domain for provider 'brave-search-api'"
 
 
 @pytest.mark.anyio
