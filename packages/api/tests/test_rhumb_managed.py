@@ -836,6 +836,28 @@ async def test_managed_executor_missing_api_domain_reports_canonical_public_slug
 
 
 @pytest.mark.anyio
+async def test_managed_executor_missing_managed_path_reports_canonical_public_slug():
+    """Managed missing-path failures should report canonical public ids."""
+
+    async def mock_fetch(path):
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        with pytest.raises(HTTPException) as excinfo:
+            await executor.execute(
+                capability_id="search.query",
+                agent_id="agent_missing_managed_path",
+                service_slug="brave-search",
+            )
+
+    assert excinfo.value.status_code == 503
+    assert excinfo.value.detail == "No managed execution path for 'search.query' via 'brave-search-api'"
+
+
+@pytest.mark.anyio
 async def test_managed_executor_upstream_http_error_reports_canonical_public_slug(monkeypatch):
     """Managed upstream failures should report canonical public ids."""
     import httpx

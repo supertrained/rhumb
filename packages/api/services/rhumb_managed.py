@@ -191,10 +191,11 @@ class RhumbManagedExecutor:
         """
         config = await self.get_managed_config(capability_id, service_slug)
         if config is None:
+            public_requested_service = public_service_slug(service_slug) or service_slug
             raise HTTPException(
                 status_code=503,
                 detail=f"No managed execution path for '{capability_id}'"
-                + (f" via '{service_slug}'" if service_slug else ""),
+                + (f" via '{public_requested_service}'" if public_requested_service else ""),
             )
 
         slug = config["service_slug"]
