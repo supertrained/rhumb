@@ -24,8 +24,24 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
+
+
+def _public_usage_service_slug(service: Any) -> str:
+    """Normalize a metered service id for public/reporting surfaces."""
+    cleaned = str(service or "").strip().lower()
+    if not cleaned:
+        return ""
+    return public_service_slug(cleaned) or cleaned
+
+
+def _publicize_usage_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of a usage event with its public service id normalized."""
+    normalized = dict(event)
+    normalized["service"] = _public_usage_service_slug(event.get("service"))
+    return normalized
 
 
 class UsageEvent:
@@ -173,7 +189,11 @@ class AgentUsageAnalytics:
             }
         """
         cutoff = datetime.now(tz=UTC) - timedelta(days=days)
-        events = await self._query_events(agent_id, service, cutoff)
+        events = [_publicize_usage_event(event) for event in await self._query_events(agent_id, cutoff)]
+
+        requested_service = _public_usage_service_slug(service)
+        if requested_service:
+            events = [event for event in events if event.get("service") == requested_service]
 
         total = len(events)
         success = sum(1 for e in events if e["result"] == "success")
@@ -241,7 +261,6 @@ class AgentUsageAnalytics:
     async def _query_events(
         self,
         agent_id: str,
-        service: Optional[str],
         cutoff: datetime,
     ) -> List[Dict[str, Any]]:
         """Query events from durable storage or in-memory fallback.
@@ -256,8 +275,6 @@ class AgentUsageAnalytics:
                 .eq("agent_id", agent_id)
                 .gte("created_at", cutoff.isoformat())
             )
-            if service:
-                query = query.eq("service", service)
             resp = await query.execute()
             rows = resp.data or []
             return rows
@@ -267,8 +284,6 @@ class AgentUsageAnalytics:
             if e.agent_id != agent_id:
                 continue
             if e.created_at < cutoff:
-                continue
-            if service and e.service != service:
                 continue
             results.append(e.to_dict())
         return results
@@ -288,11 +303,11 @@ class AgentUsageAnalytics:
                 .limit(limit)
                 .execute()
             )
-            return resp.data or []
+            return [_publicize_usage_event(event) for event in (resp.data or [])]
 
         agent_events = [e for e in self._events if e.agent_id == agent_id]
         agent_events.sort(key=lambda e: e.created_at, reverse=True)
-        return [e.to_dict() for e in agent_events[:limit]]
+        return [_publicize_usage_event(e.to_dict()) for e in agent_events[:limit]]
 
     @property
     def total_events(self) -> int:

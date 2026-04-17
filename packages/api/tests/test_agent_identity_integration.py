@@ -792,6 +792,22 @@ class TestUsageAnalytics:
         assert "stripe" in summary["services"]
         assert "slack" not in summary["services"]
 
+    def test_usage_filter_accepts_canonical_alias_for_runtime_service_rows(
+        self,
+        identity_store: AgentIdentityStore,
+        analytics: AgentUsageAnalytics,
+    ) -> None:
+        """Canonical public service filters still match alias-backed metered rows."""
+        agent_id, _ = _run(identity_store.register_agent("usage-alias-filter", "org_1"))
+        _run(identity_store.grant_service_access(agent_id, "brave-search-api"))
+
+        _run(analytics.record_event(agent_id, "brave-search", "success"))
+
+        summary = _run(analytics.get_usage_summary(agent_id, service="Brave-Search-Api"))
+        assert summary["total_calls"] == 1
+        assert set(summary["services"].keys()) == {"brave-search-api"}
+        assert summary["services"]["brave-search-api"]["calls"] == 1
+
     def test_organization_usage(
         self,
         identity_store: AgentIdentityStore,

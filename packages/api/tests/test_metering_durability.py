@@ -499,6 +499,38 @@ class TestAnalyticsDurableReads:
         recent = _run(analytics.get_recent_events("agent_1", limit=10))
         assert len(recent) == 2
 
+    def test_analytics_summary_canonicalizes_alias_backed_service_usage(
+        self,
+        mock_sb: MockSupabaseClient,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        analytics = AgentUsageAnalytics(
+            identity_store=identity_store, supabase_client=mock_sb
+        )
+        _run(analytics.record_event("agent_1", "brave-search", "success", 10.0))
+        _run(analytics.record_event("agent_1", "brave-search-api", "error", 20.0))
+
+        summary = _run(analytics.get_usage_summary("agent_1", service="Brave-Search-Api"))
+        assert summary["total_calls"] == 2
+        assert set(summary["services"].keys()) == {"brave-search-api"}
+        assert summary["services"]["brave-search-api"]["calls"] == 2
+        assert summary["successful_calls"] == 1
+        assert summary["failed_calls"] == 1
+
+    def test_analytics_recent_events_canonicalize_alias_backed_service_usage(
+        self,
+        mock_sb: MockSupabaseClient,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        analytics = AgentUsageAnalytics(
+            identity_store=identity_store, supabase_client=mock_sb
+        )
+        _run(analytics.record_event("agent_1", "pdl", "success", 10.0))
+
+        recent = _run(analytics.get_recent_events("agent_1", limit=10))
+        assert len(recent) == 1
+        assert recent[0]["service"] == "people-data-labs"
+
     def test_analytics_inmemory_fallback(
         self,
         identity_store: AgentIdentityStore,
