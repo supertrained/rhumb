@@ -424,6 +424,53 @@ def test_get_service_reviews_falls_back_to_proxy_slug_for_canonical_alias(
     assert payload["reviews"][0]["trust_label"] == "\U0001F7E2 Runtime-verified"
 
 
+def test_get_service_reviews_canonicalizes_legacy_alias_mentions_in_text(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Historical review copy should not leak runtime alias slugs on public reads."""
+    fake_supabase["service_reviews"].append(
+        {
+            "id": "review-brave-legacy-text",
+            "service_slug": "brave-search",
+            "review_type": "manual",
+            "review_status": "published",
+            "headline": "brave-search runtime review",
+            "summary": "Observed through brave-search during live validation",
+            "reviewer_label": "Rhumb editorial team",
+            "reviewed_at": "2026-03-26T11:08:24Z",
+            "confidence": 0.95,
+            "evidence_count": 1,
+            "highest_trust_source": "runtime_verified",
+        }
+    )
+    fake_supabase["review_evidence_links"].append(
+        {"review_id": "review-brave-legacy-text", "evidence_record_id": "evidence-brave-legacy-text"}
+    )
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-legacy-text",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "Brave runtime evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "facts/brave-legacy-text",
+        }
+    )
+
+    response = client.get("/v1/services/brave-search-api/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_reviews"] == 1
+    assert payload["reviews"][0]["headline"] == "brave-search-api runtime review"
+    assert payload["reviews"][0]["summary"] == "Observed through brave-search-api during live validation"
+
+
 def test_get_service_reviews_normalizes_mixed_case_alias_input(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:

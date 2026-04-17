@@ -125,13 +125,21 @@ def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
 
 
-def _canonicalize_service_text(text: Any, canonical_slug: str | None) -> str | None:
+def _canonicalize_service_text(
+    text: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
     """Rewrite alias-backed service-id mentions onto the canonical public slug."""
     if text is None:
         return None
 
-    canonical = public_service_slug(canonical_slug)
+    canonical = public_service_slug(response_service_slug)
     if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+    if raw_stored_slug == canonical.lower():
         return str(text)
 
     canonicalized = str(text)
@@ -247,7 +255,7 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
         f"?service_slug=in.({_postgrest_in(slug_candidates)})"
         "&review_status=eq.published"
         "&order=reviewed_at.desc"
-        "&select=id,review_type,review_status,headline,summary,reviewer_label,reviewed_at,"
+        "&select=id,service_slug,review_type,review_status,headline,summary,reviewer_label,reviewed_at,"
         "confidence,evidence_count,highest_trust_source"
     )
     review_rows = reviews or []
@@ -268,8 +276,12 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
                 "id": review_id,
                 "review_type": row.get("review_type"),
                 "review_status": row.get("review_status"),
-                "headline": row.get("headline"),
-                "summary": row.get("summary"),
+                "headline": _canonicalize_service_text(
+                    row.get("headline"), canonical_slug, row.get("service_slug")
+                ),
+                "summary": _canonicalize_service_text(
+                    row.get("summary"), canonical_slug, row.get("service_slug")
+                ),
                 "reviewer_label": row.get("reviewer_label"),
                 "reviewed_at": row.get("reviewed_at"),
                 "confidence": row.get("confidence"),
@@ -321,7 +333,7 @@ async def get_service_evidence(
         "evidence_records"
         f"?service_slug=in.({_postgrest_in(slug_candidates)})"
         "&order=observed_at.desc"
-        "&select=id,evidence_kind,source_type,title,summary,observed_at,fresh_until,"
+        "&select=id,service_slug,evidence_kind,source_type,title,summary,observed_at,fresh_until,"
         "confidence,source_ref"
     )
     if kind:
@@ -335,8 +347,12 @@ async def get_service_evidence(
                 "id": str(row["id"]),
                 "evidence_kind": row.get("evidence_kind"),
                 "source_type": row.get("source_type"),
-                "title": _canonicalize_service_text(row.get("title"), canonical_slug),
-                "summary": _canonicalize_service_text(row.get("summary"), canonical_slug),
+                "title": _canonicalize_service_text(
+                    row.get("title"), canonical_slug, row.get("service_slug")
+                ),
+                "summary": _canonicalize_service_text(
+                    row.get("summary"), canonical_slug, row.get("service_slug")
+                ),
                 "observed_at": row.get("observed_at"),
                 "fresh_until": row.get("fresh_until"),
                 "is_fresh": is_fresh(row.get("fresh_until")),
