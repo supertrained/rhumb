@@ -567,6 +567,8 @@ async def proxy_request(
     agent_id = "unknown"
     breaker = None
     tracker = None
+    proxy_service: str | None = None
+    public_request_service = _public_proxy_service_name(request.service) or str(request.service).strip()
     upstream_start: Optional[float] = None
     response_body: Any = None
 
@@ -580,7 +582,7 @@ async def proxy_request(
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
 
-        proxy_service = normalize_proxy_slug(request.service)
+        proxy_service = _normalize_proxy_service_name(request.service)
 
         resolved_context = ResolvedProxyContext(
             agent=agent,
@@ -636,7 +638,7 @@ async def proxy_request(
                 body=fail_response["body"],
                 latency_ms=timings["total_route_ms"],
                 upstream_latency_ms=0.0,
-                service=request.service,
+                service=public_request_service,
                 path=request.path,
                 timestamp=time.time(),
                 fail_open=True,
@@ -654,7 +656,7 @@ async def proxy_request(
         if auth_method is None:
             raise HTTPException(
                 status_code=500,
-                detail=f"No auth method configured for '{request.service}'",
+                detail=f"No auth method configured for '{public_request_service}'",
             )
 
         credential_start = time.perf_counter()
@@ -797,7 +799,7 @@ async def proxy_request(
             body=response_body,
             latency_ms=timings["total_route_ms"],
             upstream_latency_ms=timings["upstream_ms"],
-            service=request.service,
+            service=public_request_service,
             path=request.path,
             timestamp=time.time(),
             fail_open=False,
@@ -816,7 +818,7 @@ async def proxy_request(
             breaker.record_failure()
         if tracker is not None and agent_id != "unknown":
             tracker.record(
-                service=request.service,
+                service=proxy_service or public_request_service,
                 agent_id=agent_id,
                 latency_ms=error_latency_ms,
                 perf_start=upstream_start or request_start,
@@ -828,7 +830,7 @@ async def proxy_request(
         if agent_id != "unknown":
             await _get_meter().record_metered_call(
                 agent_id=agent_id,
-                service=request.service,
+                service=proxy_service or public_request_service,
                 success=False,
                 latency_ms=error_latency_ms,
                 response_size_bytes=0,

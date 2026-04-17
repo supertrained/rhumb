@@ -1,6 +1,7 @@
 """Tests for proxy router (Slice A: Router Foundation)."""
 
 import asyncio
+import httpx
 import pytest
 import sys
 from pathlib import Path
@@ -161,6 +162,55 @@ class TestProxyRouter:
             "/proxy/",
             json={
                 "service": "people-data-labs",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status_code"] == 200
+        assert payload["service"] == "people-data-labs"
+        assert payload["body"]["status"] == 200
+
+    def test_proxy_accepts_mixed_case_runtime_alias_and_returns_canonical_service(
+        self,
+        client,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Mixed-case proxy aliases should still resolve, while public responses stay canonical."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "pdl"))
+        proxy_module._auth_injector_instance.credentials.set_credential("pdl", "api_key", "pdl_test_vault")
+
+        class _FakeClient:
+            async def request(self, *, method, url, headers, json, params):
+                assert method == "GET"
+                assert url == "/v5/person/enrich"
+                return httpx.Response(
+                    200,
+                    json={"status": 200, "data": {"name": "Acme"}},
+                    headers={"content-type": "application/json"},
+                )
+
+        class _FakePool:
+            async def acquire(self, service, agent_id, *, base_url):
+                assert service == "pdl"
+                assert base_url == "https://api.peopledatalabs.com"
+                return _FakeClient()
+
+            async def release(self, service, agent_id):
+                assert service == "pdl"
+
+        monkeypatch.setattr(proxy_module, "_pool_manager", _FakePool())
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "PDL",
                 "method": "GET",
                 "path": "/v5/person/enrich",
                 "body": None,
