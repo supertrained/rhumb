@@ -12,8 +12,20 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
+from services.service_slugs import public_service_slug
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _canonical_status_services(services: list[str]) -> list[str]:
+    canonical_services: set[str] = set()
+    for service in services:
+        canonical = public_service_slug(service)
+        if canonical:
+            canonical_services.add(canonical)
+    return sorted(canonical_services)
+
 
 # ── Component checkers ──────────────────────────────────────────────
 
@@ -53,7 +65,7 @@ async def _check_proxy() -> dict:
         from services.proxy_credentials import get_credential_store
 
         store = get_credential_store()
-        callable_services = store.callable_services()
+        callable_services = _canonical_status_services(store.callable_services())
         latency_ms = round((time.monotonic() - start) * 1000)
         return {
             "component": "proxy",
@@ -61,7 +73,7 @@ async def _check_proxy() -> dict:
             "latency_ms": latency_ms,
             "details": {
                 "callable_services": len(callable_services),
-                "services": sorted(callable_services),
+                "services": callable_services,
             },
         }
     except Exception as exc:
