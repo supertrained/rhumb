@@ -185,6 +185,28 @@ async def _persist_score_or_raise(
     return str(persisted_id) if persisted_id else None
 
 
+def _public_score_service_slug(service_slug: str) -> str:
+    """Normalize score-route service ids onto canonical public slugs."""
+    return public_service_slug(service_slug) or str(service_slug).strip().lower()
+
+
+def _fetch_latest_probe_for_public_slug(
+    probe_repository: ProbeRepository,
+    service_slug: str,
+) -> StoredProbe | None:
+    """Fetch the latest probe across canonical and legacy alias candidates."""
+    matches = [
+        probe_repository.fetch_latest_probe(candidate)
+        for candidate in public_service_slug_candidates(service_slug)
+    ]
+    available = [match for match in matches if match is not None]
+    if not available:
+        return None
+
+    min_utc = datetime.min.replace(tzinfo=timezone.utc)
+    return sorted(available, key=lambda row: row.probed_at or min_utc)[-1]
+
+
 def _coerce_latency_distribution(value: dict | None) -> dict[str, int] | None:
     if not value or not isinstance(value, dict):
         return None
@@ -261,6 +283,7 @@ def _format_probe_freshness(probed_at: datetime | None) -> str | None:
 async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     """Calculate and persist an AN score from dimensional inputs."""
     scoring_service = get_scoring_service()
+    canonical_service_slug = _public_score_service_slug(payload.service_slug)
 
     probe_freshness = payload.probe_freshness
     probe_latency_distribution_ms = payload.probe_latency_distribution_ms
@@ -270,7 +293,10 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     ):
         probe_repository = get_probe_repository()
         try:
-            latest_probe = probe_repository.fetch_latest_probe(payload.service_slug)
+            latest_probe = _fetch_latest_probe_for_public_slug(
+                probe_repository,
+                canonical_service_slug,
+            )
         except Exception:
             latest_probe = None
 
@@ -290,14 +316,14 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     )
 
     result = await scoring_service.score_service(
-        service_slug=payload.service_slug,
+        service_slug=canonical_service_slug,
         dimensions=payload.dimensions,
         evidence=evidence,
         access_dimensions=payload.access_dimensions,
         autonomy_dimensions=payload.autonomy_dimensions,
     )
 
-    score_id = await _persist_score_or_raise(scoring_service, payload.service_slug, result)
+    score_id = await _persist_score_or_raise(scoring_service, canonical_service_slug, result)
 
     return _result_to_schema(
         service_slug=result.service_slug,
@@ -319,7 +345,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
 @router.get("/services/{slug}/score", response_model=ANScoreSchema)
 async def get_score(slug: str) -> ANScoreSchema:
     """Get the latest AN score for a service."""
-    canonical_slug = public_service_slug(slug) or str(slug).strip().lower()
+    canonical_slug = _public_score_service_slug(slug)
     scoring_service = get_scoring_service()
 
     stored = await _fetch_latest_score_for_public_slug(scoring_service, canonical_slug)
@@ -362,7 +388,7 @@ async def get_score(slug: str) -> ANScoreSchema:
             calculated_at=result.calculated_at.isoformat(),
         )
 
-    raise HTTPException(status_code=404, detail=f"No AN score found for service '{slug}'")
+    raise HTTPException(status_code=404, detail=f"No AN score found for service '{canonical_slug}'")
 
 
 @router.get("/compare")

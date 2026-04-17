@@ -568,6 +568,94 @@ def test_get_service_score_accepts_mixed_case_alias_input(
     assert body["execution_score"] == 8.4
 
 
+def test_score_endpoint_canonicalizes_alias_backed_service_slug_on_write(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /v1/score should persist and return canonical public service ids."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    response = client.post(
+        "/v1/score",
+        json={
+            "service_slug": "Brave-Search",
+            "dimensions": fixture["dimensions"],
+            "evidence_count": fixture["evidence_count"],
+            "freshness": fixture["freshness"],
+            "probe_types": fixture["probe_types"],
+            "production_telemetry": fixture["production_telemetry"],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["service_slug"] == "brave-search-api"
+
+    latest = asyncio.run(repository.fetch_latest_score("brave-search-api"))
+    legacy = asyncio.run(repository.fetch_latest_score("brave-search"))
+
+    assert latest is not None
+    assert latest.service_slug == "brave-search-api"
+    assert legacy is None
+
+
+def test_score_endpoint_probe_hydration_reads_alias_backed_latest_probe_for_canonical_service(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /v1/score should hydrate probe telemetry across canonical and legacy alias forms."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    score_routes.get_probe_repository.cache_clear()
+
+    scoring_service = ScoringService(repository=InMemoryScoreRepository())
+    probe_repository = InMemoryProbeRepository()
+    probe_repository.save_probe(
+        service_slug="brave-search",
+        probe_type="health",
+        status="ok",
+        latency_ms=180,
+        probe_metadata={
+            "latency_distribution_ms": {"p50": 120, "p95": 280, "p99": 460, "samples": 8}
+        },
+    )
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", lambda: scoring_service)
+    monkeypatch.setattr(score_routes, "get_probe_repository", lambda: probe_repository)
+
+    fixture = HAND_SCORED_FIXTURES["stripe"]
+    payload = {
+        "service_slug": "Brave-Search-Api",
+        "dimensions": fixture["dimensions"],
+        "evidence_count": 30,
+        "freshness": "6 hours ago",
+        "probe_types": ["health", "schema"],
+        "production_telemetry": False,
+    }
+
+    baseline_response = client.post("/v1/score", json=payload)
+    assert baseline_response.status_code == 200
+    baseline_confidence = baseline_response.json()["confidence"]
+
+    hydrated_response = client.post(
+        "/v1/score",
+        json={**payload, "hydrate_probe_telemetry": True},
+    )
+    assert hydrated_response.status_code == 200
+    assert hydrated_response.json()["service_slug"] == "brave-search-api"
+    hydrated_confidence = hydrated_response.json()["confidence"]
+
+    assert hydrated_confidence > baseline_confidence
+
+
 def test_compare_route_canonicalizes_alias_inputs_and_alias_backed_stored_rows(
     client,
     monkeypatch: pytest.MonkeyPatch,
