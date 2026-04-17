@@ -32,7 +32,11 @@ from services.schema_change_detector import (
     get_schema_change_detector,
 )
 from services.schema_fingerprint import SchemaFingerprint, fingerprint_response
-from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.service_slugs import (
+    canonicalize_service_slug,
+    normalize_proxy_slug,
+    public_service_slug,
+)
 
 from schemas.agent_identity import (
     AgentIdentitySchema,
@@ -374,6 +378,29 @@ def _get_service_config(service: str) -> dict:
             ),
         )
     return SERVICE_REGISTRY[service]
+
+
+def _normalize_proxy_service_name(service: str) -> str:
+    """Resolve public or mixed-case service ids onto proxy-layer registry keys."""
+    cleaned = public_service_slug(service)
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Service name required")
+    return normalize_proxy_slug(cleaned)
+
+
+def _public_proxy_service_name(service: str | None) -> str | None:
+    """Normalize an optional proxy-layer service id onto the public slug."""
+    cleaned = public_service_slug(service)
+    if cleaned:
+        return cleaned
+    return canonicalize_service_slug(str(service).strip()) if service else None
+
+
+def _canonicalize_scoped_service_key(key: str) -> str:
+    """Normalize ``service:agent`` proxy metric keys onto public service ids."""
+    service, sep, rest = key.partition(":")
+    public_service = _public_proxy_service_name(service) or service
+    return f"{public_service}{sep}{rest}" if sep else public_service
 
 
 def _build_request_path(path: str) -> str:
@@ -885,14 +912,37 @@ async def proxy_stats() -> dict:
     per_service = tracker.get_all_snapshots()
 
     callable_svcs = credential_store.callable_services()
+    callable_public_svcs = {
+        _public_proxy_service_name(service) or service for service in callable_svcs
+    }
+
+    circuits: dict[str, str] = {}
+    for key, state in breaker_reg.get_all_states().items():
+        circuits[_canonicalize_scoped_service_key(key)] = state
+
+    per_service_payload: dict[str, dict[str, Any]] = {}
+    for key, snap in per_service.items():
+        snapshot_payload = snap.to_dict()
+        snapshot_payload["service"] = _public_proxy_service_name(snapshot_payload.get("service"))
+        per_service_payload[_canonicalize_scoped_service_key(key)] = snapshot_payload
+
+    pool_payload: dict[str, dict[str, Any]] = {}
+    for key, metrics in pool.get_all_metrics().items():
+        pool_payload[_canonicalize_scoped_service_key(key)] = {
+            "pool_size": metrics.pool_size,
+            "active": metrics.active_connections,
+            "utilization": round(metrics.utilization, 3),
+            "reuse_ratio": round(metrics.reuse_ratio, 3),
+            "total_acquired": metrics.total_acquired,
+        }
 
     return {
         "data": {
             # services_registered: total entries in SERVICE_REGISTRY (may lack credentials)
             # services_callable: subset that have a live credential — actually reachable
             "services_registered": len(SERVICE_REGISTRY),
-            "services_callable": len(callable_svcs),
-            "circuits": breaker_reg.get_all_states(),
+            "services_callable": len(callable_public_svcs),
+            "circuits": circuits,
             "latency": {
                 "p50_ms": round(global_snapshot.p50_ms, 3),
                 "p95_ms": round(global_snapshot.p95_ms, 3),
@@ -900,19 +950,8 @@ async def proxy_stats() -> dict:
                 "mean_ms": round(global_snapshot.mean_ms, 3),
                 "total_calls": global_snapshot.count,
             },
-            "per_service": {
-                key: snap.to_dict() for key, snap in per_service.items()
-            },
-            "pools": {
-                key: {
-                    "pool_size": m.pool_size,
-                    "active": m.active_connections,
-                    "utilization": round(m.utilization, 3),
-                    "reuse_ratio": round(m.reuse_ratio, 3),
-                    "total_acquired": m.total_acquired,
-                }
-                for key, m in pool.get_all_metrics().items()
-            },
+            "per_service": per_service_payload,
+            "pools": pool_payload,
             "operational_facts": emitter.get_stats(),
         },
         "error": None,
@@ -930,18 +969,22 @@ async def proxy_metrics(service: str, agent_id: str = "default") -> dict:
     Returns:
         Latency snapshot with P50/P95/P99 percentiles.
     """
-    _get_service_config(service)  # Validate service exists
+    proxy_service = _normalize_proxy_service_name(service)
+    _get_service_config(proxy_service)  # Validate service exists
 
     tracker = get_latency_tracker()
-    snapshot = tracker.get_snapshot(service, agent_id)
+    snapshot = tracker.get_snapshot(proxy_service, agent_id)
     breaker_reg = get_breaker_registry()
-    breaker = breaker_reg.get(service, agent_id)
+    breaker = breaker_reg.get(proxy_service, agent_id)
     pool = get_pool_manager()
-    pool_metrics = pool.get_metrics(service, agent_id)
+    pool_metrics = pool.get_metrics(proxy_service, agent_id)
+
+    latency_payload = snapshot.to_dict()
+    latency_payload["service"] = _public_proxy_service_name(latency_payload.get("service"))
 
     return {
         "data": {
-            "latency": snapshot.to_dict(),
+            "latency": latency_payload,
             "circuit_state": breaker.state.value,
             "pool": {
                 "pool_size": pool_metrics.pool_size if pool_metrics else 0,
@@ -962,13 +1005,18 @@ async def get_schema_snapshot(
     limit: int = Query(default=5, ge=1, le=50),
 ) -> dict[str, Any]:
     """Return latest schema fingerprint and recent change history."""
-    _get_service_config(service)
+    proxy_service = _normalize_proxy_service_name(service)
+    _get_service_config(proxy_service)
 
     detector = get_schema_detector()
     schema_endpoint = _schema_endpoint_key(agent_id, endpoint)
-    fingerprint = detector.get_latest_fingerprint(service, schema_endpoint, status_code=200)
+    fingerprint = detector.get_latest_fingerprint(
+        proxy_service,
+        schema_endpoint,
+        status_code=200,
+    )
     history = detector.get_change_history(
-        service,
+        proxy_service,
         schema_endpoint,
         limit=limit,
         status_code=200,
@@ -977,12 +1025,12 @@ async def get_schema_snapshot(
     recent_events = [
         event
         for event in reversed(_schema_events)
-        if event.get("service") == service and event.get("endpoint") == schema_endpoint
+        if event.get("service") == proxy_service and event.get("endpoint") == schema_endpoint
     ][:limit]
 
     return {
         "data": {
-            "service": service,
+            "service": _public_proxy_service_name(proxy_service),
             "endpoint": endpoint,
             "agent_id": agent_id,
             "latest_fingerprint": {
@@ -1002,7 +1050,13 @@ async def get_schema_snapshot(
                 }
                 for change in history
             ],
-            "events": recent_events,
+            "events": [
+                {
+                    **event,
+                    "service": _public_proxy_service_name(event.get("service")),
+                }
+                for event in recent_events
+            ],
         },
         "error": None,
     }
@@ -1016,17 +1070,25 @@ async def list_schema_alerts(
 ) -> dict[str, Any]:
     """Query recent schema alerts (in-app channel)."""
     dispatcher = get_schema_alert_dispatcher()
-    alerts = dispatcher.query_alerts(service=service, severity=severity, limit=limit)
+    proxy_service = _normalize_proxy_service_name(service) if service else None
+    alerts = dispatcher.query_alerts(service=proxy_service, severity=severity, limit=limit)
 
     return {
         "data": {
             "alerts": [
                 {
                     "alert_id": alert.alert_id,
-                    "service": alert.service,
+                    "service": _public_proxy_service_name(alert.service),
                     "endpoint": alert.endpoint,
                     "severity": alert.severity,
-                    "change_detail": alert.change_detail,
+                    "change_detail": {
+                        **alert.change_detail,
+                        "service": _public_proxy_service_name(
+                            alert.change_detail.get("service")
+                        ),
+                    }
+                    if isinstance(alert.change_detail, dict)
+                    else alert.change_detail,
                     "alert_sent_at": (
                         alert.alert_sent_at.isoformat() if alert.alert_sent_at else None
                     ),

@@ -367,7 +367,7 @@ class TestIntegrationStats:
         response = client.get("/proxy/stats")
         assert response.status_code == 200
         data = response.json()["data"]
-        assert data["services_registered"] == 9
+        assert data["services_registered"] == len(proxy_module.SERVICE_REGISTRY)
         assert data["latency"]["total_calls"] >= 1
 
     def test_metrics_endpoint_for_service(self, client, httpx_mock) -> None:
@@ -396,6 +396,47 @@ class TestIntegrationStats:
         assert "latency" in data
         assert data["latency"]["count"] >= 1
         assert data["circuit_state"] == "closed"
+
+    def test_metrics_endpoint_accepts_canonical_alias_backed_service(self, client, httpx_mock) -> None:
+        """Per-service metrics should accept canonical public ids for proxy aliases."""
+        identity_store = proxy_module._identity_store
+        assert identity_store is not None
+
+        import asyncio
+
+        async def _grant() -> None:
+            await identity_store.grant_service_access(_BYPASS_AGENT_ID, "pdl")
+
+        asyncio.run(_grant())
+        proxy_module._auth_injector_instance.credentials.set_credential(
+            "pdl", "api_key", "pdl_test_vault"
+        )
+
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.peopledatalabs.com/v5/person/enrich",
+            json={"status": 200},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "people-data-labs",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+            },
+        )
+        assert response.status_code == 200
+
+        metrics = client.get(
+            f"/proxy/metrics/people-data-labs?agent_id={_BYPASS_AGENT_ID}"
+        )
+        assert metrics.status_code == 200
+        data = metrics.json()["data"]
+        assert data["latency"]["service"] == "people-data-labs"
+        assert data["latency"]["count"] >= 1
 
     def test_metrics_endpoint_invalid_service(self, client) -> None:
         """Metrics endpoint for invalid service returns 400."""

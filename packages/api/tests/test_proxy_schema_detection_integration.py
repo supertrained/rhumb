@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -14,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from routes.leaderboard import router as leaderboard_router  # noqa: E402
 from routes.proxy import admin_router as proxy_admin_router  # noqa: E402
 from routes.proxy import router as proxy_router  # noqa: E402
+import routes.proxy as proxy_module  # noqa: E402
 
 # Must match conftest.BYPASS_AGENT_ID
 _BYPASS_AGENT_ID = "00000000-0000-0000-0000-bypass000001"
@@ -163,6 +165,60 @@ class TestProxySchemaIntegration:
         data = admin.json()["data"]
         assert data["latest_fingerprint"]["hash"] is not None
         assert len(data["changes"]) >= 1
+
+    def test_admin_schema_routes_accept_canonical_alias_backed_service_ids(
+        self, client: TestClient, httpx_mock
+    ) -> None:
+        identity_store = proxy_module._identity_store
+        assert identity_store is not None
+
+        asyncio.run(identity_store.grant_service_access(_BYPASS_AGENT_ID, "pdl"))
+        proxy_module._auth_injector_instance.credentials.set_credential(
+            "pdl", "api_key", "pdl_test_vault"
+        )
+
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.peopledatalabs.com/v5/person/enrich",
+            json={"status": 200, "data": {"name": "Acme", "email": "a@example.com"}},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.peopledatalabs.com/v5/person/enrich",
+            json={"status": 200, "data": {"name": "Acme"}},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        client.post(
+            "/v1/proxy/",
+            json={"service": "people-data-labs", "method": "GET", "path": "/v5/person/enrich"},
+        )
+        client.post(
+            "/v1/proxy/",
+            json={"service": "people-data-labs", "method": "GET", "path": "/v5/person/enrich"},
+        )
+
+        admin = client.get(
+            f"/v1/admin/schema/people-data-labs/v5/person/enrich?agent_id={_BYPASS_AGENT_ID}"
+        )
+        assert admin.status_code == 200
+        admin_data = admin.json()["data"]
+        assert admin_data["service"] == "people-data-labs"
+        assert all(event["service"] == "people-data-labs" for event in admin_data["events"])
+
+        alerts = client.get("/v1/admin/schema-alerts?service=people-data-labs&limit=10")
+        assert alerts.status_code == 200
+        alert_payload = alerts.json()["data"]
+        assert alert_payload["count"] >= 1
+        assert all(alert["service"] == "people-data-labs" for alert in alert_payload["alerts"])
+        assert all(
+            alert["change_detail"]["service"] == "people-data-labs"
+            for alert in alert_payload["alerts"]
+            if isinstance(alert.get("change_detail"), dict) and alert["change_detail"].get("service")
+        )
 
     def test_leaderboard_applies_schema_stability_multiplier(self, client: TestClient) -> None:
         response = client.get("/v1/leaderboard/email?limit=1")

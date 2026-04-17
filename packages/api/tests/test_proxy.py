@@ -402,6 +402,46 @@ class TestProxyRouter:
         # In tests, credentials are seeded so at least one service should be callable.
         assert data["data"]["services_callable"] >= 0
 
+    def test_proxy_stats_canonicalize_alias_backed_service_keys(self, client, httpx_mock):
+        """Proxy stats should expose canonical public ids for alias-backed services."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "pdl"))
+        proxy_module._auth_injector_instance.credentials.set_credential(
+            "pdl", "api_key", "pdl_test_vault"
+        )
+
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.peopledatalabs.com/v5/person/enrich",
+            json={"status": 200, "data": {"name": "Acme"}},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "people-data-labs",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 200
+
+        stats = client.get("/proxy/stats")
+        assert stats.status_code == 200
+        payload = stats.json()["data"]
+        scoped_key = f"people-data-labs:{agent.agent_id}"
+        assert scoped_key in payload["per_service"]
+        assert scoped_key in payload["circuits"]
+        assert scoped_key in payload["pools"]
+        assert f"pdl:{agent.agent_id}" not in payload["per_service"]
+        assert payload["per_service"][scoped_key]["service"] == "people-data-labs"
+
 
 class TestProxyRequest:
     """Test ProxyRequest schema validation."""
