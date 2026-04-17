@@ -338,10 +338,17 @@ class RhumbManagedExecutor:
 
         except httpx.HTTPError as e:
             error_message = str(e)
+            logger.warning(
+                "managed execution upstream request failed service=%s public_service=%s agent_id=%s error=%s",
+                slug,
+                public_provider_used,
+                agent_id,
+                e,
+            )
             raise HTTPException(
                 status_code=502,
-                detail=f"Managed execution failed: {error_message}",
-            )
+                detail=f"Managed execution failed for '{public_provider_used}'",
+            ) from e
 
         total_latency_ms = (time.perf_counter() - request_start) * 1000
 

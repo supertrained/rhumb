@@ -836,6 +836,68 @@ async def test_managed_executor_missing_api_domain_reports_canonical_public_slug
 
 
 @pytest.mark.anyio
+async def test_managed_executor_upstream_http_error_reports_canonical_public_slug(monkeypatch):
+    """Managed upstream failures should report canonical public ids."""
+    import httpx
+
+    monkeypatch.setenv("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "brv_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path and "service_slug=eq.brave-search-api" in path:
+            return []
+        if "rhumb_managed_capabilities?" in path and "service_slug=eq.brave-search" in path:
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Managed Brave Search",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY"],
+                    "default_method": "GET",
+                    "default_path": "/res/v1/web/search",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
+        if path == "services?slug=eq.brave-search-api&select=api_domain&limit=1":
+            return []
+        if path == "services?slug=eq.brave-search&select=api_domain&limit=1":
+            return [{"api_domain": "api.search.brave.com"}]
+        return []
+
+    class ExplodingAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, **kwargs):
+            raise httpx.ConnectTimeout("brave-search upstream exploded")
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.httpx.AsyncClient", ExplodingAsyncClient),
+    ):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        with pytest.raises(HTTPException) as excinfo:
+            await executor.execute(
+                capability_id="search.query",
+                agent_id="agent_managed_upstream_error",
+                service_slug="brave-search-api",
+                params={"q": "rhumb resolve"},
+            )
+
+    assert excinfo.value.status_code == 502
+    assert excinfo.value.detail == "Managed execution failed for 'brave-search-api'"
+
+
+@pytest.mark.anyio
 async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failure(monkeypatch):
     """POST managed executions should merge params into body and treat 4xx as failure."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_TAVILY_API_KEY", "tvly_test_secret")
