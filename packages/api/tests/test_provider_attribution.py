@@ -350,6 +350,68 @@ class TestAsyncBuilder:
         assert headers["X-Rhumb-Provider"] == "brave-search-api"
 
     @pytest.mark.asyncio
+    async def test_build_attribution_backfills_sparse_canonical_row_from_runtime_alias(self, monkeypatch):
+        seen_queries: list[str] = []
+
+        async def _mock_fetch(query):
+            seen_queries.append(query)
+            if query == (
+                "services?slug=eq.brave-search-api"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return [{
+                    "slug": "brave-search-api",
+                    "name": "Brave Search API",
+                    "category": None,
+                    "api_domain": None,
+                    "aggregate_recommendation_score": None,
+                    "tier_label": None,
+                    "official_docs": None,
+                }]
+            if query == (
+                "services?slug=eq.brave-search"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return [{
+                    "slug": "brave-search",
+                    "name": "Brave Search",
+                    "description": "Search the web with Brave.",
+                    "category": "search",
+                    "api_domain": "api.search.brave.com",
+                    "aggregate_recommendation_score": 7.8,
+                    "tier_label": "L3",
+                    "official_docs": "https://api.search.brave.com/docs",
+                }]
+            return []
+
+        monkeypatch.setattr(
+            "services.provider_attribution.supabase_fetch",
+            _mock_fetch,
+        )
+
+        attr = await build_attribution(provider_slug="brave-search-api", layer=2)
+        block = attr.to_rhumb_block()
+
+        assert seen_queries == [
+            "services?slug=eq.brave-search-api&select=slug,name,description,category,api_domain,aggregate_recommendation_score,tier_label,official_docs&limit=1",
+            "services?slug=eq.brave-search&select=slug,name,description,category,api_domain,aggregate_recommendation_score,tier_label,official_docs&limit=1",
+        ]
+        assert attr.provider_id == "brave-search-api"
+        assert attr.provider_name == "Brave Search API"
+        assert attr.provider_category == "search"
+        assert attr.provider_docs_url == "https://api.search.brave.com/docs"
+        assert attr.an_score == 7.8
+        assert attr.tier == "L3"
+        assert block["provider"]["id"] == "brave-search-api"
+        assert block["provider"]["name"] == "Brave Search API"
+        assert block["provider"]["category"] == "search"
+        assert block["provider"]["docs_url"] == "https://api.search.brave.com/docs"
+
+    @pytest.mark.asyncio
     async def test_build_attribution_provider_not_found(self, monkeypatch):
         """When provider is not in DB, attribution still works with slug as name."""
         async def _mock_fetch(query):
