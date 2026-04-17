@@ -180,6 +180,28 @@ def test_latest_probe_returns_404_when_missing(client, monkeypatch: pytest.Monke
     assert response.status_code == 404
 
 
+def test_latest_probe_missing_canonicalizes_alias_input(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing latest-probe reads should report canonical public ids for alias inputs."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+    monkeypatch.setattr(
+        probe_routes,
+        "get_probe_service",
+        lambda: ProbeService(repository=InMemoryProbeRepository()),
+    )
+
+    response = client.get("/v1/services/Brave-Search/probes/latest")
+    assert response.status_code == 404
+
+    body = response.json()
+    assert body["detail"] == "No probe result found for service 'brave-search-api'"
+
+
 def test_scheduler_entrypoint_runs_seed_specs(client, monkeypatch: pytest.MonkeyPatch) -> None:
     """POST /v1/probes/schedule/run should execute selected seed specs."""
     from routes import probes as probe_routes
