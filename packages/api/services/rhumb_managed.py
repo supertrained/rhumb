@@ -252,9 +252,10 @@ class RhumbManagedExecutor:
         # Resolve API domain
         api_domain = await self._get_api_domain(slug)
         if not api_domain:
+            public_service = public_service_slug(slug) or slug
             raise HTTPException(
                 status_code=500,
-                detail=f"No API domain configured for managed service '{slug}'",
+                detail=f"No API domain configured for managed service '{public_service}'",
             )
 
         base_url = api_domain if api_domain.startswith("http") else f"https://{api_domain}"

@@ -13,6 +13,7 @@ import base64
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
@@ -789,6 +790,49 @@ async def test_get_api_domain_accepts_canonical_alias_for_runtime_service_row():
         "services?slug=eq.brave-search-api&select=api_domain&limit=1",
         "services?slug=eq.brave-search&select=api_domain&limit=1",
     ]
+
+
+@pytest.mark.anyio
+async def test_managed_executor_missing_api_domain_reports_canonical_public_slug():
+    """Managed missing-domain failures should report canonical public ids."""
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path and "service_slug=eq.brave-search-api" in path:
+            return []
+        if "rhumb_managed_capabilities?" in path and "service_slug=eq.brave-search" in path:
+            return [
+                {
+                    "id": 1,
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Managed Brave Search",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY"],
+                    "default_method": "GET",
+                    "default_path": "/res/v1/web/search",
+                    "default_headers": {},
+                    "daily_limit_per_agent": 100,
+                }
+            ]
+        if path in {
+            "services?slug=eq.brave-search-api&select=api_domain&limit=1",
+            "services?slug=eq.brave-search&select=api_domain&limit=1",
+        }:
+            return []
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        with pytest.raises(HTTPException) as excinfo:
+            await executor.execute(
+                capability_id="search.query",
+                agent_id="agent_missing_domain",
+                service_slug="brave-search-api",
+            )
+
+    assert excinfo.value.status_code == 500
+    assert excinfo.value.detail == "No API domain configured for managed service 'brave-search-api'"
 
 
 @pytest.mark.anyio
