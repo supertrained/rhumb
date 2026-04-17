@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
 
 from services.payload_redactor import sanitize_external_payload
+from services.service_slugs import public_service_slug
 
 LAUNCH_WINDOW_START = datetime(2026, 3, 13, tzinfo=UTC)
 SUPPORTED_WINDOWS = {"24h", "7d", "launch"}
@@ -44,9 +45,12 @@ def _top_counts(counter: Counter[str], *, limit: int = 5) -> list[dict[str, Any]
 
 
 def _normalize_service_slug(value: Any) -> str | None:
-    if isinstance(value, str) and value:
-        return value
-    return None
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip().lower()
+    if not cleaned:
+        return None
+    return public_service_slug(cleaned) or cleaned
 
 
 def _safe_label(value: Any, *, max_length: int = 120) -> str | None:

@@ -49,8 +49,104 @@ def test_capture_click_event_logs_payload(client: TestClient, monkeypatch) -> No
     assert captured["table"] == "click_events"
     payload = captured["payload"]
     assert isinstance(payload, dict)
+    assert payload["service_slug"] == "stripe"
     assert payload["destination_domain"] == "stripe.com"
     assert payload["referrer_url"] == "https://rhumb.dev/service/stripe?utm_source=hn"
+
+
+def test_capture_click_event_canonicalizes_alias_backed_service_slug(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_insert(table: str, payload: dict[str, object]) -> bool:
+        captured["table"] = table
+        captured["payload"] = payload
+        return True
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fake_insert)
+
+    response = client.post(
+        "/v1/clicks",
+        json={
+            "event_type": "provider_click",
+            "destination_url": "https://search.brave.com",
+            "service_slug": "Brave-Search",
+            "page_path": "/service/brave-search-api",
+            "source_surface": "service_page_hero",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"data": {"logged": True}, "error": None}
+    assert captured["table"] == "click_events"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["service_slug"] == "brave-search-api"
+
+
+def test_build_launch_dashboard_canonicalizes_alias_backed_service_slugs() -> None:
+    payload = build_launch_dashboard(
+        query_logs=[
+            {
+                "created_at": "2026-03-13T06:00:00Z",
+                "source": "mcp",
+                "query_type": "score_lookup",
+                "query_text": "Brave-Search",
+                "query_params": {"slug": "brave-search"},
+                "agent_id": "rhumb-mcp",
+                "user_agent": "rhumb-mcp/0.0.1",
+            },
+            {
+                "created_at": "2026-03-13T06:05:00Z",
+                "source": "mcp",
+                "query_type": "score_lookup",
+                "query_text": "people-data-labs",
+                "query_params": {"slug": "PDL"},
+                "agent_id": "rhumb-mcp",
+                "user_agent": "rhumb-mcp/0.0.1",
+            },
+            {
+                "created_at": "2026-03-13T06:10:00Z",
+                "source": "mcp",
+                "query_type": "score_lookup",
+                "query_text": "brave-search-api",
+                "query_params": {"slug": "brave-search-api"},
+                "agent_id": "rhumb-mcp",
+                "user_agent": "rhumb-mcp/0.0.1",
+            },
+        ],
+        click_events=[
+            {
+                "created_at": "2026-03-13T07:00:00Z",
+                "event_type": "provider_click",
+                "service_slug": "brave-search",
+                "destination_domain": "search.brave.com",
+                "source_surface": "service_page_hero",
+                "page_path": "/service/brave-search-api",
+            },
+            {
+                "created_at": "2026-03-13T07:30:00Z",
+                "event_type": "provider_click",
+                "service_slug": "brave-search-api",
+                "destination_domain": "search.brave.com",
+                "source_surface": "service_page_sidebar",
+                "page_path": "/service/brave-search-api",
+            },
+        ],
+        execution_rows=[],
+        service_rows=[{"slug": "brave-search-api"}, {"slug": "people-data-labs"}],
+        window="launch",
+    )
+
+    assert payload["queries"]["top_services"][:2] == [
+        {"key": "brave-search-api", "count": 2},
+        {"key": "people-data-labs", "count": 1},
+    ]
+    assert payload["clicks"]["provider_ctr"] == [
+        {"service_slug": "brave-search-api", "clicks": 2, "views": 2, "ctr": 1.0}
+    ]
 
 
 def test_launch_dashboard_route_returns_aggregated_metrics(

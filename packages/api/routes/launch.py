@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from routes._supabase import supabase_fetch, supabase_insert
 from routes.admin_auth import require_launch_dashboard_access
 from services.launch_dashboard import SUPPORTED_WINDOWS, build_launch_dashboard
+from services.service_slugs import public_service_slug
 
 router = APIRouter(tags=["launch"])
 
@@ -66,10 +67,14 @@ async def capture_click_event(body: ClickEventRequest, request: Request) -> dict
     destination_domain = _extract_destination_domain(body.destination_url)
     referer = request.headers.get("referer")
 
+    normalized_service_slug = public_service_slug(body.service_slug)
+    if normalized_service_slug is None and isinstance(body.service_slug, str):
+        normalized_service_slug = body.service_slug.strip().lower() or None
+
     payload = {
         "created_at": datetime.now(tz=UTC).isoformat(),
         "event_type": body.event_type,
-        "service_slug": body.service_slug,
+        "service_slug": normalized_service_slug,
         "page_path": body.page_path,
         "destination_url": body.destination_url,
         "destination_domain": destination_domain,
