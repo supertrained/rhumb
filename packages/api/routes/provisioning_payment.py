@@ -19,6 +19,7 @@ from schemas.provisioning import (
     FlowType,
     ProvisioningFlowStore,
 )
+from services.service_slugs import public_service_slug
 
 
 # Payment / billing URLs per provider
@@ -61,22 +62,24 @@ class PaymentFlowHandler:
         Returns:
             ``{"flow_id", "payment_url", "plan", "expires_in"}``
         """
+        public_service = public_service_slug(service) or str(service).strip().lower()
+
         # Validate service
-        if service not in _PAYMENT_URLS:
+        if public_service not in _PAYMENT_URLS:
             return {
                 "flow_id": None,
                 "status": "failed",
-                "error": f"Service '{service}' does not support payment flows",
+                "error": f"Service '{public_service}' does not support payment flows",
             }
 
         # Validate plan
-        valid = _VALID_PLANS.get(service, set())
+        valid = _VALID_PLANS.get(public_service, set())
         if plan not in valid:
             return {
                 "flow_id": None,
                 "status": "failed",
                 "error": (
-                    f"Plan '{plan}' is not valid for '{service}'. "
+                    f"Plan '{plan}' is not valid for '{public_service}'. "
                     f"Valid plans: {sorted(valid)}"
                 ),
             }
@@ -84,13 +87,13 @@ class PaymentFlowHandler:
         # Create flow
         flow_id = await self.store.create_flow(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             flow_type=FlowType.PAYMENT,
             payload={"plan": plan},
         )
 
         # Build payment URL
-        base_url = _PAYMENT_URLS[service]
+        base_url = _PAYMENT_URLS[public_service]
         params = urlencode({"plan": plan})
         payment_url = f"{base_url}?{params}"
         await self.store.set_human_action_url(flow_id, payment_url)

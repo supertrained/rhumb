@@ -26,6 +26,7 @@ from schemas.provisioning import (
     ProvisioningFlowStore,
 )
 from services.proxy_credentials import CredentialStore
+from services.service_slugs import public_service_slug
 
 
 # OAuth provider metadata
@@ -80,24 +81,26 @@ class OAuthFlowHandler:
         Returns:
             ``{"flow_id", "authorization_url", "expires_in"}``
         """
-        if service not in _OAUTH_ENDPOINTS:
+        public_service = public_service_slug(service) or str(service).strip().lower()
+
+        if public_service not in _OAUTH_ENDPOINTS:
             return {
                 "flow_id": None,
                 "status": "failed",
-                "error": f"Service '{service}' does not support OAuth flows",
+                "error": f"Service '{public_service}' does not support OAuth flows",
             }
 
         # Create flow
         flow_id = await self.store.create_flow(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             flow_type=FlowType.OAUTH,
             payload={"scopes": scopes},
             ttl_hours=1,  # OAuth consent URLs are short-lived
         )
 
         # Build authorization URL
-        auth_url = self._build_oauth_url(service, flow_id, scopes)
+        auth_url = self._build_oauth_url(public_service, flow_id, scopes)
         await self.store.set_human_action_url(flow_id, auth_url)
 
         return {

@@ -20,6 +20,7 @@ from schemas.provisioning import (
     FlowType,
     ProvisioningFlowStore,
 )
+from services.service_slugs import public_service_slug
 
 
 # Cached / mock ToS text per provider (Phase 2.2 will fetch live)
@@ -85,12 +86,13 @@ class ToSFlowHandler:
         Returns:
             ``{"flow_id", "tos_text", "tos_hash", "acceptance_url"}``
         """
-        tos_text = await self._fetch_tos(service)
+        public_service = public_service_slug(service) or str(service).strip().lower()
+        tos_text = await self._fetch_tos(public_service)
         if tos_text is None:
             return {
                 "flow_id": None,
                 "status": "failed",
-                "error": f"No ToS available for service '{service}'",
+                "error": f"No ToS available for service '{public_service}'",
             }
 
         tos_hash = hashlib.sha256(tos_text.encode()).hexdigest()
@@ -98,7 +100,7 @@ class ToSFlowHandler:
         # Create flow
         flow_id = await self.store.create_flow(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             flow_type=FlowType.TOS,
             payload={"tos_hash": tos_hash},
         )

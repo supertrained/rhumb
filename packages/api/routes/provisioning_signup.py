@@ -20,6 +20,7 @@ from schemas.provisioning import (
     FlowType,
     ProvisioningFlowStore,
 )
+from services.service_slugs import public_service_slug
 
 
 # Known signup URLs per provider
@@ -54,20 +55,22 @@ class SignupFlowHandler:
         Returns:
             ``{"flow_id", "status", "action_url", "message"}``
         """
+        public_service = public_service_slug(service) or str(service).strip().lower()
+
         # Validate service
-        base_url = _SIGNUP_URLS.get(service)
+        base_url = _SIGNUP_URLS.get(public_service)
         if base_url is None:
             return {
                 "flow_id": None,
                 "status": "failed",
                 "action_url": None,
-                "message": f"Service '{service}' does not support signup flows",
+                "message": f"Service '{public_service}' does not support signup flows",
             }
 
         # Create flow record
         flow_id = await self.store.create_flow(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             flow_type=FlowType.SIGNUP,
             payload={"email": email, "name": name},
         )

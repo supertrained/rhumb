@@ -239,6 +239,24 @@ class TestSignupFlowHandler:
         assert "sendgrid" in result["action_url"]
 
     @pytest.mark.asyncio
+    async def test_signup_start_mixed_case_service_stores_canonical_id(
+        self,
+        signup_handler: SignupFlowHandler,
+        store: ProvisioningFlowStore,
+    ) -> None:
+        """Mixed-case provisioning inputs should persist canonical public service ids."""
+        result = await signup_handler.start_signup(
+            agent_id="rhumb-lead", service="GitHub",
+            email="agent@rhumb.dev", name="Rhumb Lead",
+        )
+        assert result["status"] == "link_provided"
+        assert "github.com/signup" in result["action_url"]
+
+        flow = await store.get_flow(result["flow_id"])
+        assert flow is not None
+        assert flow.service == "github"
+
+    @pytest.mark.asyncio
     async def test_signup_start_unsupported_service(
         self, signup_handler: SignupFlowHandler
     ) -> None:
@@ -300,6 +318,22 @@ class TestOAuthFlowHandler:
             agent_id="rhumb-lead", service="github", scopes=["repo", "user"],
         )
         assert "github.com/login/oauth" in result["authorization_url"]
+
+    @pytest.mark.asyncio
+    async def test_start_oauth_mixed_case_service_stores_canonical_id(
+        self,
+        oauth_handler: OAuthFlowHandler,
+        store: ProvisioningFlowStore,
+    ) -> None:
+        """Mixed-case OAuth inputs should persist canonical public service ids."""
+        result = await oauth_handler.start_oauth(
+            agent_id="rhumb-lead", service="GitHub", scopes=["repo"],
+        )
+        assert "github.com/login/oauth" in result["authorization_url"]
+
+        flow = await store.get_flow(result["flow_id"])
+        assert flow is not None
+        assert flow.service == "github"
 
     @pytest.mark.asyncio
     async def test_start_oauth_unsupported(self, oauth_handler: OAuthFlowHandler) -> None:
@@ -400,6 +434,15 @@ class TestPaymentFlowHandler:
         assert "not valid" in result["error"]
 
     @pytest.mark.asyncio
+    async def test_start_payment_unsupported_alias_input_reports_canonical_service(
+        self, payment_handler: PaymentFlowHandler
+    ) -> None:
+        """Unsupported alias-style inputs should fail on canonical public service ids."""
+        result = await payment_handler.start_payment("a", "Brave-Search", "free")
+        assert result["status"] == "failed"
+        assert result["error"] == "Service 'brave-search-api' does not support payment flows"
+
+    @pytest.mark.asyncio
     async def test_confirm_payment_valid_token(
         self, payment_handler: PaymentFlowHandler
     ) -> None:
@@ -468,6 +511,15 @@ class TestToSFlowHandler:
         """Unsupported service returns failure."""
         result = await tos_handler.start_tos("a", "nonexistent_provider")
         assert result.get("status") == "failed"
+
+    @pytest.mark.asyncio
+    async def test_start_tos_unsupported_alias_input_reports_canonical_service(
+        self, tos_handler: ToSFlowHandler
+    ) -> None:
+        """Unsupported alias-style inputs should keep canonical public service ids in ToS errors."""
+        result = await tos_handler.start_tos("a", "Brave-Search")
+        assert result["status"] == "failed"
+        assert result["error"] == "No ToS available for service 'brave-search-api'"
 
 
 # =====================================================================
@@ -558,6 +610,25 @@ class TestProvisioningOrchestrator:
         assert status["status"] == "in_progress"
         assert status["current_step"] == "oauth"
         assert status["total_steps"] == 2
+
+    @pytest.mark.asyncio
+    async def test_provisioning_start_and_status_normalize_service_ids(
+        self,
+        orchestrator: ProvisioningOrchestrator,
+        store: ProvisioningFlowStore,
+    ) -> None:
+        """Provisioning orchestration should key sequences on canonical public service ids."""
+        start = await orchestrator.start_provisioning("a", "GitHub")
+        assert start["status"] == "in_progress"
+        assert start["current_step"] == "oauth"
+
+        flow = await store.get_flow(start["flow_id"])
+        assert flow is not None
+        assert flow.service == "github"
+
+        status = await orchestrator.get_provisioning_status("a", "GITHUB")
+        assert status["status"] == "in_progress"
+        assert status["service"] == "github"
 
     @pytest.mark.asyncio
     async def test_provisioning_status_not_started(

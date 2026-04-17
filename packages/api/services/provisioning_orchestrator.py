@@ -23,6 +23,7 @@ from routes.provisioning_payment import PaymentFlowHandler
 from routes.provisioning_signup import SignupFlowHandler
 from routes.provisioning_tos import ToSFlowHandler
 from services.proxy_credentials import CredentialStore
+from services.service_slugs import public_service_slug
 
 
 class ProvisioningOrchestrator:
@@ -74,23 +75,24 @@ class ProvisioningOrchestrator:
             ``{"status", "sequence", "current_step", "flow_id",
               "action_url", …}``
         """
-        sequence = self.FLOW_SEQUENCES.get(service)
+        public_service = public_service_slug(service) or str(service).strip().lower()
+        sequence = self.FLOW_SEQUENCES.get(public_service)
         if sequence is None:
             return {
                 "status": "failed",
-                "error": f"Service '{service}' is not supported for provisioning",
+                "error": f"Service '{public_service}' is not supported for provisioning",
             }
 
         ctx = context or {}
 
         # Start first step
         first_type = sequence[0]
-        result = await self._start_step(agent_id, service, first_type, ctx)
+        result = await self._start_step(agent_id, public_service, first_type, ctx)
 
         # Record sequence in store
         await self.store.set_provisioning_sequence(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             sequence=sequence,
             current_index=0,
         )
@@ -123,7 +125,8 @@ class ProvisioningOrchestrator:
             ``{"status": "in_progress", "current_step", "action_url", …}``
             or ``{"status": "complete"}`` when all steps are done.
         """
-        seq_data = await self.store.get_provisioning_sequence(agent_id, service)
+        public_service = public_service_slug(service) or str(service).strip().lower()
+        seq_data = await self.store.get_provisioning_sequence(agent_id, public_service)
         if seq_data is None:
             return {"status": "failed", "error": "no_provisioning_in_progress"}
 
@@ -134,18 +137,18 @@ class ProvisioningOrchestrator:
         if next_index >= len(sequence):
             return {
                 "status": "complete",
-                "message": f"Provisioning complete for {service}",
+                "message": f"Provisioning complete for {public_service}",
                 "steps_completed": len(sequence),
             }
 
         ctx = context or {}
         next_type = sequence[next_index]
-        result = await self._start_step(agent_id, service, next_type, ctx)
+        result = await self._start_step(agent_id, public_service, next_type, ctx)
 
         # Update sequence position
         await self.store.set_provisioning_sequence(
             agent_id=agent_id,
-            service=service,
+            service=public_service,
             sequence=sequence,
             current_index=next_index,
         )
@@ -174,16 +177,17 @@ class ProvisioningOrchestrator:
         Returns:
             ``{"status", "current_step", "steps_completed", "total_steps", …}``
         """
-        seq_data = await self.store.get_provisioning_sequence(agent_id, service)
+        public_service = public_service_slug(service) or str(service).strip().lower()
+        seq_data = await self.store.get_provisioning_sequence(agent_id, public_service)
         if seq_data is None:
-            return {"status": "not_started", "service": service}
+            return {"status": "not_started", "service": public_service}
 
         sequence: List[FlowType] = seq_data["sequence"]
         current_index: int = seq_data["current_index"]
 
         return {
             "status": "in_progress" if current_index < len(sequence) - 1 else "final_step",
-            "service": service,
+            "service": public_service,
             "current_step": sequence[current_index].value,
             "current_step_index": current_index,
             "total_steps": len(sequence),
