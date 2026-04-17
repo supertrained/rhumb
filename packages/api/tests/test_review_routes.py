@@ -506,6 +506,43 @@ def test_get_service_evidence_normalizes_mixed_case_canonical_input(
     assert payload["evidence"][0]["is_fresh"] is True
 
 
+def test_get_service_evidence_canonicalizes_legacy_alias_mentions_in_text(
+    client: TestClient,
+    fake_supabase: dict[str, list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Historical evidence text should not leak runtime alias slugs on public reads."""
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-usage-summary",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "usage_summary",
+            "title": "Usage summary for brave-search (2026-03-26)",
+            "summary": "Aggregated 2 usage events for brave-search",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "usage_events:brave-search:2026-03-26",
+        }
+    )
+    monkeypatch.setattr(
+        reviews_module,
+        "_utc_now",
+        lambda: datetime(2026, 3, 27, 0, 0, tzinfo=UTC),
+    )
+
+    response = client.get("/v1/services/brave-search-api/evidence?kind=usage_summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_evidence"] == 1
+    assert payload["evidence"][0]["title"] == "Usage summary for brave-search-api (2026-03-26)"
+    assert payload["evidence"][0]["summary"] == "Aggregated 2 usage events for brave-search-api"
+    assert payload["evidence"][0]["source_ref"] == "usage_events:brave-search:2026-03-26"
+
+
 def test_get_service_reviews_returns_empty_list_for_unknown_service(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:

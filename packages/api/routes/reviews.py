@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
@@ -122,6 +123,28 @@ def _fallback_review_source_type(review_type: str | None) -> str | None:
 
 def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
+
+
+def _canonicalize_service_text(text: Any, canonical_slug: str | None) -> str | None:
+    """Rewrite alias-backed service-id mentions onto the canonical public slug."""
+    if text is None:
+        return None
+
+    canonical = public_service_slug(canonical_slug)
+    if canonical is None:
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
 
 
 def _quality_floor(
@@ -312,8 +335,8 @@ async def get_service_evidence(
                 "id": str(row["id"]),
                 "evidence_kind": row.get("evidence_kind"),
                 "source_type": row.get("source_type"),
-                "title": row.get("title"),
-                "summary": row.get("summary"),
+                "title": _canonicalize_service_text(row.get("title"), canonical_slug),
+                "summary": _canonicalize_service_text(row.get("summary"), canonical_slug),
                 "observed_at": row.get("observed_at"),
                 "fresh_until": row.get("fresh_until"),
                 "is_fresh": is_fresh(row.get("fresh_until")),
