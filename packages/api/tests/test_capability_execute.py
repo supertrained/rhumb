@@ -1904,6 +1904,106 @@ async def test_execute_agent_vault_no_api_domain_error_uses_canonical_public_pro
 
 
 @pytest.mark.anyio
+async def test_execute_agent_vault_canonicalizes_alias_backed_provider_ids_for_receipt_path(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("services?slug=eq.brave-search&"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"status": 200, "ok": True}
+
+        text = '{"status": 200, "ok": true}'
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            return DummyResponse()
+
+    mock_validator = MagicMock()
+    mock_validator.get_ceremony = AsyncMock(return_value=None)
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_agent_vault_alias")
+    )
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("services.agent_vault.get_vault_validator", return_value=mock_validator),
+        patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
+        patch(
+            "routes.capability_execute.get_receipt_service",
+            return_value=mock_receipt_service,
+        ),
+        patch("routes.capability_execute._emit_execution_billing_event") as mock_billing_event,
+        patch("routes.capability_execute._record_execution_audit_outcome") as mock_audit_outcome,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "agent_vault",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "agent_vault_test_token",
+                },
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["receipt_id"] == "rcpt_agent_vault_alias"
+
+    receipt_input = mock_receipt_service.create_receipt.await_args.args[0]
+    assert receipt_input.provider_id == "brave-search-api"
+    assert mock_billing_event.call_args.kwargs["provider_slug"] == "brave-search-api"
+    assert mock_audit_outcome.call_args.kwargs["provider_slug"] == "brave-search-api"
+
+
+@pytest.mark.anyio
 async def test_execute_agent_rate_limit_uses_durable_limiter(app):
     """Per-agent execute throttles should use the durable limiter, not in-memory dicts."""
     mock_limiter = MagicMock()

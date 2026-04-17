@@ -3147,7 +3147,9 @@ async def execute_capability(
                 await _release_reservations()
                 billing_status = "refunded"
 
-            public_provider_used = _public_provider_slug(request.provider)
+            public_provider_used = (
+                _public_provider_slug(request.provider) or request.provider or "unknown"
+            )
             update_payload = {
                 "provider_used": public_provider_used,
                 "credential_mode": "agent_vault",
@@ -3213,7 +3215,7 @@ async def execute_capability(
                         capability_id=capability_id,
                         status="success" if success else "failure",
                         agent_id=agent_id,
-                        provider_id=request.provider or "unknown",
+                        provider_id=public_provider_used,
                         credential_mode="agent_vault",
                         org_id=org_id,
                         caller_ip_hash=hash_caller_ip(_client_ip(raw_request)),
@@ -3243,7 +3245,7 @@ async def execute_capability(
                 org_id=org_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=request.provider,
+                provider_slug=public_provider_used,
                 credential_mode="agent_vault",
                 amount_usd_cents=billed_cost_cents,
                 receipt_id=vault_response.get("receipt_id"),
@@ -3256,7 +3258,7 @@ async def execute_capability(
                 agent_id=agent_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
-                provider_slug=request.provider,
+                provider_slug=public_provider_used,
                 credential_mode="agent_vault",
                 interface=request.interface,
                 upstream_status=upstream_status,
