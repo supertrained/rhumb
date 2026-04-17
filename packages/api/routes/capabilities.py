@@ -101,6 +101,23 @@ def _public_provider_slug(service_slug: str | None) -> str:
     return public_service_slug(cleaned) or cleaned
 
 
+def _response_provider_slug(service_slug: Any) -> str | None:
+    slug = _public_provider_slug(str(service_slug or ""))
+    return slug or None
+
+
+def _response_provider_slug_list(service_slugs: list[Any]) -> list[str]:
+    response_slugs: list[str] = []
+    seen: set[str] = set()
+    for service_slug in service_slugs:
+        response_slug = _response_provider_slug(service_slug)
+        if not response_slug or response_slug in seen:
+            continue
+        response_slugs.append(response_slug)
+        seen.add(response_slug)
+    return response_slugs
+
+
 def _provider_lookup_slugs(service_slugs: list[str]) -> list[str]:
     lookup_slugs: list[str] = []
     for service_slug in service_slugs:
@@ -941,15 +958,7 @@ def _credential_mode_aliases(credential_mode: str | None) -> set[str]:
 
 
 def _recovery_supported_provider_slugs(items: list[dict[str, object]]) -> list[str]:
-    provider_slugs: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        provider_slug = str(item.get("service_slug") or "")
-        if not provider_slug or provider_slug in seen:
-            continue
-        provider_slugs.append(provider_slug)
-        seen.add(provider_slug)
-    return provider_slugs
+    return _response_provider_slug_list([item.get("service_slug") for item in items])
 
 
 def _recovery_supported_credential_modes(items: list[dict[str, object]]) -> list[str]:
@@ -1011,19 +1020,23 @@ def _credential_mode_filter_recovery_hint(
             if setup_handoff is not None:
                 recovery_hint["setup_handoff"] = setup_handoff
 
-        unavailable_provider_slugs = [
-            str(provider.get("service_slug"))
-            for provider in recovery_items
-            if provider.get("service_slug") and provider.get("available_for_execute") is False
-        ]
+        unavailable_provider_slugs = _response_provider_slug_list(
+            [
+                provider.get("service_slug")
+                for provider in recovery_items
+                if provider.get("service_slug") and provider.get("available_for_execute") is False
+            ]
+        )
         if unavailable_provider_slugs:
             recovery_hint["unavailable_provider_slugs"] = unavailable_provider_slugs
 
-        not_execute_ready_provider_slugs = [
-            str(provider.get("service_slug"))
-            for provider in recovery_items
-            if provider.get("service_slug") and not provider.get("endpoint_pattern")
-        ]
+        not_execute_ready_provider_slugs = _response_provider_slug_list(
+            [
+                provider.get("service_slug")
+                for provider in recovery_items
+                if provider.get("service_slug") and not provider.get("endpoint_pattern")
+            ]
+        )
         if not_execute_ready_provider_slugs:
             recovery_hint["not_execute_ready_provider_slugs"] = not_execute_ready_provider_slugs
 
@@ -1214,6 +1227,9 @@ def _execute_hint_from_provider(
     *,
     requested_credential_mode: str | None = None,
 ) -> dict[str, object]:
+    service_slug = _response_provider_slug(provider.get("service_slug")) or str(
+        provider.get("service_slug") or ""
+    )
     credential_modes = _canonicalize_credential_modes(provider.get("credential_modes", ["byok"]))
     auth_method = str(provider.get("auth_method") or "")
     configured = _provider_configured_for_requested_mode(
@@ -1221,7 +1237,7 @@ def _execute_hint_from_provider(
         requested_credential_mode=requested_credential_mode,
     )
     execute_hint = {
-        "preferred_provider": provider["service_slug"],
+        "preferred_provider": service_slug,
         "endpoint_pattern": provider.get("endpoint_pattern"),
         "estimated_cost_usd": provider.get("cost_per_call"),
         "auth_method": auth_method,
@@ -1238,14 +1254,14 @@ def _execute_hint_from_provider(
         execute_hint["preferred_credential_mode"] = preferred_credential_mode
         if not configured:
             setup_hint = _provider_mode_setup_hint(
-                str(provider.get("service_slug") or ""),
+                service_slug,
                 auth_method,
                 preferred_credential_mode,
             )
             if setup_hint is not None:
                 execute_hint["setup_hint"] = setup_hint
             setup_url = _provider_mode_setup_url(
-                str(provider.get("service_slug") or ""),
+                service_slug,
                 preferred_credential_mode,
             )
             if setup_url is not None:
@@ -1259,7 +1275,9 @@ def _setup_handoff_from_provider(
     *,
     requested_credential_mode: str | None = None,
 ) -> dict[str, object] | None:
-    service_slug = str(provider.get("service_slug") or "")
+    service_slug = _response_provider_slug(provider.get("service_slug")) or str(
+        provider.get("service_slug") or ""
+    )
     if not service_slug:
         return None
 
@@ -1310,13 +1328,15 @@ def _setup_handoff_from_provider(
 
 
 def _execute_ready_fallback_chain(providers: list[dict[str, object]]) -> list[str]:
-    return [
-        str(provider.get("service_slug"))
-        for provider in providers
-        if provider.get("service_slug")
-        and provider.get("recommendation") in ("preferred", "available")
-        and _provider_can_back_execute_hint(provider)
-    ][:3]
+    return _response_provider_slug_list(
+        [
+            provider.get("service_slug")
+            for provider in providers
+            if provider.get("service_slug")
+            and provider.get("recommendation") in ("preferred", "available")
+            and _provider_can_back_execute_hint(provider)
+        ]
+    )[:3]
 
 
 def _recovery_alternate_execute_hint(
@@ -1403,19 +1423,23 @@ def _execute_ready_recovery_hint(
         if setup_handoff is not None:
             recovery_hint["setup_handoff"] = setup_handoff
 
-    unavailable_provider_slugs = [
-        str(provider.get("service_slug"))
-        for provider in providers
-        if provider.get("service_slug") and not provider.get("available_for_execute")
-    ]
+    unavailable_provider_slugs = _response_provider_slug_list(
+        [
+            provider.get("service_slug")
+            for provider in providers
+            if provider.get("service_slug") and not provider.get("available_for_execute")
+        ]
+    )
     if unavailable_provider_slugs:
         recovery_hint["unavailable_provider_slugs"] = unavailable_provider_slugs
 
-    not_execute_ready_provider_slugs = [
-        str(provider.get("service_slug"))
-        for provider in providers
-        if provider.get("service_slug") and not provider.get("endpoint_pattern")
-    ]
+    not_execute_ready_provider_slugs = _response_provider_slug_list(
+        [
+            provider.get("service_slug")
+            for provider in providers
+            if provider.get("service_slug") and not provider.get("endpoint_pattern")
+        ]
+    )
     if not_execute_ready_provider_slugs:
         recovery_hint["not_execute_ready_provider_slugs"] = not_execute_ready_provider_slugs
 
@@ -1427,13 +1451,17 @@ def _execute_hint_fallback_providers(
     *,
     preferred_provider: str,
 ) -> list[str]:
-    return [
-        str(provider.get("service_slug"))
-        for provider in providers
-        if provider.get("service_slug")
-        and provider.get("service_slug") != preferred_provider
-        and _provider_can_back_execute_hint(provider)
-    ][:3]
+    fallback_providers: list[str] = []
+    for provider in providers:
+        provider_slug = _response_provider_slug(provider.get("service_slug"))
+        if (
+            not provider_slug
+            or provider_slug == preferred_provider
+            or not _provider_can_back_execute_hint(provider)
+        ):
+            continue
+        fallback_providers.append(provider_slug)
+    return _response_provider_slug_list(fallback_providers)[:3]
 
 
 def _execute_hint_selection_metadata(
@@ -1443,7 +1471,9 @@ def _execute_hint_selection_metadata(
     selection_providers: list[dict[str, object]] | None = None,
     requested_credential_mode: str | None = None,
 ) -> dict[str, object]:
-    preferred_provider = str(execute_hint.get("preferred_provider") or "")
+    preferred_provider = _response_provider_slug(execute_hint.get("preferred_provider")) or str(
+        execute_hint.get("preferred_provider") or ""
+    )
     if not preferred_provider:
         return {}
 
@@ -1459,7 +1489,7 @@ def _execute_hint_selection_metadata(
         (
             index
             for index, provider in enumerate(ranked_providers)
-            if provider.get("service_slug") == preferred_provider
+            if _response_provider_slug(provider.get("service_slug")) == preferred_provider
         ),
         None,
     )
@@ -1471,16 +1501,20 @@ def _execute_hint_selection_metadata(
         return {"selection_reason": "highest_ranked_provider"}
 
     reason = "lower_ranked_provider_selected"
-    skipped_unavailable_provider_slugs = [
-        str(provider.get("service_slug"))
-        for provider in skipped_providers
-        if provider.get("service_slug") and not provider.get("available_for_execute")
-    ]
-    skipped_not_execute_ready_provider_slugs = [
-        str(provider.get("service_slug"))
-        for provider in skipped_providers
-        if provider.get("service_slug") and not provider.get("endpoint_pattern")
-    ]
+    skipped_unavailable_provider_slugs = _response_provider_slug_list(
+        [
+            provider.get("service_slug")
+            for provider in skipped_providers
+            if provider.get("service_slug") and not provider.get("available_for_execute")
+        ]
+    )
+    skipped_not_execute_ready_provider_slugs = _response_provider_slug_list(
+        [
+            provider.get("service_slug")
+            for provider in skipped_providers
+            if provider.get("service_slug") and not provider.get("endpoint_pattern")
+        ]
+    )
     if requested_credential_mode and any(
         not _supports_requested_credential_mode(provider.get("credential_modes"), requested_credential_mode)
         for provider in skipped_providers
@@ -1497,11 +1531,9 @@ def _execute_hint_selection_metadata(
 
     metadata = {
         "selection_reason": reason,
-        "skipped_provider_slugs": [
-            str(provider.get("service_slug"))
-            for provider in skipped_providers
-            if provider.get("service_slug")
-        ],
+        "skipped_provider_slugs": _response_provider_slug_list(
+            [provider.get("service_slug") for provider in skipped_providers]
+        ),
     }
     if skipped_unavailable_provider_slugs:
         metadata["unavailable_provider_slugs"] = skipped_unavailable_provider_slugs
@@ -1520,12 +1552,15 @@ def _with_execute_hint_fallbacks(
     if not isinstance(execute_hint, dict):
         return execute_hint
 
-    preferred_provider = str(execute_hint.get("preferred_provider") or "")
+    preferred_provider = _response_provider_slug(execute_hint.get("preferred_provider")) or str(
+        execute_hint.get("preferred_provider") or ""
+    )
     if not preferred_provider:
         return execute_hint
 
     enriched_execute_hint = {
         **execute_hint,
+        "preferred_provider": preferred_provider,
         **_execute_hint_selection_metadata(
             execute_hint,
             providers,

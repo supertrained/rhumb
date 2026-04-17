@@ -568,6 +568,112 @@ async def test_alias_backed_capability_surfaces_keep_canonical_public_provider_i
     pc._credential_store = None
 
 
+def test_setup_handoff_from_provider_canonicalizes_alias_backed_service_slug():
+    from routes.capabilities import _setup_handoff_from_provider
+
+    handoff = _setup_handoff_from_provider(
+        "search.query",
+        {
+            "service_slug": "brave-search",
+            "credential_modes": ["agent_vault"],
+            "auth_method": "api_key",
+            "endpoint_pattern": None,
+            "available_for_execute": False,
+            "configured": False,
+            "cost_per_call": None,
+        },
+        requested_credential_mode="agent_vault",
+    )
+
+    assert handoff is not None
+    assert handoff["preferred_provider"] == "brave-search-api"
+    assert handoff["setup_url"] == "/v1/services/brave-search-api/ceremony"
+
+
+def test_credential_mode_filter_recovery_hint_canonicalizes_alias_backed_provider_slugs():
+    from routes.capabilities import _credential_mode_filter_recovery_hint
+
+    recovery_hint = _credential_mode_filter_recovery_hint(
+        "search.query",
+        "agent_vault",
+        reason="no_providers_match_credential_mode",
+        recovery_items=[
+            {
+                "service_slug": "brave-search",
+                "credential_modes": ["agent_vault"],
+                "auth_method": "api_key",
+                "endpoint_pattern": None,
+                "available_for_execute": True,
+                "configured": False,
+                "cost_per_call": None,
+            },
+            {
+                "service_slug": "pdl",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": None,
+                "available_for_execute": False,
+                "configured": False,
+                "cost_per_call": 0.01,
+            },
+        ],
+    )
+
+    assert recovery_hint["supported_provider_slugs"] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+    assert recovery_hint["unavailable_provider_slugs"] == ["people-data-labs"]
+    assert recovery_hint["not_execute_ready_provider_slugs"] == [
+        "brave-search-api",
+        "people-data-labs",
+    ]
+    assert recovery_hint["setup_handoff"]["preferred_provider"] == "brave-search-api"
+    assert recovery_hint["setup_handoff"]["setup_url"] == "/v1/services/brave-search-api/ceremony"
+
+
+def test_with_execute_hint_fallbacks_canonicalizes_alias_backed_provider_slugs():
+    from routes.capabilities import _with_execute_hint_fallbacks
+
+    providers = [
+        {
+            "service_slug": "brave-search",
+            "available_for_execute": True,
+            "endpoint_pattern": "GET /res/v1/web/search",
+            "credential_modes": ["byo"],
+            "configured": False,
+        },
+        {
+            "service_slug": "pdl",
+            "available_for_execute": True,
+            "endpoint_pattern": "POST /person/enrich",
+            "credential_modes": ["byo"],
+            "configured": False,
+        },
+    ]
+
+    execute_hint = {
+        "preferred_provider": "pdl",
+        "endpoint_pattern": "POST /person/enrich",
+        "estimated_cost_usd": 0.01,
+        "auth_method": "api_key",
+        "credential_modes": ["byok"],
+        "configured": False,
+        "credential_modes_url": "/v1/capabilities/search.query/credential-modes",
+    }
+
+    enriched = _with_execute_hint_fallbacks(
+        execute_hint,
+        providers,
+        selection_providers=providers,
+    )
+
+    assert enriched is not None
+    assert enriched["preferred_provider"] == "people-data-labs"
+    assert enriched["fallback_providers"] == ["brave-search-api"]
+    assert enriched["skipped_provider_slugs"] == ["brave-search-api"]
+
+
 @pytest.mark.anyio
 async def test_get_capability_not_found(app):
     """GET /v1/capabilities/nonexistent returns 404 with standardized envelope."""
