@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch
 from schemas.agent_identity import get_agent_identity_store
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -68,6 +69,10 @@ def _to_bool(value: Any) -> bool:
     if isinstance(value, str):
         return value.lower() == "true"
     return bool(value)
+
+
+def _public_provider_slug(value: Any) -> str | None:
+    return public_service_slug(value)
 
 
 def _status_key(value: Any) -> str | None:
@@ -178,8 +183,16 @@ def _build_usage_query(
         params.append(f"agent_id=eq.{quote(agent_id, safe='')}")
     if capability_id:
         params.append(f"capability_id=eq.{quote(capability_id, safe='')}")
-    if provider:
-        params.append(f"provider_used=eq.{quote(provider, safe='')}")
+    provider_candidates = public_service_slug_candidates(provider)
+    if provider_candidates:
+        if len(provider_candidates) == 1:
+            params.append(f"provider_used=eq.{quote(provider_candidates[0], safe='')}")
+        else:
+            provider_filters = ",".join(
+                f"provider_used.eq.{quote(candidate, safe='')}"
+                for candidate in provider_candidates
+            )
+            params.append(f"or=({provider_filters})")
     if success is not None:
         params.append(f"success=eq.{str(success).lower()}")
     if start_at is not None:
@@ -198,11 +211,12 @@ def _filter_rows(
     provider: str | None = None,
     success: bool | None = None,
 ) -> list[dict[str, Any]]:
+    provider_slug = _public_provider_slug(provider)
     filtered: list[dict[str, Any]] = []
     for row in rows:
         if capability_id and row.get("capability_id") != capability_id:
             continue
-        if provider and row.get("provider_used") != provider:
+        if provider_slug and _public_provider_slug(row.get("provider_used")) != provider_slug:
             continue
         if success is not None and _to_bool(row.get("success")) != success:
             continue
@@ -247,7 +261,7 @@ def _group_by_capability(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for capability_id, group in grouped.items():
         provider_counts = Counter(
-            row.get("provider_used") or "unknown"
+            _public_provider_slug(row.get("provider_used")) or "unknown"
             for row in group
         )
         latencies = [_to_float(row.get("total_latency_ms")) for row in group]
@@ -273,7 +287,7 @@ def _group_by_capability(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _group_by_provider(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
-        grouped[row.get("provider_used") or "unknown"].append(row)
+        grouped[_public_provider_slug(row.get("provider_used")) or "unknown"].append(row)
 
     items: list[dict[str, Any]] = []
     for provider, group in grouped.items():
@@ -427,7 +441,7 @@ async def get_provider_health(
 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in filtered_rows:
-        grouped[row.get("provider_used") or "unknown"].append(row)
+        grouped[_public_provider_slug(row.get("provider_used")) or "unknown"].append(row)
 
     providers = [
         _health_rows_to_payload(provider_name, group_rows)
@@ -436,7 +450,7 @@ async def get_provider_health(
     providers.sort(key=lambda item: (-item["total_calls"], item["provider"]))
 
     if provider and not providers:
-        providers = [_health_rows_to_payload(provider, [])]
+        providers = [_health_rows_to_payload(_public_provider_slug(provider) or provider, [])]
 
     return {
         "data": {
@@ -485,7 +499,7 @@ async def get_recent_executions(
             "id": row.get("id"),
             "agent_id": row.get("agent_id"),
             "capability_id": row.get("capability_id"),
-            "provider_used": row.get("provider_used"),
+            "provider_used": _public_provider_slug(row.get("provider_used")),
             "credential_mode": row.get("credential_mode"),
             "method": row.get("method"),
             "path": row.get("path"),
@@ -499,7 +513,7 @@ async def get_recent_executions(
             "upstream_latency_ms": _to_float(row.get("upstream_latency_ms")),
             "billing_status": row.get("billing_status"),
             "fallback_attempted": _to_bool(row.get("fallback_attempted")),
-            "fallback_provider": row.get("fallback_provider"),
+            "fallback_provider": _public_provider_slug(row.get("fallback_provider")),
             "interface": row.get("interface"),
             "error_message": row.get("error_message"),
             "executed_at": _row_timestamp_value(row),

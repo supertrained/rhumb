@@ -201,3 +201,99 @@ def test_usage_empty_results_return_zeros(client: TestClient) -> None:
     assert body["data"]["by_capability"] == []
     assert body["data"]["by_provider"] == []
     assert body["data"]["by_time"] == []
+
+
+def test_usage_endpoint_canonicalizes_alias_backed_provider_ids_and_filters(client: TestClient) -> None:
+    now = datetime.now(timezone.utc)
+    rows = [
+        _execution_row(
+            execution_id="exec_alias",
+            provider_used="brave-search",
+            created_at=(now - timedelta(hours=2)).isoformat().replace("+00:00", "Z"),
+        ),
+        _execution_row(
+            execution_id="exec_other",
+            provider_used="tavily",
+            created_at=(now - timedelta(hours=1)).isoformat().replace("+00:00", "Z"),
+        ),
+    ]
+    captured: dict[str, str] = {}
+
+    async def mock_fetch(path: str):
+        captured["path"] = path
+        return rows
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", side_effect=mock_fetch),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get(
+            "/v1/telemetry/usage",
+            params={"days": 7, "provider": "brave-search-api"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["summary"]["total_calls"] == 1
+    assert data["by_provider"] == [
+        {
+            "provider": "brave-search-api",
+            "calls": 1,
+            "success_rate": 1.0,
+            "avg_latency_ms": 280.0,
+            "total_cost_usd": 0.06,
+            "error_rate": 0.0,
+            "avg_upstream_latency_ms": 250.0,
+        }
+    ]
+    assert data["by_capability"][0]["top_provider"] == "brave-search-api"
+    assert "or=(provider_used.eq.brave-search-api,provider_used.eq.brave-search)" in captured["path"]
+
+
+def test_provider_health_canonicalizes_alias_backed_provider_ids() -> None:
+    now = datetime.now(timezone.utc)
+    rows = [
+        _execution_row(
+            execution_id="exec_health_alias",
+            provider_used="brave-search",
+            created_at=(now - timedelta(hours=1)).isoformat().replace("+00:00", "Z"),
+        )
+    ]
+    captured: dict[str, str] = {}
+
+    async def mock_fetch(path: str):
+        captured["path"] = path
+        return rows
+
+    with patch("routes.telemetry.supabase_fetch", side_effect=mock_fetch):
+        response = TestClient(app).get(
+            "/v1/telemetry/provider-health",
+            params={"provider": "brave-search-api"},
+        )
+
+    assert response.status_code == 200
+    provider = response.json()["data"]["providers"][0]
+    assert provider["provider"] == "brave-search-api"
+    assert provider["total_calls"] == 1
+    assert "or=(provider_used.eq.brave-search-api,provider_used.eq.brave-search)" in captured["path"]
+
+
+def test_recent_endpoint_canonicalizes_alias_backed_provider_ids(client: TestClient) -> None:
+    row = _execution_row(execution_id="exec_recent_alias", provider_used="brave-search")
+    row["fallback_attempted"] = True
+    row["fallback_provider"] = "brave-search"
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, return_value=[row]),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/recent", params={"limit": 5})
+
+    assert response.status_code == 200
+    record = response.json()["data"][0]
+    assert record["provider_used"] == "brave-search-api"
+    assert record["fallback_provider"] == "brave-search-api"
