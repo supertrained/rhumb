@@ -198,6 +198,7 @@ class RhumbManagedExecutor:
             )
 
         slug = config["service_slug"]
+        public_provider_used = public_service_slug(slug) or slug
         method = config["default_method"]
         path = config["default_path"]
         default_headers = config.get("default_headers") or {}
@@ -345,7 +346,7 @@ class RhumbManagedExecutor:
 
         # Log execution
         update_payload = {
-            "provider_used": slug,
+            "provider_used": public_provider_used,
             "credential_mode": "rhumb_managed",
             "method": method,
             "path": path,
@@ -381,7 +382,7 @@ class RhumbManagedExecutor:
 
         return {
             "capability_id": capability_id,
-            "provider_used": slug,
+            "provider_used": public_provider_used,
             "credential_mode": "rhumb_managed",
             "upstream_status": upstream_status,
             "upstream_response": upstream_response,

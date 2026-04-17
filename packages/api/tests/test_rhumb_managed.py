@@ -970,6 +970,8 @@ async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
     """Brave managed executions should translate logical query fields to Brave's q/count params."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY", "brave_test_secret")
 
+    captured: dict = {}
+
     async def mock_fetch(path):
         if "rhumb_managed_capabilities?" in path:
             return [
@@ -990,12 +992,12 @@ async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
         return []
 
     async def mock_insert(table, payload):
+        captured["insert_payload"] = payload
         return {"id": payload.get("id")}
 
     async def mock_patch(path, payload):
+        captured["patch_payload"] = payload
         return [payload]
-
-    captured: dict = {}
 
     class DummyResponse:
         status_code = 200
@@ -1040,7 +1042,8 @@ async def test_managed_executor_brave_search_maps_query_to_q(monkeypatch):
             service_slug="brave-search-api",
         )
 
-    assert result["provider_used"] == "brave-search"
+    assert result["provider_used"] == "brave-search-api"
+    assert captured["patch_payload"]["provider_used"] == "brave-search-api"
     assert captured["base_url"] == "https://api.search.brave.com"
     assert captured["method"] == "GET"
     assert captured["url"] == "/res/v1/web/search"
