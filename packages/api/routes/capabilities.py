@@ -3481,13 +3481,15 @@ async def get_ceremony(service_slug: str) -> dict:
     Returns step-by-step instructions for an agent to obtain
     its own API credentials, plus token format info for validation.
     """
+    canonical_service_slug = public_service_slug(service_slug) or service_slug
+
     from services.agent_vault import get_vault_validator
     validator = get_vault_validator()
     ceremony = await validator.get_ceremony(service_slug)
     if ceremony is None:
         return {
             "data": None,
-            "error": f"No ceremony available for service '{service_slug}'",
+            "error": f"No ceremony available for service '{canonical_service_slug}'",
         }
     return {"data": ceremony, "error": None}
 

@@ -147,6 +147,24 @@ async def test_get_ceremony_not_found(app):
 
 
 @pytest.mark.anyio
+async def test_get_ceremony_missing_alias_input_reports_canonical_public_slug(app):
+    """Missing ceremony reads should report canonical public ids for alias inputs."""
+
+    async def mock_fetch(path):
+        return []
+
+    with patch("services.agent_vault.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/Brave-Search/ceremony")
+
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "data": None,
+        "error": "No ceremony available for service 'brave-search-api'",
+    }
+
+
+@pytest.mark.anyio
 async def test_get_ceremony_resolves_alias_backed_runtime_row_to_canonical_slug(app):
     """Canonical public slugs should still resolve ceremony rows stored on runtime aliases."""
     async def mock_fetch(path):
