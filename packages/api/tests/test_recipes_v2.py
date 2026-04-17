@@ -273,6 +273,72 @@ async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(a
 
 
 @pytest.mark.anyio
+async def test_execute_recipe_canonicalizes_alias_backed_provider_ids_on_response_and_persistence(app, mock_agent):
+    async def _mock_forward(raw_request, *, method: str, path: str, params=None, json_body=None):
+        if path == "/v2/capabilities/media.transcribe/execute":
+            return _MockResponse(
+                200,
+                {
+                    "data": {
+                        "provider_used": "brave-search",
+                        "upstream_response": {"transcript": "hello world"},
+                        "cost_estimate_usd": 0.03,
+                        "latency_ms": 120,
+                        "receipt_id": "rcpt_step_transcribe",
+                        "execution_id": "exec_step_1",
+                    },
+                    "error": None,
+                },
+            )
+        if path == "/v2/capabilities/email.send/execute":
+            return _MockResponse(
+                200,
+                {
+                    "data": {
+                        "provider_used": "pdl",
+                        "upstream_response": {"id": "msg_123"},
+                        "cost_estimate_usd": 0.01,
+                        "latency_ms": 80,
+                        "receipt_id": "rcpt_step_notify",
+                        "execution_id": "exec_step_2",
+                    },
+                    "error": None,
+                },
+            )
+        raise AssertionError(f"unexpected internal forward path: {path}")
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2.supabase_insert_required", new_callable=AsyncMock, return_value=None) as mock_insert_required,
+        patch("routes.recipes_v2.supabase_patch_required", new_callable=AsyncMock, return_value=[]),
+        patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["step_results"][0]["provider_used"] == "brave-search-api"
+    assert body["data"]["step_results"][1]["provider_used"] == "people-data-labs"
+
+    step_insert_payloads = [call.args[1] for call in mock_insert_required.await_args_list[1:]]
+    assert step_insert_payloads[0]["provider_used"] == "brave-search-api"
+    assert step_insert_payloads[1]["provider_used"] == "people-data-labs"
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_propagates_step_idempotency_keys(app, mock_agent):
     forward_calls: list[tuple[str, dict]] = []
     mock_store = MagicMock()
@@ -420,6 +486,93 @@ async def test_execute_recipe_deduplicates_via_durable_store(app, mock_agent):
     body = response.json()
     assert body["data"]["deduplicated"] is True
     assert body["data"]["execution_id"] == "rexec_existing123"
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_deduplicated_replay_canonicalizes_alias_backed_provider_ids(app, mock_agent):
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(return_value=MagicMock(
+        execution_id="rexec_existing123",
+        recipe_id="transcribe_and_notify",
+        status="completed",
+        result_hash="hash123",
+    ))
+
+    def _mock_supabase_fetch_with_existing_rows(path: str):
+        if path.startswith("recipes?") and "recipe_id=eq.transcribe_and_notify" in path:
+            return [RECIPE_ROW]
+        if path.startswith("recipe_executions?") and "execution_id=eq.rexec_existing123" in path:
+            return [{
+                "execution_id": "rexec_existing123",
+                "recipe_id": "transcribe_and_notify",
+                "status": "completed",
+                "inputs": {},
+                "total_cost_usd": 0.04,
+                "total_duration_ms": 200,
+                "step_count": 2,
+                "steps_completed": 2,
+                "error": None,
+                "started_at": "2026-04-17T07:00:00Z",
+                "completed_at": "2026-04-17T07:00:02Z",
+                "org_id": "org_recipe_test",
+                "agent_id": "agent_recipe_test",
+                "credential_mode": "byo",
+            }]
+        if path.startswith("recipe_step_executions?") and "execution_id=eq.rexec_existing123" in path:
+            return [
+                {
+                    "execution_id": "rexec_existing123",
+                    "step_id": "transcribe",
+                    "capability_id": "media.transcribe",
+                    "status": "succeeded",
+                    "cost_usd": 0.03,
+                    "duration_ms": 120,
+                    "receipt_id": "rcpt_step_transcribe",
+                    "provider_used": "brave-search",
+                    "retries_used": 0,
+                    "error": None,
+                    "outputs": {"transcript_text": "hello world"},
+                },
+                {
+                    "execution_id": "rexec_existing123",
+                    "step_id": "notify",
+                    "capability_id": "email.send",
+                    "status": "succeeded",
+                    "cost_usd": 0.01,
+                    "duration_ms": 80,
+                    "receipt_id": "rcpt_step_notify",
+                    "provider_used": "pdl",
+                    "retries_used": 0,
+                    "error": None,
+                    "outputs": {"message_id": "msg_123"},
+                },
+            ]
+        return _mock_supabase_fetch(path)
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch_with_existing_rows),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                    "idempotency_key": "recipe-idem-1",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["deduplicated"] is True
+    assert body["data"]["step_results"][0]["provider_used"] == "brave-search-api"
+    assert body["data"]["step_results"][1]["provider_used"] == "people-data-labs"
 
 
 @pytest.mark.anyio

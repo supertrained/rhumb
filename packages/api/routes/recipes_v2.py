@@ -40,6 +40,7 @@ from services.recipe_engine import (
     compile_recipe,
 )
 from services.recipe_safety import RecipeSafetyGate, get_safety_gate
+from services.service_slugs import public_service_slug
 
 router = APIRouter()
 
@@ -181,6 +182,10 @@ def _status_code_for_recipe(recipe_status: str) -> int:
     return 200
 
 
+def _public_provider_used(provider_used: str | None) -> str | None:
+    return public_service_slug(provider_used) or provider_used
+
+
 def _build_step_result_payload(step: StepDefinition | None, result: StepResult) -> dict[str, Any]:
     return {
         "step_id": result.step_id,
@@ -192,7 +197,7 @@ def _build_step_result_payload(step: StepDefinition | None, result: StepResult) 
         "receipt_id": result.receipt_id,
         "error": result.error,
         "retries_used": result.retries_used,
-        "provider_used": result.provider_used,
+        "provider_used": _public_provider_used(result.provider_used),
     }
 
 
@@ -252,7 +257,7 @@ def _build_execution_payload_from_rows(
             "receipt_id": row.get("receipt_id"),
             "error": row.get("error"),
             "retries_used": row.get("retries_used", 0),
-            "provider_used": row.get("provider_used"),
+            "provider_used": _public_provider_used(row.get("provider_used")),
         }
         for row in step_rows
     ]
@@ -525,7 +530,7 @@ async def _persist_execution(
                 "cost_usd": result.cost_usd,
                 "duration_ms": result.duration_ms,
                 "receipt_id": result.receipt_id or None,
-                "provider_used": result.provider_used,
+                "provider_used": _public_provider_used(result.provider_used),
                 "retries_used": result.retries_used,
                 "error": result.error,
                 "outputs": result.outputs,
