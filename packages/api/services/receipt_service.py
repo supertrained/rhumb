@@ -216,6 +216,7 @@ class ReceiptService:
         """
         receipt_id = _generate_receipt_id()
         created_at = self._now_iso()
+        provider_id = public_service_slug(input.provider_id) or input.provider_id
 
         # Advance chain state atomically
         chain_state = await self._advance_chain_state()
@@ -236,7 +237,7 @@ class ReceiptService:
             "agent_id": input.agent_id,
             "org_id": input.org_id,
             "caller_ip_hash": input.caller_ip_hash,
-            "provider_id": input.provider_id,
+            "provider_id": provider_id,
             "provider_name": input.provider_name,
             "provider_model": input.provider_model,
             "credential_mode": input.credential_mode,
@@ -283,7 +284,7 @@ class ReceiptService:
             receipt_id,
             input.execution_id,
             chain_sequence,
-            input.provider_id,
+            provider_id,
             input.status,
         )
 
@@ -296,7 +297,7 @@ class ReceiptService:
             capability_id=input.capability_id,
             status=input.status,
             agent_id=input.agent_id,
-            provider_id=input.provider_id,
+            provider_id=provider_id,
             credential_mode=input.credential_mode,
             receipt_hash=receipt_hash,
             previous_receipt_hash=previous_hash,
