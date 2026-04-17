@@ -850,7 +850,7 @@ def _log_x402_interop_trace(
         "user_agent": raw_request.headers.get("user-agent"),
         "content_type": raw_request.headers.get("content-type"),
         "capability_id": capability_id,
-        "provider": provider,
+        "provider": _public_provider_slug(provider) or provider,
         "agent_id": agent_id,
         "org_id": org_id,
         "execution_id": execution_id,

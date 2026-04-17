@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import json
@@ -11,6 +12,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
+from routes import capability_execute
 from schemas.agent_identity import AgentIdentitySchema
 from routes._supabase import SupabaseWriteUnavailable
 from services.durable_idempotency import IdempotencyUnavailable
@@ -115,6 +117,35 @@ def _mock_required_execution_patch():
         return_value=[{}],
     ):
         yield
+
+
+def test_x402_interop_trace_canonicalizes_alias_backed_provider_ids():
+    request = MagicMock()
+    request.state = SimpleNamespace(request_id="req_cap_exec_alias_trace")
+    request.method = "POST"
+    request.url = SimpleNamespace(path="/v1/capabilities/search.query/execute")
+    request.headers = {
+        "user-agent": "pytest",
+        "content-type": "application/json",
+    }
+    request.client = SimpleNamespace(host="127.0.0.1")
+
+    with patch.object(capability_execute.logger, "info") as mock_info:
+        capability_execute._log_x402_interop_trace(
+            request,
+            capability_id="search.query",
+            x_payment="proof",
+            payment_trace={"parse_mode": "json", "top_level_keys": ["proof"]},
+            outcome="executed",
+            response_status=200,
+            provider="brave-search",
+            execution_id="exec_alias_trace",
+        )
+
+    payload = mock_info.call_args.kwargs["extra"]["x402_interop"]
+    assert payload["provider"] == "brave-search-api"
+    assert payload["execution_id"] == "exec_alias_trace"
+    assert payload["capability_id"] == "search.query"
 
 
 # ── Sample data ─────────────────────────────────────────────
