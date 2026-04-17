@@ -677,7 +677,7 @@ class AuditTrail:
                 event.action,
                 event.receipt_id or "",
                 event.execution_id or "",
-                event.provider_slug or "",
+                public_service_slug(event.provider_slug) or event.provider_slug or "",
                 event.chain_sequence,
                 event.chain_hash,
             ])

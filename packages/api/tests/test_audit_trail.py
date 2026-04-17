@@ -376,6 +376,35 @@ class TestExport:
         assert "event_id" in lines[0]
         assert "execution.started" in lines[1]
 
+    def test_export_csv_canonicalizes_alias_backed_provider_slug(self):
+        trail = AuditTrail()
+        raw_event = AuditEvent(
+            event_id="aud_test",
+            event_type=AuditEventType.EXECUTION_COMPLETED,
+            severity=AuditSeverity.INFO,
+            category="execution",
+            timestamp=datetime.now(timezone.utc),
+            org_id="org_1",
+            agent_id="agent_1",
+            principal=None,
+            resource_type=None,
+            resource_id=None,
+            action="done",
+            detail={},
+            receipt_id="rcpt_1",
+            execution_id="exec_1",
+            provider_slug="brave-search",
+            chain_sequence=1,
+            chain_hash="hash_1",
+            prev_hash=AuditTrail.GENESIS_HASH,
+            key_version=1,
+        )
+
+        csv_data = trail._export_csv([raw_event])
+
+        assert "brave-search-api" in csv_data
+        assert "brave-search," not in csv_data
+
     def test_export_with_filters(self):
         trail = AuditTrail()
         trail.record(AuditEventType.EXECUTION_STARTED, "a", org_id="org_1")
