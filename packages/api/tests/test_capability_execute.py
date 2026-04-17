@@ -1424,6 +1424,58 @@ async def test_execute_canonicalizes_alias_backed_provider_ids_on_response_and_p
     assert mock_patch_required.await_args.args[1]["fallback_provider"] is None
 
 
+def test_execute_recovery_hints_canonicalize_alias_backed_provider_slugs():
+    from routes.capability_execute import _execute_recovery_hints
+
+    mappings = [
+        {
+            "service_slug": "pdl",
+            "credential_modes": ["byo"],
+        },
+        {
+            "service_slug": "brave-search",
+            "credential_modes": ["byo"],
+        },
+    ]
+
+    hints = _execute_recovery_hints(
+        capability_id="search.query",
+        mappings=mappings,
+        credential_mode="byo",
+        requested_provider="pdl",
+        selected_mapping=mappings[0],
+    )
+
+    assert hints["requested_provider"] == "people-data-labs"
+    assert hints["estimate_url"].startswith("/v1/capabilities/search.query/execute/estimate")
+    assert "provider=people-data-labs" in hints["estimate_url"]
+    assert hints["available_providers"] == [
+        {"provider": "people-data-labs", "credential_modes": ["byok"]},
+        {"provider": "brave-search-api", "credential_modes": ["byok"]},
+    ]
+
+
+def test_managed_provider_unavailable_response_canonicalizes_requested_provider():
+    from routes.capability_execute import _managed_provider_unavailable_response
+
+    dummy_request = MagicMock()
+    dummy_request.state = MagicMock(request_id="req_test")
+
+    resp = _managed_provider_unavailable_response(
+        dummy_request,
+        capability_id="search.query",
+        mappings=[{"service_slug": "pdl", "credential_modes": ["byo"]}],
+        requested_provider="pdl",
+        available_managed_mappings=[{"service_slug": "brave-search", "credential_modes": ["byo"]}],
+    )
+
+    assert resp.status_code == 503
+    body = json.loads(resp.body)
+    assert body["requested_provider"] == "people-data-labs"
+    assert "people-data-labs" in body["message"]
+    assert body["available_providers"][0]["provider"] == "brave-search-api"
+
+
 @pytest.mark.anyio
 async def test_execute_no_api_domain_error_uses_canonical_public_provider_id(app):
     async def _mock_fetch(path: str):

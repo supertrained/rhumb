@@ -269,16 +269,17 @@ def _provider_option_summaries(mappings: list[dict]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     for mapping in mappings:
         provider = str(mapping.get("service_slug") or "").strip()
-        if not provider or provider in seen:
+        public_provider = _public_provider_slug(provider) or provider
+        if not public_provider or public_provider in seen:
             continue
         modes = _parse_credential_modes(mapping.get("credential_modes") or ["byok"]) or ["byok"]
         options.append(
             {
-                "provider": provider,
+                "provider": public_provider,
                 "credential_modes": modes,
             }
         )
-        seen.add(provider)
+        seen.add(public_provider)
     return options
 
 
@@ -437,13 +438,18 @@ def _execute_recovery_hints(
     selected_mapping: dict | None = None,
 ) -> dict[str, Any]:
     """Return stable resolve/estimate/provider hints for execute-time recovery."""
-    effective_provider = requested_provider or (
+    effective_provider_raw = requested_provider or (
         str(selected_mapping.get("service_slug") or "").strip()
         if isinstance(selected_mapping, dict)
         else None
     )
+    effective_provider = (
+        (_public_provider_slug(effective_provider_raw) or effective_provider_raw)
+        if effective_provider_raw
+        else None
+    )
     effective_mode = credential_mode if credential_mode and credential_mode != "auto" else None
-    requested_mapping = _matching_provider_mapping(mappings, effective_provider)
+    requested_mapping = _matching_provider_mapping(mappings, effective_provider_raw or effective_provider)
     target_mapping = requested_mapping or selected_mapping
 
     hints: dict[str, Any] = {
@@ -484,10 +490,12 @@ def _managed_provider_unavailable_response(
     available_providers = _provider_option_summaries(available_managed_mappings or [])
 
     if requested_provider:
+        public_requested_provider = _public_provider_label(requested_provider)
+        requested_slug = _public_provider_slug(requested_provider) or requested_provider
         content: dict[str, Any] = {
             "error": "provider_not_available",
             "message": (
-                f"Provider '{requested_provider}' is not available for capability "
+                f"Provider '{public_requested_provider}' is not available for capability "
                 f"'{capability_id}' with credential_mode 'rhumb_managed'"
             ),
             "resolution": (
@@ -496,7 +504,7 @@ def _managed_provider_unavailable_response(
                 "if you want to use your own API key."
             ),
             "credential_mode": "rhumb_managed",
-            "requested_provider": requested_provider,
+            "requested_provider": requested_slug,
             "available_providers": available_providers,
             "resolve_url": _capability_resolve_url(capability_id, credential_mode="rhumb_managed"),
             "request_id": request_id,
