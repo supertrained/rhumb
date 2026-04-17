@@ -369,6 +369,52 @@ async def _mock_runtime_alias_service_supabase_fetch(path: str):
     raise AssertionError(f"Unexpected Supabase fetch path: {path}")
 
 
+async def _mock_alias_failure_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        rows = [
+            {
+                "service_slug": "brave-search",
+                "id": "fm-brave-alias-text",
+                "category": "auth",
+                "title": "brave-search session tokens expire early",
+                "description": "brave-search sessions can lose auth unexpectedly.",
+                "severity": "medium",
+                "frequency": "intermittent",
+                "agent_impact": "Agents using brave-search may need to retry search requests.",
+                "workaround": "Refresh brave-search credentials before multi-step browse loops.",
+                "last_verified": "2026-04-16T15:45:00Z",
+                "evidence_count": 2,
+            }
+        ]
+        return [row for row in rows if row["service_slug"] in slugs]
+    return await _mock_alias_supabase_fetch(path)
+
+
+async def _mock_canonical_failure_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        rows = [
+            {
+                "service_slug": "people-data-labs",
+                "id": "fm-pdl-canonical-text",
+                "category": "auth",
+                "title": "PDL session windows are short",
+                "description": "PDL sessions can time out during long imports.",
+                "severity": "medium",
+                "frequency": "intermittent",
+                "agent_impact": "Agents using PDL may need to re-run enrichment steps.",
+                "workaround": "Re-authenticate PDL before long imports.",
+                "last_verified": "2026-04-16T15:45:00Z",
+                "evidence_count": 1,
+            }
+        ]
+        return [row for row in rows if row["service_slug"] in slugs]
+    raise AssertionError(f"Unexpected Supabase fetch path: {path}")
+
+
 def test_unknown_service_slug_returns_404(client) -> None:
     """Unknown services should return a route-level 404 envelope."""
     with patch(
@@ -789,6 +835,27 @@ def test_service_score_reads_runtime_alias_service_docs(client) -> None:
     assert payload["an_score"] == 8.7
 
 
+def test_service_score_canonicalizes_legacy_alias_mentions_in_failure_copy(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_failure_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["failure_modes"] == [
+        {
+            "pattern": "brave-search-api session tokens expire early",
+            "impact": "Agents using brave-search-api may need to retry search requests.",
+            "frequency": "intermittent",
+            "workaround": "Refresh brave-search-api credentials before multi-step browse loops.",
+        }
+    ]
+
+
 def test_service_failures_reads_alias_backed_failure_rows(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -828,6 +895,33 @@ def test_service_score_accepts_mixed_case_alias_inputs(client) -> None:
     payload = resp.json()
     assert payload["service_slug"] == "brave-search-api"
     assert payload["an_score"] == 8.7
+
+
+
+def test_service_failures_preserve_human_shorthand_on_canonical_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_failure_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/people-data-labs/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["data"]["slug"] == "people-data-labs"
+    assert payload["data"]["failure_modes"] == [
+        {
+            "pattern": "PDL session windows are short",
+            "impact": "Agents using PDL may need to re-run enrichment steps.",
+            "frequency": "intermittent",
+            "workaround": "Re-authenticate PDL before long imports.",
+            "category": "auth",
+            "severity": "medium",
+            "description": "PDL sessions can time out during long imports.",
+            "last_verified": "2026-04-16T15:45:00Z",
+            "evidence_count": 1,
+        }
+    ]
 
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from urllib.parse import quote
 
@@ -60,6 +61,35 @@ def _build_in_filter(values: set[str]) -> str:
 
 def _public_service_input_slug(service_slug: str | None) -> str:
     return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
+
+
+def _canonicalize_service_text(
+    text: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+    if raw_stored_slug == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
 
 
 def _score_query_slugs(service_slugs: list[str]) -> list[str]:
@@ -469,19 +499,30 @@ async def get_service_score(slug: str, raw_request: Request):
         f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc"
-        f"&select=title,description,severity,frequency,agent_impact,workaround"
+        f"&select=service_slug,title,description,severity,frequency,agent_impact,workaround"
     )
     failure_modes = []
     if failures:
-        failure_modes = [
-            {
-                "pattern": f.get("title", ""),
-                "impact": f.get("agent_impact", f.get("description", "")),
-                "frequency": f.get("frequency", "unknown"),
-                "workaround": f.get("workaround", ""),
-            }
-            for f in failures
-        ]
+        failure_modes = []
+        for f in failures:
+            description = _canonicalize_service_text(
+                f.get("description", ""), canonical_slug, f.get("service_slug")
+            ) or ""
+            impact = _canonicalize_service_text(
+                f.get("agent_impact"), canonical_slug, f.get("service_slug")
+            )
+            failure_modes.append(
+                {
+                    "pattern": _canonicalize_service_text(
+                        f.get("title", ""), canonical_slug, f.get("service_slug")
+                    ) or "",
+                    "impact": impact or description,
+                    "frequency": f.get("frequency", "unknown"),
+                    "workaround": _canonicalize_service_text(
+                        f.get("workaround", ""), canonical_slug, f.get("service_slug")
+                    ) or "",
+                }
+            )
 
     return {
         "service_slug": public_service_slug(sc.get("service_slug")) or canonical_slug,
@@ -519,7 +560,7 @@ async def get_failures(slug: str) -> dict:
         f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc,frequency.asc"
-        f"&select=id,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"
+        f"&select=id,service_slug,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"
     )
     if failures is None:
         return {"data": {"slug": canonical_slug, "failures": []}, "error": "Unable to load failure modes."}
@@ -529,13 +570,25 @@ async def get_failures(slug: str) -> dict:
             "slug": canonical_slug,
             "failure_modes": [
                 {
-                    "pattern": f.get("title", ""),
-                    "impact": f.get("agent_impact", f.get("description", "")),
+                    "pattern": _canonicalize_service_text(
+                        f.get("title", ""), canonical_slug, f.get("service_slug")
+                    ) or "",
+                    "impact": _canonicalize_service_text(
+                        f.get("agent_impact"), canonical_slug, f.get("service_slug")
+                    )
+                    or _canonicalize_service_text(
+                        f.get("description", ""), canonical_slug, f.get("service_slug")
+                    )
+                    or "",
                     "frequency": f.get("frequency", "unknown"),
-                    "workaround": f.get("workaround", ""),
+                    "workaround": _canonicalize_service_text(
+                        f.get("workaround", ""), canonical_slug, f.get("service_slug")
+                    ) or "",
                     "category": f.get("category", ""),
                     "severity": f.get("severity", ""),
-                    "description": f.get("description", ""),
+                    "description": _canonicalize_service_text(
+                        f.get("description", ""), canonical_slug, f.get("service_slug")
+                    ) or "",
                     "last_verified": f.get("last_verified"),
                     "evidence_count": f.get("evidence_count", 0),
                 }
