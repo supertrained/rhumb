@@ -432,7 +432,7 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> dict[str, d
 
 async def _resolve_provider_detail(provider_id: str) -> dict | None:
     """Fetch the service detail for a provider slug."""
-    service_row: dict[str, Any] | None = None
+    service_rows: list[dict[str, Any]] = []
     for candidate in _provider_slug_candidates(provider_id):
         rows = await supabase_fetch(
             f"services?slug=eq.{quote(candidate)}"
@@ -440,8 +440,10 @@ async def _resolve_provider_detail(provider_id: str) -> dict | None:
             f"&limit=1"
         )
         if rows:
-            service_row = rows[0]
-            break
+            service_rows.extend(rows)
+
+    canonical_provider_slug = public_service_slug(provider_id) or str(provider_id).strip().lower()
+    service_row = _canonicalize_service_rows(service_rows).get(canonical_provider_slug)
 
     score_row = await _resolve_provider_score(provider_id)
     direct_mappings = _direct_provider_service_mappings(provider_id)

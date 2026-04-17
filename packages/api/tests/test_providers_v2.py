@@ -202,6 +202,46 @@ def _mock_supabase_fetch_with_duplicate_canonical_and_alias_rows(query: str):
     return []
 
 
+def _mock_supabase_fetch_with_partial_canonical_and_alias_rows(query: str):
+    """Return a sparse canonical row plus a richer alias row for detail backfill."""
+    if query.startswith("capability_services?"):
+        if "service_slug=eq.brave-search" in query:
+            return [{
+                "capability_id": "search.query",
+                "service_slug": "brave-search",
+                "credential_modes": "byo,rhumb_managed",
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+                "cost_currency": "USD",
+                "free_tier_calls": 2000,
+            }]
+        return []
+    if query.startswith("services?"):
+        if "slug=eq.brave-search-api" in query:
+            return [{
+                "slug": "brave-search-api",
+                "name": None,
+                "description": None,
+                "category": None,
+                "official_docs": None,
+            }]
+        if "slug=eq.brave-search" in query:
+            return [_BRAVE_ALIAS_SERVICE_DETAIL]
+        return []
+    if query.startswith("scores?"):
+        if "brave-search" in query:
+            return [{
+                "service_slug": "brave-search",
+                "aggregate_recommendation_score": 8.6,
+                "tier": "native",
+                "tier_label": "Native",
+                "calculated_at": "2026-03-31T00:00:00Z",
+            }]
+        return []
+    return []
+
+
 def _mock_supabase_fetch_with_stale_direct_db_mapping(query: str):
     """Inject a stale db.query.read -> resend row and no real postgresql catalog rows."""
     if query.startswith("capability_services?"):
@@ -503,6 +543,22 @@ class TestGetProvider:
         assert data["an_score"] == 8.6
         assert data["tier"] == "Native"
         assert data["capabilities"][0]["capability_id"] == "search.query"
+
+    def test_get_provider_backfills_sparse_canonical_metadata_from_alias_row(self, client):
+        with patch(
+            "routes.providers_v2.supabase_fetch",
+            side_effect=_mock_supabase_fetch_with_partial_canonical_and_alias_rows,
+        ):
+            resp = client.get("/v2/providers/brave-search-api")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["id"] == "brave-search-api"
+        assert data["name"] == _BRAVE_ALIAS_SERVICE_DETAIL["name"]
+        assert data["description"] == _BRAVE_ALIAS_SERVICE_DETAIL["description"]
+        assert data["category"] == _BRAVE_ALIAS_SERVICE_DETAIL["category"]
+        assert data["an_score"] == 8.6
+        assert data["tier"] == "Native"
 
     def test_get_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
