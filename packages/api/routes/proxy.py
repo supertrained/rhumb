@@ -823,6 +823,14 @@ async def proxy_request(
         timings["total_route_ms"] = (error_end - request_start) * 1000
         error_latency_ms = timings["total_route_ms"]
 
+        logger.warning(
+            "proxy unhandled error service=%s public_service=%s agent_id=%s error=%s",
+            proxy_service,
+            public_request_service,
+            agent_id,
+            e,
+        )
+
         if breaker is not None:
             breaker.record_failure()
         if tracker is not None and agent_id != "unknown":
@@ -848,8 +856,8 @@ async def proxy_request(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Proxy error: {str(e)}",
-        )
+            detail=f"Proxy error for '{public_request_service}'",
+        ) from e
     finally:
         timings["total_route_ms"] = (time.perf_counter() - request_start) * 1000
         logger.info(

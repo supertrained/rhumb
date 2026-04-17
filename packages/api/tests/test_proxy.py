@@ -245,6 +245,46 @@ class TestProxyRouter:
         assert response.status_code == 503
         assert response.json()["detail"] == "Credential unavailable for 'people-data-labs'"
 
+    def test_proxy_unhandled_error_keeps_canonical_public_service_id(
+        self,
+        client,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Unhandled proxy failures should not leak runtime proxy aliases on public errors."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "pdl"))
+        proxy_module._auth_injector_instance.credentials.set_credential("pdl", "api_key", "pdl_test_vault")
+
+        class _ExplodingClient:
+            async def request(self, *, method, url, headers, json, params):
+                raise RuntimeError("pdl upstream exploded")
+
+        class _FakePool:
+            async def acquire(self, service, agent_id, *, base_url):
+                assert service == "pdl"
+                assert base_url == "https://api.peopledatalabs.com"
+                return _ExplodingClient()
+
+            async def release(self, service, agent_id):
+                assert service == "pdl"
+
+        monkeypatch.setattr(proxy_module, "_pool_manager", _FakePool())
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "PDL",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 500
+        assert response.json()["detail"] == "Proxy error for 'people-data-labs'"
+
     def test_proxy_successful_request(self, client, httpx_mock):
         """Test successful proxy request."""
         # Mock response
