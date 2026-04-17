@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from routes.probes import get_probe_service
 from schemas.tester_fleet import BatteryRunRequestSchema, BatteryRunResponseSchema
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 from services.tester_fleet import (
     BatteryArtifactWriter,
     BatteryParseError,
@@ -17,6 +18,14 @@ from services.tester_fleet import (
 )
 
 router = APIRouter()
+
+
+def _normalize_service_slug(service_slug: str | None) -> str | None:
+    normalized = public_service_slug(service_slug)
+    if normalized is not None:
+        return normalized
+    cleaned = str(service_slug or "").strip().lower()
+    return cleaned or None
 
 
 def _batteries_dir() -> Path:
@@ -29,18 +38,19 @@ def _artifacts_dir() -> Path:
 
 def _resolve_battery_file(service_slug: str, profile: str) -> Path | None:
     base_dir = _batteries_dir()
+    normalized_profile = profile.strip().lower()
     candidates: list[str] = []
 
-    normalized_profile = profile.strip().lower()
-    if normalized_profile and normalized_profile != "default":
-        candidates.append(f"{service_slug}-{normalized_profile}.yaml")
+    for slug_candidate in public_service_slug_candidates(service_slug) or [service_slug]:
+        if normalized_profile and normalized_profile != "default":
+            candidates.append(f"{slug_candidate}-{normalized_profile}.yaml")
 
-    candidates.extend(
-        [
-            f"{service_slug}-health.yaml",
-            f"{service_slug}.yaml",
-        ]
-    )
+        candidates.extend(
+            [
+                f"{slug_candidate}-health.yaml",
+                f"{slug_candidate}.yaml",
+            ]
+        )
 
     for candidate in candidates:
         path = base_dir / candidate
@@ -53,12 +63,16 @@ def _resolve_battery_file(service_slug: str, profile: str) -> Path | None:
 @router.post("/tester-fleet/run", response_model=BatteryRunResponseSchema)
 async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryRunResponseSchema:
     """Run a seeded tester-fleet battery for one service and persist evidence."""
-    battery_file = _resolve_battery_file(payload.service_slug, payload.profile)
+    normalized_service_slug = _normalize_service_slug(payload.service_slug)
+    if normalized_service_slug is None:
+        raise HTTPException(status_code=400, detail="service_slug is required")
+
+    battery_file = _resolve_battery_file(normalized_service_slug, payload.profile)
     if battery_file is None:
         raise HTTPException(
             status_code=404,
             detail=(
-                f"No battery found for service '{payload.service_slug}' "
+                f"No battery found for service '{normalized_service_slug}' "
                 f"(profile '{payload.profile}')"
             ),
         )
@@ -68,14 +82,17 @@ async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryR
     except BatteryParseError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if battery.service_slug != payload.service_slug:
+    battery_service_slug = _normalize_service_slug(battery.service_slug)
+    if battery_service_slug != normalized_service_slug:
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Battery service mismatch: requested '{payload.service_slug}', "
-                f"battery defines '{battery.service_slug}'"
+                f"Battery service mismatch: requested '{normalized_service_slug}', "
+                f"battery defines '{battery_service_slug or battery.service_slug}'"
             ),
         )
+
+    battery = battery.model_copy(update={"service_slug": normalized_service_slug})
 
     artifact = BatteryRunner().run_battery(battery)
     artifact_writer = BatteryArtifactWriter(output_dir=_artifacts_dir())
@@ -97,7 +114,7 @@ async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryR
             persisted_probe_types = [probe.probe_type for probe in persisted]
 
     return BatteryRunResponseSchema(
-        service_slug=payload.service_slug,
+        service_slug=normalized_service_slug,
         battery_file=str(battery_file),
         artifact_path=str(artifact_path),
         run=artifact,

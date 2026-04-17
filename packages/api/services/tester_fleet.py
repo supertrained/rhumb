@@ -24,10 +24,19 @@ from schemas.tester_fleet import (
     SchemaCaptureBatteryStep,
 )
 from services.probes import ProbeService
+from services.service_slugs import public_service_slug
 
 
 class BatteryParseError(ValueError):
     """Raised when a battery definition cannot be parsed or validated."""
+
+
+def _normalize_service_slug(service_slug: str | None) -> str | None:
+    normalized = public_service_slug(service_slug)
+    if normalized is not None:
+        return normalized
+    cleaned = str(service_slug or "").strip().lower()
+    return cleaned or None
 
 
 @dataclass(slots=True)
@@ -281,9 +290,10 @@ class BatteryArtifactWriter:
 
     @staticmethod
     def _filename_for(artifact: BatteryRunArtifact) -> str:
+        service_slug = _normalize_service_slug(artifact.service_slug) or artifact.service_slug
         stamp = artifact.completed_at.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         return (
-            f"{artifact.service_slug}-{artifact.profile}-v{artifact.battery_version}-{stamp}.json"
+            f"{service_slug}-{artifact.profile}-v{artifact.battery_version}-{stamp}.json"
         )
 
     def write(self, artifact: BatteryRunArtifact) -> Path:
@@ -342,6 +352,7 @@ class BatteryProbeBridge:
         artifact_path: str | Path | None = None,
     ) -> dict[str, Any]:
         """Build a probe metadata payload that nests tester-fleet details."""
+        normalized_service_slug = _normalize_service_slug(artifact.service_slug) or artifact.service_slug
         step_status = {step.id: step.status for step in artifact.steps}
         tester_fleet_metadata: dict[str, Any] = {
             "battery_version": artifact.battery_version,
@@ -355,7 +366,7 @@ class BatteryProbeBridge:
 
         metadata: dict[str, Any] = {
             "runner": "tester-fleet-v0",
-            "service_slug": artifact.service_slug,
+            "service_slug": normalized_service_slug,
             "tester_fleet": tester_fleet_metadata,
         }
 
@@ -384,6 +395,7 @@ class BatteryProbeBridge:
         trigger_source: str = "tester_fleet",
     ) -> list[StoredProbe]:
         """Persist bridge probe records (`health` + optional `schema`) for an artifact."""
+        normalized_service_slug = _normalize_service_slug(artifact.service_slug) or artifact.service_slug
         probe_metadata = self.build_probe_metadata(artifact, artifact_path=artifact_path)
 
         persisted: list[StoredProbe] = []
@@ -395,7 +407,7 @@ class BatteryProbeBridge:
         if latest_http is not None:
             persisted.append(
                 self._repository.save_probe(
-                    service_slug=artifact.service_slug,
+                    service_slug=normalized_service_slug,
                     probe_type="health",
                     status="ok" if all(step.status == "ok" for step in http_steps) else "error",
                     latency_ms=BatteryRunner._percentile(http_latencies, 50),
@@ -423,7 +435,7 @@ class BatteryProbeBridge:
             )
             persisted.append(
                 self._repository.save_probe(
-                    service_slug=artifact.service_slug,
+                    service_slug=normalized_service_slug,
                     probe_type="schema",
                     status=schema_step.status,
                     latency_ms=None,

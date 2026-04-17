@@ -405,3 +405,53 @@ steps:
     assert (
         latest_schema.response_schema_hash == latest_schema.probe_metadata["schema_fingerprint_v2"]
     )
+
+
+def test_slice_c_probe_bridge_canonicalizes_alias_backed_service_slug(tmp_path) -> None:
+    """Bridge persistence should normalize alias-backed artifact slugs to canonical public ids."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(status_code=200, json={"ok": True, "nested": {"value": 1}})
+
+    battery = parse_battery_yaml(
+        """
+version: 1
+service_slug: brave-search
+steps:
+  - id: health
+    kind: http
+    method: GET
+    url: https://example.com/health
+  - id: schema
+    kind: schema_capture
+    source_step: health
+"""
+    )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        artifact = BatteryRunner(client=client).run_battery(battery)
+
+    writer = BatteryArtifactWriter(output_dir=tmp_path / "artifacts")
+    artifact_path = writer.write(artifact)
+
+    repository = InMemoryProbeRepository()
+    persisted = BatteryProbeBridge(repository).persist(
+        artifact,
+        artifact_path=artifact_path,
+        trigger_source="tester-fleet-test",
+    )
+
+    assert len(persisted) == 2
+    assert repository.fetch_latest_probe("brave-search", probe_type="health") is None
+
+    latest_health = repository.fetch_latest_probe("brave-search-api", probe_type="health")
+    latest_schema = repository.fetch_latest_probe("brave-search-api", probe_type="schema")
+
+    assert latest_health is not None
+    assert latest_schema is not None
+    assert latest_health.service_slug == "brave-search-api"
+    assert latest_health.probe_metadata is not None
+    assert latest_health.probe_metadata["service_slug"] == "brave-search-api"
+    assert latest_schema.service_slug == "brave-search-api"
+    assert latest_schema.probe_metadata is not None
+    assert latest_schema.probe_metadata["service_slug"] == "brave-search-api"

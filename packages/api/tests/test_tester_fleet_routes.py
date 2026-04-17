@@ -173,3 +173,56 @@ def test_run_tester_fleet_battery_supports_no_persist(
     assert body["persisted_probe_ids"] == []
     assert body["persisted_probe_types"] == []
     assert repository.fetch_latest_probe("stripe", probe_type="health") is None
+
+
+def test_run_tester_fleet_battery_canonicalizes_alias_backed_service_slug(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Route should resolve alias-backed battery files and persist canonical probe ids."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    battery_file = tmp_path / "brave-search-health.yaml"
+    _seed_battery_file(battery_file, service_slug="brave-search")
+
+    class StubRunner:
+        def run_battery(self, battery):
+            return _stub_artifact(service_slug=battery.service_slug)
+
+    repository = InMemoryProbeRepository()
+    probe_service = ProbeService(repository=repository)
+
+    monkeypatch.setattr(tester_fleet_routes, "_batteries_dir", lambda: tmp_path)
+    monkeypatch.setattr(tester_fleet_routes, "_artifacts_dir", lambda: tmp_path / "artifacts")
+    monkeypatch.setattr(tester_fleet_routes, "BatteryRunner", StubRunner)
+    monkeypatch.setattr(tester_fleet_routes, "get_probe_service", lambda: probe_service)
+
+    response = client.post(
+        "/v1/tester-fleet/run",
+        json={
+            "service_slug": "Brave-Search-Api",
+            "profile": "default",
+            "persist_probes": True,
+            "trigger_source": "tester-fleet-route-test",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["service_slug"] == "brave-search-api"
+    assert body["run"]["service_slug"] == "brave-search-api"
+    assert body["battery_file"].endswith("brave-search-health.yaml")
+    assert Path(body["artifact_path"]).name.startswith("brave-search-api-default-v1-")
+
+    latest_health = repository.fetch_latest_probe("brave-search-api", probe_type="health")
+    latest_schema = repository.fetch_latest_probe("brave-search-api", probe_type="schema")
+
+    assert latest_health is not None
+    assert latest_schema is not None
+    assert repository.fetch_latest_probe("brave-search", probe_type="health") is None
+    assert latest_health.probe_metadata is not None
+    assert latest_health.probe_metadata["service_slug"] == "brave-search-api"
+    assert latest_schema.probe_metadata is not None
+    assert latest_schema.probe_metadata["service_slug"] == "brave-search-api"
