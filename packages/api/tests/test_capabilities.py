@@ -630,6 +630,77 @@ async def test_get_capability_not_found_suggests_capability_for_provider_alias(a
 
 
 @pytest.mark.anyio
+async def test_list_capabilities_search_matches_runtime_alias_when_mapping_is_canonical(app):
+    capability = {
+        "id": "data.enrich_person",
+        "domain": "data",
+        "action": "enrich_person",
+        "description": "Enrich a person profile with professional data",
+        "input_hint": "linkedin_url or email",
+        "outcome": "Professional profile enrichment",
+    }
+
+    def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [capability]
+        if path.startswith("capability_services?"):
+            if "select=capability_id,service_slug" in path:
+                return [{"capability_id": "data.enrich_person", "service_slug": "people-data-labs"}]
+            return []
+        if path.startswith("services?"):
+            if '"pdl"' in path:
+                return [{"slug": "pdl", "name": "PDL"}]
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities", params={"search": "pdl"})
+
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items
+    assert items[0]["id"] == "data.enrich_person"
+
+
+@pytest.mark.anyio
+async def test_get_capability_not_found_suggests_capability_for_runtime_alias_when_mapping_is_canonical(app):
+    capability = {
+        "id": "data.enrich_person",
+        "domain": "data",
+        "action": "enrich_person",
+        "description": "Enrich a person profile with professional data",
+        "input_hint": "linkedin_url or email",
+        "outcome": "Professional profile enrichment",
+    }
+
+    def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            if "id=eq.PDL" in path:
+                return []
+            return [capability]
+        if path.startswith("capability_services?"):
+            if "select=capability_id,service_slug" in path:
+                return [{"capability_id": "data.enrich_person", "service_slug": "people-data-labs"}]
+            return []
+        if path.startswith("services?"):
+            if '"pdl"' in path:
+                return [{"slug": "pdl", "name": "PDL"}]
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/PDL")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"] == "capability_not_found"
+    assert body["search_url"] == "/v1/capabilities?search=PDL"
+    assert body["suggested_capabilities"][0]["id"] == "data.enrich_person"
+
+
+@pytest.mark.anyio
 async def test_direct_capability_search_ignores_stale_provider_alias_rows(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):

@@ -2258,17 +2258,18 @@ async def _provider_aliases_by_capability() -> dict[str, str]:
     )
     service_names_by_slug: dict[str, str] = {}
     if service_slugs:
-        slug_filter = ",".join(f'"{slug}"' for slug in service_slugs)
+        lookup_slugs = _provider_lookup_slugs(service_slugs)
         services = await _cached_fetch(
             "services",
-            f"services?slug=in.({slug_filter})&select=slug,name",
+            f"services?slug=in.({_lookup_slug_filter(lookup_slugs)})&select=slug,name",
         )
         if services:
             for service in services:
                 slug = str(service.get("slug") or "").strip()
                 name = str(service.get("name") or "").strip()
                 if slug and name:
-                    service_names_by_slug[slug] = name
+                    for candidate in public_service_slug_candidates(slug):
+                        service_names_by_slug.setdefault(candidate, name)
 
     aliases_by_capability: dict[str, set[str]] = {}
     for mapping in filtered_mappings:
@@ -2278,9 +2279,10 @@ async def _provider_aliases_by_capability() -> dict[str, str]:
             continue
 
         aliases = aliases_by_capability.setdefault(capability_id, set())
-        aliases.add(service_slug)
-        if service_name := service_names_by_slug.get(service_slug):
-            aliases.add(service_name)
+        for candidate in public_service_slug_candidates(service_slug):
+            aliases.add(candidate)
+            if service_name := service_names_by_slug.get(candidate):
+                aliases.add(service_name)
 
     for capability_id, direct_aliases in direct_aliases_by_capability.items():
         aliases_by_capability.setdefault(capability_id, set()).update(direct_aliases)
