@@ -675,7 +675,16 @@ async def proxy_request(
             request_params = injected.params
             request_body = injected.body
         except RuntimeError as e:
-            raise HTTPException(status_code=503, detail=f"Credential unavailable: {e}")
+            logger.warning(
+                "proxy credential unavailable service=%s agent_id=%s error=%s",
+                proxy_service,
+                agent_id,
+                e,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=f"Credential unavailable for '{public_request_service}'",
+            ) from e
         finally:
             timings["credential_inject_ms"] = (
                 time.perf_counter() - credential_start

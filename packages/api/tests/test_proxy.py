@@ -225,6 +225,26 @@ class TestProxyRouter:
         assert payload["service"] == "people-data-labs"
         assert payload["body"]["status"] == 200
 
+    def test_proxy_credential_unavailable_keeps_canonical_public_service_id(self, client):
+        """Credential failures should not leak runtime proxy aliases on public errors."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "pdl"))
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "PDL",
+                "method": "GET",
+                "path": "/v5/person/enrich",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Credential unavailable for 'people-data-labs'"
+
     def test_proxy_successful_request(self, client, httpx_mock):
         """Test successful proxy request."""
         # Mock response
