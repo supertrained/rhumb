@@ -83,7 +83,11 @@ from services.receipt_service import (
     hash_response_payload,
 )
 from services.provider_attribution import build_attribution
-from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.service_slugs import (
+    canonicalize_service_slug,
+    normalize_proxy_slug,
+    public_service_slug_candidates,
+)
 from services.db_connection_registry import AgentVaultDsnError, issue_agent_vault_dsn_token
 
 _budget_enforcer = BudgetEnforcer()
@@ -1290,11 +1294,12 @@ async def _get_capability_services(capability_id: str) -> list[dict]:
 
 async def _get_service_domain(service_slug: str) -> Optional[str]:
     """Resolve a service's api_domain from the services table."""
-    rows = await supabase_fetch(
-        f"services?slug=eq.{quote(service_slug)}&select=slug,api_domain&limit=1"
-    )
-    if rows and rows[0].get("api_domain"):
-        return rows[0]["api_domain"]
+    for candidate in public_service_slug_candidates(service_slug):
+        rows = await supabase_fetch(
+            f"services?slug=eq.{quote(candidate)}&select=slug,api_domain&limit=1"
+        )
+        if rows and rows[0].get("api_domain"):
+            return rows[0]["api_domain"]
     return None
 
 

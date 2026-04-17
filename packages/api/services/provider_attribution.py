@@ -28,7 +28,11 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch
-from services.service_slugs import canonicalize_service_slug
+from services.service_slugs import (
+    canonicalize_service_slug,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +55,21 @@ async def _fetch_provider_detail(provider_slug: str) -> dict[str, Any] | None:
     if canonical_slug in _provider_cache:
         return _provider_cache[canonical_slug]
 
-    rows = await supabase_fetch(
-        f"services?slug=eq.{quote(canonical_slug)}"
-        f"&select=slug,name,description,category,api_domain,"
-        f"aggregate_recommendation_score,tier_label,official_docs"
-        f"&limit=1"
-    )
-    result = rows[0] if rows else None
+    result: dict[str, Any] | None = None
+    for candidate in public_service_slug_candidates(canonical_slug):
+        rows = await supabase_fetch(
+            f"services?slug=eq.{quote(candidate)}"
+            f"&select=slug,name,description,category,api_domain,"
+            f"aggregate_recommendation_score,tier_label,official_docs"
+            f"&limit=1"
+        )
+        if rows:
+            result = dict(rows[0])
+            normalized_slug = public_service_slug(result.get("slug"))
+            if normalized_slug:
+                result["slug"] = normalized_slug
+            break
+
     # Cache (bounded: evict if > 200 entries)
     if len(_provider_cache) > 200:
         _provider_cache.clear()

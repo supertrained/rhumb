@@ -35,6 +35,7 @@ from services.service_slugs import (
     canonicalize_service_slug,
     normalize_proxy_slug,
     public_service_slug,
+    public_service_slug_candidates,
 )
 
 logger = logging.getLogger(__name__)
@@ -706,11 +707,12 @@ class RhumbManagedExecutor:
 
     async def _get_api_domain(self, service_slug: str) -> str | None:
         """Resolve service API domain."""
-        rows = await supabase_fetch(
-            f"services?slug=eq.{quote(service_slug)}&select=api_domain&limit=1"
-        )
-        if rows and rows[0].get("api_domain"):
-            return rows[0]["api_domain"]
+        for candidate in public_service_slug_candidates(service_slug):
+            rows = await supabase_fetch(
+                f"services?slug=eq.{quote(candidate)}&select=api_domain&limit=1"
+            )
+            if rows and rows[0].get("api_domain"):
+                return rows[0]["api_domain"]
         return None
 
     # Per-service auth injection strategies.

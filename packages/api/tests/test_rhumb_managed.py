@@ -766,6 +766,32 @@ async def test_get_managed_config_accepts_proxy_alias_for_canonical_row():
 
 
 @pytest.mark.anyio
+async def test_get_api_domain_accepts_canonical_alias_for_runtime_service_row():
+    """Managed exact service-domain lookups should fall back to runtime alias rows."""
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path):
+        seen_paths.append(path)
+        if path == "services?slug=eq.brave-search-api&select=api_domain&limit=1":
+            return []
+        if path == "services?slug=eq.brave-search&select=api_domain&limit=1":
+            return [{"api_domain": "api.search.brave.com"}]
+        return []
+
+    with patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        api_domain = await executor._get_api_domain("brave-search-api")
+
+    assert api_domain == "api.search.brave.com"
+    assert seen_paths == [
+        "services?slug=eq.brave-search-api&select=api_domain&limit=1",
+        "services?slug=eq.brave-search&select=api_domain&limit=1",
+    ]
+
+
+@pytest.mark.anyio
 async def test_managed_executor_post_merges_params_into_body_and_marks_4xx_failure(monkeypatch):
     """POST managed executions should merge params into body and treat 4xx as failure."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_TAVILY_API_KEY", "tvly_test_secret")

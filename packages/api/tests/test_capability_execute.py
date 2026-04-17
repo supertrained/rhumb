@@ -227,6 +227,35 @@ def _mock_supabase_with_managed_option(path: str):
     return _mock_supabase(path)
 
 
+@pytest.mark.anyio
+async def test_get_service_domain_accepts_canonical_alias_for_runtime_service_row():
+    """Exact service-domain lookups should fall back to runtime alias rows."""
+    seen_paths: list[str] = []
+
+    async def _mock_fetch(path: str):
+        seen_paths.append(path)
+        if path == "services?slug=eq.brave-search-api&select=slug,api_domain&limit=1":
+            return []
+        if path == "services?slug=eq.brave-search&select=slug,api_domain&limit=1":
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        return []
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_fetch,
+    ):
+        from routes.capability_execute import _get_service_domain
+
+        api_domain = await _get_service_domain("brave-search-api")
+
+    assert api_domain == "api.search.brave.com"
+    assert seen_paths == [
+        "services?slug=eq.brave-search-api&select=slug,api_domain&limit=1",
+        "services?slug=eq.brave-search&select=slug,api_domain&limit=1",
+    ]
+
+
 def _mock_supabase_with_stale_direct_db_mapping(path: str):
     """Return a stale proxy row for a direct DB capability."""
     if path.startswith("capabilities?") and "id=eq.db.query.read" in path:
@@ -1247,7 +1276,8 @@ async def test_byo_get_promotes_body_to_query_params(app):
             "routes.capability_execute.supabase_patch", new_callable=AsyncMock, return_value=[{}]
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
     ):
