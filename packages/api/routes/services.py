@@ -67,6 +67,28 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
     return query_slugs
 
 
+def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+
+    canonical_rows: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        raw_slug = str(row.get("slug") or "").strip()
+        slug = public_service_slug(raw_slug) or raw_slug
+        if not slug:
+            continue
+
+        canonical_rows.setdefault(
+            slug,
+            {
+                **row,
+                "slug": slug,
+            },
+        )
+
+    return list(canonical_rows.values())
+
+
 def _coerce_float(value: Any) -> float | None:
     try:
         return None if value is None else float(value)
@@ -202,24 +224,24 @@ async def list_services(
             "error": None,
         }
 
+    query_slugs = set(_score_query_slugs(sorted(scored_slugs)))
     path = (
         "services?select=slug,name,category,description"
-        f"&slug=in.({_build_in_filter(scored_slugs)})"
-        "&order=name.asc"
+        f"&slug=in.({_build_in_filter(query_slugs)})"
     )
     if category:
         path += f"&category=eq.{quote(category)}"
 
-    total = await _cached_count("services", path)
-    paginated_path = f"{path}&limit={effective_limit}&offset={offset}"
-    data = await _cached_fetch("services", paginated_path)
+    data = await _cached_fetch("services", path)
     if data is None:
         return {
             "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
             "error": "Unable to load services.",
         }
 
-    items = data
+    items = _canonicalize_service_rows(data)
+    items.sort(key=lambda item: str(item.get("name") or item.get("slug") or "").lower())
+    paginated_items = items[offset : offset + effective_limit]
 
     return {
         "data": {
@@ -230,9 +252,9 @@ async def list_services(
                     "category": s.get("category"),
                     "description": s.get("description"),
                 }
-                for s in items
+                for s in paginated_items
             ],
-            "total": total,
+            "total": len(items),
             "limit": effective_limit,
             "offset": offset,
         },
@@ -246,19 +268,21 @@ async def get_service(slug: str, raw_request: Request):
     canonical_slug = public_service_slug(slug) or slug
 
     # Get service info
-    services = await _cached_fetch(
-        "services",
-        f"services?slug=eq.{quote(canonical_slug)}&select=slug,name,category,description&limit=1"
+    services = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services",
+            f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
+            "&select=slug,name,category,description"
+        )
     )
-    if not services:
+    service = next((row for row in services if row.get("slug") == canonical_slug), None)
+    if service is None:
         return _not_found_response(
             raw_request,
             error="service_not_found",
             message=f"No service found with slug '{slug}'",
             resolution="Check available services at GET /v1/services or /v1/search?q=...",
         )
-
-    service = services[0]
 
     # Get latest score
     score_query_slugs = _score_query_slugs([canonical_slug])
@@ -301,21 +325,29 @@ async def get_service(slug: str, raw_request: Request):
     alternatives: list[dict] = []
     if service.get("category"):
         # First get same-category services
-        alt_services = await _cached_fetch(
-            "services",
-            f"services?category=eq.{quote(service['category'])}"
-            f"&slug=neq.{quote(canonical_slug)}&select=slug,name"
+        alt_services = _canonicalize_service_rows(
+            await _cached_fetch(
+                "services",
+                f"services?category=eq.{quote(service['category'])}&select=slug,name"
+            )
         )
         if alt_services:
-            alt_slugs = {s["slug"] for s in alt_services}
-            alt_names = {s["slug"]: s["name"] for s in alt_services}
-            alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
-            alt_scores = await _cached_fetch(
-                "scores",
-                f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
-                "&order=aggregate_recommendation_score.desc.nullslast"
-                f"&limit={max(5, len(alt_score_query_slugs))}"
-            )
+            alt_names = {
+                str(s.get("slug") or ""): str(s.get("name") or s.get("slug") or "")
+                for s in alt_services
+                if s.get("slug") and s.get("slug") != canonical_slug
+            }
+            alt_slugs = set(alt_names)
+            if alt_slugs:
+                alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
+                alt_scores = await _cached_fetch(
+                    "scores",
+                    f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
+                    "&order=aggregate_recommendation_score.desc.nullslast"
+                    f"&limit={max(5, len(alt_score_query_slugs))}"
+                )
+            else:
+                alt_scores = []
             if alt_scores:
                 seen_alternatives: set[str] = set()
                 for asc in alt_scores:
@@ -348,12 +380,15 @@ async def get_service(slug: str, raw_request: Request):
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
     canonical_slug = public_service_slug(slug) or slug
-    service_rows = await _cached_fetch(
-        "services",
-        f"services?slug=eq.{quote(canonical_slug)}"
-        f"&select=slug,official_docs&limit=1"
+    service_rows = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services",
+            f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
+            "&select=slug,official_docs"
+        )
     )
-    if not service_rows:
+    service = next((row for row in service_rows if row.get("slug") == canonical_slug), None)
+    if service is None:
         from routes import scores as score_routes
 
         try:
@@ -365,7 +400,6 @@ async def get_service_score(slug: str, raw_request: Request):
                 message=f"No service found with slug '{slug}'",
                 resolution="Check available services at GET /v1/services or /v1/search?q=...",
             )
-    service = service_rows[0]
 
     score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
