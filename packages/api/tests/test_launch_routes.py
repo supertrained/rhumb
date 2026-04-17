@@ -180,6 +180,23 @@ def test_build_launch_dashboard_canonicalizes_alias_backed_provider_domain_fallb
     ]
 
 
+def test_build_launch_dashboard_deduplicates_alias_backed_public_service_count() -> None:
+    payload = build_launch_dashboard(
+        query_logs=[],
+        click_events=[],
+        execution_rows=[],
+        service_rows=[
+            {"slug": "brave-search"},
+            {"slug": "brave-search-api"},
+            {"slug": "people-data-labs"},
+            {"slug": "pdl"},
+        ],
+        window="launch",
+    )
+
+    assert payload["coverage"] == {"public_service_count": 2}
+
+
 def test_launch_dashboard_route_returns_aggregated_metrics(
     client: TestClient,
     monkeypatch,

@@ -63,6 +63,15 @@ def _provider_click_target(row: dict[str, Any]) -> str:
     return "unknown"
 
 
+def _public_service_count(service_rows: Iterable[dict[str, Any]]) -> int:
+    canonical_slugs: set[str] = set()
+    for row in service_rows:
+        service_slug = _normalize_service_slug(row.get("slug"))
+        if service_slug:
+            canonical_slugs.add(service_slug)
+    return len(canonical_slugs)
+
+
 def _safe_label(value: Any, *, max_length: int = 120) -> str | None:
     sanitized = sanitize_external_payload(
         value,
@@ -815,7 +824,7 @@ def build_launch_dashboard(
         "start_at": start_at.isoformat(),
         "generated_at": now_utc.isoformat(),
         "coverage": {
-            "public_service_count": sum(1 for _ in service_rows),
+            "public_service_count": _public_service_count(service_rows),
         },
         "queries": {
             "total": len(query_rows),
