@@ -86,6 +86,7 @@ from services.provider_attribution import build_attribution
 from services.service_slugs import (
     canonicalize_service_slug,
     normalize_proxy_slug,
+    public_service_slug,
     public_service_slug_candidates,
 )
 from services.db_connection_registry import AgentVaultDsnError, issue_agent_vault_dsn_token
@@ -1181,6 +1182,10 @@ def _service_slug_matches(candidate_slug: str | None, requested_slug: str | None
         or normalize_proxy_slug(candidate_slug) == normalize_proxy_slug(requested_slug)
         or canonicalize_service_slug(candidate_slug) == canonicalize_service_slug(requested_slug)
     )
+
+
+def _public_provider_slug(provider_slug: str | None) -> str | None:
+    return public_service_slug(provider_slug) or provider_slug
 
 
 def _prepare_upstream_payload(
@@ -2687,7 +2692,7 @@ async def execute_capability(
         "API_BASE_URL", "https://api.rhumb.dev"
     )
 
-    provider_hint = (
+    provider_hint = _public_provider_slug(
         request.provider
         or (selected_mapping.get("service_slug") if selected_mapping else None)
         or "pending"
@@ -2970,7 +2975,9 @@ async def execute_capability(
             )
 
         managed_success = result.get("upstream_status", 200) < 400
-        managed_provider = result.get("provider_used") or request.provider or "unknown"
+        managed_provider = _public_provider_slug(
+            result.get("provider_used") or request.provider or "unknown"
+        ) or "unknown"
         managed_billing_status = (
             "billed"
             if managed_success and billed_cost_cents > 0
@@ -3115,8 +3122,9 @@ async def execute_capability(
                 await _release_reservations()
                 billing_status = "refunded"
 
+            public_provider_used = _public_provider_slug(request.provider)
             update_payload = {
-                "provider_used": request.provider,
+                "provider_used": public_provider_used,
                 "credential_mode": "agent_vault",
                 "method": request.method,
                 "path": request.path,
@@ -3145,7 +3153,7 @@ async def execute_capability(
 
             vault_response = {
                 "capability_id": capability_id,
-                "provider_used": request.provider,
+                "provider_used": public_provider_used,
                 "credential_mode": "agent_vault",
                 "upstream_status": upstream_status,
                 "upstream_response": upstream_response,
@@ -3371,7 +3379,7 @@ async def execute_capability(
     )
 
     update_payload = {
-        "provider_used": provider_slug,
+        "provider_used": _public_provider_slug(provider_slug),
         "credential_mode": request.credential_mode,
         "method": request.method,
         "path": request.path,
@@ -3385,7 +3393,7 @@ async def execute_capability(
         "total_latency_ms": round(total_latency_ms, 1),
         "upstream_latency_ms": round(upstream_latency_ms, 1),
         "fallback_attempted": fallback_attempted,
-        "fallback_provider": fallback_provider,
+        "fallback_provider": _public_provider_slug(fallback_provider),
         "idempotency_key": request.idempotency_key,
         "error_message": error_message,
         "interface": request.interface,
@@ -3400,14 +3408,14 @@ async def execute_capability(
 
     response_data = {
         "capability_id": capability_id,
-        "provider_used": provider_slug,
+        "provider_used": _public_provider_slug(provider_slug),
         "credential_mode": request.credential_mode,
         "upstream_status": upstream_status,
         "upstream_response": upstream_response,
         "cost_estimate_usd": cost_per_call,
         "latency_ms": round(total_latency_ms, 1),
         "fallback_attempted": fallback_attempted,
-        "fallback_provider": fallback_provider,
+        "fallback_provider": _public_provider_slug(fallback_provider),
         "execution_id": execution_id,
     }
     if budget_remaining is not None:
@@ -3682,7 +3690,7 @@ async def estimate_capability(
 
     estimate_data: dict[str, Any] = {
         "capability_id": capability_id,
-        "provider": provider_slug,
+        "provider": _public_provider_slug(provider_slug),
         "credential_mode": credential_mode,
         "cost_estimate_usd": cost_per_call,
         "circuit_state": circuit_state,

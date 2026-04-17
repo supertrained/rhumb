@@ -898,7 +898,7 @@ async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider"] == "brave-search"
+    assert data["provider"] == "brave-search-api"
     assert data["credential_mode"] == "byok"
     assert data["endpoint_pattern"] == "GET /res/v1/web/search"
     assert resp.json()["error"] is None
@@ -1298,6 +1298,102 @@ async def test_byo_get_promotes_body_to_query_params(app):
     assert captured["method"] == "GET"
     assert captured["json"] is None
     assert captured["params"] == {"q": "Rhumb API agent infrastructure"}
+
+
+@pytest.mark.anyio
+async def test_execute_canonicalizes_alias_backed_provider_ids_on_response_and_persistence(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
+        if path.startswith("services?"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"status": 200, "ok": True}
+
+        text = '{"status": 200, "ok": true}'
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            return DummyResponse()
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as mock_insert_required,
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            return_value=[{}],
+        ) as mock_patch_required,
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
+        patch("routes.capability_execute._should_skip_receipt", return_value=True),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["fallback_provider"] is None
+    assert mock_insert_required.await_args.args[1]["provider_used"] == "brave-search-api"
+    assert mock_patch_required.await_args.args[1]["provider_used"] == "brave-search-api"
+    assert mock_patch_required.await_args.args[1]["fallback_provider"] is None
 
 
 @pytest.mark.anyio
