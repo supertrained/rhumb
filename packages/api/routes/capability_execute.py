@@ -3003,6 +3003,7 @@ async def execute_capability(
         managed_provider = _public_provider_slug(
             result.get("provider_used") or request.provider or "unknown"
         ) or "unknown"
+        result["provider_used"] = managed_provider
         managed_billing_status = (
             "billed"
             if managed_success and billed_cost_cents > 0

@@ -2459,6 +2459,116 @@ async def test_auto_resolves_to_managed_when_config_exists(app):
 
 
 @pytest.mark.anyio
+async def test_execute_managed_canonicalizes_alias_backed_provider_ids_for_receipt_path(app):
+    managed_mapping = {
+        "capability_id": "search.query",
+        "service_slug": "brave-search",
+        "credential_modes": ["byo", "rhumb_managed"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    }
+
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [managed_mapping]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
+        return {
+            "capability_id": capability_id,
+            "provider_used": "brave-search",
+            "credential_mode": "rhumb_managed",
+            "upstream_status": 200,
+            "upstream_response": {"ok": True},
+            "latency_ms": 15.0,
+            "execution_id": execution_id or "exec_managed_alias",
+        }
+
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_managed_alias")
+    )
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ),
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
+        patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
+        patch(
+            "routes.capability_execute.get_receipt_service",
+            return_value=mock_receipt_service,
+        ),
+        patch("routes.capability_execute._emit_execution_billing_event") as mock_billing_event,
+        patch("routes.capability_execute._record_execution_audit_outcome") as mock_audit_outcome,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["receipt_id"] == "rcpt_managed_alias"
+
+    receipt_input = mock_receipt_service.create_receipt.await_args.args[0]
+    assert receipt_input.provider_id == "brave-search-api"
+    assert mock_billing_event.call_args.kwargs["provider_slug"] == "brave-search-api"
+    assert mock_audit_outcome.call_args.kwargs["provider_slug"] == "brave-search-api"
+
+
+@pytest.mark.anyio
 async def test_auto_resolves_to_byo_when_no_config(app):
     """Execute defaults auto to byo when no managed config exists."""
     _, mock_pool = _build_patches()
