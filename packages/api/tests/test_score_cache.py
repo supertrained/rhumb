@@ -311,6 +311,13 @@ class TestScoresV2Endpoints:
         data = resp.json()
         assert data["detail"]["error"] == "SCORE_NOT_FOUND"
 
+    def test_get_score_not_found_error_uses_canonical_public_provider_id(self, client):
+        resp = client.get("/v2/scores/Brave-Search")
+        assert resp.status_code == 404
+        data = resp.json()
+        assert data["detail"]["error"] == "SCORE_NOT_FOUND"
+        assert data["detail"]["message"] == "No cached AN Score for provider 'brave-search-api'."
+
     def test_get_score_from_cache(self, client):
         # Populate cache
         cache = get_score_cache()
@@ -339,6 +346,13 @@ class TestScoresV2Endpoints:
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["service_slug"] == "stripe"
+        assert body["data"]["chain_verified"] is True
+
+    def test_get_score_history_empty_normalizes_public_provider_id(self, client):
+        resp = client.get("/v2/scores/Brave-Search/history")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["service_slug"] == "brave-search-api"
         assert body["data"]["chain_verified"] is True
 
     def test_get_score_history_with_entries(self, client):

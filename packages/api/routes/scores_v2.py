@@ -28,6 +28,10 @@ from services.service_slugs import public_service_slug, public_service_slug_cand
 router = APIRouter(prefix="/v2/scores", tags=["scores-v2"])
 
 
+def _public_provider_slug(provider_id: str | None) -> str:
+    return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
+
+
 def _score_to_response(entry: CachedScore) -> dict[str, Any]:
     """Format a CachedScore into the public response shape."""
     return {
@@ -81,11 +85,12 @@ async def get_provider_score(provider_id: str) -> dict[str, Any]:
     entry = _cached_score_for_provider_id(provider_id)
 
     if entry is None:
+        public_provider_id = _public_provider_slug(provider_id)
         raise HTTPException(
             status_code=404,
             detail={
                 "error": "SCORE_NOT_FOUND",
-                "message": f"No cached AN Score for provider '{provider_id}'.",
+                "message": f"No cached AN Score for provider '{public_provider_id}'.",
                 "hint": "Score may not be computed yet, or cache may need a refresh.",
             },
         )
@@ -108,7 +113,7 @@ async def get_provider_score_history(
 
     return {
         "data": {
-            "service_slug": public_service_slug(provider_id) or provider_id,
+            "service_slug": _public_provider_slug(provider_id),
             "entries": [_audit_entry_to_response(e) for e in entries],
             "chain_verified": chain.verify_chain(),
             "total_chain_length": chain.length,
