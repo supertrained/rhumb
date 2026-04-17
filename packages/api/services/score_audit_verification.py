@@ -15,6 +15,7 @@ import json
 from typing import Any
 
 from services.chain_integrity import build_score_audit_payload, compute_chain_hmac
+from services.service_slugs import public_service_slug
 
 
 SCORE_AUDIT_VERIFICATION_POLICY_VERSION = "2026-04-06"
@@ -220,9 +221,11 @@ def describe_score_audit_entry_verification(row: Any) -> dict[str, Any]:
 
 def _score_audit_report_row(row: Any) -> dict[str, Any]:
     verification = describe_score_audit_entry_verification(row)
+    service_slug = _field(row, "service_slug")
+    public_slug = public_service_slug(service_slug) or service_slug
     return {
         "entry_id": verification.get("entry_id") or _field(row, "entry_id"),
-        "service_slug": _field(row, "service_slug"),
+        "service_slug": public_slug,
         "created_at": _field(row, "created_at"),
         "key_version": _parse_optional_int(_field(row, "key_version")),
         "verification_status": verification.get("verification_status"),

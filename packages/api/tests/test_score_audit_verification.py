@@ -126,7 +126,7 @@ def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> 
     replay_payload = build_score_audit_payload(
         {
             "entry_id": "saud_replay_verified",
-            "service_slug": "stripe",
+            "service_slug": "brave-search",
             "old_score": 8.1,
             "new_score": 8.2,
             "change_reason": "recalculation",
@@ -135,7 +135,7 @@ def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> 
     )
     replay_row = {
         "entry_id": "saud_replay_verified",
-        "service_slug": "stripe",
+        "service_slug": "brave-search",
         "created_at": "2026-04-03T19:28:03.601436+00:00",
         "prev_hash": prev_hash,
         "chain_hash": compute_chain_hmac(prev_hash, replay_payload, key_version=1),
@@ -144,13 +144,13 @@ def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> 
     }
     key_version_only_row = {
         "entry_id": "saud_key_version_only",
-        "service_slug": "stripe",
+        "service_slug": "brave-search-api",
         "created_at": "2026-04-03T19:29:03.601436+00:00",
         "key_version": 1,
     }
     known_quarantine_row = {
         "entry_id": "saud_5565e543fcc248dbbe515e38103ac518",
-        "service_slug": "stripe",
+        "service_slug": "brave-search",
         "created_at": "2026-04-03T19:30:35.190409+00:00",
         "key_version": None,
     }
@@ -171,8 +171,10 @@ def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> 
     }
     assert report["latest_observed"]["entry_id"] == "saud_5565e543fcc248dbbe515e38103ac518"
     assert report["latest_observed"]["verification_status"] == "unverifiable_legacy"
+    assert report["latest_observed"]["service_slug"] == "brave-search-api"
     assert report["latest_anchor_eligible"]["entry_id"] == "saud_key_version_only"
     assert report["latest_anchor_eligible"]["verification_method"] == "key_version_only_surface"
+    assert report["latest_anchor_eligible"]["service_slug"] == "brave-search-api"
     assert report["quarantined_tail_count"] == 1
     assert report["quarantined_tail_entry_ids"] == ["saud_5565e543fcc248dbbe515e38103ac518"]
     assert [row["entry_id"] for row in report["rows"]] == [
@@ -180,6 +182,11 @@ def test_build_score_audit_verification_report_summarizes_mixed_row_states() -> 
         "saud_key_version_only",
         "saud_5565e543fcc248dbbe515e38103ac518",
     ]
+    assert {row["entry_id"]: row["service_slug"] for row in report["rows"]} == {
+        "saud_replay_verified": "brave-search-api",
+        "saud_key_version_only": "brave-search-api",
+        "saud_5565e543fcc248dbbe515e38103ac518": "brave-search-api",
+    }
 
 
 def test_build_score_audit_verification_report_handles_empty_input() -> None:
