@@ -298,10 +298,10 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
                 return _error_redirect("Token exchange failed — no access token received")
 
             # Fetch user profile
-            profile = await _fetch_user_profile(client, provider, access_token, config)
+            profile = await _fetch_user_profile(client, provider_key, access_token, config)
 
     except httpx.HTTPError as e:
-        logger.error("OAuth exchange failed for %s: %s", provider, e)
+        logger.error("OAuth exchange failed for %s: %s", provider_key, e)
         return _error_redirect(f"Authentication failed: {e}")
 
     if not profile.get("email"):
@@ -309,7 +309,7 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
 
     # Find or create user
     user_store = get_user_store()
-    user = await user_store.find_by_provider(provider, str(profile["id"]))
+    user = await user_store.find_by_provider(provider_key, str(profile["id"]))
 
     api_key_plaintext: Optional[str] = None
 
@@ -330,7 +330,7 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
         user = await user_store.create_user(
             email=profile["email"],
             name=profile.get("name", ""),
-            provider=provider,
+            provider=provider_key,
             provider_id=str(profile["id"]),
             avatar_url=profile.get("avatar_url", ""),
             organization_id=org_id,
@@ -338,7 +338,7 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
         )
         logger.info(
             "New user created: %s (%s via %s), agent: %s",
-            user.user_id, user.email, provider, agent_id,
+            user.user_id, user.email, provider_key, agent_id,
         )
     else:
         # Existing user — update profile if needed

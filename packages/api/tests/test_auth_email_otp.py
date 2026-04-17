@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import contextmanager
 from pathlib import Path
+import time
 from types import SimpleNamespace
 from typing import Generator
 from unittest.mock import AsyncMock, patch
@@ -166,6 +167,76 @@ def test_oauth_callback_accepts_mixed_case_provider_before_state_check() -> None
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid or expired state parameter"
+
+
+def test_oauth_callback_mixed_case_provider_stays_canonical_through_profile_fetch_and_user_create() -> None:
+    from routes import auth as auth_routes
+
+    class DummyTokenResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        @staticmethod
+        def json() -> dict[str, str]:
+            return {"access_token": "github-token"}
+
+    class DummyClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        async def post(self, *args, **kwargs):
+            return DummyTokenResponse()
+
+    reset_user_store()
+    reset_identity_store()
+    user_store = UserStore(supabase_client=None)
+    identity_store = AgentIdentityStore(supabase_client=None)
+    fetch_profile = AsyncMock(
+        return_value={
+            "id": "github-user-123",
+            "email": "mixedcase@example.com",
+            "name": "Mixed Case",
+            "avatar_url": "https://example.com/avatar.png",
+        }
+    )
+
+    auth_routes._csrf_states.clear()
+    auth_routes._csrf_states["state-123"] = {"provider": "github", "created_at": time.time()}
+
+    client = TestClient(_shared_app)
+    try:
+        with (
+            patch("routes.auth.get_user_store", return_value=user_store),
+            patch("routes.auth.get_agent_identity_store", return_value=identity_store),
+            patch("routes.auth.ensure_org_billing_bootstrap", new_callable=AsyncMock) as mock_bootstrap,
+            patch("routes.auth._get_client_credentials", return_value=("github-client", "github-secret")),
+            patch("routes.auth.httpx.AsyncClient", return_value=DummyClient()),
+            patch("routes.auth._fetch_user_profile", fetch_profile),
+            patch("routes.auth._issue_jwt", return_value="session-token"),
+        ):
+            response = client.get(
+                "/v1/auth/callback/GitHub?code=oauth-code&state=state-123",
+                follow_redirects=False,
+            )
+            created_user = _run(user_store.find_by_email("mixedcase@example.com"))
+
+        assert response.status_code == 302
+        assert response.headers["location"].startswith("https://rhumb.dev/dashboard?new=1#")
+        fetch_profile.assert_awaited_once()
+        assert fetch_profile.await_args.args[1] == "github"
+        assert created_user is not None
+        assert created_user.provider == "github"
+        assert created_user.provider_id == "github-user-123"
+        assert auth_routes._csrf_states == {}
+        mock_bootstrap.assert_awaited_once()
+    finally:
+        client.close()
+        auth_routes._csrf_states.clear()
+        reset_user_store()
+        reset_identity_store()
 
 
 def test_request_code_returns_generic_success_for_existing_email() -> None:
