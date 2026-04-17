@@ -462,6 +462,45 @@ def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
     }
 
 
+def _public_provider_slug(slug: str | None) -> str | None:
+    if slug is None:
+        return None
+    cleaned = str(slug).strip().lower()
+    if not cleaned:
+        return None
+    return canonicalize_service_slug(cleaned)
+
+
+def _public_provider_list(slugs: list[str] | None) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for slug in slugs or []:
+        public_slug = _public_provider_slug(slug)
+        if not public_slug or public_slug in seen:
+            continue
+        normalized.append(public_slug)
+        seen.add(public_slug)
+    return normalized
+
+
+def _public_policy_summary(summary: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(summary, dict):
+        return summary
+
+    normalized = dict(summary)
+    if "pin" in normalized:
+        normalized["pin"] = _public_provider_slug(normalized.get("pin"))
+    for field in (
+        "provider_preference",
+        "provider_deny",
+        "allow_only",
+        "candidate_providers",
+    ):
+        if field in normalized:
+            normalized[field] = _public_provider_list(normalized.get(field))
+    return normalized
+
+
 async def _enforce_agent_budget(
     *,
     agent_id: str,
@@ -731,7 +770,23 @@ async def execute_capability_v2(
         account_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
 
     effective_policy, policy_source = _merge_effective_policy(account_policy, payload.policy)
-    policy_eval = await _evaluate_provider_policy(capability_id, raw_request, effective_policy)
+    try:
+        policy_eval = await _evaluate_provider_policy(capability_id, raw_request, effective_policy)
+    except RhumbError as exc:
+        extra = dict(exc.extra or {})
+        if "policy" in extra:
+            extra["policy"] = _public_policy_summary(extra.get("policy"))
+        if "selected_provider" in extra:
+            extra["selected_provider"] = _public_provider_slug(extra.get("selected_provider")) or extra.get("selected_provider")
+        raise RhumbError(
+            exc.code,
+            message=exc.message,
+            detail=exc.detail,
+            receipt_id=exc.receipt_id,
+            provider=exc.provider,
+            retry_after_ms=exc.retry_after_ms,
+            extra=extra,
+        ) from exc
     provider_decision = policy_eval.decision
     preferred_provider = (
         provider_decision.selected_provider
@@ -759,22 +814,26 @@ async def execute_capability_v2(
 
     estimate_data = estimate_body.get("data") or {}
     selected_provider = estimate_data.get("provider")
+    selected_provider_public = _public_provider_slug(selected_provider) or selected_provider
+    policy_candidates_public = _public_provider_list(
+        provider_decision.candidate_providers if provider_decision else []
+    )
     endpoint_pattern = estimate_data.get("endpoint_pattern")
     estimated_cost = estimate_data.get("cost_estimate_usd")
     method, path = _parse_endpoint_pattern(endpoint_pattern)
 
     if (
         provider_decision
-        and provider_decision.candidate_providers
-        and selected_provider not in provider_decision.candidate_providers
+        and policy_candidates_public
+        and selected_provider_public not in policy_candidates_public
     ):
         raise RhumbError(
             "NO_PROVIDER_AVAILABLE",
             message="Estimated provider does not satisfy the execution policy.",
             detail="Retry with an explicit preferred provider or relax the provider filters.",
             extra={
-                "policy": provider_decision.policy_summary,
-                "selected_provider": selected_provider,
+                "policy": _public_policy_summary(provider_decision.policy_summary),
+                "selected_provider": selected_provider_public,
             },
         )
 
@@ -829,7 +888,7 @@ async def execute_capability_v2(
     is_success = execute_response.status_code == 200
 
     receipt_id: str | None = None
-    provider_public_slug = canonicalize_service_slug(selected_provider or "unknown")
+    provider_public_slug = selected_provider_public or "unknown"
     try:
         error_code, error_message = _extract_error_fields(body)
         receipt_input = ReceiptInput(
@@ -928,7 +987,7 @@ async def execute_capability_v2(
 
     # ── Annotate response ─────────────────────────────────────────────
     if is_success and execution_data:
-        policy_summary = (
+        policy_summary = _public_policy_summary(
             provider_decision.policy_summary
             if provider_decision is not None
             else _policy_summary(effective_policy)
@@ -937,10 +996,10 @@ async def execute_capability_v2(
             **_compat_meta(),
             "receipt_id": receipt_id or _compat_receipt_id(execution_id),
             "explanation_id": explanation_id,
-            "selected_provider": selected_provider,
+            "selected_provider": selected_provider_public,
             "policy_applied": _effective_policy_active(effective_policy),
             "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
-            "policy_candidates": provider_decision.candidate_providers if provider_decision else None,
+            "policy_candidates": policy_candidates_public if provider_decision else None,
             "policy_summary": policy_summary,
             "policy_source": policy_source,
             "budget_applied": bool(budget_status and budget_status.budget_usd is not None),

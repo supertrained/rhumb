@@ -285,6 +285,17 @@ def _build_patches():
     return mock_response, mock_pool, budget_state
 
 
+def _passthrough_inject_auth_request_parts(
+    service_slug: str,
+    auth_method: str | None,
+    headers: dict[str, str],
+    body: dict | None,
+    params: dict | None,
+):
+    del service_slug, auth_method
+    return headers, body, params
+
+
 @pytest.mark.anyio
 async def test_v2_health(app):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -927,7 +938,7 @@ async def test_v2_estimate_alias_provider_query_accepts_canonical_provider(app):
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider"] == "brave-search"
+    assert data["provider"] == "brave-search-api"
     assert data["credential_mode"] == "byok"
     assert data["endpoint_pattern"] == "GET /res/v1/web/search"
 
@@ -1186,7 +1197,7 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1225,13 +1236,13 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
 
 
 @pytest.mark.anyio
-async def test_v2_execute_honors_alias_provider_preference_and_reports_runtime_selection(app):
+async def test_v2_execute_honors_alias_provider_preference_and_reports_canonical_public_selection(app):
     _, mock_pool, budget_state = _build_patches()
 
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1251,12 +1262,12 @@ async def test_v2_execute_honors_alias_provider_preference_and_reports_runtime_s
     body = resp.json()
     assert body["error"] is None
     data = body["data"]
-    assert data["provider_used"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
     assert data["credential_mode"] == "byok"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
-    assert data["_rhumb_v2"]["policy_summary"]["provider_preference"] == ["brave-search"]
-    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+    assert data["_rhumb_v2"]["policy_summary"]["provider_preference"] == ["brave-search-api"]
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search-api"]
     assert data["_rhumb_v2"]["translated_from"]["policy_provider_preference"] is True
 
     request_call = mock_pool.acquire.return_value.request.await_args
@@ -1264,13 +1275,13 @@ async def test_v2_execute_honors_alias_provider_preference_and_reports_runtime_s
 
 
 @pytest.mark.anyio
-async def test_v2_execute_honors_pinned_alias_provider_and_reports_runtime_selection(app):
+async def test_v2_execute_honors_pinned_alias_provider_and_reports_canonical_public_selection(app):
     _, mock_pool, budget_state = _build_patches()
 
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1290,25 +1301,25 @@ async def test_v2_execute_honors_pinned_alias_provider_and_reports_runtime_selec
     body = resp.json()
     assert body["error"] is None
     data = body["data"]
-    assert data["provider_used"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
     assert data["credential_mode"] == "byok"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_pin"
-    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search"
-    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search-api"
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search-api"]
 
     request_call = mock_pool.acquire.return_value.request.await_args
     assert request_call is not None
 
 
 @pytest.mark.anyio
-async def test_v2_execute_honors_allow_only_alias_provider_and_reports_runtime_selection(app):
+async def test_v2_execute_honors_allow_only_alias_provider_and_reports_canonical_public_selection(app):
     _, mock_pool, budget_state = _build_patches()
 
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1328,12 +1339,12 @@ async def test_v2_execute_honors_allow_only_alias_provider_and_reports_runtime_s
     body = resp.json()
     assert body["error"] is None
     data = body["data"]
-    assert data["provider_used"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
     assert data["credential_mode"] == "byok"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_single_candidate"
-    assert data["_rhumb_v2"]["policy_summary"]["allow_only"] == ["brave-search"]
-    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+    assert data["_rhumb_v2"]["policy_summary"]["allow_only"] == ["brave-search-api"]
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search-api"]
     assert data["_rhumb_v2"]["translated_from"]["policy_allow_only"] is True
 
     request_call = mock_pool.acquire.return_value.request.await_args
@@ -1365,7 +1376,7 @@ async def test_v2_execute_rejects_denied_alias_provider_and_surfaces_normalized_
     assert body["error"]["policy"] == {
         "pin": None,
         "provider_preference": [],
-        "provider_deny": ["brave-search"],
+        "provider_deny": ["brave-search-api"],
         "allow_only": [],
     }
     assert mock_forward.await_count == 0
@@ -1451,7 +1462,7 @@ async def test_v2_execute_respects_provider_deny_and_uses_next_allowed_preferenc
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1487,7 +1498,7 @@ async def test_v2_execute_rejects_when_policy_filters_remove_all_providers(app):
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1518,7 +1529,7 @@ async def test_v2_execute_enforces_max_cost_ceiling_before_execution(app):
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1566,7 +1577,7 @@ async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(app, _m
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1796,7 +1807,7 @@ async def test_v2_execute_merges_account_policy_with_inline_override(app, _mock_
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1842,7 +1853,7 @@ async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -1859,10 +1870,10 @@ async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider_used"] == "brave-search"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_pin"
-    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search"
+    assert data["_rhumb_v2"]["policy_summary"]["pin"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_source"] == {
         "scope": "organization",
         "has_account_policy": True,
@@ -1902,7 +1913,7 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_a
         with (
             patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
             patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-            patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+            patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
             patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
             patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
             patch("services.provider_attribution.supabase_fetch", new=AsyncMock(side_effect=_mock_provider_detail_fetch)),
@@ -1922,8 +1933,8 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_a
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider_used"] == "brave-search"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb"]["provider"]["id"] == "brave-search-api"
     assert data["_rhumb"]["provider"]["name"] == "Brave Search"
     assert resp.headers["X-Rhumb-Provider"] == "brave-search-api"
@@ -1943,45 +1954,56 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_bill
     )
 
     mock_receipt = SimpleNamespace(receipt_id="rcpt_alias_truth")
-    mock_attribution = MagicMock()
-    mock_attribution.to_response_headers.return_value = {
-        "X-Rhumb-Receipt-Id": "rcpt_alias_truth",
-        "X-Rhumb-Provider": "brave-search-api",
-        "X-Rhumb-Layer": "2",
-    }
-    mock_attribution.to_rhumb_block.return_value = {"receipt_id": "rcpt_alias_truth"}
     mock_billing_stream = SimpleNamespace(emit=MagicMock())
 
-    with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
-        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
-        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
-        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_alias_truth")),
-        patch("routes.resolve_v2.store_explanation"),
-        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
-        patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
-    ):
-        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post(
-                "/v2/capabilities/search.query/execute",
-                json={
-                    "parameters": {"q": "rhumb"},
-                    "credential_mode": "byo",
-                    "interface": "rest",
-                },
-                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
-            )
+    async def _mock_provider_detail_fetch(path: str):
+        if path.startswith("services?slug=eq.brave-search-api"):
+            return [{
+                "slug": "brave-search-api",
+                "name": "Brave Search",
+                "category": "search",
+                "official_docs": "https://api.search.brave.com/docs",
+                "aggregate_recommendation_score": 7.8,
+                "tier_label": "L3",
+            }]
+        return []
+
+    clear_provider_cache()
+    try:
+        with (
+            patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+            patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
+            patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+            patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+            patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+            patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+            patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_alias_truth")),
+            patch("routes.resolve_v2.store_explanation"),
+            patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+            patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
+            patch("services.provider_attribution.supabase_fetch", new=AsyncMock(side_effect=_mock_provider_detail_fetch)),
+        ):
+            mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    "/v2/capabilities/search.query/execute",
+                    json={
+                        "parameters": {"q": "rhumb"},
+                        "credential_mode": "byo",
+                        "interface": "rest",
+                    },
+                    headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                )
+    finally:
+        clear_provider_cache()
 
     assert resp.status_code == 200
     receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
     assert receipt_input.provider_id == "brave-search-api"
     assert receipt_input.provider_name == "brave-search-api"
     assert mock_billing_stream.emit.call_args.kwargs["provider_slug"] == "brave-search-api"
+    assert resp.headers["X-Rhumb-Provider"] == "brave-search-api"
+    assert resp.json()["data"]["_rhumb"]["provider"]["id"] == "brave-search-api"
 
 
 @pytest.mark.anyio
@@ -2000,7 +2022,7 @@ async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_p
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -2017,11 +2039,11 @@ async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_p
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider_used"] == "brave-search"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
-    assert data["_rhumb_v2"]["policy_summary"]["provider_preference"] == ["brave-search"]
-    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+    assert data["_rhumb_v2"]["policy_summary"]["provider_preference"] == ["brave-search-api"]
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search-api"]
     assert data["_rhumb_v2"]["policy_source"] == {
         "scope": "organization",
         "has_account_policy": True,
@@ -2047,7 +2069,7 @@ async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_sou
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
@@ -2064,11 +2086,11 @@ async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_sou
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["provider_used"] == "brave-search"
-    assert data["_rhumb_v2"]["selected_provider"] == "brave-search"
+    assert data["provider_used"] == "brave-search-api"
+    assert data["_rhumb_v2"]["selected_provider"] == "brave-search-api"
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_single_candidate"
-    assert data["_rhumb_v2"]["policy_summary"]["allow_only"] == ["brave-search"]
-    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search"]
+    assert data["_rhumb_v2"]["policy_summary"]["allow_only"] == ["brave-search-api"]
+    assert data["_rhumb_v2"]["policy_candidates"] == ["brave-search-api"]
     assert data["_rhumb_v2"]["policy_source"] == {
         "scope": "organization",
         "has_account_policy": True,
@@ -2112,7 +2134,7 @@ async def test_v2_execute_rejects_stored_denied_alias_provider_and_surfaces_norm
     assert body["error"]["policy"] == {
         "pin": None,
         "provider_preference": [],
-        "provider_deny": ["brave-search"],
+        "provider_deny": ["brave-search-api"],
         "allow_only": [],
     }
     assert mock_forward.await_count == 0
@@ -2135,7 +2157,7 @@ async def test_v2_execute_inline_empty_list_clears_stored_preference(app, _mock_
     with (
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
         patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h),
+        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
         patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
     ):
