@@ -133,6 +133,97 @@ class TestRoutingEngineSelectProvider:
         assert result is None
 
 
+class _MockSpendResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+class _MockSpendClient:
+    def __init__(self, response):
+        self._response = response
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return None
+
+    async def get(self, url, headers=None, timeout=None):
+        return self._response
+
+
+@pytest.mark.anyio
+async def test_get_spend_summary_canonicalizes_alias_backed_provider_ids():
+    engine = RoutingEngine()
+    rows = [
+        {
+            "capability_id": "search.query",
+            "provider_used": "brave-search",
+            "cost_estimate_usd": 0.01,
+            "success": True,
+        },
+        {
+            "capability_id": "search.query",
+            "provider_used": "brave-search-api",
+            "cost_estimate_usd": 0.03,
+            "success": True,
+        },
+        {
+            "capability_id": "person.enrich",
+            "provider_used": "pdl",
+            "cost_estimate_usd": 0.02,
+            "success": True,
+        },
+    ]
+
+    with patch(
+        "services.routing_engine.httpx.AsyncClient",
+        return_value=_MockSpendClient(_MockSpendResponse(200, rows)),
+    ):
+        summary = await engine.get_spend_summary("agent_test123", "2026-04")
+
+    assert summary["total_spend_usd"] == 0.06
+    assert summary["total_executions"] == 3
+    assert summary["by_provider"] == [
+        {"provider": "brave-search-api", "spend_usd": 0.04, "executions": 2},
+        {"provider": "people-data-labs", "spend_usd": 0.02, "executions": 1},
+    ]
+
+
+@pytest.mark.anyio
+async def test_get_spend_summary_normalizes_mixed_case_alias_backed_provider_ids():
+    engine = RoutingEngine()
+    rows = [
+        {
+            "capability_id": "search.query",
+            "provider_used": "Brave-Search",
+            "cost_estimate_usd": 0.02,
+            "success": True,
+        },
+        {
+            "capability_id": "person.enrich",
+            "provider_used": "PDL",
+            "cost_estimate_usd": 0.01,
+            "success": True,
+        },
+    ]
+
+    with patch(
+        "services.routing_engine.httpx.AsyncClient",
+        return_value=_MockSpendClient(_MockSpendResponse(200, rows)),
+    ):
+        summary = await engine.get_spend_summary("agent_test123", "2026-04")
+
+    assert summary["by_provider"] == [
+        {"provider": "brave-search-api", "spend_usd": 0.02, "executions": 1},
+        {"provider": "people-data-labs", "spend_usd": 0.01, "executions": 1},
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Routing route tests
 # ---------------------------------------------------------------------------

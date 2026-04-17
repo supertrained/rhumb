@@ -16,6 +16,7 @@ from typing import Any, Optional
 import httpx
 
 from config import settings
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +286,8 @@ class RoutingEngine:
         for row in rows:
             cost = float(row.get("cost_estimate_usd") or 0)
             cap_id = row.get("capability_id", "unknown")
-            provider = row.get("provider_used", "unknown")
+            raw_provider = str(row.get("provider_used") or "").strip().lower()
+            provider = public_service_slug(raw_provider) or raw_provider or "unknown"
 
             total_spend += cost
 
