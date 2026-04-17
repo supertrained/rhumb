@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
@@ -73,6 +74,31 @@ def _to_bool(value: Any) -> bool:
 
 def _public_provider_slug(value: Any) -> str | None:
     return public_service_slug(value)
+
+
+def _canonicalize_provider_text(text: Any, provider_slug: Any) -> str | None:
+    if text is None:
+        return None
+
+    canonical = _public_provider_slug(provider_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_provider_slug = str(provider_slug).strip().lower() if provider_slug else None
+    if raw_provider_slug == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
 
 
 def _status_key(value: Any) -> str | None:
@@ -515,7 +541,10 @@ async def get_recent_executions(
             "fallback_attempted": _to_bool(row.get("fallback_attempted")),
             "fallback_provider": _public_provider_slug(row.get("fallback_provider")),
             "interface": row.get("interface"),
-            "error_message": row.get("error_message"),
+            "error_message": _canonicalize_provider_text(
+                row.get("error_message"),
+                row.get("provider_used"),
+            ),
             "executed_at": _row_timestamp_value(row),
             "created_at": _row_timestamp_value(row),
         }
