@@ -3275,11 +3275,19 @@ async def execute_capability(
             return {"data": vault_response, "error": None}
 
         except httpx.HTTPError as e:
+            public_requested_provider = _public_provider_label(request.provider)
+            logger.warning(
+                "agent_vault upstream request failed provider=%s public_provider=%s agent_id=%s error=%s",
+                request.provider,
+                public_requested_provider,
+                agent_id,
+                e,
+            )
             await _release_reservations()
             raise HTTPException(
                 status_code=502,
-                detail=f"Upstream request failed: {e}",
-            )
+                detail=f"Upstream request failed for provider '{public_requested_provider}'",
+            ) from e
 
     # ── Mode 1 (BYO) continues below ────────────────────────────────
     mappings = cap_services
@@ -3320,6 +3328,7 @@ async def execute_capability(
     success = False
     error_message: Optional[str] = None
 
+    public_requested_provider = _public_provider_label(request.provider or provider_slug)
     use_pool = proxy_slug in SERVICE_REGISTRY
     final_body, final_params = _prepare_upstream_payload(
         request.method,
@@ -3371,6 +3380,14 @@ async def execute_capability(
 
     except httpx.HTTPError as e:
         error_message = str(e)
+        logger.warning(
+            "capability_execute upstream request failed provider=%s public_provider=%s proxy_slug=%s agent_id=%s error=%s",
+            provider_slug,
+            public_requested_provider,
+            proxy_slug,
+            agent_id,
+            e,
+        )
         breaker = get_breaker_registry().get(proxy_slug, agent_id)
         breaker.record_failure()
 
@@ -3385,8 +3402,8 @@ async def execute_capability(
 
         raise HTTPException(
             status_code=502,
-            detail=f"Upstream request failed: {error_message}",
-        )
+            detail=f"Upstream request failed for provider '{public_requested_provider}'",
+        ) from e
 
     total_latency_ms = (time.perf_counter() - request_start) * 1000
 

@@ -1790,6 +1790,75 @@ async def test_execute_credential_unavailable_error_uses_canonical_public_provid
 
 
 @pytest.mark.anyio
+async def test_execute_upstream_http_error_uses_canonical_public_provider_id(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.10",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }
+            ]
+        if path.startswith("services?"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    from services.proxy_breaker import BreakerRegistry
+
+    breaker_registry = BreakerRegistry()
+    mock_pool = MagicMock()
+    mock_client = AsyncMock()
+    mock_client.request.side_effect = httpx.ConnectTimeout("brave-search upstream exploded")
+    mock_pool.acquire = AsyncMock(return_value=mock_client)
+    mock_pool.release = AsyncMock()
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "byo",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Upstream request failed for provider 'brave-search-api'"
+
+
+@pytest.mark.anyio
 async def test_execute_provider_unavailable_error_uses_canonical_public_provider_id(app):
     with (
         patch(
@@ -1932,6 +2001,81 @@ async def test_execute_agent_vault_no_api_domain_error_uses_canonical_public_pro
 
     assert resp.status_code == 500
     assert resp.json()["detail"] == "No API domain for provider 'brave-search-api'"
+
+
+@pytest.mark.anyio
+async def test_execute_agent_vault_upstream_http_error_uses_canonical_public_provider_id(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("services?slug=eq.brave-search&"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    class ExplodingAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            raise httpx.ConnectTimeout("brave-search upstream exploded")
+
+    mock_validator = MagicMock()
+    mock_validator.get_ceremony = AsyncMock(return_value=None)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("services.agent_vault.get_vault_validator", return_value=mock_validator),
+        patch("routes.capability_execute.httpx.AsyncClient", ExplodingAsyncClient),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "agent_vault",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "agent_vault_test_token",
+                },
+            )
+
+    assert resp.status_code == 502
+    assert resp.json()["detail"] == "Upstream request failed for provider 'brave-search-api'"
 
 
 @pytest.mark.anyio
