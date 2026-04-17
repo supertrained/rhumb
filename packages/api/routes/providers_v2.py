@@ -226,8 +226,12 @@ def _build_in_filter(values: set[str]) -> str:
     return ",".join(f'"{value}"' for value in sorted(values))
 
 
+def _public_provider_slug(provider_id: str | None) -> str:
+    return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
+
+
 def _runtime_provider_slug(provider_id: str) -> str:
-    public_slug = public_service_slug(provider_id) or str(provider_id).strip().lower()
+    public_slug = _public_provider_slug(provider_id)
     return normalize_slug(public_slug)
 
 
@@ -652,11 +656,12 @@ async def list_providers(
 @router.get("/providers/{provider_id}")
 async def get_provider(provider_id: str) -> dict[str, Any]:
     """Get provider detail including available capabilities."""
+    public_provider_id = _public_provider_slug(provider_id)
     detail = await _resolve_provider_detail(provider_id)
     if detail is None:
         raise RhumbError(
             "PROVIDER_UNAVAILABLE",
-            message=f"Provider '{provider_id}' not found.",
+            message=f"Provider '{public_provider_id}' not found.",
             detail="Check the provider slug at GET /v2/providers.",
         )
 
@@ -672,7 +677,7 @@ async def get_provider(provider_id: str) -> dict[str, Any]:
         for m in mappings
     ]
 
-    slug = detail.get("slug", provider_id)
+    slug = detail.get("slug", public_provider_id)
     is_callable = bool(detail.get("callable"))
 
     return {
@@ -715,15 +720,16 @@ async def execute_on_provider(
     t_start = time.monotonic()
 
     # ── Validate the provider exists ──────────────────────────────────
+    public_provider_id = _public_provider_slug(provider_id)
     detail = await _resolve_provider_detail(provider_id)
     if detail is None:
         raise RhumbError(
             "PROVIDER_UNAVAILABLE",
-            message=f"Provider '{provider_id}' not found.",
+            message=f"Provider '{public_provider_id}' not found.",
             detail="Check the provider slug at GET /v2/providers.",
         )
 
-    provider_public_slug = detail.get("slug", public_service_slug(provider_id) or str(provider_id).strip().lower())
+    provider_public_slug = detail.get("slug", public_provider_id)
     provider_runtime_slug = detail.get("runtime_slug") or _runtime_provider_slug(provider_public_slug)
 
     # ── Validate the provider supports the requested capability ──────
@@ -735,8 +741,8 @@ async def execute_on_provider(
     if mapping is None:
         raise RhumbError(
             "CAPABILITY_NOT_FOUND",
-            message=f"Provider '{provider_id}' does not support capability '{payload.capability}'.",
-            detail=f"Check supported capabilities at GET /v2/providers/{provider_id}.",
+            message=f"Provider '{provider_public_slug}' does not support capability '{payload.capability}'.",
+            detail=f"Check supported capabilities at GET /v2/providers/{provider_public_slug}.",
         )
 
     # ── Cost estimation via v1 compat ────────────────────────────────

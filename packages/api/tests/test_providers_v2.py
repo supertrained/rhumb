@@ -565,6 +565,14 @@ class TestGetProvider:
             resp = client.get("/v2/providers/nonexistent")
         assert resp.status_code == 503  # PROVIDER_UNAVAILABLE
 
+    def test_get_nonexistent_provider_error_normalizes_public_provider_id(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
+            resp = client.get("/v2/providers/NonExistent")
+
+        assert resp.status_code == 503
+        error = resp.json()["error"]
+        assert error["message"] == "Provider 'nonexistent' not found."
+
 
 # ---------------------------------------------------------------------------
 # POST /v2/providers/{provider_id}/execute
@@ -822,6 +830,18 @@ class TestExecuteOnProvider:
                 json={"capability": "nonexistent.capability", "parameters": {}},
             )
         assert resp.status_code == 404  # CAPABILITY_NOT_FOUND
+
+    def test_execute_unsupported_capability_error_uses_canonical_public_provider_id(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
+            resp = client.post(
+                "/v2/providers/Brave-Search/execute",
+                json={"capability": "nonexistent.capability", "parameters": {}},
+            )
+
+        assert resp.status_code == 404
+        error = resp.json()["error"]
+        assert error["message"] == "Provider 'brave-search-api' does not support capability 'nonexistent.capability'."
+        assert error["detail"] == "Check supported capabilities at GET /v2/providers/brave-search-api."
 
     @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
     @patch("routes.providers_v2.get_receipt_service")
