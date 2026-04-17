@@ -666,6 +666,22 @@ class TestAccessControl:
         assert allowed is True
         assert reason is None
 
+    def test_access_allowed_across_canonical_and_runtime_aliases(
+        self,
+        identity_store: AgentIdentityStore,
+        acl: AgentAccessControl,
+    ) -> None:
+        """Canonical service grants should satisfy runtime alias checks."""
+        agent_id, _ = _run(identity_store.register_agent("acl-alias-ok", "org_1"))
+        _run(identity_store.grant_service_access(agent_id, "people-data-labs"))
+
+        allowed, reason = _run(acl.can_access_service(agent_id, "pdl"))
+        assert allowed is True
+        assert reason is None
+
+        services = _run(acl.list_agent_services(agent_id))
+        assert services == ["people-data-labs"]
+
     def test_access_denied_no_grant(
         self, identity_store: AgentIdentityStore, acl: AgentAccessControl
     ) -> None:
@@ -914,6 +930,49 @@ class TestAdminRoutes:
         # Verify revoked
         detail_resp2 = admin_client.get(f"/v1/admin/agents/{agent_id}")
         assert "stripe" not in detail_resp2.json()["services"]
+
+    def test_alias_backed_grant_and_revoke_routes_stay_canonical(
+        self,
+        admin_client: TestClient,
+    ) -> None:
+        """Alias-backed admin access routes should round-trip canonical public ids."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "alias-grant", "organization_id": "org_alias"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        grant_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/grant-access",
+            json={"service": "brave-search", "rate_limit_override": 25},
+        )
+        assert grant_resp.status_code == 200
+
+        detail_resp = admin_client.get(f"/v1/admin/agents/{agent_id}")
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["services"] == ["brave-search-api"]
+
+        duplicate_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/grant-access",
+            json={"service": "Brave-Search-Api"},
+        )
+        assert duplicate_resp.status_code == 409
+        assert duplicate_resp.json()["detail"] == "Agent already has active access to 'brave-search-api'"
+
+        revoke_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/revoke-access",
+            json={"service": "Brave-Search-Api"},
+        )
+        assert revoke_resp.status_code == 200
+
+        missing_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/revoke-access",
+            json={"service": "brave-search"},
+        )
+        assert missing_resp.status_code == 404
+        assert missing_resp.json()["detail"] == (
+            f"No active access found for agent '{agent_id}' to service 'brave-search-api'"
+        )
 
     def test_rotate_key_route(self, admin_client: TestClient) -> None:
         """POST /v1/admin/agents/{id}/rotate-key returns new key."""

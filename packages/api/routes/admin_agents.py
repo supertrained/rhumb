@@ -22,8 +22,15 @@ from schemas.agent_identity import (
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_usage_analytics import AgentUsageAnalytics, get_usage_analytics
 from services.evidence_ingestion import EvidenceIngestionAdapter
+from services.service_slugs import public_service_slug
 
 router = APIRouter(tags=["admin-agents"])
+
+
+def _public_service_label(service: str) -> str:
+    """Normalize admin-facing service ids onto canonical public slugs."""
+    cleaned = str(service).strip().lower()
+    return public_service_slug(cleaned) or cleaned
 
 
 # ── Request / Response Schemas ───────────────────────────────────────
@@ -212,7 +219,7 @@ async def list_agents(
                 created_at=agent.created_at.isoformat()
                 if hasattr(agent.created_at, "isoformat")
                 else str(agent.created_at),
-                service_count=len(services),
+                service_count=len({s.service for s in services}),
             )
         )
     return items
@@ -246,7 +253,7 @@ async def get_agent_details(agent_id: str) -> AgentDetailResponse:
         if hasattr(agent.updated_at, "isoformat")
         else str(agent.updated_at),
         api_key_prefix=agent.api_key_prefix,
-        services=[s.service for s in services],
+        services=list(dict.fromkeys(s.service for s in services)),
         usage=usage,
     )
 
@@ -266,9 +273,10 @@ async def grant_service_access(
     # Check for existing active access
     existing = await store.get_service_access(agent_id, body.service)
     if existing is not None:
+        public_service = _public_service_label(body.service)
         raise HTTPException(
             status_code=409,
-            detail=f"Agent already has active access to '{body.service}'",
+            detail=f"Agent already has active access to '{public_service}'",
         )
 
     access_id = await store.grant_service_access(
@@ -291,9 +299,10 @@ async def revoke_service_access(
         agent_id, body.service
     )
     if not revoked:
+        public_service = _public_service_label(body.service)
         raise HTTPException(
             status_code=404,
-            detail=f"No active access found for agent '{agent_id}' to service '{body.service}'",
+            detail=f"No active access found for agent '{agent_id}' to service '{public_service}'",
         )
 
     return {"status": "success"}

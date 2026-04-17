@@ -20,10 +20,34 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
+from services.service_slugs import public_service_slug, public_service_slug_candidates
+
 
 def _utcnow() -> datetime:
     """Timezone-aware UTC now (avoids deprecated ``datetime.utcnow()``)."""
     return datetime.now(tz=UTC)
+
+
+def _public_service_lookup_key(service: str) -> str:
+    """Normalize service ids onto canonical public slugs for ACL/cache keys."""
+    cleaned = str(service).strip().lower()
+    return public_service_slug(cleaned) or cleaned
+
+
+def _public_service_lookup_candidates(service: str) -> list[str]:
+    """Return canonical plus legacy alias candidates for service access lookups."""
+    candidates = public_service_slug_candidates(service)
+    if candidates:
+        return candidates
+    normalized = _public_service_lookup_key(service)
+    return [normalized] if normalized else []
+
+
+def _canonicalize_service_access_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrite a service-access row onto its canonical public service id."""
+    canonical_row = dict(row)
+    canonical_row["service"] = _public_service_lookup_key(str(row.get("service") or ""))
+    return canonical_row
 
 
 # ── Schemas ──────────────────────────────────────────────────────────
@@ -429,13 +453,14 @@ class AgentIdentityStore:
         Returns:
             ``access_id`` (UUID).
         """
+        canonical_service = _public_service_lookup_key(service)
         access_id = str(uuid.uuid4())
         now = _utcnow()
 
         access_row: Dict[str, Any] = {
             "access_id": access_id,
             "agent_id": agent_id,
-            "service": service,
+            "service": canonical_service,
             "status": "active",
             "granted_at": now.isoformat(),
             "revoked_at": None,
@@ -450,7 +475,7 @@ class AgentIdentityStore:
         else:
             self._mem_access[access_id] = access_row
 
-        self._acl_cache.pop((agent_id, service), None)
+        self._clear_acl_cache_entries(agent_id, service)
         return access_id
 
     async def revoke_service_access(self, access_id: str) -> bool:
@@ -486,41 +511,48 @@ class AgentIdentityStore:
             row.update(update)
 
         if cache_key is not None:
-            self._acl_cache.pop(cache_key, None)
+            self._clear_acl_cache_entries(cache_key[0], cache_key[1])
         return True
 
     async def revoke_service_access_by_agent_service(
         self, agent_id: str, service: str
     ) -> bool:
         """Revoke access by agent_id + service name."""
+        lookup_candidates = _public_service_lookup_candidates(service)
         if self.supabase is not None:
-            response = await (
-                self.supabase.table("agent_service_access")
-                .select("access_id")
-                .eq("agent_id", agent_id)
-                .eq("service", service)
-                .eq("status", "active")
-                .execute()
-            )
-            if not response.data:
-                self._acl_cache.pop((agent_id, service), None)
+            access_ids: set[str] = set()
+            for candidate in lookup_candidates:
+                response = await (
+                    self.supabase.table("agent_service_access")
+                    .select("access_id")
+                    .eq("agent_id", agent_id)
+                    .eq("service", candidate)
+                    .eq("status", "active")
+                    .execute()
+                )
+                for row in response.data or []:
+                    access_id = row.get("access_id")
+                    if access_id:
+                        access_ids.add(str(access_id))
+            if not access_ids:
+                self._clear_acl_cache_entries(agent_id, service)
                 return False
-            for row in response.data:
-                await self.revoke_service_access(row["access_id"])
-            self._acl_cache.pop((agent_id, service), None)
+            for access_id in access_ids:
+                await self.revoke_service_access(access_id)
+            self._clear_acl_cache_entries(agent_id, service)
             return True
         else:
             found = False
             for _access_id, row in self._mem_access.items():
                 if (
                     row["agent_id"] == agent_id
-                    and row["service"] == service
+                    and row["service"] in lookup_candidates
                     and row["status"] == "active"
                 ):
                     row["status"] = "revoked"
                     row["revoked_at"] = _utcnow().isoformat()
                     found = True
-            self._acl_cache.pop((agent_id, service), None)
+            self._clear_acl_cache_entries(agent_id, service)
             return found
 
     async def get_agent_services(
@@ -545,13 +577,15 @@ class AgentIdentityStore:
                 and (not active_only or r["status"] == "active")
             ]
 
-        return [AgentServiceAccessSchema(**r) for r in rows]
+        return [AgentServiceAccessSchema(**_canonicalize_service_access_row(r)) for r in rows]
 
     async def get_service_access(
         self, agent_id: str, service: str
     ) -> Optional[AgentServiceAccessSchema]:
         """Get a specific service access grant for an agent."""
-        cache_key = (agent_id, service)
+        lookup_key = _public_service_lookup_key(service)
+        lookup_candidates = _public_service_lookup_candidates(service)
+        cache_key = (agent_id, lookup_key)
         now = _time.monotonic()
         cached = self._acl_cache.get(cache_key)
         if cached is not None:
@@ -562,32 +596,46 @@ class AgentIdentityStore:
 
         result: Optional[AgentServiceAccessSchema] = None
         if self.supabase is not None:
-            try:
-                response = await (
-                    self.supabase.table("agent_service_access")
-                    .select("*")
-                    .eq("agent_id", agent_id)
-                    .eq("service", service)
-                    .eq("status", "active")
-                    .single()
-                    .execute()
-                )
-                if response.data:
-                    result = AgentServiceAccessSchema(**response.data)
-            except Exception:
-                pass
+            for candidate in lookup_candidates:
+                try:
+                    response = await (
+                        self.supabase.table("agent_service_access")
+                        .select("*")
+                        .eq("agent_id", agent_id)
+                        .eq("service", candidate)
+                        .eq("status", "active")
+                        .single()
+                        .execute()
+                    )
+                    if response.data:
+                        result = AgentServiceAccessSchema(
+                            **_canonicalize_service_access_row(response.data)
+                        )
+                        break
+                except Exception:
+                    continue
         else:
-            for row in self._mem_access.values():
-                if (
-                    row["agent_id"] == agent_id
-                    and row["service"] == service
-                    and row["status"] == "active"
-                ):
-                    result = AgentServiceAccessSchema(**row)
+            for candidate in lookup_candidates:
+                for row in self._mem_access.values():
+                    if (
+                        row["agent_id"] == agent_id
+                        and row["service"] == candidate
+                        and row["status"] == "active"
+                    ):
+                        result = AgentServiceAccessSchema(
+                            **_canonicalize_service_access_row(row)
+                        )
+                        break
+                if result is not None:
                     break
 
         self._acl_cache[cache_key] = (result, now + self.ACL_CACHE_TTL_SECONDS)
         return result
+
+    def _clear_acl_cache_entries(self, agent_id: str, service: str) -> None:
+        """Drop cached ACL rows for canonical and legacy forms of a service slug."""
+        for candidate in _public_service_lookup_candidates(service):
+            self._acl_cache.pop((agent_id, _public_service_lookup_key(candidate)), None)
 
     def clear_acl_cache(self) -> None:
         """Clear the ACL grant cache."""
@@ -607,22 +655,24 @@ class AgentIdentityStore:
             "last_used_at": now.isoformat(),
             "last_used_result": result,
         }
-        cache_key = (agent_id, service)
+        lookup_candidates = _public_service_lookup_candidates(service)
+        cache_key = (agent_id, _public_service_lookup_key(service))
         updated_row: Optional[Dict[str, Any]] = None
 
         if self.supabase is not None:
-            await self.supabase.table("agent_service_access").update(update).eq(
-                "agent_id", agent_id
-            ).eq("service", service).eq("status", "active").execute()
+            for candidate in lookup_candidates:
+                await self.supabase.table("agent_service_access").update(update).eq(
+                    "agent_id", agent_id
+                ).eq("service", candidate).eq("status", "active").execute()
         else:
             for row in self._mem_access.values():
                 if (
                     row["agent_id"] == agent_id
-                    and row["service"] == service
+                    and row["service"] in lookup_candidates
                     and row["status"] == "active"
                 ):
                     row.update(update)
-                    updated_row = row
+                    updated_row = _canonicalize_service_access_row(row)
                     break
 
         cached = self._acl_cache.get(cache_key)

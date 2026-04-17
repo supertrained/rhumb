@@ -207,6 +207,12 @@ STRIPE_REQUEST = {
     "path": "/v1/customers",
 }
 
+PDL_REQUEST = {
+    "service": "PDL",
+    "method": "GET",
+    "path": "/v1/person/enrich",
+}
+
 
 # ── Tests ───────────────────────────────────────────────────────────
 
@@ -245,6 +251,26 @@ class TestProxyAuthWiring:
         )
         assert resp.status_code == 403
         assert "no access to service" in resp.json()["detail"]
+
+    def test_alias_backed_no_service_grant_returns_canonical_403(
+        self,
+        client: TestClient,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        """Alias-backed proxy requests should deny on canonical public service ids."""
+        agent_id, api_key = _run(
+            identity_store.register_agent(name="no-alias-grant-agent", organization_id="org-test")
+        )
+
+        resp = client.post(
+            PROXY_URL,
+            json=PDL_REQUEST,
+            headers={"X-Rhumb-Key": api_key},
+        )
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == (
+            f"Agent '{agent_id}' has no access to service 'people-data-labs'"
+        )
 
     def test_rate_limited_returns_429(
         self,

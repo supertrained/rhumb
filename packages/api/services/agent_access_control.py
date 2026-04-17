@@ -17,6 +17,7 @@ from schemas.agent_identity import (
     AgentServiceAccessSchema,
     get_agent_identity_store,
 )
+from services.service_slugs import public_service_slug
 
 
 class AgentAccessControl:
@@ -67,6 +68,7 @@ class AgentAccessControl:
         service: str,
     ) -> Tuple[bool, Optional[str], Optional[AgentServiceAccessSchema]]:
         """Resolve service access using a pre-hydrated agent context."""
+        public_service = public_service_slug(service) or str(service).strip().lower()
         if agent.status != "active":
             return False, f"Agent '{agent.agent_id}' is {agent.status}", None
 
@@ -74,7 +76,7 @@ class AgentAccessControl:
         if access is None:
             return (
                 False,
-                f"Agent '{agent.agent_id}' has no access to service '{service}'",
+                f"Agent '{agent.agent_id}' has no access to service '{public_service}'",
                 None,
             )
 
