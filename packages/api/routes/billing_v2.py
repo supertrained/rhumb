@@ -71,8 +71,19 @@ def _event_to_response(event: BillingEvent) -> dict[str, Any]:
     }
 
 
+def _public_provider_totals(by_provider: dict[str, int]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for slug, cents in by_provider.items():
+        public_slug = public_service_slug(slug) or str(slug or "").strip()
+        if not public_slug:
+            continue
+        merged[public_slug] = merged.get(public_slug, 0) + cents
+    return merged
+
+
 def _summary_to_response(summary: BillingEventSummary) -> dict[str, Any]:
     """Format a billing summary for API response."""
+    public_by_provider = _public_provider_totals(summary.by_provider)
     return {
         "org_id": summary.org_id,
         "period": summary.period,
@@ -86,7 +97,7 @@ def _summary_to_response(summary: BillingEventSummary) -> dict[str, Any]:
         "credit_purchase_count": summary.credit_purchase_count,
         "by_provider": {
             slug: {"charged_usd_cents": cents, "charged_usd": cents / 100}
-            for slug, cents in summary.by_provider.items()
+            for slug, cents in public_by_provider.items()
         },
         "by_capability": {
             cap: {"charged_usd_cents": cents, "charged_usd": cents / 100}

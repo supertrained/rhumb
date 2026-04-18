@@ -284,3 +284,36 @@ class TestTrustV2Endpoints:
             "success_rate_pct": 66.7,
             "health": "unhealthy",
         }]
+
+    def test_costs_recanonicalize_alias_backed_provider_totals_from_summary_payload(self, client):
+        class _LegacySummaryStream:
+            def summarize(self, org_id, period=None):
+                from services.billing_events import BillingEventSummary
+
+                return BillingEventSummary(
+                    org_id=org_id,
+                    period=period or "all",
+                    total_charged_usd_cents=300,
+                    total_credited_usd_cents=0,
+                    execution_count=2,
+                    x402_payment_count=0,
+                    credit_purchase_count=0,
+                    by_provider={"pdl": 100, "people-data-labs": 200},
+                    by_capability={"people.enrich": 300},
+                    events_count=2,
+                )
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
+        ):
+            resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["by_provider"] == {
+            "people-data-labs": {
+                "charged_usd_cents": 300,
+                "charged_usd": 3.0,
+                "pct_of_total": 100.0,
+            }
+        }

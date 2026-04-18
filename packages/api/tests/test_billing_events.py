@@ -410,3 +410,33 @@ class TestBillingV2Endpoints:
                 "charged_usd": 3.5,
             }
         }
+
+    def test_summary_recanonicalizes_alias_backed_provider_totals_from_legacy_summary(self, client):
+        class _LegacySummaryStream:
+            def summarize(self, org_id, period=None):
+                return BillingEventSummary(
+                    org_id=org_id,
+                    period=period or "all",
+                    total_charged_usd_cents=350,
+                    total_credited_usd_cents=0,
+                    execution_count=2,
+                    x402_payment_count=0,
+                    credit_purchase_count=0,
+                    by_provider={"brave-search": 150, "brave-search-api": 200},
+                    by_capability={"search.query": 350},
+                    events_count=2,
+                )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
+        ):
+            resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["by_provider"] == {
+            "brave-search-api": {
+                "charged_usd_cents": 350,
+                "charged_usd": 3.5,
+            }
+        }

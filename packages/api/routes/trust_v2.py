@@ -45,6 +45,16 @@ async def _require_org(api_key: str | None) -> str:
     return agent.organization_id
 
 
+def _public_provider_totals(by_provider: dict[str, int]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for slug, cents in by_provider.items():
+        public_slug = public_service_slug(slug) or str(slug or "").strip()
+        if not public_slug:
+            continue
+        merged[public_slug] = merged.get(public_slug, 0) + cents
+    return merged
+
+
 @router.get("/summary")
 async def trust_summary(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
@@ -205,6 +215,8 @@ async def trust_costs(
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=period)
 
+    public_by_provider = _public_provider_totals(summary.by_provider)
+
     return {
         "data": {
             "org_id": org_id,
@@ -225,7 +237,7 @@ async def trust_costs(
                     ),
                 }
                 for slug, cents in sorted(
-                    summary.by_provider.items(),
+                    public_by_provider.items(),
                     key=lambda x: -x[1],
                 )
             },
