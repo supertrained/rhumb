@@ -258,6 +258,25 @@ def _canonicalize_provider_text(text: Any, provider_id: str | None) -> str | Non
     return pattern.sub(canonical, rendered)
 
 
+def _canonicalize_provider_metadata_text(
+    text: Any,
+    response_provider_id: str | None,
+    stored_provider_id: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = _public_provider_slug(response_provider_id)
+    if not canonical:
+        return str(text)
+
+    raw_stored_slug = str(stored_provider_id or "").strip().lower()
+    if raw_stored_slug == canonical.lower():
+        return str(text)
+
+    return _canonicalize_provider_text(text, canonical)
+
+
 def _canonicalize_provider_value(value: Any) -> Any:
     if isinstance(value, str):
         public_slug = _public_provider_slug(value)
@@ -512,6 +531,16 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> dict[str, d
         normalized_row = {
             **row,
             "slug": canonical_slug,
+            "name": _canonicalize_provider_metadata_text(
+                row.get("name"),
+                canonical_slug,
+                raw_slug,
+            ),
+            "description": _canonicalize_provider_metadata_text(
+                row.get("description"),
+                canonical_slug,
+                raw_slug,
+            ),
         }
 
         existing = canonical_rows.get(canonical_slug)
