@@ -479,7 +479,7 @@ def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
     client,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """GET /v1/services/{slug}/score should read alias-backed stored rows but return canonical ids."""
+    """GET /v1/services/{slug}/score should read alias-backed stored rows and canonicalize explanation text."""
     from routes import scores as score_routes
 
     score_routes.get_scoring_service.cache_clear()
@@ -491,7 +491,7 @@ def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
                 score=8.7,
                 confidence=0.91,
                 tier="L4",
-                explanation="Alias-backed stored score.",
+                explanation="brave-search outranked pdl on fresh probes.",
                 dimension_snapshot={
                     "score_breakdown": {
                         "execution": 8.4,
@@ -521,6 +521,51 @@ def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
     assert body["access_readiness_score"] == 8.8
     assert body["autonomy_score"] == 8.9
     assert body["an_score_version"] == AN_SCORE_VERSION
+    assert body["explanation"] == "brave-search-api outranked people-data-labs on fresh probes."
+
+
+def test_get_service_score_canonicalizes_alternate_aliases_in_explanation_when_row_is_already_canonical(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Stored canonical score rows should still rewrite alternate alias mentions in explanation text."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search-api",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="brave-search-api outranked pdl on fresh probes.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    }
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/services/brave-search-api/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["service_slug"] == "brave-search-api"
+    assert body["explanation"] == "brave-search-api outranked people-data-labs on fresh probes."
 
 
 def test_get_service_score_accepts_mixed_case_alias_input(

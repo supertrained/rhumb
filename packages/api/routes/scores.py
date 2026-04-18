@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -27,7 +29,12 @@ from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
-from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    canonicalize_service_slug,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 router = APIRouter()
 
@@ -155,7 +162,11 @@ def _stored_to_schema(stored: StoredScore) -> ANScoreSchema:
         an_score_version=score_version,
         confidence=stored.confidence,
         tier=stored.tier,
-        explanation=stored.explanation,
+        explanation=_canonicalize_score_explanation(
+            stored.explanation,
+            stored.service_slug,
+            stored.service_slug,
+        ),
         dimension_snapshot=stored.dimension_snapshot,
         score_id=str(stored.id),
         calculated_at=calculated_at,
@@ -188,6 +199,56 @@ async def _persist_score_or_raise(
 def _public_score_service_slug(service_slug: str) -> str:
     """Normalize score-route service ids onto canonical public slugs."""
     return public_service_slug(service_slug) or str(service_slug).strip().lower()
+
+
+def _canonicalize_known_service_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
+def _canonicalize_score_explanation(
+    explanation: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if explanation is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(explanation)
+
+    canonicalized = str(explanation)
+    raw_stored_slug = str(stored_service_slug or "").strip().lower()
+    if raw_stored_slug != canonical.lower():
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate.lower() == canonical.lower():
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+
+    return _canonicalize_known_service_aliases(canonicalized)
 
 
 def _fetch_latest_probe_for_public_slug(
@@ -335,7 +396,11 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
         an_score_version=result.an_score_version,
         confidence=result.confidence,
         tier=result.tier,
-        explanation=result.explanation,
+        explanation=_canonicalize_score_explanation(
+            result.explanation,
+            result.service_slug,
+            result.service_slug,
+        ),
         dimension_snapshot=result.dimension_snapshot,
         score_id=score_id,
         calculated_at=result.calculated_at.isoformat(),
@@ -382,7 +447,11 @@ async def get_score(slug: str) -> ANScoreSchema:
             an_score_version=result.an_score_version,
             confidence=result.confidence,
             tier=result.tier,
-            explanation=result.explanation,
+            explanation=_canonicalize_score_explanation(
+                result.explanation,
+                result.service_slug,
+                result.service_slug,
+            ),
             dimension_snapshot=result.dimension_snapshot,
             score_id=score_id,
             calculated_at=result.calculated_at.isoformat(),
@@ -436,7 +505,11 @@ async def compare_services(services: str) -> dict:
                     an_score_version=result.an_score_version,
                     confidence=result.confidence,
                     tier=result.tier,
-                    explanation=result.explanation,
+                    explanation=_canonicalize_score_explanation(
+                        result.explanation,
+                        service_slug,
+                        service_slug,
+                    ),
                     dimension_snapshot=result.dimension_snapshot,
                     score_id=None,
                     calculated_at=result.calculated_at.isoformat(),
