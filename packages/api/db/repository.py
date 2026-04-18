@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
-from sqlalchemy import Engine, create_engine, select, text
+from sqlalchemy import Engine, create_engine, func, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -26,6 +26,7 @@ from services.chain_integrity import (
     compute_chain_hmac,
     get_signing_key_version,
 )
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 if TYPE_CHECKING:
     from services.scoring import ANScoreResult
@@ -37,6 +38,30 @@ _SCORE_TIER_LABELS = {
     "L3": "Ready",
     "L4": "Native",
 }
+
+
+def _normalized_service_slug(service_slug: str | None) -> str | None:
+    normalized = public_service_slug(service_slug)
+    if normalized is not None:
+        return normalized
+    cleaned = str(service_slug or "").strip().lower()
+    return cleaned or None
+
+
+def _service_slug_match_values(service_slug: str | None) -> set[str]:
+    normalized = _normalized_service_slug(service_slug)
+    raw_cleaned = str(service_slug or "").strip().lower()
+
+    values: set[str] = set()
+    if raw_cleaned:
+        values.add(raw_cleaned)
+    if normalized:
+        values.add(normalized)
+        values.update(public_service_slug_candidates(normalized))
+    elif raw_cleaned:
+        values.update(public_service_slug_candidates(raw_cleaned))
+
+    return {value.strip().lower() for value in values if isinstance(value, str) and value.strip()}
 
 
 @dataclass(slots=True)
@@ -736,7 +761,12 @@ class InMemoryProbeRepository:
     def fetch_latest_probe(
         self, service_slug: str, probe_type: str | None = None
     ) -> StoredProbe | None:
-        matches = [row for row in self._rows if row.service_slug == service_slug]
+        match_values = _service_slug_match_values(service_slug)
+        matches = [
+            row
+            for row in self._rows
+            if _normalized_service_slug(row.service_slug) in match_values
+        ]
         if probe_type:
             matches = [row for row in matches if row.probe_type == probe_type]
         if not matches:
@@ -750,7 +780,12 @@ class InMemoryProbeRepository:
         probe_type: str | None = None,
         limit: int = 10,
     ) -> list[StoredProbe]:
-        matches = [row for row in self._rows if row.service_slug == service_slug]
+        match_values = _service_slug_match_values(service_slug)
+        matches = [
+            row
+            for row in self._rows
+            if _normalized_service_slug(row.service_slug) in match_values
+        ]
         if probe_type:
             matches = [row for row in matches if row.probe_type == probe_type]
 
@@ -1009,12 +1044,13 @@ class SQLAlchemyProbeRepository:
         if not self._initialized:
             self.create_tables()
 
+        match_values = sorted(_service_slug_match_values(service_slug))
         with self._sessionmaker() as session:
             stmt = (
                 select(ProbeResult, Service.slug, ProbeRun.runner_version, ProbeRun.trigger_source)
                 .join(Service, Service.id == ProbeResult.service_id)
                 .outerjoin(ProbeRun, ProbeRun.id == ProbeResult.run_id)
-                .where(Service.slug == service_slug)
+                .where(func.lower(Service.slug).in_(match_values))
                 .order_by(ProbeResult.probed_at.desc())
                 .limit(1)
             )
@@ -1042,12 +1078,13 @@ class SQLAlchemyProbeRepository:
         if not self._initialized:
             self.create_tables()
 
+        match_values = sorted(_service_slug_match_values(service_slug))
         with self._sessionmaker() as session:
             stmt = (
                 select(ProbeResult, Service.slug, ProbeRun.runner_version, ProbeRun.trigger_source)
                 .join(Service, Service.id == ProbeResult.service_id)
                 .outerjoin(ProbeRun, ProbeRun.id == ProbeResult.run_id)
-                .where(Service.slug == service_slug)
+                .where(func.lower(Service.slug).in_(match_values))
                 .order_by(ProbeResult.probed_at.desc())
                 .limit(max(1, limit))
             )

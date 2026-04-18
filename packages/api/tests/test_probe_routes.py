@@ -92,6 +92,50 @@ def test_probe_routes_canonicalize_alias_backed_service_slugs(
     assert latest_body["raw_response"]["service_slug"] == "brave-search-api"
 
 
+def test_latest_probe_recanonicalizes_legacy_alias_backed_stored_rows(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy stored probe rows should still read back on canonical public ids."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    repository = InMemoryProbeRepository()
+    legacy_probe = repository.save_probe(
+        service_slug="Brave-Search",
+        probe_type="health",
+        status="ok",
+        latency_ms=42,
+        response_code=200,
+        response_schema_hash="schema_legacy",
+        raw_response={
+            "message": "Probe runner scaffold executed",
+            "service_slug": "Brave-Search",
+            "probe_type": "health",
+        },
+        probe_metadata={
+            "runner": "scaffold",
+            "service_slug": "Brave-Search",
+            "probe_type": "health",
+        },
+        trigger_source="legacy-import",
+        runner_version="scaffold-v1",
+    )
+    service = ProbeService(repository=repository)
+    monkeypatch.setattr(probe_routes, "get_probe_service", lambda: service)
+
+    latest_response = client.get("/v1/services/brave-search-api/probes/latest")
+    assert latest_response.status_code == 200
+
+    latest_body = latest_response.json()
+    assert latest_body["probe_id"] == str(legacy_probe.id)
+    assert latest_body["service_slug"] == "brave-search-api"
+    assert latest_body["metadata"]["service_slug"] == "brave-search-api"
+    assert latest_body["raw_response"]["service_slug"] == "brave-search-api"
+
+
 def test_scheduler_dry_run_accepts_alias_filters_and_serializes_canonical_service_ids(
     client,
     monkeypatch: pytest.MonkeyPatch,
