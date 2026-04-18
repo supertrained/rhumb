@@ -283,20 +283,39 @@ function scoreColor(score: number): string {
     </section>
 
     {/* CTA */}
-    <section class="p-6 bg-zinc-900/50 rounded-xl border border-zinc-800 text-center">
-      <h2 class="text-xl font-bold text-white mb-2">See How Your API Scores</h2>
-      <p class="text-zinc-400 mb-4">
-        We use the same methodology on 258+ services. Check your API's AN Score, or try the MCP server to evaluate programmatically.
+    <section class="p-6 bg-emerald-500/5 rounded-xl border border-emerald-500/20 text-center">
+      <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+      <h2 class="text-xl font-bold text-white mb-2">If the disclosed gaps still look workable, choose the bounded path before you widen the trust boundary.</h2>
+      <p class="text-zinc-400 mb-4 max-w-2xl mx-auto">
+        The honest read is the same as the scorecard: Rhumb is strongest when the first run stays narrow, attributable, and legible. Start with capability-first onboarding, jump straight into the managed lane if the fit is already clear, or inspect pricing once you know the path is worth it.
       </p>
       <div class="flex flex-wrap justify-center gap-4">
-        <a href="/leaderboard" class="px-4 py-2 bg-white text-zinc-900 rounded-lg font-semibold hover:bg-zinc-200 transition-colors">
-          View Leaderboard
+        <a data-rhumb-propagate href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=self-assessment-onboarding" class="px-4 py-2 border border-zinc-700 text-zinc-100 rounded-lg hover:bg-zinc-800 transition-colors">
+          See capability-first onboarding
         </a>
-        <a href="/methodology" class="px-4 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors">
-          Read Methodology
+        <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=self-assessment-direct" class="px-4 py-2 bg-emerald-400 text-navy rounded-lg font-semibold hover:bg-emerald-300 transition-colors">
+          Start managed execution
         </a>
-        <a href="/blog/getting-started-mcp" class="px-4 py-2 border border-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-800 transition-colors">
-          Get Started
+        <a data-rhumb-propagate href="/pricing?rhumb_experiment=e004&rhumb_source=self-assessment-pricing" class="px-4 py-2 border border-zinc-700 text-zinc-200 rounded-lg hover:bg-zinc-800 transition-colors">
+          Review pricing
+        </a>
+      </div>
+    </section>
+
+    <section class="mt-8 rounded-[28px] border border-zinc-800 bg-zinc-900/50 p-6">
+      <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-zinc-500 mb-3">Gap inspection</div>
+      <div class="grid gap-4 md:grid-cols-3">
+        <a data-rhumb-propagate href="/blog/self-score" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+          <div class="text-sm font-semibold text-white">See the original 3.5/10 baseline</div>
+          <p class="mt-2 text-sm text-zinc-400">The March 11 pre-launch score is still public, so you can see what improved and what stayed unresolved.</p>
+        </a>
+        <a data-rhumb-propagate href="/blog/securing-keys-for-agents" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+          <div class="text-sm font-semibold text-white">Inspect key containment</div>
+          <p class="mt-2 text-sm text-zinc-400">Credential shape still matters more than the headline score once an agent can touch real systems.</p>
+        </a>
+        <a data-rhumb-propagate href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+          <div class="text-sm font-semibold text-white">Use the readiness checklist</div>
+          <p class="mt-2 text-sm text-zinc-400">Test the live bounded-execution surface against the same production questions you would ask of any other tool.</p>
         </a>
       </div>
     </section>
@@ -311,4 +330,32 @@ function scoreColor(score: number): string {
       </p>
     </div>
   </main>
+  <script is:inline>
+    (() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const experiment = params.get("rhumb_experiment");
+      const source = params.get("rhumb_source");
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
+
+      document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
+        if (experiment && !url.searchParams.has("rhumb_experiment")) {
+          url.searchParams.set("rhumb_experiment", experiment);
+        }
+        if (source) {
+          url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
+        }
+
+        link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
+      });
+    })();
+  </script>
 </Layout>

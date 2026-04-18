@@ -3,10 +3,6 @@ export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 import fs from "node:fs";
 import path from "node:path";
-import { PUBLIC_TRUTH } from "../../lib/public-truth";
-
-const servicesLabel = PUBLIC_TRUTH.servicesLabel;
-const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -190,22 +186,48 @@ const htmlContent = markdownToHtml(content);
 
       <div class="prose-rhumb" set:html={htmlContent} />
 
-      <!-- CTA -->
-      <section class="mt-16 bg-surface border border-slate-800 rounded-xl p-8 text-center">
-        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
-          See how other tools score
+      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3 tracking-tight">
+          Historical transparency only matters if you inspect the current bounded path, not the old score alone.
         </h2>
-        <p class="text-slate-400 text-sm mb-6">
-          We&apos;ve scored {servicesLabel} services across {categoriesLabel}
-          categories. Our AN Score measures real agent compatibility &mdash;
-          not marketing claims.
-        </p>
-        <a
-          href="/leaderboard"
-          class="inline-flex px-6 py-3 rounded-lg bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200"
-        >
-          Browse the leaderboard &rarr;
-        </a>
+        <div class="space-y-4 text-slate-300 leading-relaxed">
+          <p>
+            This March 11 baseline is useful because it shows where Rhumb started. The current question is whether today&apos;s narrower managed lane, credential path, and disclosed gaps are workable for your workflow.
+          </p>
+          <div class="grid gap-4 md:grid-cols-2">
+            <a data-rhumb-propagate href="/blog/we-scored-ourselves" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-emerald-400/30 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Read the fuller current self-assessment</div>
+              <p class="mt-2 text-sm text-slate-400">See the later 6.8/10 score, the disclosed gaps that still remain, and the current fit boundary.</p>
+            </a>
+            <a data-rhumb-propagate href="/blog/securing-keys-for-agents" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-emerald-400/30 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Inspect key containment before you widen authority</div>
+              <p class="mt-2 text-sm text-slate-400">The credential boundary matters more than the historical score once an agent can touch production state.</p>
+            </a>
+          </div>
+          <div class="flex flex-wrap gap-3 pt-1">
+            <a data-rhumb-propagate href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=self-score-onboarding" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-100 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">
+              See capability-first onboarding
+            </a>
+            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=self-score-direct" class="px-5 py-3 rounded-xl bg-emerald-400 text-navy font-display font-semibold text-sm hover:bg-emerald-300 transition-colors duration-200">
+              Start managed execution
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Gap inspection</div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+            <p class="mt-2 text-sm text-slate-400">Use the live readiness checklist to judge whether bounded execution is good enough before you expand scope.</p>
+          </a>
+          <a href="/blog/read-only-mcp-trust-class" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">Read-Only MCP Trust Class</div>
+            <p class="mt-2 text-sm text-slate-400">A narrower authority class is often the honest first answer while sandbox and credential gaps still exist.</p>
+          </a>
+        </div>
       </section>
 
       <!-- Related -->
@@ -248,4 +270,32 @@ const htmlContent = markdownToHtml(content);
       </section>
     </article>
   </div>
+  <script is:inline>
+    (() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const experiment = params.get("rhumb_experiment");
+      const source = params.get("rhumb_source");
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
+
+      document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
+        if (experiment && !url.searchParams.has("rhumb_experiment")) {
+          url.searchParams.set("rhumb_experiment", experiment);
+        }
+        if (source) {
+          url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
+        }
+
+        link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
+      });
+    })();
+  </script>
 </Layout>
