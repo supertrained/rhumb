@@ -899,6 +899,93 @@ class TestAdminRoutes:
         assert data["organization_id"] == "org_detail"
         assert "usage" in data
 
+    def test_get_agent_details_route_canonicalizes_alias_backed_usage(
+        self,
+        admin_client: TestClient,
+        analytics: AgentUsageAnalytics,
+    ) -> None:
+        """Agent detail route should keep alias-backed services and usage on public ids."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "detail-alias-agent", "organization_id": "org_detail_alias"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        grant_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/grant-access",
+            json={"service": "brave-search"},
+        )
+        assert grant_resp.status_code == 200
+
+        _run(analytics.record_event(agent_id, "brave-search", "success"))
+
+        resp = admin_client.get(f"/v1/admin/agents/{agent_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["services"] == ["brave-search-api"]
+        assert set(data["usage"]["services"].keys()) == {"brave-search-api"}
+        assert data["usage"]["services"]["brave-search-api"]["calls"] == 1
+        assert "brave-search" not in data["usage"]["services"]
+
+    def test_get_agent_usage_route_canonicalizes_alias_backed_service_filter(
+        self,
+        admin_client: TestClient,
+        analytics: AgentUsageAnalytics,
+    ) -> None:
+        """Usage route should accept canonical filters for runtime alias usage rows."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "usage-alias-route", "organization_id": "org_usage_alias"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        grant_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/grant-access",
+            json={"service": "brave-search-api"},
+        )
+        assert grant_resp.status_code == 200
+
+        _run(analytics.record_event(agent_id, "brave-search", "success"))
+
+        resp = admin_client.get(
+            f"/v1/admin/agents/{agent_id}/usage?service=Brave-Search-Api"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_calls"] == 1
+        assert set(data["services"].keys()) == {"brave-search-api"}
+        assert data["services"]["brave-search-api"]["calls"] == 1
+        assert "brave-search" not in data["services"]
+
+    def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
+        self,
+        admin_client: TestClient,
+        analytics: AgentUsageAnalytics,
+    ) -> None:
+        """Organization usage route should keep alias-backed runtime rows on public ids."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "org-usage-alias-route", "organization_id": "org_usage_rollup"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        grant_resp = admin_client.post(
+            f"/v1/admin/agents/{agent_id}/grant-access",
+            json={"service": "people-data-labs"},
+        )
+        assert grant_resp.status_code == 200
+
+        _run(analytics.record_event(agent_id, "pdl", "success"))
+
+        resp = admin_client.get("/v1/admin/usage/organization/org_usage_rollup")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["organization_id"] == "org_usage_rollup"
+        assert data["total_calls"] == 1
+        assert set(data["agents"][agent_id]["services"].keys()) == {"people-data-labs"}
+        assert data["agents"][agent_id]["services"]["people-data-labs"]["calls"] == 1
+        assert "pdl" not in data["agents"][agent_id]["services"]
+
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""
         # Create agent
