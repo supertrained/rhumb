@@ -104,6 +104,25 @@ class TestRecordEvent:
             replace(event, provider_slug="brave-search", chain_hash=""),
         )
 
+    def test_serialize_event_does_not_double_rewrite_already_canonical_provider_text(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search-api execution completed",
+            org_id="org_1",
+            provider_slug="brave-search",
+            detail={
+                "message": "brave-search-api upstream exploded",
+                "provider": "brave-search-api",
+            },
+        )
+
+        serialized = trail.serialize_event(event, redact=True)
+        assert serialized["action"] == "brave-search-api execution completed"
+        assert serialized["detail"]["message"] == "brave-search-api upstream exploded"
+        assert serialized["detail"]["provider"] == "brave-search-api"
+
     def test_record_increments_sequence(self):
         trail = AuditTrail()
         e1 = trail.record(AuditEventType.EXECUTION_STARTED, "a", org_id="org_1")
@@ -462,10 +481,16 @@ class TestAuditRoutes:
             org_id="org_test", agent_id="agent_1", provider_slug="brave-search",
         )
         trail.record(
-            AuditEventType.EXECUTION_COMPLETED, "Test execution completed",
+            AuditEventType.EXECUTION_COMPLETED, "brave-search execution completed",
             org_id="org_test", agent_id="agent_1", provider_slug="brave-search",
             receipt_id="rcpt_001", execution_id="exec_001",
-            detail={"api_key": "sk-live-12345", "latency_ms": 42},
+            detail={
+                "api_key": "sk-live-12345",
+                "latency_ms": 42,
+                "message": "brave-search upstream exploded",
+                "provider": "brave-search",
+                "fallback_providers": ["brave-search", "pdl"],
+            },
         )
         trail.record(
             AuditEventType.KILL_SWITCH_ACTIVATED, "Agent compromised",
@@ -544,6 +569,13 @@ class TestAuditRoutes:
         started = next(event for event in events if event["event_type"] == "execution.started")
         assert completed["provider_slug"] == "brave-search-api"
         assert started["provider_slug"] == "brave-search-api"
+        assert completed["action"] == "brave-search-api execution completed"
+        assert completed["detail"]["message"] == "brave-search-api upstream exploded"
+        assert completed["detail"]["provider"] == "brave-search-api"
+        assert completed["detail"]["fallback_providers"] == [
+            "brave-search-api",
+            "people-data-labs",
+        ]
 
     def test_get_event_by_id(self, client):
         # First get the list to find an event ID
@@ -598,6 +630,8 @@ class TestAuditRoutes:
         assert export["event_count"] == 3  # org_test events only
         completed = next(event for event in export["events"] if event["event_type"] == "execution.completed")
         assert completed["provider_slug"] == "brave-search-api"
+        assert completed["action"] == "brave-search-api execution completed"
+        assert completed["detail"]["message"] == "brave-search-api upstream exploded"
 
     def test_export_csv(self, client):
         resp = client.post(

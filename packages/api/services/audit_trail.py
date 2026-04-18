@@ -20,6 +20,7 @@ import hashlib
 import io
 import json
 import logging
+import re
 import threading
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
@@ -34,9 +35,106 @@ from services.chain_integrity import (
     get_signing_key_version,
     verify_chain_hmac,
 )
-from services.service_slugs import public_service_slug
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
+
+_PROVIDER_ID_KEYS = {
+    "provider",
+    "provider_id",
+    "provider_slug",
+    "provider_used",
+    "selected_provider",
+    "requested_provider",
+    "fallback_provider",
+}
+_PROVIDER_LIST_KEYS = {
+    "available_providers",
+    "candidate_providers",
+    "fallback_providers",
+    "supported_provider_slugs",
+    "unavailable_provider_slugs",
+    "not_execute_ready_provider_slugs",
+    "policy_candidates",
+}
+_PROVIDER_TEXT_KEYS = {"message", "detail", "error", "error_message"}
+
+
+def _canonicalize_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return public_service_slug(value) or value
+    return value
+
+
+def _collect_provider_slugs(value: Any, provider_slugs: set[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in _PROVIDER_ID_KEYS and isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    provider_slugs.add(cleaned)
+            elif key in _PROVIDER_LIST_KEYS and isinstance(item, list):
+                for entry in item:
+                    if isinstance(entry, str):
+                        cleaned = entry.strip()
+                        if cleaned:
+                            provider_slugs.add(cleaned)
+                    else:
+                        _collect_provider_slugs(entry, provider_slugs)
+            else:
+                _collect_provider_slugs(item, provider_slugs)
+        return
+    if isinstance(value, list):
+        for item in value:
+            _collect_provider_slugs(item, provider_slugs)
+
+
+def _canonicalize_provider_text(text: Any, provider_slugs: set[str]) -> str | None:
+    if text is None:
+        return None
+
+    rendered = str(text)
+    replacements: dict[str, str] = {}
+    for provider_slug in provider_slugs:
+        canonical = public_service_slug(provider_slug)
+        if not canonical:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            if not candidate or candidate.lower() == canonical.lower():
+                continue
+            replacements[candidate.lower()] = canonical
+
+    if not replacements:
+        return rendered
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], rendered)
+
+
+def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in _PROVIDER_ID_KEYS:
+                canonicalized[key] = _canonicalize_provider_value(item)
+            elif key in _PROVIDER_TEXT_KEYS:
+                canonicalized[key] = _canonicalize_provider_text(item, provider_slugs)
+            elif key in _PROVIDER_LIST_KEYS and isinstance(item, list):
+                canonicalized[key] = [
+                    _canonicalize_provider_value(entry)
+                    if isinstance(entry, str)
+                    else _canonicalize_provider_payload(entry, provider_slugs=provider_slugs)
+                    for entry in item
+                ]
+            else:
+                canonicalized[key] = _canonicalize_provider_payload(item, provider_slugs=provider_slugs)
+        return canonicalized
+    if isinstance(value, list):
+        return [_canonicalize_provider_payload(item, provider_slugs=provider_slugs) for item in value]
+    return value
 
 
 # ── Event Types ──────────────────────────────────────────────────────
@@ -698,11 +796,20 @@ class AuditTrail:
         """
         detail = event.detail
         metadata = getattr(event, "metadata", None) or {}
+        provider_slugs: set[str] = set()
+        if event.provider_slug:
+            provider_slugs.add(str(event.provider_slug).strip())
+        _collect_provider_slugs(detail, provider_slugs)
 
         if redact:
             from services.payload_redactor import redact_event_detail, redact_event_metadata
             detail = redact_event_detail(detail)
             metadata = redact_event_metadata(metadata)
+
+        public_provider_slug = public_service_slug(event.provider_slug)
+        resource_id = event.resource_id
+        if event.resource_type in {"provider", "service"}:
+            resource_id = _canonicalize_provider_value(resource_id)
 
         return {
             "event_id": event.event_id,
@@ -714,12 +821,12 @@ class AuditTrail:
             "agent_id": event.agent_id,
             "principal": event.principal,
             "resource_type": event.resource_type,
-            "resource_id": event.resource_id,
-            "action": event.action,
-            "detail": detail,
+            "resource_id": resource_id,
+            "action": _canonicalize_provider_text(event.action, provider_slugs),
+            "detail": _canonicalize_provider_payload(detail, provider_slugs=provider_slugs),
             "receipt_id": event.receipt_id,
             "execution_id": event.execution_id,
-            "provider_slug": public_service_slug(event.provider_slug),
+            "provider_slug": public_provider_slug,
             "chain_sequence": event.chain_sequence,
             "chain_hash": event.chain_hash,
             "prev_hash": event.prev_hash,
