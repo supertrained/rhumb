@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import field
 from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
 
 from pydantic.dataclasses import dataclass
 
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,66 @@ _VALID_CREDENTIAL_EVENT_TYPES = frozenset(
         "credential_rejected_by_provider",
     }
 )
+
+
+def _canonicalize_known_service_aliases(
+    text: Any,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
+    if text is None:
+        return None
+
+    preserved = str(preserve_canonical or "").strip().lower() or None
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
+def _canonicalize_evidence_text(
+    text: Any,
+    response_service_slug: str | None,
+    stored_service_slug: Any,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+
+    canonicalized = str(text)
+    if raw_stored_slug != canonical.lower():
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate.lower() == canonical.lower():
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+    return _canonicalize_known_service_aliases(
+        canonicalized,
+        preserve_canonical=canonical if raw_stored_slug == canonical.lower() else None,
+    )
 
 
 @dataclass
@@ -174,6 +235,11 @@ class EvidenceIngestionAdapter:
                     and str(fact.get("source_type", "")) == "runtime_verified"
                 ):
                     summary = _append_note(summary, _SUPPORT_STATE_DOWNGRADE_NOTE)
+                summary = _canonicalize_evidence_text(
+                    summary,
+                    public_service,
+                    fact.get("service_slug"),
+                )
 
                 fresh_until = observed_at + rule.fresh_offset
                 payload = {
