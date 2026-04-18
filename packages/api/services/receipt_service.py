@@ -57,29 +57,47 @@ def _canonicalize_provider_text(text: Any, provider_slug: Any) -> str | None:
     return canonicalized
 
 
+def _canonicalize_provider_text_from_contexts(
+    text: Any,
+    provider_slugs: list[Any],
+) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    seen: set[str] = set()
+    for provider_slug in provider_slugs:
+        canonical = public_service_slug(provider_slug)
+        if canonical is None or canonical in seen:
+            continue
+        seen.add(canonical)
+        canonicalized = _canonicalize_provider_text(canonicalized, canonical) or canonicalized
+    return canonicalized
+
+
 def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     """Normalize provider identity for API-facing receipt reads."""
     if row is None:
         return None
     normalized = dict(row)
-    provider_context = normalized.get("provider_id") or normalized.get("error_provider_raw")
     provider_id = public_service_slug(normalized.get("provider_id"))
     if provider_id:
         normalized["provider_id"] = provider_id
+    provider_contexts = [normalized.get("provider_id"), normalized.get("error_provider_raw")]
     if "provider_name" in normalized:
-        normalized["provider_name"] = _canonicalize_provider_text(
+        normalized["provider_name"] = _canonicalize_provider_text_from_contexts(
             normalized.get("provider_name"),
-            provider_context or normalized.get("provider_id"),
+            provider_contexts,
         )
     if "error_message" in normalized:
-        normalized["error_message"] = _canonicalize_provider_text(
+        normalized["error_message"] = _canonicalize_provider_text_from_contexts(
             normalized.get("error_message"),
-            provider_context or normalized.get("provider_id"),
+            provider_contexts,
         )
     if "winner_reason" in normalized:
-        normalized["winner_reason"] = _canonicalize_provider_text(
+        normalized["winner_reason"] = _canonicalize_provider_text_from_contexts(
             normalized.get("winner_reason"),
-            provider_context or normalized.get("provider_id"),
+            provider_contexts,
         )
     normalized.pop("error_provider_raw", None)
     return normalized
@@ -256,7 +274,7 @@ class ReceiptService:
         receipt_id = _generate_receipt_id()
         created_at = self._now_iso()
         provider_id = public_service_slug(input.provider_id) or input.provider_id
-        provider_text_context = input.error_provider_raw or input.provider_id
+        provider_text_contexts = [provider_id, input.provider_id, input.error_provider_raw]
 
         # Advance chain state atomically
         chain_state = await self._advance_chain_state()
@@ -278,18 +296,18 @@ class ReceiptService:
             "org_id": input.org_id,
             "caller_ip_hash": input.caller_ip_hash,
             "provider_id": provider_id,
-            "provider_name": _canonicalize_provider_text(
+            "provider_name": _canonicalize_provider_text_from_contexts(
                 input.provider_name,
-                provider_text_context,
+                provider_text_contexts,
             ),
             "provider_model": input.provider_model,
             "credential_mode": input.credential_mode,
             "provider_region": input.provider_region,
             "router_version": input.router_version,
             "candidates_evaluated": input.candidates_evaluated,
-            "winner_reason": _canonicalize_provider_text(
+            "winner_reason": _canonicalize_provider_text_from_contexts(
                 input.winner_reason,
-                provider_text_context,
+                provider_text_contexts,
             ),
             "total_latency_ms": input.total_latency_ms,
             "rhumb_overhead_ms": input.rhumb_overhead_ms,
@@ -309,9 +327,9 @@ class ReceiptService:
             "compat_mode": input.compat_mode,
             "idempotency_key": input.idempotency_key,
             "error_code": input.error_code,
-            "error_message": _canonicalize_provider_text(
+            "error_message": _canonicalize_provider_text_from_contexts(
                 input.error_message,
-                provider_text_context,
+                provider_text_contexts,
             ),
             "error_provider_raw": input.error_provider_raw,
         }
