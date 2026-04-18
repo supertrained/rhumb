@@ -348,3 +348,33 @@ def test_recent_endpoint_canonicalizes_alternate_provider_aliases_in_error_messa
     assert record["error_message"] == (
         "brave-search-api failed, then people-data-labs credential lookup failed"
     )
+
+
+def test_recent_endpoint_canonicalizes_alternate_provider_aliases_when_context_rows_are_already_canonical(
+    client: TestClient,
+) -> None:
+    row = _execution_row(
+        execution_id="exec_recent_error_canonical_contexts",
+        provider_used="brave-search-api",
+        success=False,
+        upstream_status=502,
+    )
+    row["fallback_attempted"] = True
+    row["fallback_provider"] = "people-data-labs"
+    row["error_message"] = "brave-search-api failed, then pdl credential lookup failed"
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, return_value=[row]),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/recent", params={"limit": 5})
+
+    assert response.status_code == 200
+    record = response.json()["data"][0]
+    assert record["provider_used"] == "brave-search-api"
+    assert record["fallback_provider"] == "people-data-labs"
+    assert record["error_message"] == (
+        "brave-search-api failed, then people-data-labs credential lookup failed"
+    )
