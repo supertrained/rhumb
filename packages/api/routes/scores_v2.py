@@ -33,12 +33,19 @@ def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
 
 
-def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+def _canonicalize_known_provider_aliases(
+    text: Any,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
     if text is None:
         return None
 
+    preserved = str(preserve_canonical or "").strip().lower() or None
     replacements: dict[str, str] = {}
     for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
         for candidate in public_service_slug_candidates(canonical):
             cleaned = str(candidate or "").strip()
             if not cleaned or cleaned.lower() == canonical.lower():
@@ -69,20 +76,22 @@ def _canonicalize_provider_text(
         return str(text)
 
     raw_stored_provider_id = str(stored_provider_id).strip().lower() if stored_provider_id else None
-    if raw_stored_provider_id == canonical.lower():
-        return str(text)
 
     canonicalized = str(text)
-    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
-        if not candidate or candidate == canonical:
-            continue
-        canonicalized = re.sub(
-            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
-            canonical,
-            canonicalized,
-            flags=re.IGNORECASE,
-        )
-    return _canonicalize_known_provider_aliases(canonicalized)
+    if raw_stored_provider_id != canonical.lower():
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate == canonical:
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+    return _canonicalize_known_provider_aliases(
+        canonicalized,
+        preserve_canonical=canonical if raw_stored_provider_id == canonical.lower() else None,
+    )
 
 
 def _score_to_response(entry: CachedScore) -> dict[str, Any]:
