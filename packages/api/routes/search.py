@@ -9,7 +9,11 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -26,6 +30,29 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
             if candidate not in query_slugs:
                 query_slugs.append(candidate)
     return query_slugs
+
+
+
+def _canonicalize_known_service_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
 
 
 
@@ -55,7 +82,7 @@ def _canonicalize_service_text(
             canonicalized,
             flags=re.IGNORECASE,
         )
-    return canonicalized
+    return _canonicalize_known_service_aliases(canonicalized)
 
 
 
