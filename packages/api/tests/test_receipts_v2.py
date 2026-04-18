@@ -55,6 +55,7 @@ def test_get_receipt_canonicalizes_legacy_provider_text(client):
         "provider_id": "brave-search-api",
         "provider_name": "brave-search",
         "error_message": "brave-search upstream exploded",
+        "winner_reason": "brave-search won on freshness",
         "error_provider_raw": "brave-search",
         "chain_sequence": 1,
         "receipt_hash": "sha256:abc",
@@ -67,6 +68,7 @@ def test_get_receipt_canonicalizes_legacy_provider_text(client):
         assert body["data"]["provider_id"] == "brave-search-api"
         assert body["data"]["provider_name"] == "brave-search-api"
         assert body["data"]["error_message"] == "brave-search-api upstream exploded"
+        assert body["data"]["winner_reason"] == "brave-search-api won on freshness"
         assert "error_provider_raw" not in body["data"]
 
 
@@ -114,6 +116,7 @@ def test_query_receipts_canonicalizes_alias_backed_provider_text(client):
             "provider_id": "people-data-labs",
             "provider_name": "PDL",
             "error_message": "PDL credential unavailable",
+            "winner_reason": "PDL won on contact coverage",
         }
     ]
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
@@ -124,6 +127,7 @@ def test_query_receipts_canonicalizes_alias_backed_provider_text(client):
         assert body["data"]["receipts"][0]["provider_id"] == "people-data-labs"
         assert body["data"]["receipts"][0]["provider_name"] == "people-data-labs"
         assert body["data"]["receipts"][0]["error_message"] == "people-data-labs credential unavailable"
+        assert body["data"]["receipts"][0]["winner_reason"] == "people-data-labs won on contact coverage"
 
 
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):

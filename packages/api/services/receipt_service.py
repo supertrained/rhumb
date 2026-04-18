@@ -76,6 +76,11 @@ def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
             normalized.get("error_message"),
             provider_context or normalized.get("provider_id"),
         )
+    if "winner_reason" in normalized:
+        normalized["winner_reason"] = _canonicalize_provider_text(
+            normalized.get("winner_reason"),
+            provider_context or normalized.get("provider_id"),
+        )
     normalized.pop("error_provider_raw", None)
     return normalized
 

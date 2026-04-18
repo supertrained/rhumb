@@ -225,7 +225,7 @@ async def test_get_receipt_canonicalizes_alias_backed_provider_id():
 
 
 @pytest.mark.anyio
-async def test_get_receipt_canonicalizes_alias_backed_provider_name_and_error_message_and_hides_raw_provider_hint():
+async def test_get_receipt_canonicalizes_alias_backed_provider_name_error_message_and_winner_reason_and_hides_raw_provider_hint():
     service = ReceiptService()
 
     with patch(
@@ -237,6 +237,7 @@ async def test_get_receipt_canonicalizes_alias_backed_provider_name_and_error_me
                     "provider_id": "brave-search-api",
                     "provider_name": "Brave-Search",
                     "error_message": "Brave-Search upstream exploded",
+                    "winner_reason": "Brave-Search won on freshness",
                     "error_provider_raw": "brave-search",
                 }
             ]
@@ -248,6 +249,7 @@ async def test_get_receipt_canonicalizes_alias_backed_provider_name_and_error_me
     assert result["provider_id"] == "brave-search-api"
     assert result["provider_name"] == "brave-search-api"
     assert result["error_message"] == "brave-search-api upstream exploded"
+    assert result["winner_reason"] == "brave-search-api won on freshness"
     assert "error_provider_raw" not in result
 
 
@@ -274,6 +276,7 @@ async def test_query_receipts_canonicalizes_legacy_provider_text_on_public_reads
                 "provider_id": "people-data-labs",
                 "provider_name": "PDL",
                 "error_message": "pdl credential unavailable",
+                "winner_reason": "PDL won on contact coverage",
             }
         ]
     )
@@ -287,6 +290,7 @@ async def test_query_receipts_canonicalizes_legacy_provider_text_on_public_reads
             "provider_id": "people-data-labs",
             "provider_name": "people-data-labs",
             "error_message": "people-data-labs credential unavailable",
+            "winner_reason": "people-data-labs won on contact coverage",
         }
     ]
 
