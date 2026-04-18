@@ -516,6 +516,106 @@ async def test_execute_recipe_canonicalizes_alias_backed_captured_provider_paylo
 
 
 @pytest.mark.anyio
+async def test_execute_recipe_canonicalizes_alias_backed_provider_text_fields_in_outputs(app, mock_agent):
+    recipe_row = deepcopy(RECIPE_ROW)
+    recipe_row["definition"]["steps"][1]["outputs_captured"] = {
+        "provider_message": "result.message",
+        "provider_detail": "result.detail",
+        "provider_error_message": "result.error_message",
+        "winner_provider": "result.provider_slug",
+        "fallback_provider_capture": "result.fallback_provider",
+        "fallback_provider_candidates": "result.fallback_providers",
+    }
+
+    def _mock_supabase_fetch_with_provider_text_outputs(path: str):
+        if path.startswith("recipes?") and "recipe_id=eq.transcribe_and_notify" in path:
+            return [recipe_row]
+        if path.startswith("recipes?"):
+            return [recipe_row]
+        if path.startswith("recipe_executions?"):
+            return []
+        if path.startswith("recipe_step_executions?"):
+            return []
+        return []
+
+    async def _mock_forward(raw_request, *, method: str, path: str, params=None, json_body=None):
+        if path == "/v2/capabilities/media.transcribe/execute":
+            return _MockResponse(
+                200,
+                {
+                    "data": {
+                        "provider_used": "assemblyai",
+                        "upstream_response": {"transcript": "hello world"},
+                        "cost_estimate_usd": 0.03,
+                        "latency_ms": 120,
+                        "receipt_id": "rcpt_step_transcribe",
+                        "execution_id": "exec_step_1",
+                    },
+                    "error": None,
+                },
+            )
+        if path == "/v2/capabilities/email.send/execute":
+            return _MockResponse(
+                200,
+                {
+                    "data": {
+                        "provider_used": "pdl",
+                        "upstream_response": {
+                            "id": "msg_123",
+                            "provider_slug": "pdl",
+                            "message": "pdl retried after brave-search timeout",
+                            "detail": "Fallback from brave-search to pdl succeeded",
+                            "error_message": "brave-search timeout before pdl fallback",
+                            "fallback_provider": "brave-search",
+                            "fallback_providers": ["pdl", "brave-search"],
+                        },
+                        "cost_estimate_usd": 0.01,
+                        "latency_ms": 80,
+                        "receipt_id": "rcpt_step_notify",
+                        "execution_id": "exec_step_2",
+                    },
+                    "error": None,
+                },
+            )
+        raise AssertionError(f"unexpected internal forward path: {path}")
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch_with_provider_text_outputs),
+        patch("routes.recipes_v2.supabase_insert_required", new_callable=AsyncMock, return_value=None) as mock_insert_required,
+        patch("routes.recipes_v2.supabase_patch_required", new_callable=AsyncMock, return_value=[]),
+        patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    notify_outputs = body["data"]["step_results"][1]["outputs"]
+    assert notify_outputs["winner_provider"] == "people-data-labs"
+    assert notify_outputs["provider_message"] == "people-data-labs retried after brave-search-api timeout"
+    assert notify_outputs["provider_detail"] == "Fallback from brave-search-api to people-data-labs succeeded"
+    assert notify_outputs["provider_error_message"] == "brave-search-api timeout before people-data-labs fallback"
+    assert notify_outputs["fallback_provider_capture"] == "brave-search-api"
+    assert notify_outputs["fallback_provider_candidates"] == ["people-data-labs", "brave-search-api"]
+    assert body["data"]["outputs"]["notify"] == notify_outputs
+
+    step_insert_payloads = [call.args[1] for call in mock_insert_required.await_args_list[1:]]
+    assert step_insert_payloads[1]["outputs"] == notify_outputs
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_canonicalizes_alias_backed_execution_error_text_on_response_and_persistence(app, mock_agent):
     mocked_execution = RecipeExecution(
         execution_id="rexec_mocked",
@@ -637,6 +737,78 @@ async def test_execute_recipe_canonicalizes_alias_backed_step_error_text_on_resp
     step_insert_payloads = [call.args[1] for call in mock_insert_required.await_args_list[1:]]
     assert step_insert_payloads[1]["provider_used"] == "people-data-labs"
     assert step_insert_payloads[1]["error"] == "people-data-labs upstream exploded"
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_canonicalizes_alternate_provider_aliases_in_step_error_text(app, mock_agent):
+    async def _mock_forward(raw_request, *, method: str, path: str, params=None, json_body=None):
+        if path == "/v2/capabilities/media.transcribe/execute":
+            return _MockResponse(
+                200,
+                {
+                    "data": {
+                        "provider_used": "assemblyai",
+                        "upstream_response": {"transcript": "hello world"},
+                        "cost_estimate_usd": 0.03,
+                        "latency_ms": 120,
+                        "receipt_id": "rcpt_step_transcribe",
+                        "execution_id": "exec_step_1",
+                    },
+                    "error": None,
+                },
+            )
+        if path == "/v2/capabilities/email.send/execute":
+            return _MockResponse(
+                422,
+                {
+                    "data": {
+                        "provider_used": "pdl",
+                        "fallback_provider": "brave-search",
+                        "fallback_providers": ["pdl", "brave-search"],
+                        "cost_estimate_usd": 0.01,
+                        "latency_ms": 80,
+                        "receipt_id": "rcpt_step_notify",
+                        "execution_id": "exec_step_2",
+                    },
+                    "error": {"message": "pdl upstream exploded after brave-search timeout"},
+                },
+            )
+        raise AssertionError(f"unexpected internal forward path: {path}")
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch),
+        patch("routes.recipes_v2.supabase_insert_required", new_callable=AsyncMock, return_value=None) as mock_insert_required,
+        patch("routes.recipes_v2.supabase_patch_required", new_callable=AsyncMock, return_value=[]),
+        patch("routes.recipes_v2._forward_internal", new_callable=AsyncMock, side_effect=_mock_forward),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2.get_safety_gate", return_value=RecipeSafetyGate()),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["status"] == "partial"
+    assert body["data"]["step_results"][1]["provider_used"] == "people-data-labs"
+    assert body["data"]["step_results"][1]["error"] == (
+        "people-data-labs upstream exploded after brave-search-api timeout"
+    )
+
+    step_insert_payloads = [call.args[1] for call in mock_insert_required.await_args_list[1:]]
+    assert step_insert_payloads[1]["provider_used"] == "people-data-labs"
+    assert step_insert_payloads[1]["error"] == (
+        "people-data-labs upstream exploded after brave-search-api timeout"
+    )
 
 
 @pytest.mark.anyio
@@ -1066,6 +1238,116 @@ async def test_execute_recipe_deduplicated_replay_canonicalizes_alias_backed_cap
     notify_outputs = body["data"]["step_results"][1]["outputs"]
     assert notify_outputs["winner_provider"] == "people-data-labs"
     assert notify_outputs["selected_provider_capture"] == "people-data-labs"
+    assert notify_outputs["fallback_provider_capture"] == "brave-search-api"
+    assert notify_outputs["fallback_provider_candidates"] == ["people-data-labs", "brave-search-api"]
+    assert body["data"]["outputs"]["notify"] == notify_outputs
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_deduplicated_replay_canonicalizes_alias_backed_provider_text_fields_in_outputs(app, mock_agent):
+    recipe_row = deepcopy(RECIPE_ROW)
+    recipe_row["definition"]["steps"][1]["outputs_captured"] = {
+        "provider_message": "result.message",
+        "provider_detail": "result.detail",
+        "provider_error_message": "result.error_message",
+        "winner_provider": "result.provider_slug",
+        "fallback_provider_capture": "result.fallback_provider",
+        "fallback_provider_candidates": "result.fallback_providers",
+    }
+
+    mock_store = MagicMock()
+    mock_store.claim = AsyncMock(return_value=MagicMock(
+        execution_id="rexec_existing123",
+        recipe_id="transcribe_and_notify",
+        status="completed",
+        result_hash="hash123",
+    ))
+
+    def _mock_supabase_fetch_with_existing_provider_text_output_rows(path: str):
+        if path.startswith("recipes?") and "recipe_id=eq.transcribe_and_notify" in path:
+            return [recipe_row]
+        if path.startswith("recipe_executions?") and "execution_id=eq.rexec_existing123" in path:
+            return [{
+                "execution_id": "rexec_existing123",
+                "recipe_id": "transcribe_and_notify",
+                "status": "completed",
+                "inputs": {},
+                "total_cost_usd": 0.04,
+                "total_duration_ms": 200,
+                "step_count": 2,
+                "steps_completed": 2,
+                "error": None,
+                "started_at": "2026-04-17T07:00:00Z",
+                "completed_at": "2026-04-17T07:00:02Z",
+                "org_id": "org_recipe_test",
+                "agent_id": "agent_recipe_test",
+                "credential_mode": "byo",
+            }]
+        if path.startswith("recipe_step_executions?") and "execution_id=eq.rexec_existing123" in path:
+            return [
+                {
+                    "execution_id": "rexec_existing123",
+                    "step_id": "transcribe",
+                    "capability_id": "media.transcribe",
+                    "status": "succeeded",
+                    "cost_usd": 0.03,
+                    "duration_ms": 120,
+                    "receipt_id": "rcpt_step_transcribe",
+                    "provider_used": "assemblyai",
+                    "retries_used": 0,
+                    "error": None,
+                    "outputs": {"transcript_text": "hello world"},
+                },
+                {
+                    "execution_id": "rexec_existing123",
+                    "step_id": "notify",
+                    "capability_id": "email.send",
+                    "status": "succeeded",
+                    "cost_usd": 0.01,
+                    "duration_ms": 80,
+                    "receipt_id": "rcpt_step_notify",
+                    "provider_used": "pdl",
+                    "retries_used": 0,
+                    "error": None,
+                    "outputs": {
+                        "provider_message": "pdl retried after brave-search timeout",
+                        "provider_detail": "Fallback from brave-search to pdl succeeded",
+                        "provider_error_message": "brave-search timeout before pdl fallback",
+                        "winner_provider": "pdl",
+                        "fallback_provider_capture": "brave-search",
+                        "fallback_provider_candidates": ["pdl", "brave-search"],
+                    },
+                },
+            ]
+        return _mock_supabase_fetch(path)
+
+    with (
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch_with_existing_provider_text_output_rows),
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock, return_value=mock_agent),
+        patch("routes.recipes_v2._get_idempotency_store", new_callable=AsyncMock, return_value=mock_store),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                    "idempotency_key": "recipe-idem-1",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["deduplicated"] is True
+    notify_outputs = body["data"]["step_results"][1]["outputs"]
+    assert notify_outputs["winner_provider"] == "people-data-labs"
+    assert notify_outputs["provider_message"] == "people-data-labs retried after brave-search-api timeout"
+    assert notify_outputs["provider_detail"] == "Fallback from brave-search-api to people-data-labs succeeded"
+    assert notify_outputs["provider_error_message"] == "brave-search-api timeout before people-data-labs fallback"
     assert notify_outputs["fallback_provider_capture"] == "brave-search-api"
     assert notify_outputs["fallback_provider_candidates"] == ["people-data-labs", "brave-search-api"]
     assert body["data"]["outputs"]["notify"] == notify_outputs

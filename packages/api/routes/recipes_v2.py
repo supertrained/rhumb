@@ -255,6 +255,67 @@ _PROVIDER_LIST_KEYS = {
 _PROVIDER_TEXT_KEYS = {"message", "detail", "error_message"}
 
 
+def _merge_provider_contexts(*values: Any) -> list[Any]:
+    contexts: list[Any] = []
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple, set)):
+            contexts.extend(_merge_provider_contexts(*value))
+            continue
+        contexts.append(value)
+    return contexts
+
+
+def _provider_contexts_from_payload(value: Any) -> list[str]:
+    contexts: list[str] = []
+
+    def _append_context(raw_value: Any) -> None:
+        if raw_value is None:
+            return
+        if isinstance(raw_value, (list, tuple, set)):
+            for entry in raw_value:
+                _append_context(entry)
+            return
+        if isinstance(raw_value, Mapping):
+            return
+        provider_key = str(raw_value).strip()
+        if provider_key:
+            contexts.append(provider_key)
+
+    def _walk(item: Any) -> None:
+        if isinstance(item, Mapping):
+            for key, nested in item.items():
+                if key in _PROVIDER_VALUE_KEYS:
+                    _append_context(nested)
+                elif key in _PROVIDER_LIST_KEYS:
+                    _append_context(nested)
+                _walk(nested)
+            return
+        if isinstance(item, list):
+            for nested in item:
+                _walk(nested)
+
+    _walk(value)
+    return contexts
+
+
+def _provider_contexts_from_captured_outputs(
+    outputs: Mapping[str, Any],
+    capture_paths: Mapping[str, str],
+) -> list[Any]:
+    contexts: list[Any] = []
+    for output_key, source_path in capture_paths.items():
+        if output_key not in outputs:
+            continue
+        source_key = str(source_path or "").split(".")[-1]
+        if source_path == "provider_used" or source_key in _PROVIDER_VALUE_KEYS:
+            contexts.extend(_merge_provider_contexts(outputs.get(output_key)))
+        elif source_key in _PROVIDER_LIST_KEYS:
+            contexts.extend(_merge_provider_contexts(outputs.get(output_key)))
+    return contexts
+
+
 def _canonicalize_provider_value(value: Any) -> Any:
     if isinstance(value, str):
         public_slug = _public_provider_used(value)
@@ -262,21 +323,31 @@ def _canonicalize_provider_value(value: Any) -> Any:
     return value
 
 
-def _canonicalize_provider_payload(value: Any, *, provider_used: Any) -> Any:
+def _canonicalize_provider_payload(value: Any, *, provider_contexts: list[Any]) -> Any:
     if isinstance(value, dict):
+        local_contexts = _merge_provider_contexts(
+            provider_contexts,
+            _provider_contexts_from_payload(value),
+        )
         canonicalized: dict[str, Any] = {}
         for key, item in value.items():
             if key in _PROVIDER_VALUE_KEYS:
                 canonicalized[key] = _canonicalize_provider_value(item)
             elif key in _PROVIDER_TEXT_KEYS:
-                canonicalized[key] = _canonicalize_provider_text(item, provider_used)
+                canonicalized[key] = _canonicalize_provider_text_from_contexts(item, local_contexts)
             elif key in _PROVIDER_LIST_KEYS and isinstance(item, list):
                 canonicalized[key] = [_canonicalize_provider_value(entry) for entry in item]
             else:
-                canonicalized[key] = _canonicalize_provider_payload(item, provider_used=provider_used)
+                canonicalized[key] = _canonicalize_provider_payload(
+                    item,
+                    provider_contexts=local_contexts,
+                )
         return canonicalized
     if isinstance(value, list):
-        return [_canonicalize_provider_payload(item, provider_used=provider_used) for item in value]
+        return [
+            _canonicalize_provider_payload(item, provider_contexts=provider_contexts)
+            for item in value
+        ]
     return value
 
 
@@ -284,8 +355,16 @@ def _public_step_outputs(step: StepDefinition | None, outputs: Any, *, provider_
     if not isinstance(outputs, Mapping):
         return outputs
 
-    normalized = _canonicalize_provider_payload(dict(outputs), provider_used=provider_used)
     capture_paths = dict(step.outputs_captured or {}) if step else {}
+    provider_contexts = _merge_provider_contexts(
+        provider_used,
+        _provider_contexts_from_payload(outputs),
+        _provider_contexts_from_captured_outputs(outputs, capture_paths),
+    )
+    normalized = _canonicalize_provider_payload(
+        dict(outputs),
+        provider_contexts=provider_contexts,
+    )
 
     for output_key, source_path in capture_paths.items():
         if output_key not in normalized:
@@ -299,9 +378,9 @@ def _public_step_outputs(step: StepDefinition | None, outputs: Any, *, provider_
                 for entry in normalized.get(output_key) or []
             ]
         elif source_key in _PROVIDER_TEXT_KEYS:
-            normalized[output_key] = _canonicalize_provider_text(
+            normalized[output_key] = _canonicalize_provider_text_from_contexts(
                 normalized.get(output_key),
-                provider_used,
+                provider_contexts,
             )
 
     if "provider_used" in normalized:
@@ -311,6 +390,14 @@ def _public_step_outputs(step: StepDefinition | None, outputs: Any, *, provider_
 
 
 def _build_step_result_payload(step: StepDefinition | None, result: StepResult) -> dict[str, Any]:
+    provider_contexts = _merge_provider_contexts(
+        result.provider_used,
+        _provider_contexts_from_payload(result.outputs),
+        _provider_contexts_from_captured_outputs(
+            result.outputs if isinstance(result.outputs, Mapping) else {},
+            dict(step.outputs_captured or {}) if step else {},
+        ),
+    )
     return {
         "step_id": result.step_id,
         "capability_id": step.capability_id if step else None,
@@ -319,7 +406,7 @@ def _build_step_result_payload(step: StepDefinition | None, result: StepResult) 
         "cost_usd": result.cost_usd,
         "duration_ms": result.duration_ms,
         "receipt_id": result.receipt_id,
-        "error": _canonicalize_provider_text(result.error, result.provider_used),
+        "error": _canonicalize_provider_text_from_contexts(result.error, provider_contexts),
         "retries_used": result.retries_used,
         "provider_used": _public_provider_used(result.provider_used),
     }
@@ -343,7 +430,19 @@ def _build_execution_payload(
     deduplicated: bool = False,
 ) -> dict[str, Any]:
     steps_by_id = {step.step_id: step for step in recipe.steps}
-    provider_contexts = [result.provider_used for result in execution.step_results.values()]
+    provider_contexts: list[Any] = []
+    for step_id, result in execution.step_results.items():
+        step = steps_by_id.get(step_id)
+        provider_contexts.extend(
+            _merge_provider_contexts(
+                result.provider_used,
+                _provider_contexts_from_payload(result.outputs),
+                _provider_contexts_from_captured_outputs(
+                    result.outputs if isinstance(result.outputs, Mapping) else {},
+                    dict(step.outputs_captured or {}) if step else {},
+                ),
+            )
+        )
     return {
         "execution_id": execution.execution_id,
         "recipe_id": execution.recipe_id,
@@ -372,7 +471,19 @@ def _build_execution_payload_from_rows(
     deduplicated: bool = False,
 ) -> dict[str, Any]:
     steps_by_id = {step.step_id: step for step in recipe.steps}
-    provider_contexts = [row.get("provider_used") for row in step_rows]
+    provider_contexts: list[Any] = []
+    for row in step_rows:
+        step = steps_by_id.get(str(row.get("step_id") or ""))
+        provider_contexts.extend(
+            _merge_provider_contexts(
+                row.get("provider_used"),
+                _provider_contexts_from_payload(row.get("outputs") or {}),
+                _provider_contexts_from_captured_outputs(
+                    row.get("outputs") if isinstance(row.get("outputs"), Mapping) else {},
+                    dict(step.outputs_captured or {}) if step else {},
+                ),
+            )
+        )
     step_results = [
         {
             "step_id": row.get("step_id"),
@@ -386,7 +497,19 @@ def _build_execution_payload_from_rows(
             "cost_usd": row.get("cost_usd", 0.0),
             "duration_ms": row.get("duration_ms", 0),
             "receipt_id": row.get("receipt_id"),
-            "error": _canonicalize_provider_text(row.get("error"), row.get("provider_used")),
+            "error": _canonicalize_provider_text_from_contexts(
+                row.get("error"),
+                _merge_provider_contexts(
+                    row.get("provider_used"),
+                    _provider_contexts_from_payload(row.get("outputs") or {}),
+                    _provider_contexts_from_captured_outputs(
+                        row.get("outputs") if isinstance(row.get("outputs"), Mapping) else {},
+                        dict(steps_by_id.get(str(row.get("step_id") or "")).outputs_captured or {})
+                        if steps_by_id.get(str(row.get("step_id") or ""))
+                        else {},
+                    ),
+                ),
+            ),
             "retries_used": row.get("retries_used", 0),
             "provider_used": _public_provider_used(row.get("provider_used")),
         }
@@ -523,7 +646,9 @@ class _InternalRecipeStepExecutor(StepExecutor):
         root_outputs = {
             "result": _canonicalize_provider_payload(
                 upstream_response if isinstance(upstream_response, dict) else (upstream_response or {}),
-                provider_used=_public_provider_used(data.get("provider_used")) if isinstance(data, dict) else None,
+                provider_contexts=[
+                    _public_provider_used(data.get("provider_used")) if isinstance(data, dict) else None,
+                ],
             ),
             "provider_used": _public_provider_used(data.get("provider_used")) if isinstance(data, dict) else None,
             "receipt_id": data.get("receipt_id") if isinstance(data, dict) else None,
@@ -563,6 +688,11 @@ class _InternalRecipeStepExecutor(StepExecutor):
         error_message = None
         if isinstance(error, dict):
             error_message = error.get("message") or error.get("detail") or error.get("code")
+        provider_contexts = _merge_provider_contexts(
+            data.get("provider_used") if isinstance(data, dict) else None,
+            _provider_contexts_from_payload(data),
+            _provider_contexts_from_payload(error),
+        )
         return StepResult(
             step_id=step.step_id,
             status=status,
@@ -570,7 +700,10 @@ class _InternalRecipeStepExecutor(StepExecutor):
             cost_usd=float(data.get("cost_estimate_usd") or 0.0) if isinstance(data, dict) else 0.0,
             duration_ms=int(data.get("latency_ms") or 0) if isinstance(data, dict) else 0,
             receipt_id=str(data.get("receipt_id") or "") if isinstance(data, dict) else "",
-            error=error_message or f"Capability execution failed with status {response.status_code}",
+            error=_canonicalize_provider_text_from_contexts(
+                error_message or f"Capability execution failed with status {response.status_code}",
+                provider_contexts,
+            ),
             provider_used=data.get("provider_used") if isinstance(data, dict) else None,
         )
 
@@ -636,7 +769,20 @@ async def _persist_execution(
     org_id: str | None,
     credential_mode: str,
 ) -> None:
-    provider_contexts = [result.provider_used for result in execution.step_results.values()]
+    provider_contexts: list[Any] = []
+    steps_by_id = {step.step_id: step for step in recipe.steps}
+    for step_id, result in execution.step_results.items():
+        step = steps_by_id.get(step_id)
+        provider_contexts.extend(
+            _merge_provider_contexts(
+                result.provider_used,
+                _provider_contexts_from_payload(result.outputs),
+                _provider_contexts_from_captured_outputs(
+                    result.outputs if isinstance(result.outputs, Mapping) else {},
+                    dict(step.outputs_captured or {}) if step else {},
+                ),
+            )
+        )
     await supabase_patch_required(
         f"recipe_executions?execution_id=eq.{quote(execution.execution_id)}",
         {
@@ -656,9 +802,16 @@ async def _persist_execution(
         },
     )
 
-    steps_by_id = {step.step_id: step for step in recipe.steps}
     for step_id, result in execution.step_results.items():
         step = steps_by_id.get(step_id)
+        step_provider_contexts = _merge_provider_contexts(
+            result.provider_used,
+            _provider_contexts_from_payload(result.outputs),
+            _provider_contexts_from_captured_outputs(
+                result.outputs if isinstance(result.outputs, Mapping) else {},
+                dict(step.outputs_captured or {}) if step else {},
+            ),
+        )
         await supabase_insert_required(
             "recipe_step_executions",
             {
@@ -671,7 +824,7 @@ async def _persist_execution(
                 "receipt_id": result.receipt_id or None,
                 "provider_used": _public_provider_used(result.provider_used),
                 "retries_used": result.retries_used,
-                "error": _canonicalize_provider_text(result.error, result.provider_used),
+                "error": _canonicalize_provider_text_from_contexts(result.error, step_provider_contexts),
                 "outputs": _public_step_outputs(step, result.outputs, provider_used=result.provider_used),
                 "started_at": execution.started_at.isoformat(),
                 "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
