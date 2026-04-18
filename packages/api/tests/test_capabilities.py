@@ -161,10 +161,32 @@ ALIAS_TEXTY_SERVICES = [
     {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
 ]
 
+ALTERNATE_ALIAS_TEXTY_SERVICES = [
+    {
+        "slug": "brave-search",
+        "name": "Brave Search (brave-search) after pdl comparison",
+        "category": "search",
+    },
+    {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
+]
+
 ALIAS_AND_CANONICAL_SERVICES = [
     {"slug": "brave-search", "name": "Brave Search (brave-search)", "category": "search"},
     {"slug": "brave-search-api", "name": "Brave Search API", "category": "search"},
     {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
+]
+
+ALTERNATE_ALIAS_TEXT_BUNDLE = {
+    "id": "prospect.enrich_and_verify",
+    "name": "brave-search won after pdl comparison",
+    "description": "Use brave-search after pdl comparison.",
+    "example": "brave-search company lookup after pdl comparison",
+    "value_proposition": "One brave-search + pdl comparison workflow",
+}
+
+ALTERNATE_ALIAS_TEXT_BUNDLE_MAPPINGS = [
+    {"capability_id": "search.query", "service_slug": "brave-search"},
+    {"capability_id": "data.enrich_person", "service_slug": "people-data-labs"},
 ]
 
 INTENT_CAPABILITIES = [
@@ -628,6 +650,34 @@ async def test_get_capability_canonicalizes_alias_backed_provider_service_name(a
     data = resp.json()["data"]
     assert data["providers"][0]["service_slug"] == "brave-search-api"
     assert data["providers"][0]["service_name"] == "Brave Search (brave-search-api)"
+
+
+@pytest.mark.anyio
+async def test_get_capability_canonicalizes_alternate_alias_mentions_in_provider_service_name(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return ALIAS_MAPPINGS
+        if path.startswith("scores?"):
+            return ALIAS_SCORES
+        if path.startswith("services?"):
+            return ALTERNATE_ALIAS_TEXTY_SERVICES
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert (
+        data["providers"][0]["service_name"]
+        == "Brave Search (brave-search-api) after people-data-labs comparison"
+    )
 
 
 @pytest.mark.anyio
@@ -2471,6 +2521,29 @@ async def test_list_bundles_canonicalizes_alias_backed_provider_text(app):
     assert bundle["description"] == "Use brave-search-api before falling back to people-data-labs."
     assert bundle["example"] == "brave-search-api company lookup, then people-data-labs enrichment"
     assert bundle["value_proposition"] == "One brave-search-api + people-data-labs workflow"
+
+
+@pytest.mark.anyio
+async def test_list_bundles_canonicalizes_alternate_alias_mentions_in_provider_text(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capability_bundles?"):
+            return [ALTERNATE_ALIAS_TEXT_BUNDLE]
+        if path.startswith("bundle_capabilities?"):
+            return ALIAS_TEXT_BUNDLE_CAPS
+        if path.startswith("capability_services?"):
+            return ALTERNATE_ALIAS_TEXT_BUNDLE_MAPPINGS
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles")
+
+    assert resp.status_code == 200
+    bundle = resp.json()["data"]["bundles"][0]
+    assert bundle["name"] == "brave-search-api won after people-data-labs comparison"
+    assert bundle["description"] == "Use brave-search-api after people-data-labs comparison."
+    assert bundle["example"] == "brave-search-api company lookup after people-data-labs comparison"
+    assert bundle["value_proposition"] == "One brave-search-api + people-data-labs comparison workflow"
 
 
 @pytest.mark.anyio

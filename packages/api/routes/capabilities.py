@@ -19,7 +19,12 @@ from services.crm_connection_registry import has_any_crm_bundle_configured
 from services.db_connection_registry import has_any_db_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
-from services.service_slugs import normalize_proxy_slug, public_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    normalize_proxy_slug,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
 from services.storage_connection_registry import has_any_storage_bundle_configured
 from services.support_connection_registry import has_any_support_bundle_configured
@@ -118,6 +123,28 @@ def _response_provider_slug_list(service_slugs: list[Any]) -> list[str]:
     return response_slugs
 
 
+def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
 def _canonicalize_provider_text(
     text: Any,
     response_provider_slug: str | None,
@@ -144,7 +171,7 @@ def _canonicalize_provider_text(
             canonicalized,
             flags=re.IGNORECASE,
         )
-    return canonicalized
+    return _canonicalize_known_provider_aliases(canonicalized)
 
 
 def _canonicalize_provider_text_from_contexts(text: Any, provider_slugs: list[Any]) -> str | None:
@@ -162,7 +189,7 @@ def _canonicalize_provider_text_from_contexts(text: Any, provider_slugs: list[An
             continue
         seen.add(lowered)
         canonicalized = _canonicalize_provider_text(canonicalized, provider_key, provider_key) or canonicalized
-    return canonicalized
+    return _canonicalize_known_provider_aliases(canonicalized)
 
 
 def _merge_provider_service_row_fields(
