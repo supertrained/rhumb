@@ -158,14 +158,14 @@ async def get_audit_event(
 async def audit_status(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
-    """Audit chain health and statistics.
+    """Audit chain health and org-scoped statistics.
 
-    Returns chain integrity status, event counts by type/severity/category,
-    and the latest chain hash for verification.
+    Returns chain integrity status plus the authenticated org's visible event
+    counts and latest visible chain head metadata.
     """
-    await _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
     trail = get_audit_trail()
-    chain_status = trail.status()
+    chain_status = trail.status(org_id=org_id)
 
     return {
         "data": {
@@ -271,26 +271,25 @@ async def export_audit_trail(
 async def verify_audit_chain(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
-    """Verify chain-hash integrity of the entire audit trail.
+    """Verify audit trail integrity without leaking other orgs' head metadata.
 
-    Returns verification status and the number of events checked.
-    Any chain break indicates potential tampering.
+    Returns the underlying chain verification result plus only the authenticated
+    org's visible event count and latest visible chain head metadata.
     """
-    await _require_org(x_rhumb_key)
+    org_id = await _require_org(x_rhumb_key)
     trail = get_audit_trail()
-
-    is_valid, events_checked = trail.verify_chain()
+    chain_status = trail.status(org_id=org_id)
 
     return {
         "data": {
-            "chain_verified": is_valid,
-            "events_checked": events_checked,
-            "latest_hash": trail.latest_hash,
-            "latest_sequence": trail.latest_sequence,
+            "chain_verified": chain_status.chain_verified,
+            "events_checked": chain_status.total_events,
+            "latest_hash": chain_status.latest_hash,
+            "latest_sequence": chain_status.latest_sequence,
             "message": (
                 "Chain integrity verified — no tampering detected."
-                if is_valid
-                else f"Chain integrity BROKEN at event {events_checked}. Possible tampering."
+                if chain_status.chain_verified
+                else "Chain integrity BROKEN. Possible tampering."
             ),
         },
         "error": None,

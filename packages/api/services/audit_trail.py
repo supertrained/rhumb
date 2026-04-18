@@ -724,14 +724,24 @@ class AuditTrail:
                 prev_hash = event.chain_hash
             return True, len(self._events)
 
-    def status(self) -> AuditChainStatus:
-        """Return chain health status and statistics."""
+    def status(self, *, org_id: str | None = None) -> AuditChainStatus:
+        """Return chain health status and statistics.
+
+        When ``org_id`` is provided, event counts and latest visible head metadata
+        are scoped to that org's visible events while integrity still reflects the
+        underlying trail verification state.
+        """
         with self._lock:
+            if org_id is not None:
+                events = [self._events[i] for i in self._org_index.get(org_id, [])]
+            else:
+                events = list(self._events)
+
             events_by_type: dict[str, int] = {}
             events_by_severity: dict[str, int] = {}
             events_by_category: dict[str, int] = {}
 
-            for event in self._events:
+            for event in events:
                 events_by_type[event.event_type.value] = (
                     events_by_type.get(event.event_type.value, 0) + 1
                 )
@@ -742,16 +752,18 @@ class AuditTrail:
                     events_by_category.get(event.category, 0) + 1
                 )
 
-            earliest = self._events[0].timestamp if self._events else None
-            latest = self._events[-1].timestamp if self._events else None
+            earliest = events[0].timestamp if events else None
+            latest = events[-1].timestamp if events else None
+            latest_hash = events[-1].chain_hash if events else self.GENESIS_HASH
+            latest_sequence = events[-1].chain_sequence if events else 0
 
         is_valid, _ = self.verify_chain()
 
         return AuditChainStatus(
-            total_events=len(self._events),
+            total_events=len(events),
             chain_verified=is_valid,
-            latest_hash=self._prev_hash,
-            latest_sequence=self._sequence,
+            latest_hash=latest_hash,
+            latest_sequence=latest_sequence,
             earliest_event=earliest,
             latest_event=latest,
             events_by_type=events_by_type,

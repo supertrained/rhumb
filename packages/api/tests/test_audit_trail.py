@@ -510,6 +510,27 @@ class TestStatus:
         assert s.events_by_category["security"] == 1
         assert s.events_by_category["billing"] == 1
 
+    def test_status_can_scope_to_org(self):
+        trail = AuditTrail()
+        trail.record(AuditEventType.EXECUTION_STARTED, "a", org_id="org_1")
+        trail.record(AuditEventType.KILL_SWITCH_ACTIVATED, "b", org_id="org_2")
+        trail.record(AuditEventType.BUDGET_EXCEEDED, "c", org_id="org_1")
+
+        s = trail.status(org_id="org_1")
+
+        assert s.total_events == 2
+        assert s.chain_verified is True
+        assert s.latest_sequence == 3
+        assert s.events_by_type == {
+            "execution.started": 1,
+            "budget.exceeded": 1,
+        }
+        assert "kill_switch.activated" not in s.events_by_type
+        assert s.events_by_category == {
+            "execution": 1,
+            "billing": 1,
+        }
+
 
 # ── Export ────────────────────────────────────────────────────────────
 
@@ -797,17 +818,19 @@ class TestAuditRoutes:
         resp = client.get("/v2/audit/status", headers={"X-Rhumb-Key": "test_key"})
         assert resp.status_code == 200
         data = resp.json()["data"]
-        assert data["total_events"] == 4  # All events, not filtered by org
+        assert data["total_events"] == 3
         assert data["chain_verified"] is True
-        assert data["latest_sequence"] == 4
+        assert data["latest_sequence"] == 3
         assert "execution.started" in data["events_by_type"]
+        assert "execution.failed" not in data["events_by_type"]
 
     def test_verify_endpoint(self, client):
         resp = client.get("/v2/audit/verify", headers={"X-Rhumb-Key": "test_key"})
         assert resp.status_code == 200
         data = resp.json()["data"]
         assert data["chain_verified"] is True
-        assert data["events_checked"] == 4
+        assert data["events_checked"] == 3
+        assert data["latest_sequence"] == 3
         assert "no tampering" in data["message"].lower()
 
     def test_export_json(self, client):
