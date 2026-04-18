@@ -165,6 +165,57 @@ def _canonicalize_provider_text_from_contexts(text: Any, provider_slugs: list[An
     return canonicalized
 
 
+def _merge_provider_service_row_fields(
+    preferred: dict[str, Any], fallback: dict[str, Any]
+) -> dict[str, Any]:
+    merged = dict(preferred)
+    for key, value in fallback.items():
+        if key == "slug":
+            merged[key] = preferred.get("slug") or value
+            continue
+        if merged.get(key) in (None, "") and value not in (None, ""):
+            merged[key] = value
+    return merged
+
+
+
+def _canonicalize_provider_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+
+    canonical_rows: dict[str, dict[str, Any]] = {}
+    canonical_sources: dict[str, str] = {}
+    for row in rows:
+        raw_slug = str(row.get("slug") or "").strip()
+        slug = _public_provider_slug(raw_slug)
+        if not slug:
+            continue
+
+        normalized_row = {
+            **row,
+            "slug": slug,
+            "name": _canonicalize_provider_text(row.get("name"), slug, raw_slug),
+            "description": _canonicalize_provider_text(row.get("description"), slug, raw_slug),
+        }
+        existing = canonical_rows.get(slug)
+        if existing is None:
+            canonical_rows[slug] = normalized_row
+            canonical_sources[slug] = raw_slug.lower()
+            continue
+
+        raw_source = raw_slug.lower()
+        raw_is_canonical = raw_source == slug.lower()
+        existing_is_canonical = canonical_sources.get(slug) == slug.lower()
+        if raw_is_canonical and not existing_is_canonical:
+            canonical_rows[slug] = _merge_provider_service_row_fields(normalized_row, existing)
+            canonical_sources[slug] = raw_source
+            continue
+
+        canonical_rows[slug] = _merge_provider_service_row_fields(existing, normalized_row)
+
+    return list(canonical_rows.values())
+
+
 def _provider_lookup_slugs(service_slugs: list[str]) -> list[str]:
     lookup_slugs: list[str] = []
     for service_slug in service_slugs:
@@ -3061,6 +3112,7 @@ async def get_capability(capability_id: str, raw_request: Request):
             "services",
             f"services?slug=in.({_lookup_slug_filter(lookup_slugs)})&select=slug,name,category"
         )
+        service_rows = _canonicalize_provider_service_rows(services)
 
         scores_by_slug: dict[str, dict] = {}
         if scores:
@@ -3071,12 +3123,11 @@ async def get_capability(capability_id: str, raw_request: Request):
 
         names_by_slug: dict[str, str] = {}
         cats_by_slug: dict[str, str] = {}
-        if services:
-            for svc in services:
-                public_slug = _public_provider_slug(svc.get("slug"))
-                if public_slug and public_slug not in names_by_slug:
-                    names_by_slug[public_slug] = svc.get("name", public_slug)
-                    cats_by_slug[public_slug] = svc.get("category", "")
+        for svc in service_rows:
+            public_slug = str(svc.get("slug") or "").strip()
+            if public_slug and public_slug not in names_by_slug:
+                names_by_slug[public_slug] = str(svc.get("name") or public_slug)
+                cats_by_slug[public_slug] = str(svc.get("category") or "")
 
         providers_by_slug: dict[str, dict[str, object]] = {}
         provider_contexts = [m.get("service_slug") for m in mappings]
@@ -3209,6 +3260,7 @@ async def resolve_capability(
         "services",
         f"services?slug=in.({_lookup_slug_filter(lookup_slugs)})&select=slug,name"
     )
+    service_rows = _canonicalize_provider_service_rows(services)
 
     scores_by_slug: dict[str, dict] = {}
     if scores:
@@ -3218,11 +3270,10 @@ async def resolve_capability(
                 scores_by_slug[slug] = sc
 
     names_by_slug: dict[str, str] = {}
-    if services:
-        for svc in services:
-            public_slug = _public_provider_slug(svc.get("slug"))
-            if public_slug and public_slug not in names_by_slug:
-                names_by_slug[public_slug] = svc.get("name", public_slug)
+    for svc in service_rows:
+        public_slug = str(svc.get("slug") or "").strip()
+        if public_slug and public_slug not in names_by_slug:
+            names_by_slug[public_slug] = str(svc.get("name") or public_slug)
 
     # Build ranked provider list with recommendations
     all_providers = []

@@ -130,6 +130,17 @@ ALIAS_SERVICES = [
     {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
 ]
 
+ALIAS_TEXTY_SERVICES = [
+    {"slug": "brave-search", "name": "Brave Search (brave-search)", "category": "search"},
+    {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
+]
+
+ALIAS_AND_CANONICAL_SERVICES = [
+    {"slug": "brave-search", "name": "Brave Search (brave-search)", "category": "search"},
+    {"slug": "brave-search-api", "name": "Brave Search API", "category": "search"},
+    {"slug": "people-data-labs", "name": "People Data Labs", "category": "data"},
+]
+
 INTENT_CAPABILITIES = [
     {
         "id": "scrape.extract",
@@ -566,6 +577,86 @@ async def test_alias_backed_capability_surfaces_keep_canonical_public_provider_i
     assert "RHUMB_CREDENTIAL_BRAVE_SEARCH_API_KEY" in brave["modes"][0]["setup_hint"]
 
     pc._credential_store = None
+
+
+@pytest.mark.anyio
+async def test_get_capability_canonicalizes_alias_backed_provider_service_name(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return ALIAS_MAPPINGS
+        if path.startswith("scores?"):
+            return ALIAS_SCORES
+        if path.startswith("services?"):
+            return ALIAS_TEXTY_SERVICES
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["service_name"] == "Brave Search (brave-search-api)"
+
+
+@pytest.mark.anyio
+async def test_get_capability_preserves_human_shorthand_in_service_name_for_canonical_rows(app):
+    canonical_mapping = [{
+        **ALIAS_MAPPINGS[1],
+        "service_slug": "people-data-labs",
+    }]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return canonical_mapping
+        if path.startswith("scores?"):
+            return [ALIAS_SCORES[1]]
+        if path.startswith("services?"):
+            return [{"slug": "people-data-labs", "name": "PDL", "category": "data"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "people-data-labs"
+    assert data["providers"][0]["service_name"] == "PDL"
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_prefers_canonical_service_name_when_alias_service_row_also_present(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return ALIAS_MAPPINGS
+        if path.startswith("scores?"):
+            return ALIAS_SCORES
+        if path.startswith("services?"):
+            return ALIAS_AND_CANONICAL_SERVICES
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["service_name"] == "Brave Search API"
 
 
 @pytest.mark.anyio
