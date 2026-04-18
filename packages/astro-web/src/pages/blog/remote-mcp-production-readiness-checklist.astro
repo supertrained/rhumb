@@ -69,14 +69,19 @@ const FAILURE_CLASSES = [
 
 const RELATED_READING = [
   {
+    href: "/blog/agent-fleet-rate-limit-design",
+    title: "Designing Agent Fleets That Survive Rate Limits",
+    description: "What production governors, retry budgets, and recovery discipline look like once multiple agents are live.",
+  },
+  {
+    href: "/blog/api-credentials-agent-fleets",
+    title: "API Credentials in Autonomous Agent Fleets",
+    description: "How rotation, expiry, revocation, and scoped authority behave once credentials are part of the runtime, not just setup.",
+  },
+  {
     href: "/blog/how-to-evaluate-mcp-servers",
     title: "How to Evaluate MCP Servers",
     description: "The broader selection model: workflow fit, trust class, capability shape, auth viability, and runtime reality.",
-  },
-  {
-    href: "/blog/remote-mcp-liveness-vs-production-readiness",
-    title: "Remote MCP Uptime Is Not Production Readiness",
-    description: "Why reachability is only the first layer, not the operator decision.",
   },
   {
     href: "/blog/governed-capability-surfaces-agent-integrations",
@@ -374,6 +379,23 @@ const ARTICLE_JSON_LD = {
                 <a href="/blog/shopify-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
                   <div class="text-sm font-semibold text-slate-100">Shopify API Autopsy</div>
                   <p class="mt-2 text-sm text-slate-400 leading-relaxed">Shows how production friction survives even when the platform is mature, because versioning, budgets, and query design still matter.</p>
+                </a>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+              <p class="text-slate-300 leading-relaxed mb-5">
+                If the remote surface is real infrastructure, the next questions are whether the fleet survives shared rate budgets and whether credential rotation stays bounded after midnight. These two guides carry the readiness checklist into live operator mechanics.
+              </p>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Connects governors and retry discipline to the real failure mode, one agent exhausting the shared budget for every other agent.</p>
+                </a>
+                <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Extends the auth and principal story into rotation, expiry, revocation, and shared-key cascade prevention.</p>
                 </a>
               </div>
             </div>
