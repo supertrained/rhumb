@@ -13,6 +13,7 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.routing_engine import RoutingEngine
+from services.service_slugs import public_service_slug
 
 router = APIRouter(prefix="/v1/agent", tags=["routing"])
 
@@ -106,6 +107,28 @@ class SpendResponse(BaseModel):
     by_provider: list[dict]
 
 
+def _public_provider_breakdown(rows: list[dict]) -> list[dict]:
+    merged: dict[str, dict[str, float | int | str]] = {}
+    for row in rows:
+        provider = public_service_slug(row.get("provider")) or str(row.get("provider") or "").strip().lower()
+        if not provider:
+            continue
+        if provider not in merged:
+            merged[provider] = {"provider": provider, "spend_usd": 0.0, "executions": 0}
+        merged[provider]["spend_usd"] = float(merged[provider]["spend_usd"]) + float(row.get("spend_usd") or 0)
+        merged[provider]["executions"] = int(merged[provider]["executions"]) + int(row.get("executions") or 0)
+
+    ordered = sorted(merged.values(), key=lambda item: -float(item["spend_usd"]))
+    return [
+        {
+            "provider": str(item["provider"]),
+            "spend_usd": round(float(item["spend_usd"]), 4),
+            "executions": int(item["executions"]),
+        }
+        for item in ordered
+    ]
+
+
 @router.get("/spend", response_model=SpendResponse)
 async def get_spend(
     period: Optional[str] = Query(None, description="Period (YYYY-MM). Defaults to current month."),
@@ -114,4 +137,9 @@ async def get_spend(
     """Get spend breakdown for the authenticated agent."""
     agent_id = await _extract_agent_id(x_rhumb_key)
     summary = await _engine.get_spend_summary(agent_id, period)
-    return SpendResponse(**summary)
+    return SpendResponse(
+        **{
+            **summary,
+            "by_provider": _public_provider_breakdown(list(summary.get("by_provider") or [])),
+        }
+    )

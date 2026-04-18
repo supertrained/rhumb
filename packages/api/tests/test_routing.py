@@ -315,3 +315,31 @@ class TestRoutingRoutes:
             data = resp.json()
             assert data["total_spend_usd"] == 12.47
             assert len(data["by_capability"]) == 1
+
+    def test_get_spend_recanonicalizes_alias_backed_provider_breakdown(self):
+        with patch("routes.routing._engine") as mock_engine:
+            mock_engine.get_spend_summary = AsyncMock(return_value={
+                "agent_id": "agent_test",
+                "period": "2026-03",
+                "total_spend_usd": 0.06,
+                "total_executions": 3,
+                "by_capability": [
+                    {"capability_id": "search.query", "spend_usd": 0.04, "executions": 2, "avg_cost": 0.02},
+                    {"capability_id": "person.enrich", "spend_usd": 0.02, "executions": 1, "avg_cost": 0.02},
+                ],
+                "by_provider": [
+                    {"provider": "Brave-Search", "spend_usd": 0.01, "executions": 1},
+                    {"provider": "brave-search-api", "spend_usd": 0.03, "executions": 1},
+                    {"provider": "PDL", "spend_usd": 0.02, "executions": 1},
+                ],
+            })
+            resp = self.client.get(
+                "/v1/agent/spend",
+                headers={"X-Rhumb-Key": "test_key"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["by_provider"] == [
+            {"provider": "brave-search-api", "spend_usd": 0.04, "executions": 2},
+            {"provider": "people-data-labs", "spend_usd": 0.02, "executions": 1},
+        ]
