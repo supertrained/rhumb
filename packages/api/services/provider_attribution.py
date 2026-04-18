@@ -30,6 +30,7 @@ from urllib.parse import quote
 
 from routes._supabase import supabase_fetch
 from services.service_slugs import (
+    CANONICAL_TO_PROXY,
     canonicalize_service_slug,
     public_service_slug,
     public_service_slug_candidates,
@@ -50,33 +51,74 @@ def _canonical_provider_slug(provider_slug: str) -> str:
     return canonicalize_service_slug(cleaned) or "unknown"
 
 
+def _canonicalize_known_provider_aliases(
+    text: Any,
+    *,
+    preserve_exact_uppercase_shorthand: bool = False,
+) -> str | None:
+    if text is None:
+        return None
+
+    rendered = str(text)
+    replacements: dict[str, str] = {}
+    uppercase_shorthands: set[str] = set()
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+            if cleaned.isalpha():
+                uppercase_shorthands.add(cleaned.upper())
+
+    if not replacements:
+        return rendered
+
+    if preserve_exact_uppercase_shorthand and rendered.strip().upper() in uppercase_shorthands:
+        return rendered
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], rendered)
+
+
+
 def _canonicalize_provider_text(
     text: Any,
     canonical_provider_slug: str | None,
     stored_provider_slug: str | None,
+    *,
+    preserve_exact_uppercase_shorthand: bool = False,
 ) -> str | None:
     if text is None:
         return None
 
     canonical = public_service_slug(canonical_provider_slug)
     if canonical is None:
-        return str(text)
+        return _canonicalize_known_provider_aliases(
+            text,
+            preserve_exact_uppercase_shorthand=preserve_exact_uppercase_shorthand,
+        )
 
     raw_stored_slug = str(stored_provider_slug).strip().lower() if stored_provider_slug else None
-    if raw_stored_slug == canonical.lower():
-        return str(text)
-
     canonicalized = str(text)
-    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
-        if not candidate or candidate == canonical:
-            continue
-        canonicalized = re.sub(
-            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
-            canonical,
-            canonicalized,
-            flags=re.IGNORECASE,
-        )
-    return canonicalized
+    if raw_stored_slug != canonical.lower():
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate == canonical:
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+
+    return _canonicalize_known_provider_aliases(
+        canonicalized,
+        preserve_exact_uppercase_shorthand=preserve_exact_uppercase_shorthand,
+    )
 
 
 def _merge_provider_detail_rows(rows: list[dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
@@ -94,7 +136,12 @@ def _merge_provider_detail_rows(rows: list[dict[str, Any]] | None) -> dict[str, 
         normalized_row = {
             **row,
             "slug": canonical_slug,
-            "name": _canonicalize_provider_text(row.get("name"), canonical_slug, raw_slug),
+            "name": _canonicalize_provider_text(
+                row.get("name"),
+                canonical_slug,
+                raw_slug,
+                preserve_exact_uppercase_shorthand=True,
+            ),
             "description": _canonicalize_provider_text(row.get("description"), canonical_slug, raw_slug),
         }
 
