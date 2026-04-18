@@ -141,6 +141,14 @@ _BRAVE_ALIAS_TEXTY_SERVICE_DETAIL = {
     "official_docs": "https://brave.com/search/api",
 }
 
+_BRAVE_ALTERNATE_ALIAS_TEXTY_SERVICE_DETAIL = {
+    "slug": "brave-search",
+    "name": "brave-search won after pdl comparison",
+    "description": "Use brave-search after pdl comparison.",
+    "category": "search",
+    "official_docs": "https://brave.com/search/api",
+}
+
 
 def _mock_supabase_fetch_with_alias_backed_callable_provider(query: str):
     """Store Brave metadata on the runtime alias while v2 exposes the canonical provider id."""
@@ -207,6 +215,45 @@ def _mock_supabase_fetch_with_alias_backed_texty_callable_provider(query: str):
             return [_BRAVE_ALIAS_TEXTY_SERVICE_DETAIL]
         if "slug=in." in query and "brave-search" in query:
             return [_BRAVE_ALIAS_TEXTY_SERVICE_DETAIL]
+        return []
+    if query.startswith("scores?"):
+        if "brave-search" in query:
+            return [{
+                "service_slug": "brave-search",
+                "aggregate_recommendation_score": 8.6,
+                "tier": "native",
+                "tier_label": "Native",
+                "calculated_at": "2026-03-31T00:00:00Z",
+            }]
+        return []
+    return []
+
+
+def _mock_supabase_fetch_with_alias_backed_alternate_alias_texty_callable_provider(query: str):
+    if query.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in query:
+            return [{"service_slug": "brave-search"}]
+        if "service_slug=eq.brave-search" in query:
+            return [{
+                "capability_id": "search.query",
+                "service_slug": "brave-search",
+                "credential_modes": "byo,rhumb_managed",
+                "auth_method": "api_key",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+                "cost_currency": "USD",
+                "free_tier_calls": 2000,
+            }]
+        if "select=service_slug" in query and "capability_id" not in query and "service_slug=eq." not in query:
+            return [{"service_slug": "brave-search"}]
+        return []
+    if query.startswith("services?"):
+        if "slug=eq.brave-search-api" in query:
+            return []
+        if "slug=eq.brave-search" in query:
+            return [_BRAVE_ALTERNATE_ALIAS_TEXTY_SERVICE_DETAIL]
+        if "slug=in." in query and "brave-search" in query:
+            return [_BRAVE_ALTERNATE_ALIAS_TEXTY_SERVICE_DETAIL]
         return []
     if query.startswith("scores?"):
         if "brave-search" in query:
@@ -561,6 +608,22 @@ class TestListProviders:
         assert brave["category"] == "search"
         assert brave["callable"] is True
 
+    def test_list_canonicalizes_alternate_alias_mentions_in_provider_metadata_text(self, client):
+        with patch(
+            "routes.providers_v2.supabase_fetch",
+            side_effect=_mock_supabase_fetch_with_alias_backed_alternate_alias_texty_callable_provider,
+        ):
+            resp = client.get("/v2/providers?capability=search.query")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        brave = providers_by_id["brave-search-api"]
+        assert brave["name"] == "brave-search-api won after people-data-labs comparison"
+        assert brave["description"] == "Use brave-search-api after people-data-labs comparison."
+        assert brave["category"] == "search"
+        assert brave["callable"] is True
+
 
 # ---------------------------------------------------------------------------
 # GET /v2/providers/{provider_id}
@@ -646,6 +709,21 @@ class TestGetProvider:
         assert data["id"] == "brave-search-api"
         assert data["name"] == "Brave Search (brave-search-api)"
         assert data["description"] == "Use brave-search-api for search."
+        assert data["an_score"] == 8.6
+        assert data["tier"] == "Native"
+
+    def test_get_provider_canonicalizes_alternate_alias_mentions_in_metadata_text(self, client):
+        with patch(
+            "routes.providers_v2.supabase_fetch",
+            side_effect=_mock_supabase_fetch_with_alias_backed_alternate_alias_texty_callable_provider,
+        ):
+            resp = client.get("/v2/providers/brave-search-api")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["id"] == "brave-search-api"
+        assert data["name"] == "brave-search-api won after people-data-labs comparison"
+        assert data["description"] == "Use brave-search-api after people-data-labs comparison."
         assert data["an_score"] == 8.6
         assert data["tier"] == "Native"
 
