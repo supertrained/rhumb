@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from services.route_explanation import (
+    CandidateExplanation,
     RouteExplanation,
     _row_to_explanation,
     build_explanation,
@@ -495,6 +496,38 @@ class TestStore:
         assert "people-data-labs" in exp.human_summary
         assert "brave-search selected" not in exp.human_summary
 
+    def test_row_to_explanation_does_not_double_rewrite_canonical_provider_text(self):
+        exp = _row_to_explanation(
+            {
+                "explanation_id": "rexp_persisted_mixed",
+                "capability_id": "search.query",
+                "winner_provider_id": "brave-search",
+                "winner_composite_score": 0.91,
+                "winner_reason": "persisted_route_explanation",
+                "human_summary": "brave-search-api selected over pdl.",
+                "candidates_json": [
+                    {
+                        "provider_id": "brave-search",
+                        "eligible": True,
+                        "composite_score": 0.91,
+                        "factors": {},
+                        "policy_checks": {},
+                    },
+                    {
+                        "provider_id": "pdl",
+                        "eligible": False,
+                        "composite_score": 0.0,
+                        "factors": {},
+                        "policy_checks": {},
+                        "ineligible_reason": "not_in_allow_list",
+                    },
+                ],
+            }
+        )
+
+        assert exp.human_summary == "brave-search-api selected over people-data-labs."
+        assert "brave-search-api-api" not in exp.human_summary
+
     def test_store_eviction(self):
         """Store should evict oldest when capacity exceeded."""
         for i in range(1100):
@@ -545,6 +578,49 @@ async def test_persist_explanation_canonicalizes_alias_backed_winner_and_summary
     )
     assert "brave-search-api" in inserted_payload["human_summary"]
     assert "brave-search pinned" not in inserted_payload["human_summary"]
+
+
+@pytest.mark.anyio
+async def test_persist_explanation_does_not_double_rewrite_canonical_provider_text_on_write():
+    exp = RouteExplanation(
+        explanation_id="rexp_mixed_summary",
+        capability_id="search.query",
+        winner_provider_id="brave-search",
+        winner_composite_score=0.91,
+        selection_reason="persisted_route_explanation",
+        candidates=[
+            CandidateExplanation(
+                provider_id="brave-search",
+                eligible=True,
+                composite_score=0.91,
+                factors={},
+                policy_checks={},
+            ),
+            CandidateExplanation(
+                provider_id="pdl",
+                eligible=False,
+                composite_score=0.0,
+                factors={},
+                policy_checks={},
+                ineligible_reason="not_in_allow_list",
+            ),
+        ],
+        human_summary="brave-search-api selected over pdl.",
+    )
+
+    with patch(
+        "services.route_explanation.supabase_insert",
+        new=AsyncMock(return_value=True),
+    ) as mock_insert:
+        from services.route_explanation import persist_explanation
+
+        ok = await persist_explanation(exp, receipt_id="rcpt_test_mixed")
+
+    assert ok is True
+    inserted_table, inserted_payload = mock_insert.await_args.args
+    assert inserted_table == "route_explanations"
+    assert inserted_payload["human_summary"] == "brave-search-api selected over people-data-labs."
+    assert "brave-search-api-api" not in inserted_payload["human_summary"]
 
 
 # ---------------------------------------------------------------------------

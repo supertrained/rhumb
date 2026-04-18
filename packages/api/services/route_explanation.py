@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -194,7 +195,12 @@ def _canonicalize_provider_text(text: str, provider_ids: list[str] | None) -> st
         if raw and public and raw != public:
             replacements[raw] = public
     for raw in sorted(replacements.keys(), key=len, reverse=True):
-        canonicalized = canonicalized.replace(raw, replacements[raw])
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(raw)}(?![a-z0-9-])",
+            replacements[raw],
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
     return canonicalized
 
 
