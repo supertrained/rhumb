@@ -1178,6 +1178,67 @@ class TestExecuteOnProvider:
         assert receipt_input.provider_id == "brave-search-api"
         assert receipt_input.error_message == "brave-search-api upstream exploded"
 
+    @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
+    @patch("routes.providers_v2.get_receipt_service")
+    @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider)
+    def test_execute_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(self, mock_fetch, mock_receipt_svc, mock_budget, client):
+        mock_receipt = MagicMock()
+        mock_receipt.receipt_id = "rcpt_canonical_context_failure_123"
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+
+        with patch("routes.providers_v2._forward_internal") as mock_forward:
+            estimate_resp = MagicMock()
+            estimate_resp.status_code = 200
+            estimate_resp.json.return_value = {
+                "data": {
+                    "provider": "brave-search-api",
+                    "cost_estimate_usd": 0.003,
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                },
+            }
+            estimate_resp.headers = {}
+
+            execute_resp = MagicMock()
+            execute_resp.status_code = 502
+            execute_resp.json.return_value = {
+                "data": {
+                    "provider_used": "brave-search-api",
+                    "selected_provider": "brave-search-api",
+                    "fallback_provider": "people-data-labs",
+                },
+                "error": {
+                    "code": "UPSTREAM_FAILURE",
+                    "message": "brave-search-api upstream exploded after pdl fallback",
+                    "detail": "Retry brave-search-api or ask pdl for a fresh token before retrying.",
+                    "available_providers": ["brave-search-api", "people-data-labs"],
+                },
+            }
+            execute_resp.headers = {}
+
+            mock_forward.side_effect = [estimate_resp, execute_resp]
+
+            resp = client.post(
+                "/v2/providers/brave-search-api/execute",
+                json={
+                    "capability": "search.query",
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byok",
+                },
+            )
+
+        assert resp.status_code == 502
+        body = resp.json()
+        assert body["data"]["provider_used"] == "brave-search-api"
+        assert body["data"]["selected_provider"] == "brave-search-api"
+        assert body["data"]["fallback_provider"] == "people-data-labs"
+        assert body["error"]["message"] == "brave-search-api upstream exploded after people-data-labs fallback"
+        assert body["error"]["detail"] == "Retry brave-search-api or ask people-data-labs for a fresh token before retrying."
+        assert body["error"]["available_providers"] == ["brave-search-api", "people-data-labs"]
+
+        receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
+        assert receipt_input.provider_id == "brave-search-api"
+        assert receipt_input.error_message == "brave-search-api upstream exploded after people-data-labs fallback"
+
     def test_execute_canonicalizes_alias_backed_provider_text_in_estimate_failure(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
             with patch("routes.providers_v2._forward_internal") as mock_forward:
