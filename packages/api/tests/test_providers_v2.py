@@ -904,8 +904,8 @@ class TestExecuteOnProvider:
                 "error": {
                     "code": "UPSTREAM_FAILURE",
                     "message": "brave-search upstream exploded",
-                    "detail": "Retry brave-search after the outage clears.",
-                    "available_providers": ["brave-search"],
+                    "detail": "Retry brave-search or choose pdl after the outage clears.",
+                    "available_providers": ["brave-search", "pdl"],
                 },
             }
             execute_resp.headers = {}
@@ -926,8 +926,8 @@ class TestExecuteOnProvider:
         assert body["data"]["provider_used"] == "brave-search-api"
         assert body["data"]["fallback_provider"] == "brave-search-api"
         assert body["error"]["message"] == "brave-search-api upstream exploded"
-        assert body["error"]["detail"] == "Retry brave-search-api after the outage clears."
-        assert body["error"]["available_providers"] == ["brave-search-api"]
+        assert body["error"]["detail"] == "Retry brave-search-api or choose people-data-labs after the outage clears."
+        assert body["error"]["available_providers"] == ["brave-search-api", "people-data-labs"]
 
         receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
         assert receipt_input.provider_id == "brave-search-api"
@@ -946,7 +946,8 @@ class TestExecuteOnProvider:
                     "error": {
                         "code": "UPSTREAM_FAILURE",
                         "message": "brave-search estimate failed",
-                        "detail": "Check brave-search before retrying.",
+                        "detail": "Check brave-search or pdl before retrying.",
+                        "available_providers": ["brave-search", "pdl"],
                     },
                 }
                 estimate_resp.headers = {}
@@ -966,7 +967,8 @@ class TestExecuteOnProvider:
         assert body["data"]["provider_used"] == "brave-search-api"
         assert body["data"]["fallback_providers"] == ["brave-search-api"]
         assert body["error"]["message"] == "brave-search-api estimate failed"
-        assert body["error"]["detail"] == "Check brave-search-api before retrying."
+        assert body["error"]["detail"] == "Check brave-search-api or people-data-labs before retrying."
+        assert body["error"]["available_providers"] == ["brave-search-api", "people-data-labs"]
 
     def test_execute_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
