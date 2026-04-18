@@ -61,7 +61,7 @@ class TestRecordEvent:
 
     def test_record_preserves_detail_payload(self):
         trail = AuditTrail()
-        detail = {"capability_id": "search.query", "provider": "brave", "cost_usd": 0.002}
+        detail = {"capability_id": "search.query", "cost_usd": 0.002, "latency_ms": 42}
         event = trail.record(
             AuditEventType.EXECUTION_COMPLETED,
             "Completed search.query",
@@ -102,6 +102,73 @@ class TestRecordEvent:
         assert event.chain_hash != trail._compute_hash(
             event.prev_hash,
             replace(event, provider_slug="brave-search", chain_hash=""),
+        )
+
+    def test_record_canonicalizes_alias_backed_provider_action_and_detail_before_hashing(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search execution completed before pdl fallback",
+            org_id="org_1",
+            provider_slug="brave-search",
+            detail={
+                "message": "brave-search upstream exploded before pdl fallback",
+                "provider": "brave-search",
+                "fallback_providers": ["brave-search", "pdl"],
+            },
+        )
+
+        assert event.action == "brave-search-api execution completed before people-data-labs fallback"
+        assert event.detail == {
+            "message": "brave-search-api upstream exploded before people-data-labs fallback",
+            "provider": "brave-search-api",
+            "fallback_providers": ["brave-search-api", "people-data-labs"],
+        }
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != trail._compute_hash(
+            event.prev_hash,
+            replace(
+                event,
+                action="brave-search execution completed before pdl fallback",
+                detail={
+                    "message": "brave-search upstream exploded before pdl fallback",
+                    "provider": "brave-search",
+                    "fallback_providers": ["brave-search", "pdl"],
+                },
+                chain_hash="",
+            ),
+        )
+
+    def test_record_canonicalizes_alias_backed_action_from_provider_resource_context(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.SCORE_UPDATED,
+            "Updated score for brave-search after pdl comparison",
+            org_id="org_1",
+            resource_type="provider",
+            resource_id="brave-search",
+            detail={
+                "fallback_provider": "pdl",
+            },
+        )
+
+        assert event.action == "Updated score for brave-search-api after people-data-labs comparison"
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != trail._compute_hash(
+            event.prev_hash,
+            replace(
+                event,
+                action="Updated score for brave-search after pdl comparison",
+                chain_hash="",
+            ),
         )
 
     def test_serialize_event_does_not_double_rewrite_already_canonical_provider_text(self):

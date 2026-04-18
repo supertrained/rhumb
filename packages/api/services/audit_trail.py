@@ -137,6 +137,24 @@ def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> A
     return value
 
 
+def _event_provider_contexts(
+    detail: dict[str, Any] | None,
+    *,
+    provider_slug: str | None,
+    resource_type: str | None = None,
+    resource_id: str | None = None,
+) -> set[str]:
+    provider_slugs: set[str] = set()
+    if provider_slug:
+        provider_slugs.add(str(provider_slug).strip())
+    if resource_type in {"provider", "service"} and isinstance(resource_id, str):
+        cleaned_resource_id = resource_id.strip()
+        if cleaned_resource_id:
+            provider_slugs.add(cleaned_resource_id)
+    _collect_provider_slugs(detail or {}, provider_slugs)
+    return provider_slugs
+
+
 # ── Event Types ──────────────────────────────────────────────────────
 
 
@@ -447,6 +465,20 @@ class AuditTrail:
         severity = meta.get("severity", AuditSeverity.INFO)
         category = meta.get("category", "unknown")
         canonical_provider_slug = public_service_slug(provider_slug) or provider_slug
+        raw_detail = dict(detail or {})
+        provider_contexts = _event_provider_contexts(
+            raw_detail,
+            provider_slug=canonical_provider_slug,
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
+        canonical_action = _canonicalize_provider_text(action, provider_contexts) or action
+        canonical_detail = _canonicalize_provider_payload(
+            raw_detail,
+            provider_slugs=provider_contexts,
+        )
+        if not isinstance(canonical_detail, dict):
+            canonical_detail = {}
 
         with self._lock:
             self._sequence += 1
@@ -467,8 +499,8 @@ class AuditTrail:
                     "principal": principal,
                     "resource_type": resource_type,
                     "resource_id": resource_id,
-                    "action": action,
-                    "detail": detail or {},
+                    "action": canonical_action,
+                    "detail": canonical_detail,
                     "receipt_id": receipt_id,
                     "execution_id": execution_id,
                     "provider_slug": canonical_provider_slug,
@@ -488,8 +520,8 @@ class AuditTrail:
                 principal=principal,
                 resource_type=resource_type,
                 resource_id=resource_id,
-                action=action,
-                detail=detail or {},
+                action=canonical_action,
+                detail=canonical_detail,
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 provider_slug=canonical_provider_slug,
@@ -796,10 +828,12 @@ class AuditTrail:
         """
         detail = event.detail
         metadata = getattr(event, "metadata", None) or {}
-        provider_slugs: set[str] = set()
-        if event.provider_slug:
-            provider_slugs.add(str(event.provider_slug).strip())
-        _collect_provider_slugs(detail, provider_slugs)
+        provider_slugs = _event_provider_contexts(
+            detail,
+            provider_slug=event.provider_slug,
+            resource_type=event.resource_type,
+            resource_id=event.resource_id,
+        )
 
         if redact:
             from services.payload_redactor import redact_event_detail, redact_event_metadata
