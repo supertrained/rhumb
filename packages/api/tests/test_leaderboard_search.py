@@ -119,6 +119,48 @@ _ALTERNATE_ALIAS_TEXT_SERVICES = [
     }
 ]
 
+_CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES = [
+    {
+        "slug": "brave-search-api",
+        "name": "brave-search-api won after pdl comparison",
+        "category": "search",
+        "description": "Use brave-search-api after pdl comparison.",
+    }
+]
+
+_CANONICAL_ROW_SHORTHAND_SERVICES = [
+    {
+        "slug": "people-data-labs",
+        "name": "PDL",
+        "category": "search",
+        "description": "PDL data API.",
+    }
+]
+
+_CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SCORES = [
+    {
+        "service_slug": "brave-search-api",
+        "aggregate_recommendation_score": 8.7,
+        "execution_score": 8.5,
+        "access_readiness_score": 8.6,
+        "tier": "L4",
+        "tier_label": "Strong",
+        "confidence": 0.91,
+    },
+]
+
+_CANONICAL_ROW_SHORTHAND_SCORES = [
+    {
+        "service_slug": "people-data-labs",
+        "aggregate_recommendation_score": 8.4,
+        "execution_score": 8.1,
+        "access_readiness_score": 8.2,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.89,
+    },
+]
+
 
 def _parse_in_filter(path: str, key: str) -> set[str] | None:
     match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", unquote(path))
@@ -317,6 +359,88 @@ def _mock_alternate_alias_text_catalog_supabase(path: str):
     return []
 
 
+def _mock_canonical_row_alternate_alias_text_catalog_supabase(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?category=eq.search"):
+        return [
+            {"slug": service["slug"], "name": service["name"]}
+            for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES
+        ]
+
+    if decoded.startswith("services?select=category"):
+        return [{"category": service["category"]} for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES]
+
+    if decoded.startswith("services?select=slug,category"):
+        return [
+            {"slug": service["slug"], "category": service["category"]}
+            for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES
+        ]
+
+    if decoded.startswith("services?or=("):
+        query = _extract_search_query(decoded)
+        if not query:
+            return []
+        return [
+            service
+            for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES
+            if _service_matches_query(service, query)
+        ]
+
+    if decoded.startswith("scores?select=service_slug"):
+        return [{"service_slug": row["service_slug"]} for row in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SCORES]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SCORES if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return list(_CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SCORES)
+
+    return []
+
+
+def _mock_canonical_row_shorthand_catalog_supabase(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?category=eq.search"):
+        return [
+            {"slug": service["slug"], "name": service["name"]}
+            for service in _CANONICAL_ROW_SHORTHAND_SERVICES
+        ]
+
+    if decoded.startswith("services?select=category"):
+        return [{"category": service["category"]} for service in _CANONICAL_ROW_SHORTHAND_SERVICES]
+
+    if decoded.startswith("services?select=slug,category"):
+        return [
+            {"slug": service["slug"], "category": service["category"]}
+            for service in _CANONICAL_ROW_SHORTHAND_SERVICES
+        ]
+
+    if decoded.startswith("services?or=("):
+        query = _extract_search_query(decoded)
+        if not query:
+            return []
+        return [
+            service
+            for service in _CANONICAL_ROW_SHORTHAND_SERVICES
+            if _service_matches_query(service, query)
+        ]
+
+    if decoded.startswith("scores?select=service_slug"):
+        return [{"service_slug": row["service_slug"]} for row in _CANONICAL_ROW_SHORTHAND_SCORES]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _CANONICAL_ROW_SHORTHAND_SCORES if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return list(_CANONICAL_ROW_SHORTHAND_SCORES)
+
+    return []
+
+
 @pytest.fixture
 def mock_catalog_supabase():
     with (
@@ -462,6 +586,40 @@ async def test_search_canonicalizes_alternate_alias_mentions_in_service_row_copy
 
 
 @pytest.mark.asyncio
+async def test_search_canonicalizes_alternate_alias_mentions_in_canonical_service_rows():
+    with patch(
+        "routes.search.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_row_alternate_alias_text_catalog_supabase,
+    ):
+        result = await search_services("comparison")
+
+    assert result["error"] is None
+    assert len(result["data"]["results"]) == 1
+    item = result["data"]["results"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "brave-search-api won after people-data-labs comparison"
+    assert item["description"] == "Use brave-search-api after people-data-labs comparison."
+
+
+@pytest.mark.asyncio
+async def test_search_preserves_human_shorthand_in_canonical_service_rows():
+    with patch(
+        "routes.search.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_row_shorthand_catalog_supabase,
+    ):
+        result = await search_services("pdl")
+
+    assert result["error"] is None
+    assert len(result["data"]["results"]) == 1
+    item = result["data"]["results"][0]
+    assert item["service_slug"] == "people-data-labs"
+    assert item["name"] == "PDL"
+    assert item["description"] == "PDL data API."
+
+
+@pytest.mark.asyncio
 async def test_search_by_category(mock_catalog_supabase):
     """Test search by category."""
     result = await search_services("email")
@@ -567,6 +725,38 @@ async def test_leaderboard_canonicalizes_alternate_alias_mentions_in_service_row
     item = result["data"]["items"][0]
     assert item["service_slug"] == "brave-search-api"
     assert item["name"] == "brave-search-api won after people-data-labs comparison"
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_canonicalizes_alternate_alias_mentions_in_canonical_service_rows():
+    with patch(
+        "routes.leaderboard.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_row_alternate_alias_text_catalog_supabase,
+    ):
+        result = await get_leaderboard("search", limit=5)
+
+    assert result["error"] is None
+    assert result["data"]["count"] == 1
+    item = result["data"]["items"][0]
+    assert item["service_slug"] == "brave-search-api"
+    assert item["name"] == "brave-search-api won after people-data-labs comparison"
+
+
+@pytest.mark.asyncio
+async def test_leaderboard_preserves_human_shorthand_in_canonical_service_rows():
+    with patch(
+        "routes.leaderboard.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_row_shorthand_catalog_supabase,
+    ):
+        result = await get_leaderboard("search", limit=5)
+
+    assert result["error"] is None
+    assert result["data"]["count"] == 1
+    item = result["data"]["items"][0]
+    assert item["service_slug"] == "people-data-labs"
+    assert item["name"] == "PDL"
 
 
 @pytest.mark.asyncio
