@@ -49,7 +49,11 @@ from services.receipt_service import (
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 from services.route_explanation import build_explanation, persist_explanation, store_explanation
-from services.service_slugs import canonicalize_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    canonicalize_service_slug,
+    public_service_slug_candidates,
+)
 
 router = APIRouter()
 
@@ -556,6 +560,28 @@ def _canonicalize_execute_body_provider_value(value: Any) -> Any:
     return value
 
 
+def _canonicalize_known_execute_body_provider_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
 def _canonicalize_execute_body_provider_text(
     text: Any,
     *,
@@ -586,7 +612,7 @@ def _canonicalize_execute_body_provider_text(
             canonicalized,
             flags=re.IGNORECASE,
         )
-    return canonicalized
+    return _canonicalize_known_execute_body_provider_aliases(canonicalized)
 
 
 def _canonicalize_execute_body_provider_payload(

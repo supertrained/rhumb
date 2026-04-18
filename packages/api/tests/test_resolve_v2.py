@@ -2468,6 +2468,263 @@ async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_failure_
 
 
 @pytest.mark.anyio
+async def test_v2_execute_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    estimate_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "provider": "brave-search-api",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_estimate_usd": 0.003,
+            },
+            "error": None,
+        },
+    )
+    estimate_resp.headers = {}
+    execute_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "execution_id": "exec_v2_alt_alias_text_success",
+                "provider_used": "brave-search-api",
+                "credential_mode": "byo",
+                "message": "brave-search-api won after pdl comparison",
+                "detail": "Retry brave-search-api if pdl drifts again",
+                "upstream_response": {
+                    "provider_used": "brave-search-api",
+                    "provider_slug": "brave-search-api",
+                    "selected_provider": "brave-search-api",
+                    "fallback_provider": "brave-search-api",
+                    "fallback_providers": ["brave-search-api"],
+                    "message": "brave-search-api upstream accepted after pdl retry",
+                    "detail": "Retry brave-search-api if pdl drifts again",
+                },
+                "result": {
+                    "provider_slug": "brave-search-api",
+                    "selected_provider": "brave-search-api",
+                    "fallback_providers": ["brave-search-api"],
+                    "message": "brave-search-api result accepted after pdl retry",
+                    "detail": "Retry brave-search-api if pdl drifts again",
+                },
+                "latency_ms": 12.3,
+                "overhead_ms": 1.1,
+                "agent_id": "agent_v2_test",
+                "org_id": "org_v2_test",
+            },
+            "error": None,
+        },
+    )
+    execute_resp.headers = {}
+
+    policy_eval = SimpleNamespace(
+        decision=SimpleNamespace(
+            selected_provider="brave-search-api",
+            selected_reason="policy_pin",
+            candidate_providers=["brave-search-api"],
+            policy_summary={"pin": "brave-search-api"},
+        ),
+        all_mappings=[
+            {
+                "service_slug": "brave-search",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+        eligible_mappings=[
+            {
+                "service_slug": "brave-search",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+    )
+
+    mock_receipt = SimpleNamespace(receipt_id="rcpt_v2_alt_alias_text_success")
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {
+        "X-Rhumb-Receipt-Id": "rcpt_v2_alt_alias_text_success",
+        "X-Rhumb-Provider": "brave-search-api",
+        "X-Rhumb-Layer": "2",
+    }
+    mock_attribution.to_rhumb_block.return_value = {
+        "provider": {"id": "brave-search-api"},
+        "receipt_id": "rcpt_v2_alt_alias_text_success",
+    }
+    mock_billing_stream = SimpleNamespace(emit=MagicMock())
+    breaker = SimpleNamespace(state=SimpleNamespace(value="closed"))
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+    mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
+
+    with (
+        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
+        patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_success")),
+        patch("routes.resolve_v2.store_explanation"),
+        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+        patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["message"] == "brave-search-api won after people-data-labs comparison"
+    assert data["detail"] == "Retry brave-search-api if people-data-labs drifts again"
+    assert data["upstream_response"] == {
+        "provider_used": "brave-search-api",
+        "provider_slug": "brave-search-api",
+        "selected_provider": "brave-search-api",
+        "fallback_provider": "brave-search-api",
+        "fallback_providers": ["brave-search-api"],
+        "message": "brave-search-api upstream accepted after people-data-labs retry",
+        "detail": "Retry brave-search-api if people-data-labs drifts again",
+    }
+    assert data["result"] == {
+        "provider_slug": "brave-search-api",
+        "selected_provider": "brave-search-api",
+        "fallback_providers": ["brave-search-api"],
+        "message": "brave-search-api result accepted after people-data-labs retry",
+        "detail": "Retry brave-search-api if people-data-labs drifts again",
+    }
+
+
+@pytest.mark.anyio
+async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+    _mock_policy_store.get_policy.return_value = SimpleNamespace(
+        org_id="org_v2_test",
+        pin="brave-search-api",
+        provider_preference=[],
+        provider_deny=[],
+        allow_only=[],
+        max_cost_usd=None,
+        updated_at="2026-03-31T07:00:00Z",
+    )
+
+    estimate_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "provider": "brave-search-api",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_estimate_usd": 0.003,
+            },
+            "error": None,
+        },
+    )
+    estimate_resp.headers = {}
+    execute_resp = _make_mock_response(
+        status_code=502,
+        json_body={
+            "data": None,
+            "error": {
+                "code": "UPSTREAM_ERROR",
+                "message": "brave-search-api upstream exploded after pdl comparison",
+                "detail": "Retry brave-search-api or choose pdl",
+                "requested_provider": "brave-search-api",
+                "available_providers": ["brave-search-api"],
+                "fallback_provider": "brave-search-api",
+            },
+        },
+    )
+    execute_resp.headers = {}
+
+    policy_eval = SimpleNamespace(
+        decision=SimpleNamespace(
+            selected_provider="brave-search-api",
+            selected_reason="policy_pin",
+            candidate_providers=["brave-search-api"],
+            policy_summary={"pin": "brave-search-api"},
+        ),
+        all_mappings=[
+            {
+                "service_slug": "brave-search",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+        eligible_mappings=[
+            {
+                "service_slug": "brave-search",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+    )
+
+    mock_receipt = SimpleNamespace(receipt_id="rcpt_v2_alt_alias_text_failure")
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {
+        "X-Rhumb-Receipt-Id": "rcpt_v2_alt_alias_text_failure",
+        "X-Rhumb-Provider": "brave-search-api",
+        "X-Rhumb-Layer": "2",
+    }
+    mock_billing_stream = SimpleNamespace(emit=MagicMock())
+    breaker = SimpleNamespace(state=SimpleNamespace(value="closed"))
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+    mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
+
+    with (
+        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
+        patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_failure")),
+        patch("routes.resolve_v2.store_explanation"),
+        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+        patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 502
+    error = resp.json()["error"]
+    assert error["message"] == "brave-search-api upstream exploded after people-data-labs comparison"
+    assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
+    assert error["requested_provider"] == "brave-search-api"
+    assert error["available_providers"] == ["brave-search-api"]
+    assert error["fallback_provider"] == "brave-search-api"
+
+    receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
+    assert receipt_input.provider_id == "brave-search-api"
+    assert receipt_input.error_message == "brave-search-api upstream exploded after people-data-labs comparison"
+
+
+@pytest.mark.anyio
 async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_policy_source(app, _mock_policy_store):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
