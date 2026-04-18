@@ -7,6 +7,8 @@ from urllib.parse import parse_qs
 from urllib.parse import unquote
 from unittest.mock import AsyncMock, patch
 
+from routes.services import _canonicalize_service_rows
+
 
 ALL_SERVICES = [
     {
@@ -1020,6 +1022,23 @@ def test_services_list_prefers_canonical_service_row_copy_and_preserves_shorthan
     assert brave["name"] == "Brave Search API"
     assert brave["description"] == "Canonical brave-search-api docs."
     assert pdl["description"] == "PDL data API."
+
+
+
+def test_canonicalize_service_rows_canonicalizes_same_service_alias_text_for_canonical_rows() -> None:
+    rows = _canonicalize_service_rows([
+        {
+            "slug": "brave-search-api",
+            "name": "Brave Search (brave-search)",
+            "category": "search",
+            "description": "Legacy brave-search docs.",
+            "official_docs": "https://api.search.brave.com/app/documentation",
+        }
+    ])
+
+    assert rows[0]["slug"] == "brave-search-api"
+    assert rows[0]["name"] == "Brave Search (brave-search-api)"
+    assert rows[0]["description"] == "Legacy brave-search-api docs."
 
 
 

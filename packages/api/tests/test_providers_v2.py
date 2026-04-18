@@ -442,6 +442,21 @@ def test_canonicalize_service_rows_preserves_human_shorthand_for_canonical_rows(
     assert rows["people-data-labs"]["description"] == "PDL contact data API for enrichment."
 
 
+def test_canonicalize_service_rows_canonicalizes_same_provider_alias_text_for_canonical_rows():
+    rows = _canonicalize_service_rows([
+        {
+            "slug": "brave-search-api",
+            "name": "Brave Search (brave-search)",
+            "description": "Use brave-search for search.",
+            "category": "search",
+            "official_docs": "https://api.search.brave.com/docs",
+        }
+    ])
+
+    assert rows["brave-search-api"]["name"] == "Brave Search (brave-search-api)"
+    assert rows["brave-search-api"]["description"] == "Use brave-search-api for search."
+
+
 class TestListProviders:
     def test_list_returns_providers(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):

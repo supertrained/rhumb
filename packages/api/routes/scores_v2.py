@@ -76,21 +76,30 @@ def _canonicalize_provider_text(
         return str(text)
 
     raw_stored_provider_id = str(stored_provider_id).strip().lower() if stored_provider_id else None
+    preserve_human_shorthand = raw_stored_provider_id == canonical.lower()
 
     canonicalized = str(text)
-    if raw_stored_provider_id != canonical.lower():
-        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
-            if not candidate or candidate == canonical:
-                continue
-            canonicalized = re.sub(
-                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
-                canonical,
-                canonicalized,
-                flags=re.IGNORECASE,
-            )
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        cleaned = str(candidate or "").strip()
+        if not cleaned or cleaned.lower() == canonical.lower():
+            continue
+
+        pattern = re.compile(
+            rf"(?<![a-z0-9-]){re.escape(cleaned)}(?![a-z0-9-])",
+            re.IGNORECASE,
+        )
+
+        def _replace(match: re.Match[str]) -> str:
+            matched = match.group(0)
+            if preserve_human_shorthand and cleaned.isalpha() and matched == cleaned.upper():
+                return matched
+            return canonical
+
+        canonicalized = pattern.sub(_replace, canonicalized)
+
     return _canonicalize_known_provider_aliases(
         canonicalized,
-        preserve_canonical=canonical if raw_stored_provider_id == canonical.lower() else None,
+        preserve_canonical=canonical if preserve_human_shorthand else None,
     )
 
 

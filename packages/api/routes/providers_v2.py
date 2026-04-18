@@ -265,7 +265,12 @@ def _canonicalize_known_provider_aliases(
     return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
 
 
-def _canonicalize_provider_text(text: Any, provider_id: str | None) -> str | None:
+def _canonicalize_provider_text(
+    text: Any,
+    provider_id: str | None,
+    *,
+    preserve_human_shorthand: bool = False,
+) -> str | None:
     if text is None:
         return None
     rendered = str(text)
@@ -278,18 +283,29 @@ def _canonicalize_provider_text(text: Any, provider_id: str | None) -> str | Non
         for candidate in public_service_slug_candidates(canonical)
         if str(candidate or "").strip()
     }
-    if not candidates:
-        return rendered
-
-    normalized_candidates = {candidate.lower() for candidate in candidates}
-    if canonical.lower() in normalized_candidates and normalized_candidates == {canonical.lower()}:
+    alias_candidates = {
+        candidate for candidate in candidates if candidate.lower() != canonical.lower()
+    }
+    if not alias_candidates:
         return rendered
 
     pattern = re.compile(
-        "|".join(re.escape(candidate) for candidate in sorted(candidates, key=len, reverse=True)),
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(alias_candidates, key=len, reverse=True))})(?![a-z0-9-])",
         re.IGNORECASE,
     )
-    return _canonicalize_known_provider_aliases(pattern.sub(canonical, rendered))
+
+    def _replace(match: re.Match[str]) -> str:
+        matched = match.group(0)
+        lowered = matched.lower()
+        if preserve_human_shorthand and lowered.isalpha() and matched == lowered.upper():
+            return matched
+        return canonical
+
+    canonicalized = pattern.sub(_replace, rendered)
+    return _canonicalize_known_provider_aliases(
+        canonicalized,
+        preserve_canonical=canonical if preserve_human_shorthand else None,
+    )
 
 
 def _canonicalize_provider_metadata_text(
@@ -305,13 +321,10 @@ def _canonicalize_provider_metadata_text(
         return str(text)
 
     raw_stored_slug = str(stored_provider_id or "").strip().lower()
-    canonicalized = str(text)
-    if raw_stored_slug != canonical.lower():
-        canonicalized = _canonicalize_provider_text(text, canonical) or canonicalized
-
-    return _canonicalize_known_provider_aliases(
-        canonicalized,
-        preserve_canonical=canonical if raw_stored_slug == canonical.lower() else None,
+    return _canonicalize_provider_text(
+        text,
+        canonical,
+        preserve_human_shorthand=raw_stored_slug == canonical.lower(),
     )
 
 
