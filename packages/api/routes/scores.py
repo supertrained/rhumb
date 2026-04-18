@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from functools import lru_cache
 
@@ -27,9 +28,95 @@ from services.alerts import ProbeAlertService
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
-from services.service_slugs import canonicalize_service_slug, public_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    canonicalize_service_slug,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 router = APIRouter()
+
+
+def _canonicalize_known_service_aliases(
+    text: str | None,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
+    if text is None:
+        return None
+
+    preserved = str(preserve_canonical or "").strip().lower() or None
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return text
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], text)
+
+
+def _canonicalize_service_text(
+    text: str | None,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return text
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+
+    canonicalized = text
+    if raw_stored_slug != canonical.lower():
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate == canonical:
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+
+    return _canonicalize_known_service_aliases(
+        canonicalized,
+        preserve_canonical=canonical if raw_stored_slug == canonical.lower() else None,
+    )
+
+
+def _canonicalize_service_payload(
+    value: object,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> object:
+    if isinstance(value, str):
+        return _canonicalize_service_text(value, response_service_slug, stored_service_slug)
+    if isinstance(value, list):
+        return [
+            _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for item in value
+        ]
+    if isinstance(value, dict):
+        return {
+            key: _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for key, item in value.items()
+        }
+    return value
 
 
 @lru_cache
@@ -74,9 +161,18 @@ def _result_to_schema(
     score_id: str | None,
     calculated_at: str | None,
 ) -> ANScoreSchema:
+    canonical_service_slug = public_service_slug(service_slug) or canonicalize_service_slug(service_slug)
+    canonical_dimension_snapshot = _canonicalize_service_payload(
+        dimension_snapshot,
+        canonical_service_slug,
+        service_slug,
+    )
+    if not isinstance(canonical_dimension_snapshot, dict):
+        canonical_dimension_snapshot = dimension_snapshot
+
     autonomy_section = None
-    if isinstance(dimension_snapshot, dict):
-        candidate = dimension_snapshot.get("autonomy")
+    if isinstance(canonical_dimension_snapshot, dict):
+        candidate = canonical_dimension_snapshot.get("autonomy")
         if isinstance(candidate, dict):
             autonomy_section = candidate
 
@@ -86,7 +182,7 @@ def _result_to_schema(
         resolved_autonomy_score = float(avg_value) if avg_value is not None else None
 
     return ANScoreSchema(
-        service_slug=public_service_slug(service_slug) or canonicalize_service_slug(service_slug),
+        service_slug=canonical_service_slug,
         score=round(score, 1),
         execution_score=round(execution_score, 1),
         access_readiness_score=(
@@ -101,8 +197,13 @@ def _result_to_schema(
         confidence=round(confidence, 2),
         tier=tier,
         tier_label=TIER_LABELS.get(tier, tier),
-        explanation=explanation,
-        dimension_snapshot=dimension_snapshot,
+        explanation=_canonicalize_service_text(
+            explanation,
+            canonical_service_slug,
+            service_slug,
+        )
+        or explanation,
+        dimension_snapshot=canonical_dimension_snapshot,
         score_id=score_id,
         calculated_at=calculated_at,
     )
