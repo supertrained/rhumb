@@ -22,6 +22,7 @@ internals land in later R40 slices.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -48,7 +49,7 @@ from services.receipt_service import (
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
 from services.route_explanation import build_explanation, persist_explanation, store_explanation
-from services.service_slugs import canonicalize_service_slug
+from services.service_slugs import canonicalize_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -89,6 +90,24 @@ _V2_NAVIGATION_URL_KEYS = {
     "credential_modes_url",
     "retry_url",
     "execute_url",
+}
+_PUBLIC_PROVIDER_FIELD_KEYS = {
+    "provider",
+    "provider_used",
+    "provider_id",
+    "provider_slug",
+    "selected_provider",
+    "requested_provider",
+    "fallback_provider",
+}
+_PUBLIC_PROVIDER_LIST_KEYS = {
+    "available_providers",
+    "candidate_providers",
+    "fallback_providers",
+    "supported_provider_slugs",
+    "unavailable_provider_slugs",
+    "not_execute_ready_provider_slugs",
+    "policy_candidates",
 }
 
 _v2_budget_enforcer = BudgetEnforcer()
@@ -501,6 +520,112 @@ def _public_policy_summary(summary: dict[str, Any] | None) -> dict[str, Any] | N
     return normalized
 
 
+def _canonicalize_execute_body_provider_fields(
+    body: Any,
+    *,
+    provider_slug: str | None,
+) -> Any:
+    provider_slugs: set[str] = set()
+    if provider_slug:
+        provider_slugs.add(str(provider_slug).strip())
+    _collect_execute_body_provider_slugs(body, provider_slugs)
+    return _canonicalize_execute_body_provider_payload(body, provider_slugs=provider_slugs)
+
+
+def _collect_execute_body_provider_slugs(value: Any, provider_slugs: set[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in _PUBLIC_PROVIDER_FIELD_KEYS:
+                if isinstance(item, str) and item.strip():
+                    provider_slugs.add(item.strip())
+                continue
+            if key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
+                for entry in item:
+                    if isinstance(entry, str) and entry.strip():
+                        provider_slugs.add(entry.strip())
+                continue
+            _collect_execute_body_provider_slugs(item, provider_slugs)
+    elif isinstance(value, list):
+        for item in value:
+            _collect_execute_body_provider_slugs(item, provider_slugs)
+
+
+def _canonicalize_execute_body_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _public_provider_slug(value) or value
+    return value
+
+
+def _canonicalize_execute_body_provider_text(
+    text: Any,
+    *,
+    provider_slugs: set[str],
+) -> str | None:
+    if text is None:
+        return None
+
+    rendered = str(text)
+    replacements: dict[str, str] = {}
+    for provider_slug in provider_slugs:
+        canonical = _public_provider_slug(provider_slug)
+        if not canonical:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if cleaned:
+                replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return rendered
+
+    canonicalized = rendered
+    for candidate in sorted(replacements, key=len, reverse=True):
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            replacements[candidate],
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
+def _canonicalize_execute_body_provider_payload(
+    value: Any,
+    *,
+    provider_slugs: set[str],
+) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in _PUBLIC_PROVIDER_FIELD_KEYS:
+                canonicalized[key] = _canonicalize_execute_body_provider_value(item)
+            elif key in {"message", "detail", "error_message"}:
+                canonicalized[key] = _canonicalize_execute_body_provider_text(
+                    item,
+                    provider_slugs=provider_slugs,
+                )
+            elif key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
+                canonicalized[key] = [
+                    _canonicalize_execute_body_provider_value(entry)
+                    for entry in item
+                ]
+            else:
+                canonicalized[key] = _canonicalize_execute_body_provider_payload(
+                    item,
+                    provider_slugs=provider_slugs,
+                )
+        return canonicalized
+    if isinstance(value, list):
+        return [
+            _canonicalize_execute_body_provider_payload(
+                item,
+                provider_slugs=provider_slugs,
+            )
+            for item in value
+        ]
+    return value
+
+
 async def _enforce_agent_budget(
     *,
     agent_id: str,
@@ -875,6 +1000,10 @@ async def execute_capability_v2(
         extra_headers={"X-Rhumb-Skip-Receipt": "true"},
     )
     body = _rewrite_navigation_urls(execute_response.json())
+    body = _canonicalize_execute_body_provider_fields(
+        body,
+        provider_slug=selected_provider_public or selected_provider,
+    )
 
     # ── Receipt creation ─────────────────────────────────────────────
     execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
@@ -889,7 +1018,13 @@ async def execute_capability_v2(
         or execution_data.get("provider_used")
     )
     if provider_used_public:
-        execution_data["provider_used"] = provider_used_public
+        body = _canonicalize_execute_body_provider_fields(
+            body,
+            provider_slug=provider_used_public,
+        )
+        execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
+        if execution_data.get("credential_mode") is not None:
+            execution_data["credential_mode"] = effective_credential_mode
     execution_id = execution_data.get("execution_id", "")
     is_success = execute_response.status_code == 200
 
