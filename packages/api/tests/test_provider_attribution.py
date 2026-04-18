@@ -350,6 +350,86 @@ class TestAsyncBuilder:
         assert headers["X-Rhumb-Provider"] == "brave-search-api"
 
     @pytest.mark.asyncio
+    async def test_build_attribution_canonicalizes_alias_backed_provider_name_from_runtime_alias_service_row(self, monkeypatch):
+        async def _mock_fetch(query):
+            if query == (
+                "services?slug=eq.brave-search-api"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return []
+            if query == (
+                "services?slug=eq.brave-search"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return [{
+                    "slug": "brave-search",
+                    "name": "Brave Search (brave-search)",
+                    "description": "Use brave-search for search.",
+                    "category": "search",
+                    "api_domain": "api.search.brave.com",
+                    "aggregate_recommendation_score": 7.8,
+                    "tier_label": "L3",
+                    "official_docs": "https://api.search.brave.com/docs",
+                }]
+            return []
+
+        monkeypatch.setattr(
+            "services.provider_attribution.supabase_fetch",
+            _mock_fetch,
+        )
+
+        attr = await build_attribution(provider_slug="brave-search-api", layer=2)
+        block = attr.to_rhumb_block()
+
+        assert attr.provider_id == "brave-search-api"
+        assert attr.provider_name == "Brave Search (brave-search-api)"
+        assert block["provider"]["name"] == "Brave Search (brave-search-api)"
+
+    @pytest.mark.asyncio
+    async def test_build_attribution_preserves_human_shorthand_in_provider_name_for_canonical_row(self, monkeypatch):
+        async def _mock_fetch(query):
+            if query == (
+                "services?slug=eq.people-data-labs"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return [{
+                    "slug": "people-data-labs",
+                    "name": "PDL",
+                    "description": "People Data Labs enrichment.",
+                    "category": "data",
+                    "api_domain": "api.peopledatalabs.com",
+                    "aggregate_recommendation_score": 7.2,
+                    "tier_label": "L3",
+                    "official_docs": "https://docs.peopledatalabs.com/",
+                }]
+            if query == (
+                "services?slug=eq.pdl"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return []
+            return []
+
+        monkeypatch.setattr(
+            "services.provider_attribution.supabase_fetch",
+            _mock_fetch,
+        )
+
+        attr = await build_attribution(provider_slug="people-data-labs", layer=2)
+        block = attr.to_rhumb_block()
+
+        assert attr.provider_id == "people-data-labs"
+        assert attr.provider_name == "PDL"
+        assert block["provider"]["name"] == "PDL"
+
+    @pytest.mark.asyncio
     async def test_build_attribution_backfills_sparse_canonical_row_from_runtime_alias(self, monkeypatch):
         seen_queries: list[str] = []
 

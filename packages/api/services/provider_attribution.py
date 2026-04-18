@@ -23,6 +23,7 @@ and layer info.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 from urllib.parse import quote
@@ -49,6 +50,35 @@ def _canonical_provider_slug(provider_slug: str) -> str:
     return canonicalize_service_slug(cleaned) or "unknown"
 
 
+def _canonicalize_provider_text(
+    text: Any,
+    canonical_provider_slug: str | None,
+    stored_provider_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(canonical_provider_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_provider_slug).strip().lower() if stored_provider_slug else None
+    if raw_stored_slug == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
 def _merge_provider_detail_rows(rows: list[dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
     """Normalize provider detail rows onto canonical ids and backfill sparse canonical rows."""
     if not rows:
@@ -64,6 +94,8 @@ def _merge_provider_detail_rows(rows: list[dict[str, Any]] | None) -> dict[str, 
         normalized_row = {
             **row,
             "slug": canonical_slug,
+            "name": _canonicalize_provider_text(row.get("name"), canonical_slug, raw_slug),
+            "description": _canonicalize_provider_text(row.get("description"), canonical_slug, raw_slug),
         }
 
         existing = canonical_rows.get(canonical_slug)
