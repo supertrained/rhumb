@@ -472,6 +472,13 @@ class TestQuery:
         results = trail.query(org_id="org_a", limit=100)
         assert count == len(results)
 
+    def test_count_matches_query_with_non_indexed_filters(self):
+        trail = AuditTrail()
+        self._populate(trail)
+        count = trail.count(resource_type="agent", resource_id="agent_bad")
+        results = trail.query(resource_type="agent", resource_id="agent_bad", limit=100)
+        assert count == len(results) == 1
+
 
 # ── Status ───────────────────────────────────────────────────────────
 
@@ -690,6 +697,17 @@ class TestAuditRoutes:
         assert resp.status_code == 200
         events = resp.json()["data"]["events"]
         assert len(events) == 1  # Only kill_switch.activated is critical for org_test
+
+    def test_list_events_with_resource_filter_counts_filtered_total(self, client):
+        resp = client.get(
+            "/v2/audit/events",
+            params={"resource_type": "agent", "resource_id": "agent_bad"},
+            headers={"X-Rhumb-Key": "test_key"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert len(data["events"]) == 1
+        assert data["pagination"]["total"] == 1
 
     def test_list_events_invalid_type(self, client):
         resp = client.get(

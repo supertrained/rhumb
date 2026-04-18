@@ -113,6 +113,10 @@ async def list_audit_events(
         event_type=parsed_type,
         severity=parsed_severity,
         category=category,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        since=parsed_since,
+        until=parsed_until,
     )
 
     return {

@@ -673,6 +673,10 @@ class AuditTrail:
         event_type: AuditEventType | None = None,
         severity: AuditSeverity | None = None,
         category: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
     ) -> int:
         """Count events matching filters (for pagination)."""
         return len(
@@ -681,6 +685,10 @@ class AuditTrail:
                 event_type=event_type,
                 severity=severity,
                 category=category,
+                since=since,
+                until=until,
+                resource_type=resource_type,
+                resource_id=resource_id,
                 limit=1_000_000,
             )
         )
