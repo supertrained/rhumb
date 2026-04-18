@@ -1,0 +1,407 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+import fs from "node:fs";
+import path from "node:path";
+
+const scoreMap = {
+  "anthropic-api": await getServiceScore("anthropic-api"),
+  openai: await getServiceScore("openai"),
+  "google-ai": await getServiceScore("google-ai"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+type LoopProvider = {
+  slug: "anthropic-api" | "openai" | "google-ai";
+  name: string;
+  headline: string;
+  body: string;
+  data: ServiceScoreViewModel | null;
+};
+
+const providers: LoopProvider[] = [
+  {
+    slug: "anthropic-api",
+    name: "Anthropic",
+    headline: "Best current operator fit for unattended loops",
+    body: "Cleaner tool-use behavior, more legible failures, and lower defensive-code tax keep Anthropic in the lead when the workflow has to recover on its own.",
+    data: scoreMap["anthropic-api"],
+  },
+  {
+    slug: "google-ai",
+    name: "Google AI",
+    headline: "Execution is strong, access shape is the real cost",
+    body: "Google AI stays competitive on execution, but AI Studio, Vertex AI, and Gemini split the operator story into multiple doors before the agent can even start.",
+    data: scoreMap["google-ai"],
+  },
+  {
+    slug: "openai",
+    name: "OpenAI",
+    headline: "Broadest ecosystem, highest normalization burden",
+    body: "OpenAI remains powerful, but longer chains and flexible tool surfaces usually ask the operator to write more retry, normalization, and guardrail code.",
+    data: scoreMap.openai,
+  },
+];
+
+const ranked = [...providers].sort(
+  (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
+);
+const leader = ranked[0];
+const updatedAtISO = leader?.data?.calculatedAt ? new Date(leader.data.calculatedAt).toISOString() : "2026-04-18T00:00:00Z";
+const updatedAt = leader?.data?.calculatedAt
+  ? new Date(leader.data.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "recently";
+
+const RELATED_READING = [
+  {
+    href: "/blog/anthropic-vs-openai-vs-google-ai",
+    title: "Anthropic vs OpenAI vs Google AI for AI Agents",
+    description: "The side-by-side provider comparison behind the loop-specific read.",
+  },
+  {
+    href: "/blog/how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents",
+    description: "The broader framework for scoring execution reliability, error quality, and access readiness.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "Why the useful operator model is baseline evaluation plus live runtime evidence.",
+  },
+  {
+    href: "/blog/capability-first-agent-onboarding",
+    title: "Capability-First Agent Onboarding: Managed Superpowers First",
+    description: "Where the managed lane becomes the honest next step after research-mode evaluation.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "LLM APIs in Agent Loops: What Actually Breaks at Scale",
+  datePublished: "2026-03-30T00:00:00Z",
+  dateModified: updatedAtISO,
+  author: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  description:
+    "Beyond benchmarks: how Anthropic, OpenAI, and Google AI behave once your agent is running unattended at 2am. Tool calling fidelity, rate limit recovery, and backoff behavior matter more than benchmark wins.",
+  url: "https://rhumb.dev/blog/llm-apis-agent-loops",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  mainEntityOfPage: "https://rhumb.dev/blog/llm-apis-agent-loops",
+};
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim()}</code></pre>`;
+  });
+
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split("\n").filter((r) => !r.match(/^\|[\s-:|]+\|$/));
+    if (rows.length === 0) return block;
+    const headerCells = rows[0]
+      .split("|")
+      .filter((c) => c.trim())
+      .map((c) => `<th class="px-4 py-3 text-left text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider">${c.trim()}</th>`)
+      .join("\n");
+    const bodyRows = rows
+      .slice(1)
+      .map((row) => {
+        const cells = row
+          .split("|")
+          .filter((c) => c.trim())
+          .map((c) => `<td class="px-4 py-3 text-sm text-slate-400">${c.trim()}</td>`)
+          .join("\n");
+        return `<tr class="border-t border-slate-800">${cells}</tr>`;
+      })
+      .join("\n");
+    return `<div class="overflow-x-auto my-6"><table class="w-full border border-slate-800 rounded-lg"><thead class="bg-elevated"><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+  });
+
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">$1</h2>');
+
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/50 pl-4 my-6 text-slate-400 italic"><p>$1</p></blockquote>');
+
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-300 italic">$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">$1</code>');
+
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    if (href.startsWith("/")) {
+      return `<a href="${href}" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+  });
+
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const content = line.replace(/^\d+\. /, "");
+        return `<li class="leading-relaxed">${content}</li>`;
+      })
+      .join("\n");
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const content = line.replace(/^- /, "");
+        return `<li class="leading-relaxed">${content}</li>`;
+      })
+      .join("\n");
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  const lines = html.split("\n");
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (
+      trimmed.startsWith("<pre") ||
+      trimmed.startsWith("<ul") ||
+      trimmed.startsWith("<ol") ||
+      trimmed.startsWith("<blockquote") ||
+      trimmed.startsWith("<h") ||
+      trimmed.startsWith("<hr") ||
+      trimmed.startsWith("<div")
+    ) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (
+        trimmed.startsWith("</pre>") ||
+        trimmed.startsWith("</ul>") ||
+        trimmed.startsWith("</ol>") ||
+        trimmed.startsWith("</blockquote>") ||
+        trimmed.endsWith("</h2>") ||
+        trimmed.endsWith("</h3>") ||
+        trimmed.endsWith("</h4>") ||
+        trimmed.startsWith("<hr") ||
+        trimmed.endsWith("</div>")
+      ) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === "") {
+      result.push("");
+      continue;
+    }
+
+    if (!trimmed.startsWith("<")) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join("\n");
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-llm-apis-agent-loops.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+<Layout
+  title="LLM APIs in Agent Loops: What Actually Breaks at Scale | Rhumb"
+  description="Beyond benchmarks: how Anthropic, OpenAI, and Google AI behave once your agent is running unattended at 2am. Tool calling fidelity, rate limit recovery, and backoff behavior matter more than benchmark wins."
+  canonical="/blog/llm-apis-agent-loops"
+  ogTitle="LLM APIs in Agent Loops: What Actually Breaks at Scale"
+  ogDescription="The useful test is not benchmarks. It is how the provider behaves when your agent hits tools, limits, retries, and failure branches overnight."
+  ogUrl="https://rhumb.dev/blog/llm-apis-agent-loops"
+  ogType="article"
+  twitterTitle="LLM APIs in Agent Loops: What Actually Breaks at Scale"
+  twitterDescription="Benchmarks are not the hard part. Overnight recovery, tool-use stability, and retry behavior are."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(217,119,6,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_35%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-4xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <a href="/blog" class="text-xs font-mono text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">LLM APIs</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 30, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
+            LLM APIs in agent loops, what actually breaks at scale
+          </h1>
+
+          <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-4xl">
+            The useful test is not which provider looks smartest in a benchmark. It is how the API behaves when your agent uses tools,
+            hits limits, retries in the dark, and has to recover without a human awake to interpret the failure.
+          </p>
+
+          <div class="mt-8 inline-flex max-w-4xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
+            <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
+            <p class="text-sm leading-6 text-slate-300">
+              <span class="font-semibold text-slate-100">Short answer:</span>
+              {leader?.name ?? "Anthropic"} is still the cleanest current operator fit because the combination of execution reliability,
+              recovery clarity, and lower defensive-code tax matters more than raw model breadth once the workflow is running unattended.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-12 grid gap-5 lg:grid-cols-3">
+          {providers.map((provider) => (
+            <article class="rounded-[28px] border border-slate-800 bg-surface/90 p-6 backdrop-blur-sm">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">{provider.name}</p>
+                  <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">{formatScore(provider.data?.aggregateRecommendationScore)}</h2>
+                  <p class="mt-1 text-sm text-slate-500">overall recommendation score</p>
+                </div>
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 px-3 py-2 text-right">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">confidence</div>
+                  <div class="mt-1 text-sm font-semibold text-slate-100">{formatConfidence(provider.data?.confidence)}</div>
+                </div>
+              </div>
+
+              <dl class="mt-5 grid grid-cols-2 gap-3">
+                <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                  <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Execution</dt>
+                  <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(provider.data?.executionScore)}</dd>
+                </div>
+                <div class="rounded-2xl border border-white/6 bg-navy/65 px-4 py-3">
+                  <dt class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Access</dt>
+                  <dd class="mt-1 text-lg font-semibold text-slate-100">{formatScore(provider.data?.accessReadinessScore)}</dd>
+                </div>
+              </dl>
+
+              <div class="mt-5 rounded-2xl border border-white/6 bg-navy/70 p-4">
+                <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Why it matters in loops</p>
+                <h3 class="mt-2 text-sm font-semibold text-slate-100">{provider.headline}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">{provider.body}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <article class="max-w-3xl mx-auto px-6 pt-12 pb-24">
+      <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          If this is your problem, test the managed lane with a bounded workflow
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl mx-auto sm:mx-0">
+          If your agent work already looks like research, extraction, generation, or a narrow enrichment loop, the honest next move is to start with capability-first onboarding or open the direct managed path and keep the authority boundary explicit.
+        </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-start">
+          <a
+            data-rhumb-propagate
+            href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=llm-agent-loops-onboarding"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+          >
+            See the capability-first handoff &rarr;
+          </a>
+          <a
+            data-rhumb-propagate
+            href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=llm-agent-loops-direct"
+            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+          >
+            Open the managed path &rarr;
+          </a>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
+        <div class="space-y-4">
+          {RELATED_READING.map((item) => (
+            <a
+              href={item.href}
+              class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+            >
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Owned surface</span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">{item.title}</h3>
+              <p class="text-sm text-slate-500 mt-1">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+
+  <script is:inline>
+    (() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const experiment = params.get("rhumb_experiment");
+      const source = params.get("rhumb_source");
+      const parentSource = params.get("rhumb_parent_source");
+      if (!experiment && !source && !parentSource) return;
+
+      document.querySelectorAll("a[data-rhumb-propagate]").forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        const url = new URL(href, window.location.origin);
+        if (experiment && !url.searchParams.has("rhumb_experiment")) {
+          url.searchParams.set("rhumb_experiment", experiment);
+        }
+        if (source) {
+          url.searchParams.set("rhumb_parent_source", source);
+        }
+        if (parentSource) {
+          url.searchParams.set("rhumb_grandparent_source", parentSource);
+        }
+
+        link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`);
+      });
+    })();
+  </script>
+</Layout>
