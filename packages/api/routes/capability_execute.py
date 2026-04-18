@@ -1220,35 +1220,77 @@ def _canonicalize_public_provider_message(
     return rewritten
 
 
+_PUBLIC_PROVIDER_VALUE_KEYS = {
+    "provider",
+    "provider_used",
+    "provider_id",
+    "provider_slug",
+    "selected_provider",
+    "requested_provider",
+    "fallback_provider",
+}
+_PUBLIC_PROVIDER_LIST_KEYS = {
+    "available_providers",
+    "candidate_providers",
+    "fallback_providers",
+    "supported_provider_slugs",
+    "unavailable_provider_slugs",
+    "not_execute_ready_provider_slugs",
+    "policy_candidates",
+}
+_PUBLIC_PROVIDER_TEXT_KEYS = {"message", "detail", "error_message"}
+
+
+def _collect_public_provider_contexts(value: Any, provider_slugs: set[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in _PUBLIC_PROVIDER_VALUE_KEYS and isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    provider_slugs.add(cleaned)
+            elif key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
+                for entry in item:
+                    if isinstance(entry, str):
+                        cleaned = entry.strip()
+                        if cleaned:
+                            provider_slugs.add(cleaned)
+                    else:
+                        _collect_public_provider_contexts(entry, provider_slugs)
+            else:
+                _collect_public_provider_contexts(item, provider_slugs)
+        return
+    if isinstance(value, list):
+        for item in value:
+            _collect_public_provider_contexts(item, provider_slugs)
+
+
 def _canonicalize_public_provider_text(
     text: Any,
-    provider_slug: str | None,
+    provider_slugs: set[str],
 ) -> str | None:
     if text is None:
         return None
 
     rendered = str(text)
-    canonical = _public_provider_slug(provider_slug)
-    if not canonical:
-        return rendered
+    replacements: dict[str, str] = {}
+    for provider_slug in provider_slugs:
+        canonical = _public_provider_slug(provider_slug)
+        if not canonical:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
 
-    candidates = {
-        str(candidate).strip()
-        for candidate in public_service_slug_candidates(canonical)
-        if str(candidate or "").strip()
-    }
-    if not candidates:
-        return rendered
-
-    normalized_candidates = {candidate.lower() for candidate in candidates}
-    if canonical.lower() in normalized_candidates and normalized_candidates == {canonical.lower()}:
+    if not replacements:
         return rendered
 
     pattern = re.compile(
-        "|".join(re.escape(candidate) for candidate in sorted(candidates, key=len, reverse=True)),
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
         re.IGNORECASE,
     )
-    return pattern.sub(canonical, rendered)
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], rendered)
 
 
 def _canonicalize_public_provider_value(value: Any) -> Any:
@@ -1258,36 +1300,38 @@ def _canonicalize_public_provider_value(value: Any) -> Any:
 
 
 def _canonicalize_public_provider_payload(value: Any, *, provider_slug: str | None) -> Any:
+    provider_slugs: set[str] = set()
+    if provider_slug:
+        provider_slugs.add(str(provider_slug).strip())
+    _collect_public_provider_contexts(value, provider_slugs)
+    return _canonicalize_public_provider_payload_with_contexts(value, provider_slugs=provider_slugs)
+
+
+def _canonicalize_public_provider_payload_with_contexts(
+    value: Any,
+    *,
+    provider_slugs: set[str],
+) -> Any:
     if isinstance(value, dict):
         canonicalized: dict[str, Any] = {}
         for key, item in value.items():
-            if key in {
-                "provider",
-                "provider_used",
-                "provider_id",
-                "provider_slug",
-                "selected_provider",
-                "requested_provider",
-                "fallback_provider",
-            }:
+            if key in _PUBLIC_PROVIDER_VALUE_KEYS:
                 canonicalized[key] = _canonicalize_public_provider_value(item)
-            elif key in {"message", "detail", "error_message"}:
-                canonicalized[key] = _canonicalize_public_provider_text(item, provider_slug)
-            elif key in {
-                "available_providers",
-                "candidate_providers",
-                "fallback_providers",
-                "supported_provider_slugs",
-                "unavailable_provider_slugs",
-                "not_execute_ready_provider_slugs",
-                "policy_candidates",
-            } and isinstance(item, list):
+            elif key in _PUBLIC_PROVIDER_TEXT_KEYS:
+                canonicalized[key] = _canonicalize_public_provider_text(item, provider_slugs)
+            elif key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
                 canonicalized[key] = [_canonicalize_public_provider_value(entry) for entry in item]
             else:
-                canonicalized[key] = _canonicalize_public_provider_payload(item, provider_slug=provider_slug)
+                canonicalized[key] = _canonicalize_public_provider_payload_with_contexts(
+                    item,
+                    provider_slugs=provider_slugs,
+                )
         return canonicalized
     if isinstance(value, list):
-        return [_canonicalize_public_provider_payload(item, provider_slug=provider_slug) for item in value]
+        return [
+            _canonicalize_public_provider_payload_with_contexts(item, provider_slugs=provider_slugs)
+            for item in value
+        ]
     return value
 
 

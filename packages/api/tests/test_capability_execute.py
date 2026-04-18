@@ -2211,21 +2211,27 @@ async def test_execute_agent_vault_canonicalizes_alias_backed_provider_fields_in
     raw_upstream_response = {
         "provider_used": "brave-search",
         "selected_provider": "brave-search",
-        "message": "brave-search upstream accepted",
-        "detail": "Retry brave-search if the alias path drifts",
+        "fallback_provider": "pdl",
+        "message": "brave-search-api upstream accepted after pdl fallback warmed",
+        "detail": "Retry brave-search if the alias path drifts or choose pdl",
         "result": {
             "provider_slug": "brave-search",
-            "fallback_providers": ["brave-search"],
+            "fallback_provider": "pdl",
+            "fallback_providers": ["pdl", "brave-search-api"],
+            "error_message": "brave-search-api failed before pdl fallback",
         },
     }
     expected_upstream_response = {
         "provider_used": "brave-search-api",
         "selected_provider": "brave-search-api",
-        "message": "brave-search-api upstream accepted",
-        "detail": "Retry brave-search-api if the alias path drifts",
+        "fallback_provider": "people-data-labs",
+        "message": "brave-search-api upstream accepted after people-data-labs fallback warmed",
+        "detail": "Retry brave-search-api if the alias path drifts or choose people-data-labs",
         "result": {
             "provider_slug": "brave-search-api",
-            "fallback_providers": ["brave-search-api"],
+            "fallback_provider": "people-data-labs",
+            "fallback_providers": ["people-data-labs", "brave-search-api"],
+            "error_message": "brave-search-api failed before people-data-labs fallback",
         },
     }
     response_text = json.dumps(raw_upstream_response)
