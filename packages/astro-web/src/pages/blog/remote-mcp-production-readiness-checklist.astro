@@ -359,6 +359,27 @@ const ARTICLE_JSON_LD = {
             </div>
 
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+              <p class="text-slate-300 leading-relaxed mb-5">
+                Remote MCP usually stops looking safe when one agent turns into many. The same containment story has to hold across shared rate budgets, credential expiry, and retries that now happen while nobody is watching.
+              </p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">See how recoverability changes once retries and tool calls stack inside unattended loops.</p>
+                </a>
+                <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Translate governors into real fleet design before shared quota pressure turns into operator pain.</p>
+                </a>
+                <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Follow the principal and rotation side of the same remote-readiness story once many agents share authority.</p>
+                </a>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Failure-mode evidence</div>
               <p class="text-slate-300 leading-relaxed mb-5">
                 If you want to stress the checklist against real provider behavior, these autopsies show where principal model, scope boundaries, and recovery collapse in practice.
@@ -383,22 +404,6 @@ const ARTICLE_JSON_LD = {
               </div>
             </div>
 
-            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
-              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
-              <p class="text-slate-300 leading-relaxed mb-5">
-                If the remote surface is real infrastructure, the next questions are whether the fleet survives shared rate budgets and whether credential rotation stays bounded after midnight. These two guides carry the readiness checklist into live operator mechanics.
-              </p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
-                  <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
-                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Connects governors and retry discipline to the real failure mode, one agent exhausting the shared budget for every other agent.</p>
-                </a>
-                <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
-                  <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
-                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Extends the auth and principal story into rotation, expiry, revocation, and shared-key cascade prevention.</p>
-                </a>
-              </div>
-            </div>
           </section>
 
           <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
