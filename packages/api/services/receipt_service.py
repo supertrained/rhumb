@@ -256,6 +256,7 @@ class ReceiptService:
         receipt_id = _generate_receipt_id()
         created_at = self._now_iso()
         provider_id = public_service_slug(input.provider_id) or input.provider_id
+        provider_text_context = input.error_provider_raw or input.provider_id
 
         # Advance chain state atomically
         chain_state = await self._advance_chain_state()
@@ -277,13 +278,19 @@ class ReceiptService:
             "org_id": input.org_id,
             "caller_ip_hash": input.caller_ip_hash,
             "provider_id": provider_id,
-            "provider_name": input.provider_name,
+            "provider_name": _canonicalize_provider_text(
+                input.provider_name,
+                provider_text_context,
+            ),
             "provider_model": input.provider_model,
             "credential_mode": input.credential_mode,
             "provider_region": input.provider_region,
             "router_version": input.router_version,
             "candidates_evaluated": input.candidates_evaluated,
-            "winner_reason": input.winner_reason,
+            "winner_reason": _canonicalize_provider_text(
+                input.winner_reason,
+                provider_text_context,
+            ),
             "total_latency_ms": input.total_latency_ms,
             "rhumb_overhead_ms": input.rhumb_overhead_ms,
             "provider_latency_ms": input.provider_latency_ms,
@@ -302,7 +309,10 @@ class ReceiptService:
             "compat_mode": input.compat_mode,
             "idempotency_key": input.idempotency_key,
             "error_code": input.error_code,
-            "error_message": input.error_message,
+            "error_message": _canonicalize_provider_text(
+                input.error_message,
+                provider_text_context,
+            ),
             "error_provider_raw": input.error_provider_raw,
         }
 

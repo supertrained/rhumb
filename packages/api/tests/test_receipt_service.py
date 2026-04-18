@@ -211,6 +211,47 @@ async def test_create_receipt_canonicalizes_alias_backed_provider_id_before_hash
 
 
 @pytest.mark.anyio
+async def test_create_receipt_canonicalizes_alias_backed_provider_text_before_hashing_and_persisting():
+    service = ReceiptService()
+    mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
+
+    with (
+        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
+        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
+    ):
+        receipt = await service.create_receipt(ReceiptInput(
+            execution_id="exec_test_alias_text_001",
+            capability_id="search.query",
+            status="failure",
+            agent_id="agent_test_alias_text",
+            provider_id="brave-search",
+            credential_mode="rhumb_managed",
+            layer=2,
+            provider_name="Brave Search (brave-search)",
+            winner_reason="brave-search won on freshness",
+            error_message="brave-search upstream exploded",
+            error_code="upstream_error",
+        ))
+
+    inserted_data = mock_insert.call_args[0][1]
+    hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
+
+    assert receipt.provider_id == "brave-search-api"
+    assert inserted_data["provider_id"] == "brave-search-api"
+    assert inserted_data["provider_name"] == "Brave Search (brave-search-api)"
+    assert inserted_data["winner_reason"] == "brave-search-api won on freshness"
+    assert inserted_data["error_message"] == "brave-search-api upstream exploded"
+    assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
+        **hashed_payload,
+        "provider_name": "Brave Search (brave-search)",
+        "winner_reason": "brave-search won on freshness",
+        "error_message": "brave-search upstream exploded",
+    })
+
+
+@pytest.mark.anyio
 async def test_get_receipt_canonicalizes_alias_backed_provider_id():
     service = ReceiptService()
 
