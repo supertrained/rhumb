@@ -227,6 +227,59 @@ class TestBillingEventStream:
             ),
         )
 
+    def test_emit_canonicalizes_known_alternate_provider_aliases_without_raw_hint_before_hashing(self):
+        stream = BillingEventStream()
+
+        event = stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            org_id="org_a",
+            amount_usd_cents=0,
+            provider_slug="brave-search-api",
+            metadata={
+                "provider_used": "brave-search-api",
+                "detail": {
+                    "message": "brave-search-api failed before pdl fallback",
+                    "error_message": "pdl credential lookup failed after brave-search-api retry",
+                },
+            },
+        )
+
+        assert event.metadata == {
+            "provider_used": "brave-search-api",
+            "detail": {
+                "message": "brave-search-api failed before people-data-labs fallback",
+                "error_message": "people-data-labs credential lookup failed after brave-search-api retry",
+            },
+        }
+        assert event.chain_hash == stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(
+                event,
+                metadata={
+                    "provider_used": "brave-search-api",
+                    "detail": {
+                        "message": "brave-search-api failed before pdl fallback",
+                        "error_message": "pdl credential lookup failed after brave-search-api retry",
+                    },
+                },
+                chain_hash="",
+            ),
+        )
+
     def test_emit_writes_to_durable_outbox_before_memory(self):
         class _Outbox:
             def __init__(self) -> None:
@@ -507,6 +560,49 @@ class TestBillingV2Endpoints:
                 "fallback_provider": "people-data-labs",
                 "fallback_providers": ["people-data-labs", "brave-search-api"],
                 "message": "brave-search-api failed before people-data-labs fallback",
+            },
+        }
+
+    def test_events_canonicalize_known_alternate_provider_aliases_without_raw_hint(self, client):
+        stream = BillingEventStream()
+        event = stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+            metadata={
+                "provider_used": "brave-search-api",
+                "detail": {
+                    "message": "brave-search-api failed before people-data-labs fallback",
+                    "error_message": "people-data-labs credential lookup failed after brave-search-api retry",
+                },
+            },
+        )
+        stream._events[0] = replace(
+            event,
+            metadata={
+                "provider_used": "brave-search-api",
+                "detail": {
+                    "message": "brave-search-api failed before pdl fallback",
+                    "error_message": "pdl credential lookup failed after brave-search-api retry",
+                },
+            },
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        event = resp.json()["data"]["events"][0]
+        assert event["metadata"] == {
+            "provider_used": "brave-search-api",
+            "detail": {
+                "message": "brave-search-api failed before people-data-labs fallback",
+                "error_message": "people-data-labs credential lookup failed after brave-search-api retry",
             },
         }
 
