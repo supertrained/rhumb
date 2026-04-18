@@ -47,12 +47,13 @@ def test_get_receipt_found(client):
         assert body["error"] is None
 
 
-def test_get_receipt_canonicalizes_legacy_provider_error_text(client):
+def test_get_receipt_canonicalizes_legacy_provider_text(client):
     receipt_data = {
         "receipt_id": "rcpt_test123",
         "execution_id": "exec_001",
         "status": "failure",
         "provider_id": "brave-search-api",
+        "provider_name": "brave-search",
         "error_message": "brave-search upstream exploded",
         "error_provider_raw": "brave-search",
         "chain_sequence": 1,
@@ -64,6 +65,7 @@ def test_get_receipt_canonicalizes_legacy_provider_error_text(client):
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["provider_id"] == "brave-search-api"
+        assert body["data"]["provider_name"] == "brave-search-api"
         assert body["data"]["error_message"] == "brave-search-api upstream exploded"
         assert "error_provider_raw" not in body["data"]
 
@@ -105,11 +107,12 @@ def test_query_receipts_canonicalizes_alias_backed_provider_ids(client):
         assert "provider_id=in.(brave-search-api,brave-search)" in query
 
 
-def test_query_receipts_canonicalizes_alias_backed_provider_error_text(client):
+def test_query_receipts_canonicalizes_alias_backed_provider_text(client):
     receipts = [
         {
             "receipt_id": "rcpt_1",
             "provider_id": "people-data-labs",
+            "provider_name": "PDL",
             "error_message": "PDL credential unavailable",
         }
     ]
@@ -119,6 +122,7 @@ def test_query_receipts_canonicalizes_alias_backed_provider_error_text(client):
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["receipts"][0]["provider_id"] == "people-data-labs"
+        assert body["data"]["receipts"][0]["provider_name"] == "people-data-labs"
         assert body["data"]["receipts"][0]["error_message"] == "people-data-labs credential unavailable"
 
 

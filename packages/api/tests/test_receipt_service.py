@@ -225,7 +225,7 @@ async def test_get_receipt_canonicalizes_alias_backed_provider_id():
 
 
 @pytest.mark.anyio
-async def test_get_receipt_canonicalizes_alias_backed_error_message_and_hides_raw_provider_hint():
+async def test_get_receipt_canonicalizes_alias_backed_provider_name_and_error_message_and_hides_raw_provider_hint():
     service = ReceiptService()
 
     with patch(
@@ -235,6 +235,7 @@ async def test_get_receipt_canonicalizes_alias_backed_error_message_and_hides_ra
                 {
                     "receipt_id": "rcpt_legacy_error",
                     "provider_id": "brave-search-api",
+                    "provider_name": "Brave-Search",
                     "error_message": "Brave-Search upstream exploded",
                     "error_provider_raw": "brave-search",
                 }
@@ -245,6 +246,7 @@ async def test_get_receipt_canonicalizes_alias_backed_error_message_and_hides_ra
 
     assert result is not None
     assert result["provider_id"] == "brave-search-api"
+    assert result["provider_name"] == "brave-search-api"
     assert result["error_message"] == "brave-search-api upstream exploded"
     assert "error_provider_raw" not in result
 
@@ -263,13 +265,14 @@ async def test_query_receipts_matches_alias_backed_provider_ids_and_returns_cano
 
 
 @pytest.mark.anyio
-async def test_query_receipts_canonicalizes_legacy_error_text_on_public_reads():
+async def test_query_receipts_canonicalizes_legacy_provider_text_on_public_reads():
     service = ReceiptService()
     mock_fetch = AsyncMock(
         return_value=[
             {
                 "receipt_id": "rcpt_legacy_error",
                 "provider_id": "people-data-labs",
+                "provider_name": "PDL",
                 "error_message": "pdl credential unavailable",
             }
         ]
@@ -282,9 +285,33 @@ async def test_query_receipts_canonicalizes_legacy_error_text_on_public_reads():
         {
             "receipt_id": "rcpt_legacy_error",
             "provider_id": "people-data-labs",
+            "provider_name": "people-data-labs",
             "error_message": "people-data-labs credential unavailable",
         }
     ]
+
+
+@pytest.mark.anyio
+async def test_public_receipt_row_preserves_human_provider_names_when_row_is_already_canonical():
+    service = ReceiptService()
+    mock_fetch = AsyncMock(
+        return_value=[
+            {
+                "receipt_id": "rcpt_human_name",
+                "provider_id": "people-data-labs",
+                "provider_name": "People Data Labs",
+            }
+        ]
+    )
+
+    with patch("services.receipt_service.supabase_fetch", new=mock_fetch):
+        result = await service.get_receipt("rcpt_human_name")
+
+    assert result == {
+        "receipt_id": "rcpt_human_name",
+        "provider_id": "people-data-labs",
+        "provider_name": "People Data Labs",
+    }
 
 
 @pytest.mark.anyio

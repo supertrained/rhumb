@@ -66,6 +66,11 @@ def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     provider_id = public_service_slug(normalized.get("provider_id"))
     if provider_id:
         normalized["provider_id"] = provider_id
+    if "provider_name" in normalized:
+        normalized["provider_name"] = _canonicalize_provider_text(
+            normalized.get("provider_name"),
+            provider_context or normalized.get("provider_id"),
+        )
     if "error_message" in normalized:
         normalized["error_message"] = _canonicalize_provider_text(
             normalized.get("error_message"),
