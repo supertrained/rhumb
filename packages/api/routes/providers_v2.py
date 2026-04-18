@@ -236,12 +236,19 @@ def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
 
 
-def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+def _canonicalize_known_provider_aliases(
+    text: Any,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
     if text is None:
         return None
 
+    preserved = str(preserve_canonical or "").strip().lower() or None
     replacements: dict[str, str] = {}
     for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
         for candidate in public_service_slug_candidates(canonical):
             cleaned = str(candidate or "").strip()
             if not cleaned or cleaned.lower() == canonical.lower():
@@ -298,10 +305,14 @@ def _canonicalize_provider_metadata_text(
         return str(text)
 
     raw_stored_slug = str(stored_provider_id or "").strip().lower()
-    if raw_stored_slug == canonical.lower():
-        return str(text)
+    canonicalized = str(text)
+    if raw_stored_slug != canonical.lower():
+        canonicalized = _canonicalize_provider_text(text, canonical) or canonicalized
 
-    return _canonicalize_provider_text(text, canonical)
+    return _canonicalize_known_provider_aliases(
+        canonicalized,
+        preserve_canonical=canonical if raw_stored_slug == canonical.lower() else None,
+    )
 
 
 def _canonicalize_provider_value(value: Any) -> Any:
