@@ -41,7 +41,7 @@ from services.recipe_engine import (
     compile_recipe,
 )
 from services.recipe_safety import RecipeSafetyGate, get_safety_gate
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
 
@@ -187,6 +187,28 @@ def _public_provider_used(provider_used: str | None) -> str | None:
     return public_service_slug(provider_used) or provider_used
 
 
+def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
 def _canonicalize_provider_text(text: Any, provider_used: Any) -> str | None:
     if text is None:
         return None
@@ -222,12 +244,12 @@ def _canonicalize_provider_text_from_contexts(text: Any, provider_values: list[A
         provider_key = str(provider_value or "").strip()
         if not provider_key:
             continue
-        lowered = provider_key.lower()
-        if lowered in seen:
+        canonical = public_service_slug(provider_key) or provider_key.lower()
+        if canonical in seen:
             continue
-        seen.add(lowered)
-        canonicalized = _canonicalize_provider_text(canonicalized, provider_key) or canonicalized
-    return canonicalized
+        seen.add(canonical)
+        canonicalized = _canonicalize_provider_text(canonicalized, canonical) or canonicalized
+    return _canonicalize_known_provider_aliases(canonicalized)
 
 
 _PROVIDER_VALUE_KEYS = {
