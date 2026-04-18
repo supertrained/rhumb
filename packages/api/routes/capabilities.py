@@ -229,6 +229,55 @@ def _lookup_slug_filter(service_slugs: list[str]) -> str:
     return ",".join(f'"{slug}"' for slug in service_slugs)
 
 
+async def _bundle_provider_contexts_by_id(
+    bundle_capabilities: list[dict[str, Any]] | None,
+) -> dict[str, list[str]]:
+    if not bundle_capabilities:
+        return {}
+
+    capability_ids = sorted(
+        {
+            str(row.get("capability_id") or "").strip()
+            for row in bundle_capabilities
+            if str(row.get("capability_id") or "").strip()
+        }
+    )
+    if not capability_ids:
+        return {}
+
+    capability_filter = ",".join(f'"{capability_id}"' for capability_id in capability_ids)
+    capability_services = await _cached_fetch(
+        "capability_services",
+        f"capability_services?capability_id=in.({capability_filter})"
+        f"&select=capability_id,service_slug",
+    )
+    if not capability_services:
+        return {}
+
+    provider_contexts_by_capability: dict[str, list[str]] = {}
+    for row in capability_services:
+        capability_id = str(row.get("capability_id") or "").strip()
+        service_slug = str(row.get("service_slug") or "").strip()
+        if not capability_id or not service_slug:
+            continue
+        contexts = provider_contexts_by_capability.setdefault(capability_id, [])
+        if service_slug not in contexts:
+            contexts.append(service_slug)
+
+    provider_contexts_by_bundle: dict[str, list[str]] = {}
+    for row in bundle_capabilities:
+        bundle_id = str(row.get("bundle_id") or "").strip()
+        capability_id = str(row.get("capability_id") or "").strip()
+        if not bundle_id or not capability_id:
+            continue
+        bundle_contexts = provider_contexts_by_bundle.setdefault(bundle_id, [])
+        for service_slug in provider_contexts_by_capability.get(capability_id, []):
+            if service_slug not in bundle_contexts:
+                bundle_contexts.append(service_slug)
+
+    return provider_contexts_by_bundle
+
+
 def _is_db_direct_capability(capability_id: str) -> bool:
     return capability_id in {
         "db.query.read",
@@ -2955,15 +3004,34 @@ async def list_bundles(
             bid = m["bundle_id"]
             caps_by_bundle.setdefault(bid, []).append(m["capability_id"])
 
+    provider_contexts_by_bundle = await _bundle_provider_contexts_by_id(mappings)
+
     items = []
     for bundle in bundles:
         bid = bundle["id"]
+        provider_contexts = provider_contexts_by_bundle.get(bid, [])
         items.append({
             "id": bid,
-            "name": bundle.get("name"),
-            "description": bundle.get("description"),
-            "example": bundle.get("example"),
-            "value_proposition": bundle.get("value_proposition"),
+            "name": (
+                _canonicalize_provider_text_from_contexts(bundle.get("name"), provider_contexts)
+                if provider_contexts
+                else bundle.get("name")
+            ),
+            "description": (
+                _canonicalize_provider_text_from_contexts(bundle.get("description"), provider_contexts)
+                if provider_contexts
+                else bundle.get("description")
+            ),
+            "example": (
+                _canonicalize_provider_text_from_contexts(bundle.get("example"), provider_contexts)
+                if provider_contexts
+                else bundle.get("example")
+            ),
+            "value_proposition": (
+                _canonicalize_provider_text_from_contexts(bundle.get("value_proposition"), provider_contexts)
+                if provider_contexts
+                else bundle.get("value_proposition")
+            ),
             "capabilities": caps_by_bundle.get(bid, []),
         })
 

@@ -68,6 +68,32 @@ SAMPLE_BUNDLE_CAPS = [
     {"bundle_id": "prospect.enrich_and_verify", "capability_id": "email.verify", "sequence_order": 2},
 ]
 
+ALIAS_TEXT_BUNDLE = {
+    "id": "prospect.enrich_and_verify",
+    "name": "brave-search + pdl prospecting",
+    "description": "Use brave-search before falling back to pdl.",
+    "example": "brave-search company lookup, then pdl enrichment",
+    "value_proposition": "One brave-search + pdl workflow",
+}
+
+CANONICAL_TEXT_BUNDLE = {
+    "id": "prospect.enrich_and_verify",
+    "name": "brave-search-api + people-data-labs prospecting",
+    "description": "Use brave-search-api before falling back to people-data-labs.",
+    "example": "brave-search-api company lookup, then people-data-labs enrichment",
+    "value_proposition": "One brave-search-api + people-data-labs workflow",
+}
+
+ALIAS_TEXT_BUNDLE_CAPS = [
+    {"bundle_id": "prospect.enrich_and_verify", "capability_id": "search.query", "sequence_order": 1},
+    {"bundle_id": "prospect.enrich_and_verify", "capability_id": "data.enrich_person", "sequence_order": 2},
+]
+
+ALIAS_TEXT_BUNDLE_MAPPINGS = [
+    {"capability_id": "search.query", "service_slug": "brave-search"},
+    {"capability_id": "data.enrich_person", "service_slug": "pdl"},
+]
+
 ALIAS_CAPABILITY = {
     "id": "search.query",
     "domain": "search",
@@ -2422,6 +2448,54 @@ async def test_list_bundles(app):
     assert bundle["id"] == "prospect.enrich_and_verify"
     assert len(bundle["capabilities"]) == 2
     assert "data.enrich_person" in bundle["capabilities"]
+
+
+@pytest.mark.anyio
+async def test_list_bundles_canonicalizes_alias_backed_provider_text(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capability_bundles?"):
+            return [ALIAS_TEXT_BUNDLE]
+        if path.startswith("bundle_capabilities?"):
+            return ALIAS_TEXT_BUNDLE_CAPS
+        if path.startswith("capability_services?"):
+            return ALIAS_TEXT_BUNDLE_MAPPINGS
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles")
+
+    assert resp.status_code == 200
+    bundle = resp.json()["data"]["bundles"][0]
+    assert bundle["name"] == "brave-search-api + people-data-labs prospecting"
+    assert bundle["description"] == "Use brave-search-api before falling back to people-data-labs."
+    assert bundle["example"] == "brave-search-api company lookup, then people-data-labs enrichment"
+    assert bundle["value_proposition"] == "One brave-search-api + people-data-labs workflow"
+
+
+@pytest.mark.anyio
+async def test_list_bundles_does_not_double_rewrite_canonical_provider_text(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capability_bundles?"):
+            return [CANONICAL_TEXT_BUNDLE]
+        if path.startswith("bundle_capabilities?"):
+            return ALIAS_TEXT_BUNDLE_CAPS
+        if path.startswith("capability_services?"):
+            return ALIAS_TEXT_BUNDLE_MAPPINGS
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles")
+
+    assert resp.status_code == 200
+    bundle = resp.json()["data"]["bundles"][0]
+    assert bundle["name"] == "brave-search-api + people-data-labs prospecting"
+    assert bundle["description"] == "Use brave-search-api before falling back to people-data-labs."
+    assert bundle["example"] == "brave-search-api company lookup, then people-data-labs enrichment"
+    assert bundle["value_proposition"] == "One brave-search-api + people-data-labs workflow"
+    assert "brave-search-api-api" not in bundle["name"]
+    assert "brave-search-api-api" not in bundle["description"]
 
 
 @pytest.mark.anyio
