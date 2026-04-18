@@ -568,6 +568,75 @@ async def test_alias_backed_capability_surfaces_keep_canonical_public_provider_i
     pc._credential_store = None
 
 
+@pytest.mark.anyio
+async def test_get_capability_canonicalizes_alias_backed_provider_notes(app):
+    alias_mappings_with_notes = [
+        {
+            **ALIAS_MAPPINGS[0],
+            "notes": "Use brave-search before falling back to pdl.",
+        },
+        {
+            **ALIAS_MAPPINGS[1],
+            "notes": "pdl is better for person enrichment.",
+        },
+    ]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return alias_mappings_with_notes
+        if path.startswith("scores?"):
+            return ALIAS_SCORES
+        if path.startswith("services?"):
+            return ALIAS_SERVICES
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["notes"] == "Use brave-search-api before falling back to people-data-labs."
+    assert data["providers"][1]["service_slug"] == "people-data-labs"
+    assert data["providers"][1]["notes"] == "people-data-labs is better for person enrichment."
+
+
+@pytest.mark.anyio
+async def test_get_capability_preserves_human_shorthand_in_notes_for_canonical_rows(app):
+    canonical_mapping = [{
+        **ALIAS_MAPPINGS[1],
+        "service_slug": "people-data-labs",
+        "notes": "PDL is the internal shorthand here.",
+    }]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return canonical_mapping
+        if path.startswith("scores?"):
+            return [ALIAS_SCORES[1]]
+        if path.startswith("services?"):
+            return [{"slug": "people-data-labs", "name": "People Data Labs", "category": "data"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "people-data-labs"
+    assert data["providers"][0]["notes"] == "PDL is the internal shorthand here."
+
+
 def test_setup_handoff_from_provider_canonicalizes_alias_backed_service_slug():
     from routes.capabilities import _setup_handoff_from_provider
 

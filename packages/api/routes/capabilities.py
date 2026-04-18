@@ -118,6 +118,53 @@ def _response_provider_slug_list(service_slugs: list[Any]) -> list[str]:
     return response_slugs
 
 
+def _canonicalize_provider_text(
+    text: Any,
+    response_provider_slug: str | None,
+    stored_provider_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_provider_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_provider_slug).strip().lower() if stored_provider_slug else None
+    if raw_stored_slug == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
+
+
+def _canonicalize_provider_text_from_contexts(text: Any, provider_slugs: list[Any]) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    seen: set[str] = set()
+    for provider_slug in provider_slugs:
+        provider_key = str(provider_slug or "").strip()
+        if not provider_key:
+            continue
+        lowered = provider_key.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        canonicalized = _canonicalize_provider_text(canonicalized, provider_key, provider_key) or canonicalized
+    return canonicalized
+
+
 def _provider_lookup_slugs(service_slugs: list[str]) -> list[str]:
     lookup_slugs: list[str] = []
     for service_slug in service_slugs:
@@ -3032,6 +3079,7 @@ async def get_capability(capability_id: str, raw_request: Request):
                     cats_by_slug[public_slug] = svc.get("category", "")
 
         providers_by_slug: dict[str, dict[str, object]] = {}
+        provider_contexts = [m.get("service_slug") for m in mappings]
         for m in mappings:
             raw_slug = str(m.get("service_slug") or "")
             slug = _public_provider_slug(raw_slug)
@@ -3054,7 +3102,11 @@ async def get_capability(capability_id: str, raw_request: Request):
                 "cost_per_call": float(m["cost_per_call"]) if m.get("cost_per_call") is not None else None,
                 "cost_currency": m.get("cost_currency", "USD"),
                 "free_tier_calls": m.get("free_tier_calls"),
-                "notes": m.get("notes"),
+                "notes": (
+                    _canonicalize_provider_text_from_contexts(m.get("notes"), provider_contexts)
+                    if raw_slug.lower() != slug.lower()
+                    else _canonicalize_provider_text(m.get("notes"), slug, raw_slug)
+                ),
                 "is_primary": m.get("is_primary", True),
             })
 
