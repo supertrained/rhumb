@@ -184,6 +184,30 @@ const htmlContent = markdownToHtml(content);
       <!-- Article body -->
       <div class="prose-rhumb" set:html={htmlContent} />
 
+      <section class="mt-16 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
+          Turn agent accessibility into one bounded execution lane
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed mb-6">
+          AAG tells you whether agents can reach the surface. The next useful test is whether one governed workflow can actually run end to end, without connector sprawl or hidden credential drift.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a
+            href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=aag-framework-onboarding"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+          >
+            See the capability-first handoff &rarr;
+          </a>
+          <a
+            href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=aag-framework-direct"
+            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+          >
+            Open the managed path &rarr;
+          </a>
+        </div>
+      </section>
+
       <!-- CTA -->
       <section class="mt-16 bg-surface border border-slate-800 rounded-xl p-8 text-center">
         <h2 class="font-display font-bold text-xl text-slate-100 mb-3">
