@@ -101,6 +101,24 @@ def _canonicalize_provider_text(text: Any, provider_slug: Any) -> str | None:
     return canonicalized
 
 
+def _canonicalize_provider_text_from_contexts(text: Any, provider_values: list[Any]) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    seen: set[str] = set()
+    for provider_value in provider_values:
+        provider_key = str(provider_value or "").strip()
+        if not provider_key:
+            continue
+        lowered = provider_key.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        canonicalized = _canonicalize_provider_text(canonicalized, provider_key) or canonicalized
+    return canonicalized
+
+
 def _status_key(value: Any) -> str | None:
     status = _to_int(value)
     return str(status) if status is not None else None
@@ -541,9 +559,9 @@ async def get_recent_executions(
             "fallback_attempted": _to_bool(row.get("fallback_attempted")),
             "fallback_provider": _public_provider_slug(row.get("fallback_provider")),
             "interface": row.get("interface"),
-            "error_message": _canonicalize_provider_text(
+            "error_message": _canonicalize_provider_text_from_contexts(
                 row.get("error_message"),
-                row.get("provider_used"),
+                [row.get("provider_used"), row.get("fallback_provider")],
             ),
             "executed_at": _row_timestamp_value(row),
             "created_at": _row_timestamp_value(row),
