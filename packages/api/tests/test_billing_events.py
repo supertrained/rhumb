@@ -164,6 +164,62 @@ class TestBillingEventStream:
             event=replace(event, provider_slug="brave-search", chain_hash=""),
         )
 
+    def test_emit_canonicalizes_alias_backed_provider_metadata_before_hashing(self):
+        stream = BillingEventStream()
+
+        event = stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            org_id="org_a",
+            amount_usd_cents=0,
+            provider_slug="brave-search",
+            metadata={
+                "provider_used": "brave-search",
+                "detail": {
+                    "fallback_provider": "pdl",
+                    "fallback_providers": ["pdl", "brave-search-api"],
+                    "message": "brave-search-api failed before pdl fallback",
+                },
+            },
+        )
+
+        assert event.metadata == {
+            "provider_used": "brave-search-api",
+            "detail": {
+                "fallback_provider": "people-data-labs",
+                "fallback_providers": ["people-data-labs", "brave-search-api"],
+                "message": "brave-search-api failed before people-data-labs fallback",
+            },
+        }
+        assert event.chain_hash == stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != stream._compute_hash(
+            event.prev_hash,
+            event.event_id,
+            event.event_type.value,
+            event.org_id,
+            event.amount_usd_cents,
+            event.timestamp.isoformat(),
+            event=replace(
+                event,
+                metadata={
+                    "provider_used": "brave-search",
+                    "detail": {
+                        "fallback_provider": "pdl",
+                        "fallback_providers": ["pdl", "brave-search-api"],
+                        "message": "brave-search-api failed before pdl fallback",
+                    },
+                },
+                chain_hash="",
+            ),
+        )
+
     def test_emit_writes_to_durable_outbox_before_memory(self):
         class _Outbox:
             def __init__(self) -> None:

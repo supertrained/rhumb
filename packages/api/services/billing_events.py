@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -25,9 +26,134 @@ from typing import Any
 from uuid import uuid4
 
 from services.chain_integrity import get_signing_key_version
-from services.service_slugs import public_service_slug
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
+
+_PROVIDER_VALUE_FIELDS = {
+    "provider",
+    "provider_id",
+    "provider_slug",
+    "provider_used",
+    "fallback_provider",
+    "selected_provider",
+    "service",
+    "service_slug",
+}
+
+_PROVIDER_LIST_FIELDS = {
+    "allow_only",
+    "fallback_providers",
+    "provider_deny",
+    "provider_ids",
+    "provider_preference",
+    "providers",
+    "service_slugs",
+}
+
+_PROVIDER_TEXT_FIELDS = {
+    "detail",
+    "error",
+    "error_message",
+    "message",
+    "reason",
+}
+
+
+def _canonicalize_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return public_service_slug(cleaned) or cleaned
+    return value
+
+
+def _canonicalize_provider_text(text: Any, provider_slugs: set[str]) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    replacements: dict[str, str] = {}
+    for provider_slug in provider_slugs:
+        canonical = public_service_slug(provider_slug)
+        if canonical is None:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            if not candidate or candidate.lower() == canonical.lower():
+                continue
+            replacements[candidate.lower()] = canonical
+
+    if not replacements:
+        return canonicalized
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], canonicalized)
+
+
+def _collect_provider_contexts(value: Any, *, provider_slugs: set[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in _PROVIDER_VALUE_FIELDS and isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    provider_slugs.add(cleaned)
+                continue
+            if key in _PROVIDER_LIST_FIELDS and isinstance(item, list):
+                for entry in item:
+                    if isinstance(entry, str):
+                        cleaned = entry.strip()
+                        if cleaned:
+                            provider_slugs.add(cleaned)
+                    else:
+                        _collect_provider_contexts(entry, provider_slugs=provider_slugs)
+                continue
+            _collect_provider_contexts(item, provider_slugs=provider_slugs)
+        return
+
+    if isinstance(value, list):
+        for item in value:
+            _collect_provider_contexts(item, provider_slugs=provider_slugs)
+
+
+def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in _PROVIDER_VALUE_FIELDS:
+                canonicalized[key] = _canonicalize_provider_value(item)
+            elif key in _PROVIDER_LIST_FIELDS and isinstance(item, list):
+                canonicalized[key] = [
+                    _canonicalize_provider_value(entry)
+                    if isinstance(entry, str)
+                    else _canonicalize_provider_payload(entry, provider_slugs=provider_slugs)
+                    for entry in item
+                ]
+            elif key in _PROVIDER_TEXT_FIELDS and not isinstance(item, (dict, list)):
+                canonicalized[key] = _canonicalize_provider_text(item, provider_slugs)
+            else:
+                canonicalized[key] = _canonicalize_provider_payload(item, provider_slugs=provider_slugs)
+        return canonicalized
+
+    if isinstance(value, list):
+        return [_canonicalize_provider_payload(item, provider_slugs=provider_slugs) for item in value]
+
+    return value
+
+
+def _canonicalize_billing_metadata(
+    metadata: dict[str, Any] | None,
+    *,
+    provider_slug: str | None,
+) -> dict[str, Any]:
+    raw_metadata = dict(metadata or {})
+    provider_contexts: set[str] = set()
+    if provider_slug:
+        provider_contexts.add(provider_slug)
+    _collect_provider_contexts(raw_metadata, provider_slugs=provider_contexts)
+    canonicalized = _canonicalize_provider_payload(raw_metadata, provider_slugs=provider_contexts)
+    return canonicalized if isinstance(canonicalized, dict) else {}
 
 
 class BillingEventType(str, Enum):
@@ -156,6 +282,10 @@ class BillingEventStream:
     ) -> BillingEvent:
         """Record a billing event. Returns the event for confirmation."""
         canonical_provider_slug = public_service_slug(provider_slug) or provider_slug
+        canonical_metadata = _canonicalize_billing_metadata(
+            metadata,
+            provider_slug=canonical_provider_slug,
+        )
         with self._lock:
             event_id = f"bevt_{uuid4().hex[:16]}"
             now = datetime.now(timezone.utc)
@@ -169,7 +299,7 @@ class BillingEventStream:
                 timestamp=now,
                 amount_usd_cents=amount_usd_cents,
                 balance_after_usd_cents=balance_after_usd_cents,
-                metadata=metadata or {},
+                metadata=canonical_metadata,
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
@@ -196,7 +326,7 @@ class BillingEventStream:
                 timestamp=now,
                 amount_usd_cents=amount_usd_cents,
                 balance_after_usd_cents=balance_after_usd_cents,
-                metadata=metadata or {},
+                metadata=canonical_metadata,
                 receipt_id=receipt_id,
                 execution_id=execution_id,
                 capability_id=capability_id,
