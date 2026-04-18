@@ -471,6 +471,40 @@ const agentRules = [
       </div>
 
       <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal">
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
+        <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Provider choice is only the first half of the night shift</h2>
+        <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+          Once the model is chosen, the real operator questions become loop behavior, fleet-wide rate-limit recovery, and how many provider keys you are about to spread across the system. These are the three pages that turn the scorecard into an execution plan.
+        </p>
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+          <a
+            href="/blog/llm-apis-agent-loops"
+            class="rounded-[24px] border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Loop reliability</span>
+            <h3 class="mt-2 font-display font-semibold text-slate-100">LLM APIs in Agent Loops: What Actually Breaks at Scale</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-400">The deeper look at retries, tool calls, and why provider differences widen after the first prompt-response cycle.</p>
+          </a>
+          <a
+            href="/blog/agent-fleet-rate-limit-design"
+            class="rounded-[24px] border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Rate-limit architecture</span>
+            <h3 class="mt-2 font-display font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-400">What changes when one provider key, one budget, and many agents all start colliding in the same retry window.</p>
+          </a>
+          <a
+            href="/blog/api-credentials-agent-fleets"
+            class="rounded-[24px] border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Credential lifecycle</span>
+            <h3 class="mt-2 font-display font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-400">How to keep provider auth, expiry, and revocation from becoming the hidden failure mode after model selection.</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal">
         <div class="max-w-3xl mx-auto">
           <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Methodology note</p>
           <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">How these scores work</h2>

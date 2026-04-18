@@ -261,6 +261,60 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12 rounded-[28px] border border-slate-800 bg-surface/80 p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Reliability starts at the checklist, then survives in the loop
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl">
+          The preflight only matters if the workflow can keep running once retries stack, shared budgets tighten, and credentials start failing under load. These are the next three pages to read when the checklist moves from theory into live operations.
+        </p>
+        <div class="space-y-4">
+          <a
+            href="/blog/llm-apis-agent-loops"
+            class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Loop Reliability
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              LLM APIs in Agent Loops: What Actually Breaks at Scale
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The overnight-ops view once tool calls, retries, and longer chains are live.
+            </p>
+          </a>
+          <a
+            href="/blog/agent-fleet-rate-limit-design"
+            class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Rate-limit Architecture
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              Designing Agent Fleets That Survive Rate Limits
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The orchestration patterns that keep retry storms from turning into a fleet-wide outage.
+            </p>
+          </a>
+          <a
+            href="/blog/api-credentials-agent-fleets"
+            class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Credential Lifecycle
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              API Credentials in Autonomous Agent Fleets
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The secrets architecture that keeps rotation, expiry, and revocation from spreading across the lane.
+            </p>
+          </a>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">
