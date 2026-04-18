@@ -10,7 +10,12 @@ from unittest.mock import AsyncMock, patch
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from routes.leaderboard import get_leaderboard, list_categories
+from routes.leaderboard import (
+    _canonicalize_service_rows as canonicalize_leaderboard_rows,
+    get_leaderboard,
+    list_categories,
+)
+from routes.search import _canonicalize_service_rows as canonicalize_search_rows
 from routes.search import search_services
 
 
@@ -572,6 +577,21 @@ async def test_search_prefers_canonical_service_row_copy_when_alias_row_also_exi
     assert item["description"] == "Canonical brave-search-api docs."
 
 
+def test_search_canonicalize_service_rows_canonicalizes_same_service_alias_text_for_canonical_rows():
+    rows = canonicalize_search_rows([
+        {
+            "slug": "brave-search-api",
+            "name": "Brave Search (brave-search)",
+            "category": "search",
+            "description": "Legacy brave-search docs.",
+        }
+    ])
+
+    assert rows[0]["slug"] == "brave-search-api"
+    assert rows[0]["name"] == "Brave Search (brave-search-api)"
+    assert rows[0]["description"] == "Legacy brave-search-api docs."
+
+
 @pytest.mark.asyncio
 async def test_search_canonicalizes_alternate_alias_mentions_in_service_row_copy():
     with patch("routes.search.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_alternate_alias_text_catalog_supabase):
@@ -713,6 +733,21 @@ async def test_leaderboard_prefers_canonical_service_row_copy_when_alias_row_als
     item = result["data"]["items"][0]
     assert item["service_slug"] == "brave-search-api"
     assert item["name"] == "Brave Search API"
+
+
+def test_leaderboard_canonicalize_service_rows_canonicalizes_same_service_alias_text_for_canonical_rows():
+    rows = canonicalize_leaderboard_rows([
+        {
+            "slug": "brave-search-api",
+            "name": "Brave Search (brave-search)",
+            "category": "search",
+            "description": "Legacy brave-search docs.",
+        }
+    ])
+
+    assert rows[0]["slug"] == "brave-search-api"
+    assert rows[0]["name"] == "Brave Search (brave-search-api)"
+    assert rows[0]["description"] == "Legacy brave-search-api docs."
 
 
 @pytest.mark.asyncio

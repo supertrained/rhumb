@@ -586,6 +586,27 @@ def test_get_service_score_canonicalizes_alias_backed_explanation_and_snapshot_t
     )
 
 
+def test_canonicalize_service_text_canonicalizes_same_service_alias_text_for_canonical_rows() -> None:
+    from routes import scores as score_routes
+
+    assert (
+        score_routes._canonicalize_service_text(
+            "Legacy brave-search docs.",
+            "brave-search-api",
+            "brave-search-api",
+        )
+        == "Legacy brave-search-api docs."
+    )
+    assert (
+        score_routes._canonicalize_service_text(
+            "PDL data API.",
+            "people-data-labs",
+            "people-data-labs",
+        )
+        == "PDL data API."
+    )
+
+
 def test_get_service_score_canonicalizes_alternate_alias_mentions_in_canonical_rows(
     client,
     monkeypatch: pytest.MonkeyPatch,

@@ -16,6 +16,25 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from routes import reviews as reviews_module
 
 
+def test_canonicalize_service_text_canonicalizes_same_service_alias_text_for_canonical_rows() -> None:
+    assert (
+        reviews_module._canonicalize_service_text(
+            "Legacy brave-search docs.",
+            "brave-search-api",
+            "brave-search-api",
+        )
+        == "Legacy brave-search-api docs."
+    )
+    assert (
+        reviews_module._canonicalize_service_text(
+            "PDL data API.",
+            "people-data-labs",
+            "people-data-labs",
+        )
+        == "PDL data API."
+    )
+
+
 @pytest.fixture
 def fake_supabase(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[dict[str, Any]]]:
     """Provide fixture-backed Supabase responses for review route tests."""
