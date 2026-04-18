@@ -415,6 +415,40 @@ class TestSerialization:
         assert "brave-search selected" not in data["human_summary"]
         assert compact["winner"] == "brave-search-api"
 
+    def test_to_dict_canonicalizes_alternate_alias_text_when_provider_ids_are_already_public(self):
+        exp = RouteExplanation(
+            explanation_id="rexp_public_ids",
+            capability_id="search.query",
+            winner_provider_id="brave-search-api",
+            winner_composite_score=0.91,
+            selection_reason="persisted_route_explanation",
+            candidates=[
+                CandidateExplanation(
+                    provider_id="brave-search-api",
+                    eligible=True,
+                    composite_score=0.91,
+                    factors={},
+                    policy_checks={},
+                ),
+                CandidateExplanation(
+                    provider_id="people-data-labs",
+                    eligible=False,
+                    composite_score=0.0,
+                    factors={},
+                    policy_checks={},
+                    ineligible_reason="not_in_allow_list",
+                ),
+            ],
+            human_summary="brave-search-api selected over pdl.",
+        )
+
+        data = exp.to_dict()
+        compact = exp.to_compact()
+
+        assert data["human_summary"] == "brave-search-api selected over people-data-labs."
+        assert compact["human_summary"] == "brave-search-api selected over people-data-labs."
+        assert "brave-search-api-api" not in data["human_summary"]
+
     def test_candidate_factor_dict(self):
         exp = build_explanation(
             capability_id="ai.generate_text",
@@ -528,6 +562,43 @@ class TestStore:
         assert exp.human_summary == "brave-search-api selected over people-data-labs."
         assert "brave-search-api-api" not in exp.human_summary
 
+    def test_row_to_explanation_canonicalizes_alternate_alias_text_when_persisted_ids_are_already_public(self):
+        exp = _row_to_explanation(
+            {
+                "explanation_id": "rexp_public_ids",
+                "capability_id": "search.query",
+                "winner_provider_id": "brave-search-api",
+                "winner_composite_score": 0.91,
+                "winner_reason": "persisted_route_explanation",
+                "human_summary": "brave-search-api selected over pdl.",
+                "candidates_json": [
+                    {
+                        "provider_id": "brave-search-api",
+                        "eligible": True,
+                        "composite_score": 0.91,
+                        "factors": {},
+                        "policy_checks": {},
+                    },
+                    {
+                        "provider_id": "people-data-labs",
+                        "eligible": False,
+                        "composite_score": 0.0,
+                        "factors": {},
+                        "policy_checks": {},
+                        "ineligible_reason": "not_in_allow_list",
+                    },
+                ],
+            }
+        )
+
+        assert exp.winner_provider_id == "brave-search-api"
+        assert [candidate.provider_id for candidate in exp.candidates] == [
+            "brave-search-api",
+            "people-data-labs",
+        ]
+        assert exp.human_summary == "brave-search-api selected over people-data-labs."
+        assert "brave-search-api-api" not in exp.human_summary
+
     def test_store_eviction(self):
         """Store should evict oldest when capacity exceeded."""
         for i in range(1100):
@@ -615,6 +686,49 @@ async def test_persist_explanation_does_not_double_rewrite_canonical_provider_te
         from services.route_explanation import persist_explanation
 
         ok = await persist_explanation(exp, receipt_id="rcpt_test_mixed")
+
+    assert ok is True
+    inserted_table, inserted_payload = mock_insert.await_args.args
+    assert inserted_table == "route_explanations"
+    assert inserted_payload["human_summary"] == "brave-search-api selected over people-data-labs."
+    assert "brave-search-api-api" not in inserted_payload["human_summary"]
+
+
+@pytest.mark.anyio
+async def test_persist_explanation_canonicalizes_alternate_alias_text_when_provider_ids_are_already_public():
+    exp = RouteExplanation(
+        explanation_id="rexp_public_ids_write",
+        capability_id="search.query",
+        winner_provider_id="brave-search-api",
+        winner_composite_score=0.91,
+        selection_reason="persisted_route_explanation",
+        candidates=[
+            CandidateExplanation(
+                provider_id="brave-search-api",
+                eligible=True,
+                composite_score=0.91,
+                factors={},
+                policy_checks={},
+            ),
+            CandidateExplanation(
+                provider_id="people-data-labs",
+                eligible=False,
+                composite_score=0.0,
+                factors={},
+                policy_checks={},
+                ineligible_reason="not_in_allow_list",
+            ),
+        ],
+        human_summary="brave-search-api selected over pdl.",
+    )
+
+    with patch(
+        "services.route_explanation.supabase_insert",
+        new=AsyncMock(return_value=True),
+    ) as mock_insert:
+        from services.route_explanation import persist_explanation
+
+        ok = await persist_explanation(exp, receipt_id="rcpt_test_public_ids")
 
     assert ok is True
     inserted_table, inserted_payload = mock_insert.await_args.args

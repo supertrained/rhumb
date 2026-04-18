@@ -23,7 +23,12 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch, supabase_insert
-from services.service_slugs import canonicalize_service_slug, normalize_proxy_slug
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    canonicalize_service_slug,
+    normalize_proxy_slug,
+    public_service_slug_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +206,17 @@ def _canonicalize_provider_text(text: str, provider_ids: list[str] | None) -> st
             canonicalized,
             flags=re.IGNORECASE,
         )
+
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate == canonical:
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
     return canonicalized
 
 
