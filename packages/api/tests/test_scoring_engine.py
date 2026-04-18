@@ -586,6 +586,69 @@ def test_get_service_score_canonicalizes_alias_backed_explanation_and_snapshot_t
     )
 
 
+def test_get_service_score_canonicalizes_alternate_alias_mentions_in_canonical_rows(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GET /v1/services/{slug}/score should keep alternate alias mentions canonical on canonical rows."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    repository = InMemoryScoreRepository(
+        _rows=[
+            StoredScore(
+                id=uuid4(),
+                service_slug="brave-search-api",
+                score=8.7,
+                confidence=0.91,
+                tier="L4",
+                explanation="brave-search-api beat pdl on the latest run.",
+                dimension_snapshot={
+                    "score_breakdown": {
+                        "execution": 8.4,
+                        "access_readiness": 8.8,
+                        "autonomy": 8.9,
+                        "aggregate_recommendation": 8.7,
+                        "version": AN_SCORE_VERSION,
+                    },
+                    "summary": "brave-search-api outperformed pdl in testing.",
+                    "autonomy": {
+                        "avg": 8.9,
+                        "dimensions": [
+                            {
+                                "code": "P1",
+                                "name": "Auth readiness",
+                                "score": 8.9,
+                                "rationale": "brave-search-api beat pdl on auth readiness.",
+                                "confidence": 0.91,
+                            }
+                        ],
+                    },
+                },
+                calculated_at=datetime(2026, 4, 16, 18, 0, tzinfo=timezone.utc),
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=repository),
+    )
+
+    response = client.get("/v1/services/brave-search-api/score")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["service_slug"] == "brave-search-api"
+    assert body["explanation"] == "brave-search-api beat people-data-labs on the latest run."
+    assert body["dimension_snapshot"]["summary"] == (
+        "brave-search-api outperformed people-data-labs in testing."
+    )
+    assert body["dimension_snapshot"]["autonomy"]["dimensions"][0]["rationale"] == (
+        "brave-search-api beat people-data-labs on auth readiness."
+    )
+
+
 def test_get_service_score_accepts_mixed_case_alias_input(
     client,
     monkeypatch: pytest.MonkeyPatch,
