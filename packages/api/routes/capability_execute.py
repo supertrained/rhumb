@@ -1335,6 +1335,30 @@ def _canonicalize_public_provider_payload_with_contexts(
     return value
 
 
+def _extract_public_error_message(value: Any) -> str | None:
+    if isinstance(value, dict):
+        for key in ("error_message", "detail", "message", "error"):
+            candidate = value.get(key)
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate.strip()
+        nested_result = value.get("result")
+        if nested_result is not None:
+            nested_message = _extract_public_error_message(nested_result)
+            if nested_message:
+                return nested_message
+        for nested in value.values():
+            nested_message = _extract_public_error_message(nested)
+            if nested_message:
+                return nested_message
+        return None
+    if isinstance(value, list):
+        for item in value:
+            nested_message = _extract_public_error_message(item)
+            if nested_message:
+                return nested_message
+    return None
+
+
 def _prepare_upstream_payload(
     method: str | None,
     body: dict | None,
@@ -3310,13 +3334,6 @@ async def execute_capability(
                 "error_message": None,
                 "interface": request.interface,
             }
-            try:
-                await supabase_patch_required(
-                    f"capability_executions?id=eq.{quote(execution_id)}",
-                    update_payload,
-                )
-            except SupabaseWriteUnavailable as exc:
-                raise _execution_recording_unavailable(exc) from exc
 
             vault_response = {
                 "capability_id": capability_id,
@@ -3336,6 +3353,17 @@ async def execute_capability(
                 provider_slug=public_provider_used,
             )
             upstream_response = vault_response.get("upstream_response")
+            error_message = _extract_public_error_message(upstream_response) if not success else None
+            if error_message:
+                update_payload["error_message"] = error_message
+
+            try:
+                await supabase_patch_required(
+                    f"capability_executions?id=eq.{quote(execution_id)}",
+                    update_payload,
+                )
+            except SupabaseWriteUnavailable as exc:
+                raise _execution_recording_unavailable(exc) from exc
 
             if x_payment and x_payment != "required":
                 _log_x402_interop_trace(
@@ -3396,6 +3424,7 @@ async def execute_capability(
                 receipt_id=vault_response.get("receipt_id"),
                 interface=request.interface,
                 billing_status=billing_status,
+                error_message=error_message if not success else None,
             )
             _record_execution_audit_outcome(
                 success=success,
@@ -3410,6 +3439,7 @@ async def execute_capability(
                 receipt_id=vault_response.get("receipt_id"),
                 billing_status=billing_status,
                 latency_ms=total_latency_ms,
+                error_message=error_message if not success else None,
             )
 
             await _store_idempotent_result(
@@ -3588,13 +3618,6 @@ async def execute_capability(
         "error_message": error_message,
         "interface": request.interface,
     }
-    try:
-        await supabase_patch_required(
-            f"capability_executions?id=eq.{quote(execution_id)}",
-            update_payload,
-        )
-    except SupabaseWriteUnavailable as exc:
-        raise _execution_recording_unavailable(exc) from exc
 
     response_data = {
         "capability_id": capability_id,
@@ -3617,6 +3640,18 @@ async def execute_capability(
         provider_slug=public_provider_used,
     )
     upstream_response = response_data.get("upstream_response")
+    if not success and error_message is None:
+        error_message = _extract_public_error_message(upstream_response)
+        if error_message:
+            update_payload["error_message"] = error_message
+
+    try:
+        await supabase_patch_required(
+            f"capability_executions?id=eq.{quote(execution_id)}",
+            update_payload,
+        )
+    except SupabaseWriteUnavailable as exc:
+        raise _execution_recording_unavailable(exc) from exc
 
     # ── Build response headers ──────────────────────────────────────
     response_headers: dict[str, str] = {}
