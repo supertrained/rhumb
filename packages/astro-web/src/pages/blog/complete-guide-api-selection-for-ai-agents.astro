@@ -1,0 +1,246 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "The Complete Guide to API Selection for AI Agents (2026)",
+  datePublished: "2026-03-31T00:00:00Z",
+  dateModified: "2026-04-18T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "Most API selection guides were written for humans. This one shows what actually matters once autonomous agents call real APIs at 2am.",
+  url: "https://rhumb.dev/blog/complete-guide-api-selection-for-ai-agents",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split('\n').filter(r => !r.match(/^\|[\s-:|]+\|$/));
+    if (rows.length === 0) return block;
+    const headerCells = rows[0].split('|').filter(c => c.trim()).map(c =>
+      `<th class="px-4 py-3 text-left text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider">${c.trim()}</th>`
+    ).join('\n');
+    const bodyRows = rows.slice(1).map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c =>
+        `<td class="px-4 py-3 text-sm text-slate-400">${c.trim()}</td>`
+      ).join('\n');
+      return `<tr class="border-t border-slate-800">${cells}</tr>`;
+    }).join('\n');
+    return `<div class="overflow-x-auto my-6"><table class="w-full border border-slate-800 rounded-lg"><thead class="bg-elevated"><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+  });
+
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">$1</h2>');
+
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/50 pl-4 my-6 text-slate-400 italic"><p>$1</p></blockquote>');
+
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-300 italic">$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">$1</code>');
+
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    if (href.startsWith('/')) {
+      return `<a href="${href}" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+  });
+
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^- /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^\d+\. /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<h') || trimmed.startsWith('<hr') || trimmed.startsWith('<div')) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (trimmed.startsWith('</pre>') || trimmed.startsWith('</ul>') || trimmed.startsWith('</ol>') || trimmed.startsWith('</blockquote>') || trimmed.endsWith('</h2>') || trimmed.endsWith('</h3>') || trimmed.endsWith('</h4>') || trimmed.startsWith('<hr') || trimmed.endsWith('</div>')) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === '') {
+      result.push('');
+      continue;
+    }
+
+    if (!trimmed.startsWith('<')) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-complete-guide-api-selection.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+<Layout
+  title="The Complete Guide to API Selection for AI Agents (2026) | Rhumb"
+  description="Most API selection guides were written for humans. This one shows what actually matters once autonomous agents call real APIs at 2am."
+  canonical="/blog/complete-guide-api-selection-for-ai-agents"
+  ogTitle="The Complete Guide to API Selection for AI Agents (2026)"
+  ogDescription="A practical map for evaluating APIs once autonomous agents hit real errors, limits, retries, and credential friction."
+  ogUrl="https://rhumb.dev/blog/complete-guide-api-selection-for-ai-agents"
+  ogType="article"
+  twitterTitle="The Complete Guide to API Selection for AI Agents (2026)"
+  twitterDescription="The useful question is not popularity. It is whether the API still behaves clearly and safely when an agent hits it at 2am."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Guide
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">
+            March 31, 2026
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated April 18, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          The Complete Guide to API Selection for AI Agents (2026)
+        </h1>
+        <p class="text-lg text-slate-400 leading-relaxed">
+          Most API selection guides were written for humans. This one is for operators choosing surfaces that autonomous agents can actually use safely, legibly, and recoverably once the workflow is live.
+        </p>
+      </header>
+
+      <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Start with one bounded execution lane, not a giant connector list
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl mx-auto sm:mx-0">
+          If the research phase is over and you know the workflow needs real execution, move into capability-first onboarding or the direct managed path. Keep the authority surface narrow before you widen it.
+        </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-start">
+          <a
+            href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=complete-guide-onboarding"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+          >
+            See the capability-first handoff &rarr;
+          </a>
+          <a
+            href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=complete-guide-direct"
+            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+          >
+            Open the managed path &rarr;
+          </a>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">
+          Related
+        </h2>
+        <div class="space-y-4">
+          <a
+            href="/blog/how-to-evaluate-apis-for-agents"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Methodology
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              How to Evaluate APIs for AI Agents
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The 20-dimension framework behind the comparisons, autopsies, and trust reads linked in this guide.
+            </p>
+          </a>
+          <a
+            href="/blog/remote-mcp-production-readiness-checklist"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Production Readiness
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              A Production Readiness Checklist for Remote MCP Servers
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The operator checklist for trust class, auth shape, scope boundaries, and runtime safety once the surface is shared.
+            </p>
+          </a>
+          <a
+            href="/blog/hubspot-api-autopsy"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Failure-mode Evidence
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              HubSpot API Autopsy
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              A concrete example of why agent selection needs failure evidence, not just feature checklists and vendor familiarity.
+            </p>
+          </a>
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
