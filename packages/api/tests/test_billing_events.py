@@ -83,6 +83,13 @@ class TestBillingEventStream:
         assert len(charged) == 2
         assert all(e.event_type == BillingEventType.EXECUTION_CHARGED for e in charged)
 
+    def test_query_unknown_org_returns_empty_even_when_other_orgs_have_events(self):
+        stream = BillingEventStream()
+        stream.emit(BillingEventType.EXECUTION_CHARGED, "org_a", 100)
+        stream.emit(BillingEventType.CREDIT_PURCHASED, "org_b", -5000)
+
+        assert stream.query(org_id="org_missing") == []
+
     def test_query_limit(self):
         stream = BillingEventStream()
         for i in range(10):
@@ -291,6 +298,17 @@ class TestBillingEventSummary:
         assert summary_a.total_charged_usd_cents == 100
         assert summary_b.total_charged_usd_cents == 200
 
+    def test_summarize_unknown_org_ignores_other_orgs(self):
+        stream = BillingEventStream()
+        stream.emit(BillingEventType.EXECUTION_CHARGED, "org_a", 100)
+        stream.emit(BillingEventType.EXECUTION_CHARGED, "org_b", 200)
+
+        summary = stream.summarize("org_missing")
+        assert summary.total_charged_usd_cents == 0
+        assert summary.total_credited_usd_cents == 0
+        assert summary.events_count == 0
+        assert summary.by_provider == {}
+
     def test_summarize_canonicalizes_alias_backed_provider_ids(self):
         stream = BillingEventStream()
         stream.emit(
@@ -436,6 +454,27 @@ class TestBillingV2Endpoints:
         event = resp.json()["data"]["events"][0]
         assert event["provider_slug"] == "brave-search-api"
 
+    def test_events_do_not_leak_other_orgs_when_authenticated_org_has_no_events(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            150,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_missing")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["events"] == []
+        assert data["count"] == 0
+
     def test_events_canonicalize_alias_backed_provider_metadata(self, client):
         stream = BillingEventStream()
         stream.emit(
@@ -501,6 +540,29 @@ class TestBillingV2Endpoints:
                 "charged_usd": 3.5,
             }
         }
+
+    def test_summary_does_not_leak_other_orgs_when_authenticated_org_has_no_events(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            150,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_missing")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["total_charged_usd_cents"] == 0
+        assert data["total_credited_usd_cents"] == 0
+        assert data["events_count"] == 0
+        assert data["by_provider"] == {}
 
     def test_summary_recanonicalizes_alias_backed_provider_totals_from_legacy_summary(self, client):
         class _LegacySummaryStream:

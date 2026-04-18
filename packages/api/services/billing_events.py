@@ -358,7 +358,9 @@ class BillingEventStream:
     ) -> list[BillingEvent]:
         """Query events with optional filters. Returns newest first."""
         with self._lock:
-            if org_id and org_id in self._org_index:
+            if org_id is not None:
+                if org_id not in self._org_index:
+                    return []
                 indices = self._org_index[org_id]
                 candidates = [self._events[i] for i in indices]
             else:
