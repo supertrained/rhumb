@@ -866,6 +866,10 @@ async def estimate_capability_v2(
     )
 
     body = _rewrite_navigation_urls(estimate_response.json())
+    body = _canonicalize_execute_body_provider_fields(
+        body,
+        provider_slug=provider,
+    )
     if estimate_response.status_code == 200 and isinstance(body.get("data"), dict):
         if body["data"].get("credential_mode") is not None:
             body["data"]["credential_mode"] = _canonicalize_credential_mode(

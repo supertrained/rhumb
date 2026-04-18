@@ -945,6 +945,83 @@ async def test_v2_estimate_alias_provider_query_accepts_canonical_provider(app):
 
 
 @pytest.mark.anyio
+async def test_v2_estimate_canonicalizes_alias_backed_provider_fields_in_success_payload(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 200
+    estimate_resp.json.return_value = {
+        "data": {
+            "capability_id": "search.query",
+            "provider": "brave-search",
+            "credential_mode": "byo",
+            "cost_estimate_usd": 0.003,
+            "message": "brave-search estimate ready",
+            "detail": "Retry brave-search if the alias path drifts",
+            "fallback_provider": "brave-search",
+            "fallback_providers": ["brave-search"],
+            "execute_readiness": {
+                "status": "auth_required",
+                "message": "brave-search needs auth",
+                "detail": "Use brave-search if configured",
+                "supported_provider_slugs": ["brave-search"],
+            },
+        },
+        "error": None,
+    }
+    estimate_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/search.query/execute/estimate",
+                params={"credential_mode": "byo", "provider": "brave-search-api"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "brave-search-api"
+    assert data["credential_mode"] == "byok"
+    assert data["message"] == "brave-search-api estimate ready"
+    assert data["detail"] == "Retry brave-search-api if the alias path drifts"
+    assert data["fallback_provider"] == "brave-search-api"
+    assert data["fallback_providers"] == ["brave-search-api"]
+    assert data["execute_readiness"]["message"] == "brave-search-api needs auth"
+    assert data["execute_readiness"]["detail"] == "Use brave-search-api if configured"
+    assert data["execute_readiness"]["supported_provider_slugs"] == ["brave-search-api"]
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_canonicalizes_alias_backed_provider_fields_in_failure_payload(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 503
+    estimate_resp.json.return_value = {
+        "error": {
+            "code": "NO_PROVIDER_AVAILABLE",
+            "message": "brave-search estimate unavailable",
+            "detail": "Retry brave-search or choose pdl",
+            "requested_provider": "brave-search",
+            "available_providers": ["brave-search", "pdl"],
+            "fallback_provider": "brave-search",
+        }
+    }
+    estimate_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/search.query/execute/estimate",
+                params={"credential_mode": "byo", "provider": "brave-search-api"},
+            )
+
+    assert resp.status_code == 503
+    error = resp.json()["error"]
+    assert error["message"] == "brave-search-api estimate unavailable"
+    assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
+    assert error["requested_provider"] == "brave-search-api"
+    assert error["available_providers"] == ["brave-search-api", "people-data-labs"]
+    assert error["fallback_provider"] == "brave-search-api"
+
+
+@pytest.mark.anyio
 async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(app):
     estimate_resp = MagicMock(spec=httpx.Response)
     estimate_resp.status_code = 200
