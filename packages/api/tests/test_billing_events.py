@@ -380,6 +380,41 @@ class TestBillingV2Endpoints:
         event = resp.json()["data"]["events"][0]
         assert event["provider_slug"] == "brave-search-api"
 
+    def test_events_canonicalize_alias_backed_provider_metadata(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="brave-search",
+            capability_id="search.query",
+            metadata={
+                "provider_used": "brave-search",
+                "detail": {
+                    "fallback_provider": "pdl",
+                    "fallback_providers": ["pdl", "brave-search-api"],
+                    "message": "brave-search-api failed before pdl fallback",
+                },
+            },
+        )
+
+        with (
+            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
+        ):
+            resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        event = resp.json()["data"]["events"][0]
+        assert event["metadata"] == {
+            "provider_used": "brave-search-api",
+            "detail": {
+                "fallback_provider": "people-data-labs",
+                "fallback_providers": ["people-data-labs", "brave-search-api"],
+                "message": "brave-search-api failed before people-data-labs fallback",
+            },
+        }
+
     def test_summary_merges_alias_backed_provider_totals_under_public_id(self, client):
         stream = BillingEventStream()
         stream.emit(

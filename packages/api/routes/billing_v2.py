@@ -12,6 +12,7 @@ Endpoints:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query
@@ -23,11 +24,38 @@ from services.billing_events import (
     BillingEventType,
     get_billing_event_stream,
 )
-from services.service_slugs import public_service_slug
+from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 router = APIRouter(prefix="/v2/billing", tags=["billing-v2"])
 
 _identity_store: AgentIdentityStore | None = None
+
+_PROVIDER_VALUE_FIELDS = {
+    "provider",
+    "provider_id",
+    "provider_slug",
+    "provider_used",
+    "fallback_provider",
+    "selected_provider",
+    "service",
+    "service_slug",
+}
+_PROVIDER_LIST_FIELDS = {
+    "allow_only",
+    "fallback_providers",
+    "provider_deny",
+    "provider_ids",
+    "provider_preference",
+    "providers",
+    "service_slugs",
+}
+_PROVIDER_TEXT_FIELDS = {
+    "detail",
+    "error",
+    "error_message",
+    "message",
+    "reason",
+}
 
 
 def _get_identity_store() -> AgentIdentityStore:
@@ -47,8 +75,90 @@ async def _require_org(api_key: str | None) -> str:
     return agent.organization_id
 
 
+def _canonicalize_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return public_service_slug(value) or value
+    return value
+
+
+def _canonicalize_provider_text(text: Any, provider_slugs: set[str]) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    for provider_slug in provider_slugs:
+        canonical = public_service_slug(provider_slug)
+        if canonical is None:
+            continue
+        for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+            if not candidate or candidate == canonical:
+                continue
+            canonicalized = re.sub(
+                rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+                canonical,
+                canonicalized,
+                flags=re.IGNORECASE,
+            )
+    return canonicalized
+
+
+def _collect_provider_contexts(value: Any, *, provider_slugs: set[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in _PROVIDER_VALUE_FIELDS and isinstance(item, str):
+                provider_slugs.add(item)
+                continue
+            if key in _PROVIDER_LIST_FIELDS and isinstance(item, list):
+                for entry in item:
+                    if isinstance(entry, str):
+                        provider_slugs.add(entry)
+                    else:
+                        _collect_provider_contexts(entry, provider_slugs=provider_slugs)
+                continue
+            _collect_provider_contexts(item, provider_slugs=provider_slugs)
+        return
+
+    if isinstance(value, list):
+        for item in value:
+            _collect_provider_contexts(item, provider_slugs=provider_slugs)
+
+
+def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in _PROVIDER_VALUE_FIELDS:
+                canonicalized[key] = _canonicalize_provider_value(item)
+            elif key in _PROVIDER_LIST_FIELDS and isinstance(item, list):
+                canonicalized[key] = [
+                    _canonicalize_provider_value(entry)
+                    if isinstance(entry, str)
+                    else _canonicalize_provider_payload(entry, provider_slugs=provider_slugs)
+                    for entry in item
+                ]
+            elif key in _PROVIDER_TEXT_FIELDS and not isinstance(item, (dict, list)):
+                canonicalized[key] = _canonicalize_provider_text(item, provider_slugs)
+            else:
+                canonicalized[key] = _canonicalize_provider_payload(item, provider_slugs=provider_slugs)
+        return canonicalized
+
+    if isinstance(value, list):
+        return [_canonicalize_provider_payload(item, provider_slugs=provider_slugs) for item in value]
+
+    return value
+
+
+def _event_provider_contexts(event: BillingEvent) -> set[str]:
+    provider_slugs: set[str] = set()
+    if event.provider_slug:
+        provider_slugs.add(event.provider_slug)
+    _collect_provider_contexts(event.metadata, provider_slugs=provider_slugs)
+    return provider_slugs
+
+
 def _event_to_response(event: BillingEvent) -> dict[str, Any]:
     """Format a billing event for API response."""
+    provider_contexts = _event_provider_contexts(event)
     return {
         "event_id": event.event_id,
         "event_type": event.event_type.value,
@@ -66,7 +176,7 @@ def _event_to_response(event: BillingEvent) -> dict[str, Any]:
         "execution_id": event.execution_id,
         "capability_id": event.capability_id,
         "provider_slug": public_service_slug(event.provider_slug),
-        "metadata": event.metadata,
+        "metadata": _canonicalize_provider_payload(event.metadata, provider_slugs=provider_contexts),
         "chain_hash": event.chain_hash,
     }
 
