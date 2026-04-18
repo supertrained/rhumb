@@ -198,6 +198,8 @@ async def export_audit_trail(
     event_type: str | None = Query(None),
     severity: str | None = Query(None),
     category: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    resource_id: str | None = Query(None),
     since: str | None = Query(None),
     until: str | None = Query(None),
 ) -> Any:
@@ -236,6 +238,8 @@ async def export_audit_trail(
         event_type=parsed_type,
         severity=parsed_severity,
         category=category,
+        resource_type=resource_type,
+        resource_id=resource_id,
         since=parsed_since,
         until=parsed_until,
     )

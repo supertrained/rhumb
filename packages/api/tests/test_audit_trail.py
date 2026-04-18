@@ -593,6 +593,37 @@ class TestExport:
         data = json.loads(result.data)
         assert data["events"][0]["event_type"] == "kill_switch.activated"
 
+    def test_export_with_resource_filters(self):
+        trail = AuditTrail()
+        trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search execution completed",
+            org_id="org_1",
+            resource_type="provider",
+            resource_id="brave-search",
+            provider_slug="brave-search",
+        )
+        trail.record(
+            AuditEventType.KILL_SWITCH_ACTIVATED,
+            "Agent compromised",
+            org_id="org_1",
+            resource_type="agent",
+            resource_id="agent_bad",
+        )
+
+        result = trail.export(
+            "json",
+            org_id="org_1",
+            resource_type="provider",
+            resource_id="brave-search",
+        )
+
+        assert result.event_count == 1
+        data = json.loads(result.data)
+        assert data["events"][0]["event_type"] == "execution.completed"
+        assert data["events"][0]["resource_type"] == "provider"
+        assert data["events"][0]["resource_id"] == "brave-search-api"
+
     def test_export_empty_result(self):
         trail = AuditTrail()
         result = trail.export("json", org_id="nonexistent")
@@ -796,6 +827,20 @@ class TestAuditRoutes:
         assert completed["provider_slug"] == "brave-search-api"
         assert completed["action"] == "brave-search-api execution completed"
         assert completed["detail"]["message"] == "brave-search-api upstream exploded"
+
+    def test_export_json_with_resource_filter(self, client):
+        resp = client.post(
+            "/v2/audit/export",
+            params={"format": "json", "resource_type": "agent", "resource_id": "agent_bad"},
+            headers={"X-Rhumb-Key": "test_key"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        export = json.loads(data["export"])
+        assert export["event_count"] == 1
+        assert export["events"][0]["event_type"] == "kill_switch.activated"
+        assert export["events"][0]["resource_type"] == "agent"
+        assert export["events"][0]["resource_id"] == "agent_bad"
 
     def test_export_csv(self, client):
         resp = client.post(

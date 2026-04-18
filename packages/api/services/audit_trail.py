@@ -771,6 +771,8 @@ class AuditTrail:
         category: str | None = None,
         since: datetime | None = None,
         until: datetime | None = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
     ) -> AuditExportResult:
         """Export audit events in JSON or CSV format.
 
@@ -783,6 +785,8 @@ class AuditTrail:
             category=category,
             since=since,
             until=until,
+            resource_type=resource_type,
+            resource_id=resource_id,
             limit=1_000_000,  # Export all matching
         )
 
