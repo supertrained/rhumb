@@ -212,22 +212,81 @@ def _canonicalize_provider_text(text: Any, provider_used: Any) -> str | None:
     return canonicalized
 
 
-def _public_step_outputs(step: StepDefinition | None, outputs: Any) -> Any:
+_PROVIDER_VALUE_KEYS = {
+    "provider",
+    "provider_used",
+    "provider_id",
+    "provider_slug",
+    "selected_provider",
+    "requested_provider",
+    "fallback_provider",
+}
+
+
+_PROVIDER_LIST_KEYS = {
+    "available_providers",
+    "candidate_providers",
+    "fallback_providers",
+    "supported_provider_slugs",
+    "unavailable_provider_slugs",
+    "not_execute_ready_provider_slugs",
+    "policy_candidates",
+}
+
+
+_PROVIDER_TEXT_KEYS = {"message", "detail", "error_message"}
+
+
+def _canonicalize_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        public_slug = _public_provider_used(value)
+        return public_slug or value
+    return value
+
+
+def _canonicalize_provider_payload(value: Any, *, provider_used: Any) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in _PROVIDER_VALUE_KEYS:
+                canonicalized[key] = _canonicalize_provider_value(item)
+            elif key in _PROVIDER_TEXT_KEYS:
+                canonicalized[key] = _canonicalize_provider_text(item, provider_used)
+            elif key in _PROVIDER_LIST_KEYS and isinstance(item, list):
+                canonicalized[key] = [_canonicalize_provider_value(entry) for entry in item]
+            else:
+                canonicalized[key] = _canonicalize_provider_payload(item, provider_used=provider_used)
+        return canonicalized
+    if isinstance(value, list):
+        return [_canonicalize_provider_payload(item, provider_used=provider_used) for item in value]
+    return value
+
+
+def _public_step_outputs(step: StepDefinition | None, outputs: Any, *, provider_used: Any) -> Any:
     if not isinstance(outputs, Mapping):
         return outputs
 
-    normalized = dict(outputs)
-    provider_output_keys = {
-        output_key
-        for output_key, source_path in (step.outputs_captured or {}).items()
-        if source_path == "provider_used"
-    } if step else set()
+    normalized = _canonicalize_provider_payload(dict(outputs), provider_used=provider_used)
+    capture_paths = dict(step.outputs_captured or {}) if step else {}
 
-    if provider_output_keys:
-        for output_key in provider_output_keys:
-            if output_key in normalized:
-                normalized[output_key] = _public_provider_used(normalized.get(output_key))
-    elif "provider_used" in normalized:
+    for output_key, source_path in capture_paths.items():
+        if output_key not in normalized:
+            continue
+        source_key = str(source_path or "").split(".")[-1]
+        if source_path == "provider_used" or source_key in _PROVIDER_VALUE_KEYS:
+            normalized[output_key] = _canonicalize_provider_value(normalized.get(output_key))
+        elif source_key in _PROVIDER_LIST_KEYS and isinstance(normalized.get(output_key), list):
+            normalized[output_key] = [
+                _canonicalize_provider_value(entry)
+                for entry in normalized.get(output_key) or []
+            ]
+        elif source_key in _PROVIDER_TEXT_KEYS:
+            normalized[output_key] = _canonicalize_provider_text(
+                normalized.get(output_key),
+                provider_used,
+            )
+
+    if "provider_used" in normalized:
         normalized["provider_used"] = _public_provider_used(normalized.get("provider_used"))
 
     return normalized
@@ -238,7 +297,7 @@ def _build_step_result_payload(step: StepDefinition | None, result: StepResult) 
         "step_id": result.step_id,
         "capability_id": step.capability_id if step else None,
         "status": result.status.value if hasattr(result.status, "value") else str(result.status),
-        "outputs": _public_step_outputs(step, result.outputs),
+        "outputs": _public_step_outputs(step, result.outputs, provider_used=result.provider_used),
         "cost_usd": result.cost_usd,
         "duration_ms": result.duration_ms,
         "receipt_id": result.receipt_id,
@@ -255,7 +314,7 @@ def _terminal_outputs(recipe: RecipeDefinition, execution: RecipeExecution) -> d
     for step in terminal_steps:
         result = execution.step_results.get(step.step_id)
         if result and result.status == StepStatus.SUCCEEDED:
-            outputs[step.step_id] = _public_step_outputs(step, result.outputs)
+            outputs[step.step_id] = _public_step_outputs(step, result.outputs, provider_used=result.provider_used)
     return outputs
 
 
@@ -299,7 +358,11 @@ def _build_execution_payload_from_rows(
             "step_id": row.get("step_id"),
             "capability_id": row.get("capability_id"),
             "status": row.get("status"),
-            "outputs": _public_step_outputs(steps_by_id.get(str(row.get("step_id") or "")), row.get("outputs") or {}),
+            "outputs": _public_step_outputs(
+                steps_by_id.get(str(row.get("step_id") or "")),
+                row.get("outputs") or {},
+                provider_used=row.get("provider_used"),
+            ),
             "cost_usd": row.get("cost_usd", 0.0),
             "duration_ms": row.get("duration_ms", 0),
             "receipt_id": row.get("receipt_id"),
@@ -312,7 +375,11 @@ def _build_execution_payload_from_rows(
     depended_on = {dep for step in recipe.steps for dep in step.depends_on}
     terminal_ids = {step.step_id for step in recipe.steps if step.step_id not in depended_on}
     outputs = {
-        row.get("step_id"): _public_step_outputs(steps_by_id.get(str(row.get("step_id") or "")), row.get("outputs") or {})
+        row.get("step_id"): _public_step_outputs(
+            steps_by_id.get(str(row.get("step_id") or "")),
+            row.get("outputs") or {},
+            provider_used=row.get("provider_used"),
+        )
         for row in step_rows
         if row.get("step_id") in terminal_ids and row.get("status") == StepStatus.SUCCEEDED.value
     }
@@ -434,7 +501,10 @@ class _InternalRecipeStepExecutor(StepExecutor):
         error = body.get("error") if isinstance(body, dict) else {}
         upstream_response = data.get("upstream_response") if isinstance(data, dict) else None
         root_outputs = {
-            "result": upstream_response if isinstance(upstream_response, dict) else (upstream_response or {}),
+            "result": _canonicalize_provider_payload(
+                upstream_response if isinstance(upstream_response, dict) else (upstream_response or {}),
+                provider_used=_public_provider_used(data.get("provider_used")) if isinstance(data, dict) else None,
+            ),
             "provider_used": _public_provider_used(data.get("provider_used")) if isinstance(data, dict) else None,
             "receipt_id": data.get("receipt_id") if isinstance(data, dict) else None,
             "execution_id": data.get("execution_id") if isinstance(data, dict) else None,
@@ -581,7 +651,7 @@ async def _persist_execution(
                 "provider_used": _public_provider_used(result.provider_used),
                 "retries_used": result.retries_used,
                 "error": _canonicalize_provider_text(result.error, result.provider_used),
-                "outputs": _public_step_outputs(step, result.outputs),
+                "outputs": _public_step_outputs(step, result.outputs, provider_used=result.provider_used),
                 "started_at": execution.started_at.isoformat(),
                 "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
             },
