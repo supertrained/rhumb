@@ -394,6 +394,24 @@ class TestScoresV2Endpoints:
         assert entry["service_slug"] == "brave-search-api"
         assert entry["change_reason"] == "brave-search-api evidence update"
 
+    def test_get_score_history_canonicalizes_alternate_provider_alias_text_for_alias_backed_rows(self, client):
+        chain = get_audit_chain()
+        chain.append(
+            "brave-search",
+            None,
+            8.4,
+            "brave-search improved after pdl comparison",
+        )
+
+        resp = client.get("/v2/scores/brave-search-api/history?limit=10")
+        assert resp.status_code == 200
+        body = resp.json()
+        entry = body["data"]["entries"][0]
+        assert entry["service_slug"] == "brave-search-api"
+        assert entry["change_reason"] == (
+            "brave-search-api improved after people-data-labs comparison"
+        )
+
     def test_get_score_history_preserves_human_shorthand_for_canonical_rows(self, client):
         chain = get_audit_chain()
         chain.append("people-data-labs", None, 9.1, "PDL evidence update")
