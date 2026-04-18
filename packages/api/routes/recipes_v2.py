@@ -212,6 +212,24 @@ def _canonicalize_provider_text(text: Any, provider_used: Any) -> str | None:
     return canonicalized
 
 
+def _canonicalize_provider_text_from_contexts(text: Any, provider_values: list[Any]) -> str | None:
+    if text is None:
+        return None
+
+    canonicalized = str(text)
+    seen: set[str] = set()
+    for provider_value in provider_values:
+        provider_key = str(provider_value or "").strip()
+        if not provider_key:
+            continue
+        lowered = provider_key.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        canonicalized = _canonicalize_provider_text(canonicalized, provider_key) or canonicalized
+    return canonicalized
+
+
 _PROVIDER_VALUE_KEYS = {
     "provider",
     "provider_used",
@@ -325,6 +343,7 @@ def _build_execution_payload(
     deduplicated: bool = False,
 ) -> dict[str, Any]:
     steps_by_id = {step.step_id: step for step in recipe.steps}
+    provider_contexts = [result.provider_used for result in execution.step_results.values()]
     return {
         "execution_id": execution.execution_id,
         "recipe_id": execution.recipe_id,
@@ -333,7 +352,7 @@ def _build_execution_payload(
         "total_duration_ms": execution.total_duration_ms,
         "started_at": _iso(execution.started_at),
         "completed_at": _iso(execution.completed_at),
-        "error": execution.error,
+        "error": _canonicalize_provider_text_from_contexts(execution.error, provider_contexts),
         "receipt_chain_hash": execution.receipt_chain_hash,
         "deduplicated": deduplicated,
         "layer": _LAYER,
@@ -353,6 +372,7 @@ def _build_execution_payload_from_rows(
     deduplicated: bool = False,
 ) -> dict[str, Any]:
     steps_by_id = {step.step_id: step for step in recipe.steps}
+    provider_contexts = [row.get("provider_used") for row in step_rows]
     step_results = [
         {
             "step_id": row.get("step_id"),
@@ -392,7 +412,7 @@ def _build_execution_payload_from_rows(
         "total_duration_ms": execution_row.get("total_duration_ms", 0),
         "started_at": execution_row.get("started_at"),
         "completed_at": execution_row.get("completed_at"),
-        "error": execution_row.get("error"),
+        "error": _canonicalize_provider_text_from_contexts(execution_row.get("error"), provider_contexts),
         "receipt_chain_hash": receipt_hash,
         "deduplicated": deduplicated,
         "layer": _LAYER,
@@ -616,6 +636,7 @@ async def _persist_execution(
     org_id: str | None,
     credential_mode: str,
 ) -> None:
+    provider_contexts = [result.provider_used for result in execution.step_results.values()]
     await supabase_patch_required(
         f"recipe_executions?execution_id=eq.{quote(execution.execution_id)}",
         {
@@ -626,7 +647,7 @@ async def _persist_execution(
             "total_duration_ms": execution.total_duration_ms,
             "step_count": len(recipe.steps),
             "steps_completed": sum(1 for result in execution.step_results.values() if result.status == StepStatus.SUCCEEDED),
-            "error": execution.error,
+            "error": _canonicalize_provider_text_from_contexts(execution.error, provider_contexts),
             "started_at": execution.started_at.isoformat(),
             "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
             "org_id": org_id,
