@@ -3132,20 +3132,37 @@ async def execute_capability(
             await _release_reservations()
             raise
 
-        try:
-            await supabase_patch_required(
-                f"capability_executions?id=eq.{quote(execution_id)}",
-                {
-                    "billing_status": "billed" if billed_cost_cents > 0 else "unbilled",
-                },
-            )
-        except SupabaseWriteUnavailable as exc:
-            raise _execution_recording_unavailable(exc) from exc
-
         if budget_remaining is not None:
             result["budget_remaining_usd"] = round(budget_remaining - cost_estimate, 4) if cost_estimate else budget_remaining
         if credit_remaining_cents is not None:
             result["org_credits_remaining_cents"] = credit_remaining_cents
+
+        managed_success = result.get("upstream_status", 200) < 400
+        managed_provider = _public_provider_slug(
+            result.get("provider_used") or request.provider or "unknown"
+        ) or "unknown"
+        result = _canonicalize_public_provider_payload(result, provider_slug=managed_provider)
+        result["provider_used"] = managed_provider
+        upstream_response = result.get("upstream_response")
+        error_message = _extract_public_error_message(upstream_response) if not managed_success else None
+        managed_billing_status = (
+            "billed"
+            if managed_success and billed_cost_cents > 0
+            else ("refunded" if not managed_success else "unbilled")
+        )
+
+        update_payload: dict[str, Any] = {"billing_status": managed_billing_status}
+        if error_message:
+            update_payload["error_message"] = error_message
+
+        try:
+            await supabase_patch_required(
+                f"capability_executions?id=eq.{quote(execution_id)}",
+                update_payload,
+            )
+        except SupabaseWriteUnavailable as exc:
+            raise _execution_recording_unavailable(exc) from exc
+
         if x_payment and x_payment != "required":
             _log_x402_interop_trace(
                 raw_request,
@@ -3160,18 +3177,6 @@ async def execute_capability(
                 agent_id=agent_id,
                 org_id=org_id,
             )
-
-        managed_success = result.get("upstream_status", 200) < 400
-        managed_provider = _public_provider_slug(
-            result.get("provider_used") or request.provider or "unknown"
-        ) or "unknown"
-        result = _canonicalize_public_provider_payload(result, provider_slug=managed_provider)
-        result["provider_used"] = managed_provider
-        managed_billing_status = (
-            "billed"
-            if managed_success and billed_cost_cents > 0
-            else ("refunded" if not managed_success else "unbilled")
-        )
 
         # ── Emit execution receipt (managed) ──
         if not _should_skip_receipt(raw_request):
@@ -3197,12 +3202,14 @@ async def execute_capability(
                     total_cost_usd=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
                     credits_deducted=round(billed_cost_cents / 100, 6) if billed_cost_cents > 0 else None,
                     request_hash=hash_request_payload(request.body),
-                    response_hash=hash_response_payload(result.get("upstream_response")),
+                    response_hash=hash_response_payload(upstream_response),
                     x402_tx_hash=x402_receipt.get("tx_hash") if x402_receipt else None,
                     x402_network=x402_receipt.get("network") if x402_receipt else None,
                     x402_payer=x402_receipt.get("from_address") if x402_receipt else None,
                     interface=request.interface,
                     idempotency_key=request.idempotency_key,
+                    error_code=str(result.get("upstream_status")) if not managed_success else None,
+                    error_message=error_message if not managed_success else None,
                 ))
                 result["receipt_id"] = managed_receipt.receipt_id
             except Exception as receipt_err:
@@ -3219,6 +3226,7 @@ async def execute_capability(
             receipt_id=result.get("receipt_id"),
             interface=request.interface,
             billing_status=managed_billing_status,
+            error_message=error_message if not managed_success else None,
         )
         _record_execution_audit_outcome(
             success=managed_success,
@@ -3233,6 +3241,7 @@ async def execute_capability(
             receipt_id=result.get("receipt_id"),
             billing_status=managed_billing_status,
             latency_ms=result.get("total_latency_ms") or result.get("latency_ms"),
+            error_message=error_message if not managed_success else None,
         )
 
         await _store_idempotent_result(
