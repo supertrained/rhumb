@@ -471,6 +471,58 @@ def test_get_service_reviews_canonicalizes_legacy_alias_mentions_in_text(
     assert payload["reviews"][0]["summary"] == "Observed through brave-search-api during live validation"
 
 
+def test_get_service_reviews_canonicalizes_alternate_service_alias_mentions_in_text(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Alias-backed review copy should also rewrite alternate service aliases on public reads."""
+    fake_supabase["service_reviews"].append(
+        {
+            "id": "review-brave-alternate-alias-text",
+            "service_slug": "brave-search",
+            "review_type": "manual",
+            "review_status": "published",
+            "headline": "brave-search won after pdl comparison",
+            "summary": "Observed brave-search after pdl comparison during live validation",
+            "reviewer_label": "Rhumb editorial team",
+            "reviewed_at": "2026-03-26T11:08:24Z",
+            "confidence": 0.95,
+            "evidence_count": 1,
+            "highest_trust_source": "runtime_verified",
+        }
+    )
+    fake_supabase["review_evidence_links"].append(
+        {
+            "review_id": "review-brave-alternate-alias-text",
+            "evidence_record_id": "evidence-brave-alternate-alias-text",
+        }
+    )
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-alternate-alias-text",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "failure_mode",
+            "title": "Brave runtime evidence",
+            "summary": "Observed through runtime",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "facts/brave-alternate-alias-text",
+        }
+    )
+
+    response = client.get("/v1/services/brave-search-api/reviews")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_reviews"] == 1
+    assert payload["reviews"][0]["headline"] == "brave-search-api won after people-data-labs comparison"
+    assert payload["reviews"][0]["summary"] == (
+        "Observed brave-search-api after people-data-labs comparison during live validation"
+    )
+
+
 def test_get_service_reviews_normalizes_mixed_case_alias_input(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:
@@ -587,6 +639,47 @@ def test_get_service_evidence_canonicalizes_legacy_alias_mentions_in_text(
     assert payload["total_evidence"] == 1
     assert payload["evidence"][0]["title"] == "Usage summary for brave-search-api (2026-03-26)"
     assert payload["evidence"][0]["summary"] == "Aggregated 2 usage events for brave-search-api"
+    assert payload["evidence"][0]["source_ref"] == "usage_events:brave-search:2026-03-26"
+
+
+def test_get_service_evidence_canonicalizes_alternate_service_alias_mentions_in_text(
+    client: TestClient,
+    fake_supabase: dict[str, list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Alias-backed evidence text should also rewrite alternate service aliases on public reads."""
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-brave-usage-summary-alternate-alias",
+            "service_slug": "brave-search",
+            "source_type": "runtime_verified",
+            "evidence_kind": "usage_summary",
+            "title": "Usage summary for brave-search after pdl comparison",
+            "summary": "Aggregated 2 usage events for brave-search after pdl comparison",
+            "observed_at": "2026-03-26T11:08:24Z",
+            "fresh_until": "2026-04-26T11:08:24Z",
+            "confidence": 0.95,
+            "source_ref": "usage_events:brave-search:2026-03-26",
+        }
+    )
+    monkeypatch.setattr(
+        reviews_module,
+        "_utc_now",
+        lambda: datetime(2026, 3, 27, 0, 0, tzinfo=UTC),
+    )
+
+    response = client.get("/v1/services/brave-search-api/evidence?kind=usage_summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["total_evidence"] == 1
+    assert payload["evidence"][0]["title"] == (
+        "Usage summary for brave-search-api after people-data-labs comparison"
+    )
+    assert payload["evidence"][0]["summary"] == (
+        "Aggregated 2 usage events for brave-search-api after people-data-labs comparison"
+    )
     assert payload["evidence"][0]["source_ref"] == "usage_events:brave-search:2026-03-26"
 
 
