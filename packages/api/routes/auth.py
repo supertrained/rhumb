@@ -46,10 +46,29 @@ from services.email_otp import (
     derive_request_ip,
     get_email_otp_service,
 )
+from services.service_slugs import public_service_slug
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _public_usage_service(service_slug: Any) -> str:
+    canonical = public_service_slug(service_slug)
+    if canonical is not None:
+        return canonical
+    return str(service_slug or "")
+
+
+def _public_calls_by_service(summary_services: dict[str, Any] | None) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for raw_service, info in (summary_services or {}).items():
+        service = _public_usage_service(raw_service)
+        if not service:
+            continue
+        calls = int(info.get("calls") or 0) if isinstance(info, dict) else 0
+        counts[service] = counts.get(service, 0) + calls
+    return counts
 
 # ── OAuth Provider Config ────────────────────────────────────────────
 
@@ -713,7 +732,7 @@ async def me_usage(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONR
         recent_raw = await analytics.get_recent_events(agent_id, limit=10)
         recent_calls = [
             {
-                "service": e.get("service", ""),
+                "service": _public_usage_service(e.get("service")),
                 "result": e.get("result", ""),
                 "latency_ms": e.get("latency_ms", 0),
                 "timestamp": e.get("created_at", ""),
@@ -722,10 +741,7 @@ async def me_usage(rhumb_session: Optional[str] = Cookie(default=None)) -> JSONR
         ]
 
         # Build per-service call counts
-        calls_by_service = {
-            svc: info["calls"]
-            for svc, info in summary.get("services", {}).items()
-        }
+        calls_by_service = _public_calls_by_service(summary.get("services"))
 
         return JSONResponse({
             "total_calls": summary.get("total_calls", 0),

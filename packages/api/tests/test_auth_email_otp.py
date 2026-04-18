@@ -603,3 +603,85 @@ def test_expired_code_is_rejected() -> None:
     assert response.status_code == 400
     assert latest_code is not None
     assert latest_code.invalidated_at is not None
+
+
+class _FakeUsageAnalytics:
+    async def get_usage_summary(self, agent_id: str, days: int) -> dict:
+        assert agent_id
+        if days == 1:
+            return {"total_calls": 2, "services": {}}
+        return {
+            "total_calls": 5,
+            "services": {
+                "brave-search": {"calls": 2},
+                "brave-search-api": {"calls": 1},
+                "pdl": {"calls": 2},
+            },
+        }
+
+    async def get_recent_events(self, agent_id: str, limit: int = 10) -> list[dict[str, object]]:
+        assert agent_id
+        assert limit == 10
+        return [
+            {
+                "service": "brave-search",
+                "result": "success",
+                "latency_ms": 123,
+                "created_at": "2026-04-17T22:00:00Z",
+            },
+            {
+                "service": "pdl",
+                "result": "error",
+                "latency_ms": 456,
+                "created_at": "2026-04-17T22:01:00Z",
+            },
+        ]
+
+
+def test_me_usage_canonicalizes_alias_backed_service_ids() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "usage@example.com"},
+            headers={"x-forwarded-for": "203.0.113.21"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "usage@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.21"},
+        )
+
+        with patch(
+            "services.agent_usage_analytics.get_usage_analytics",
+            return_value=_FakeUsageAnalytics(),
+        ):
+            usage_response = env.client.get(
+                "/v1/auth/me/usage",
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert usage_response.status_code == 200
+    assert usage_response.json() == {
+        "total_calls": 5,
+        "calls_this_month": 5,
+        "calls_today": 2,
+        "calls_by_service": {
+            "brave-search-api": 3,
+            "people-data-labs": 2,
+        },
+        "recent_calls": [
+            {
+                "service": "brave-search-api",
+                "result": "success",
+                "latency_ms": 123,
+                "timestamp": "2026-04-17T22:00:00Z",
+            },
+            {
+                "service": "people-data-labs",
+                "result": "error",
+                "latency_ms": 456,
+                "timestamp": "2026-04-17T22:01:00Z",
+            },
+        ],
+    }
