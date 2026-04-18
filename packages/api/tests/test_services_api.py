@@ -483,6 +483,42 @@ async def _mock_canonical_score_text_supabase_fetch(path: str):
     return await _mock_alias_supabase_fetch(path)
 
 
+async def _mock_alias_score_alternate_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if {"brave-search", "brave-search-api"} & slugs:
+            return [
+                {
+                    **ALIAS_SCORE_ROWS[0],
+                    "service_slug": "brave-search",
+                    "payment_autonomy_rationale": "brave-search outperforms pdl on direct billing handoff.",
+                    "governance_readiness_rationale": "brave-search audit history is stronger than pdl.",
+                    "web_accessibility_rationale": "brave-search docs stay scriptable even when pdl docs lag.",
+                    "dimension_snapshot": {
+                        "notes": {
+                            "summary": "brave-search stays easy to script and can replace pdl for quick checks."
+                        },
+                        "autonomy": {
+                            "avg": 8.4,
+                            "confidence": 0.85,
+                            "dimensions": [
+                                {
+                                    "code": "P1",
+                                    "name": "payment_autonomy",
+                                    "score": 8.8,
+                                    "rationale": "brave-search can fall back to pdl when needed.",
+                                    "confidence": 0.89,
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        return []
+    return await _mock_alias_supabase_fetch(path)
+
+
 async def _mock_preferred_canonical_service_row_supabase_fetch(path: str):
     decoded = unquote(path)
     services = [
@@ -1079,6 +1115,30 @@ def test_service_score_canonicalizes_alias_backed_score_explanation_and_snapshot
     assert "Payment: brave-search-api supports direct billing" in payload["explanation"]
     assert payload["autonomy"]["dimensions"][0]["rationale"] == "brave-search-api supports direct billing."
     assert payload["dimension_snapshot"]["notes"]["summary"] == "brave-search-api stays easy to script."
+
+
+
+def test_service_score_canonicalizes_alternate_provider_aliases_in_score_copy(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_score_alternate_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert (
+        "Payment: brave-search-api outperforms people-data-labs on direct billing handoff"
+        in payload["explanation"]
+    )
+    assert payload["autonomy"]["dimensions"][0]["rationale"] == (
+        "brave-search-api can fall back to people-data-labs when needed."
+    )
+    assert payload["dimension_snapshot"]["notes"]["summary"] == (
+        "brave-search-api stays easy to script and can replace people-data-labs for quick checks."
+    )
 
 
 
