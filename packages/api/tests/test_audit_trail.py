@@ -158,6 +158,7 @@ class TestRecordEvent:
         )
 
         assert event.action == "Updated score for brave-search-api after people-data-labs comparison"
+        assert event.resource_id == "brave-search-api"
         assert event.chain_hash == trail._compute_hash(
             event.prev_hash,
             replace(event, chain_hash=""),
@@ -167,6 +168,31 @@ class TestRecordEvent:
             replace(
                 event,
                 action="Updated score for brave-search after pdl comparison",
+                chain_hash="",
+            ),
+        )
+
+    def test_record_canonicalizes_alias_backed_provider_resource_id_before_hashing(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.SCORE_UPDATED,
+            "Updated score for provider",
+            org_id="org_1",
+            resource_type="provider",
+            resource_id="brave-search",
+        )
+
+        assert event.resource_id == "brave-search-api"
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+        assert event.chain_hash != trail._compute_hash(
+            event.prev_hash,
+            replace(
+                event,
+                resource_id="brave-search",
                 chain_hash="",
             ),
         )
@@ -359,6 +385,59 @@ class TestQuery:
         self._populate(trail)
         results = trail.query(resource_type="agent", resource_id="agent_bad")
         assert len(results) == 1
+
+    def test_query_matches_alias_and_canonical_provider_resource_ids(self):
+        trail = AuditTrail()
+        trail.load_replay_payloads(
+            [
+                {
+                    "event_id": "aud_legacy_resource",
+                    "event_type": "score.updated",
+                    "severity": "info",
+                    "category": "trust",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "org_id": "org_a",
+                    "agent_id": None,
+                    "principal": None,
+                    "resource_type": "provider",
+                    "resource_id": "brave-search",
+                    "action": "legacy score update",
+                    "detail": {},
+                    "receipt_id": None,
+                    "execution_id": None,
+                    "provider_slug": "brave-search-api",
+                    "chain_sequence": 1,
+                    "chain_hash": "legacy_hash",
+                    "prev_hash": AuditTrail.GENESIS_HASH,
+                    "key_version": 1,
+                }
+            ]
+        )
+        trail.record(
+            AuditEventType.SCORE_UPDATED,
+            "canonical score update",
+            org_id="org_a",
+            resource_type="provider",
+            resource_id="brave-search",
+        )
+
+        canonical_results = trail.query(
+            resource_type="provider",
+            resource_id="brave-search-api",
+            limit=10,
+        )
+        alias_results = trail.query(
+            resource_type="provider",
+            resource_id="brave-search",
+            limit=10,
+        )
+
+        assert len(canonical_results) == 2
+        assert len(alias_results) == 2
+        assert {event.resource_id for event in canonical_results} == {
+            "brave-search",
+            "brave-search-api",
+        }
 
     def test_query_limit(self):
         trail = AuditTrail()

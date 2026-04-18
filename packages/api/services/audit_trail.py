@@ -137,6 +137,39 @@ def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> A
     return value
 
 
+def _canonicalize_audit_resource_id(
+    resource_type: str | None,
+    resource_id: Any,
+) -> str | None:
+    if not isinstance(resource_id, str):
+        return resource_id
+
+    cleaned = resource_id.strip()
+    if not cleaned:
+        return cleaned
+    if resource_type in {"provider", "service"}:
+        return public_service_slug(cleaned) or cleaned
+    return cleaned
+
+
+def _resource_id_candidates(resource_type: str | None, resource_id: Any) -> set[str]:
+    if not isinstance(resource_id, str):
+        return set()
+
+    cleaned = resource_id.strip()
+    if not cleaned:
+        return set()
+
+    candidates = {cleaned}
+    if resource_type not in {"provider", "service"}:
+        return candidates
+
+    canonical = public_service_slug(cleaned) or cleaned
+    candidates.add(canonical)
+    candidates.update(public_service_slug_candidates(canonical))
+    return {candidate for candidate in candidates if candidate}
+
+
 def _event_provider_contexts(
     detail: dict[str, Any] | None,
     *,
@@ -147,10 +180,7 @@ def _event_provider_contexts(
     provider_slugs: set[str] = set()
     if provider_slug:
         provider_slugs.add(str(provider_slug).strip())
-    if resource_type in {"provider", "service"} and isinstance(resource_id, str):
-        cleaned_resource_id = resource_id.strip()
-        if cleaned_resource_id:
-            provider_slugs.add(cleaned_resource_id)
+    provider_slugs.update(_resource_id_candidates(resource_type, resource_id))
     _collect_provider_slugs(detail or {}, provider_slugs)
     return provider_slugs
 
@@ -465,12 +495,13 @@ class AuditTrail:
         severity = meta.get("severity", AuditSeverity.INFO)
         category = meta.get("category", "unknown")
         canonical_provider_slug = public_service_slug(provider_slug) or provider_slug
+        canonical_resource_id = _canonicalize_audit_resource_id(resource_type, resource_id)
         raw_detail = dict(detail or {})
         provider_contexts = _event_provider_contexts(
             raw_detail,
             provider_slug=canonical_provider_slug,
             resource_type=resource_type,
-            resource_id=resource_id,
+            resource_id=canonical_resource_id,
         )
         canonical_action = _canonicalize_provider_text(action, provider_contexts) or action
         canonical_detail = _canonicalize_provider_payload(
@@ -498,7 +529,7 @@ class AuditTrail:
                     "agent_id": agent_id,
                     "principal": principal,
                     "resource_type": resource_type,
-                    "resource_id": resource_id,
+                    "resource_id": canonical_resource_id,
                     "action": canonical_action,
                     "detail": canonical_detail,
                     "receipt_id": receipt_id,
@@ -519,7 +550,7 @@ class AuditTrail:
                 agent_id=agent_id,
                 principal=principal,
                 resource_type=resource_type,
-                resource_id=resource_id,
+                resource_id=canonical_resource_id,
                 action=canonical_action,
                 detail=canonical_detail,
                 receipt_id=receipt_id,
@@ -615,7 +646,19 @@ class AuditTrail:
         if resource_type:
             candidates = [e for e in candidates if e.resource_type == resource_type]
         if resource_id:
-            candidates = [e for e in candidates if e.resource_id == resource_id]
+            resource_candidates = _resource_id_candidates(resource_type, resource_id)
+            if resource_candidates:
+                candidates = [
+                    e
+                    for e in candidates
+                    if isinstance(e.resource_id, str)
+                    and (
+                        e.resource_id.strip() in resource_candidates
+                        or (public_service_slug(e.resource_id) or e.resource_id) in resource_candidates
+                    )
+                ]
+            else:
+                candidates = [e for e in candidates if e.resource_id == resource_id]
 
         # Sort newest first
         candidates.sort(key=lambda e: e.timestamp, reverse=True)
