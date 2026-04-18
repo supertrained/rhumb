@@ -19,6 +19,7 @@ envelopes, budget enforcement, and policy controls apply.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any, Optional
 from urllib.parse import quote
@@ -228,6 +229,74 @@ def _build_in_filter(values: set[str]) -> str:
 
 def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
+
+
+def _canonicalize_provider_text(text: Any, provider_id: str | None) -> str | None:
+    if text is None:
+        return None
+    rendered = str(text)
+    canonical = _public_provider_slug(provider_id)
+    if not canonical:
+        return rendered
+
+    candidates = {
+        str(candidate).strip()
+        for candidate in public_service_slug_candidates(canonical)
+        if str(candidate or "").strip()
+    }
+    if not candidates:
+        return rendered
+
+    normalized_candidates = {candidate.lower() for candidate in candidates}
+    if canonical.lower() in normalized_candidates and normalized_candidates == {canonical.lower()}:
+        return rendered
+
+    pattern = re.compile(
+        "|".join(re.escape(candidate) for candidate in sorted(candidates, key=len, reverse=True)),
+        re.IGNORECASE,
+    )
+    return pattern.sub(canonical, rendered)
+
+
+def _canonicalize_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        public_slug = _public_provider_slug(value)
+        return public_slug or value
+    return value
+
+
+def _canonicalize_provider_payload(value: Any, *, provider_id: str | None) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in {
+                "provider",
+                "provider_used",
+                "provider_id",
+                "provider_slug",
+                "selected_provider",
+                "requested_provider",
+                "fallback_provider",
+            }:
+                canonicalized[key] = _canonicalize_provider_value(item)
+            elif key in {"message", "detail", "error_message"}:
+                canonicalized[key] = _canonicalize_provider_text(item, provider_id)
+            elif key in {
+                "available_providers",
+                "candidate_providers",
+                "fallback_providers",
+                "supported_provider_slugs",
+                "unavailable_provider_slugs",
+                "not_execute_ready_provider_slugs",
+                "policy_candidates",
+            } and isinstance(item, list):
+                canonicalized[key] = [_canonicalize_provider_value(entry) for entry in item]
+            else:
+                canonicalized[key] = _canonicalize_provider_payload(item, provider_id=provider_id)
+        return canonicalized
+    if isinstance(value, list):
+        return [_canonicalize_provider_payload(item, provider_id=provider_id) for item in value]
+    return value
 
 
 def _runtime_provider_slug(provider_id: str) -> str:
@@ -755,7 +824,10 @@ async def execute_on_provider(
             "provider": provider_runtime_slug,
         },
     )
-    estimate_body = estimate_response.json()
+    estimate_body = _canonicalize_provider_payload(
+        estimate_response.json(),
+        provider_id=provider_public_slug,
+    )
     if estimate_response.status_code != 200:
         return JSONResponse(
             status_code=estimate_response.status_code,
@@ -817,7 +889,10 @@ async def execute_on_provider(
         json_body=v1_payload,
         extra_headers={"X-Rhumb-Skip-Receipt": "true"},
     )
-    body = execute_response.json()
+    body = _canonicalize_provider_payload(
+        execute_response.json(),
+        provider_id=provider_public_slug,
+    )
 
     t_total_ms = int((time.monotonic() - t_start) * 1000)
 
