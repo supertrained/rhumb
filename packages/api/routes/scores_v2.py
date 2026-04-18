@@ -12,6 +12,7 @@ Endpoints:
 from __future__ import annotations
 
 import math
+import re
 from datetime import timezone
 from typing import Any
 
@@ -30,6 +31,35 @@ router = APIRouter(prefix="/v2/scores", tags=["scores-v2"])
 
 def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
+
+
+def _canonicalize_provider_text(
+    text: Any,
+    response_provider_id: str | None,
+    stored_provider_id: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_provider_id)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_provider_id = str(stored_provider_id).strip().lower() if stored_provider_id else None
+    if raw_stored_provider_id == canonical.lower():
+        return str(text)
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        if not candidate or candidate == canonical:
+            continue
+        canonicalized = re.sub(
+            rf"(?<![a-z0-9-]){re.escape(candidate)}(?![a-z0-9-])",
+            canonical,
+            canonicalized,
+            flags=re.IGNORECASE,
+        )
+    return canonicalized
 
 
 def _score_to_response(entry: CachedScore) -> dict[str, Any]:
@@ -53,14 +83,18 @@ def _score_to_response(entry: CachedScore) -> dict[str, Any]:
     }
 
 
-def _audit_entry_to_response(entry: ScoreAuditEntry) -> dict[str, Any]:
+def _audit_entry_to_response(entry: ScoreAuditEntry, *, response_provider_id: str | None) -> dict[str, Any]:
     """Format an audit entry for the public history endpoint."""
     return {
         "entry_id": entry.entry_id,
         "service_slug": public_service_slug(entry.service_slug) or entry.service_slug,
         "old_score": entry.old_score,
         "new_score": round(entry.new_score, 1),
-        "change_reason": entry.change_reason,
+        "change_reason": _canonicalize_provider_text(
+            entry.change_reason,
+            response_provider_id,
+            entry.service_slug,
+        ),
         "timestamp": entry.timestamp.isoformat(),
         "chain_hash": entry.chain_hash,
         "prev_hash": entry.prev_hash,
@@ -114,7 +148,10 @@ async def get_provider_score_history(
     return {
         "data": {
             "service_slug": _public_provider_slug(provider_id),
-            "entries": [_audit_entry_to_response(e) for e in entries],
+            "entries": [
+                _audit_entry_to_response(e, response_provider_id=provider_id)
+                for e in entries
+            ],
             "chain_verified": chain.verify_chain(),
             "total_chain_length": chain.length,
         },
