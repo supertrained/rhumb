@@ -290,6 +290,43 @@ async def test_create_receipt_canonicalizes_alternate_provider_alias_text_before
 
 
 @pytest.mark.anyio
+async def test_create_receipt_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint():
+    service = ReceiptService()
+    mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
+
+    with (
+        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
+        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
+    ):
+        await service.create_receipt(ReceiptInput(
+            execution_id="exec_test_alias_text_003",
+            capability_id="search.query",
+            status="failure",
+            agent_id="agent_test_alias_text",
+            provider_id="brave-search-api",
+            credential_mode="rhumb_managed",
+            layer=2,
+            winner_reason="brave-search-api fell back to pdl on contact coverage",
+            error_message="brave-search-api failed after pdl credential lookup",
+            error_code="upstream_error",
+        ))
+
+    inserted_data = mock_insert.call_args[0][1]
+    hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
+
+    assert inserted_data["provider_id"] == "brave-search-api"
+    assert inserted_data["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+    assert inserted_data["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+    assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
+        **hashed_payload,
+        "winner_reason": "brave-search-api fell back to pdl on contact coverage",
+        "error_message": "brave-search-api failed after pdl credential lookup",
+    })
+
+
+@pytest.mark.anyio
 async def test_get_receipt_canonicalizes_alias_backed_provider_id():
     service = ReceiptService()
 
@@ -357,6 +394,31 @@ async def test_get_receipt_canonicalizes_alternate_provider_alias_text_on_public
     assert result["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
     assert result["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
     assert "error_provider_raw" not in result
+
+
+@pytest.mark.anyio
+async def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint_on_public_reads():
+    service = ReceiptService()
+
+    with patch(
+        "services.receipt_service.supabase_fetch",
+        new=AsyncMock(
+            return_value=[
+                {
+                    "receipt_id": "rcpt_legacy_fallback_no_hint",
+                    "provider_id": "brave-search-api",
+                    "error_message": "brave-search-api failed after pdl credential lookup",
+                    "winner_reason": "brave-search-api fell back to pdl on contact coverage",
+                }
+            ]
+        ),
+    ):
+        result = await service.get_receipt("rcpt_legacy_fallback_no_hint")
+
+    assert result is not None
+    assert result["provider_id"] == "brave-search-api"
+    assert result["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+    assert result["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
 
 
 @pytest.mark.anyio

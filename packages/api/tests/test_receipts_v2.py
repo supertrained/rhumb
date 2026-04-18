@@ -95,6 +95,27 @@ def test_get_receipt_canonicalizes_alternate_provider_alias_text(client):
         assert "error_provider_raw" not in body["data"]
 
 
+def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(client):
+    receipt_data = {
+        "receipt_id": "rcpt_test125",
+        "execution_id": "exec_003",
+        "status": "failure",
+        "provider_id": "brave-search-api",
+        "error_message": "brave-search-api failed after pdl credential lookup",
+        "winner_reason": "brave-search-api fell back to pdl on contact coverage",
+        "chain_sequence": 3,
+        "receipt_hash": "sha256:ghi",
+    }
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = [receipt_data]
+        resp = client.get("/v2/receipts/rcpt_test125")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["provider_id"] == "brave-search-api"
+        assert body["data"]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+        assert body["data"]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+
+
 def test_query_receipts_empty(client):
     """GET /v2/receipts returns empty list when no receipts match."""
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
@@ -151,6 +172,25 @@ def test_query_receipts_canonicalizes_alias_backed_provider_text(client):
         assert body["data"]["receipts"][0]["provider_name"] == "people-data-labs"
         assert body["data"]["receipts"][0]["error_message"] == "people-data-labs credential unavailable"
         assert body["data"]["receipts"][0]["winner_reason"] == "people-data-labs won on contact coverage"
+
+
+def test_query_receipts_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(client):
+    receipts = [
+        {
+            "receipt_id": "rcpt_2",
+            "provider_id": "brave-search-api",
+            "error_message": "brave-search-api failed after pdl credential lookup",
+            "winner_reason": "brave-search-api fell back to pdl on contact coverage",
+        }
+    ]
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = receipts
+        resp = client.get("/v2/receipts?provider_id=brave-search-api")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
+        assert body["data"]["receipts"][0]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+        assert body["data"]["receipts"][0]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
 
 
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):

@@ -28,12 +28,34 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
 
 _RECEIPT_VERSION = "1.0"
 _MAX_CHAIN_RETRIES = 3
+
+
+def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
 
 
 def _canonicalize_provider_text(text: Any, provider_slug: Any) -> str | None:
@@ -75,6 +97,15 @@ def _canonicalize_provider_text_from_contexts(
     return canonicalized
 
 
+
+def _canonicalize_provider_message_text_from_contexts(
+    text: Any,
+    provider_slugs: list[Any],
+) -> str | None:
+    canonicalized = _canonicalize_provider_text_from_contexts(text, provider_slugs)
+    return _canonicalize_known_provider_aliases(canonicalized)
+
+
 def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
     """Normalize provider identity for API-facing receipt reads."""
     if row is None:
@@ -90,12 +121,12 @@ def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
             provider_contexts,
         )
     if "error_message" in normalized:
-        normalized["error_message"] = _canonicalize_provider_text_from_contexts(
+        normalized["error_message"] = _canonicalize_provider_message_text_from_contexts(
             normalized.get("error_message"),
             provider_contexts,
         )
     if "winner_reason" in normalized:
-        normalized["winner_reason"] = _canonicalize_provider_text_from_contexts(
+        normalized["winner_reason"] = _canonicalize_provider_message_text_from_contexts(
             normalized.get("winner_reason"),
             provider_contexts,
         )
@@ -305,7 +336,7 @@ class ReceiptService:
             "provider_region": input.provider_region,
             "router_version": input.router_version,
             "candidates_evaluated": input.candidates_evaluated,
-            "winner_reason": _canonicalize_provider_text_from_contexts(
+            "winner_reason": _canonicalize_provider_message_text_from_contexts(
                 input.winner_reason,
                 provider_text_contexts,
             ),
@@ -327,7 +358,7 @@ class ReceiptService:
             "compat_mode": input.compat_mode,
             "idempotency_key": input.idempotency_key,
             "error_code": input.error_code,
-            "error_message": _canonicalize_provider_text_from_contexts(
+            "error_message": _canonicalize_provider_message_text_from_contexts(
                 input.error_message,
                 provider_text_contexts,
             ),
