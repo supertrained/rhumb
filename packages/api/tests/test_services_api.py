@@ -519,6 +519,62 @@ async def _mock_alias_score_alternate_text_supabase_fetch(path: str):
     return await _mock_alias_supabase_fetch(path)
 
 
+async def _mock_canonical_score_and_failure_alternate_text_supabase_fetch(path: str):
+    decoded = unquote(path)
+    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if {"brave-search", "brave-search-api"} & slugs:
+            return [
+                {
+                    **ALIAS_SCORE_ROWS[0],
+                    "service_slug": "brave-search-api",
+                    "payment_autonomy_rationale": "brave-search-api outperforms pdl on direct billing handoff.",
+                    "governance_readiness_rationale": "brave-search-api audit history is stronger than pdl.",
+                    "web_accessibility_rationale": "brave-search-api docs stay scriptable even when pdl docs lag.",
+                    "dimension_snapshot": {
+                        "notes": {
+                            "summary": "brave-search-api stays easy to script and can replace pdl for quick checks."
+                        },
+                        "autonomy": {
+                            "avg": 8.4,
+                            "confidence": 0.85,
+                            "dimensions": [
+                                {
+                                    "code": "P1",
+                                    "name": "payment_autonomy",
+                                    "score": 8.8,
+                                    "rationale": "brave-search-api can fall back to pdl when needed.",
+                                    "confidence": 0.89,
+                                }
+                            ],
+                        },
+                    },
+                }
+            ]
+        return []
+
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        rows = [
+            {
+                "service_slug": "brave-search-api",
+                "id": "fm-brave-canonical-alt-text",
+                "category": "auth",
+                "title": "brave-search-api session tokens expire early after pdl fallback",
+                "description": "brave-search-api sessions can lose auth unexpectedly when pdl fallback is triggered.",
+                "severity": "medium",
+                "frequency": "intermittent",
+                "agent_impact": "Agents using brave-search-api may need to retry after pdl fallback.",
+                "workaround": "Refresh brave-search-api credentials before multi-step flows that may hit pdl fallback.",
+                "last_verified": "2026-04-16T15:45:00Z",
+                "evidence_count": 2,
+            }
+        ]
+        return [row for row in rows if row["service_slug"] in slugs]
+
+    return await _mock_alias_supabase_fetch(path)
+
+
 async def _mock_preferred_canonical_service_row_supabase_fetch(path: str):
     decoded = unquote(path)
     services = [
@@ -1142,6 +1198,30 @@ def test_service_score_canonicalizes_alternate_provider_aliases_in_score_copy(cl
 
 
 
+def test_service_score_canonicalizes_alternate_provider_aliases_in_canonical_score_copy(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_score_and_failure_alternate_text_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert (
+        "Payment: brave-search-api outperforms people-data-labs on direct billing handoff"
+        in payload["explanation"]
+    )
+    assert payload["autonomy"]["dimensions"][0]["rationale"] == (
+        "brave-search-api can fall back to people-data-labs when needed."
+    )
+    assert payload["dimension_snapshot"]["notes"]["summary"] == (
+        "brave-search-api stays easy to script and can replace people-data-labs for quick checks."
+    )
+
+
+
 def test_service_score_canonicalizes_legacy_alias_mentions_in_failure_copy(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1227,6 +1307,46 @@ def test_service_failures_preserve_human_shorthand_on_canonical_rows(client) -> 
             "description": "PDL sessions can time out during long imports.",
             "last_verified": "2026-04-16T15:45:00Z",
             "evidence_count": 1,
+        }
+    ]
+
+
+
+def test_service_detail_and_failures_canonicalize_alternate_provider_aliases_in_canonical_rows(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_canonical_score_and_failure_alternate_text_supabase_fetch,
+    ):
+        detail_resp = client.get("/v1/services/brave-search-api")
+        failures_resp = client.get("/v1/services/brave-search-api/failures")
+
+    assert detail_resp.status_code == 200
+    detail_payload = detail_resp.json()
+    assert detail_payload["data"]["payment_autonomy_rationale"] == (
+        "brave-search-api outperforms people-data-labs on direct billing handoff."
+    )
+    assert detail_payload["data"]["autonomy"]["dimensions"][0]["rationale"] == (
+        "brave-search-api can fall back to people-data-labs when needed."
+    )
+    assert detail_payload["data"]["dimension_snapshot"]["notes"]["summary"] == (
+        "brave-search-api stays easy to script and can replace people-data-labs for quick checks."
+    )
+
+    assert failures_resp.status_code == 200
+    failures_payload = failures_resp.json()
+    assert failures_payload["data"]["slug"] == "brave-search-api"
+    assert failures_payload["data"]["failure_modes"] == [
+        {
+            "pattern": "brave-search-api session tokens expire early after people-data-labs fallback",
+            "impact": "Agents using brave-search-api may need to retry after people-data-labs fallback.",
+            "frequency": "intermittent",
+            "workaround": "Refresh brave-search-api credentials before multi-step flows that may hit people-data-labs fallback.",
+            "category": "auth",
+            "severity": "medium",
+            "description": "brave-search-api sessions can lose auth unexpectedly when people-data-labs fallback is triggered.",
+            "last_verified": "2026-04-16T15:45:00Z",
+            "evidence_count": 2,
         }
     ]
 
