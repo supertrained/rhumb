@@ -2179,6 +2179,126 @@ async def test_execute_agent_vault_canonicalizes_alias_backed_provider_ids_for_r
 
 
 @pytest.mark.anyio
+async def test_execute_agent_vault_canonicalizes_alias_backed_provider_fields_in_upstream_response(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("services?slug=eq.brave-search&"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    raw_upstream_response = {
+        "provider_used": "brave-search",
+        "selected_provider": "brave-search",
+        "message": "brave-search upstream accepted",
+        "detail": "Retry brave-search if the alias path drifts",
+        "result": {
+            "provider_slug": "brave-search",
+            "fallback_providers": ["brave-search"],
+        },
+    }
+    expected_upstream_response = {
+        "provider_used": "brave-search-api",
+        "selected_provider": "brave-search-api",
+        "message": "brave-search-api upstream accepted",
+        "detail": "Retry brave-search-api if the alias path drifts",
+        "result": {
+            "provider_slug": "brave-search-api",
+            "fallback_providers": ["brave-search-api"],
+        },
+    }
+    response_text = json.dumps(raw_upstream_response)
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return raw_upstream_response
+
+        text = response_text
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            return DummyResponse()
+
+    mock_validator = MagicMock()
+    mock_validator.get_ceremony = AsyncMock(return_value=None)
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_agent_vault_payload_alias")
+    )
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("services.agent_vault.get_vault_validator", return_value=mock_validator),
+        patch("routes.capability_execute.httpx.AsyncClient", DummyAsyncClient),
+        patch(
+            "routes.capability_execute.get_receipt_service",
+            return_value=mock_receipt_service,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "agent_vault",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "agent_vault_test_token",
+                },
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["upstream_response"] == expected_upstream_response
+
+    receipt_input = mock_receipt_service.create_receipt.await_args.args[0]
+    assert receipt_input.response_hash == capability_execute.hash_response_payload(
+        expected_upstream_response
+    )
+
+
+@pytest.mark.anyio
 async def test_execute_byok_canonicalizes_alias_backed_provider_ids_for_receipt_path(app):
     async def _mock_fetch(path: str):
         if path.startswith("capabilities?"):
@@ -2269,6 +2389,117 @@ async def test_execute_byok_canonicalizes_alias_backed_provider_ids_for_receipt_
     assert mock_billing_event.call_args.kwargs["provider_slug"] == "brave-search-api"
     assert mock_audit_outcome.call_args.kwargs["provider_slug"] == "brave-search-api"
     assert mock_build_attribution.await_args.kwargs["provider_slug"] == "brave-search-api"
+
+
+@pytest.mark.anyio
+async def test_execute_byok_canonicalizes_alias_backed_provider_fields_in_upstream_response(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": "0.01",
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("scores?"):
+            return [{"service_slug": "brave-search", "aggregate_recommendation_score": 8.9}]
+        if path.startswith("services?slug=eq.brave-search&"):
+            return [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    raw_upstream_response = {
+        "provider_used": "brave-search",
+        "provider_slug": "brave-search",
+        "message": "brave-search upstream accepted",
+        "result": {
+            "selected_provider": "brave-search",
+            "supported_provider_slugs": ["brave-search"],
+        },
+    }
+    expected_upstream_response = {
+        "provider_used": "brave-search-api",
+        "provider_slug": "brave-search-api",
+        "message": "brave-search-api upstream accepted",
+        "result": {
+            "selected_provider": "brave-search-api",
+            "supported_provider_slugs": ["brave-search-api"],
+        },
+    }
+
+    mock_response, mock_pool = _build_patches()
+    mock_response.json.return_value = raw_upstream_response
+    mock_response.text = json.dumps(raw_upstream_response)
+
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_byok_payload_alias")
+    )
+    mock_attribution = MagicMock()
+    mock_attribution.to_rhumb_block.return_value = {"provider": {"id": "brave-search-api"}}
+    mock_attribution.to_response_headers.return_value = {"X-Rhumb-Provider": "brave-search-api"}
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch(
+            "routes.capability_execute.get_receipt_service",
+            return_value=mock_receipt_service,
+        ),
+        patch(
+            "routes.capability_execute.build_attribution",
+            new_callable=AsyncMock,
+            return_value=mock_attribution,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "byok",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["upstream_response"] == expected_upstream_response
+
+    receipt_input = mock_receipt_service.create_receipt.await_args.args[0]
+    assert receipt_input.response_hash == capability_execute.hash_response_payload(
+        expected_upstream_response
+    )
 
 
 @pytest.mark.anyio
@@ -2741,6 +2972,133 @@ async def test_execute_managed_canonicalizes_alias_backed_provider_ids_for_recei
     assert receipt_input.provider_id == "brave-search-api"
     assert mock_billing_event.call_args.kwargs["provider_slug"] == "brave-search-api"
     assert mock_audit_outcome.call_args.kwargs["provider_slug"] == "brave-search-api"
+
+
+@pytest.mark.anyio
+async def test_execute_managed_canonicalizes_alias_backed_provider_fields_in_result_payload(app):
+    managed_mapping = {
+        "capability_id": "search.query",
+        "service_slug": "brave-search",
+        "credential_modes": ["byo", "rhumb_managed"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    }
+
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [managed_mapping]
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    raw_upstream_response = {
+        "provider_used": "brave-search",
+        "message": "brave-search upstream accepted",
+        "result": {
+            "provider_slug": "brave-search",
+            "fallback_providers": ["brave-search"],
+        },
+    }
+    expected_upstream_response = {
+        "provider_used": "brave-search-api",
+        "message": "brave-search-api upstream accepted",
+        "result": {
+            "provider_slug": "brave-search-api",
+            "fallback_providers": ["brave-search-api"],
+        },
+    }
+
+    async def mock_execute(
+        self,
+        capability_id,
+        agent_id,
+        body=None,
+        params=None,
+        service_slug=None,
+        interface="rest",
+        execution_id=None,
+    ):
+        return {
+            "capability_id": capability_id,
+            "provider_used": "brave-search",
+            "selected_provider": "brave-search",
+            "credential_mode": "rhumb_managed",
+            "upstream_status": 200,
+            "upstream_response": raw_upstream_response,
+            "latency_ms": 15.0,
+            "execution_id": execution_id or "exec_managed_payload_alias",
+        }
+
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_managed_payload_alias")
+    )
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            return_value=managed_mapping,
+        ),
+        patch(
+            "services.upstream_budget.claim_provider_budget",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
+        patch("services.rhumb_managed.RhumbManagedExecutor.execute", mock_execute),
+        patch(
+            "routes.capability_execute.get_receipt_service",
+            return_value=mock_receipt_service,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "rhumb_managed",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["selected_provider"] == "brave-search-api"
+    assert data["upstream_response"] == expected_upstream_response
+
+    receipt_input = mock_receipt_service.create_receipt.await_args.args[0]
+    assert receipt_input.response_hash == capability_execute.hash_response_payload(
+        expected_upstream_response
+    )
 
 
 @pytest.mark.anyio

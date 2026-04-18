@@ -21,6 +21,7 @@ import base64
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from typing import Any, Optional
@@ -1217,6 +1218,77 @@ def _canonicalize_public_provider_message(
         if candidate and candidate != public_provider:
             rewritten = rewritten.replace(f"'{candidate}'", f"'{public_provider}'")
     return rewritten
+
+
+def _canonicalize_public_provider_text(
+    text: Any,
+    provider_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    rendered = str(text)
+    canonical = _public_provider_slug(provider_slug)
+    if not canonical:
+        return rendered
+
+    candidates = {
+        str(candidate).strip()
+        for candidate in public_service_slug_candidates(canonical)
+        if str(candidate or "").strip()
+    }
+    if not candidates:
+        return rendered
+
+    normalized_candidates = {candidate.lower() for candidate in candidates}
+    if canonical.lower() in normalized_candidates and normalized_candidates == {canonical.lower()}:
+        return rendered
+
+    pattern = re.compile(
+        "|".join(re.escape(candidate) for candidate in sorted(candidates, key=len, reverse=True)),
+        re.IGNORECASE,
+    )
+    return pattern.sub(canonical, rendered)
+
+
+def _canonicalize_public_provider_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _public_provider_slug(value) or value
+    return value
+
+
+def _canonicalize_public_provider_payload(value: Any, *, provider_slug: str | None) -> Any:
+    if isinstance(value, dict):
+        canonicalized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in {
+                "provider",
+                "provider_used",
+                "provider_id",
+                "provider_slug",
+                "selected_provider",
+                "requested_provider",
+                "fallback_provider",
+            }:
+                canonicalized[key] = _canonicalize_public_provider_value(item)
+            elif key in {"message", "detail", "error_message"}:
+                canonicalized[key] = _canonicalize_public_provider_text(item, provider_slug)
+            elif key in {
+                "available_providers",
+                "candidate_providers",
+                "fallback_providers",
+                "supported_provider_slugs",
+                "unavailable_provider_slugs",
+                "not_execute_ready_provider_slugs",
+                "policy_candidates",
+            } and isinstance(item, list):
+                canonicalized[key] = [_canonicalize_public_provider_value(entry) for entry in item]
+            else:
+                canonicalized[key] = _canonicalize_public_provider_payload(item, provider_slug=provider_slug)
+        return canonicalized
+    if isinstance(value, list):
+        return [_canonicalize_public_provider_payload(item, provider_slug=provider_slug) for item in value]
+    return value
 
 
 def _prepare_upstream_payload(
@@ -3025,6 +3097,7 @@ async def execute_capability(
         managed_provider = _public_provider_slug(
             result.get("provider_used") or request.provider or "unknown"
         ) or "unknown"
+        result = _canonicalize_public_provider_payload(result, provider_slug=managed_provider)
         result["provider_used"] = managed_provider
         managed_billing_status = (
             "billed"
@@ -3214,6 +3287,11 @@ async def execute_capability(
                 vault_response["budget_remaining_usd"] = round(budget_remaining, 4)
             if credit_remaining_cents is not None:
                 vault_response["org_credits_remaining_cents"] = credit_remaining_cents
+            vault_response = _canonicalize_public_provider_payload(
+                vault_response,
+                provider_slug=public_provider_used,
+            )
+            upstream_response = vault_response.get("upstream_response")
 
             if x_payment and x_payment != "required":
                 _log_x402_interop_trace(
@@ -3490,6 +3568,11 @@ async def execute_capability(
         response_data["budget_remaining_usd"] = round(budget_remaining, 4)
     if credit_remaining_cents is not None:
         response_data["org_credits_remaining_cents"] = credit_remaining_cents
+    response_data = _canonicalize_public_provider_payload(
+        response_data,
+        provider_slug=public_provider_used,
+    )
+    upstream_response = response_data.get("upstream_response")
 
     # ── Build response headers ──────────────────────────────────────
     response_headers: dict[str, str] = {}
