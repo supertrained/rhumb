@@ -294,6 +294,30 @@ const winner = services[0];
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-xl border border-slate-800 bg-surface p-6 sm:p-8">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">Storage choice is only the start of unattended file workflows</h2>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            Picking S3, R2, or B2 decides where files live, but the harder operator questions show up after that: what breaks once retrieval and upload sit inside longer agent loops, how request and egress budgets get shared across many runs, and how bucket credentials or pre-signed access stay narrow as workflows spread. These three pages carry the storage comparison into that live fleet-operating lane.
+          </p>
+          <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retrieval, upload, and post-processing live inside longer unattended agent loops.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How request caps, egress budgets, and downstream processing limits turn object storage into fleet coordination.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why bucket access feels low-risk until pre-signed URLs, delete authority, and long-lived keys start spreading across the workflow.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Methodology note -->
       <section class="mt-10 border-t border-slate-800 pt-8" data-section="methodology">
         <p class="text-sm text-slate-500">

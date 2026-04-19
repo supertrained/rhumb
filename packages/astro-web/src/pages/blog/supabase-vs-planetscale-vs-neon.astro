@@ -438,6 +438,28 @@ const agentRules = [
         </div>
       </div>
 
+      <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal" data-section="fleet-follow-through">
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
+        <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Database selection is only the first durability decision</h2>
+        <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+          Choosing Supabase, PlanetScale, or Neon decides which data plane the agent touches, not how multi-step write loops stay stable, how shared connection and query budgets get contained, or how service keys and admin roles stay narrow over time. These three pages carry the database comparison into that live fleet-operating lane.
+        </p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">What silently breaks once query, branch, and write decisions compound across longer unattended agent flows.</p>
+          </a>
+          <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">How connection limits, query budgets, and upstream throttles turn one database workflow into fleet coordination.</p>
+          </a>
+          <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Why service keys, branch tokens, and elevated roles need tighter lifecycle control than the happy-path tutorials imply.</p>
+          </a>
+        </div>
+      </div>
+
       <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 text-center reveal">
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
         <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>

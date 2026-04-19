@@ -291,6 +291,32 @@ const winner = services[0];
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Infrastructure plans become a fleet problem the moment they stop being one-off applies
+          </h2>
+          <p class="mb-5 text-sm leading-7 text-slate-300">
+            Choosing Terraform Cloud, Spacelift, or env0 decides where plans and applies run, but unattended infrastructure work gets harder after that choice. The next operator questions are what breaks inside multi-step loops, how shared provider and CI budgets get contained, and how workspace or cloud credentials stay narrow across many runs. These three pages carry the IaC comparison into that live control-plane lane.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why long-running plans, retries, and tool calls get unstable once the model has to keep a full execution story coherent.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How Terraform, VCS, policy, and cloud-provider limits turn a single apply path into a shared fleet-coordination problem.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why infra agents need short-lived, revocable authority before one workspace token becomes the whole blast radius.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Methodology note -->
       <section class="mt-12 border-t border-slate-800 pt-8" data-section="methodology">
         <p class="text-xs text-slate-500">
