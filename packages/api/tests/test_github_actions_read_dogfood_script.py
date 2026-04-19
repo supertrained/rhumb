@@ -168,7 +168,7 @@ def test_main_preflight_only_prints_resolve_step_summary(monkeypatch, tmp_path, 
 
 
 def test_main_full_proof_keeps_preflight_resolve_surfaces_in_artifact(monkeypatch, tmp_path, capsys) -> None:
-    artifact_path = tmp_path / "github-actions-full.json"
+    artifact_path = tmp_path / "nested" / "github-actions-full.json"
     configured_preflight = json.loads(json.dumps(UNCONFIGURED_PREFLIGHT))
     configured_preflight["configured"] = True
     configured_preflight["resolve_handoff"] = None

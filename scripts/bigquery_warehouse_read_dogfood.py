@@ -1030,6 +1030,7 @@ def _direct_parity_result(
 def _write_artifact(*, args: argparse.Namespace, artifact: dict[str, Any], ok: bool, results: list[dict[str, Any]]) -> int:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-bigquery-hosted-proof-{_now_slug()}.json"
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(json.dumps(artifact, indent=2))
     preflight = artifact.get("preflight") if isinstance(artifact.get("preflight"), dict) else {}
     resolve_step = _resolve_handoff_summary(preflight.get("resolve_handoff")) if not ok else None

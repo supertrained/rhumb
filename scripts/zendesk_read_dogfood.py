@@ -388,6 +388,7 @@ def main() -> int:
 
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     artifact_path = Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-zendesk-hosted-proof-{_now_slug()}.json"
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.preflight_only or not preflight["configured"]:
         ok = all(item["ok"] for item in results)

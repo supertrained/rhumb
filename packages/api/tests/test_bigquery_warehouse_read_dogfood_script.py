@@ -150,7 +150,7 @@ def test_run_preflight_accepts_execute_handoff_when_provider_not_execute_ready(m
 
 
 def test_main_preflight_only_writes_blocker_artifact_without_query(monkeypatch, tmp_path) -> None:
-    artifact_path = tmp_path / "warehouse-preflight.json"
+    artifact_path = tmp_path / "nested" / "warehouse-preflight.json"
     monkeypatch.setattr(bigquery_warehouse_read_dogfood, "_run_preflight", lambda **_: UNCONFIGURED_PREFLIGHT)
     monkeypatch.setattr(
         sys,

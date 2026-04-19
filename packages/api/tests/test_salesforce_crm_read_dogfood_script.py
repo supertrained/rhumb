@@ -150,7 +150,7 @@ def test_run_preflight_accepts_execute_handoff_when_provider_not_execute_ready(m
 
 
 def test_main_preflight_only_writes_blocker_artifact_without_record_id(monkeypatch, tmp_path) -> None:
-    artifact_path = tmp_path / "salesforce-preflight.json"
+    artifact_path = tmp_path / "nested" / "salesforce-preflight.json"
     monkeypatch.setattr(salesforce_crm_read_dogfood, "_run_preflight", lambda **_: UNCONFIGURED_PREFLIGHT)
     monkeypatch.setattr(
         sys,
