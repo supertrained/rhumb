@@ -291,6 +291,30 @@ const ARTICLE_JSON_LD = {
           </div>
         </div>
 
+        <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Persistent context only helps if the live lane stays governable
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Once memory survives between sessions, the next operator risk is not just what the agent remembers. It is how that remembered context behaves inside live loops, shared provider budgets, and the credential layer that authorizes the next action. These three pages carry the memory-boundary story into production operations.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">The loop-level view of retries, tool calls, and why remembered priors can compound bad runtime behavior.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">What changes when many agents inherit context and then collide inside the same provider budget.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">How to keep inherited context, scoped authority, and credential rotation from drifting apart.</p>
+            </a>
+          </div>
+        </div>
+
         <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
           <ul class="space-y-3 text-slate-300">
