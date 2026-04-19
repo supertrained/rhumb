@@ -366,6 +366,68 @@ async def test_managed_catalog_endpoint_canonicalizes_alias_backed_runtime_rows(
 
 
 @pytest.mark.anyio
+async def test_managed_catalog_endpoint_canonicalizes_alias_copy_in_descriptions(app):
+    """Managed catalog copy should not leak runtime aliases in public descriptions."""
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "description": "Use brave-search before falling back to pdl.",
+                    "daily_limit_per_agent": 100,
+                },
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "people-data-labs",
+                    "description": "pdl fallback for person enrichment.",
+                    "daily_limit_per_agent": 50,
+                },
+            ]
+        if "capabilities?" in path and "id=in." in path:
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Search the web",
+                }
+            ]
+        return []
+
+    with (
+        patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/capabilities/rhumb-managed")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["managed_capabilities"] == [
+        {
+            "capability_id": "search.query",
+            "service_slug": "brave-search-api",
+            "description": "Use brave-search-api before falling back to people-data-labs.",
+            "daily_limit_per_agent": 100,
+            "domain": "search",
+            "action": "query",
+            "capability_description": "Search the web",
+        },
+        {
+            "capability_id": "search.query",
+            "service_slug": "people-data-labs",
+            "description": "people-data-labs fallback for person enrichment.",
+            "daily_limit_per_agent": 50,
+            "domain": "search",
+            "action": "query",
+            "capability_description": "Search the web",
+        },
+    ]
+
+
+@pytest.mark.anyio
 async def test_managed_catalog_empty(app):
     """Managed catalog returns empty list when no managed capabilities."""
 

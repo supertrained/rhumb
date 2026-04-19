@@ -3104,9 +3104,24 @@ async def list_rhumb_managed() -> dict:
             f"&select=id,domain,action,description"
         )
         caps_by_id = {c["id"]: c for c in (caps or [])}
+        provider_contexts_by_capability: dict[str, list[str]] = {}
+        for m in managed:
+            capability_id = str(m.get("capability_id") or "").strip()
+            service_slug = str(m.get("service_slug") or "").strip()
+            if not capability_id or not service_slug:
+                continue
+            provider_contexts = provider_contexts_by_capability.setdefault(capability_id, [])
+            if service_slug not in provider_contexts:
+                provider_contexts.append(service_slug)
 
         for m in managed:
             cap = caps_by_id.get(m["capability_id"], {})
+            provider_contexts = provider_contexts_by_capability.get(m["capability_id"], [])
+            if provider_contexts:
+                m["description"] = _canonicalize_provider_text_from_contexts(
+                    m.get("description"),
+                    provider_contexts,
+                )
             m["domain"] = cap.get("domain")
             m["action"] = cap.get("action")
             m["capability_description"] = cap.get("description")
