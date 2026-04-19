@@ -136,6 +136,62 @@ def test_latest_probe_recanonicalizes_legacy_alias_backed_stored_rows(
     assert latest_body["raw_response"]["service_slug"] == "brave-search-api"
 
 
+def test_latest_probe_canonicalizes_same_service_alias_text_for_canonical_rows(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Canonical probe rows should still rewrite self-alias text in nested payloads."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    repository = InMemoryProbeRepository()
+    latest_probe = repository.save_probe(
+        service_slug="brave-search-api",
+        probe_type="health",
+        status="ok",
+        latency_ms=38,
+        response_code=200,
+        response_schema_hash="schema_same_alias",
+        raw_response={
+            "message": "Legacy brave-search probe passed after brave-search retry.",
+            "detail": {
+                "summary": "brave-search recovered for the public health check.",
+            },
+            "service_slug": "brave-search-api",
+        },
+        probe_metadata={
+            "runner": "scaffold",
+            "service_slug": "brave-search-api",
+            "notes": ["brave-search stabilized before this sample."],
+        },
+        trigger_source="legacy-import",
+        runner_version="scaffold-v1",
+    )
+    service = ProbeService(repository=repository)
+    monkeypatch.setattr(probe_routes, "get_probe_service", lambda: service)
+
+    latest_response = client.get("/v1/services/brave-search-api/probes/latest")
+    assert latest_response.status_code == 200
+
+    latest_body = latest_response.json()
+    assert latest_body["probe_id"] == str(latest_probe.id)
+    assert latest_body["service_slug"] == "brave-search-api"
+    assert latest_body["metadata"]["service_slug"] == "brave-search-api"
+    assert latest_body["metadata"]["notes"] == [
+        "brave-search-api stabilized before this sample.",
+    ]
+    assert latest_body["raw_response"]["service_slug"] == "brave-search-api"
+    assert latest_body["raw_response"]["message"] == (
+        "Legacy brave-search-api probe passed after brave-search-api retry."
+    )
+    assert latest_body["raw_response"]["detail"]["summary"] == (
+        "brave-search-api recovered for the public health check."
+    )
+    assert "brave-search-api-api" not in latest_body["raw_response"]["message"]
+
+
 def test_scheduler_dry_run_accepts_alias_filters_and_serializes_canonical_service_ids(
     client,
     monkeypatch: pytest.MonkeyPatch,

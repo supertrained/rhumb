@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from time import perf_counter
@@ -13,7 +14,7 @@ from typing import Any
 import httpx
 
 from db.repository import ProbeRepository, StoredProbe
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 
 @dataclass(slots=True)
@@ -27,6 +28,95 @@ class ProbeExecutionResult:
     raw_response: dict[str, Any] | None
     probe_metadata: dict[str, Any] | None
     error_message: str | None = None
+
+
+def _canonicalize_known_service_aliases(
+    text: Any,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
+    if text is None:
+        return None
+
+    preserved = str(preserve_canonical or "").strip().lower() or None
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
+def _canonicalize_service_text(
+    text: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+    preserve_human_shorthand = raw_stored_slug == canonical.lower()
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        cleaned = str(candidate or "").strip()
+        if not cleaned or cleaned.lower() == canonical.lower():
+            continue
+
+        pattern = re.compile(
+            rf"(?<![a-z0-9-]){re.escape(cleaned)}(?![a-z0-9-])",
+            re.IGNORECASE,
+        )
+
+        def _replace(match: re.Match[str]) -> str:
+            matched = match.group(0)
+            if preserve_human_shorthand and cleaned.isalpha() and matched == cleaned.upper():
+                return matched
+            return canonical
+
+        canonicalized = pattern.sub(_replace, canonicalized)
+
+    return _canonicalize_known_service_aliases(
+        canonicalized,
+        preserve_canonical=canonical if preserve_human_shorthand else None,
+    )
+
+
+def _canonicalize_service_payload(
+    value: Any,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> Any:
+    if isinstance(value, str):
+        return _canonicalize_service_text(value, response_service_slug, stored_service_slug)
+    if isinstance(value, list):
+        return [
+            _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for item in value
+        ]
+    if isinstance(value, dict):
+        return {
+            key: _canonicalize_service_payload(item, response_service_slug, stored_service_slug)
+            for key, item in value.items()
+        }
+    return value
 
 
 class ProbeService:
@@ -50,12 +140,24 @@ class ProbeService:
             return stored
 
         probe_metadata = stored.probe_metadata
-        if isinstance(probe_metadata, dict) and probe_metadata.get("service_slug") != normalized_service_slug:
-            probe_metadata = {**probe_metadata, "service_slug": normalized_service_slug}
+        if isinstance(probe_metadata, (dict, list)):
+            canonicalized_probe_metadata = _canonicalize_service_payload(
+                probe_metadata,
+                normalized_service_slug,
+                stored.service_slug,
+            )
+            if canonicalized_probe_metadata != probe_metadata:
+                probe_metadata = canonicalized_probe_metadata
 
         raw_response = stored.raw_response
-        if isinstance(raw_response, dict) and raw_response.get("service_slug") != normalized_service_slug:
-            raw_response = {**raw_response, "service_slug": normalized_service_slug}
+        if isinstance(raw_response, (dict, list)):
+            canonicalized_raw_response = _canonicalize_service_payload(
+                raw_response,
+                normalized_service_slug,
+                stored.service_slug,
+            )
+            if canonicalized_raw_response != raw_response:
+                raw_response = canonicalized_raw_response
 
         if (
             normalized_service_slug == stored.service_slug
