@@ -6,6 +6,7 @@ import asyncio
 import json
 import uuid
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Generator
 
 import pytest
@@ -596,6 +597,92 @@ def test_get_usage_report_canonicalizes_alias_backed_service_ids(
     payload = response.json()
     assert payload["by_service"]["people-data-labs"]["call_count"] == 3
     assert "pdl" not in payload["by_service"]
+
+
+def test_get_usage_report_recanonicalizes_mixed_service_summary_at_route_boundary(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    class _FakeUsageMeter:
+        async def get_org_monthly_usage(self, organization_id: str, month: str):
+            return SimpleNamespace(
+                organization_id=organization_id,
+                month=month,
+                total_calls=3,
+                cost_estimate=0.003,
+                by_service={
+                    "pdl": SimpleNamespace(call_count=2, cost_estimate=0.002),
+                    "people-data-labs": SimpleNamespace(call_count=1, cost_estimate=0.001),
+                },
+                by_agent={
+                    "agent_test": SimpleNamespace(total_calls=3, cost_estimate=0.003),
+                },
+            )
+
+    set_test_billing_stores(_FakeUsageMeter(), billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/usage",
+        params={"organization_id": "org_route_usage_alias", "month": "2026-04"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["by_service"] == {
+        "people-data-labs": {"call_count": 3, "cost_estimate": 0.003},
+    }
+    assert payload["by_agent"] == {
+        "agent_test": {"total_calls": 3, "cost_estimate": 0.003},
+    }
+
+
+def test_generate_invoice_recanonicalizes_mixed_service_line_items_at_route_boundary(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    class _FakeBillingAggregator:
+        async def generate_invoice(self, organization_id: str, month: str):
+            return SimpleNamespace(
+                invoice_id="inv_alias_boundary",
+                organization_id=organization_id,
+                month=month,
+                subtotal=0.006,
+                tax=0.0,
+                total=0.006,
+                status="draft",
+                line_items=[
+                    SimpleNamespace(service="brave-search", call_count=2, unit_cost=0.001, total_cost=0.002),
+                    SimpleNamespace(service="brave-search-api", call_count=1, unit_cost=0.001, total_cost=0.001),
+                    SimpleNamespace(service="pdl", call_count=2, unit_cost=0.001, total_cost=0.002),
+                    SimpleNamespace(service="people-data-labs", call_count=1, unit_cost=0.001, total_cost=0.001),
+                ],
+            )
+
+    set_test_billing_stores(usage_meter, _FakeBillingAggregator(), stripe_manager)
+
+    response = admin_client.post(
+        "/v1/admin/billing/invoices/generate",
+        json={"organization_id": "org_invoice_alias", "month": "2026-04"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["line_items"] == [
+        {
+            "service": "brave-search-api",
+            "call_count": 3,
+            "unit_cost": 0.001,
+            "total_cost": 0.003,
+        },
+        {
+            "service": "people-data-labs",
+            "call_count": 3,
+            "unit_cost": 0.001,
+            "total_cost": 0.003,
+        },
+    ]
 
 
 def test_list_invoices_empty(admin_client: TestClient) -> None:

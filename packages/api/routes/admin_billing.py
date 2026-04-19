@@ -18,6 +18,7 @@ from services.stripe_integration import (
     StripeIntegrationManager,
     get_stripe_integration_manager,
 )
+from services.service_slugs import public_service_slug
 from services.usage_metering import COST_PER_CALL_USD, UsageMeterEngine, get_usage_meter_engine
 
 router = APIRouter(tags=["admin-billing"])
@@ -59,6 +60,74 @@ def _get_stripe_manager() -> StripeIntegrationManager:
     return _test_stripe_manager or get_stripe_integration_manager()
 
 
+def _public_billing_service(service: Any) -> str:
+    cleaned = str(service or "").strip().lower()
+    if not cleaned:
+        return ""
+    return public_service_slug(cleaned) or cleaned
+
+
+def _canonicalize_billing_services(services: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(services, dict):
+        return {}
+
+    merged: dict[str, dict[str, Any]] = {}
+    for raw_service, summary in services.items():
+        service = _public_billing_service(raw_service)
+        if not service:
+            continue
+
+        call_count = int(getattr(summary, "call_count", 0) or 0)
+        cost_estimate = float(getattr(summary, "cost_estimate", 0) or 0)
+
+        bucket = merged.setdefault(service, {"call_count": 0, "cost_estimate": 0.0})
+        bucket["call_count"] += call_count
+        bucket["cost_estimate"] += cost_estimate
+
+    for bucket in merged.values():
+        bucket["cost_estimate"] = round(float(bucket["cost_estimate"]), 6)
+
+    return merged
+
+
+def _canonicalize_invoice_line_items(line_items: Any) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+
+    for line in line_items or []:
+        raw_service = line.get("service") if isinstance(line, dict) else getattr(line, "service", None)
+        service = _public_billing_service(raw_service)
+        if not service:
+            continue
+
+        call_count = int((line.get("call_count") if isinstance(line, dict) else getattr(line, "call_count", 0)) or 0)
+        total_cost = float((line.get("total_cost") if isinstance(line, dict) else getattr(line, "total_cost", 0)) or 0)
+        unit_cost = float((line.get("unit_cost") if isinstance(line, dict) else getattr(line, "unit_cost", 0)) or 0)
+
+        bucket = merged.setdefault(
+            service,
+            {"service": service, "call_count": 0, "unit_cost": unit_cost, "total_cost": 0.0},
+        )
+        bucket["call_count"] += call_count
+        bucket["total_cost"] += total_cost
+
+    rows = []
+    for service in sorted(merged):
+        bucket = merged[service]
+        call_count = int(bucket["call_count"])
+        total_cost = round(float(bucket["total_cost"]), 6)
+        unit_cost = round(total_cost / call_count, 6) if call_count else float(bucket["unit_cost"])
+        rows.append(
+            {
+                "service": service,
+                "call_count": call_count,
+                "unit_cost": unit_cost,
+                "total_cost": total_cost,
+            }
+        )
+
+    return rows
+
+
 @router.get("/admin/billing/usage")
 async def get_usage_report(
     organization_id: str = Query(...),
@@ -73,13 +142,7 @@ async def get_usage_report(
         "month": usage.month,
         "total_calls": usage.total_calls,
         "cost_estimate": usage.cost_estimate,
-        "by_service": {
-            service: {
-                "call_count": summary.call_count,
-                "cost_estimate": summary.cost_estimate,
-            }
-            for service, summary in usage.by_service.items()
-        },
+        "by_service": _canonicalize_billing_services(usage.by_service),
         "by_agent": {
             agent_id: {
                 "total_calls": summary.total_calls,
@@ -126,15 +189,7 @@ async def generate_invoice(body: GenerateInvoiceRequest) -> Dict[str, Any]:
         "tax": invoice.tax,
         "total": invoice.total,
         "status": invoice.status,
-        "line_items": [
-            {
-                "service": line.service,
-                "call_count": line.call_count,
-                "unit_cost": line.unit_cost,
-                "total_cost": line.total_cost,
-            }
-            for line in invoice.line_items
-        ],
+        "line_items": _canonicalize_invoice_line_items(invoice.line_items),
     }
 
 
