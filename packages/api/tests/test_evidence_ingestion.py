@@ -258,6 +258,26 @@ def test_operational_fact_summary_canonicalizes_alternate_provider_alias_text_wh
     assert evidence["summary"] == "brave-search-api stabilized after people-data-labs comparison"
 
 
+def test_operational_fact_summary_canonicalizes_same_service_alias_text_when_service_slug_is_already_canonical() -> None:
+    client = _FakeSupabaseClient()
+    fact = _fact(
+        fact_type="latency_snapshot",
+        notes="Legacy brave-search docs.",
+    )
+    fact["service_slug"] = "brave-search-api"
+    fact["provider_slug"] = "brave-search-api"
+    client.rows("access_operational_facts").append(fact)
+
+    adapter = EvidenceIngestionAdapter(client)
+    result = _run(adapter.ingest_operational_facts())
+
+    assert result.admitted == 1
+    evidence = client.rows("evidence_records")[0]
+    assert evidence["service_slug"] == "brave-search-api"
+    assert evidence["title"] == "latency_snapshot for brave-search-api"
+    assert evidence["summary"] == "Legacy brave-search-api docs."
+
+
 def test_admits_circuit_state() -> None:
     client = _FakeSupabaseClient()
     observed_at = datetime(2026, 1, 10, 14, 30, tzinfo=UTC)
