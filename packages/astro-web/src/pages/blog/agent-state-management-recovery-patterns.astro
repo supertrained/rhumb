@@ -1,0 +1,415 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const STATE_RAILS = [
+  {
+    label: "Checkpoint",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Write durable state before consequential calls so a restart can resume from known truth instead of guessing.",
+  },
+  {
+    label: "Verify",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "A 200 response is not the same thing as a committed side effect. Verify after writes, not just after calls.",
+  },
+  {
+    label: "Constrain",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Keep the unit of work small enough that ambiguous failures do not force the whole workflow back to the beginning.",
+  },
+  {
+    label: "Recover",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "Design explicit recovery branches for ambiguous state, retries, and restarts before the first unattended run.",
+  },
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Duplicate side effects",
+    body: "A retry creates a second charge, record, or message because the workflow never stored a stable idempotency boundary.",
+  },
+  {
+    title: "Ambiguous partial success",
+    body: "The API call failed or timed out, but the write may already have happened and the workflow cannot tell safely.",
+  },
+  {
+    title: "Stale verification",
+    body: "A follow-up read lags the write, so the agent advances or retries from a false picture of state.",
+  },
+  {
+    title: "Wide-batch damage",
+    body: "One failure in a large loop turns recovery into manual diffing because the work unit was too large to resume cleanly.",
+  },
+];
+
+const STATE_CATEGORIES = [
+  {
+    title: "Ephemeral state",
+    body: "In-memory plan state, intermediate results, and context-window material. Fine to lose if it can be rebuilt from durable truth.",
+  },
+  {
+    title: "Checkpoint state",
+    body: "The last confirmed stage, inputs, outputs, and timestamps needed to resume after a restart or ambiguous failure.",
+  },
+  {
+    title: "Durable side-effect state",
+    body: "Records, payments, messages, and external resources already written to another system. You verify and branch, not undo.",
+  },
+];
+
+const API_PROFILES = [
+  {
+    name: "Stripe",
+    score: "8.1",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    body: "Idempotency is first-class, state transitions are explicit, and verification reads are reliable. Recovery paths stay small because the contract does more work for you.",
+  },
+  {
+    name: "Anthropic",
+    score: "8.4",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    body: "Structured errors and clear retry semantics keep checkpoint design simple. Partial completion is legible enough that restart logic stays computable.",
+  },
+  {
+    name: "HubSpot",
+    score: "4.6",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    body: "No first-class idempotency, multi-step association flows, and cross-object lag push state uncertainty back into your own code.",
+  },
+  {
+    name: "Salesforce",
+    score: "4.8",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    body: "Bulk and REST paths behave differently, sandbox truth diverges from production, and governor limits create hidden state branches that need heavy instrumentation.",
+  },
+];
+
+const STATE_DESIGN_CHECKLIST = [
+  "Does each consequential write get a checkpoint before execution?",
+  "Can the workflow distinguish retryable, terminal, and ambiguous failures?",
+  "Does the API support idempotency or another stable duplicate-prevention key?",
+  "Do verification reads return the side effect reliably after create or update?",
+  "Is the work unit small enough that restart cost stays acceptable?",
+  "If the process dies mid-call, what exact state tells the next worker how to resume?",
+];
+
+const CHECKPOINT_SNIPPET = String.raw`{
+  "task_id": "onboarding-abc123",
+  "stage": "contact_creation",
+  "input": { "email": "user@example.com", "plan": "pro" },
+  "status": "in_progress",
+  "started_at": "2026-04-03T10:00:00Z"
+}`;
+
+const RECOVERY_SNIPPET = String.raw`def recover(task_id):
+    state = task_store.get(task_id)
+    if not state or state["status"] == "complete":
+        return None
+
+    if state["stage"] == "pre_create":
+        return retry_from("pre_create", state["input"])
+
+    if state["stage"] == "post_create":
+        return verify_and_advance(state["output"])`;
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Agent State Management: How to Build Workflows That Recover Without You",
+  datePublished: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-03T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200.",
+  url: "https://rhumb.dev/blog/agent-state-management-recovery-patterns",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/agent-state-management-recovery-patterns",
+};
+---
+
+<Layout
+  title="Agent State Management: How to Build Workflows That Recover Without You | Rhumb"
+  description="Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200."
+  canonical="/blog/agent-state-management-recovery-patterns"
+  ogTitle="Agent State Management: How to Build Workflows That Recover Without You"
+  ogDescription="Checkpointing, verification, idempotency, and recovery paths are what turn fragile automations into workflows that survive 2am failures."
+  ogUrl="https://rhumb.dev/blog/agent-state-management-recovery-patterns"
+  ogType="article"
+  twitterTitle="Agent State Management: Recovery Patterns"
+  twitterDescription="Why production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">Recovery Patterns</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 3, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Agent State Management: How to Build Workflows That Recover Without You
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              API quality matters, but production agent reliability usually breaks at the state boundary. The question is not just whether a call succeeds. It is whether a restart, timeout, or partial failure leaves enough truth behind that the workflow can recover without guesswork.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Recovery rails</div>
+            <div class="space-y-3">
+              {STATE_RAILS.map((rail) => (
+                <div class={`rounded-2xl border p-4 ${rail.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${rail.accent}`}>{rail.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{rail.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_MODES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Recover without guesswork</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The useful production question is not <span class="text-slate-100">“did the API usually respond?”</span>
+          It is <span class="text-slate-100">“when the workflow dies halfway through, what exact state tells the next worker whether to retry, verify, or stop?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. State management is the multiplier on API reliability
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Two workflows can call the same API and get very different outcomes. One checkpoints before a write, verifies after the side effect, and can resume from known state. The other just retries when something looks wrong. The first absorbs a 2am failure. The second creates duplicate writes or stalls until a human untangles it.
+              </p>
+              <p>
+                That is why low-scoring APIs feel expensive even before they go fully down. The defensive-code tax comes from state uncertainty at failure boundaries: ambiguous 500s, unclear retries, stale verification reads, and multi-step writes that can partially succeed.
+              </p>
+              <p>
+                Reliable agent systems do not assume the happy path. They make failure states legible enough that recovery is a normal branch, not an emergency improvisation.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Know which state your workflow is carrying
+            </h2>
+            <div class="grid gap-4 md:grid-cols-3">
+              {STATE_CATEGORIES.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. Four recovery patterns separate resilient agents from fragile demos
+            </h2>
+            <div class="space-y-6 leading-relaxed text-slate-400">
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Checkpoint before destructive writes</h3>
+                <p>
+                  Before any call that creates a side effect you cannot casually undo, store the stage, inputs, and task identity. A timeout after that point becomes a resumable branch instead of a mystery.
+                </p>
+                <div class="mt-4 overflow-x-auto rounded-2xl border border-slate-800 bg-navy/70 p-4">
+                  <pre class="text-sm leading-relaxed text-slate-300"><code>{CHECKPOINT_SNIPPET}</code></pre>
+                </div>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Verify after the side effect, not just after the call</h3>
+                <p>
+                  A successful response does not guarantee the external state is visible or durable yet. The safe pattern is call, verify, then advance the workflow. That extra read is often cheaper than cleaning up a silent mismatch later.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Scope failure recovery to the smallest useful unit</h3>
+                <p>
+                  If a single loop iteration can touch 500 records, one ambiguous failure forces a manual diff. If the work is checkpointed in smaller units, restart cost stays bounded. Match checkpoint frequency to the amount of rework you can honestly afford.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Design explicit recovery paths, not just error handlers</h3>
+                <p>
+                  Error handling logs what went wrong. Recovery design tells the next worker what to do next. Ambiguous state needs a branch for verify-and-advance, safe retry, or conservative stop.
+                </p>
+                <div class="mt-4 overflow-x-auto rounded-2xl border border-slate-800 bg-navy/70 p-4">
+                  <pre class="text-sm leading-relaxed text-slate-300"><code>{RECOVERY_SNIPPET}</code></pre>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. The API you choose determines how much state complexity you inherit
+            </h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {API_PROFILES.map((profile) => (
+                <div class={`rounded-2xl border p-5 ${profile.className}`}>
+                  <div class="mb-2 flex items-center justify-between gap-4">
+                    <h3 class="font-display text-xl font-semibold tracking-tight text-slate-100">{profile.name}</h3>
+                    <div class={`text-sm font-mono ${profile.accent}`}>AN Score {profile.score}</div>
+                  </div>
+                  <p class="text-sm leading-relaxed text-slate-300">{profile.body}</p>
+                </div>
+              ))}
+            </div>
+            <p class="mt-5 leading-relaxed text-slate-400">
+              The pattern is consistent: providers with clearer idempotency, structured errors, and reliable verification reads let your workflow stay simple. Providers that hide state transitions force you to build the missing truth layer yourself.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. A minimal state design is enough to avoid most 2am disasters
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                You do not need full event sourcing to get most of the benefit. A task store keyed by task id, a checkpoint function before and after consequential stages, a recovery function for restart paths, and verification reads after writes cover the majority of practical failures.
+              </p>
+              <p>
+                That minimal design turns a crash from “someone needs to inspect the logs tomorrow” into “resume from the last durable checkpoint and verify what already happened.”
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Use state questions during API selection, not after procurement
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                When an agent workflow needs to run unattended, state design belongs in the selection checklist. Ask whether the API supports idempotency, whether failures are structured enough to classify safely, whether verification reads are trustworthy, and whether multi-step operations can partially complete.
+              </p>
+              <p>
+                Every “no” becomes state complexity in your implementation. That is the hidden cost Rhumb’s execution and failure-mode evaluation is trying to surface before the contract or integration is already signed.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Start with one bounded workflow that can resume cleanly before you widen the surface
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If your real pain is ambiguous retries, duplicate writes, and manual morning cleanup, the next move is not more connectors. Start with one governed path where checkpointing, credential scope, and recovery semantics are explicit before the workflow spreads across more tools.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=state-management-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=state-management-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this page is the recovery frame, these three pages carry the same problem into live operator surfaces: what breaks in multi-step loops, how APIs fail under unattended use, and what to inspect before trusting a provider at all.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, backoff, and multi-step execution are live.</p>
+              </a>
+              <a href="/blog/api-failure-modes-engineering" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">How APIs Fail When Agents Use Them</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Failure engineering is mostly about making bad states visible early enough to contain them.</p>
+              </a>
+              <a href="/blog/api-reliability-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Before Your Agent Calls an API at 3am</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use a concrete checklist for idempotency, error semantics, verification, and recovery before production.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Recovery design fails next at rate limits, credential churn, and shared agent loops
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Once restart logic is explicit, the next operator questions are how loops stay bounded, how shared budgets avoid retry storms, and how credentials survive rotation without turning one failure into a fleet-wide outage.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How retry budgets, governors, and shared-rate control keep a bad loop from compounding.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why rotation, expiry, and revocation are state problems as much as auth problems.</p>
+              </a>
+              <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Shared MCP stays safe only when tenant context survives retries, quotas, and session reuse.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <aside class="space-y-6 lg:col-span-1">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">State design checklist</div>
+            <ol class="ml-5 list-decimal list-outside space-y-2 leading-relaxed text-slate-300">
+              {STATE_DESIGN_CHECKLIST.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Production test</div>
+            <p class="leading-relaxed text-slate-300">
+              Ask one blunt question before you trust the workflow: <span class="text-slate-100">if the process dies halfway through tonight, what exact checkpoint tells the next worker whether the side effect already happened?</span>
+            </p>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>

@@ -490,6 +490,24 @@ const POSTS: Post[] = [
     ],
   },
   {
+    slug: "agent-state-management-recovery-patterns",
+    title: "Agent State Management: How to Build Workflows That Recover Without You",
+    description: "Checkpointing, verification, bounded work units, and explicit recovery paths are what keep agent workflows from turning ambiguous failures into manual cleanup.",
+    date: "April 3, 2026",
+    dateISO: "2026-04-03T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "Recovery Patterns",
+    difficulty: "Intermediate",
+    timeEstimate: "~8 min",
+    related: [
+      { slug: "llm-apis-agent-loops", title: "LLM APIs in Agent Loops: What Actually Breaks at Scale" },
+      { slug: "agent-fleet-rate-limit-design", title: "Designing Agent Fleets That Survive Rate Limits" },
+      { slug: "api-credentials-agent-fleets", title: "API Credentials in Autonomous Agent Fleets" },
+      { slug: "api-reliability-checklist", title: "Before Your Agent Calls an API at 3am: A Reliability Checklist" },
+    ],
+  },
+  {
     slug: "remote-mcp-production-readiness-checklist",
     title: "A Production Readiness Checklist for Remote MCP Servers",
     description: "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -1096,12 +1114,12 @@ const BLOG_JSON_LD = {
         <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current production signal</div>
           <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
-            The live MCP conversation is still about blast radius, auth shape, tenant isolation, remote ops, and shared-budget control
+            The live MCP conversation is still about blast radius, auth shape, tenant isolation, recovery, remote ops, and shared-budget control
           </h2>
           <p class="mb-5 max-w-3xl leading-relaxed text-slate-300">
-            The freshest production signal keeps clustering around scope constraints, credential model, tenant isolation, remote-hosted MCP operations, and rate-limit pressure. If you are here because MCP has to survive real operators instead of a demo, start with the five pages below.
+            The freshest production signal keeps clustering around scope constraints, credential model, reliability or crash handling, tenant isolation, remote-hosted MCP operations, and rate-limit pressure. If you are here because MCP has to survive real operators instead of a demo, start with the six pages below.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <a href="/blog/mcp-prompt-injection-scope-constraints" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
               <div class="text-sm font-semibold text-slate-100">Prompt Injection, Scope Constraints, and Blast Radius</div>
               <p class="mt-2 text-sm leading-relaxed text-slate-400">Why unconstrained parameters turn prompt injection into arbitrary file, repo, or network reach.</p>
@@ -1113,6 +1131,10 @@ const BLOG_JSON_LD = {
             <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
               <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
               <p class="mt-2 text-sm leading-relaxed text-slate-400">How shared MCP stays safe only when credentials, tool manifests, resources, and session state stay tenant-aware.</p>
+            </a>
+            <a href="/blog/agent-state-management-recovery-patterns" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Agent State Management Recovery Patterns</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How checkpointing, verification, and explicit recovery paths keep partial failures from turning into morning cleanup.</p>
             </a>
             <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
               <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
