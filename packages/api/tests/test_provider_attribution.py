@@ -442,6 +442,60 @@ class TestAsyncBuilder:
         assert block["provider"]["name"] == "Brave Search (brave-search-api)"
 
     @pytest.mark.asyncio
+    async def test_build_attribution_canonicalizes_same_provider_alias_text_for_canonical_row(self, monkeypatch):
+        async def _mock_fetch(query):
+            if query == (
+                "services?slug=eq.brave-search-api"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return [{
+                    "slug": "brave-search-api",
+                    "name": "Brave Search (brave-search)",
+                    "description": "Legacy brave-search docs.",
+                    "category": "search",
+                    "api_domain": "api.search.brave.com",
+                    "aggregate_recommendation_score": 7.8,
+                    "tier_label": "L3",
+                    "official_docs": "https://api.search.brave.com/docs",
+                }]
+            if query == (
+                "services?slug=eq.brave-search"
+                "&select=slug,name,description,category,api_domain,"
+                "aggregate_recommendation_score,tier_label,official_docs"
+                "&limit=1"
+            ):
+                return []
+            return []
+
+        monkeypatch.setattr(
+            "services.provider_attribution.supabase_fetch",
+            _mock_fetch,
+        )
+
+        detail = await _fetch_provider_detail("brave-search-api")
+        attr = await build_attribution(provider_slug="brave-search-api", layer=2)
+        block = attr.to_rhumb_block()
+
+        assert detail == {
+            "slug": "brave-search-api",
+            "name": "Brave Search (brave-search-api)",
+            "description": "Legacy brave-search-api docs.",
+            "category": "search",
+            "api_domain": "api.search.brave.com",
+            "aggregate_recommendation_score": 7.8,
+            "tier_label": "L3",
+            "official_docs": "https://api.search.brave.com/docs",
+        }
+        assert attr.provider_id == "brave-search-api"
+        assert attr.provider_name == "Brave Search (brave-search-api)"
+        assert block["provider"]["name"] == "Brave Search (brave-search-api)"
+        assert "brave-search-api-api" not in detail["name"]
+        assert "brave-search-api-api" not in detail["description"]
+        assert "brave-search-api-api" not in block["provider"]["name"]
+
+    @pytest.mark.asyncio
     async def test_build_attribution_preserves_human_shorthand_in_provider_name_for_canonical_row(self, monkeypatch):
         async def _mock_fetch(query):
             if query == (
