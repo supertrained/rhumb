@@ -1,0 +1,405 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const SUMMARY_CARDS = [
+  {
+    label: "Scored surface",
+    value: `${PUBLIC_TRUTH.servicesLabel} services`,
+    body: `Rhumb currently publishes scores across ${PUBLIC_TRUTH.servicesLabel} services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions. The catalog is wider than today's callable surface, which is why score pages need an honesty boundary too.`,
+  },
+  {
+    label: "Score model",
+    value: "20 dimensions",
+    body: "The public methodology weights Execution at 70 percent and Access Readiness at 30 percent. It cares about how an API behaves under automation pressure, not whether the marketing site sounds modern.",
+  },
+  {
+    label: "Honesty boundary",
+    value: `${PUBLIC_TRUTH.callableProvidersLabel} callable providers today`,
+    body: "A strong score is a baseline, not a promise that every service is executable through Rhumb today or safe for every trust class. Workflow fit, authority shape, and runtime evidence still matter.",
+  },
+];
+
+const FALSE_PROXIES = [
+  {
+    title: "GitHub stars",
+    body: "Stars tell you a server is visible. They do not tell you whether retries are safe, auth drift is survivable, or shared authority stays bounded.",
+  },
+  {
+    title: "Flat top-server lists",
+    body: "A local coding helper, a read-mostly lookup surface, and a write-capable remote integration should not compete on one undifferentiated leaderboard.",
+  },
+  {
+    title: "Demo friendliness",
+    body: "A server can look magical in a supervised demo and still be the wrong choice for unattended or shared production use.",
+  },
+];
+
+const DIMENSION_GROUPS = [
+  {
+    title: "Execution reliability",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    bullets: [
+      "error ergonomics and machine-readable failure shape",
+      "schema stability, latency distribution, and idempotency",
+      "rate-limit transparency, output structure, and retry safety",
+    ],
+  },
+  {
+    title: "Access readiness",
+    accent: "text-sky-400",
+    className: "border-sky-500/20 bg-sky-500/5",
+    bullets: [
+      "signup autonomy, auth complexity, and provisioning speed",
+      "credential lifecycle management and sandbox availability",
+      "documentation quality that works for agents, not only humans",
+    ],
+  },
+  {
+    title: "Runtime overlay",
+    accent: "text-emerald-400",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    bullets: [
+      "trust class, principal model, and scope containment",
+      "what actually happens under auth expiry, drift, or partial failure",
+      "whether the server is good for this workflow, not only scorable in the abstract",
+    ],
+  },
+];
+
+const SCORE_LIMITS = [
+  {
+    title: "Trust class",
+    body: "The score cannot decide whether a local read helper and a remote write-capable system should be trusted in the same way. That is a workflow and authority question first.",
+  },
+  {
+    title: "Principal model",
+    body: "A server can score well structurally and still be the wrong fit if the real caller, tenant, or credential boundary is unclear once more than one actor is involved.",
+  },
+  {
+    title: "Live drift",
+    body: "A static score cannot replace fresh runtime evidence, change communication, or proof that today's auth and schema behavior still match yesterday's assumptions.",
+  },
+];
+
+const FIVE_QUESTIONS = [
+  "What repeated job does this server actually improve, beyond looking impressive in a demo?",
+  "What happens when the request fails, times out, or retries under pressure?",
+  "Can the intended caller authenticate cleanly, with the right principal and scope?",
+  "How narrow is the callable surface, and does it stay inside the real job boundary?",
+  "If the environment drifts tomorrow, how would the agent or operator notice before damage compounds?",
+];
+
+const RELATED_READING = [
+  {
+    href: "/blog/how-to-evaluate-mcp-servers",
+    title: "How to Evaluate MCP Servers",
+    description: "Use workflow fit, trust class, capability shape, and runtime reality before any flat leaderboard instinct takes over.",
+  },
+  {
+    href: "/blog/static-mcp-scores-runtime-trust-overlays",
+    title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
+    description: "Why structural scoring is useful, but incomplete without live trust overlays and current evidence.",
+  },
+  {
+    href: "/methodology",
+    title: "How We Score",
+    description: "Read the full public rubric, the 20 dimensions, and the open dispute path behind Rhumb's score system.",
+  },
+  {
+    href: "/blog/we-scored-ourselves",
+    title: "We Scored Ourselves",
+    description: "See how Rhumb applies the same public methodology to its own product, including the remaining disclosed gaps.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents",
+  datePublished: "2026-04-19T00:00:00Z",
+  dateModified: "2026-04-19T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence.",
+  url: "https://rhumb.dev/blog/mcp-server-scoring-methodology",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-scoring-methodology",
+};
+---
+
+<Layout
+  title="MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents | Rhumb"
+  description="How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence."
+  canonical="/blog/mcp-server-scoring-methodology"
+  ogTitle="MCP Server Scoring Methodology"
+  ogDescription="20 dimensions, execution plus access readiness, and an honesty boundary around trust class and runtime evidence."
+  ogUrl="https://rhumb.dev/blog/mcp-server-scoring-methodology"
+  ogType="article"
+  twitterTitle="MCP Server Scoring Methodology"
+  twitterDescription="How Rhumb evaluates APIs for autonomous agents, and where the score stops being enough on its own."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="pointer-events-none absolute inset-0 bg-grid opacity-30"></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-amber/10 via-transparent to-transparent"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">MCP Methodology</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 19, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              Most "best MCP server" lists blur local helpers, read-mostly tools, and write-capable remote systems into one popularity stack. Rhumb's score exists to answer a narrower question: how reliably can an agent use the underlying API, and how much setup friction stands in the way?
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Methodology snapshot</div>
+            <div class="space-y-3">
+              {SUMMARY_CARDS.map((card) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+                  <div class="mb-1 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">{card.label}</div>
+                  <div class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{card.value}</div>
+                  <p class="text-sm leading-relaxed text-slate-400">{card.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pb-24 pt-10">
+      <div class="mb-10 grid gap-4 md:grid-cols-3">
+        {FALSE_PROXIES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">What the score is for</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The score is not trying to settle every trust question at once. It is a structural baseline for whether an API is legible, durable, and recoverable enough for autonomous use. After that baseline, you still need workflow fit, trust class, and runtime evidence.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. The score starts with execution, not marketing language
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Rhumb's public methodology weights <span class="text-slate-100">Execution at 70 percent</span> and <span class="text-slate-100">Access Readiness at 30 percent</span>. That bias is deliberate. An autonomous agent does not care whether the landing page says "AI-ready." It cares whether the real API returns machine-readable errors, survives retries safely, communicates rate pressure, and keeps response shape stable enough for unattended use.
+              </p>
+              <p>
+                That is why raw popularity is such a weak proxy. A visible server can still sit on top of brittle auth, vague schemas, or retry-hostile write paths. Structural reliability matters more than ecosystem noise once a workflow is live.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Rhumb scores the underlying API surface, then pairs it with operator context
+            </h2>
+            <div class="mb-6 space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The public rubric is intentionally mechanical. It asks whether a system is scorable in a way an operator can inspect and dispute. It does <span class="text-slate-100">not</span> pretend that one number replaces workflow judgment.
+              </p>
+              <p>
+                That is why Rhumb now treats static score pages and runtime trust pages as complements, not substitutes. Structural quality is useful, but only alongside the live questions around authority, shared principals, and failure recovery.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+              {DIMENSION_GROUPS.map((group) => (
+                <div class={`rounded-2xl border p-5 ${group.className}`}>
+                  <div class={`mb-3 text-[11px] font-mono uppercase tracking-[0.22em] ${group.accent}`}>{group.title}</div>
+                  <ul class="ml-5 list-disc list-outside space-y-2 text-sm leading-relaxed text-slate-300">
+                    {group.bullets.map((bullet) => (
+                      <li>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. A score helps narrow the field. It does not remove the trust decision.
+            </h2>
+            <div class="mb-6 space-y-4 leading-relaxed text-slate-400">
+              <p>
+                This is the main honesty boundary. A high score does not automatically make a server right for a shared remote workflow. A middling score does not automatically make a narrow governed capability useless. The score tells you something structural and repeatable. It does not erase operator judgment.
+              </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+              {SCORE_LIMITS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Five questions before you trust a server in production
+            </h2>
+            <ol class="ml-5 list-decimal list-outside space-y-3 leading-relaxed text-slate-300">
+              {FIVE_QUESTIONS.map((question) => (
+                <li>{question}</li>
+              ))}
+            </ol>
+            <div class="mt-6 space-y-4 leading-relaxed text-slate-400">
+              <p>
+                If a candidate fails two or three of these questions, the problem is rarely one missing feature. It usually means the server is solving the wrong class of problem for the workflow you actually have.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. Use the score as a public, disputable baseline
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Rhumb's methodology is public at <a href="/methodology" class="text-amber transition-colors hover:text-amber-200">/methodology</a>, and the score process is designed to be inspectable, not mystical. If a provider thinks the evidence is wrong, the dispute path is public too.
+              </p>
+              <p>
+                The reason that matters is simple: a scoring system only becomes useful if operators can audit it, challenge it, and see where the current public truth stops. Rhumb also applies the same public lens to itself, including the remaining gaps on the current self-assessment.
+              </p>
+            </div>
+            <div class="mt-6 rounded-2xl border border-slate-800 bg-surface/70 p-5">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Public process</div>
+              <div class="grid gap-3 md:grid-cols-3">
+                <a href="/methodology" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                  <div class="text-sm font-semibold text-slate-100">Read the full rubric</div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-400">See the full 20-dimension method, weights, tiers, and philosophy in one place.</p>
+                </a>
+                <a href={PUBLIC_TRUTH.publicDisputesUrl} class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                  <div class="text-sm font-semibold text-slate-100">Inspect public score disputes</div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-400">The score is meant to be challengeable, not hidden behind brand authority.</p>
+                </a>
+                <a href="/blog/we-scored-ourselves" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                  <div class="text-sm font-semibold text-slate-100">See the self-score</div>
+                  <p class="mt-2 text-sm leading-relaxed text-slate-400">Rhumb keeps the same public methodology pointed back at itself, including the disclosed gaps.</p>
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-6">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current product truth</div>
+            <p class="text-sm leading-relaxed text-slate-300">
+              Rhumb currently publishes scores across <span class="text-slate-100">{PUBLIC_TRUTH.servicesLabel} services</span> and <span class="text-slate-100">{PUBLIC_TRUTH.capabilitiesLabel} capabilities</span>, while the current callable surface is <span class="text-slate-100">{PUBLIC_TRUTH.callableProvidersLabel} providers</span> with the strongest launchable fit in {PUBLIC_TRUTH.beachheadLabel}.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Use the score with these pages</div>
+            <div class="space-y-3 text-sm leading-relaxed text-slate-400">
+              <p>
+                <a href="/blog/how-to-evaluate-mcp-servers" class="text-amber transition-colors hover:text-amber-200">How to Evaluate MCP Servers</a> adds workflow fit and trust class.
+              </p>
+              <p>
+                <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber transition-colors hover:text-amber-200">Static MCP Scores Are a Baseline</a> explains why live runtime evidence still matters after the score.
+              </p>
+              <p>
+                <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber transition-colors hover:text-amber-200">Remote MCP Production Readiness Checklist</a> turns the theory into an operator review before shared or unattended use.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+        <h2 class="mb-3 font-display text-2xl font-bold tracking-tight text-slate-100">
+          If the score narrows the field, the next move is to inspect bounded execution, not jump straight to connector sprawl.
+        </h2>
+        <div class="space-y-4 leading-relaxed text-slate-300">
+          <p>
+            The useful sequence is: use the score to cut obvious bad fits, inspect trust class and failure shape, then decide whether the workflow fits Rhumb's current managed lane. That is more honest than treating a flat leaderboard as a production recommendation.
+          </p>
+          <div class="grid gap-4 md:grid-cols-2">
+            <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=mcp-scoring-methodology-onboarding" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/30">
+              <div class="text-sm font-semibold text-slate-100">See capability-first onboarding</div>
+              <p class="mt-2 text-sm text-slate-400">Start with a narrow managed superpower first, then bring your own systems only when the workflow truly needs it.</p>
+            </a>
+            <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=mcp-scoring-methodology-direct" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/30">
+              <div class="text-sm font-semibold text-slate-100">Inspect the managed execution path</div>
+              <p class="mt-2 text-sm text-slate-400">See the current launchable scope, the fit boundary, and where Rhumb-managed capability surfaces are the honest default today.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Methodology only earns trust when it survives real loops, shared budgets, and credential drift.
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            A score is the start of the operator read, not the finish. These three pages show what breaks after the selection step, once multiple agents share providers, budgets, and credentials in production.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once model calls chain together unattended and the clean scorecard is no longer enough.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How provider budgets, retry storms, and shared throughput turn selection into a real fleet-design problem.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the durable trust question is whether scope, rotation, and revocation stay legible after the first working call.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <div class="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <div class="mb-2 text-xs font-mono uppercase tracking-[0.24em] text-slate-500">Related reading</div>
+            <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Keep the score inside a real operator decision</h2>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">{item.title}</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
