@@ -1,0 +1,266 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
+  datePublished: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-03T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
+  url: "https://rhumb.dev/blog/mcp-prompt-injection-scope-constraints",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-prompt-injection-scope-constraints",
+};
+---
+
+<Layout
+  title="Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius | Rhumb"
+  description="Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open."
+  canonical="/blog/mcp-prompt-injection-scope-constraints"
+  ogTitle="Why Prompt Injection Hits Harder in MCP | Rhumb"
+  ogDescription="Prompt injection becomes an operator problem when MCP tools keep broad reach and weak scope boundaries."
+  ogUrl="https://rhumb.dev/blog/mcp-prompt-injection-scope-constraints"
+  ogType="article"
+  twitterTitle="Why Prompt Injection Hits Harder in MCP"
+  twitterDescription="Prompt injection becomes an operator problem when MCP tools keep broad reach and weak scope boundaries."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative border-b border-slate-800 overflow-hidden">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative max-w-4xl mx-auto px-6 py-14">
+        <div class="flex flex-wrap items-center gap-3 mb-5 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 hover:text-amber transition-colors">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-amber uppercase tracking-widest">MCP Security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 3, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">7 min read</span>
+        </div>
+        <h1 class="max-w-3xl font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius
+        </h1>
+        <p class="max-w-3xl text-lg text-slate-400 leading-relaxed">
+          Prompt injection is more dangerous in MCP when tools are action-capable by design and the server leaves input scope, tenant boundaries, and post-call evidence too loose to contain the damage.
+        </p>
+      </div>
+    </section>
+
+    <article class="max-w-4xl mx-auto px-6 pt-10 pb-24">
+      <div class="grid gap-4 md:grid-cols-3 mb-10">
+        <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+          <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-rose-300 mb-2">Scope constraints</div>
+          <p class="text-sm text-slate-300 leading-relaxed">The sharpest MCP failures are not abstract jailbreak stories. They are tools with path, string, or write parameters that stay too broad once the model is allowed to call them.</p>
+        </div>
+        <div class="rounded-2xl border border-amber/20 bg-amber/5 p-4">
+          <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-amber mb-2">Blast radius</div>
+          <p class="text-sm text-slate-300 leading-relaxed">A compromised call matters less when the server enforces narrow prefixes, scoped credentials, and tenant isolation. It matters much more when one tool can reach everywhere.</p>
+        </div>
+        <div class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4">
+          <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-sky-300 mb-2">Operator test</div>
+          <p class="text-sm text-slate-300 leading-relaxed">The real question is not whether the server responds. It is how much damage one bad tool call can do, and whether the operator can prove what happened after.</p>
+        </div>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">The shift</div>
+        <p class="text-slate-300 leading-relaxed text-lg">
+          The useful production question is no longer <span class="text-slate-100">"does this MCP server work?"</span>
+          It is <span class="text-slate-100">"when this MCP server is compromised, how much damage can it do before the boundary stops it?"</span>
+        </p>
+      </div>
+
+      <div class="max-w-3xl">
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The official MCP servers issue tracker has developed a recurring shape: security advisories tied to unconstrained parameters, prompt-injection-driven file reads, SSRF, sandbox bypasses, and weak write boundaries.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          This is not just a bug backlog. It is a design-pattern gap.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Prompt injection hits harder in MCP than in many ordinary API integrations because MCP tools are built to take action, and the trust boundary often lives in the server implementation rather than the protocol itself.
+        </p>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">1. The structural problem is tools with no hard scope boundary</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          A traditional API call is usually bounded by the credential, the request schema, and the provider's own enforcement surface.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          An MCP tool call is different. The action boundary is whatever the server author actually enforced. If the implementation leaves paths, strings, or write targets wide open, a model can be steered into passing dangerous values that the server will still execute.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          That is why the sharpest current findings read less like exotic model attacks and more like missing containment checks: no allowed-prefix guard, no bounded path resolution, no tenant-aware credential split, no explicit write fence.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The vulnerability is not that the model followed a bad instruction. The vulnerability is that the tool boundary was broad enough for that instruction to become a real action.
+        </p>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">2. Remote MCP turns a bad call into an operator problem</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Local stdio MCP on your own machine is still risky, but the blast radius is usually easier to reason about. The affected machine, files, and credentials are at least legible to one operator.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Remote MCP raises the stakes because the same weak tool boundary can sit in front of many agents, many tenants, shared backend credentials, or a broader hosted runtime.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Once that happens, prompt injection stops being only a model-alignment concern. It becomes a principal-model and control-plane concern.
+        </p>
+        <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
+          <li class="leading-relaxed">Are path and string inputs bounded to the smallest safe surface?</li>
+          <li class="leading-relaxed">Can one compromised caller affect another tenant's data?</li>
+          <li class="leading-relaxed">Does the server run with scoped credentials or one broad backend identity?</li>
+          <li class="leading-relaxed">Will the operator be able to reconstruct the call after the fact?</li>
+        </ul>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          If the answer to those questions is vague, the system is not merely under-hardened. It is under-bounded.
+        </p>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">3. The audit pattern is remarkably concrete</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The strongest live issue cluster keeps circling the same shape: unconstrained string parameters across official servers, path traversal risk in filesystem tools, write-capable repo tools with weak scope constraints, and remote-hosted surfaces where the server ends up doing too much on trust.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          That matters because it gives operators a sharper readiness test than generic security language.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          You do not need a mystical threat model to evaluate this. You can ask whether the server validates the parameter at the point of execution, whether that validation is narrow enough to prevent boundary escape, and whether the runtime keeps the resulting authority small even if one call goes bad.
+        </p>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">4. What good looks like in production</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          A remote MCP surface worth trusting in production usually does four things well at the same time.
+        </p>
+
+        <h3 class="font-display font-semibold text-xl text-slate-100 mt-8 mb-3 tracking-tight">Parameter layer</h3>
+        <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
+          <li class="leading-relaxed">Filesystem paths restricted to explicit allowlisted prefixes</li>
+          <li class="leading-relaxed">Structured strings validated against expected shape before execution</li>
+          <li class="leading-relaxed">Numeric inputs bounded to documented ranges</li>
+        </ul>
+
+        <h3 class="font-display font-semibold text-xl text-slate-100 mt-8 mb-3 tracking-tight">Auth layer</h3>
+        <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
+          <li class="leading-relaxed">Each caller or tenant runs with scoped credentials</li>
+          <li class="leading-relaxed">Elevated tools fail explicitly instead of inheriting a silent shared admin principal</li>
+        </ul>
+
+        <h3 class="font-display font-semibold text-xl text-slate-100 mt-8 mb-3 tracking-tight">Observability layer</h3>
+        <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
+          <li class="leading-relaxed">Every tool call is attributable to a caller, parameter set, and outcome</li>
+          <li class="leading-relaxed">Errors are typed clearly enough to distinguish policy denial from runtime failure</li>
+          <li class="leading-relaxed">Partial-success ambiguity does not silently collapse into "it worked"</li>
+        </ul>
+
+        <h3 class="font-display font-semibold text-xl text-slate-100 mt-8 mb-3 tracking-tight">Containment layer</h3>
+        <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
+          <li class="leading-relaxed">One compromised call cannot escape the allowed filesystem, repo, or resource scope</li>
+          <li class="leading-relaxed">One tenant's compromise does not become another tenant's breach</li>
+          <li class="leading-relaxed">One bad retry loop does not become shared fleet damage through broad credentials or weak governors</li>
+        </ul>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">5. This should be a first-class evaluation question</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Rhumb's access-readiness model already cares about scoped credentials, machine-readable auth failures, and revocation paths. MCP server trust adds another layer on top of that.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          A strong underlying API can still be turned into a weak remote tool surface if the MCP layer removes the narrow boundaries that made the API safe to automate in the first place.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          That is why scope-constraint validation belongs alongside auth model, tenant isolation, governors, recovery, and auditability in any real remote MCP readiness checklist.
+        </p>
+
+        <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Minimal audit</div>
+          <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Check whether the server validates tool parameters in server-side code, not only in the exposed schema.</li>
+            <li>Look for explicit prefix or allowlist guards on files, repos, URLs, and write targets.</li>
+            <li>Confirm the runtime can use scoped credentials rather than one broad backend identity.</li>
+            <li>Inspect whether tool calls are logged with caller, parameters, result, and policy context.</li>
+            <li>Ask what happens to other tenants or sessions if one agent is compromised. The honest answer should be "nothing material."</li>
+          </ol>
+        </div>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">6. The pattern is containment as design intent</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The production conversation is moving away from "MCP security" as a vague afterthought and toward a cleaner design split: what authority is visible, what scope is reachable, what principal is acting, and how much damage one wrong call can do.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          That is a better operator frame than raw liveness, raw handshake success, or a flat top-server list.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The honest question is no longer whether a server looks convenient. It is whether the server preserves narrow authority when the model is wrong.
+        </p>
+
+        <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Start with one bounded lane, not a broad connector surface
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            If prompt injection and scope drift are the real trust problem, the answer is not a larger mixed-authority catalog. Start with a narrow, governed capability lane that keeps scope small and operator intent explicit.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=prompt-injection-scope-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
+              See the bounded onboarding path →
+            </a>
+            <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=prompt-injection-scope-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
+              Open the managed path →
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Production follow-through</div>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            If this article is the threat model, these three pages are the operator playbook: how to evaluate MCP surfaces honestly, how to shape governed capabilities, and what a real remote-readiness checklist looks like.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Use workflow fit, trust class, auth viability, and runtime evidence before a server earns production trust.</p>
+            </a>
+            <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">The safer answer is not raw endpoint sprawl. It is a bounded capability surface with visible authority and policy.</p>
+            </a>
+            <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Auth, scope constraints, tenant isolation, governors, recovery, and auditability belong in one operator checklist.</p>
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Scope constraints are only the first boundary
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Once the tool boundary is narrow enough to trust, the next operator questions are what breaks in the loop, how shared rate limits are contained, and how credentials stay narrow as more agents come online.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">What actually breaks once retries, tool use, and unattended execution are live.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">How shared provider budgets and retry windows turn a tool surface into a fleet coordination problem.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why bounded parameters still fail if the credential layer widens faster than the trust model.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
