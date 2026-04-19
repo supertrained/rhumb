@@ -63,3 +63,33 @@ def test_get_explanation_canonicalizes_alternate_alias_text_when_persisted_ids_a
     assert body["data"]["winner"]["provider_id"] == "brave-search-api"
     assert body["data"]["human_summary"] == "brave-search-api selected over people-data-labs."
     assert "brave-search-api-api" not in body["data"]["human_summary"]
+
+
+def test_get_explanation_canonicalizes_same_provider_alias_text_when_persisted_ids_are_already_public():
+    from app import create_app
+
+    client = TestClient(create_app())
+    persisted = RouteExplanation(
+        explanation_id="rexp_public_ids_same_alias",
+        capability_id="search.query",
+        winner_provider_id="brave-search-api",
+        winner_composite_score=0.88,
+        selection_reason="persisted lookup",
+        human_summary="Brave Search (brave-search) selected over people-data-labs.",
+        candidates=[],
+    )
+
+    with patch(
+        "routes.explanations_v2.get_persisted_explanation",
+        new_callable=AsyncMock,
+    ) as mock_get:
+        mock_get.return_value = persisted
+        resp = client.get("/v2/explanations/rexp_public_ids_same_alias")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["winner"]["provider_id"] == "brave-search-api"
+    assert body["data"]["human_summary"] == (
+        "Brave Search (brave-search-api) selected over people-data-labs."
+    )
+    assert "brave-search-api-api" not in body["data"]["human_summary"]

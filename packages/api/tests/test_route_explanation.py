@@ -449,6 +449,40 @@ class TestSerialization:
         assert compact["human_summary"] == "brave-search-api selected over people-data-labs."
         assert "brave-search-api-api" not in data["human_summary"]
 
+    def test_to_dict_canonicalizes_same_provider_alias_text_when_provider_ids_are_already_public(self):
+        exp = RouteExplanation(
+            explanation_id="rexp_public_ids_same_alias",
+            capability_id="search.query",
+            winner_provider_id="brave-search-api",
+            winner_composite_score=0.91,
+            selection_reason="persisted_route_explanation",
+            candidates=[
+                CandidateExplanation(
+                    provider_id="brave-search-api",
+                    eligible=True,
+                    composite_score=0.91,
+                    factors={},
+                    policy_checks={},
+                ),
+                CandidateExplanation(
+                    provider_id="people-data-labs",
+                    eligible=False,
+                    composite_score=0.0,
+                    factors={},
+                    policy_checks={},
+                    ineligible_reason="not_in_allow_list",
+                ),
+            ],
+            human_summary="Brave Search (brave-search) selected over people-data-labs.",
+        )
+
+        data = exp.to_dict()
+        compact = exp.to_compact()
+
+        assert data["human_summary"] == "Brave Search (brave-search-api) selected over people-data-labs."
+        assert compact["human_summary"] == "Brave Search (brave-search-api) selected over people-data-labs."
+        assert "brave-search-api-api" not in data["human_summary"]
+
     def test_candidate_factor_dict(self):
         exp = build_explanation(
             capability_id="ai.generate_text",
