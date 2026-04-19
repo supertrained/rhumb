@@ -243,6 +243,33 @@ class TestRecordEvent:
             replace(event, chain_hash=""),
         )
 
+    def test_record_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search-api execution completed after brave-search comparison",
+            org_id="org_1",
+            provider_slug="brave-search-api",
+            detail={
+                "message": "brave-search-api upstream exploded after brave-search retry",
+                "provider": "brave-search-api",
+            },
+        )
+
+        assert event.action == (
+            "brave-search-api execution completed after brave-search-api comparison"
+        )
+        assert event.detail == {
+            "message": "brave-search-api upstream exploded after brave-search-api retry",
+            "provider": "brave-search-api",
+        }
+        assert "brave-search-api-api" not in event.action
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+
     def test_record_increments_sequence(self):
         trail = AuditTrail()
         e1 = trail.record(AuditEventType.EXECUTION_STARTED, "a", org_id="org_1")
@@ -848,6 +875,38 @@ class TestAuditRoutes:
         )
         assert completed["detail"]["message"] == (
             "brave-search-api upstream exploded before people-data-labs fallback"
+        )
+        assert completed["detail"]["provider"] == "brave-search-api"
+        assert "brave-search-api-api" not in completed["action"]
+
+    def test_query_surfaces_canonicalize_same_provider_alias_text_when_structured_fields_are_already_canonical(self, client):
+        from services.audit_trail import get_audit_trail
+
+        trail = get_audit_trail()
+        trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search-api execution completed after brave-search comparison",
+            org_id="org_test",
+            agent_id="agent_1",
+            provider_slug="brave-search-api",
+            receipt_id="rcpt_ctx_002",
+            execution_id="exec_ctx_002",
+            detail={
+                "message": "brave-search-api upstream exploded after brave-search retry",
+                "provider": "brave-search-api",
+            },
+        )
+
+        resp = client.get("/v2/audit/events", headers={"X-Rhumb-Key": "test_key"})
+        assert resp.status_code == 200
+        events = resp.json()["data"]["events"]
+        completed = next(event for event in events if event["execution_id"] == "exec_ctx_002")
+        assert completed["provider_slug"] == "brave-search-api"
+        assert completed["action"] == (
+            "brave-search-api execution completed after brave-search-api comparison"
+        )
+        assert completed["detail"]["message"] == (
+            "brave-search-api upstream exploded after brave-search-api retry"
         )
         assert completed["detail"]["provider"] == "brave-search-api"
         assert "brave-search-api-api" not in completed["action"]
