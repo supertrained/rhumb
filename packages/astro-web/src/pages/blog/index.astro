@@ -1073,6 +1073,38 @@ const BLOG_JSON_LD = {
       </div>
     </section>
 
+    <section class="border-b border-slate-800/60 bg-surface/10">
+      <div class="max-w-6xl mx-auto px-6 py-8">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current production signal</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            The live MCP conversation is still about blast radius, auth shape, remote ops, and shared-budget control
+          </h2>
+          <p class="mb-5 max-w-3xl leading-relaxed text-slate-300">
+            The freshest production signal keeps clustering around scope constraints, credential model, remote-hosted MCP operations, and rate-limit pressure. If you are here because MCP has to survive real operators instead of a demo, start with the four pages below.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <a href="/blog/mcp-prompt-injection-scope-constraints" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Prompt Injection, Scope Constraints, and Blast Radius</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why unconstrained parameters turn prompt injection into arbitrary file, repo, or network reach.</p>
+            </a>
+            <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">A Production Readiness Checklist for Remote MCP Servers</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How to separate liveness from principal model, scope boundaries, tenant isolation, governors, and recovery.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">What changes when one retry storm becomes a shared-budget problem across the whole fleet.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why auth readiness fails if rotation, expiry, and scope drift stay invisible behind the call path.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Filter tabs ────────────────────────────────────────── -->
     <div class="sticky top-0 z-20 bg-navy/95 backdrop-blur-sm border-b border-slate-800/60">
       <div class="max-w-6xl mx-auto px-6">
