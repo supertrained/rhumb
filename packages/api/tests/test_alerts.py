@@ -162,3 +162,50 @@ def test_alerts_route_reads_alias_backed_probe_history_for_canonical_watched_ser
     latency_alert = next(alert for alert in alerts if alert["type"] == "latency_regression")
     assert latency_alert["service_slug"] == "brave-search-api"
     assert latency_alert["title"] == "Latency regression for brave-search-api"
+
+
+def test_alerts_route_merges_mixed_alias_and_canonical_probe_history_for_canonical_watched_service(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Canonical watched services should stitch mixed alias-backed probe history into one public alert."""
+    from routes import scores as score_routes
+    from services.probe_scheduler import ProbeSpec
+
+    score_routes.get_probe_repository.cache_clear()
+    repository = InMemoryProbeRepository()
+
+    repository.save_probe(
+        service_slug="brave-search",
+        probe_type="schema",
+        status="ok",
+        response_schema_hash="schema-old",
+        probe_metadata={"schema_fingerprint_v2": "schema-old"},
+    )
+    repository.save_probe(
+        service_slug="brave-search-api",
+        probe_type="schema",
+        status="ok",
+        response_schema_hash="schema-new",
+        probe_metadata={"schema_fingerprint_v2": "schema-new"},
+    )
+
+    monkeypatch.setattr(score_routes, "get_probe_repository", lambda: repository)
+    monkeypatch.setattr(
+        score_routes,
+        "DEFAULT_PROBE_SPECS",
+        (ProbeSpec(service_slug="brave-search-api"),),
+    )
+
+    response = client.get("/v1/alerts")
+    assert response.status_code == 200
+
+    body = response.json()
+    alerts = body["data"]["alerts"]
+    schema_alert = next(alert for alert in alerts if alert["type"] == "schema_drift")
+    assert schema_alert["service_slug"] == "brave-search-api"
+    assert schema_alert["title"] == "Schema drift detected for brave-search-api"
+    assert schema_alert["details"]["latest_fingerprint"] == "schema-new"
+    assert schema_alert["details"]["previous_fingerprint"] == "schema-old"
+    assert schema_alert["details"]["latest_probe_id"]
+    assert schema_alert["details"]["previous_probe_id"]
