@@ -116,6 +116,32 @@ def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_r
         assert body["data"]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
 
 
+def test_get_receipt_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(client):
+    receipt_data = {
+        "receipt_id": "rcpt_test126",
+        "execution_id": "exec_004",
+        "status": "failure",
+        "provider_id": "brave-search-api",
+        "provider_name": "Brave Search (brave-search)",
+        "error_message": "brave-search upstream exploded",
+        "winner_reason": "brave-search won on freshness",
+        "chain_sequence": 4,
+        "receipt_hash": "sha256:jkl",
+    }
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = [receipt_data]
+        resp = client.get("/v2/receipts/rcpt_test126")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["provider_id"] == "brave-search-api"
+        assert body["data"]["provider_name"] == "Brave Search (brave-search-api)"
+        assert body["data"]["error_message"] == "brave-search-api upstream exploded"
+        assert body["data"]["winner_reason"] == "brave-search-api won on freshness"
+        assert "brave-search-api-api" not in body["data"]["provider_name"]
+        assert "brave-search-api-api" not in body["data"]["error_message"]
+        assert "brave-search-api-api" not in body["data"]["winner_reason"]
+
+
 def test_query_receipts_empty(client):
     """GET /v2/receipts returns empty list when no receipts match."""
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
@@ -191,6 +217,30 @@ def test_query_receipts_canonicalizes_known_alternate_provider_alias_text_withou
         assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
         assert body["data"]["receipts"][0]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
         assert body["data"]["receipts"][0]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+
+
+def test_query_receipts_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(client):
+    receipts = [
+        {
+            "receipt_id": "rcpt_3",
+            "provider_id": "brave-search-api",
+            "provider_name": "Brave Search (brave-search)",
+            "error_message": "brave-search upstream exploded",
+            "winner_reason": "brave-search won on freshness",
+        }
+    ]
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = receipts
+        resp = client.get("/v2/receipts?provider_id=brave-search-api")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
+        assert body["data"]["receipts"][0]["provider_name"] == "Brave Search (brave-search-api)"
+        assert body["data"]["receipts"][0]["error_message"] == "brave-search-api upstream exploded"
+        assert body["data"]["receipts"][0]["winner_reason"] == "brave-search-api won on freshness"
+        assert "brave-search-api-api" not in body["data"]["receipts"][0]["provider_name"]
+        assert "brave-search-api-api" not in body["data"]["receipts"][0]["error_message"]
+        assert "brave-search-api-api" not in body["data"]["receipts"][0]["winner_reason"]
 
 
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):
