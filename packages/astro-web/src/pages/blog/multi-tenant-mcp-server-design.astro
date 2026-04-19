@@ -1,0 +1,341 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ISOLATION_LAYERS = [
+  {
+    label: "Credentials",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Every tool call should resolve tenant-scoped upstream credentials at call time. A shared admin key is not a multi-tenant design.",
+  },
+  {
+    label: "Tool surface",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "Each tenant should only see the tools their principal is allowed to call. Hidden authority should not sit behind one global manifest.",
+  },
+  {
+    label: "Resources",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Reads and writes should inject tenant scope from validated identity, not from agent-supplied override parameters.",
+  },
+  {
+    label: "Session state",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "Connection reuse, logs, quotas, and retries should stay principal-aware so one tenant never inherits another tenant's context.",
+  },
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Credential bleed",
+    body: "One broad backend identity or one shared upstream key turns a clean tenant boundary into a server-wide blast radius.",
+  },
+  {
+    title: "Manifest drift",
+    body: "If every tenant sees the same tool surface, prompt injection and planning mistakes can discover authority the caller should never have had.",
+  },
+  {
+    title: "Shared-budget damage",
+    body: "A noisy tenant can consume the upstream rate budget or write quota the rest of the fleet depends on.",
+  },
+  {
+    title: "Cross-tenant state",
+    body: "Session reuse, unscoped logs, or tenant override parameters can let one agent reach another tenant's data or workflow context.",
+  },
+];
+
+const OPERATOR_CHECKLIST = [
+  "Does each call resolve tenant-scoped upstream credentials instead of reusing one server key?",
+  "Does each authenticated tenant receive a tenant-filtered tool manifest?",
+  "Are tenant identifiers injected from validated server-side identity rather than accepted from the model?",
+  "Do reads, writes, logs, quotas, and retries all carry tenant context explicitly?",
+  "Can one tenant exhaust a shared upstream rate limit or write budget used by another tenant?",
+  "If a prompt is malicious, what prevents it from crossing tenant boundaries through broad parameters or hidden tools?",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
+  datePublished: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-03T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure.",
+  url: "https://rhumb.dev/blog/multi-tenant-mcp-server-design",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/multi-tenant-mcp-server-design",
+};
+---
+
+<Layout
+  title="Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed | Rhumb"
+  description="Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure."
+  canonical="/blog/multi-tenant-mcp-server-design"
+  ogTitle="Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed"
+  ogDescription="Shared MCP is a credential, authority, and containment problem before it is an infrastructure convenience story."
+  ogUrl="https://rhumb.dev/blog/multi-tenant-mcp-server-design"
+  ogType="article"
+  twitterTitle="Multi-Tenant MCP Servers"
+  twitterDescription="Shared MCP only works when credentials, tools, resources, and session state stay tenant-aware."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-emerald-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">MCP Architecture</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 3, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              One server per tenant avoids the hard problems, but it does not scale. Shared MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under prompt pressure, retries, and real operator load.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Isolation layers</div>
+            <div class="space-y-3">
+              {ISOLATION_LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-4 ${layer.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_MODES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The real question is not <span class="text-slate-100">“can one MCP server serve many agents?”</span>
+          It is <span class="text-slate-100">“can one tenant ever reach another tenant's authority when the model is wrong, over-eager, or compromised?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. One server per tenant avoids the hard problems, but it does not scale
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                One-server-per-tenant is the default answer because it sidesteps the hardest authorization and containment questions. It also creates deployment sprawl, fragmented monitoring, duplicated credential rotation, and an operations surface that gets worse with every new customer or workload.
+              </p>
+              <p>
+                At small scale, that can feel acceptable. At any meaningful scale, it turns the multi-tenant problem into an infrastructure tax instead of solving it. The alternative is not “ignore multi-tenancy.” The alternative is to design the tenant boundary directly into the MCP surface.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Multi-tenant MCP is harder than multi-tenant HTTP
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Mature HTTP systems already have strong multi-tenant patterns: authenticate the caller, scope access per token, and avoid shared mutable state across requests. MCP changes the problem because the surface is tools, not just endpoints. Tools have schemas, can be action-capable, and can be steered by prompts that the server did not author.
+              </p>
+              <p>
+                That changes the blast radius. A multi-tenant failure is not just the wrong record returned. It can be the wrong tenant's credentials used on the wrong tenant's resources, or one tenant's prompt tricking the server into crossing a boundary that was only implied, not enforced.
+              </p>
+              <p>
+                This is why the live MCP production signal keeps collapsing toward the same operator questions: principal model, scope constraints, tenant isolation, shared budgets, and auditability.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. The four isolation layers that matter
+            </h2>
+            <div class="space-y-6 leading-relaxed text-slate-400">
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Request-level credential isolation</h3>
+                <p>
+                  Each call should resolve upstream credentials from the validated tenant identity attached to that call, not from long-lived server config. If many tenants share one broad upstream key, the server may be multi-connection but it is not safely multi-tenant.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Tool-level authorization</h3>
+                <p>
+                  Not every tenant should see every tool. A tenant-specific manifest makes blast radius explicit and removes authority the model should never be able to discover through planning, hallucination, or prompt injection.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Resource scoping at execution time</h3>
+                <p>
+                  Reads and writes should derive tenant scope from authenticated server-side context. If the model can supply a tenant override parameter directly, the boundary is already too soft.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Session-state isolation</h3>
+                <p>
+                  Session memory, retries, audit trails, and quota state should be keyed to the tenant principal, not to a reusable connection or pooled process. Otherwise one tenant's workflow can leave context behind for the next tenant to inherit.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. The failure modes are concrete, not theoretical
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Shared upstream rate limits are one example. If Tenant A runs a batch and burns the same provider key Tenant B depends on for production work, B gets 429s with no visible explanation. The server may look healthy while the tenant boundary has already failed.
+              </p>
+              <p>
+                Unscoped logs are another. Audit trails are required in production, but if logs capture tool inputs and outputs without tenant-aware access controls, the logging layer becomes its own cross-tenant data surface.
+              </p>
+              <p>
+                The sharpest failure is prompt injection across tenant boundaries. If a malicious prompt can influence tenant-scoped parameters, surface hidden tools, or steer the server onto a broad backend principal, the issue is not just “the model was tricked.” The issue is that the tenant boundary was never hard enough to survive a bad input.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. Upstream API access models change how tractable isolation is
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Some providers make per-tenant isolation straightforward. Clear key scopes, clean rotation paths, and separate sub-account models make it easier to resolve narrow credentials at call time. Others push more of that work back into your implementation, especially when tenant-specific auth requires heavy human setup or broad admin configuration.
+              </p>
+              <p>
+                That does not mean low-readiness providers are unusable. It means the cost of safe multi-tenant MCP goes up fast when the upstream auth model is vague, highly manual, or structurally broad. In practice, tenant-safe MCP design is partly a server problem and partly an upstream access-model problem.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Multi-tenant MCP is policy design, not deployment sprawl
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The most honest production test is simple: if one tenant is compromised, what else can they touch? If the answer includes another tenant's tools, data, rate budget, or credentials, the system is not production-ready yet.
+              </p>
+              <p>
+                Good shared MCP keeps the tenant boundary explicit in credentials, tools, resources, logs, quotas, and recovery paths. That is what turns one server for many agents from a convenience story into a trustworthy operator surface.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Start with one governed lane per principal, not one broad shared admin surface
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If multi-tenant risk is really a containment problem, the next move is not a wider connector catalog. Start with a bounded lane where principal, scope, and operator intent are explicit before more tools and tenants pile onto the same runtime.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=multi-tenant-mcp-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=multi-tenant-mcp-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this article is the tenant-isolation frame, these three pages are the operator playbook: how to evaluate MCP surfaces honestly, how to design governed capability boundaries, and how to separate remote-readiness from demo liveness.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use workflow fit, trust class, auth viability, and runtime evidence before a server earns production trust.</p>
+              </a>
+              <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The safer answer is a bounded authority surface, not raw endpoint sprawl mirrored into one tool catalog.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Auth, scope, tenant isolation, governors, recovery, and auditability belong in one honest checklist.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Tenant isolation fails first at loop, budget, and credential boundaries
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Once the tenant boundary is explicit, the next operator questions are what breaks in the loop, how shared rate budgets are contained, and how credentials stay narrow as more tenants and agents come online.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, tool use, and unattended execution are live.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How one noisy tenant becomes a shared-budget problem unless governors and quotas stay explicit.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why tenant-safe automation fails if the credential layer widens faster than the trust model.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <aside class="space-y-6 lg:col-span-1">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Minimal audit</div>
+            <ol class="ml-5 list-decimal list-outside space-y-2 leading-relaxed text-slate-300">
+              {OPERATOR_CHECKLIST.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Production test</div>
+            <p class="leading-relaxed text-slate-300">
+              Ask one blunt question before you trust the design: <span class="text-slate-100">if one tenant is compromised tonight, what else can they touch before the boundary stops them?</span>
+            </p>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
