@@ -216,6 +216,33 @@ class TestRecordEvent:
         assert serialized["detail"]["message"] == "brave-search-api upstream exploded"
         assert serialized["detail"]["provider"] == "brave-search-api"
 
+    def test_record_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(self):
+        trail = AuditTrail()
+
+        event = trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search-api execution completed before pdl fallback",
+            org_id="org_1",
+            provider_slug="brave-search-api",
+            detail={
+                "message": "brave-search-api upstream exploded before pdl fallback",
+                "provider": "brave-search-api",
+            },
+        )
+
+        assert event.action == (
+            "brave-search-api execution completed before people-data-labs fallback"
+        )
+        assert event.detail == {
+            "message": "brave-search-api upstream exploded before people-data-labs fallback",
+            "provider": "brave-search-api",
+        }
+        assert "brave-search-api-api" not in event.action
+        assert event.chain_hash == trail._compute_hash(
+            event.prev_hash,
+            replace(event, chain_hash=""),
+        )
+
     def test_record_increments_sequence(self):
         trail = AuditTrail()
         e1 = trail.record(AuditEventType.EXECUTION_STARTED, "a", org_id="org_1")
@@ -792,6 +819,38 @@ class TestAuditRoutes:
             "brave-search-api",
             "people-data-labs",
         ]
+
+    def test_query_surfaces_canonicalize_alternate_provider_alias_text_when_structured_fields_are_already_canonical(self, client):
+        from services.audit_trail import get_audit_trail
+
+        trail = get_audit_trail()
+        trail.record(
+            AuditEventType.EXECUTION_COMPLETED,
+            "brave-search-api execution completed before pdl fallback",
+            org_id="org_test",
+            agent_id="agent_1",
+            provider_slug="brave-search-api",
+            receipt_id="rcpt_ctx_001",
+            execution_id="exec_ctx_001",
+            detail={
+                "message": "brave-search-api upstream exploded before pdl fallback",
+                "provider": "brave-search-api",
+            },
+        )
+
+        resp = client.get("/v2/audit/events", headers={"X-Rhumb-Key": "test_key"})
+        assert resp.status_code == 200
+        events = resp.json()["data"]["events"]
+        completed = next(event for event in events if event["execution_id"] == "exec_ctx_001")
+        assert completed["provider_slug"] == "brave-search-api"
+        assert completed["action"] == (
+            "brave-search-api execution completed before people-data-labs fallback"
+        )
+        assert completed["detail"]["message"] == (
+            "brave-search-api upstream exploded before people-data-labs fallback"
+        )
+        assert completed["detail"]["provider"] == "brave-search-api"
+        assert "brave-search-api-api" not in completed["action"]
 
     def test_get_event_by_id(self, client):
         # First get the list to find an event ID

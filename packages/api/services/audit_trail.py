@@ -35,7 +35,7 @@ from services.chain_integrity import (
     get_signing_key_version,
     verify_chain_hmac,
 )
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,28 @@ def _canonicalize_provider_value(value: Any) -> Any:
     if isinstance(value, str):
         return public_service_slug(value) or value
     return value
+
+
+def _canonicalize_known_provider_aliases(text: Any) -> str | None:
+    if text is None:
+        return None
+
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
 
 
 def _collect_provider_slugs(value: Any, provider_slugs: set[str]) -> None:
@@ -105,13 +127,14 @@ def _canonicalize_provider_text(text: Any, provider_slugs: set[str]) -> str | No
             replacements[candidate.lower()] = canonical
 
     if not replacements:
-        return rendered
+        return _canonicalize_known_provider_aliases(rendered)
 
     pattern = re.compile(
         rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
         re.IGNORECASE,
     )
-    return pattern.sub(lambda match: replacements[match.group(0).lower()], rendered)
+    canonicalized = pattern.sub(lambda match: replacements[match.group(0).lower()], rendered)
+    return _canonicalize_known_provider_aliases(canonicalized)
 
 
 def _canonicalize_provider_payload(value: Any, *, provider_slugs: set[str]) -> Any:
