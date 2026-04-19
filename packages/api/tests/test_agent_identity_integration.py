@@ -927,6 +927,55 @@ class TestAdminRoutes:
         assert data["usage"]["services"]["brave-search-api"]["calls"] == 1
         assert "brave-search" not in data["usage"]["services"]
 
+    def test_get_agent_details_route_recanonicalizes_mixed_usage_summary_at_route_boundary(
+        self,
+        admin_client: TestClient,
+        identity_store: AgentIdentityStore,
+        acl: AgentAccessControl,
+    ) -> None:
+        """Agent detail route should re-merge mixed upstream usage buckets onto public ids."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "detail-mixed-agent", "organization_id": "org_detail_mixed"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        class _FakeBoundaryAnalytics:
+            async def get_usage_summary(
+                self,
+                requested_agent_id: str,
+                service: str | None = None,
+                days: int = 30,
+            ) -> dict[str, object]:
+                assert requested_agent_id == agent_id
+                assert service is None
+                assert days == 30
+                return {
+                    "agent_id": requested_agent_id,
+                    "period_days": days,
+                    "total_calls": 6,
+                    "successful_calls": 4,
+                    "failed_calls": 2,
+                    "rate_limited_calls": 0,
+                    "services": {
+                        "brave-search": {"calls": 2, "success_rate": 1.0},
+                        "brave-search-api": {"calls": 1, "success_rate": 1.0},
+                        "pdl": {"calls": 1, "success_rate": 0.0},
+                        "people-data-labs": {"calls": 2, "success_rate": 1.0},
+                    },
+                    "avg_latency_ms": 12.3,
+                }
+
+        set_test_stores(identity_store, _FakeBoundaryAnalytics(), acl)
+
+        resp = admin_client.get(f"/v1/admin/agents/{agent_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["usage"]["services"] == {
+            "brave-search-api": {"calls": 3, "success_rate": 1.0},
+            "people-data-labs": {"calls": 3, "success_rate": 0.6667},
+        }
+
     def test_get_agent_usage_route_canonicalizes_alias_backed_service_filter(
         self,
         admin_client: TestClient,
@@ -957,6 +1006,54 @@ class TestAdminRoutes:
         assert data["services"]["brave-search-api"]["calls"] == 1
         assert "brave-search" not in data["services"]
 
+    def test_get_agent_usage_route_recanonicalizes_mixed_usage_summary_at_route_boundary(
+        self,
+        admin_client: TestClient,
+        identity_store: AgentIdentityStore,
+        acl: AgentAccessControl,
+    ) -> None:
+        """Usage route should canonicalize forwarded filters and mixed upstream buckets."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "usage-mixed-route", "organization_id": "org_usage_mixed"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        class _FakeBoundaryAnalytics:
+            async def get_usage_summary(
+                self,
+                requested_agent_id: str,
+                service: str | None = None,
+                days: int = 30,
+            ) -> dict[str, object]:
+                assert requested_agent_id == agent_id
+                assert service == "brave-search-api"
+                assert days == 30
+                return {
+                    "agent_id": requested_agent_id,
+                    "period_days": days,
+                    "total_calls": 3,
+                    "successful_calls": 2,
+                    "failed_calls": 1,
+                    "rate_limited_calls": 0,
+                    "services": {
+                        "brave-search": {"calls": 2, "success_rate": 0.5},
+                        "brave-search-api": {"calls": 1, "success_rate": 1.0},
+                    },
+                    "avg_latency_ms": 8.0,
+                }
+
+        set_test_stores(identity_store, _FakeBoundaryAnalytics(), acl)
+
+        resp = admin_client.get(
+            f"/v1/admin/agents/{agent_id}/usage?service=Brave-Search-Api"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["services"] == {
+            "brave-search-api": {"calls": 3, "success_rate": 0.6667},
+        }
+
     def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
         self,
         admin_client: TestClient,
@@ -985,6 +1082,57 @@ class TestAdminRoutes:
         assert set(data["agents"][agent_id]["services"].keys()) == {"people-data-labs"}
         assert data["agents"][agent_id]["services"]["people-data-labs"]["calls"] == 1
         assert "pdl" not in data["agents"][agent_id]["services"]
+
+    def test_get_organization_usage_route_recanonicalizes_mixed_usage_summary_at_route_boundary(
+        self,
+        admin_client: TestClient,
+        identity_store: AgentIdentityStore,
+        acl: AgentAccessControl,
+    ) -> None:
+        """Organization route should re-merge mixed upstream per-agent usage buckets."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "org-usage-mixed-route", "organization_id": "org_usage_boundary"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+
+        class _FakeBoundaryAnalytics:
+            async def get_organization_usage(
+                self,
+                organization_id: str,
+                days: int = 30,
+            ) -> dict[str, object]:
+                assert organization_id == "org_usage_boundary"
+                assert days == 30
+                return {
+                    "organization_id": organization_id,
+                    "period_days": days,
+                    "total_calls": 3,
+                    "agents": {
+                        agent_id: {
+                            "agent_id": agent_id,
+                            "period_days": days,
+                            "total_calls": 3,
+                            "successful_calls": 2,
+                            "failed_calls": 1,
+                            "rate_limited_calls": 0,
+                            "services": {
+                                "pdl": {"calls": 1, "success_rate": 0.0},
+                                "people-data-labs": {"calls": 2, "success_rate": 1.0},
+                            },
+                            "avg_latency_ms": 4.0,
+                        }
+                    },
+                }
+
+        set_test_stores(identity_store, _FakeBoundaryAnalytics(), acl)
+
+        resp = admin_client.get("/v1/admin/usage/organization/org_usage_boundary")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["agents"][agent_id]["services"] == {
+            "people-data-labs": {"calls": 3, "success_rate": 0.6667},
+        }
 
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""

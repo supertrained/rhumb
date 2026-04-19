@@ -33,6 +33,68 @@ def _public_service_label(service: str) -> str:
     return public_service_slug(cleaned) or cleaned
 
 
+def _canonicalize_usage_summary(summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Merge alias-backed usage buckets onto canonical public service ids."""
+    normalized = dict(summary or {})
+    raw_services = normalized.get("services")
+    if not isinstance(raw_services, dict):
+        normalized["services"] = {}
+        return normalized
+
+    merged_services: Dict[str, Dict[str, Any]] = {}
+    success_weights: Dict[str, float] = {}
+    success_weight_seen: set[str] = set()
+
+    for raw_service, raw_info in raw_services.items():
+        service = _public_service_label(str(raw_service or ""))
+        if not service:
+            continue
+
+        info = raw_info if isinstance(raw_info, dict) else {}
+        calls = int(info.get("calls") or 0)
+        bucket = merged_services.setdefault(service, {"calls": 0})
+        bucket["calls"] = int(bucket.get("calls") or 0) + calls
+
+        success_rate = info.get("success_rate")
+        if success_rate is not None:
+            success_weight_seen.add(service)
+            success_weights[service] = success_weights.get(service, 0.0) + (
+                float(success_rate) * calls
+            )
+
+        for key, value in info.items():
+            if key in {"calls", "success_rate"}:
+                continue
+            if key not in bucket or bucket[key] in (None, ""):
+                bucket[key] = value
+
+    for service, bucket in merged_services.items():
+        calls = int(bucket.get("calls") or 0)
+        if service in success_weight_seen:
+            bucket["success_rate"] = round(
+                success_weights.get(service, 0.0) / calls if calls > 0 else 0.0,
+                4,
+            )
+
+    normalized["services"] = merged_services
+    return normalized
+
+
+def _canonicalize_organization_usage(usage: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Merge alias-backed per-agent usage buckets onto canonical public service ids."""
+    normalized = dict(usage or {})
+    raw_agents = normalized.get("agents")
+    if not isinstance(raw_agents, dict):
+        normalized["agents"] = {}
+        return normalized
+
+    normalized["agents"] = {
+        agent_id: _canonicalize_usage_summary(summary if isinstance(summary, dict) else {})
+        for agent_id, summary in raw_agents.items()
+    }
+    return normalized
+
+
 # ── Request / Response Schemas ───────────────────────────────────────
 
 
@@ -236,7 +298,7 @@ async def get_agent_details(agent_id: str) -> AgentDetailResponse:
 
     services = await store.get_agent_services(agent_id)
     analytics = _get_analytics()
-    usage = await analytics.get_usage_summary(agent_id)
+    usage = _canonicalize_usage_summary(await analytics.get_usage_summary(agent_id))
 
     return AgentDetailResponse(
         agent_id=agent.agent_id,
@@ -358,7 +420,10 @@ async def get_agent_usage(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     analytics = _get_analytics()
-    return await analytics.get_usage_summary(agent_id, service=service, days=days)
+    canonical_service = _public_service_label(service) if service else None
+    return _canonicalize_usage_summary(
+        await analytics.get_usage_summary(agent_id, service=canonical_service, days=days)
+    )
 
 
 @router.get("/usage/organization/{organization_id}")
@@ -368,7 +433,9 @@ async def get_organization_usage(
 ) -> Dict[str, Any]:
     """Get aggregated usage for an entire organization."""
     analytics = _get_analytics()
-    return await analytics.get_organization_usage(organization_id, days=days)
+    return _canonicalize_organization_usage(
+        await analytics.get_organization_usage(organization_id, days=days)
+    )
 
 
 @router.post("/evidence/ingest")
