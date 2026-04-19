@@ -619,3 +619,106 @@ async def test_execute_upstream_failure_canonicalizes_alias_text_in_durable_bill
         "latency_ms": 0.1,
         "error": "brave-search-api failed before people-data-labs fallback",
     }
+
+
+@pytest.mark.anyio
+async def test_execute_upstream_failure_canonicalizes_same_provider_alias_text_in_durable_billing_and_audit_events(app):
+    raw_upstream_response = {
+        "provider_used": "brave-search-api",
+        "selected_provider": "brave-search-api",
+        "fallback_provider": "people-data-labs",
+        "message": "brave-search upstream failed after people-data-labs fallback warmed",
+        "error_message": "brave-search failed before people-data-labs fallback",
+        "result": {
+            "provider_slug": "brave-search-api",
+            "fallback_provider": "people-data-labs",
+            "supported_provider_slugs": ["brave-search-api", "people-data-labs"],
+            "detail": "Retry brave-search later or switch to people-data-labs",
+        },
+    }
+    mock_response, mock_pool = _build_patches()
+    mock_response.status_code = 502
+    mock_response.json.return_value = raw_upstream_response
+    mock_response.text = json.dumps(raw_upstream_response)
+
+    billing_stream = BillingEventStream()
+    audit_trail = AuditTrail()
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_durable_same_provider_context_failure")
+    )
+    mock_attribution = MagicMock()
+    mock_attribution.to_rhumb_block.return_value = {"provider": {"id": "brave-search-api"}}
+    mock_attribution.to_response_headers.return_value = {"X-Rhumb-Provider": "brave-search-api"}
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch(
+            "routes.capability_execute.check_agent_exec_rate_limit",
+            new_callable=AsyncMock,
+            return_value=(True, 29),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute.get_billing_event_stream", return_value=billing_stream),
+        patch("routes.capability_execute.get_audit_trail", return_value=audit_trail),
+        patch("routes.capability_execute.get_receipt_service", return_value=mock_receipt_service),
+        patch(
+            "routes.capability_execute.build_attribution",
+            new_callable=AsyncMock,
+            return_value=mock_attribution,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "byok",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["upstream_status"] == 502
+    assert data["receipt_id"] == "rcpt_durable_same_provider_context_failure"
+    assert resp.headers["X-Rhumb-Provider"] == "brave-search-api"
+
+    billing_event = billing_stream.query(org_id="org_cap_exec_test", limit=1)[0]
+    assert billing_event.event_type == BillingEventType.EXECUTION_FAILED_NO_CHARGE
+    assert billing_event.provider_slug == "brave-search-api"
+    assert billing_event.metadata == {
+        "layer": 2,
+        "credential_mode": "byok",
+        "interface": "rest",
+        "billing_status": "refunded",
+        "error": "brave-search-api failed before people-data-labs fallback",
+    }
+
+    audit_event = audit_trail.query(org_id="org_cap_exec_test", limit=1)[0]
+    assert audit_event.event_type == AuditEventType.EXECUTION_FAILED
+    assert audit_event.provider_slug == "brave-search-api"
+    assert audit_event.detail == {
+        "capability_id": "search.query",
+        "credential_mode": "byok",
+        "interface": "rest",
+        "upstream_status": 502,
+        "billing_status": "refunded",
+        "latency_ms": 0.1,
+        "error": "brave-search-api failed before people-data-labs fallback",
+    }
