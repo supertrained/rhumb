@@ -26,7 +26,6 @@ from services.chain_integrity import (
     compute_chain_hmac,
     get_signing_key_version,
 )
-from services.service_slugs import public_service_slug, public_service_slug_candidates
 
 if TYPE_CHECKING:
     from services.scoring import ANScoreResult
@@ -40,28 +39,9 @@ _SCORE_TIER_LABELS = {
 }
 
 
-def _normalized_service_slug(service_slug: str | None) -> str | None:
-    normalized = public_service_slug(service_slug)
-    if normalized is not None:
-        return normalized
+def _stored_service_slug_key(service_slug: str | None) -> str | None:
     cleaned = str(service_slug or "").strip().lower()
     return cleaned or None
-
-
-def _service_slug_match_values(service_slug: str | None) -> set[str]:
-    normalized = _normalized_service_slug(service_slug)
-    raw_cleaned = str(service_slug or "").strip().lower()
-
-    values: set[str] = set()
-    if raw_cleaned:
-        values.add(raw_cleaned)
-    if normalized:
-        values.add(normalized)
-        values.update(public_service_slug_candidates(normalized))
-    elif raw_cleaned:
-        values.update(public_service_slug_candidates(raw_cleaned))
-
-    return {value.strip().lower() for value in values if isinstance(value, str) and value.strip()}
 
 
 @dataclass(slots=True)
@@ -761,11 +741,12 @@ class InMemoryProbeRepository:
     def fetch_latest_probe(
         self, service_slug: str, probe_type: str | None = None
     ) -> StoredProbe | None:
-        match_values = _service_slug_match_values(service_slug)
+        service_key = _stored_service_slug_key(service_slug)
+        if service_key is None:
+            return None
+
         matches = [
-            row
-            for row in self._rows
-            if _normalized_service_slug(row.service_slug) in match_values
+            row for row in self._rows if _stored_service_slug_key(row.service_slug) == service_key
         ]
         if probe_type:
             matches = [row for row in matches if row.probe_type == probe_type]
@@ -780,11 +761,12 @@ class InMemoryProbeRepository:
         probe_type: str | None = None,
         limit: int = 10,
     ) -> list[StoredProbe]:
-        match_values = _service_slug_match_values(service_slug)
+        service_key = _stored_service_slug_key(service_slug)
+        if service_key is None:
+            return []
+
         matches = [
-            row
-            for row in self._rows
-            if _normalized_service_slug(row.service_slug) in match_values
+            row for row in self._rows if _stored_service_slug_key(row.service_slug) == service_key
         ]
         if probe_type:
             matches = [row for row in matches if row.probe_type == probe_type]
@@ -1044,13 +1026,16 @@ class SQLAlchemyProbeRepository:
         if not self._initialized:
             self.create_tables()
 
-        match_values = sorted(_service_slug_match_values(service_slug))
+        service_key = _stored_service_slug_key(service_slug)
+        if service_key is None:
+            return None
+
         with self._sessionmaker() as session:
             stmt = (
                 select(ProbeResult, Service.slug, ProbeRun.runner_version, ProbeRun.trigger_source)
                 .join(Service, Service.id == ProbeResult.service_id)
                 .outerjoin(ProbeRun, ProbeRun.id == ProbeResult.run_id)
-                .where(func.lower(Service.slug).in_(match_values))
+                .where(func.lower(Service.slug) == service_key)
                 .order_by(ProbeResult.probed_at.desc())
                 .limit(1)
             )
@@ -1078,13 +1063,16 @@ class SQLAlchemyProbeRepository:
         if not self._initialized:
             self.create_tables()
 
-        match_values = sorted(_service_slug_match_values(service_slug))
+        service_key = _stored_service_slug_key(service_slug)
+        if service_key is None:
+            return []
+
         with self._sessionmaker() as session:
             stmt = (
                 select(ProbeResult, Service.slug, ProbeRun.runner_version, ProbeRun.trigger_source)
                 .join(Service, Service.id == ProbeResult.service_id)
                 .outerjoin(ProbeRun, ProbeRun.id == ProbeResult.run_id)
-                .where(func.lower(Service.slug).in_(match_values))
+                .where(func.lower(Service.slug) == service_key)
                 .order_by(ProbeResult.probed_at.desc())
                 .limit(max(1, limit))
             )
