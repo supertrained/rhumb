@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -35,3 +37,15 @@ async def test_build_signed_authorization_round_trips_with_local_verifier():
     assert authorization["to"] == "0xEA63eF9B4FaC31DB058977065C8Fe12fdCa02623"
     assert authorization["value"] == "100000"
     assert authorization["nonce"].startswith("0x")
+
+
+def test_main_creates_parent_directories_for_json_out(tmp_path, capsys):
+    json_out = tmp_path / "nested" / "artifacts" / "wallet-prefund-dogfood.json"
+
+    with patch.object(wallet_prefund_dogfood, "run_flow", return_value={"ok": True, "summary": "ok"}):
+        exit_code = wallet_prefund_dogfood.main(["--json-out", str(json_out)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out.startswith("ok\n")
+    assert json.loads(json_out.read_text(encoding="utf-8")) == {"ok": True, "summary": "ok"}

@@ -31,6 +31,7 @@ import os
 import secrets
 import sys
 import time
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -654,7 +655,9 @@ def main(argv: list[str] | None = None) -> int:
         _print_human(payload)
 
     if args.json_out:
-        with open(args.json_out, "w", encoding="utf-8") as handle:
+        json_out = Path(args.json_out)
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        with json_out.open("w", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2, sort_keys=True)
             handle.write("\n")
 
