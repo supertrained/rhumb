@@ -358,6 +358,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Loop failures rarely stay isolated
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            Once retries, tool calls, and fallback chains start stacking up, the next production questions are how provider budgets stay governed across the fleet, how credential scope survives rotation and reuse, and whether the first runnable lane was bounded tightly enough in the first place. These three pages keep the loop story grounded in operator controls.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How one retry storm turns into a shared-budget problem unless the fleet slows down together.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why loop reliability still fails if shared keys, expiry, and scope drift stay invisible behind the call path.</p>
+            </a>
+            <a href="/blog/capability-first-agent-onboarding" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Capability-First Agent Onboarding</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How to keep the first runnable workflow narrow enough that loop failures do not start from a loose authority surface.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">

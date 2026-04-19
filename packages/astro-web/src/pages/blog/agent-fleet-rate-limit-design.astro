@@ -212,6 +212,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Rate budgets only hold if the rest of the lane is governed too
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            Shared rate windows are only one failure surface. The same fleet also needs clean retry behavior inside agent loops, credential lifecycle controls that do not create surprise auth outages, and an onboarding path that keeps the first execution lane narrow enough to reason about. These three pages fill in that operator picture.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks before the 429, after retries, tool use, and multi-step plans start compounding.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why rate discipline still collapses if one shared key rotates badly or carries more scope than the lane needs.</p>
+            </a>
+            <a href="/blog/capability-first-agent-onboarding" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Capability-First Agent Onboarding</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How to start with a bounded workflow before a rate-limited provider becomes a fleet-wide incident source.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">

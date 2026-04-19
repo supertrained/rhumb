@@ -320,6 +320,32 @@ function scoreColor(score: number): string {
       </div>
     </section>
 
+    <section class="mt-12" data-section="fleet-follow-through">
+      <div class="rounded-[28px] border border-zinc-800 bg-zinc-900/50 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-zinc-500">Fleet follow-through</div>
+        <h2 class="mb-3 text-2xl font-bold text-white">
+          The self-assessment only matters if you inspect the live operator failure surfaces too
+        </h2>
+        <p class="mb-5 max-w-3xl text-zinc-300 leading-relaxed">
+          Publishing the score is the honesty layer, not the whole operating picture. The current production question is what breaks in unattended loops, how shared provider budgets stay bounded when multiple agents reuse the same lane, and whether credential scope survives rotation and growth without turning one success into a fleet-wide trust leak. These three pages turn the score into that operator read.
+        </p>
+        <div class="grid gap-4 md:grid-cols-3">
+          <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+            <div class="text-sm font-semibold text-white">LLM APIs in Agent Loops</div>
+            <p class="mt-2 text-sm text-zinc-400">What actually fails after the scorecard, when retries, tool chains, and hidden provider assumptions start compounding.</p>
+          </a>
+          <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+            <div class="text-sm font-semibold text-white">Designing Agent Fleets That Survive Rate Limits</div>
+            <p class="mt-2 text-sm text-zinc-400">How a seemingly clean workflow still needs shared-budget discipline once the fleet starts hitting the same rails.</p>
+          </a>
+          <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 hover:border-zinc-700 transition-colors">
+            <div class="text-sm font-semibold text-white">API Credentials in Autonomous Agent Fleets</div>
+            <p class="mt-2 text-sm text-zinc-400">Why credential lifecycle design, not just secret storage, decides whether the bounded lane stays trustworthy over time.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
     {/* Cross-links */}
     <div class="mt-8 pt-6 border-t border-zinc-800">
       <p class="text-sm text-zinc-500">

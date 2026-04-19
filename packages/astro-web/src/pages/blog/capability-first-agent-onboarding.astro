@@ -303,6 +303,32 @@ const ARTICLE_JSON_LD = {
         </aside>
       </div>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            If you need more operator proof before choosing the lane, inspect the three failure surfaces first
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            Capability-first onboarding is the interface decision. The harder production proof is what breaks inside unattended loops, how shared provider budgets stay bounded across many agents, and how credentials survive rotation without widening the trust boundary. These three pages show the exact operational surfaces behind the handoff.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the first risk is usually hidden loop behavior, not the happy-path demo of the onboarding flow.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How a bounded lane still needs shared-budget discipline once more than one agent starts using it.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the real production test is whether scope, expiry, and rotation stay narrow after the first success.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
         <div class="flex items-center gap-3 mb-5">
           <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>

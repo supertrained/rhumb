@@ -230,6 +230,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            The old score only becomes useful when you inspect the live operator constraints too
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            Historical transparency is useful because it shows the starting point, not because the number stands alone. The real production read is what breaks inside loops, how shared provider budgets stay contained across agents, and whether credential scope survives the path from first demo to live execution. These three pages make that current-state read explicit.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">What fails after the scorecard, once the agent starts chaining retries, tools, and provider calls unattended.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How the bounded path still needs budget governors once more than one workflow shares the same provider rail.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the real trust test is whether scope, expiry, and rotation stay legible after the first working call.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Related -->
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">
