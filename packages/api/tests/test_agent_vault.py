@@ -10,7 +10,7 @@ Tests:
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -25,6 +25,54 @@ _BYPASS_KEY = "rhumb_test_bypass_key_0000"
 def app():
     # Use shared app instance so conftest autouse identity-store wiring applies.
     return _shared_app
+
+
+@pytest.fixture(autouse=True)
+def _mock_rate_limiter():
+    """Keep execute-route tests off the real durable rate-limit path."""
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    with patch(
+        "routes.capability_execute._get_rate_limiter",
+        new_callable=AsyncMock,
+        return_value=mock_limiter,
+    ):
+        yield mock_limiter
+
+
+@pytest.fixture(autouse=True)
+def _mock_kill_switch_registry():
+    """Default execute-route tests to an authoritative non-blocking kill-switch registry."""
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with patch(
+        "routes.capability_execute.init_kill_switch_registry",
+        new_callable=AsyncMock,
+        return_value=mock_registry,
+    ):
+        yield mock_registry
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_insert():
+    """Keep focused Agent Vault tests off the durable execution insert path."""
+    with patch(
+        "routes.capability_execute.supabase_insert_required",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _mock_required_execution_patch():
+    """Keep focused Agent Vault tests off the durable execution patch path."""
+    with patch(
+        "routes.capability_execute.supabase_patch_required",
+        new_callable=AsyncMock,
+        return_value=[{}],
+    ):
+        yield
 
 
 # ── Format validation ────────────────────────────────────────────
@@ -199,6 +247,44 @@ async def test_get_ceremony_resolves_alias_backed_runtime_row_to_canonical_slug(
 
 
 @pytest.mark.anyio
+async def test_get_ceremony_canonicalizes_alias_backed_copy_for_canonical_rows(app):
+    """Canonical ceremony rows should rewrite alias-backed public copy."""
+
+    async def mock_fetch(path):
+        if "ceremony_skills?service_slug=in.(brave-search-api,brave-search)" in path:
+            return [{
+                "id": 1,
+                "service_slug": "brave-search-api",
+                "display_name": "Brave Search (brave-search)",
+                "description": "Use brave-search before falling back to pdl.",
+                "auth_type": "api_key",
+                "steps": [{"step": 1, "action": "Open the dashboard", "type": "navigate"}],
+                "token_pattern": "[A-Za-z0-9_-]{20,}",
+                "token_prefix": None,
+                "verify_endpoint": "/res/v1/web/search",
+                "verify_method": "GET",
+                "verify_expected_status": 200,
+                "difficulty": "easy",
+                "estimated_minutes": 3,
+                "requires_human": False,
+                "documentation_url": "https://api.search.brave.com/app/documentation",
+            }]
+        return []
+
+    with patch("services.agent_vault.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/brave-search-api/ceremony")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["service_slug"] == "brave-search-api"
+    assert data["display_name"] == "Brave Search (brave-search-api)"
+    assert data["description"] == "Use brave-search-api before falling back to people-data-labs."
+    assert "brave-search-api-api" not in data["display_name"]
+    assert "brave-search-api-api" not in data["description"]
+
+
+@pytest.mark.anyio
 async def test_list_ceremonies_canonicalizes_alias_backed_runtime_rows(app):
     """Ceremony listings should expose canonical public ids, not runtime aliases."""
     async def mock_fetch(path):
@@ -238,6 +324,68 @@ async def test_list_ceremonies_canonicalizes_alias_backed_runtime_rows(app):
         "brave-search-api",
         "openai",
     ]
+
+
+@pytest.mark.anyio
+async def test_list_ceremonies_canonicalizes_alias_backed_copy_for_canonical_rows(app):
+    """Ceremony listings should keep canonical public copy on already-canonical rows."""
+
+    async def mock_fetch(path):
+        if "ceremony_skills?enabled=eq.true" in path:
+            return [
+                {
+                    "service_slug": "brave-search-api",
+                    "display_name": "Brave Search (brave-search)",
+                    "description": "Use brave-search before falling back to pdl.",
+                    "auth_type": "api_key",
+                    "difficulty": "easy",
+                    "estimated_minutes": 3,
+                    "requires_human": False,
+                    "documentation_url": "https://api.search.brave.com/app/documentation",
+                },
+                {
+                    "service_slug": "people-data-labs",
+                    "display_name": "People Data Labs",
+                    "description": "pdl fallback for person enrichment.",
+                    "auth_type": "api_key",
+                    "difficulty": "easy",
+                    "estimated_minutes": 3,
+                    "requires_human": False,
+                    "documentation_url": "https://dashboard.peopledatalabs.com/",
+                },
+            ]
+        return []
+
+    with patch("services.agent_vault.supabase_fetch", side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/ceremonies")
+
+    assert resp.status_code == 200
+    ceremonies = resp.json()["data"]["ceremonies"]
+    assert ceremonies == [
+        {
+            "service_slug": "brave-search-api",
+            "display_name": "Brave Search (brave-search-api)",
+            "description": "Use brave-search-api before falling back to people-data-labs.",
+            "auth_type": "api_key",
+            "difficulty": "easy",
+            "estimated_minutes": 3,
+            "requires_human": False,
+            "documentation_url": "https://api.search.brave.com/app/documentation",
+        },
+        {
+            "service_slug": "people-data-labs",
+            "display_name": "People Data Labs",
+            "description": "people-data-labs fallback for person enrichment.",
+            "auth_type": "api_key",
+            "difficulty": "easy",
+            "estimated_minutes": 3,
+            "requires_human": False,
+            "documentation_url": "https://dashboard.peopledatalabs.com/",
+        },
+    ]
+    assert "brave-search-api-api" not in ceremonies[0]["display_name"]
+    assert "brave-search-api-api" not in ceremonies[0]["description"]
 
 
 # ── Execute with agent_vault mode ────────────────────────────────

@@ -21,13 +21,82 @@ from urllib.parse import quote
 import httpx
 
 from routes._supabase import supabase_fetch
-from services.service_slugs import public_service_slug, public_service_slug_candidates
+from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 logger = logging.getLogger(__name__)
 
 
 def _postgrest_in(values: list[str]) -> str:
     return ",".join(quote(value, safe="-_") for value in values)
+
+
+def _canonicalize_known_service_aliases(
+    text: object,
+    *,
+    preserve_canonical: str | None = None,
+) -> str | None:
+    if text is None:
+        return None
+
+    preserved = str(preserve_canonical or "").strip().lower() or None
+    replacements: dict[str, str] = {}
+    for canonical in CANONICAL_TO_PROXY:
+        if preserved and canonical.lower() == preserved:
+            continue
+        for candidate in public_service_slug_candidates(canonical):
+            cleaned = str(candidate or "").strip()
+            if not cleaned or cleaned.lower() == canonical.lower():
+                continue
+            replacements[cleaned.lower()] = canonical
+
+    if not replacements:
+        return str(text)
+
+    pattern = re.compile(
+        rf"(?<![a-z0-9-])(?:{'|'.join(re.escape(candidate) for candidate in sorted(replacements, key=len, reverse=True))})(?![a-z0-9-])",
+        re.IGNORECASE,
+    )
+    return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
+
+
+def _canonicalize_ceremony_text(
+    text: object,
+    response_service_slug: str | None,
+    stored_service_slug: str | None,
+) -> str | None:
+    if text is None:
+        return None
+
+    canonical = public_service_slug(response_service_slug)
+    if canonical is None:
+        return str(text)
+
+    raw_stored_slug = str(stored_service_slug).strip().lower() if stored_service_slug else None
+    preserve_human_shorthand = raw_stored_slug == canonical.lower()
+
+    canonicalized = str(text)
+    for candidate in sorted(public_service_slug_candidates(canonical), key=len, reverse=True):
+        cleaned = str(candidate or "").strip()
+        if not cleaned or cleaned.lower() == canonical.lower():
+            continue
+
+        pattern = re.compile(
+            rf"(?<![a-z0-9-]){re.escape(cleaned)}(?![a-z0-9-])",
+            re.IGNORECASE,
+        )
+
+        def _replace(match: re.Match[str]) -> str:
+            matched = match.group(0)
+            if preserve_human_shorthand and cleaned.isalpha() and matched == cleaned.upper():
+                return matched
+            return canonical
+
+        canonicalized = pattern.sub(_replace, canonicalized)
+
+    return _canonicalize_known_service_aliases(
+        canonicalized,
+        preserve_canonical=canonical if preserve_human_shorthand else None,
+    )
 
 
 class AgentVaultTokenValidator:
@@ -57,15 +126,29 @@ class AgentVaultTokenValidator:
         for candidate in slug_candidates:
             for row in rows:
                 if str(row.get("service_slug") or "").strip() == candidate:
+                    canonical_slug = public_service_slug(row.get("service_slug")) or candidate
                     return {
                         **row,
-                        "service_slug": public_service_slug(row.get("service_slug")) or candidate,
+                        "service_slug": canonical_slug,
+                        "display_name": _canonicalize_ceremony_text(
+                            row.get("display_name"), canonical_slug, row.get("service_slug")
+                        ),
+                        "description": _canonicalize_ceremony_text(
+                            row.get("description"), canonical_slug, row.get("service_slug")
+                        ),
                     }
 
         row = rows[0]
+        canonical_slug = public_service_slug(row.get("service_slug")) or service_slug
         return {
             **row,
-            "service_slug": public_service_slug(row.get("service_slug")) or service_slug,
+            "service_slug": canonical_slug,
+            "display_name": _canonicalize_ceremony_text(
+                row.get("display_name"), canonical_slug, row.get("service_slug")
+            ),
+            "description": _canonicalize_ceremony_text(
+                row.get("description"), canonical_slug, row.get("service_slug")
+            ),
         }
 
     async def list_ceremonies(self) -> list[dict]:
@@ -85,6 +168,12 @@ class AgentVaultTokenValidator:
             normalized_row = {
                 **row,
                 "service_slug": canonical_slug,
+                "display_name": _canonicalize_ceremony_text(
+                    row.get("display_name"), canonical_slug, row.get("service_slug")
+                ),
+                "description": _canonicalize_ceremony_text(
+                    row.get("description"), canonical_slug, row.get("service_slug")
+                ),
             }
             existing = canonical_rows.get(canonical_slug)
             if existing is None:
