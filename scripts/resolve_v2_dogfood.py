@@ -1334,6 +1334,14 @@ def _print_summary_only(payload: dict[str, Any]) -> None:
     print(payload.get("summary") or ("OK" if payload.get("ok") else "FAILED"))
 
 
+def _write_json_payload(path: str, payload: dict[str, Any]) -> None:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -1527,9 +1535,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_human(payload)
 
     if args.json_out:
-        with open(args.json_out, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2, sort_keys=True)
-            handle.write("\n")
+        _write_json_payload(args.json_out, payload)
 
     return exit_code
 

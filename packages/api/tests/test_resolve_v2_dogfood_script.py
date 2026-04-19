@@ -214,6 +214,17 @@ def test_parse_args_accepts_refresh_stale_profiles_flag():
     assert args.refresh_stale_profiles is True
 
 
+def test_main_creates_parent_directories_for_json_out(tmp_path, capsys):
+    json_out = tmp_path / "nested" / "artifacts" / "resolve-v2-dogfood.json"
+
+    with patch.object(resolve_v2_dogfood, "run_flow", return_value={"ok": True, "summary": "ok"}):
+        exit_code = resolve_v2_dogfood.main(["--summary-only", "--json-out", str(json_out)])
+
+    assert exit_code == 0
+    assert json.loads(json_out.read_text(encoding="utf-8")) == {"ok": True, "summary": "ok"}
+    assert capsys.readouterr().out == "ok\n"
+
+
 def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
     args = resolve_v2_dogfood.parse_args(
         [
