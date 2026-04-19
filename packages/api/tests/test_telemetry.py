@@ -380,6 +380,33 @@ def test_recent_endpoint_canonicalizes_alternate_provider_aliases_when_context_r
     )
 
 
+def test_recent_endpoint_canonicalizes_same_provider_aliases_when_context_rows_are_already_canonical(
+    client: TestClient,
+) -> None:
+    row = _execution_row(
+        execution_id="exec_recent_error_same_provider_alias",
+        provider_used="brave-search-api",
+        success=False,
+        upstream_status=502,
+    )
+    row["error_message"] = "brave-search timed out before brave-search-api retried"
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, return_value=[row]),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/recent", params={"limit": 5})
+
+    assert response.status_code == 200
+    record = response.json()["data"][0]
+    assert record["provider_used"] == "brave-search-api"
+    assert record["error_message"] == (
+        "brave-search-api timed out before brave-search-api retried"
+    )
+
+
 def test_recent_endpoint_canonicalizes_same_provider_alias_text_when_context_rows_are_already_canonical(
     client: TestClient,
 ) -> None:
