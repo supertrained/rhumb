@@ -127,6 +127,10 @@ class TestProxyRouter:
         assert pdl_entry["name"] == "people-data-labs"
         assert pdl_entry["canonical_slug"] == "people-data-labs"
 
+        brave_entry = next(s for s in data["data"]["services"] if s["proxy_name"] == "brave-search")
+        assert brave_entry["name"] == "brave-search-api"
+        assert brave_entry["canonical_slug"] == "brave-search-api"
+
     def test_service_registry_structure(self, client):
         """Test that service registry has correct structure."""
         response = client.get("/proxy/services")
@@ -551,6 +555,47 @@ class TestProxyRouter:
         assert scoped_key in payload["pools"]
         assert f"pdl:{agent.agent_id}" not in payload["per_service"]
         assert payload["per_service"][scoped_key]["service"] == "people-data-labs"
+
+    def test_proxy_stats_canonicalize_same_service_alias_backed_keys(self, client, httpx_mock):
+        """Proxy stats should keep canonical public ids for self-alias-backed services too."""
+        agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
+        _run(proxy_module._identity_store.grant_service_access(agent.agent_id, "brave-search"))
+        proxy_module._auth_injector_instance.credentials.set_credential(
+            "brave-search", "api_key", "brave_test_vault"
+        )
+
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.search.brave.com/res/v1/web/search",
+            json={"web": {"results": []}},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "brave-search-api",
+                "method": "GET",
+                "path": "/res/v1/web/search",
+                "body": None,
+                "params": None,
+                "headers": None,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["service"] == "brave-search-api"
+
+        stats = client.get("/proxy/stats")
+        assert stats.status_code == 200
+        payload = stats.json()["data"]
+        scoped_key = f"brave-search-api:{agent.agent_id}"
+        assert scoped_key in payload["per_service"]
+        assert scoped_key in payload["circuits"]
+        assert scoped_key in payload["pools"]
+        assert f"brave-search:{agent.agent_id}" not in payload["per_service"]
+        assert payload["per_service"][scoped_key]["service"] == "brave-search-api"
 
 
 class TestProxyRequest:
