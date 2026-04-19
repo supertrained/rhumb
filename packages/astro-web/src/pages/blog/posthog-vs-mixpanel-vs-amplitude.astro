@@ -436,6 +436,28 @@ const agentRules = [
         </div>
       </div>
 
+      <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+        <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100">Choosing the analytics stack is only the first operator decision</h2>
+        <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+          The evidence warehouse matters, but it does not answer what happens when agents start looping on experiments, flags, replay, and downstream writes. These three pages carry the analytics comparison into live operator discipline.
+        </p>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5 hover:border-slate-600/70 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">How read, decide, and act chains start failing once analytics becomes part of the loop instead of just a dashboard.</p>
+          </a>
+          <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5 hover:border-slate-600/70 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why event ingestion, replay, and repeated analysis runs become a budget-partitioning problem once many agents share the same pipe.</p>
+          </a>
+          <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5 hover:border-slate-600/70 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">How analytics feels safe until the same fleet also gets feature-flag, export, and write-heavy scopes that were meant to stay separate.</p>
+          </a>
+        </div>
+      </div>
+
       <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 text-center reveal">
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
         <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>
