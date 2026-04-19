@@ -527,6 +527,32 @@ const frameworks: Framework[] = [
 
     <section class="border-b border-slate-800/60">
       <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-4xl rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            A clean install is only the floor. The next honest question is what happens once the same server is carrying retries,
+            provider quotas, and credential churn for more than one workflow.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Move from first-tool success into the failure shape of real multi-step agent loops.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">See how shared quotas, retries, and fallback decisions become a fleet problem fast.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">The companion read on scoped leases, expiry detection, and rotation once the lane is live.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
         <div class="max-w-4xl">
           <div class="flex items-center gap-3 mb-4">
             <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight">Failure-mode evidence</h2>

@@ -712,6 +712,38 @@ const RELATED_READING = [
         </div>
       </section>
 
+      <section class="mb-14">
+        <div class="bg-surface border border-slate-800 rounded-[28px] p-8 sm:p-10">
+          <div class="max-w-4xl">
+            <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.2em] mb-3">Fleet follow-through</p>
+            <h2 class="font-display font-semibold text-2xl sm:text-3xl text-slate-100 tracking-tight mb-4">
+              Multi-provider bugs compound once the fleet is live
+            </h2>
+            <p class="text-slate-400 leading-relaxed mb-6">
+              The seven bugs rarely stay isolated. Once multiple providers are live, loop behavior, shared rate limits,
+              and credential churn become the next compounding layer. These are the follow-through reads when the postmortem turns into real operations.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+                <span class="text-xs font-mono text-amber uppercase tracking-widest">Loop Reliability</span>
+                <h3 class="font-display font-semibold text-slate-100 mt-2">LLM APIs in Agent Loops</h3>
+                <p class="text-sm text-slate-500 mt-1">See how retry shape and tool chaining change the real failure mode once the demo grows into a workflow.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+                <span class="text-xs font-mono text-amber uppercase tracking-widest">Rate-limit Architecture</span>
+                <h3 class="font-display font-semibold text-slate-100 mt-2">Designing Agent Fleets That Survive Rate Limits</h3>
+                <p class="text-sm text-slate-500 mt-1">The patterns that stop provider quotas and retry storms from becoming one shared outage.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+                <span class="text-xs font-mono text-amber uppercase tracking-widest">Credential Lifecycle</span>
+                <h3 class="font-display font-semibold text-slate-100 mt-2">API Credentials in Autonomous Agent Fleets</h3>
+                <p class="text-sm text-slate-500 mt-1">The companion read on scoped leases, expiry detection, and rotation when one server fronts many providers.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- CTA -->
       <section class="mb-14">
         <div class="bg-surface border border-amber/20 rounded-[28px] p-8 sm:p-10">
