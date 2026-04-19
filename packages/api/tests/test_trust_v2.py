@@ -285,6 +285,56 @@ class TestTrustV2Endpoints:
             "health": "unhealthy",
         }]
 
+    def test_costs_and_reliability_merge_same_provider_alias_backed_truth(self, client):
+        stream = BillingEventStream()
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            100,
+            provider_slug="brave-search",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_FAILED_NO_CHARGE,
+            "org_alias",
+            0,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+        stream.emit(
+            BillingEventType.EXECUTION_CHARGED,
+            "org_alias",
+            200,
+            provider_slug="brave-search-api",
+            capability_id="search.query",
+        )
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
+        ):
+            costs_resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
+            reliability_resp = client.get("/v2/trust/reliability", headers={"X-Rhumb-Key": "test_key"})
+
+        assert costs_resp.status_code == 200
+        assert costs_resp.json()["data"]["by_provider"] == {
+            "brave-search-api": {
+                "charged_usd_cents": 300,
+                "charged_usd": 3.0,
+                "pct_of_total": 100.0,
+            }
+        }
+
+        assert reliability_resp.status_code == 200
+        assert reliability_resp.json()["data"]["by_provider"] == [{
+            "provider_slug": "brave-search-api",
+            "total_executions": 3,
+            "successes": 2,
+            "failures": 1,
+            "success_rate_pct": 66.7,
+            "health": "unhealthy",
+        }]
+
     def test_costs_recanonicalize_alias_backed_provider_totals_from_summary_payload(self, client):
         class _LegacySummaryStream:
             def summarize(self, org_id, period=None):
@@ -312,6 +362,39 @@ class TestTrustV2Endpoints:
         assert resp.status_code == 200
         assert resp.json()["data"]["by_provider"] == {
             "people-data-labs": {
+                "charged_usd_cents": 300,
+                "charged_usd": 3.0,
+                "pct_of_total": 100.0,
+            }
+        }
+
+    def test_costs_recanonicalize_same_provider_alias_backed_totals_from_summary_payload(self, client):
+        class _LegacySummaryStream:
+            def summarize(self, org_id, period=None):
+                from services.billing_events import BillingEventSummary
+
+                return BillingEventSummary(
+                    org_id=org_id,
+                    period=period or "all",
+                    total_charged_usd_cents=300,
+                    total_credited_usd_cents=0,
+                    execution_count=2,
+                    x402_payment_count=0,
+                    credit_purchase_count=0,
+                    by_provider={"brave-search": 100, "brave-search-api": 200},
+                    by_capability={"search.query": 300},
+                    events_count=2,
+                )
+
+        with (
+            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
+        ):
+            resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
+
+        assert resp.status_code == 200
+        assert resp.json()["data"]["by_provider"] == {
+            "brave-search-api": {
                 "charged_usd_cents": 300,
                 "charged_usd": 3.0,
                 "pct_of_total": 100.0,
