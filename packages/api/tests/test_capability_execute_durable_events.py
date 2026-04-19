@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import json
 import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -11,8 +12,8 @@ from httpx import ASGITransport, AsyncClient
 from app import create_app
 from middleware import rate_limit as rate_limit_middleware
 from schemas.agent_identity import AgentIdentitySchema
-from services.audit_trail import AuditEventType
-from services.billing_events import BillingEventType
+from services.audit_trail import AuditEventType, AuditTrail
+from services.billing_events import BillingEventStream, BillingEventType
 
 FAKE_RHUMB_KEY = "rhumb_test_key_cap_exec"
 
@@ -160,6 +161,31 @@ MANAGED_SAMPLE_MAPPINGS = [
     },
 ]
 
+SEARCH_CAP = [
+    {
+        "id": "search.query",
+        "domain": "search",
+        "action": "query",
+        "description": "Web search",
+    },
+]
+
+SEARCH_MAPPINGS = [
+    {
+        "service_slug": "brave-search",
+        "credential_modes": ["byo"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /res/v1/web/search",
+        "cost_per_call": "0.01",
+        "cost_currency": "USD",
+        "free_tier_calls": 100,
+    },
+]
+
+SEARCH_SCORES = [{"service_slug": "brave-search", "aggregate_recommendation_score": 8.9}]
+
+SEARCH_SERVICE_DOMAIN = [{"slug": "brave-search", "api_domain": "api.search.brave.com"}]
+
 
 def _mock_supabase(path: str):
     if path.startswith("capabilities?"):
@@ -187,6 +213,26 @@ def _mock_supabase_with_managed_option(path: str):
     if path.startswith("capability_services?") and "capability_id=eq.email.send" in path:
         return MANAGED_SAMPLE_MAPPINGS
     return _mock_supabase(path)
+
+
+def _mock_search_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.search.query" in path:
+            return SEARCH_CAP
+        return []
+    if path.startswith("capability_services?"):
+        if "capability_id=eq.search.query" in path:
+            return SEARCH_MAPPINGS
+        return []
+    if path.startswith("scores?"):
+        return SEARCH_SCORES
+    if path.startswith("services?"):
+        if "slug=eq.brave-search" in path:
+            return SEARCH_SERVICE_DOMAIN
+        return SEARCH_SERVICE_DOMAIN
+    if path.startswith("capability_executions?"):
+        return []
+    return []
 
 
 def _make_mock_response(status_code: int = 202, json_body: dict | None = None):
@@ -227,7 +273,8 @@ async def test_execute_emits_billing_and_audit_events_on_success(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch(
             "routes.capability_execute.check_agent_exec_rate_limit",
@@ -264,7 +311,7 @@ async def test_execute_emits_billing_and_audit_events_on_success(app):
         provider_slug="sendgrid",
         metadata={
             "layer": 2,
-            "credential_mode": "byo",
+            "credential_mode": "byok",
             "interface": "rest",
             "billing_status": "billed",
         },
@@ -282,7 +329,7 @@ async def test_execute_emits_billing_and_audit_events_on_success(app):
     assert kwargs["execution_id"] == data["execution_id"]
     assert kwargs["provider_slug"] == "sendgrid"
     assert kwargs["detail"]["capability_id"] == "email.send"
-    assert kwargs["detail"]["credential_mode"] == "byo"
+    assert kwargs["detail"]["credential_mode"] == "byok"
     assert kwargs["detail"]["interface"] == "rest"
     assert kwargs["detail"]["upstream_status"] == 202
     assert kwargs["detail"]["billing_status"] == "billed"
@@ -312,7 +359,8 @@ async def test_execute_emits_billing_and_audit_events_on_upstream_failure(app):
             "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
         ),
         patch(
-            "routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, h: h
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
         ),
         patch(
             "routes.capability_execute.check_agent_exec_rate_limit",
@@ -350,9 +398,10 @@ async def test_execute_emits_billing_and_audit_events_on_upstream_failure(app):
         provider_slug="sendgrid",
         metadata={
             "layer": 2,
-            "credential_mode": "byo",
+            "credential_mode": "byok",
             "interface": "rest",
             "billing_status": "refunded",
+            "error": "upstream boom",
         },
     )
 
@@ -361,8 +410,10 @@ async def test_execute_emits_billing_and_audit_events_on_upstream_failure(app):
     assert args == (AuditEventType.EXECUTION_FAILED, "capability.execute")
     assert kwargs["receipt_id"] == "rcpt_test_failure"
     assert kwargs["provider_slug"] == "sendgrid"
+    assert kwargs["detail"]["credential_mode"] == "byok"
     assert kwargs["detail"]["upstream_status"] == 500
     assert kwargs["detail"]["billing_status"] == "refunded"
+    assert kwargs["detail"]["error"] == "upstream boom"
 
 
 @pytest.mark.anyio
@@ -465,3 +516,106 @@ async def test_execute_managed_emits_billing_and_audit_events(app):
     assert kwargs["detail"]["credential_mode"] == "rhumb_managed"
     assert kwargs["detail"]["upstream_status"] == 200
     assert kwargs["detail"]["billing_status"] == "billed"
+
+
+@pytest.mark.anyio
+async def test_execute_upstream_failure_canonicalizes_alias_text_in_durable_billing_and_audit_events(app):
+    raw_upstream_response = {
+        "provider_used": "brave-search-api",
+        "selected_provider": "brave-search-api",
+        "fallback_provider": "people-data-labs",
+        "message": "brave-search-api upstream failed after pdl fallback warmed",
+        "error_message": "brave-search-api failed before pdl fallback",
+        "result": {
+            "provider_slug": "brave-search-api",
+            "fallback_provider": "people-data-labs",
+            "supported_provider_slugs": ["brave-search-api", "people-data-labs"],
+            "detail": "Retry brave-search-api later or switch to pdl",
+        },
+    }
+    mock_response, mock_pool = _build_patches()
+    mock_response.status_code = 502
+    mock_response.json.return_value = raw_upstream_response
+    mock_response.text = json.dumps(raw_upstream_response)
+
+    billing_stream = BillingEventStream()
+    audit_trail = AuditTrail()
+    mock_receipt_service = MagicMock()
+    mock_receipt_service.create_receipt = AsyncMock(
+        return_value=MagicMock(receipt_id="rcpt_durable_canonical_context_failure")
+    )
+    mock_attribution = MagicMock()
+    mock_attribution.to_rhumb_block.return_value = {"provider": {"id": "brave-search-api"}}
+    mock_attribution.to_response_headers.return_value = {"X-Rhumb-Provider": "brave-search-api"}
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch(
+            "routes.capability_execute.check_agent_exec_rate_limit",
+            new_callable=AsyncMock,
+            return_value=(True, 29),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch("routes.capability_execute.get_billing_event_stream", return_value=billing_stream),
+        patch("routes.capability_execute.get_audit_trail", return_value=audit_trail),
+        patch("routes.capability_execute.get_receipt_service", return_value=mock_receipt_service),
+        patch(
+            "routes.capability_execute.build_attribution",
+            new_callable=AsyncMock,
+            return_value=mock_attribution,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search-api",
+                    "credential_mode": "byok",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider_used"] == "brave-search-api"
+    assert data["upstream_status"] == 502
+    assert data["receipt_id"] == "rcpt_durable_canonical_context_failure"
+    assert resp.headers["X-Rhumb-Provider"] == "brave-search-api"
+
+    billing_event = billing_stream.query(org_id="org_cap_exec_test", limit=1)[0]
+    assert billing_event.event_type == BillingEventType.EXECUTION_FAILED_NO_CHARGE
+    assert billing_event.provider_slug == "brave-search-api"
+    assert billing_event.metadata == {
+        "layer": 2,
+        "credential_mode": "byok",
+        "interface": "rest",
+        "billing_status": "refunded",
+        "error": "brave-search-api failed before people-data-labs fallback",
+    }
+
+    audit_event = audit_trail.query(org_id="org_cap_exec_test", limit=1)[0]
+    assert audit_event.event_type == AuditEventType.EXECUTION_FAILED
+    assert audit_event.provider_slug == "brave-search-api"
+    assert audit_event.detail == {
+        "capability_id": "search.query",
+        "credential_mode": "byok",
+        "interface": "rest",
+        "upstream_status": 502,
+        "billing_status": "refunded",
+        "latency_ms": 0.1,
+        "error": "brave-search-api failed before people-data-labs fallback",
+    }
