@@ -754,6 +754,40 @@ async def test_get_capability_canonicalizes_alternate_alias_mentions_in_provider
 
 
 @pytest.mark.anyio
+async def test_get_capability_canonicalizes_same_service_alias_mentions_in_provider_service_name_for_canonical_rows(app):
+    canonical_mapping = [{
+        **ALIAS_MAPPINGS[0],
+        "service_slug": "brave-search-api",
+    }]
+    canonical_scores = [{
+        **ALIAS_SCORES[0],
+        "service_slug": "brave-search-api",
+    }]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return canonical_mapping
+        if path.startswith("scores?"):
+            return canonical_scores
+        if path.startswith("services?"):
+            return [{"slug": "brave-search-api", "name": "Brave Search (brave-search)", "category": "search"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["service_name"] == "Brave Search (brave-search-api)"
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_canonicalizes_alternate_alias_mentions_in_provider_service_name_for_canonical_rows(app):
     canonical_mapping = [{
         **ALIAS_MAPPINGS[0],
@@ -785,6 +819,40 @@ async def test_resolve_capability_canonicalizes_alternate_alias_mentions_in_prov
     data = resp.json()["data"]
     assert data["providers"][0]["service_slug"] == "brave-search-api"
     assert data["providers"][0]["service_name"] == "Brave Search API after people-data-labs comparison"
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_canonicalizes_same_service_alias_mentions_in_provider_service_name_for_canonical_rows(app):
+    canonical_mapping = [{
+        **ALIAS_MAPPINGS[0],
+        "service_slug": "brave-search-api",
+    }]
+    canonical_scores = [{
+        **ALIAS_SCORES[0],
+        "service_slug": "brave-search-api",
+    }]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return canonical_mapping
+        if path.startswith("scores?"):
+            return canonical_scores
+        if path.startswith("services?"):
+            return [{"slug": "brave-search-api", "name": "Brave Search (brave-search)", "category": "search"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["service_name"] == "Brave Search (brave-search-api)"
 
 
 @pytest.mark.anyio
@@ -887,6 +955,41 @@ async def test_get_capability_canonicalizes_alternate_alias_mentions_in_notes_fo
         **ALIAS_MAPPINGS[0],
         "service_slug": "brave-search-api",
         "notes": "Use brave-search-api before falling back to pdl.",
+    }]
+    canonical_scores = [{
+        **ALIAS_SCORES[0],
+        "service_slug": "brave-search-api",
+    }]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ALIAS_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return canonical_mapping
+        if path.startswith("scores?"):
+            return canonical_scores
+        if path.startswith("services?"):
+            return ALIAS_SERVICES
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/search.query")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["notes"] == "Use brave-search-api before falling back to people-data-labs."
+
+
+@pytest.mark.anyio
+async def test_get_capability_canonicalizes_same_service_alias_mentions_in_notes_for_canonical_rows(app):
+    canonical_mapping = [{
+        **ALIAS_MAPPINGS[0],
+        "service_slug": "brave-search-api",
+        "notes": "Use brave-search before falling back to people-data-labs.",
     }]
     canonical_scores = [{
         **ALIAS_SCORES[0],
