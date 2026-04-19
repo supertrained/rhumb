@@ -386,6 +386,27 @@ class TestDurableReads:
         assert "anthropic" in org.by_service
         assert len(org.by_agent) == 2
 
+    def test_get_org_monthly_usage_durable_canonicalizes_alias_backed_service_ids(
+        self,
+        durable_meter: UsageMeterEngine,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        a1 = _register(identity_store, "org_d_alias")
+        a2 = _register(identity_store, "org_d_alias")
+        _run(durable_meter.record_metered_call(a1, "brave-search", True, 50.0, 100))
+        _run(durable_meter.record_metered_call(a2, "brave-search-api", True, 60.0, 100))
+
+        month = datetime.now(tz=UTC).strftime("%Y-%m")
+        org = _run(durable_meter.get_org_monthly_usage("org_d_alias", month))
+
+        assert org.total_calls == 2
+        assert org.by_service["brave-search-api"].call_count == 2
+        assert "brave-search" not in org.by_service
+        assert set(org.by_agent[a1].by_service.keys()) == {"brave-search-api"}
+        assert org.by_agent[a1].by_service["brave-search-api"].call_count == 1
+        assert set(org.by_agent[a2].by_service.keys()) == {"brave-search-api"}
+        assert org.by_agent[a2].by_service["brave-search-api"].call_count == 1
+
     def test_get_org_daily_average_durable(
         self,
         durable_meter: UsageMeterEngine,
@@ -478,6 +499,27 @@ class TestInMemoryFallback:
         assert summary.total_calls == 2
         assert summary.by_service["people-data-labs"].call_count == 2
         assert "pdl" not in summary.by_service
+
+    def test_get_org_monthly_usage_inmemory_canonicalizes_alias_backed_service_ids(
+        self,
+        inmem_meter: UsageMeterEngine,
+        identity_store: AgentIdentityStore,
+    ) -> None:
+        a1 = _register(identity_store, "org_im_alias")
+        a2 = _register(identity_store, "org_im_alias")
+        _run(inmem_meter.record_metered_call(a1, "pdl", True, 50.0, 100))
+        _run(inmem_meter.record_metered_call(a2, "people-data-labs", True, 60.0, 100))
+
+        month = datetime.now(tz=UTC).strftime("%Y-%m")
+        org = _run(inmem_meter.get_org_monthly_usage("org_im_alias", month))
+
+        assert org.total_calls == 2
+        assert org.by_service["people-data-labs"].call_count == 2
+        assert "pdl" not in org.by_service
+        assert set(org.by_agent[a1].by_service.keys()) == {"people-data-labs"}
+        assert org.by_agent[a1].by_service["people-data-labs"].call_count == 1
+        assert set(org.by_agent[a2].by_service.keys()) == {"people-data-labs"}
+        assert org.by_agent[a2].by_service["people-data-labs"].call_count == 1
 
     def test_org_daily_average_inmemory(
         self,
