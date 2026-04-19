@@ -217,6 +217,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Choosing the vector store is only the first operator decision
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Once retrieval sits inside unattended loops, the next questions are what breaks in the loop, how shared embedding and query budgets get contained, and how read, write, and admin credentials stay narrow as the lane expands. These three pages carry the vector comparison into live operations.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a data-rhumb-propagate href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">What actually breaks once retrieval, generation, and repair calls start compounding inside live agent runs.</p>
+            </a>
+            <a data-rhumb-propagate href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">How shared embedding windows and query budgets turn a stable retrieval lane into a fleet coordination problem.</p>
+            </a>
+            <a data-rhumb-propagate href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why narrow retrieval scope still fails if index-write, admin, or cross-provider credentials widen faster than the trust model.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">

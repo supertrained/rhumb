@@ -284,6 +284,32 @@ const services: Service[] = [
         </div>
       </section>
 
+      <section class="mt-12" data-section="fleet-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Choosing the scraper is only the first operator decision
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Once extraction sits inside unattended loops, the next questions are what breaks when retries pile up, how crawl budgets and provider quotas get contained, and how fetch credentials stay narrow when the workflow expands. These three pages carry the scraping comparison into live operations.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">What actually breaks once fetch, parse, and summarization calls start compounding inside live agent runs.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">How crawl quotas, retry bursts, and shared provider budgets turn a safe scrape into a fleet coordination problem.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why extraction lanes still fail when raw HTML, actor, or proxy credentials widen faster than the trust model.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Also in this category -->
       <section class="mt-12 border-t border-slate-800 pt-8" data-section="also-scored">
         <h2 class="font-display text-lg font-semibold text-slate-100 mb-4">Also scored in web scraping</h2>
