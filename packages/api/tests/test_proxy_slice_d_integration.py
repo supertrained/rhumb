@@ -268,6 +268,18 @@ class TestSignupFlowHandler:
         assert result["flow_id"] is None
 
     @pytest.mark.asyncio
+    async def test_signup_start_unsupported_alias_input_reports_canonical_service(
+        self, signup_handler: SignupFlowHandler
+    ) -> None:
+        """Unsupported alias-style signup inputs should fail on canonical public service ids."""
+        result = await signup_handler.start_signup(
+            "a", "Brave-Search", "e@x.com", "n"
+        )
+        assert result["status"] == "failed"
+        assert result["flow_id"] is None
+        assert result["message"] == "Service 'brave-search-api' does not support signup flows"
+
+    @pytest.mark.asyncio
     async def test_signup_verify_valid_code(
         self, signup_handler: SignupFlowHandler
     ) -> None:
@@ -340,6 +352,16 @@ class TestOAuthFlowHandler:
         """Unsupported OAuth service returns error."""
         result = await oauth_handler.start_oauth("a", "nonexistent", ["read"])
         assert result.get("status") == "failed"
+
+    @pytest.mark.asyncio
+    async def test_start_oauth_unsupported_alias_input_reports_canonical_service(
+        self, oauth_handler: OAuthFlowHandler
+    ) -> None:
+        """Unsupported alias-style OAuth inputs should fail on canonical public service ids."""
+        result = await oauth_handler.start_oauth("a", "Brave-Search", ["read"])
+        assert result["status"] == "failed"
+        assert result["flow_id"] is None
+        assert result["error"] == "Service 'brave-search-api' does not support OAuth flows"
 
     @pytest.mark.asyncio
     async def test_handle_callback_valid_code(
@@ -564,6 +586,15 @@ class TestProvisioningOrchestrator:
         """Unsupported service returns failure."""
         result = await orchestrator.start_provisioning("a", "nonexistent_svc")
         assert result["status"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_start_provisioning_unsupported_alias_input_reports_canonical_service(
+        self, orchestrator: ProvisioningOrchestrator
+    ) -> None:
+        """Unsupported alias-style provisioning inputs should fail on canonical public service ids."""
+        result = await orchestrator.start_provisioning("a", "Brave-Search")
+        assert result["status"] == "failed"
+        assert result["error"] == "Service 'brave-search-api' is not supported for provisioning"
 
     @pytest.mark.asyncio
     async def test_advance_provisioning_sendgrid(
