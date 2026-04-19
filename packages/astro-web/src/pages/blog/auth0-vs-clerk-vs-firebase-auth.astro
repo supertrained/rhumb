@@ -442,6 +442,24 @@ const agentRules = [
         </div>
       </div>
 
+      <div class="mt-8 rounded-[30px] border border-slate-800 bg-surface/80 p-8 reveal">
+        <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
+        <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Auth choice is only the start of shared-runtime safety</h2>
+        <p class="mt-4 max-w-3xl text-slate-400 leading-relaxed">
+          Once the provider is chosen, the next operator problems are credential lifecycle and budget containment across a fleet. These two guides pick up where the auth comparison stops.
+        </p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Covers rotation blindness, revocation, expiry, and scope drift after auth works and agents start running unattended.</p>
+          </a>
+          <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Shows why a clean auth surface still fails if retries, concurrency, and shared quotas are left implicit across workers.</p>
+          </a>
+        </div>
+      </div>
+
       <div class="mt-12 rounded-[30px] border border-slate-800 bg-surface/80 p-8 text-center reveal">
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Related</p>
         <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">More comparisons</h2>
