@@ -4181,6 +4181,46 @@ async def test_direct_execute_get_with_api_key_returns_post_only_guidance(app):
 
 
 @pytest.mark.anyio
+async def test_direct_execute_invalid_key_uses_governed_language(app, _mock_identity_store):
+    """Direct execute invalid-key auth should use governed-key wording."""
+    _mock_identity_store.verify_api_key_with_agent.return_value = None
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get(
+            "/v1/capabilities/crm.object.describe/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+        )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid or expired governed API key"
+
+
+@pytest.mark.anyio
+async def test_execute_invalid_key_uses_governed_language(app, _mock_identity_store):
+    """Execute invalid-key auth should use governed-key wording before any upstream work."""
+    _mock_identity_store.verify_api_key_with_agent.return_value = None
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_with_managed_option,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "method": "POST",
+                    "path": "/emails",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid or expired governed API key"
+
+
+@pytest.mark.anyio
 async def test_direct_execute_with_payment_header_still_requires_api_key(app):
     """Direct AUD-18 execute rails should not reinterpret payment headers as x402 auth."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

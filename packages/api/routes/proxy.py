@@ -580,7 +580,7 @@ async def proxy_request(
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         timings["auth_ms"] = (time.perf_counter() - auth_start) * 1000
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
 
         proxy_service = _normalize_proxy_service_name(request.service)
 

@@ -175,6 +175,26 @@ async def test_agent_credentials_requires_auth(app):
 
 
 @pytest.mark.anyio
+async def test_agent_credentials_invalid_key_uses_governed_language(app):
+    """Agent credentials invalid-key auth should use governed-key wording."""
+
+    class MockIdentityStore:
+        async def verify_api_key_with_agent(self, api_key: str):
+            assert api_key == "bogus-agent"
+            return None
+
+    with patch("schemas.agent_identity.get_agent_identity_store", return_value=MockIdentityStore()):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "bogus-agent"},
+            )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid or expired governed API key"
+
+
+@pytest.mark.anyio
 async def test_agent_credentials_returns_status(app, monkeypatch):
     """Agent credentials returns configured services and capability counts."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_RESEND_API_KEY", "re_test123")

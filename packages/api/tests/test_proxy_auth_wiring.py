@@ -234,7 +234,7 @@ class TestProxyAuthWiring:
             headers={"X-Rhumb-Key": "rk_bogus_000000"},
         )
         assert resp.status_code == 401
-        assert "Invalid or expired" in resp.json()["detail"]
+        assert resp.json()["detail"] == "Invalid or expired governed API key"
 
     def test_valid_key_no_service_grant_returns_403(
         self,

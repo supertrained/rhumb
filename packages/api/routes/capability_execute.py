@@ -1838,7 +1838,7 @@ async def discover_execute_capability(
             )
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
         return _direct_execute_get_not_supported_response(
             raw_request,
             capability_id=capability_id,
@@ -1926,7 +1926,7 @@ async def execute_capability(
             )
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
         if capability_id in CRM_CAPABILITY_IDS:
             from routes.crm_execute import handle_crm_execute
 
@@ -2024,7 +2024,7 @@ async def execute_capability(
         # Path 1: Registered agent with API key (existing flow)
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
         agent_id = agent.agent_id
         org_id = agent.organization_id
     elif x_payment and x_payment != "required":
@@ -3853,7 +3853,7 @@ async def estimate_capability(
     if x_rhumb_key:
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
         agent_id = agent.agent_id
     else:
         is_anonymous_estimate = True

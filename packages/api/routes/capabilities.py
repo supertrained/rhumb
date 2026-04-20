@@ -3779,7 +3779,7 @@ async def get_agent_credentials(
     from schemas.agent_identity import get_agent_identity_store
     agent = await get_agent_identity_store().verify_api_key_with_agent(x_rhumb_key)
     if agent is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired Rhumb API key")
+        raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
 
     agent_id = agent.agent_id
 
