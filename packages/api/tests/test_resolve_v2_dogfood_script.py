@@ -214,6 +214,17 @@ def test_parse_args_accepts_refresh_stale_profiles_flag():
     assert args.refresh_stale_profiles is True
 
 
+def test_resolve_fleet_status_profiles_defaults_to_core_operator_fleet():
+    args = resolve_v2_dogfood.parse_args(["--fleet-status"])
+
+    assert resolve_v2_dogfood._resolve_fleet_status_profiles(args) == [
+        "pedro",
+        "keel",
+        "helm",
+        "beacon",
+    ]
+
+
 def test_main_creates_parent_directories_for_json_out(tmp_path, capsys):
     json_out = tmp_path / "nested" / "artifacts" / "resolve-v2-dogfood.json"
 
