@@ -472,6 +472,24 @@ const POSTS: Post[] = [
     ],
   },
   {
+    slug: "mcp-security-model",
+    title: "MCP Has a Security Model: Scope, Principals, and Evidence",
+    description: "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
+    date: "April 20, 2026",
+    dateISO: "2026-04-20T00:00:00Z",
+    readTime: "6 min",
+    contentType: "Guide",
+    category: "MCP Security",
+    difficulty: "Beginner",
+    timeEstimate: "~6 min",
+    related: [
+      { slug: "mcp-prompt-injection-scope-constraints", title: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius" },
+      { slug: "tool-level-permission-scoping-mcp", title: "Tool-Level Permission Scoping in MCP" },
+      { slug: "read-only-mcp-trust-class", title: "Read-Only MCP as a Trust Class" },
+      { slug: "mcp-observability-logging-auditing-debugging", title: "MCP Observability" },
+    ],
+  },
+  {
     slug: "mcp-prompt-injection-scope-constraints",
     title: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
     description: "Prompt injection becomes an operator problem when MCP tools keep unconstrained parameters, broad write reach, and weak containment boundaries.",
@@ -483,6 +501,7 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~7 min",
     related: [
+      { slug: "mcp-security-model", title: "MCP Has a Security Model: Scope, Principals, and Evidence" },
       { slug: "how-to-evaluate-mcp-servers", title: "How to Evaluate MCP Servers" },
       { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
       { slug: "remote-mcp-production-readiness-checklist", title: "A Production Readiness Checklist for Remote MCP Servers" },
@@ -500,6 +519,7 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~8 min",
     related: [
+      { slug: "mcp-security-model", title: "MCP Has a Security Model: Scope, Principals, and Evidence" },
       { slug: "mcp-prompt-injection-scope-constraints", title: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius" },
       { slug: "multi-tenant-mcp-server-design", title: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed" },
       { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capabilities Are Becoming the Real Control Plane" },
