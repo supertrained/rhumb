@@ -1,0 +1,465 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const OBSERVABILITY_RAILS = [
+  {
+    label: "Caller context",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "Every tool call should map back to a principal, session, and tool version instead of disappearing into a generic server log.",
+  },
+  {
+    label: "Credential mode",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Operators need to know whether the call ran on BYOK, managed credentials, or a shared backend identity before they can judge blast radius.",
+  },
+  {
+    label: "Side effects",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Success is not enough. The trace should say what was created, changed, deleted, or billed downstream.",
+  },
+  {
+    label: "Recovery state",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "A good audit trail leaves enough checkpoint and retry-safety data behind that partial failure can be resumed instead of guessed at.",
+  },
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Logs stop at the protocol edge",
+    body: "You can see that a JSON-RPC request happened, but not which upstream calls, writes, or quota burn happened behind the tool boundary.",
+  },
+  {
+    title: "Auth mode is invisible",
+    body: "The agent knows the tool returned 401, but the operator still cannot tell whether the failure came from expired BYOK, revoked managed auth, or the wrong tenant identity.",
+  },
+  {
+    title: "Partial success is ambiguous",
+    body: "Some calls succeeded, some failed, and the system cannot prove which side effects already happened before the retry or crash.",
+  },
+  {
+    title: "Spend has no owner",
+    body: "A runaway loop burns real API credits, but the trace cannot attribute which session, user, or tool lane actually caused the cost.",
+  },
+];
+
+const AUDIT_QUESTIONS = [
+  {
+    title: "Who called what tool?",
+    body: "Capture principal, session, tool name, tool version, timestamp, and a bounded input summary instead of only a raw prompt or transport event.",
+  },
+  {
+    title: "Which credentials ran?",
+    body: "Log auth mode, upstream provider identity, and the relevant scope boundary so recovery is not blocked by auth ambiguity.",
+  },
+  {
+    title: "What happened, exactly?",
+    body: "Outcome, latency, error class, retry safety, and idempotency should all be explicit enough that an orchestrator can recover without guesswork.",
+  },
+  {
+    title: "What side effects or spend followed?",
+    body: "Track created resources, downstream API calls, irreversible writes, and metered cost per session so the operator can contain the blast radius.",
+  },
+];
+
+const OBSERVABILITY_CHECKLIST = [
+  "Tool call logs capture principal, session, tool, input summary, outcome, and duration.",
+  "Error logs include typed class, recovery hint, and retry-safety semantics instead of raw strings only.",
+  "Session summaries record side effects, spend, and terminal state for post-incident review.",
+  "Credential mode logging makes the active identity path visible on every consequential call.",
+  "Checkpoints let the caller resume from a known-good state instead of replaying the whole workflow blind.",
+  "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
+];
+
+const TOOL_CALL_LOG_SAMPLE = `{
+  "event": "tool_call",
+  "tool": "create_file",
+  "tool_version": "filesystem-server-v1.2",
+  "session_id": "ses_abc123",
+  "agent_id": "agent_xyz789",
+  "timestamp": "2026-04-03T14:32:01Z",
+  "auth_mode": "managed",
+  "input_summary": {
+    "path": "/workspace/output.txt",
+    "content_length": 4096
+  },
+  "outcome": "success",
+  "duration_ms": 142,
+  "idempotent": false,
+  "retry_safe": false,
+  "side_effects": ["file_created"]
+}`;
+
+const ERROR_LOG_SAMPLE = `{
+  "event": "tool_error",
+  "tool": "send_email",
+  "error_class": "auth_expired",
+  "error_code": "TOKEN_REVOKED",
+  "recoverable": true,
+  "recovery_action": "reauth",
+  "retry_safe": false
+}`;
+
+const SESSION_SUMMARY_SAMPLE = `{
+  "session_id": "ses_abc123",
+  "started_at": "2026-04-03T14:30:00Z",
+  "tool_calls": 12,
+  "successful_calls": 10,
+  "failed_calls": 2,
+  "credentials_used": ["fs_local", "openai_byok"],
+  "side_effects_summary": {
+    "files_created": 3,
+    "api_calls_made": 8,
+    "spend_incurred_usd": 0.042
+  },
+  "terminal_state": "partial_success",
+  "recovery_status": "pending"
+}`;
+
+const RELATED_READING = [
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist",
+    title: "A Production Readiness Checklist for Remote MCP Servers",
+    description: "The broader remote MCP containment frame: principal model, scope, governors, recovery, and auditability together.",
+  },
+  {
+    href: "/blog/agent-state-management-recovery-patterns",
+    title: "Agent State Management: How to Build Workflows That Recover Without You",
+    description: "Checkpointing and explicit recovery patterns are what make observability operationally useful after partial failure.",
+  },
+  {
+    href: "/blog/mcp-credential-lifecycle-token-rotation",
+    title: "MCP Credential Lifecycle: What Happens When Your Tokens Expire in Production",
+    description: "Auth ambiguity gets much worse when expiry, revocation, and rotation are invisible in the trace.",
+  },
+  {
+    href: "/blog/tool-level-permission-scoping-mcp",
+    title: "Tool-Level Permission Scoping in MCP",
+    description: "Better logs do not replace narrow authority. Discovery and execution still need real permission boundaries.",
+  },
+  {
+    href: "/blog/signed-mcp-receipts-evidence-not-authority",
+    title: "Signed MCP Receipts Create Evidence After the Call",
+    description: "Receipts strengthen proof after execution, but they are a different layer from runtime debugging and policy before the call.",
+  },
+  {
+    href: "/blog/multi-tenant-mcp-server-design",
+    title: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
+    description: "Observability is weaker in shared runtimes unless tenant identity, budgets, and resource scope stay explicit end to end.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
+  datePublished: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-03T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
+  url: "https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging",
+};
+---
+
+<Layout
+  title="MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production | Rhumb"
+  description="Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable."
+  canonical="/blog/mcp-observability-logging-auditing-debugging"
+  ogTitle="MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production"
+  ogDescription="The useful observability question is not whether a tool call happened. It is whether you can reconstruct principal, auth mode, side effects, spend, and retry safety after failure."
+  ogUrl="https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging"
+  ogType="article"
+  twitterTitle="MCP Observability: Logging, Auditing, and Debugging"
+  twitterDescription="Production MCP needs typed errors, session trails, spend attribution, and checkpoints, not thin transport logs."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="pointer-events-none absolute inset-0 bg-grid opacity-30"></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">Observability</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 3, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              The hard production question is not whether a tool call happened. It is whether you can reconstruct who triggered it, which identity path ran, what side effects occurred, and whether retrying is safe after the workflow fails halfway through.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Observability rails</div>
+            <div class="space-y-3">
+              {OBSERVABILITY_RAILS.map((rail) => (
+                <div class={`rounded-2xl border p-4 ${rail.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${rail.accent}`}>{rail.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{rail.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_MODES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The useful debugging question is not <span class="text-slate-100">“did the server respond?”</span>
+          It is <span class="text-slate-100">“can the operator reconstruct principal, auth mode, side effects, spend, and retry safety from the trace that remains?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. MCP observability is harder because the real boundary moved inside the tool
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Standard API observability mostly watches the transport edge. Request arrives, response leaves, traces land in a log store. MCP changes the shape of the problem because one tool invocation can fan into several upstream actions, state transitions, and side effects that do not fit neatly inside one endpoint log.
+              </p>
+              <p>
+                That means thin JSON-RPC or HTTP tracing is not enough. The operator needs visibility inside the tool boundary: which tool version ran, which upstream provider it touched, which credential mode was active, and whether the work changed durable state or only returned data.
+              </p>
+              <p>
+                The harder the server leans on session state, shared credentials, or multi-step orchestration, the less useful raw transport logging becomes on its own.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Every post-incident audit trail should answer four questions
+            </h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {AUDIT_QUESTIONS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+            <div class="mt-6 space-y-4 leading-relaxed text-slate-400">
+              <p>
+                If the stack cannot answer those cleanly after a failure, incident response becomes storytelling. Operators guess which call ran first, whether the wrong identity was used, and whether a retry will duplicate the damage.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. Logging that actually helps recovery is structured, typed, and session-aware
+            </h2>
+            <div class="space-y-6 leading-relaxed text-slate-400">
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Structured tool-call logs</h3>
+                <p>
+                  A useful call log records principal, session, tool, bounded input summary, auth mode, duration, outcome, and side-effect hints. The `idempotent` and `retry_safe` fields matter because they change what the orchestrator is allowed to do next.
+                </p>
+                <div class="mt-4 overflow-x-auto rounded-[28px] border border-slate-800 bg-navy/70 p-5">
+                  <code class="block whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-slate-200">{TOOL_CALL_LOG_SAMPLE}</code>
+                </div>
+              </div>
+
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Typed error classification</h3>
+                <p>
+                  Raw error strings are weak operator surfaces. Production traces need an error class, a recovery hint, and explicit retry semantics so the orchestrator can tell auth expiry from transient rate pressure from a permanent policy denial.
+                </p>
+                <div class="mt-4 overflow-x-auto rounded-[28px] border border-slate-800 bg-navy/70 p-5">
+                  <code class="block whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-slate-200">{ERROR_LOG_SAMPLE}</code>
+                </div>
+              </div>
+
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Session-level audit trails</h3>
+                <p>
+                  Post-incident review usually needs one coherent session summary more than a wall of line-by-line logs. Count the calls, capture the identities used, roll up side effects, and mark the terminal state so the operator can decide whether to resume, repair, or stop.
+                </p>
+                <div class="mt-4 overflow-x-auto rounded-[28px] border border-slate-800 bg-navy/70 p-5">
+                  <code class="block whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-slate-200">{SESSION_SUMMARY_SAMPLE}</code>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Cost attribution belongs inside the same trace, not in a separate finance afterthought
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Multi-tool agent loops turn observability into a spend-control problem fast. If one workflow hits a retry storm on a metered search, LLM, or SaaS action, the useful question is not only whether the call failed. It is which session, user, and tool lane consumed the credits before the loop was stopped.
+              </p>
+              <p>
+                That is why per-session spend tracking and governors belong in the same operational record as the tool trace. Without them, operators see the bill after the fact but still cannot tell which lane needs a tighter budget, stricter retry cap, or narrower tool surface.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">What the governor needs</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                <li>session or workflow budget before the first billed call</li>
+                <li>estimated and actual cost per tool execution</li>
+                <li>typed quota failures instead of generic transport errors</li>
+                <li>enough attribution to quarantine the one bad lane instead of every agent</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. Partial failure recovery depends on checkpoints and reversibility classes
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The hardest debugging case is not a clean failure. It is partial success: three calls completed, two did not, and the operator cannot prove whether the fourth call already created the record before the timeout. That is how manual cleanup and duplicate writes start.
+              </p>
+              <p>
+                Good observability makes two things explicit. First, where the last known-good checkpoint was. Second, whether the calls before failure were no-effect, reversible, or permanent. Without those tags, retry logic becomes hope.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Recovery questions</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                <li>Which checkpoint was the last verified good state?</li>
+                <li>Did the failed lane contain permanent side effects already visible downstream?</li>
+                <li>Is raw retry safe, or does recovery require verification first?</li>
+                <li>Will a new session still see the earlier side effects, or is state local to the abandoned session?</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. The production bar is not “we have logs somewhere”
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The mature server is not necessarily the one with the biggest tool catalog. It is the one that leaves enough principal-aware evidence behind that an operator can debug confidently at 2 a.m. when a workflow fails midway through a real task.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Observability checklist</div>
+              <ol class="ml-5 list-decimal space-y-2 leading-relaxed text-slate-300">
+                {OBSERVABILITY_CHECKLIST.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Put observability inside one governed execution lane before widening the surface
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Better traces matter most when they are attached to a bounded capability surface, explicit authority, and a recovery model that the operator can actually use. Start there before adding more provider sprawl.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=mcp-observability-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=mcp-observability-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Evidence follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Observability becomes more useful when readers can keep moving through recovery, receipts, credentials, and authority design without dropping back to generic navigation.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <a href="/blog/agent-state-management-recovery-patterns" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Agent State Management Recovery Patterns</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Checkpointing and explicit recovery rules are what turn logs into a resumable workflow instead of a forensic shrug.</p>
+              </a>
+              <a href="/blog/mcp-credential-lifecycle-token-rotation" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Credential Lifecycle</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Auth ambiguity is much easier to debug when expiry, rotation, and revocation are visible in the same trace.</p>
+              </a>
+              <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Observability after the call is stronger when authority was already narrow before the call.</p>
+              </a>
+              <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Signed MCP Receipts</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Receipts strengthen proof after execution, but they are a separate layer from operational debugging and recovery.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <aside class="self-start space-y-6 lg:sticky lg:top-24">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Minimum bar</div>
+            <ul class="space-y-2 text-sm leading-relaxed text-slate-300">
+              <li>principal-aware tool-call logs</li>
+              <li>typed errors with retry semantics</li>
+              <li>session summaries with side effects</li>
+              <li>credential-mode visibility</li>
+              <li>checkpoint and recovery evidence</li>
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Decision rule</div>
+            <p class="text-sm leading-relaxed text-slate-300">
+              If the audit trail cannot tell you who ran the tool, which auth path was used, what side effects happened, and whether retry is safe, the server is still a demo from an operator standpoint.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-14 rounded-[32px] border border-slate-800 bg-surface/60 p-6 sm:p-8">
+        <div class="mb-5 flex items-center gap-3">
+          <span class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Related reading</span>
+          <span class="h-px flex-1 bg-slate-800"></span>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100 transition-colors group-hover:text-amber">{item.title}</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
