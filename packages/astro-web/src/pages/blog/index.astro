@@ -104,7 +104,7 @@ const POSTS: Post[] = [
     verdict: "Stripe wins by default. Square for physical commerce. PayPal constraint-driven.",
     related: [
       { slug: "payments-for-agents", title: "Why Stripe Scores 8.1 and PayPal Scores 4.9" },
-      { slug: "twilio-api-autopsy", title: "Twilio API Autopsy" },
+      { slug: "stripe-api-autopsy", title: "Stripe API Autopsy" },
     ],
   },
   {
@@ -313,6 +313,23 @@ const POSTS: Post[] = [
     keyFinding: "Best-in-class error ergonomics and idempotency. Friction lives in webhook signature verification edge cases.",
     related: [
       { slug: "twilio-vs-vonage-vs-plivo", title: "Twilio vs Vonage vs Plivo" },
+    ],
+  },
+  {
+    slug: "stripe-api-autopsy",
+    title: "Stripe API Autopsy: What 8.1/10 Agent-Native Actually Looks Like",
+    description: "Strong auth, first-class idempotency, actionable payment errors, and the remaining failure modes operators can actually plan around.",
+    date: "March 30, 2026",
+    dateISO: "2026-03-30T00:00:00Z",
+    readTime: "10 min",
+    contentType: "Autopsy",
+    category: "Payments",
+    score: 8.1,
+    tier: "ready",
+    keyFinding: "Stripe is the payment ceiling because retries, auth, and error handling are disciplined. The remaining friction is mostly SCA, Radar opacity, and Connect complexity.",
+    related: [
+      { slug: "stripe-vs-square-vs-paypal", title: "Stripe vs Square vs PayPal" },
+      { slug: "how-agents-pay", title: "How Agents Actually Pay" },
     ],
   },
   {

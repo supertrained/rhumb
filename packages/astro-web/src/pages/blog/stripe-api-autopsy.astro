@@ -1,0 +1,534 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import ScoreDisplay from "../../components/ScoreDisplay.astro";
+import TierBadge from "../../components/TierBadge.astro";
+import { getServiceScore } from "../../lib/api";
+
+const stripe = await getServiceScore("stripe");
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Stripe API Autopsy: What 8.1/10 Agent-Native Actually Looks Like",
+  datePublished: "2026-03-30T00:00:00Z",
+  author: { "@type": "Person", name: "Pedro Nunes" },
+  description:
+    "A technical autopsy of Stripe from an agent's perspective. Score: 8.1/10. Strong auth, first-class idempotency, and known payment failure modes that operators can actually plan around.",
+  url: "https://rhumb.dev/blog/stripe-api-autopsy",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+
+const scoreUpdatedAt = stripe?.calculatedAt
+  ? new Date(stripe.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "March 30, 2026";
+const scoreUpdatedAtISO = stripe?.calculatedAt
+  ? new Date(stripe.calculatedAt).toISOString()
+  : "2026-03-30T00:00:00Z";
+(ARTICLE_JSON_LD as any).dateModified = scoreUpdatedAtISO;
+
+function formatScore(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
+}
+
+function formatConfidence(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value * 100)}%`;
+}
+
+type ScoreBreakdown = {
+  label: string;
+  score: string;
+  note: string;
+};
+
+const scoreBreakdown: ScoreBreakdown[] = [
+  {
+    label: "Authentication",
+    score: "9.2",
+    note: "Environment-prefixed keys and restricted keys make the access model legible to automation.",
+  },
+  {
+    label: "Idempotency",
+    score: "9.5",
+    note: "First-class idempotency keys mean retry loops do not become duplicate charges by default.",
+  },
+  {
+    label: "Error transparency",
+    score: "8.8",
+    note: "Decline codes are specific enough for routing decisions without guesswork.",
+  },
+  {
+    label: "Observability",
+    score: "8.1",
+    note: "Strong webhooks and event IDs help, even if Radar explanations still lag behind the payment surface.",
+  },
+  {
+    label: "Rate-limit handling",
+    score: "7.9",
+    note: "Good enough for standard production use, but long-lived payment loops still need backoff discipline.",
+  },
+  {
+    label: "Sandbox parity",
+    score: "9.3",
+    note: "Test and production shapes stay close enough that the harness teaches the real system.",
+  },
+  {
+    label: "Payment autonomy",
+    score: "6.8",
+    note: "The hard stop is not API syntax, it is the human checkpoint in SCA and other regulated payment paths.",
+  },
+  {
+    label: "AN Score",
+    score: "8.1 / 10",
+    note: "Stripe is the ceiling in the current payments set, not because it is perfect, but because its remaining friction is mostly honest and knowable.",
+  },
+];
+
+type AnalysisPoint = {
+  id: string;
+  title: string;
+  kind: "strength" | "friction";
+  icon: string;
+  summary: string;
+  detail: string;
+  agentImpact: string;
+  evidence: string;
+};
+
+const analysisPoints: AnalysisPoint[] = [
+  {
+    id: "auth-readable",
+    title: "Authentication is machine-readable",
+    kind: "strength",
+    icon: "🔐",
+    summary: "Stripe's key model tells the agent which environment it is in and lets operators narrow authority with restricted keys.",
+    detail:
+      "The `sk_test_` and `sk_live_` prefixes expose environment directly in the credential. Restricted keys make least-privilege flows native instead of bolted on later. That combination reduces setup ambiguity and keeps the first automation boundary legible.",
+    agentImpact:
+      "Agents do not need an extra config lookup to understand environment, and operators can scope the credential to a smaller payment surface before the model acts.",
+    evidence: "Stripe secret key prefixes, restricted key model, and programmatic credential lifecycle in the Stripe platform.",
+  },
+  {
+    id: "idempotency-first",
+    title: "Idempotency keys are first-class",
+    kind: "strength",
+    icon: "♻️",
+    summary: "Retrying a payment write with the same key returns the same outcome instead of creating a second charge.",
+    detail:
+      "Stripe treats idempotency as part of the write contract. That matters more for agents than for humans because unattended loops will retry after timeouts, network wobble, or partial delivery. Stripe's approach makes the safe path the default path.",
+    agentImpact:
+      "Payment retries are predictable. Agents can recover from uncertain write outcomes without inventing a parallel deduplication layer for every charge flow.",
+    evidence: "Stripe write endpoints accept `Idempotency-Key` and preserve duplicate-request semantics for the retry window.",
+  },
+  {
+    id: "error-codes",
+    title: "Error codes are actionable",
+    kind: "strength",
+    icon: "🧭",
+    summary: "The payment surface exposes decline codes and structured error fields that map to real routing decisions.",
+    detail:
+      "`insufficient_funds`, `do_not_honor`, and similar decline codes give the operator a stable surface for handling payment outcomes. The agent does not need to hallucinate whether a failure is retriable or terminal. It can branch on the error model.",
+    agentImpact:
+      "Routing logic can stay deterministic. Payment recovery becomes switch statements and policy rather than fragile prompt interpretation.",
+    evidence: "Stripe error payloads with `type`, `code`, `decline_code`, and message fields documented across payment failures.",
+  },
+  {
+    id: "test-parity",
+    title: "Test and production parity is real",
+    kind: "strength",
+    icon: "🧪",
+    summary: "Test mode uses the same API shapes, webhook patterns, and error vocabulary that production does.",
+    detail:
+      "Agents need the test harness to teach the real runtime. Stripe's test cards and mirrored response shapes mean the error-handling lane you build in staging still resembles the production lane when money is live.",
+    agentImpact:
+      "You can exercise multi-step payment flows, error branches, and webhook handling before launch without the usual environment drift tax.",
+    evidence: "Test-mode key prefixes, stable response shapes, documented test cards, and webhook parity across Stripe environments.",
+  },
+  {
+    id: "sca-human",
+    title: "SCA and 3DS still force a human checkpoint",
+    kind: "friction",
+    icon: "👤",
+    summary: "European card flows and other regulated paths can stop at `requires_action`, and the agent cannot clear that wall by itself.",
+    detail:
+      "This is the cleanest example of a real payment constraint that product copy should not pretend away. When the PaymentIntent needs customer authentication, the agent must surface the handoff and wait. Automation can route around some cases, but it cannot dissolve the regulated checkpoint.",
+    agentImpact:
+      "Autonomous payments need an explicit human-in-the-loop path. If your flow cannot tolerate that checkpoint, the design has to change before production.",
+    evidence: "PaymentIntent states like `requires_action` and redirect-based next actions in SCA and 3DS flows.",
+  },
+  {
+    id: "object-chain",
+    title: "The object chain is still non-trivial",
+    kind: "friction",
+    icon: "🧱",
+    summary: "A simple payment often spans several objects and multiple state transitions before it is actually done.",
+    detail:
+      "Customer creation, PaymentMethod attachment, PaymentIntent confirmation, and state transitions all need to stay coherent. The multi-step design enables flexibility, but it also means partial failures can strand objects or leave the operator with reconciliation work if the loop is not disciplined.",
+    agentImpact:
+      "Agents need state tracking, explicit retry boundaries, and reconciliation logic. The payment API is good, but it is not a single-call toy surface.",
+    evidence: "Stripe customer, payment-method, and PaymentIntent lifecycle requirements for common charge flows.",
+  },
+  {
+    id: "radar-opacity",
+    title: "Radar opacity is still a real operator problem",
+    kind: "friction",
+    icon: "🕶️",
+    summary: "Fraud controls can still collapse into ambiguous declines that do not explain enough in the primary payment error.",
+    detail:
+      "A `do_not_honor` outcome can hide multiple causes. From the agent's point of view, the blocked transaction and the missing reason are the real issue. If you want reliable operator recovery, you still need monitoring around Radar and a playbook for separating issuer behavior from platform fraud rules.",
+    agentImpact:
+      "The payment lane is not fully self-explaining under fraud pressure. Operators need observability around review flows and policy tuning outside the core payment call.",
+    evidence: "Radar reviews, blocked transaction patterns, and limited reason visibility in the standard decline response path.",
+  },
+  {
+    id: "connect-complexity",
+    title: "Connect complexity multiplies everything",
+    kind: "friction",
+    icon: "🌐",
+    summary: "Marketplace and multi-party flows add KYC, extra object types, and account scoping that raise the defensive budget sharply.",
+    detail:
+      "The 8.1 story applies cleanly to Stripe's core payment surface. Once Connect enters the picture, you add KYC checkpoints, payout timing, separate fee objects, and per-account authority boundaries that expand both product truth and error handling complexity.",
+    agentImpact:
+      "Do not assume the core Stripe score transfers unchanged to marketplace operations. Connect needs a separate authority model and a higher defensive-code budget.",
+    evidence: "Stripe Connect account requirements, account-scoped headers, payout timing behavior, and fee-object handling.",
+  },
+];
+
+const strengths = analysisPoints.filter((point) => point.kind === "strength");
+const frictions = analysisPoints.filter((point) => point.kind === "friction");
+
+const relatedReads = [
+  {
+    href: "/blog/stripe-vs-square-vs-paypal",
+    label: "Payment comparison",
+    title: "Stripe vs Square vs PayPal",
+    description: "See where Stripe's ceiling still separates it from the other payment rails.",
+  },
+  {
+    href: "/blog/how-agents-pay",
+    label: "Payments architecture",
+    title: "How Agents Actually Pay",
+    description: "The broader operator question behind payment choice, authority, and runtime trust.",
+  },
+  {
+    href: "/blog/api-credentials-agent-fleets",
+    label: "Credential model",
+    title: "API Credentials in Autonomous Agent Fleets",
+    description: "Why the credential lane matters as much as the payment endpoint once more than one agent is live.",
+  },
+  {
+    href: "/blog/securing-keys-for-agents",
+    label: "Key containment",
+    title: "Securing Keys for Agents",
+    description: "Where secret handling and payment authority start to collapse into the same operator boundary.",
+  },
+];
+---
+
+<Layout
+  title="Stripe API Autopsy: What 8.1/10 Agent-Native Actually Looks Like | Rhumb"
+  description="Technical autopsy of Stripe from an agent's perspective. Score: 8.1/10. Strong auth, first-class idempotency, and payment failure modes operators can actually plan around."
+  canonical="/blog/stripe-api-autopsy"
+  ogTitle="Stripe API Autopsy: What 8.1/10 Agent-Native Actually Looks Like"
+  ogDescription="Score: 8.1/10. Stripe is the payments ceiling because the remaining friction is mostly honest, documented, and mitigable."
+  ogUrl="https://rhumb.dev/blog/stripe-api-autopsy"
+  ogType="article"
+  twitterTitle="Stripe API Autopsy"
+  twitterDescription="Score: 8.1/10. What the payments ceiling looks like for agents."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <section class="relative border-b border-slate-800/80">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.10),transparent_28%)]"></div>
+
+      <div class="relative max-w-6xl mx-auto px-6 pt-14 pb-16">
+        <div class="max-w-3xl">
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Autopsy</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">March 30, 2026</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated {scoreUpdatedAt}</span>
+            <span class="text-slate-700">&middot;</span>
+            <span class="text-xs font-mono text-slate-500">live score data</span>
+          </div>
+
+          <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
+            Stripe API autopsy
+          </h1>
+          <p class="mt-3 text-xl sm:text-2xl text-slate-400 font-light">
+            What 8.1/10 agent-native actually looks like
+          </p>
+
+          <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-3xl">
+            Most payment APIs make automation feel possible until the first retry storm, ambiguous decline, or human-only approval wall.
+            At <strong class="text-emerald-400">{formatScore(stripe?.aggregateRecommendationScore)}/10</strong>, Stripe is still the ceiling in Rhumb's payment set because the basics are strong, the failure modes are named, and the remaining friction is mostly the real payment problem, not avoidable platform confusion.
+          </p>
+
+          {stripe && (
+            <div class="mt-8 flex flex-wrap items-center gap-6">
+              <div class="flex items-center gap-3">
+                <ScoreDisplay score={stripe.aggregateRecommendationScore} size="large" />
+                <div>
+                  <div class="text-xs font-mono text-slate-500 uppercase tracking-wider">AN Score</div>
+                  <TierBadge tier={stripe?.tier ?? null} label={stripe?.tierLabel ?? undefined} />
+                </div>
+              </div>
+              <div class="h-10 w-px bg-slate-800"></div>
+              <div class="flex gap-6 text-sm">
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Execution</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(stripe.executionScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Access</div>
+                  <div class="text-slate-200 font-semibold">{formatScore(stripe.accessReadinessScore)}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-mono text-slate-500">Confidence</div>
+                  <div class="text-slate-200 font-semibold">{formatConfidence(stripe.confidence)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-6 sm:p-8">
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-[0.28em]">Agent decision</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              <strong>Use Stripe</strong> when you need the default payment rail for agent-driven billing, subscriptions, or repeatable charge flows.
+              <strong>Budget for</strong> explicit handoff when SCA or 3DS appears, multi-object state tracking around PaymentIntents, and separate observability around Radar and Connect.
+              The API is strong enough for production, but payment authority still needs boundaries before you let the loop run unattended.
+            </p>
+            <div class="mt-4">
+              <a href="/service/stripe" class="text-xs font-mono text-amber hover:text-amber-300 underline underline-offset-2 transition-colors">View full service page →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Score anatomy</h2>
+          <p class="text-slate-400 mb-8 leading-relaxed">
+            Stripe earns the score by solving the boring but essential operator problems well: auth is clear, retries are safe, errors are actionable, and test mode teaches the real runtime.
+            The remaining drag is mostly the honest payment boundary, not accidental platform chaos.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {scoreBreakdown.map((item) => (
+            <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+              <div class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500">{item.label}</div>
+              <div class="mt-3 font-display font-bold text-3xl text-slate-100">{item.score}</div>
+              <p class="mt-3 text-sm leading-relaxed text-slate-400">{item.note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">What Stripe gets right for agents</h2>
+          <p class="text-slate-400 leading-relaxed">
+            This is the anatomy of the ceiling. The strongest parts of Stripe are not flashy. They are the pieces that keep an overnight automation loop from turning into duplicate money movement or unreadable failure states.
+          </p>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          {strengths.map((point) => (
+            <article class="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-6">
+              <div class="flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/12 text-2xl">{point.icon}</div>
+                <div>
+                  <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-emerald-300">Strength</p>
+                  <h3 class="mt-2 font-display text-xl font-semibold text-slate-100">{point.title}</h3>
+                  <p class="mt-2 text-slate-300 leading-relaxed">{point.summary}</p>
+                </div>
+              </div>
+              <div class="mt-5 space-y-4 text-sm leading-relaxed text-slate-400">
+                <p>{point.detail}</p>
+                <div class="rounded-xl border border-slate-800 bg-navy/50 p-4">
+                  <div class="text-xs font-mono uppercase tracking-[0.22em] text-slate-500">Agent impact</div>
+                  <p class="mt-2 text-slate-300">{point.agentImpact}</p>
+                </div>
+                <p class="text-slate-500">Evidence: {point.evidence}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl mb-8">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">Where Stripe still breaks under real payment pressure</h2>
+          <p class="text-slate-400 leading-relaxed">
+            The point of a strong payment API is not that nothing fails. It is that the failure modes are legible enough to design around. Stripe still has sharp edges, but they are the kind an operator can plan for in advance.
+          </p>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          {frictions.map((point) => (
+            <article class="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-6">
+              <div class="flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/12 text-2xl">{point.icon}</div>
+                <div>
+                  <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-amber-300">Friction</p>
+                  <h3 class="mt-2 font-display text-xl font-semibold text-slate-100">{point.title}</h3>
+                  <p class="mt-2 text-slate-300 leading-relaxed">{point.summary}</p>
+                </div>
+              </div>
+              <div class="mt-5 space-y-4 text-sm leading-relaxed text-slate-400">
+                <p>{point.detail}</p>
+                <div class="rounded-xl border border-slate-800 bg-navy/50 p-4">
+                  <div class="text-xs font-mono uppercase tracking-[0.22em] text-slate-500">Agent impact</div>
+                  <p class="mt-2 text-slate-300">{point.agentImpact}</p>
+                </div>
+                <p class="text-slate-500">Evidence: {point.evidence}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 mb-3">The real cost for agents</h2>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Setup time</div>
+              <div class="text-xl font-display font-bold text-slate-200">15-30 minutes</div>
+              <p class="text-sm text-slate-400 mt-1">Key creation, test harness setup, webhook endpoint wiring, and the first PaymentIntent loop are all straightforward.</p>
+            </div>
+            <div class="rounded-xl border border-amber-500/15 bg-amber-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Human checkpoint</div>
+              <div class="text-xl font-display font-bold text-amber-400">SCA and KYC still exist</div>
+              <p class="text-sm text-slate-400 mt-1">Some payment and marketplace paths simply cannot be automated end to end without a human checkpoint.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Ongoing overhead</div>
+              <div class="text-xl font-display font-bold text-emerald-400">Low to moderate</div>
+              <p class="text-sm text-slate-400 mt-1">No token refresh lane, strong retry semantics, and stable test mode keep the ongoing maintenance burden reasonable.</p>
+            </div>
+            <div class="rounded-xl border border-slate-700/40 bg-slate-900/30 p-5">
+              <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Defensive code</div>
+              <div class="text-xl font-display font-bold text-slate-200">~12-15% of integration</div>
+              <p class="text-sm text-slate-400 mt-1">Most of the extra budget goes into PaymentIntent state handling, webhook dedupe, Radar visibility, and operator handoff when payments need human action.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="rounded-[30px] border border-emerald-500/20 bg-emerald-500/5 p-8 reveal">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-emerald-300">Next honest step</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Keep payment authority inside one bounded lane</h2>
+          <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+            Stripe being the default rail still does not answer who can initiate money movement, when human review is required, or how credentials stay contained once the workflow repeats. If you need to separate capability evaluation from repeat execution, start with capability-first onboarding. If the payment workflow is already tightly scoped, open the managed path directly.
+          </p>
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-start">
+            <a
+              href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=stripe-autopsy-onboarding"
+              class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+            >
+              See the capability-first handoff &rarr;
+            </a>
+            <a
+              href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=stripe-autopsy-direct"
+              class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+            >
+              Open the managed path &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="rounded-[30px] border border-slate-800 bg-surface/70 p-8 reveal">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Payment reliability compounds once several agents share the same rail</h2>
+          <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+            Stripe's stronger baseline still leaves you with credential containment, retry coordination, and policy clarity once more than one workflow can touch billing. These next reads keep the payment discussion inside the broader bounded-execution cluster.
+          </p>
+          <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            <a href="/blog/how-agents-pay" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Payment path</span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">How Agents Actually Pay</h3>
+              <p class="text-sm text-slate-500 mt-1">The bigger trust question behind payment rails, wallets, and governed execution.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Retry discipline</span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">Designing Agent Fleets That Survive Rate Limits</h3>
+              <p class="text-sm text-slate-500 mt-1">Why even strong APIs need a fleet-level recovery model once the loop is live all day.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="block bg-navy/60 border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors">
+              <span class="text-xs font-mono text-amber uppercase tracking-widest">Credential lifecycle</span>
+              <h3 class="font-display font-semibold text-slate-100 mt-2">API Credentials in Autonomous Agent Fleets</h3>
+              <p class="text-sm text-slate-500 mt-1">How key scope, rotation, and revocation become part of the payment operating model.</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-12">
+        <div class="max-w-3xl">
+          <h3 class="font-display font-semibold text-lg text-slate-300 mb-3">Methodology</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This autopsy uses live data from Rhumb's AN Score system. Scores are computed from documentation review,
+            API structure analysis, authentication flow assessment, and runtime probing where available.
+            The AN Score methodology is published at
+            <a href="/methodology" class="text-amber hover:text-amber-300 underline underline-offset-2 transition-colors"> rhumb.dev/methodology</a>.
+            Stripe's data was last calculated on
+            {stripe?.calculatedAt ? new Date(stripe.calculatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "recently"}.
+            Confidence: {formatConfidence(stripe?.confidence)}.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="max-w-3xl">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">More from Rhumb</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Keep following the payment boundary</h2>
+          <p class="mt-4 text-slate-400 leading-relaxed">
+            Stripe scores high, but choosing the rail is only the first step. These pages keep the decision inside the same operator-trust cluster instead of sending you back to generic navigation.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {relatedReads.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-surface/70 p-5 hover:border-emerald-500/30 transition-colors">
+              <div class="text-[11px] font-mono uppercase tracking-[0.26em] text-emerald-300">{item.label}</div>
+              <h3 class="mt-3 font-display text-lg font-semibold text-slate-100">{item.title}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
