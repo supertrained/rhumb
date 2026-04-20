@@ -113,9 +113,58 @@ def test_get_api_key_uses_env_first():
 def test_get_api_key_falls_back_to_sop_when_env_missing():
     with (
         patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
-        patch.object(resolve_v2_dogfood, "_load_api_key_from_sop", return_value="rhumb_sop_key"),
+        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"),
     ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
+
+
+def test_get_api_key_skips_stale_candidate_and_uses_next_working_item():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
+        patch.object(
+            resolve_v2_dogfood,
+            "_load_api_key_from_sop",
+            side_effect=["rhumb_stale_key", "rhumb_live_key"],
+        ) as mock_load,
+        patch.object(
+            resolve_v2_dogfood,
+            "_api_key_probe_ok",
+            side_effect=[False, True],
+        ) as mock_probe,
+    ):
+        assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_live_key"
+
+    assert mock_load.call_args_list == [
+        call(item_name="Rhumb API Key - pedro-dogfood"),
+        call(item_name="Rhumb API Key - atlas@supertrained.ai"),
+    ]
+    assert mock_probe.call_args_list == [
+        call(
+            "rhumb_stale_key",
+            base_url=resolve_v2_dogfood.DEFAULT_BASE_URL,
+            timeout=resolve_v2_dogfood.DEFAULT_TIMEOUT,
+        ),
+        call(
+            "rhumb_live_key",
+            base_url=resolve_v2_dogfood.DEFAULT_BASE_URL,
+            timeout=resolve_v2_dogfood.DEFAULT_TIMEOUT,
+        ),
+    ]
+
+
+def test_get_api_key_raises_when_no_candidate_is_live():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
+        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value=None),
+    ):
+        try:
+            resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY")
+        except RuntimeError as exc:
+            assert "Missing working API key" in str(exc)
+            assert "Rhumb API Key - pedro-dogfood" in str(exc)
+            assert "Rhumb API Key - atlas@supertrained.ai" in str(exc)
+        else:
+            raise AssertionError("Expected RuntimeError when no live API key is available")
 
 
 def test_get_admin_key_uses_primary_env_first():

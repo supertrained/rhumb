@@ -54,8 +54,13 @@ DEFAULT_API_KEY_ENV = "RHUMB_DOGFOOD_API_KEY"
 DEFAULT_ADMIN_KEY_ENV = "RHUMB_ADMIN_SECRET"
 DEFAULT_ADMIN_KEY_ENV_FALLBACKS = ("RHUMB_ADMIN_KEY",)
 DEFAULT_API_KEY_ITEM = "Rhumb API Key - pedro-dogfood"
+DEFAULT_API_KEY_ITEMS = (
+    DEFAULT_API_KEY_ITEM,
+    "Rhumb API Key - atlas@supertrained.ai",
+)
 DEFAULT_ADMIN_KEY_ITEM = "Rhumb Admin Secret (Railway)"
 DEFAULT_API_KEY_VAULT = "OpenClaw Agents"
+DEFAULT_API_KEY_PROBE_PATH = "/v1/capabilities?limit=1"
 DEFAULT_BOOTSTRAP_ORG_ID = "org_aud3_verifier"
 DEFAULT_BOOTSTRAP_AGENT_NAME = "Pedro AUD-3 Verifier"
 DEFAULT_TIMEOUT = 30.0
@@ -141,10 +146,10 @@ def _load_api_key_from_sop(
     item_name: str = DEFAULT_API_KEY_ITEM,
     vault: str = DEFAULT_API_KEY_VAULT,
 ) -> str | None:
-    """Fallback to the dedicated Pedro dogfood credential in 1Password.
+    """Load one candidate dogfood credential from 1Password.
 
-    This keeps scheduled/heartbeat dogfood runs honest even when the runtime
-    shell did not inherit `RHUMB_DOGFOOD_API_KEY`.
+    The dogfood harness may probe multiple candidates after loading them so
+    scheduled runs can stay honest even when one stored key has gone stale.
     """
     try:
         result = subprocess.run(
@@ -172,6 +177,43 @@ def _load_api_key_from_sop(
 
     value = result.stdout.strip()
     return value or None
+
+
+def _api_key_probe_ok(
+    api_key: str,
+    *,
+    base_url: str = DEFAULT_BASE_URL,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> bool:
+    probe_url = f"{base_url.rstrip('/')}{DEFAULT_API_KEY_PROBE_PATH}"
+    request = Request(
+        probe_url,
+        headers={
+            "Accept": "application/json",
+            "X-Rhumb-Key": api_key,
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return 200 <= int(getattr(response, "status", 0) or 0) < 300
+    except (HTTPError, URLError, TimeoutError):
+        return False
+
+
+def _load_first_working_api_key_from_sop(
+    *,
+    base_url: str = DEFAULT_BASE_URL,
+    timeout: float = DEFAULT_TIMEOUT,
+    item_names: tuple[str, ...] = DEFAULT_API_KEY_ITEMS,
+) -> str | None:
+    for item_name in item_names:
+        value = _load_api_key_from_sop(item_name=item_name)
+        if not value:
+            continue
+        if _api_key_probe_ok(value, base_url=base_url, timeout=timeout):
+            return value
+    return None
 
 
 def _load_admin_key_from_sop(
@@ -206,18 +248,23 @@ def _load_admin_key_from_sop(
     return value or None
 
 
-def _get_api_key(env_name: str) -> str:
+def _get_api_key(
+    env_name: str,
+    *,
+    base_url: str = DEFAULT_BASE_URL,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> str:
     value = os.environ.get(env_name, "").strip()
     if value:
         return value
 
-    value = _load_api_key_from_sop()
+    value = _load_first_working_api_key_from_sop(base_url=base_url, timeout=timeout)
     if value:
         return value
 
+    item_list = ", ".join(repr(item) for item in DEFAULT_API_KEY_ITEMS)
     raise RuntimeError(
-        f"Missing API key. Set the {env_name} environment variable or store "
-        f"{DEFAULT_API_KEY_ITEM!r} in 1Password."
+        f"Missing working API key. Set the {env_name} environment variable or store a live key in 1Password under one of: {item_list}."
     )
 
 
@@ -939,7 +986,7 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
     if args.bootstrap_via_admin:
         api_key, bootstrap = provision_api_key_via_admin(args, provider=args.provider)
     else:
-        api_key = _get_api_key(args.api_key_env)
+        api_key = _get_api_key(args.api_key_env, base_url=root, timeout=args.timeout)
     parameters = _json_or_default(args.parameters_json, DEFAULT_PARAMETERS)
     headers = {"X-Rhumb-Key": api_key}
 
