@@ -193,6 +193,28 @@ async def test_get_recipe_returns_compiled_definition(app):
 
 
 @pytest.mark.anyio
+async def test_execute_recipe_requires_valid_governed_api_key(app):
+    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/transcribe_and_notify/execute",
+                json={
+                    "inputs": {
+                        "audio_url": "https://example.com/audio.mp3",
+                        "to": "tom@example.com",
+                    },
+                    "credential_mode": "byo",
+                },
+            )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["error"]["code"] == "CREDENTIAL_MISSING"
+    assert body["error"]["message"] == "Recipe execution requires a valid governed API key."
+    assert body["error"]["detail"] == "Provide X-Rhumb-Key for Layer 3 recipe execution."
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_runs_engine_via_internal_forwarding_and_persists(app, mock_agent):
     forward_calls: list[tuple[str, dict]] = []
 

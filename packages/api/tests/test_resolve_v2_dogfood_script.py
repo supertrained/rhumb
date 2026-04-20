@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from unittest.mock import call, patch
 
+import pytest
+
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "resolve_v2_dogfood.py"
 
 spec = importlib.util.spec_from_file_location("resolve_v2_dogfood", SCRIPT_PATH)
@@ -212,6 +214,15 @@ def test_parse_args_accepts_refresh_stale_profiles_flag():
 
     assert args.fleet_status is True
     assert args.refresh_stale_profiles is True
+
+
+def test_parse_args_help_uses_governed_api_key_wording(capsys):
+    with pytest.raises(SystemExit):
+        resolve_v2_dogfood.parse_args(["--help"])
+
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "real governed API key" in help_text
+    assert "real Rhumb API key" not in help_text
 
 
 def test_resolve_fleet_status_profiles_defaults_to_core_operator_fleet():

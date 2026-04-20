@@ -14,7 +14,7 @@ This script exercises the honest post-build operator loop for Rhumb's v2 API:
 
 Honest boundary:
 - This is an operator dogfood harness, not a unit test.
-- It expects a real Rhumb API key in an environment variable.
+- It expects a real governed API key in an environment variable.
 - It does not publish anything externally or mutate product state unless
   policy-smoke flags are supplied.
 - When policy write flags are used, prefer a dedicated internal dogfood org.
@@ -1392,7 +1392,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--api-key-env",
         default=DEFAULT_API_KEY_ENV,
-        help="Environment variable containing a real Rhumb API key",
+        help="Environment variable containing a real governed API key",
     )
     parser.add_argument(
         "--bootstrap-via-admin",

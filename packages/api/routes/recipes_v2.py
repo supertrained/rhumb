@@ -913,7 +913,7 @@ async def execute_recipe(
     if not api_key:
         raise RhumbError(
             "CREDENTIAL_MISSING",
-            message="Recipe execution requires a Rhumb API key.",
+            message="Recipe execution requires a valid governed API key.",
             detail="Provide X-Rhumb-Key for Layer 3 recipe execution.",
         )
 
