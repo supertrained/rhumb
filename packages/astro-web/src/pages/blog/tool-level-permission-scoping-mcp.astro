@@ -1,0 +1,343 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const PERMISSION_LAYERS = [
+  {
+    label: "Server auth",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Authentication answers who may connect to the server. It does not answer which tools that caller should be allowed to use.",
+  },
+  {
+    label: "Tool auth",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "Authorization should filter tool visibility and execution by role, tenant, or workflow intent before the model ever sees broad authority.",
+  },
+  {
+    label: "Audit proof",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "If caller identity, denied calls, and executed tools are not logged cleanly, the permission model is a claim, not an operator control surface.",
+  },
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Authenticated means everything",
+    body: "One successful login exposes every tool on the server, even when the caller only needed a narrow read-only lane.",
+  },
+  {
+    title: "Hidden authority in discovery",
+    body: "An agent can still reason about deployment, delete, or write tools if the manifest reveals them, even if execution fails later.",
+  },
+  {
+    title: "Lateral movement by design",
+    body: "Compromise a low-risk research agent once, and you may inherit write-capable tools meant for another workflow entirely.",
+  },
+  {
+    title: "Unverifiable enforcement",
+    body: "Without structured audit trails, operators cannot confirm which principal saw which tools, attempted which calls, or was denied why.",
+  },
+];
+
+const SCOPING_CHECKLIST = [
+  "Does each caller receive a tool manifest filtered to only the tools it should know about?",
+  "Are tool calls checked against role or scope at execution time, not just at connection time?",
+  "Can one low-risk workflow discover or invoke higher-risk tools such as deploy, delete, or write actions?",
+  "Do denied calls emit typed policy errors instead of generic runtime failures?",
+  "Are caller identity, tool name, policy decision, and outcome all captured in the audit trail?",
+  "Can the permission model be changed centrally without forking the server for every workflow?",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
+  datePublished: "2026-04-04T00:00:00Z",
+  dateModified: "2026-04-04T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
+  url: "https://rhumb.dev/blog/tool-level-permission-scoping-mcp",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/tool-level-permission-scoping-mcp",
+};
+---
+
+<Layout
+  title="Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough | Rhumb"
+  description="Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries."
+  canonical="/blog/tool-level-permission-scoping-mcp"
+  ogTitle="Tool-Level Permission Scoping in MCP | Rhumb"
+  ogDescription="Why authenticated should not mean every tool, and why discovery-layer least privilege matters for production MCP."
+  ogUrl="https://rhumb.dev/blog/tool-level-permission-scoping-mcp"
+  ogType="article"
+  twitterTitle="Tool-Level Permission Scoping in MCP"
+  twitterDescription="Why authenticated should not mean every tool in production MCP."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">MCP Security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 4, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              Once an agent is authenticated, the next question is what authority survives that connection. Production MCP needs caller-scoped tool visibility, typed denials, and audit proof, not one broad manifest behind a single login boundary.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Permission layers</div>
+            <div class="space-y-3">
+              {PERMISSION_LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-4 ${layer.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_MODES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The production question is not <span class="text-slate-100">“can this agent connect?”</span>
+          It is <span class="text-slate-100">“which tools remain visible and callable once it does?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. Server authentication and tool authorization are different layers
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Most MCP security conversations start at the front door. Who can connect, which credential is accepted, whether the transport is secure. That layer matters, but it answers only one question: who may enter.
+              </p>
+              <p>
+                The harder production question starts after that. Does an authenticated research agent now inherit deploy, delete, billing, or admin tools it never needed? If the answer is yes, the trust model is still too broad even though server auth technically exists.
+              </p>
+              <p>
+                This is why tool-level permission scoping matters. Authentication is about admission. Authorization is about authority.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. The failure mode is one single permission boundary
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The default implementation pattern is simple: agent authenticates, server returns the full tool list, and every authenticated caller can attempt every tool. That model feels acceptable while there is only one trusted agent in a demo. It breaks fast once multiple workflows, tenants, or risk profiles share the same surface.
+              </p>
+              <p>
+                A research agent should not be able to deploy. A deployment agent should not need customer-data search. A summarization agent should not inherit write-capable connectors just because those tools happen to live in the same server process.
+              </p>
+              <p>
+                If the permission model is <span class="text-slate-100">authenticated = full access</span>, lateral movement is built into the architecture. One prompt injection or one compromised workflow can step sideways into tools the original task never needed.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. Visibility is part of the boundary
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Least privilege is not only an execution check. It starts at discovery time. The safest tool is the one the wrong agent never sees.
+              </p>
+              <p>
+                A role-aware tool manifest keeps the model's planning surface narrow. If a research agent never sees deploy or delete tools, prompt injection has less authority to reason about, less surface to enumerate, and fewer dangerous names to probe.
+              </p>
+              <p>
+                That is why a permission model that only blocks execution is incomplete. Visibility is part of the boundary, because discovery teaches the model where the powerful edges of the system live.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. What good tool-level scoping looks like
+            </h2>
+            <div class="space-y-6 leading-relaxed text-slate-400">
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Caller-scoped tool manifests</h3>
+                <p>
+                  The server should return only the tools that principal is allowed to know about, not the full server capability map.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Execution-time policy checks</h3>
+                <p>
+                  Tool calls still need enforcement when invoked. A hidden tool should stay hidden, and an out-of-scope call should fail cleanly with a typed policy denial.
+                </p>
+              </div>
+              <div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Central policy, not ad hoc forks</h3>
+                <p>
+                  The definition of what a research, deployment, or support workflow may do should live in one explicit policy layer, not in a growing pile of custom server forks.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. Audit proof is the dependency most teams skip
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Permission scoping without auditability is aspirational. Operators need to know which principal saw which tools, which calls were denied, which were executed, and what policy decided the outcome.
+              </p>
+              <p>
+                Without that, teams cannot verify that tool boundaries actually hold in production. They also cannot reconstruct incidents when a caller tries to reach beyond its lane.
+              </p>
+              <p>
+                The right failure mode is not a vague 500 or a silent disappearance. It is a typed denial with enough context to distinguish policy rejection from runtime failure.
+              </p>
+            </div>
+
+            <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Permission model checklist</div>
+              <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {SCOPING_CHECKLIST.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Secure by design means narrow authority before the first tool call
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Teams that try to add least privilege late usually bolt a middleware check onto invocation and stop there. That leaves the discovery layer wide open, the audit layer thin, and the mental model of the server broader than the actual intended trust boundary.
+              </p>
+              <p>
+                Production MCP wants the opposite order. Define the caller class, decide which tools it may see, enforce policy at invocation, and log the policy decision as part of the normal control plane. Tool-level scoping is not a nice-to-have after authentication. It is the layer that keeps one successful connection from becoming broad authority by accident.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Start with one governed tool lane, not one big authenticated catalog
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If server auth is only the first boundary, the safer next move is a narrow lane where caller, tool scope, and operator intent are explicit before more connectors and write paths pile onto the same manifest.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=tool-permission-scoping-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=tool-permission-scoping-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this page is the authorization frame, these three pages carry it into the operator playbook: bounded capabilities, prompt-injection containment, and honest remote-readiness review.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the safer control plane is a bounded capability surface instead of endpoint sprawl mirrored into tools.</p>
+              </a>
+              <a href="/blog/mcp-prompt-injection-scope-constraints" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Prompt Injection, Scope Constraints, and Blast Radius</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why unconstrained parameters turn a weak permission model into real file, repo, or network reach.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How to evaluate scope, principal model, tenant isolation, governors, recovery, and auditability together.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Narrow tool authority still has to survive loops, budgets, and credential drift
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Once the manifest is scoped correctly, the next operator questions are what breaks in the loop, how shared rate limits stay contained, and how backend credentials avoid widening under real production load.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, tool use, and unattended execution are live.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How one runaway workflow becomes a shared-budget problem unless governors stay explicit.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why narrow tool access still fails if backend credentials rotate, widen, or drift invisibly.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Authority-shape follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Tool scoping gets harder when one server serves many principals. These pages pressure-test the same trust boundary under tenant isolation and recovery pressure.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Where per-tool scoping meets tenant-aware credentials, resources, logs, and shared budgets.</p>
+              </a>
+              <a href="/blog/agent-state-management-recovery-patterns" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Agent State Management Recovery Patterns</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why a good permission model still needs checkpoints, verification, and explicit recovery when calls fail halfway through.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
