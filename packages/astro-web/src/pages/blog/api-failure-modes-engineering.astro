@@ -1,0 +1,248 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How APIs Fail When Agents Use Them: A Failure Engineering Guide",
+  datePublished: "2026-03-31T00:00:00Z",
+  dateModified: "2026-04-20T00:00:00Z",
+  author: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  description:
+    "Failure mode data matters more than aggregate scores once agents run unattended. This guide maps six API failure categories and the telemetry needed to catch them.",
+  url: "https://rhumb.dev/blog/api-failure-modes-engineering",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+  mainEntityOfPage: "https://rhumb.dev/blog/api-failure-modes-engineering",
+};
+
+function markdownToHtml(md: string): string {
+  let html = md;
+
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+    return `<pre class="bg-elevated border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto text-sm font-mono text-slate-300"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim()}</code></pre>`;
+  });
+
+  html = html.replace(/^---$/gm, '<hr class="border-slate-800 my-10" />');
+
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (block) => {
+    const rows = block.trim().split('\n').filter(r => !r.match(/^\|[\s-:|]+\|$/));
+    if (rows.length === 0) return block;
+    const headerCells = rows[0].split('|').filter(c => c.trim()).map(c =>
+      `<th class="px-4 py-3 text-left text-xs font-mono font-semibold text-slate-300 uppercase tracking-wider">${c.trim()}</th>`
+    ).join('\n');
+    const bodyRows = rows.slice(1).map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c =>
+        `<td class="px-4 py-3 text-sm text-slate-400">${c.trim()}</td>`
+      ).join('\n');
+      return `<tr class="border-t border-slate-800">${cells}</tr>`;
+    }).join('\n');
+    return `<div class="overflow-x-auto my-6"><table class="w-full border border-slate-800 rounded-lg"><thead class="bg-elevated"><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+  });
+
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-display font-semibold text-base text-slate-300 mt-6 mb-2">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-display font-semibold text-lg text-slate-200 mt-8 mb-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">$1</h2>');
+
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-2 border-amber/50 pl-4 my-6 text-slate-400 italic"><p>$1</p></blockquote>');
+
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200 font-semibold">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em class="text-slate-300 italic">$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code class="font-mono text-sm bg-elevated px-1.5 py-0.5 rounded text-amber">$1</code>');
+
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, href) => {
+    if (href.startsWith('/')) {
+      return `<a href="${href}" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-amber hover:underline underline-offset-2">${text}</a>`;
+  });
+
+  html = html.replace(/(?:^- .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^- /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ul>`;
+  });
+
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (block) => {
+    const items = block.trim().split('\n').map(line => {
+      const content = line.replace(/^\d+\. /, '');
+      return `<li class="leading-relaxed">${content}</li>`;
+    }).join('\n');
+    return `<ol class="list-decimal list-outside ml-5 mb-4 space-y-1 text-slate-400">\n${items}\n</ol>`;
+  });
+
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<h') || trimmed.startsWith('<hr') || trimmed.startsWith('<div')) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      result.push(line);
+      if (trimmed.startsWith('</pre>') || trimmed.startsWith('</ul>') || trimmed.startsWith('</ol>') || trimmed.startsWith('</blockquote>') || trimmed.endsWith('</h2>') || trimmed.endsWith('</h3>') || trimmed.endsWith('</h4>') || trimmed.startsWith('<hr') || trimmed.endsWith('</div>')) {
+        inBlock = false;
+      }
+      continue;
+    }
+
+    if (trimmed === '') {
+      result.push('');
+      continue;
+    }
+
+    if (!trimmed.startsWith('<')) {
+      result.push(`<p class="text-slate-400 leading-relaxed mb-4">${trimmed}</p>`);
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result.join('\n');
+}
+
+let content = "";
+try {
+  const mdPath = path.join(process.cwd(), "public", "guides", "blog-api-failure-modes-engineering.md");
+  const raw = fs.readFileSync(mdPath, "utf-8");
+  content = raw.replace(/^---[\s\S]*?---\n/, "");
+  content = content.replace(/^# .+\n+/, "");
+} catch {
+  content = "Article content could not be loaded. Please check back shortly.";
+}
+
+const htmlContent = markdownToHtml(content);
+---
+
+<Layout
+  title="How APIs Fail When Agents Use Them: A Failure Engineering Guide | Rhumb"
+  description="Failure mode data matters more than aggregate scores once agents run unattended. This guide maps six API failure categories and the telemetry needed to catch them."
+  canonical="/blog/api-failure-modes-engineering"
+  ogTitle="How APIs Fail When Agents Use Them: A Failure Engineering Guide"
+  ogDescription="Authentication drift, quota depletion, silent truncation, and observability gaps matter more than benchmark wins once an agent runs unattended."
+  ogUrl="https://rhumb.dev/blog/api-failure-modes-engineering"
+  ogType="article"
+  twitterTitle="How APIs Fail When Agents Use Them: A Failure Engineering Guide"
+  twitterDescription="Six failure categories explain most agent-API breakage: auth, rate limits, state drift, network ambiguity, silent failures, and observability gaps."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
+            Guide
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">
+            March 31, 2026
+          </span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated April 20, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">Rhumb</span>
+        </div>
+
+        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
+          How APIs Fail When Agents Use Them: A Failure Engineering Guide
+        </h1>
+        <p class="text-lg text-slate-400 leading-relaxed">
+          Failure-mode visibility matters more than headline scores once an autonomous workflow is live. This guide maps the six break patterns that actually wake operators up.
+        </p>
+      </header>
+
+      <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Pressure-test the integration before you let it run alone
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl mx-auto sm:mx-0">
+          If this failure map feels familiar, move from abstract scoring into concrete preflight checks and live provider comparison before the workflow reaches production.
+        </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:justify-start">
+          <a
+            href="/blog/api-reliability-checklist?rhumb_experiment=e004&rhumb_source=failure-modes-checklist"
+            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+          >
+            Run the reliability checklist &rarr;
+          </a>
+          <a
+            href="/leaderboard?rhumb_experiment=e004&rhumb_source=failure-modes-leaderboard"
+            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
+          >
+            Compare APIs by score &rarr;
+          </a>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">
+          Related
+        </h2>
+        <div class="space-y-4">
+          <a
+            href="/blog/llm-apis-agent-loops"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Part 2
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              LLM APIs in Agent Loops: What Actually Breaks at Scale
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The loop-level precursor to this post, focused on tool calls, retries, and model-specific recovery burden.
+            </p>
+          </a>
+          <a
+            href="/blog/agent-fleet-rate-limit-design"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Part 3
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              Designing Agent Fleets That Survive Rate Limits
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              The architecture guide for quota budgets, retry shaping, and fleet-wide slowdown before the 429 storm starts.
+            </p>
+          </a>
+          <a
+            href="/blog/api-credentials-agent-fleets"
+            class="block bg-surface border border-slate-800 rounded-lg p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono text-amber uppercase tracking-widest">
+              Part 4
+            </span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">
+              API Credentials in Autonomous Agent Fleets
+            </h3>
+            <p class="text-sm text-slate-500 mt-1">
+              Credential expiry and scope drift are one of the biggest silent-failure sources. This is the companion architecture guide.
+            </p>
+          </a>
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
