@@ -159,7 +159,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-20T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -420,6 +420,27 @@ const ARTICLE_JSON_LD = {
               <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">Signed MCP Receipts</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Receipts strengthen proof after execution, but they are a separate layer from operational debugging and recovery.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              The trace only matters if the surrounding fleet can slow down, recover, and rotate credentials without guessing. These follow-on pages keep observability readers inside the same unattended-operations cluster.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">See how retries, tool-call nesting, and degraded recovery multiply once the workflow runs unattended.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Good traces still need governors when shared quotas tighten and one bad lane can trigger a 429 storm.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Auth-mode visibility gets more valuable when expiry, rotation, and scope drift can take down more than one worker at once.</p>
               </a>
             </div>
           </div>
