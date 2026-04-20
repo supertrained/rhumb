@@ -350,7 +350,7 @@ async def _resolve_policy_agent(raw_request: Request):
     if not x_rhumb_key:
         raise RhumbError(
             "CREDENTIAL_INVALID",
-            message="Resolve v2 policy endpoints require a valid Rhumb API key.",
+            message="Resolve v2 policy endpoints require a valid governed API key.",
             detail="Provide a valid X-Rhumb-Key header tied to an organization-backed agent.",
         )
 
@@ -358,13 +358,13 @@ async def _resolve_policy_agent(raw_request: Request):
     if agent is None:
         raise RhumbError(
             "CREDENTIAL_INVALID",
-            message="Invalid or expired Rhumb API key.",
+            message="Invalid or expired governed API key.",
             detail="Provide a valid X-Rhumb-Key header or use an x402 payment flow.",
         )
     if not agent.organization_id:
         raise RhumbError(
             "CREDENTIAL_INVALID",
-            message="Rhumb API key is not attached to an organization.",
+            message="Governed API key is not attached to an organization.",
             detail="Rotate or recreate the key after the agent has been attached to an organization.",
         )
     return agent
@@ -379,7 +379,7 @@ async def _resolve_policy_agent_id(raw_request: Request) -> str:
     if agent is None:
         raise RhumbError(
             "CREDENTIAL_INVALID",
-            message="Invalid or expired Rhumb API key.",
+            message="Invalid or expired governed API key.",
             detail="Provide a valid X-Rhumb-Key header or use an x402 payment flow.",
         )
     return agent.agent_id

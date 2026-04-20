@@ -1687,6 +1687,29 @@ async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(app, _m
 
 
 @pytest.mark.anyio
+async def test_v2_policy_auth_errors_use_governed_api_key_language(app, _mock_identity_store):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        missing_resp = await client.get("/v2/policy")
+
+    assert missing_resp.status_code == 401
+    missing_body = missing_resp.json()
+    assert missing_body["error"]["code"] == "CREDENTIAL_INVALID"
+    assert missing_body["error"]["message"] == "Resolve v2 policy endpoints require a valid governed API key."
+    assert missing_body["error"]["detail"] == "Provide a valid X-Rhumb-Key header tied to an organization-backed agent."
+
+    _mock_identity_store.verify_api_key_with_agent.return_value = None
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        invalid_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": FAKE_RHUMB_KEY})
+
+    assert invalid_resp.status_code == 401
+    invalid_body = invalid_resp.json()
+    assert invalid_body["error"]["code"] == "CREDENTIAL_INVALID"
+    assert invalid_body["error"]["message"] == "Invalid or expired governed API key."
+    assert invalid_body["error"]["detail"] == "Provide a valid X-Rhumb-Key header or use an x402 payment flow."
+
+
+@pytest.mark.anyio
 async def test_v2_policy_put_and_get_round_trip(app, _mock_policy_store):
     stored_policy = SimpleNamespace(
         org_id="org_v2_test",

@@ -4132,7 +4132,8 @@ async def test_direct_execute_requires_api_key_handoff(app, capability_id, messa
     body = resp.json()
     assert body["error"] == "authentication_required"
     assert body["message"] == message
-    assert body["resolution"].startswith("Create a Rhumb API key")
+    assert body["resolution"].startswith("Create or use a funded governed API key at /auth/login")
+    assert "X-Rhumb-Key" in body["resolution"]
     assert body["resolve_url"] == f"/v1/capabilities/{capability_id}/resolve"
     assert body["credential_modes_url"] == f"/v1/capabilities/{capability_id}/credential-modes"
     assert body["auth_handoff"]["reason"] == "auth_required"

@@ -218,7 +218,7 @@ async def _require_agent(
     identity_store = get_agent_identity_store()
     agent = await identity_store.verify_api_key_with_agent(x_rhumb_key)
     if agent is None:
-        raise _TelemetryAuthError("Invalid or expired Rhumb API key")
+        raise _TelemetryAuthError("Invalid or expired governed API key")
 
     return agent.agent_id, agent.organization_id
 
@@ -461,7 +461,7 @@ async def get_usage_telemetry(
             status_code=401,
             error="unauthorized",
             message=str(exc),
-            resolution="Provide a valid Rhumb API key via X-Rhumb-Key header.",
+            resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
     start_at = _utcnow() - timedelta(days=days)
     rows = await supabase_fetch(
@@ -544,7 +544,7 @@ async def get_recent_executions(
             status_code=401,
             error="unauthorized",
             message=str(exc),
-            resolution="Provide a valid Rhumb API key via X-Rhumb-Key header.",
+            resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
     rows = await supabase_fetch(
         _build_usage_query(

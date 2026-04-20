@@ -69,7 +69,12 @@ def test_protected_telemetry_endpoints_require_auth() -> None:
     recent_response = unauthenticated.get("/v1/telemetry/recent")
 
     assert usage_response.status_code == 401
+    assert usage_response.json()["message"] == "Missing X-Rhumb-Key header"
+    assert usage_response.json()["resolution"] == "Provide a valid governed API key via X-Rhumb-Key header."
+
     assert recent_response.status_code == 401
+    assert recent_response.json()["message"] == "Missing X-Rhumb-Key header"
+    assert recent_response.json()["resolution"] == "Provide a valid governed API key via X-Rhumb-Key header."
 
 
 def test_provider_health_endpoint_works_without_auth() -> None:

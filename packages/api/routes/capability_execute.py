@@ -368,8 +368,9 @@ def _direct_execute_auth_required_response(
             "error": "authentication_required",
             "message": detail,
             "resolution": (
-                "Create a Rhumb API key, then retry this execute call. "
-                "Use resolve first if you need to inspect the current preferred rail."
+                "Create or use a funded governed API key at /auth/login, then retry "
+                "this execute call with X-Rhumb-Key. Use resolve first if you need "
+                "to inspect the current preferred rail."
             ),
             "request_id": request_id,
             "resolve_url": _capability_resolve_url(capability_id),
@@ -417,8 +418,9 @@ def _direct_execute_estimate_readiness(capability_id: str) -> dict[str, Any] | N
         "status": "auth_required",
         "message": detail,
         "resolution": (
-            "Create a Rhumb API key, then retry this execute call. "
-            "Use resolve first if you need to inspect the current preferred rail."
+            "Create or use a funded governed API key at /auth/login, then retry "
+            "this execute call with X-Rhumb-Key. Use resolve first if you need "
+            "to inspect the current preferred rail."
         ),
         "resolve_url": _capability_resolve_url(capability_id),
         "credential_modes_url": _capability_credential_modes_url(capability_id),
@@ -777,7 +779,7 @@ def _build_x402_compatibility_error_response(
     network = payment_trace.get("declared_network")
     resolution = (
         "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
-        "or use a funded Rhumb API key via /auth/login. If you need wallet setup guidance, "
+        "or use a funded governed API key via /auth/login. If you need wallet setup guidance, "
         "use /payments/agent. Rhumb does not currently support settling standard x402 "
         "authorization payloads on Base mainnet, and the public x402 facilitator is not "
         "integrated here."
@@ -785,7 +787,7 @@ def _build_x402_compatibility_error_response(
     if network in ("base-sepolia", "evm:84532"):
         resolution = (
             "Retry with an X-Payment proof containing tx_hash, network, and wallet_address, "
-            "or use a funded Rhumb API key via /auth/login. If you need wallet setup guidance, "
+            "or use a funded governed API key via /auth/login. If you need wallet setup guidance, "
             "use /payments/agent. Rhumb does not currently settle standard x402 authorization "
             "payloads in this execute path."
         )

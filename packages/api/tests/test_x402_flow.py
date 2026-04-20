@@ -498,6 +498,7 @@ class TestX402ValidPayment:
         assert body["compatibility"]["pay_to"] == WALLET
         assert "tx_hash" in body["message"]
         assert "Base mainnet" in body["resolution"]
+        assert "funded governed API key" in body["resolution"]
 
         traces = [
             getattr(record, "x402_interop", None)
@@ -533,6 +534,7 @@ class TestX402ValidPayment:
         assert body["error"] == "x402_proof_format_unsupported"
         assert body["compatibility"]["detected_format"] == "standard_authorization_payload"
         assert body["compatibility"]["network"] == "base"
+        assert "funded governed API key" in body["resolution"]
 
     @pytest.mark.anyio
     async def test_standard_authorization_payload_settles_via_facilitator(self, app):
