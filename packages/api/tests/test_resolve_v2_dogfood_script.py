@@ -214,6 +214,17 @@ def test_parse_args_accepts_refresh_stale_profiles_flag():
     assert args.refresh_stale_profiles is True
 
 
+def test_resolve_fleet_status_profiles_defaults_to_core_operator_fleet():
+    args = resolve_v2_dogfood.parse_args(["--fleet-status"])
+
+    assert resolve_v2_dogfood._resolve_fleet_status_profiles(args) == [
+        "pedro",
+        "keel",
+        "helm",
+        "beacon",
+    ]
+
+
 def test_apply_profile_defaults_preserves_explicit_interface_and_parameters():
     args = resolve_v2_dogfood.parse_args(
         [
