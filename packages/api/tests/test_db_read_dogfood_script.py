@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts" / "db_read_dogfood.py"
@@ -125,3 +126,39 @@ def test_attach_resolve_step_promotes_handoff_to_top_level_failed_payload() -> N
         "Resolve next step: source=setup_handoff, provider=postgresql, mode=agent_vault, "
         "setup_url=/v1/services/postgresql/ceremony"
     )
+
+
+def test_main_writes_json_artifact_to_nested_path(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "nested" / "db-read.json"
+
+    def fake_run_flow(args):  # type: ignore[no-untyped-def]
+        raise db_read_dogfood.FlowError(
+            "db.query.read failed: missing token",
+            {
+                "capabilities": {
+                    "db.query.read": {
+                        "resolve_handoff": {
+                            "source": "execute_hint",
+                            "preferred_provider": "postgresql",
+                            "preferred_credential_mode": "agent_vault",
+                        }
+                    }
+                }
+            },
+        )
+
+    monkeypatch.setattr(db_read_dogfood, "run_flow", fake_run_flow)
+
+    exit_code = db_read_dogfood.main(["--summary-only", "--json-out", str(artifact_path)])
+
+    assert exit_code == 1
+    payload = json.loads(artifact_path.read_text())
+    assert payload["ok"] is False
+    assert payload["summary"] == (
+        "db.query.read failed: missing token; "
+        "Resolve next step: source=execute_hint, provider=postgresql, mode=agent_vault"
+    )
+    assert payload["resolve_step"] == (
+        "Resolve next step: source=execute_hint, provider=postgresql, mode=agent_vault"
+    )
+    assert capsys.readouterr().out.strip() == payload["summary"]

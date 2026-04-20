@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -146,3 +147,27 @@ def test_main_preflight_only_summary_includes_resolve_step(monkeypatch, capsys) 
         "resolve_step=Resolve next step: source=execute_hint, provider=aws-s3, mode=byok, "
         "credential_modes_url=/v1/capabilities/object.list/credential-modes"
     ) in summary
+
+
+def test_main_writes_json_artifact_to_nested_path(monkeypatch, tmp_path, capsys) -> None:
+    artifact_path = tmp_path / "nested" / "s3-read.json"
+    monkeypatch.setattr(
+        s3_read_dogfood,
+        "run_flow",
+        lambda args: {
+            "ok": True,
+            "summary": "object.list ok",
+            "resolve_step": "Resolve next step: source=execute_hint, provider=aws-s3, mode=byok",
+        },
+    )
+
+    exit_code = s3_read_dogfood.main(["--summary-only", "--json-out", str(artifact_path)])
+
+    assert exit_code == 0
+    payload = json.loads(artifact_path.read_text())
+    assert payload == {
+        "ok": True,
+        "summary": "object.list ok",
+        "resolve_step": "Resolve next step: source=execute_hint, provider=aws-s3, mode=byok",
+    }
+    assert capsys.readouterr().out.strip() == "object.list ok"
