@@ -255,10 +255,11 @@ def _reset_all() -> None:
     _rate_limit_buckets.clear()
     reset_identity_store()
     capability_execute_route._identity_store = None
-    capability_execute_route._wallet_requests.clear()
+    capability_execute_route._durable_replay_guard = None
+    capability_execute_route._durable_rate_limiter = None
+    capability_execute_route._durable_idempotency_store = None
     capability_execute_route._used_tx_hashes.clear()
-    capability_execute_route._agent_exec_requests.clear()
-    capability_execute_route._agent_managed_daily.clear()
+    capability_execute_route._tx_hash_last_cleanup = 0.0
 
 
 async def _bootstrap_prefunded_wallet(
@@ -397,9 +398,27 @@ def wallet_env():
 
     patches.enter_context(patch("routes.auth_wallet.ensure_org_billing_bootstrap", new=AsyncMock(side_effect=_bootstrap_org)))
     patches.enter_context(patch("routes.wallet_topup._payment_requests", payment_requests))
+    patches.enter_context(patch("routes.capability_execute._payment_requests", payment_requests))
     patches.enter_context(patch("routes.wallet_topup._settlement", settlement))
     patches.enter_context(patch("routes.capability_execute._budget_enforcer", budget))
     patches.enter_context(patch("routes.capability_execute._credit_deduction", credit_deduction))
+    patches.enter_context(
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new=AsyncMock(return_value=MagicMock(check_and_increment=AsyncMock(return_value=(True, 29)))),
+        )
+    )
+    kill_switch_registry = MagicMock()
+    kill_switch_registry.is_blocked.return_value = (False, None)
+    patches.enter_context(
+        patch("routes.capability_execute.init_kill_switch_registry", new=AsyncMock(return_value=kill_switch_registry))
+    )
+    patches.enter_context(
+        patch("routes.capability_execute.supabase_insert_required", new=AsyncMock(side_effect=db.insert))
+    )
+    patches.enter_context(
+        patch("routes.capability_execute.supabase_patch_required", new=AsyncMock(side_effect=db.patch))
+    )
     patches.enter_context(
         patch("routes.capability_execute.check_billing_health", new=AsyncMock(return_value=(True, "ok")))
     )
@@ -407,7 +426,10 @@ def wallet_env():
         patch("routes.capability_execute.check_and_trigger_auto_reload", new=AsyncMock(return_value=None))
     )
     patches.enter_context(
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda slug, auth, headers: headers)
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, headers, body, params: (headers, body, params),
+        )
     )
     patches.enter_context(patch("routes.capability_execute.get_pool_manager", return_value=pool))
     patches.enter_context(patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry))

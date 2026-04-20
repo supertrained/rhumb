@@ -37,10 +37,64 @@ def _mock_agent() -> AgentIdentitySchema:
     )
 
 
+def _make_mock_replay_guard(is_replay: bool = False) -> MagicMock:
+    guard = MagicMock()
+    guard.check_and_claim = AsyncMock(return_value=is_replay)
+    return guard
+
+
 @pytest.fixture
 def app():
     """Create test app with lifespan disabled."""
     return create_app()
+
+
+@pytest.fixture(autouse=True)
+def _reset_execute_runtime():
+    import routes.capability_execute as capability_execute_route
+
+    capability_execute_route._durable_replay_guard = None
+    capability_execute_route._durable_rate_limiter = None
+    capability_execute_route._durable_idempotency_store = None
+    capability_execute_route._used_tx_hashes.clear()
+    capability_execute_route._tx_hash_last_cleanup = 0.0
+
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with (
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
+        patch(
+            "routes.capability_execute._get_replay_guard",
+            new=AsyncMock(return_value=_make_mock_replay_guard()),
+        ),
+        patch(
+            "routes.capability_execute.init_kill_switch_registry",
+            new_callable=AsyncMock,
+            return_value=mock_registry,
+        ),
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            return_value=[{}],
+        ),
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -291,18 +345,18 @@ def _build_common_patches(
             side_effect=_mock_supabase_factory(existing_receipt, org_credits),
         ),
         "supabase_insert": patch(
-            "routes.capability_execute.supabase_insert",
+            "routes.capability_execute.supabase_insert_required",
             new_callable=AsyncMock,
             return_value=True,
         ),
         "supabase_patch": patch(
-            "routes.capability_execute.supabase_patch",
+            "routes.capability_execute.supabase_patch_required",
             new_callable=AsyncMock,
             return_value=[],
         ),
         "inject_auth": patch(
-            "routes.capability_execute._inject_auth_headers",
-            side_effect=lambda slug, auth, h: h,
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, headers, body, params: (headers, body, params),
         ),
         "pool": patch(
             "routes.capability_execute.get_pool_manager",
@@ -867,14 +921,20 @@ class TestX402ReplayProtection:
     async def test_already_used_tx_returns_402(self, app):
         """Previously used tx_hash → 402 'already used'."""
         patches = _build_common_patches(
-            existing_receipt=[{"id": "receipt-1"}],
+            verification_result=_verification_success(),
         )
 
         with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": WALLET}):
             ctx_managers = [p for p in patches.values()]
-            with ctx_managers[0], ctx_managers[1], ctx_managers[2], \
-                 ctx_managers[3], ctx_managers[4], ctx_managers[5], \
-                 ctx_managers[6]:
+            with (
+                patch(
+                    "routes.capability_execute._get_replay_guard",
+                    new=AsyncMock(return_value=_make_mock_replay_guard(is_replay=True)),
+                ),
+                ctx_managers[0], ctx_managers[1], ctx_managers[2], \
+                ctx_managers[3], ctx_managers[4], ctx_managers[5], \
+                ctx_managers[6], ctx_managers[7],
+            ):
                 async with AsyncClient(
                     transport=ASGITransport(app=app), base_url="http://test"
                 ) as client:
@@ -976,20 +1036,30 @@ class TestX402Recording:
     async def test_receipt_and_ledger_recorded(self, app):
         """Valid x402 payment records both usdc_receipts and credit_ledger."""
         insert_calls: list[dict] = []
+        patch_calls: list[dict] = []
 
         async def capture_insert(table: str, payload: dict) -> bool:
             insert_calls.append({"table": table, "payload": payload})
             return True
 
+        async def capture_patch(path: str, payload: dict) -> list[dict]:
+            patch_calls.append({"path": path, "payload": payload})
+            return [{}]
+
         patches = _build_common_patches(
             verification_result=_verification_success(),
             org_credits=[{"balance_usd_cents": 500}],
         )
-        # Override supabase_insert to capture calls
+        # Override Supabase write helpers to capture the current insert/patch lifecycle.
         patches["supabase_insert"] = patch(
-            "routes.capability_execute.supabase_insert",
+            "routes.capability_execute.supabase_insert_required",
             new_callable=AsyncMock,
             side_effect=capture_insert,
+        )
+        patches["supabase_patch"] = patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            side_effect=capture_patch,
         )
 
         with patch.dict(os.environ, {"RHUMB_USDC_WALLET_ADDRESS": WALLET}):
@@ -1031,8 +1101,13 @@ class TestX402Recording:
         assert ledger["org_id"] == "org_x402_flow_test"
         assert ledger["event_type"] == "x402_payment"
 
-        # Check that capability_executions was inserted (the normal flow)
+        # Check that capability_executions keeps its insert-then-patch lifecycle.
         exec_inserts = [c for c in insert_calls if c["table"] == "capability_executions"]
-        assert len(exec_inserts) == 2
+        assert len(exec_inserts) == 1
         assert exec_inserts[0]["payload"]["billing_status"] == "pending"
-        assert exec_inserts[1]["payload"]["billing_status"] == "billed"
+
+        exec_patches = [
+            c for c in patch_calls if c["path"].startswith("capability_executions?id=eq.")
+        ]
+        assert len(exec_patches) == 1
+        assert exec_patches[0]["payload"]["billing_status"] == "billed"

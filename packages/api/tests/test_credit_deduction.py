@@ -22,6 +22,42 @@ def _mock_agent(agent_id: str = "agent_credit_test") -> AgentIdentitySchema:
     )
 
 
+@pytest.fixture(autouse=True)
+def _mock_execute_runtime():
+    mock_limiter = MagicMock()
+    mock_limiter.check_and_increment = AsyncMock(return_value=(True, 29))
+    mock_registry = MagicMock()
+    mock_registry.is_blocked.return_value = (False, None)
+    with (
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new_callable=AsyncMock,
+            return_value=mock_limiter,
+        ),
+        patch(
+            "routes.capability_execute.init_kill_switch_registry",
+            new_callable=AsyncMock,
+            return_value=mock_registry,
+        ),
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new_callable=AsyncMock,
+            return_value=(True, "ok"),
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            return_value=[{}],
+        ),
+    ):
+        yield
+
+
 class TestCreditDeductionService:
     """Unit tests for services/credit_deduction.py."""
 
@@ -192,7 +228,10 @@ async def test_execute_route_releases_budget_and_credits_on_upstream_failure():
         patch("routes.capability_execute._budget_enforcer") as mock_budget,
         patch("routes.capability_execute._credit_deduction") as mock_credit,
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_fetch),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda s, a, h: h),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, headers, body, params: (headers, body, params),
+        ),
         patch("routes.capability_execute.get_credential_store") as mock_cred_store,
         patch("routes.capability_execute.httpx.AsyncClient") as MockHttpxClient,
     ):
@@ -277,9 +316,20 @@ async def test_execute_route_logs_billing_cents_with_markup():
         patch("routes.capability_execute._budget_enforcer") as mock_budget,
         patch("routes.capability_execute._credit_deduction") as mock_credit,
         patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_fetch),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, side_effect=_capture_insert),
-        patch("routes.capability_execute.supabase_patch", new_callable=AsyncMock, side_effect=_capture_patch),
-        patch("routes.capability_execute._inject_auth_headers", side_effect=lambda s, a, h: h),
+        patch(
+            "routes.capability_execute.supabase_insert_required",
+            new_callable=AsyncMock,
+            side_effect=_capture_insert,
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required",
+            new_callable=AsyncMock,
+            side_effect=_capture_patch,
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, headers, body, params: (headers, body, params),
+        ),
         patch("routes.capability_execute.get_credential_store") as mock_cred_store,
         patch("routes.capability_execute.httpx.AsyncClient") as MockHttpxClient,
     ):
