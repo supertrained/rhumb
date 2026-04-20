@@ -316,6 +316,31 @@ const ARTICLE_JSON_LD = {
               </a>
             </div>
           </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Failure-mode evidence</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If you want to pressure-test the isolation story against real provider behavior, these autopsies show where tenant complexity, shared principals, replay safety, and budget boundaries get expensive fast.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <a href="/blog/hubspot-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">HubSpot API Autopsy</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Shows how broad CRM capability shape and weak replay semantics make shared-tenant containment harder than the happy path suggests.</p>
+              </a>
+              <a href="/blog/salesforce-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Salesforce API Autopsy</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">A useful read for admin-heavy auth, tenant complexity, and runtime behavior that stays expensive to automate cleanly.</p>
+              </a>
+              <a href="/blog/twilio-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Twilio API Autopsy</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Useful as a cleaner comparison for subaccount boundaries, typed failures, and higher-trust execution ergonomics.</p>
+              </a>
+              <a href="/blog/shopify-api-autopsy" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Shopify API Autopsy</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Shows how version churn, query budgets, and shop-scoped reality still shape the cost of safe shared automation.</p>
+              </a>
+            </div>
+          </div>
         </div>
 
         <aside class="space-y-6 lg:col-span-1">
