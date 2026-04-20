@@ -1,0 +1,355 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const DISCOVERY_RAILS = [
+  {
+    label: "Recall",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Large catalogs improve the odds that the right tool exists somewhere in view. That is only the first layer of usefulness.",
+  },
+  {
+    label: "Caller visibility",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "The useful pool is not the global index. It is the subset this caller should be allowed to see in this environment right now.",
+  },
+  {
+    label: "Trust filters",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Trust class, auth shape, side-effect profile, and freshness need to narrow the pool before ranking starts.",
+  },
+  {
+    label: "Bounded choice",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "The best runtime discovery result is the smallest caller-safe candidate set that still preserves enough choice to route well.",
+  },
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Wrong-tool risk",
+    body: "A local helper and a high-side-effect remote system look equally available because semantic relevance was allowed to outrank authority.",
+  },
+  {
+    title: "Context tax",
+    body: "The model sees too many mixed-authority candidates and spends tokens exploring options that should have been filtered out upstream.",
+  },
+  {
+    title: "Auth-blind ranking",
+    body: "The top result may be impossible for the current caller to use safely because auth shape and principal mismatch were hidden until too late.",
+  },
+  {
+    title: "Freshness theater",
+    body: "A giant directory looks rich even when stale, dead, or auth-broken entries remain in the candidate pool.",
+  },
+];
+
+const TRUST_FILTERS = [
+  {
+    title: "Trust class",
+    body: "Local helper, read-mostly surface, reversible write tool, high-side-effect execution surface, or shared remote integration. Ranking without this is ranking blast radius by accident.",
+  },
+  {
+    title: "Auth shape",
+    body: "Public, static key, delegated user auth, or tenant-bound runtime credential. A candidate the caller cannot safely authenticate to is not a real candidate.",
+  },
+  {
+    title: "Side-effect class",
+    body: "Inspect, write, execute, or egress. These need to be visible before the model starts reasoning, not after the call is already selected.",
+  },
+  {
+    title: "Caller-visible scope",
+    body: "The runtime should expose what this principal can actually see now, not what exists globally in some other tenant or environment.",
+  },
+  {
+    title: "Freshness and viability",
+    body: "Handshake, auth viability, failure shape, and stale-entry suppression decide whether the candidate pool is still operational truth.",
+  },
+];
+
+const DISCOVERY_LADDER = [
+  "Discoverable, the service exists in an index.",
+  "Caller-visible, this principal can actually see it right now.",
+  "Trust-classed, side-effect and authority shape are explicit before selection.",
+  "Auth-viable, the intended caller can complete auth with the expected scope.",
+  "Rankable, only then should semantic search, rules, or LLM ranking choose among the remainder.",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
+  datePublished: "2026-04-12T00:00:00Z",
+  dateModified: "2026-04-12T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
+  url: "https://rhumb.dev/blog/runtime-mcp-discovery-trust-filters",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/runtime-mcp-discovery-trust-filters",
+};
+---
+
+<Layout
+  title="Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful | Rhumb"
+  description="Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking."
+  canonical="/blog/runtime-mcp-discovery-trust-filters"
+  ogTitle="Runtime MCP Discovery Needs Trust Filters | Rhumb"
+  ogDescription="Why giant MCP indexes need caller-visible trust filters before ranking becomes useful."
+  ogUrl="https://rhumb.dev/blog/runtime-mcp-discovery-trust-filters"
+  ogType="article"
+  twitterTitle="Runtime MCP Discovery Needs Trust Filters"
+  twitterDescription="Why giant MCP indexes need caller-visible trust filters before ranking becomes useful."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">Runtime Discovery</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 12, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              A giant MCP index sounds like progress, but runtime discovery stops being a convenience feature the moment an agent can choose from it. At that point the discovery layer is part of the control plane, and it has to narrow authority before semantic ranking begins.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Discovery rails</div>
+            <div class="space-y-3">
+              {DISCOVERY_RAILS.map((rail) => (
+                <div class={`rounded-2xl border p-4 ${rail.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${rail.accent}`}>{rail.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{rail.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_MODES.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The runtime discovery question is not <span class="text-slate-100">“how many tools can the agent find?”</span>
+          It is <span class="text-slate-100">“how many safe, relevant, caller-appropriate tools can the agent see before it starts choosing?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. Giant indexes feel like progress because they improve recall
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The current MCP ecosystem really does have a discovery problem. There are too many demos, too many stale entries, and too many directories that make every surface look equally real. A giant index improves one important thing, recall.
+              </p>
+              <p>
+                If the right tool exists somewhere, broader coverage increases the odds that the agent can discover it. That matters. It is just not the whole problem.
+              </p>
+              <p>
+                The harder problem is selection, and selection gets more dangerous as the candidate pool mixes more trust classes and side-effect profiles together.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Runtime discovery changes the problem from browsing to mediation
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A human browsing a directory can apply judgment before clicking anything. They can notice that one tool is local and harmless while another is remote, stale, or broad enough to be dangerous.
+              </p>
+              <p>
+                An agent does not inherit that judgment by default. If the runtime exposes one giant mixed-authority pool, the model is being asked to solve relevance, availability, safety, and authority all at once.
+              </p>
+              <p>
+                That is the moment where discovery becomes part of the control plane. The runtime is no longer just describing what exists. It is shaping what choices the model is allowed to consider.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. The wrong abstraction is “best search over the whole catalog”
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Better embeddings or a smarter ranker do not fix the authority problem if the candidate pool is wrong. A local read-mostly helper and a high-side-effect remote business integration should not appear as interchangeable ranking candidates just because both match the same task description.
+              </p>
+              <p>
+                If the only safety layer is hoping the ranker prefers the harmless one, the runtime has already delegated control-plane work to the model that should have been solved upstream.
+              </p>
+              <p>
+                The real job of the discovery layer is to remove bad candidate classes before semantic ranking begins.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Trust filters belong before ranking
+            </h2>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {TRUST_FILTERS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. The useful discovery surface is the smallest caller-safe subset
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A good runtime discovery system should not say, “Here are 14,000 things, good luck.” It should say something closer to, “For this caller, in this environment, under this policy, here are the few candidates that are both relevant enough and safe enough to consider.”
+              </p>
+              <p>
+                That bounded candidate set lowers context pressure, lowers wrong-tool risk, and makes auditability cleaner because the pool itself reflects policy rather than only search quality.
+              </p>
+              <p>
+                Bigger catalogs are only better when the runtime gets stricter about what the model is allowed to see.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. A better runtime-discovery ladder
+            </h2>
+            <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Discovery ladder</div>
+              <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DISCOVERY_LADDER.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ol>
+            </div>
+            <div class="mt-6 space-y-4 leading-relaxed text-slate-400">
+              <p>
+                That ordering matters. If ranking happens before trust filtering, the system is asking the model to decide blast radius while it decides relevance.
+              </p>
+              <p>
+                Runtime mediation should optimize for bounded choice first, then better selection inside that bounded set.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. What a useful evaluator should score here
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The strongest evaluation questions are whether the system exposes caller-specific visibility, whether trust class and side-effect class are visible before selection, whether auth shape is legible, whether stale entries are suppressed, and whether the runtime bounds the pool before semantic ranking begins.
+              </p>
+              <p>
+                Those questions separate search quality from control quality. For agent systems, that separation is not optional.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Filter by trust and authority before the model ranks anything
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If runtime discovery is part of the control plane, the first production lane should surface only the tools this caller can safely consider, not a giant mixed-authority marketplace.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=runtime-discovery-trust-filters-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=runtime-discovery-trust-filters-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this article reframes discovery as mediation, these three pages sharpen the operator model: workflow fit versus trust class, governed capability surfaces, and the checklist for real remote readiness.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/mcp-server-selection-workflow-fit-trust-class" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Workflow Fit vs Trust Class</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The right shortlist starts by separating what job the server improves from what authority it carries.</p>
+              </a>
+              <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The safer answer is not raw endpoint sprawl. It is a bounded capability surface with visible authority and policy.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Auth, scope, tenant isolation, governors, recovery, and auditability belong in one operator checklist.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              The candidate pool stays useful only if the runtime stays narrow under load
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Once trust filters narrow the pool, the next operator questions are what breaks in the loop, how shared provider budgets are contained, and how credentials stay narrow as more agents come online.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, tool use, and unattended execution are live.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How shared provider budgets and retry windows turn discovery and execution into a fleet coordination problem.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why bounded discovery still fails if the credential layer widens faster than the trust model.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>

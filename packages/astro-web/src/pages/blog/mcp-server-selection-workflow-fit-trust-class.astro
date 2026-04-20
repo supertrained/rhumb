@@ -1,0 +1,337 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const DECISION_RAILS = [
+  {
+    label: "Workflow fit",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Ask what repeated job the server improves before asking whether it is generally popular or impressive.",
+  },
+  {
+    label: "Trust class",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "Separate read-mostly helpers from shared, write-capable, or high-side-effect systems before they ever compete in one flat list.",
+  },
+  {
+    label: "Capability shape",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "The better server is often the one with the narrower visible authority surface, not the larger tool count.",
+  },
+  {
+    label: "Failure model",
+    accent: "text-rose-300",
+    className: "border-rose-500/20 bg-rose-500/5",
+    description: "Selection gets real once you ask what happens on auth drift, retries, rollback, and audit reconstruction, not just whether the demo works.",
+  },
+];
+
+const FALSE_SIGNALS = [
+  {
+    title: "Tool count",
+    body: "A bigger manifest can mean broader authority, more planning noise, and more mixed-risk actions, not a better fit for the task.",
+  },
+  {
+    title: "GitHub stars",
+    body: "Stars measure interest. They do not tell you whether auth completes cleanly, scope is narrow, or failures stay legible under automation pressure.",
+  },
+  {
+    title: "Flat best-of lists",
+    body: "One shortlist can mix solo-local helpers, shared business integrations, and high-side-effect execution surfaces as if they belong on one leaderboard.",
+  },
+  {
+    title: "Immediate convenience",
+    body: "A server can feel magical in Claude for one operator and still be the wrong choice for shared, unattended, or policy-bound use.",
+  },
+];
+
+const SELECTION_RUBRIC = [
+  "Workflow fit, what exact repeated job gets cleaner if this server exists?",
+  "Trust class, is the surface read-mostly, reversible-write, high-side-effect, or shared-remote?",
+  "Capability shape, does the server narrow authority around the job or mostly mirror a raw API?",
+  "Auth and sharing model, who is the caller and what authority survives after authentication succeeds?",
+  "Failure semantics, what happens on timeout, retry, partial success, or auth expiry?",
+  "Evidence, can the operator reconstruct who invoked what, with what scope, and what happened after?",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Flat 'Best MCP Server' Lists Hide the Decision That Actually Matters: Workflow Fit vs Trust Class",
+  datePublished: "2026-04-11T00:00:00Z",
+  dateModified: "2026-04-11T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "The real MCP selection question is not popularity. It is workflow fit plus trust class: what job the server improves, what authority it carries, and how safely it behaves once real use begins.",
+  url: "https://rhumb.dev/blog/mcp-server-selection-workflow-fit-trust-class",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-selection-workflow-fit-trust-class",
+};
+---
+
+<Layout
+  title="Flat 'Best MCP Server' Lists Hide the Decision That Actually Matters: Workflow Fit vs Trust Class | Rhumb"
+  description="The real MCP selection question is not popularity. It is workflow fit plus trust class: what job the server improves, what authority it carries, and how safely it behaves once real use begins."
+  canonical="/blog/mcp-server-selection-workflow-fit-trust-class"
+  ogTitle="Workflow Fit vs Trust Class for MCP Server Selection | Rhumb"
+  ogDescription="Why flat best-of MCP lists hide the real decision, which job the server improves and what authority it carries."
+  ogUrl="https://rhumb.dev/blog/mcp-server-selection-workflow-fit-trust-class"
+  ogType="article"
+  twitterTitle="Workflow Fit vs Trust Class for MCP"
+  twitterDescription="Why flat best-of MCP lists hide the real selection decision."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">MCP Selection</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 11, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">8 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Flat “Best MCP Server” Lists Hide the Decision That Actually Matters: Workflow Fit vs Trust Class
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              The useful selection question is not which servers are hottest. It is which workflow a server actually improves, what authority comes with that help, and whether the failure model is still acceptable once the surface leaves demo mode.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Decision rails</div>
+            <div class="space-y-3">
+              {DECISION_RAILS.map((rail) => (
+                <div class={`rounded-2xl border p-4 ${rail.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${rail.accent}`}>{rail.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{rail.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FALSE_SIGNALS.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The production question is not <span class="text-slate-100">“which MCP server is best?”</span>
+          It is <span class="text-slate-100">“which server best fits this workflow, at this authority level, with a failure model we can actually live with?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. Flat top-server lists compress discovery and hide the real cut
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Curated shortlists feel useful because the current MCP ecosystem is noisy. A good list can remove abandoned demos, thin wrappers, and obvious dead ends. That service is real.
+              </p>
+              <p>
+                The problem is what happens next. Most lists still flatten very different operational surfaces into one popularity lane: local coding helpers, browser tools, read-mostly research surfaces, reversible-write workflows, and shared business-system integrations with real side effects.
+              </p>
+              <p>
+                Once those all compete in one flat ranking, readers start using stars, tool count, or vague productivity language as proxies for a decision that is really about fit and authority.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Workflow fit is the first real filter
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A useful server is useful for a job, not in the abstract. Research, coding, delivery, monitoring, business workflows, and device control are different categories of work with different failure costs.
+              </p>
+              <p>
+                The strongest selection question is simple: what repeated task becomes cleaner if this server exists? If the answer stays vague, the server is probably novelty rather than leverage.
+              </p>
+              <p>
+                That framing is more reliable than asking what the server can do in total, because total capability often hides authority that the workflow never needed in the first place.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. Trust class is the second filter, and often the harder one
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Workflow fit explains usefulness. Trust class explains risk. A local read-mostly helper, a reversible write tool, and a shared remote business integration should not be compared as if they carry the same blast radius.
+              </p>
+              <p>
+                This is where solo-local productivity and production-safe shared use diverge. A server can feel amazing in Claude for one operator and still be the wrong pick for a shared lane that needs scoped auth, recoverability, and clear audit evidence.
+              </p>
+              <p>
+                The useful question becomes what authority comes with the help, not only whether the help feels immediate.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Easy metrics are weak proxies for the decision you actually care about
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Tool count often measures taxonomy sprawl, not task fit. A larger manifest can create more planning confusion, more mixed-authority options, and more ways for one workflow to touch the wrong surface.
+              </p>
+              <p>
+                GitHub stars measure interest, not operator truth. They do not answer whether auth completes cleanly, whether the caller sees only the right tools, or whether failures remain legible when retries and timeouts show up.
+              </p>
+              <p>
+                Directory presence is even weaker. It tells you that something exists. It does not tell you whether the surface is safe to automate, bounded enough to trust, or boring in the right production ways.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. There are at least two real MCP leaderboards
+            </h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Solo operator leaderboard</h3>
+                <p class="text-sm leading-relaxed text-slate-300">
+                  Optimizes for fast install, immediate usefulness, low ceremony, and human-in-the-loop recoverability. Many beloved MCP tools rightly win here.
+                </p>
+              </div>
+              <div class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Shared or unattended leaderboard</h3>
+                <p class="text-sm leading-relaxed text-slate-300">
+                  Optimizes for caller-scoped visibility, auth viability, rollback semantics, evidence after the action, and bounded side effects. This is a different contest.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. A better selection rubric is slower, and more honest
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The right rubric is not exciting, which is exactly why it is useful. It keeps the decision on workflow fit, trust class, visible authority, auth model, failure semantics, and evidence instead of on popularity theater.
+              </p>
+            </div>
+
+            <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Selection rubric</div>
+              <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {SELECTION_RUBRIC.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. The market needs decision language more than another flat list
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                MCP is not short on tools anymore. It is short on vocabulary that helps builders explain why one server is fine for local use and wrong for shared use, or why a smaller surface is safer even when a broader one looks more impressive.
+              </p>
+              <p>
+                That is where evaluator-style framing helps more than another giant shortlist. A directory tells you what exists. A stronger evaluator tells you what kind of decision you are actually making.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Start with one bounded lane, not a giant mixed-authority catalog
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If workflow fit and trust class are the real selection filters, the next move is to make the first production lane narrow and explicit, not to connect every powerful tool at once.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=workflow-fit-trust-class-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=workflow-fit-trust-class-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this article reframes the choice, these three pages sharpen the operator checklist: how to evaluate MCP surfaces honestly, why read-only is a real trust class, and what a governed capability surface looks like in practice.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use workflow fit, trust class, auth viability, and runtime evidence before a server earns production trust.</p>
+              </a>
+              <a href="/blog/read-only-mcp-trust-class" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Read-Only MCP as a Trust Class</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Read-only removes one mutation failure class, but only when the runtime keeps the inspect-only boundary real.</p>
+              </a>
+              <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The safer answer is not raw endpoint sprawl. It is a bounded capability surface with visible authority and policy.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Selection only gets real when the lane stays narrow under load
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Once the workflow and trust class are right, the next operator questions are what breaks in the loop, how shared rate limits get contained, and how credentials stay narrow as more agents come online.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, tool use, and unattended execution are live.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">How shared provider budgets and retry windows turn a tool surface into a fleet coordination problem.</p>
+              </a>
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why the right workflow still fails if the credential layer widens faster than the trust model.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
