@@ -1,0 +1,282 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const AUTHORITY_LAYERS = [
+  {
+    label: "Identity proof",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    description: "Remote auth proves who connected. It does not decide which tools, scopes, or backend principals survive that connection.",
+  },
+  {
+    label: "Tool authority",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+    description: "The real boundary is whether discovery, execution, and denial stay narrow per caller, workflow, and tenant after auth succeeds.",
+  },
+  {
+    label: "Evidence chain",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+    description: "Operators need proof of which principal connected, which tool stayed visible, and which backend credential actually executed the effect.",
+  },
+];
+
+const FAILURE_PATTERNS = [
+  {
+    title: "Authenticated means broad access",
+    body: "A valid token unlocks the full manifest even when the caller only needed one narrow read or workflow lane.",
+  },
+  {
+    title: "Backend principal flattening",
+    body: "The caller authenticates cleanly, but every tool still runs under one powerful shared service account behind the remote boundary.",
+  },
+  {
+    title: "Denial without semantics",
+    body: "Out-of-scope calls fail as vague runtime errors, so operators cannot distinguish policy enforcement from server instability.",
+  },
+  {
+    title: "Authority without proof",
+    body: "You can say the runtime narrows scope, but cannot reconstruct which principal, tool, policy, and downstream credential produced the action.",
+  },
+];
+
+const CHECKLIST = [
+  "Does authentication narrow the visible tool manifest, or only open the front door?",
+  "Can one authenticated workflow discover tools it should never be allowed to plan with?",
+  "Which backend credential or downstream principal actually performs the action after auth succeeds?",
+  "Can the runtime emit typed denials when requested authority exceeds policy?",
+  "Can operators reconstruct the full authority chain from caller to backend side effect?",
+  "Does the same model still hold under shared-team or multi-tenant remote use?",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
+  datePublished: "2026-04-20T00:00:00Z",
+  dateModified: "2026-04-20T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, denial semantics, and evidence.",
+  url: "https://rhumb.dev/blog/remote-mcp-auth-identity-vs-authority",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/remote-mcp-auth-identity-vs-authority",
+};
+---
+
+<Layout
+  title="Remote MCP Auth Proves Caller Identity, Not Tool Authority | Rhumb"
+  description="Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, denial semantics, and evidence."
+  canonical="/blog/remote-mcp-auth-identity-vs-authority"
+  ogTitle="Remote MCP Auth Proves Caller Identity, Not Tool Authority"
+  ogDescription="Authentication is only the front door. The hard part is what authority survives after auth succeeds."
+  ogUrl="https://rhumb.dev/blog/remote-mcp-auth-identity-vs-authority"
+  ogType="article"
+  twitterTitle="Remote MCP Auth Proves Caller Identity, Not Tool Authority"
+  twitterDescription="Authentication is only the front door. The hard part is what authority survives after auth succeeds."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-5xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">Remote MCP Auth</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 20, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">7 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
+          <div class="lg:col-span-2">
+            <h1 class="mb-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+              Remote MCP auth proves caller identity, not tool authority
+            </h1>
+            <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+              A valid token proves who connected. It does not prove which tools should stay visible, whose backend credentials will be used, or whether the resulting action can be reconstructed after the remote hop.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Authority layers</div>
+            <div class="space-y-3">
+              {AUTHORITY_LAYERS.map((layer) => (
+                <div class={`rounded-2xl border p-4 ${layer.className}`}>
+                  <div class={`mb-2 text-[11px] font-mono uppercase tracking-[0.22em] ${layer.accent}`}>{layer.label}</div>
+                  <p class="text-sm leading-relaxed text-slate-300">{layer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FAILURE_PATTERNS.map((item) => (
+          <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
+            <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
+            <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The useful question</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          The real question is not <span class="text-slate-100">“does this remote server support auth?”</span>
+          It is <span class="text-slate-100">“what authority survives after auth succeeds?”</span>
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="max-w-3xl space-y-12 lg:col-span-2">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1. Authentication is admission, not authority
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Remote auth answers a narrow question: did this principal present something the server accepts. That matters, but it is only the front door. Production safety starts after the handshake, when the runtime decides what the caller can actually see and do.
+              </p>
+              <p>
+                Teams often stop at OAuth support, bearer validation, or signed requests and then talk as if the authority model is solved. It is not. A clean login can still open a capability surface that is too wide for the caller, the workflow, or the tenant that requested it.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              2. Discovery is part of the authority boundary
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                If authentication reveals the full tool manifest, the model now knows where the sharp edges are even if some execution checks fail later. That is why <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber transition-colors hover:text-amber-200">tool-level permission scoping</a> matters at discovery time, not just invocation time.
+              </p>
+              <p>
+                The safest remote tool is the one the wrong caller never sees. A role-aware manifest narrows both execution power and planning surface. That reduces accidental overreach and makes prompt injection less able to reason about hidden write paths.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3. Backend credentials decide who really acts
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The most common authority collapse happens after the remote hop. The user authenticates cleanly, but the action still executes under one broad backend principal. At that point the system proved identity, then flattened authority anyway.
+              </p>
+              <p>
+                This gets worse in shared-team and multi-tenant deployments. If many callers authenticate separately but all writes happen through one service account, you have convenience, not separation. The meaningful question is which downstream credential or principal the tool call actually uses.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Denial and narrowing semantics are part of remote readiness
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A production-safe remote surface should have a clean answer when the requested action exceeds policy. Was the tool hidden entirely. Was the scope narrowed. Did the runtime return a typed policy denial. Or did the whole thing fail as a vague 500 that looks like infrastructure noise.
+              </p>
+              <p>
+                Typed denials matter because they keep policy legible. Operators need to know whether the runtime stopped the action on purpose or simply broke under pressure. Without that distinction, auth success plus runtime ambiguity still leaves the authority story opaque.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              5. Evidence has to survive the remote jump
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Remote auth becomes trustworthy when the system can reconstruct the full chain after execution: caller principal, visible tool set, requested action, policy decision, backend credential, and downstream effect. That is what turns identity plus policy into governable infrastructure instead of a hopeful claim.
+              </p>
+              <p>
+                This is also where receipts and audit trails fit. Better evidence does not replace narrow authority. It proves whether narrow authority actually held when the call crossed the remote boundary.
+              </p>
+            </div>
+
+            <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Operator checklist</div>
+              <ol class="list-decimal list-outside ml-5 space-y-2 leading-relaxed text-slate-300">
+                {CHECKLIST.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. What Rhumb should measure beyond “supports auth”
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A useful remote-MCP evaluation does not stop at whether auth exists. It should measure whether identity maps cleanly to discovery scope, tool authority, backend credential choice, typed denials, tenant-aware governors, and proof-quality evidence after execution.
+              </p>
+              <p>
+                That is the difference between transport readiness and production readiness. Auth support is a prerequisite. Authority separation is the control plane.
+              </p>
+            </div>
+          </section>
+
+          <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Start with one governed remote lane
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If remote auth is only the front door, do not widen the tool catalog first. Start with one lane where caller identity, tool visibility, backend authority, and post-call evidence are all explicit before expanding the remote surface.
+            </p>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=remote-auth-authority-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+                See the bounded onboarding path →
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=remote-auth-authority-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
+                Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              If this page is the identity-versus-authority frame, these pages pressure-test the same question at the control-plane, checklist, tenant, and evidence layers.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The umbrella operator frame for scope, principals, and evidence.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">The broader remote checklist for auth shape, scope boundaries, governors, recovery, and auditability.</p>
+              </a>
+              <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Where identity mapping breaks if tenant separation, quotas, and backend credentials flatten together.</p>
+              </a>
+              <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Signed Receipts</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why post-call proof matters, but still does not replace narrow authority before the action.</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
