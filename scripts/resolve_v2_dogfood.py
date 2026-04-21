@@ -967,27 +967,7 @@ def run_batch(args: argparse.Namespace, profile_names: list[str]) -> dict[str, A
     results: dict[str, dict[str, Any]] = {}
 
     for profile_name in profile_names:
-        run_args = _apply_profile_defaults(args, profile_name)
-        try:
-            payload = run_flow(run_args)
-        except FlowError as exc:
-            payload = {
-                "ok": False,
-                "summary": str(exc),
-                **exc.state,
-            }
-        except Exception as exc:  # pragma: no cover - defensive CLI fallback
-            payload = {
-                "ok": False,
-                "summary": str(exc),
-                "config": {
-                    "profile": profile_name,
-                    "provider": run_args.provider,
-                    "interface": run_args.interface,
-                    "capability": run_args.capability,
-                },
-            }
-        results[profile_name] = payload
+        results[profile_name] = _run_profile_to_latest_artifact(args, profile_name)
 
     return {
         "ok": all(payload.get("ok") for payload in results.values()),

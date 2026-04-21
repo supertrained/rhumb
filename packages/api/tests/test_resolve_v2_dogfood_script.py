@@ -413,6 +413,45 @@ def test_build_batch_summary_mentions_profile_statuses_and_actual_provider_used(
     assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary
 
 
+def test_run_batch_writes_latest_profile_artifacts(tmp_path):
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    args = resolve_v2_dogfood.parse_args(["--all-profiles"])
+
+    def fake_run_flow(run_args):
+        return {
+            "ok": True,
+            "started_at": 1_700_066_790,
+            "summary": f"refreshed {run_args.profile}",
+            "config": {
+                "profile": run_args.profile,
+                "provider": run_args.provider,
+                "interface": run_args.interface,
+            },
+            "layer2": {"execute": {"data": {"provider_used": "brave-search-api"}}},
+            "receipt_chain": {"chain_intact": True, "verified": 2, "total_checked": 2},
+        }
+
+    with (
+        patch.object(resolve_v2_dogfood, "_artifact_root", return_value=artifact_root),
+        patch.object(resolve_v2_dogfood, "run_flow", side_effect=fake_run_flow) as mock_run_flow,
+    ):
+        payload = resolve_v2_dogfood.run_batch(args, ["pedro", "keel"])
+
+    assert payload["ok"] is True
+    assert payload["profile_count"] == 2
+    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {"pedro", "keel"}
+
+    pedro_artifact = json.loads(
+        (artifact_root / "resolve-v2-dogfood-pedro-admin-latest.json").read_text(encoding="utf-8")
+    )
+    keel_artifact = json.loads(
+        (artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8")
+    )
+    assert pedro_artifact["summary"] == "refreshed pedro"
+    assert keel_artifact["summary"] == "refreshed keel"
+
+
 def test_build_fleet_status_entry_marks_profile_ok(tmp_path):
     artifact_path = tmp_path / "resolve-v2-dogfood-keel-admin-latest.json"
     artifact_path.write_text(
