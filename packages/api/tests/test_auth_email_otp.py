@@ -946,3 +946,145 @@ def test_me_agents_can_create_and_list_capped_secondary_keys() -> None:
     payload = list_response.json()
     assert "agents" in payload
     assert any(item["agent_id"] == created["agent_id"] for item in payload["agents"])
+
+
+def test_onboarding_journey_smoke_for_session_auth_routes() -> None:
+    """A thin regression smoke for the self-serve onboarding control-plane."""
+
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "journey@example.com"},
+            headers={"x-forwarded-for": "203.0.113.27"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "journey@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.27"},
+        )
+        session_token = verify_response.json()["data"]["session_token"]
+
+        secondary_agent_id: str | None = None
+
+        async def _supabase_fetch_side_effect(path: str):
+            nonlocal secondary_agent_id
+            if path.startswith("org_credits?org_id=eq.") and "stripe_payment_method_id" in path:
+                return [
+                    {
+                        "balance_usd_cents": 2500,
+                        "reserved_usd_cents": 0,
+                        "auto_reload_enabled": False,
+                        "auto_reload_threshold_cents": None,
+                        "auto_reload_amount_cents": None,
+                        "stripe_payment_method_id": "pm_saved_123",
+                    }
+                ]
+            if path.startswith("credit_ledger?org_id=eq."):
+                return [
+                    {
+                        "event_type": "credit_added",
+                        "amount_usd_cents": 2500,
+                        "description": "Credit purchase via Stripe Checkout ($25.00)",
+                        "created_at": "2026-04-21T20:00:00Z",
+                    }
+                ]
+            if path.startswith("agent_budgets?agent_id=eq.") and secondary_agent_id and secondary_agent_id in path:
+                return [
+                    {
+                        "budget_usd": 10.0,
+                        "spent_usd": 0.0,
+                        "period": "monthly",
+                        "hard_limit": True,
+                        "alert_threshold_pct": 80,
+                        "alert_fired": False,
+                    }
+                ]
+            return []
+
+        with patch(
+            "routes._supabase.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_supabase_fetch_side_effect,
+        ), patch(
+            "routes._supabase.supabase_patch",
+            new_callable=AsyncMock,
+            return_value=[
+                {
+                    "auto_reload_enabled": True,
+                    "auto_reload_threshold_cents": 1000,
+                    "auto_reload_amount_cents": 5000,
+                }
+            ],
+        ), patch(
+            "routes._supabase.supabase_insert_returning",
+            new_callable=AsyncMock,
+            return_value={
+                "budget_usd": 10.0,
+                "spent_usd": 0.0,
+                "period": "monthly",
+                "hard_limit": True,
+            },
+        ), patch(
+            "routes.auth.create_checkout_session",
+            new_callable=AsyncMock,
+            return_value={
+                "checkout_url": "https://checkout.stripe.com/pay/cs_test_dashboard",
+                "session_id": "cs_test_dashboard",
+            },
+        ):
+            me_response = env.client.get(
+                "/v1/auth/me",
+                cookies={"rhumb_session": session_token},
+            )
+            assert me_response.status_code == 200
+            assert me_response.json()["api_key_prefix"]
+
+            billing_response = env.client.get(
+                "/v1/auth/me/billing",
+                cookies={"rhumb_session": session_token},
+            )
+            assert billing_response.status_code == 200
+            assert billing_response.json()["balance_usd"] == 25.0
+            assert billing_response.json()["has_payment_method"] is True
+
+            checkout_response = env.client.post(
+                "/v1/auth/me/billing/checkout",
+                json={"amount_usd": 25.0},
+                cookies={"rhumb_session": session_token},
+            )
+            assert checkout_response.status_code == 200
+            assert checkout_response.json()["session_id"] == "cs_test_dashboard"
+
+            auto_reload_response = env.client.put(
+                "/v1/auth/me/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 10.0, "amount_usd": 50.0},
+                cookies={"rhumb_session": session_token},
+            )
+            assert auto_reload_response.status_code == 200
+            assert auto_reload_response.json()["auto_reload_enabled"] is True
+
+            create_key_response = env.client.post(
+                "/v1/auth/me/agents",
+                json={
+                    "name": "Friend Agent",
+                    "budget_usd": 10.0,
+                    "period": "monthly",
+                    "hard_limit": True,
+                    "rate_limit_qpm": 20,
+                },
+                cookies={"rhumb_session": session_token},
+            )
+            assert create_key_response.status_code == 200
+            secondary_agent_id = create_key_response.json()["agent_id"]
+            assert create_key_response.json()["api_key"].startswith("rhumb_")
+
+            list_keys_response = env.client.get(
+                "/v1/auth/me/agents",
+                cookies={"rhumb_session": session_token},
+            )
+            assert list_keys_response.status_code == 200
+            assert any(
+                row["agent_id"] == secondary_agent_id
+                for row in list_keys_response.json().get("agents", [])
+            )
