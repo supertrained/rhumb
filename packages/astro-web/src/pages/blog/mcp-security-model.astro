@@ -51,7 +51,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-20T00:00:00Z",
+  dateModified: "2026-04-21T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -185,6 +185,27 @@ const ARTICLE_JSON_LD = {
               class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
             >
               Open the managed path →
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            The security model usually breaks when one careful tool call becomes many unattended ones. These three pages show how scope, principals, and evidence stay honest once loops, shared budgets, and credential drift enter the picture.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why the first security failure is often hidden inside retries, tool loops, and overnight recovery branches.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">What scope control and spend governors look like once shared quota pressure becomes part of the threat model.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Follow the principal model into rotation, revocation, and scoped credential handling before one expired token widens the blast radius.</p>
             </a>
           </div>
         </div>

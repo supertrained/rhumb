@@ -56,7 +56,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-20T00:00:00Z",
+  dateModified: "2026-04-21T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, denial semantics, and evidence.",
@@ -247,6 +247,27 @@ const ARTICLE_JSON_LD = {
               </a>
               <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=remote-auth-authority-direct" class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 transition-colors duration-200 hover:border-emerald-400/60 hover:text-emerald-100">
                 Open the managed path →
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fleet follow-through</div>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Identity-versus-authority mistakes usually show up after the first successful login, when loops, shared budgets, and credential rotation start stretching the same remote lane. These three pages pressure-test that exact failure mode.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">See how backend authority, rotation, and revocation behave once many agents share the same credential surface.</p>
+              </a>
+              <a href="/blog/mcp-credential-lifecycle-token-rotation" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Credential Lifecycle in Production</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Follow the same auth story into expiry, insufficient scope, revocation, and typed recovery instead of vague runtime failure.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">See what happens when one remote principal shape meets shared quotas, retry governors, and overnight budget control.</p>
               </a>
             </div>
           </div>
