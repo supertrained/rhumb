@@ -225,6 +225,39 @@ def test_build_summary_mentions_l1_and_l2_receipts():
     assert "audit_events=7" in summary
 
 
+def test_build_summary_uses_canonical_layer1_provider_when_requested_provider_is_runtime_alias():
+    summary = resolve_v2_dogfood._build_summary({
+        "config": {
+            "capability": "search.query",
+            "provider": "brave-search",
+        },
+        "layer2": {
+            "execute": {
+                "data": {
+                    "execution_id": "exec_l2",
+                    "provider_used": "brave-search-api",
+                    "receipt_id": "rcpt_l2",
+                }
+            },
+            "receipt": {"receipt_id": "rcpt_l2"},
+        },
+        "layer1": {
+            "provider": {"id": "brave-search-api"},
+            "execute": {
+                "data": {
+                    "execution_id": "exec_l1",
+                    "provider_used": "brave-search-api",
+                    "receipt_id": "rcpt_l1",
+                }
+            },
+            "receipt": {"receipt_id": "rcpt_l1"},
+        },
+    })
+
+    assert "L1 provider=brave-search-api exec=exec_l1 receipt=rcpt_l1" in summary
+    assert "L1 provider=brave-search exec=exec_l1 receipt=rcpt_l1" not in summary
+
+
 def test_print_summary_only_emits_single_line(capsys):
     resolve_v2_dogfood._print_summary_only(
         {

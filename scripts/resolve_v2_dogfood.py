@@ -665,6 +665,21 @@ def extract_provider_used(data: dict[str, Any] | None) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def extract_layer1_public_provider(state: dict[str, Any]) -> str | None:
+    layer1 = state.get("layer1") or {}
+    execute_data = (layer1.get("execute") or {}).get("data") or {}
+    provider_detail = layer1.get("provider") or {}
+    for candidate in (
+        extract_provider_used(execute_data),
+        provider_detail.get("id"),
+        provider_detail.get("service_slug"),
+        (state.get("config") or {}).get("provider"),
+    ):
+        if isinstance(candidate, str) and candidate:
+            return candidate
+    return None
+
+
 def _build_summary(state: dict[str, Any]) -> str:
     parts = ["Resolve v2 dogfood complete"]
 
@@ -684,7 +699,7 @@ def _build_summary(state: dict[str, Any]) -> str:
     if isinstance(l1, dict):
         parts.append(
             "L1 "
-            f"provider={state.get('config', {}).get('provider')}"
+            f"provider={extract_layer1_public_provider(state) or 'n/a'}"
             f" exec={extract_execution_id(l1) or 'n/a'}"
             f" receipt={l1_receipt or extract_receipt_id(l1) or 'n/a'}"
         )
