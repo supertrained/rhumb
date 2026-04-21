@@ -108,11 +108,48 @@ def _infer_org_id(*, api_base: str, admin_key: str) -> str:
     return str(most_common)
 
 
+def _infer_org_id_from_agent_key(*, api_base: str, agent_key: str) -> str:
+    """Infer org_id by calling a normal authenticated endpoint.
+
+    Uses GET /v1/billing/balance (returns org_id) with X-Rhumb-Key.
+    This avoids a potentially heavy /v1/admin/agents call.
+    """
+    if not agent_key:
+        raise SystemExit("No agent key provided for org inference")
+
+    with httpx.Client(timeout=30) as client:
+        resp = _http(
+            client,
+            "GET",
+            f"{api_base}/v1/billing/balance",
+            headers={"X-Rhumb-Key": agent_key},
+        )
+
+    if resp.status_code != 200:
+        raise SystemExit(
+            f"Failed to infer org_id from agent key via /v1/billing/balance: "
+            f"HTTP {resp.status_code}: {resp.text[:300]}"
+        )
+
+    data = resp.json() if (resp.headers.get("content-type") or "").startswith("application/json") else {}
+    if not isinstance(data, dict) or not data.get("org_id"):
+        raise SystemExit("/v1/billing/balance response missing org_id")
+    return str(data["org_id"])
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--api-base", default=_env("RHUMB_API_BASE") or "https://api.rhumb.dev")
     ap.add_argument("--name", required=True)
     ap.add_argument("--org-id", default=_env("RHUMB_DEFAULT_ORG_ID"))
+    ap.add_argument(
+        "--org-id-from-key",
+        action="store_true",
+        help=(
+            "If --org-id is not set, infer org_id by calling /v1/billing/balance "
+            "with RHUMB_API_KEY from env (recommended)."
+        ),
+    )
     ap.add_argument("--rate-limit-qpm", type=int, default=60)
     ap.add_argument("--budget-usd", type=float, default=10.0)
     ap.add_argument("--budget-period", default="monthly", choices=["daily", "weekly", "monthly", "total"])
@@ -136,7 +173,14 @@ def main() -> int:
     api_base = args.api_base.rstrip("/")
 
     org_id = (args.org_id or "").strip()
+    if not org_id and args.org_id_from_key:
+        agent_key = _env("RHUMB_API_KEY", "RHUMB_KEY")
+        if not agent_key:
+            raise SystemExit("--org-id-from-key set but RHUMB_API_KEY is not set")
+        org_id = _infer_org_id_from_agent_key(api_base=api_base, agent_key=agent_key)
+
     if not org_id:
+        # Last resort, fall back to listing agents via admin endpoint.
         org_id = _infer_org_id(api_base=api_base, admin_key=admin_key)
 
     tags = [t.strip() for t in (args.tags or "").split(",") if t.strip()]

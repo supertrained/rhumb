@@ -12,11 +12,15 @@ This is the fastest path for a **small controlled cohort**: mint a governed key 
 ```bash
 export RHUMB_ADMIN_KEY="…"   # do not commit
 
+# Recommended: infer org_id from an existing key in your org.
+export RHUMB_API_KEY="…"     # any existing governed key in the target org
+
 python3 rhumb/scripts/issue_friend_key.py \
   --name "Alice Agent" \
   --budget-usd 10 \
   --budget-period monthly \
-  --rate-limit-qpm 60
+  --rate-limit-qpm 60 \
+  --org-id-from-key
 ```
 
 The script prints:
