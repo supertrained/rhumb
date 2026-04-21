@@ -254,6 +254,9 @@ const ARTICLE_JSON_LD = {
               <p>
                 Production MCP wants the opposite order. Define the caller class, decide which tools it may see, enforce policy at invocation, and log the policy decision as part of the normal control plane. Tool-level scoping is not a nice-to-have after authentication. It is the layer that keeps one successful connection from becoming broad authority by accident.
               </p>
+              <p>
+                A generated permission manifest can help expose the intended boundary, but it does not create one. The operator test is still whether the wrong caller sees fewer tools, gets typed denials, and leaves an audit trail when it reaches beyond policy.
+              </p>
             </div>
           </section>
 
@@ -278,12 +281,16 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this page is the authorization frame, these four pages carry it into the operator playbook: the top-level security model, bounded capabilities, prompt-injection containment, and honest remote-readiness review.
+              If this page is the authorization frame, these five pages carry it into the operator playbook: the top-level security model, the auth-versus-authority split, bounded capabilities, prompt-injection containment, and honest remote-readiness review.
             </p>
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Scope, principals, and evidence are the umbrella that makes tool-level authorization part of one operator story instead of an isolated checklist.</p>
+              </a>
+              <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Identity vs Authority</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Why remote auth proving who connected still fails if discovery scope and backend authority stay broad after the handshake.</p>
               </a>
               <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>

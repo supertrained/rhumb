@@ -192,6 +192,9 @@ const ARTICLE_JSON_LD = {
             <p>
               That is also the same operator shortcut from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: the surface is only trustworthy if scope, acting principal, and surviving evidence stay visible before the call and after it.
             </p>
+            <p>
+              Remote auth does not weaken that rule. It sharpens it. A connection can be valid while the capability layer still hides which tool boundary, backend principal, and policy decision actually survived after the remote hop, which is why <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber-200 transition-colors">identity and authority have to stay separate in the operator model</a>.
+            </p>
           </div>
         </section>
 
@@ -380,6 +383,11 @@ const ARTICLE_JSON_LD = {
             <li>
               <a href="/blog/read-only-mcp-trust-class" class="text-amber hover:text-amber/80 underline underline-offset-4">
                 Read-Only MCP as a Trust Class
+              </a>
+            </li>
+            <li>
+              <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                Remote MCP Auth Proves Caller Identity, Not Tool Authority
               </a>
             </li>
             <li>
