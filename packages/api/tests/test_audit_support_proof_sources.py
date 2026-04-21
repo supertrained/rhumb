@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -335,3 +336,32 @@ def test_audit_vault_marks_login_only_intercom_item_as_not_bundle_ready() -> Non
         "region",
         "allowed_team_ids_or_allowed_admin_ids",
     ]
+
+
+def test_main_creates_parent_dirs_for_json_out(tmp_path, monkeypatch) -> None:
+    artifact_path = tmp_path / "nested" / "support-proof-source-audit.json"
+    summary = {"provider": "intercom", "assessment": "ready"}
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit_support_proof_sources.py",
+            "--provider",
+            "intercom",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    with patch.object(support_proof_audit, "audit_vault", return_value={"ok": True}), patch.object(
+        support_proof_audit, "audit_browser_history", return_value={"ok": True}
+    ), patch.object(support_proof_audit, "audit_gmail", return_value={"ok": True}), patch.object(
+        support_proof_audit, "audit_hosted_surface", return_value={"ok": True}
+    ), patch.object(support_proof_audit, "summarize_provider", return_value=summary):
+        exit_code = support_proof_audit.main()
+
+    assert exit_code == 0
+    assert artifact_path.exists()
+    payload = json.loads(artifact_path.read_text())
+    assert payload["summary"] == [summary]

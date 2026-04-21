@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -550,3 +551,34 @@ def test_summarize_provider_mentions_salesforce_connected_app_bundle_when_blocke
     assert "no vault-backed scoped Salesforce bundle was detected" in summary["assessment"]
     assert "Connected App refresh-token bundle" in summary["assessment"]
     assert "no saved Salesforce login entry" in summary["assessment"]
+
+
+def test_main_creates_parent_dirs_for_json_out(tmp_path, monkeypatch) -> None:
+    artifact_path = tmp_path / "nested" / "crm-proof-source-audit.json"
+    summary = {"provider": "hubspot", "assessment": "ready"}
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit_crm_proof_sources.py",
+            "--provider",
+            "hubspot",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    with patch.object(crm_proof_audit, "audit_vault", return_value={"ok": True}), patch.object(
+        crm_proof_audit, "audit_browser_history", return_value={"ok": True}
+    ), patch.object(crm_proof_audit, "audit_browser_saved_logins", return_value={"ok": True}), patch.object(
+        crm_proof_audit, "audit_gmail", return_value={"ok": True}
+    ), patch.object(crm_proof_audit, "audit_hosted_surface", return_value={"ok": True}), patch.object(
+        crm_proof_audit, "summarize_provider", return_value=summary
+    ):
+        exit_code = crm_proof_audit.main()
+
+    assert exit_code == 0
+    assert artifact_path.exists()
+    payload = json.loads(artifact_path.read_text())
+    assert payload["summary"] == [summary]

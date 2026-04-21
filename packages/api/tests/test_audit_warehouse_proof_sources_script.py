@@ -530,3 +530,36 @@ def test_audit_local_service_account_files_distinguishes_candidate_project_hits(
     assert set(result["project_ids"]) == {"rhumb-490802", "snowthere"}
     assert any(hit["candidate_project_match"] is True for hit in result["hits"])
     assert any(hit["candidate_project_match"] is False for hit in result["hits"])
+
+
+def test_main_creates_parent_dirs_for_json_out(tmp_path: Path, monkeypatch) -> None:
+    artifact_path = tmp_path / "nested" / "warehouse-proof-source-audit.json"
+    summary = {"provider": "bigquery", "assessment": "ready"}
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit_warehouse_proof_sources.py",
+            "--provider",
+            "bigquery",
+            "--json-out",
+            str(artifact_path),
+        ],
+    )
+
+    with patch.object(warehouse_audit, "audit_vault", return_value={"ok": True}), patch.object(
+        warehouse_audit, "audit_browser_history", return_value={"ok": True}
+    ), patch.object(warehouse_audit, "audit_browser_saved_logins", return_value={"ok": True}), patch.object(
+        warehouse_audit, "audit_gmail", return_value={"ok": True}
+    ), patch.object(warehouse_audit, "audit_hosted_surface", return_value={"ok": True}), patch.object(
+        warehouse_audit, "audit_local_tooling", return_value={"ok": True}
+    ), patch.object(
+        warehouse_audit, "audit_local_service_account_files", return_value={"ok": True}
+    ), patch.object(warehouse_audit, "summarize_provider", return_value=summary):
+        exit_code = warehouse_audit.main()
+
+    assert exit_code == 0
+    assert artifact_path.exists()
+    payload = json.loads(artifact_path.read_text())
+    assert payload["summary"] == [summary]

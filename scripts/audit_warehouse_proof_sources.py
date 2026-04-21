@@ -1228,6 +1228,7 @@ def main() -> int:
     artifact_path = (
         Path(args.json_out) if args.json_out else ARTIFACTS_DIR / f"aud18-bigquery-proof-source-audit-{_now_slug()}.json"
     )
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(json.dumps(result, indent=2))
 
     print(str(artifact_path))
