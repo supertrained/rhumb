@@ -312,9 +312,9 @@ const rendered = markdownToHtml(CONTENT);
       <div class="mt-8 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
         <p class="text-slate-400 leading-relaxed mb-5">
-          Once the question moves past where to store a key, the real operator work is credential lifecycle and shared-fleet containment. These two guides pick up exactly there.
+          Once the question moves past where to store a key, the real operator work is credential lifecycle, remote authority separation, and shared-fleet containment. These three guides pick up exactly there.
         </p>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-3">
           <a
             href="/blog/api-credentials-agent-fleets"
             class="block rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
@@ -323,6 +323,16 @@ const rendered = markdownToHtml(CONTENT);
             <h3 class="font-display font-semibold text-slate-100 mt-2">API Credentials in Autonomous Agent Fleets</h3>
             <p class="text-sm text-slate-500 mt-2">
               Covers rotation blindness, expiry handling, revocation, and shared-key cascade prevention once agents are running unattended.
+            </p>
+          </a>
+          <a
+            href="/blog/remote-mcp-auth-identity-vs-authority"
+            class="block rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-amber/30 transition-colors"
+          >
+            <span class="text-xs font-mono uppercase tracking-widest text-amber">Remote authority split</span>
+            <h3 class="font-display font-semibold text-slate-100 mt-2">Remote MCP Auth: Identity vs Authority</h3>
+            <p class="text-sm text-slate-500 mt-2">
+              Shows why a valid auth ceremony still is not the real boundary if discovery scope, backend principals, and denial semantics stay broad after connection.
             </p>
           </a>
           <a

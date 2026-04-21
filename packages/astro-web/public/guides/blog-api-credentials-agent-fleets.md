@@ -137,6 +137,8 @@ A fleet-safe credential design lets agents survive routine rotation, short token
 
 Need the adjacent authority model first? Read [Securing Keys for Agents](/blog/securing-keys-for-agents).
 
+Need the remote auth split after the handshake? Read [Remote MCP Auth: Identity vs Authority](/blog/remote-mcp-auth-identity-vs-authority).
+
 Need the retry and limit architecture next? Read [Designing Agent Fleets That Survive Rate Limits](/blog/agent-fleet-rate-limit-design).
 
 Need the broader operator map first? Read [The Complete Guide to API Selection for AI Agents](/blog/complete-guide-api-selection-for-ai-agents).

@@ -446,12 +446,16 @@ const agentRules = [
         <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Fleet follow-through</p>
         <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Auth choice is only the start of shared-runtime safety</h2>
         <p class="mt-4 max-w-3xl text-slate-400 leading-relaxed">
-          Once the provider is chosen, the next operator problems are credential lifecycle and budget containment across a fleet. These two guides pick up where the auth comparison stops.
+          Once the provider is chosen, the next operator problems are credential lifecycle, identity-versus-authority separation after the remote hop, and budget containment across a fleet. These three guides pick up where the auth comparison stops.
         </p>
-        <div class="mt-6 grid gap-4 md:grid-cols-2">
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
           <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
             <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
             <p class="mt-2 text-sm text-slate-400 leading-relaxed">Covers rotation blindness, revocation, expiry, and scope drift after auth works and agents start running unattended.</p>
+          </a>
+          <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
+            <div class="text-sm font-semibold text-slate-100">Remote MCP Auth: Identity vs Authority</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Shows why choosing an auth provider still does not answer which tools stay visible, which backend credential acts, or how typed denials survive the remote boundary.</p>
           </a>
           <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 hover:border-slate-700 transition-colors">
             <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
