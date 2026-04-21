@@ -251,6 +251,9 @@ const ARTICLE_JSON_LD = {
               <p>
                 Good shared MCP keeps the tenant boundary explicit in credentials, tools, resources, logs, quotas, and recovery paths. That is what turns one server for many agents from a convenience story into a trustworthy operator surface.
               </p>
+              <p>
+                In practice, that is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: scope is the boundary, principals define whose authority is active, and evidence decides whether the operator can explain the outcome later.
+              </p>
             </div>
           </section>
 
@@ -275,9 +278,13 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this article is the tenant-isolation frame, these three pages are the operator playbook: how to evaluate MCP surfaces honestly, how to design governed capability boundaries, and how to separate remote-readiness from demo liveness.
+              If this article is the tenant-isolation frame, these four pages are the operator playbook: the core security model, how to evaluate MCP surfaces honestly, how to design governed capability boundaries, and how to separate remote-readiness from demo liveness.
             </p>
-            <div class="grid gap-3 sm:grid-cols-3">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use scope, principals, and evidence as the fast test for whether shared runtime design is actually containable.</p>
+              </a>
               <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Use workflow fit, trust class, auth viability, and runtime evidence before a server earns production trust.</p>
