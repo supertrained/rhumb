@@ -91,6 +91,11 @@ const RELATED_READING = [
     description: "Why reachability is only the first layer, not the operator decision.",
   },
   {
+    href: "/blog/remote-mcp-auth-identity-vs-authority",
+    title: "Remote MCP Auth: Identity vs Authority",
+    description: "Why a valid remote login still fails the operator test if the caller inherits the wrong tool surface or backend power after auth.",
+  },
+  {
     href: "/blog/static-mcp-scores-runtime-trust-overlays",
     title: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
     description: "How structural evaluation and live runtime evidence work better together.",
@@ -283,7 +288,7 @@ const ARTICLE_JSON_LD = {
                 A server that &ldquo;supports auth&rdquo; is not automatically usable. Operators need to know who the caller is, what principal the runtime is acting as, what scope remains after auth succeeds, and whether the intended caller can complete that path without manual glue.
               </p>
               <p>
-                This is especially important for remote MCP. A global directory entry or a successful handshake says very little if the server is bound to the wrong principal, the wrong tenant, or a scope the actual workflow cannot use safely. That is why <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber-200 transition-colors">production readiness</a> is a stronger frame than uptime alone.
+                This is especially important for remote MCP. A global directory entry or a successful handshake says very little if the server is bound to the wrong principal, the wrong tenant, or a scope the actual workflow cannot use safely. That is why <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber-200 transition-colors">production readiness</a> is a stronger frame than uptime alone, and why <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber-200 transition-colors">identity versus authority</a> is the useful follow-up question once remote auth appears to work.
               </p>
             </div>
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
