@@ -685,3 +685,98 @@ def test_me_usage_canonicalizes_alias_backed_service_ids() -> None:
             },
         ],
     }
+
+
+def test_me_billing_uses_credit_ledger_and_saved_payment_method_truth() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "billing@example.com"},
+            headers={"x-forwarded-for": "203.0.113.22"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "billing@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.22"},
+        )
+
+        with patch(
+            "routes._supabase.supabase_fetch",
+            new_callable=AsyncMock,
+        ) as mock_fetch:
+            mock_fetch.side_effect = [
+                [{
+                    "balance_usd_cents": 2500,
+                    "reserved_usd_cents": 0,
+                    "auto_reload_enabled": True,
+                    "auto_reload_threshold_cents": 1000,
+                    "auto_reload_amount_cents": 5000,
+                    "stripe_payment_method_id": "pm_saved_123",
+                }],
+                [{
+                    "event_type": "credit_added",
+                    "amount_usd_cents": 2500,
+                    "description": "Credit purchase via Stripe Checkout ($25.00)",
+                    "created_at": "2026-04-21T20:00:00Z",
+                }],
+            ]
+
+            billing_response = env.client.get(
+                "/v1/auth/me/billing",
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert billing_response.status_code == 200
+    assert billing_response.json() == {
+        "balance_usd": 25.0,
+        "plan": "prepaid",
+        "has_payment_method": True,
+        "auto_reload_enabled": True,
+        "auto_reload_threshold_usd": 10.0,
+        "auto_reload_amount_usd": 50.0,
+        "recent_transactions": [
+            {
+                "type": "credit_added",
+                "amount_usd": 25.0,
+                "description": "Credit purchase via Stripe Checkout ($25.00)",
+                "timestamp": "2026-04-21T20:00:00Z",
+            }
+        ],
+    }
+    assert "credit_ledger?org_id=eq." in mock_fetch.call_args_list[1].args[0]
+
+
+def test_me_billing_checkout_creates_dashboard_checkout_session() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "checkout@example.com"},
+            headers={"x-forwarded-for": "203.0.113.23"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "checkout@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.23"},
+        )
+
+        with patch(
+            "routes.auth.create_checkout_session",
+            new_callable=AsyncMock,
+            return_value={
+                "checkout_url": "https://checkout.stripe.com/pay/cs_test_dashboard",
+                "session_id": "cs_test_dashboard",
+            },
+        ) as mock_checkout:
+            checkout_response = env.client.post(
+                "/v1/auth/me/billing/checkout",
+                json={"amount_usd": 25.0},
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert checkout_response.status_code == 200
+    assert checkout_response.json()["session_id"] == "cs_test_dashboard"
+    assert mock_checkout.await_args.kwargs["amount_cents"] == 2500
+    assert mock_checkout.await_args.kwargs["success_url"].endswith("/dashboard?checkout=success")
+    assert mock_checkout.await_args.kwargs["cancel_url"].endswith("/dashboard?checkout=cancel")

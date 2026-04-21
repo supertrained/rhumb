@@ -147,6 +147,11 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
               <p class="text-2xl font-semibold text-white" id="balance-amount">$0.00</p>
               <span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400" id="plan-badge">free</span>
             </div>
+            <div id="billing-checkout-message" class="hidden mb-3 rounded-md border px-3 py-2 text-xs"></div>
+            <div class="space-y-1 mb-3 text-xs">
+              <p class="text-slate-400" id="payment-method-status">No saved payment method yet.</p>
+              <p class="text-slate-500" id="auto-reload-status">Auto-reload is off.</p>
+            </div>
             <div id="transactions-list" class="hidden">
               <p class="text-xs text-slate-500 mb-2">Recent activity</p>
               <div id="transactions" class="space-y-1.5"></div>
@@ -364,6 +369,33 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         document.getElementById("balance-amount").textContent = `$${data.balance_usd.toFixed(2)}`;
         document.getElementById("plan-badge").textContent = data.plan;
 
+        const checkoutState = new URLSearchParams(window.location.search).get("checkout");
+        const checkoutMessage = document.getElementById("billing-checkout-message");
+        if (checkoutState === "success") {
+          checkoutMessage.textContent = "Stripe checkout completed. Balance and saved-card status should refresh shortly.";
+          checkoutMessage.className = "mb-3 rounded-md border border-score-native/30 bg-score-native/10 px-3 py-2 text-xs text-score-native";
+          checkoutMessage.classList.remove("hidden");
+        } else if (checkoutState === "cancel") {
+          checkoutMessage.textContent = "Checkout was canceled. You can try again anytime.";
+          checkoutMessage.className = "mb-3 rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-300";
+          checkoutMessage.classList.remove("hidden");
+        }
+
+        const paymentMethodStatus = document.getElementById("payment-method-status");
+        paymentMethodStatus.textContent = data.has_payment_method
+          ? "Saved payment method on file for future top-ups and auto-reload."
+          : "No saved payment method yet.";
+        paymentMethodStatus.className = data.has_payment_method
+          ? "text-score-native"
+          : "text-slate-400";
+
+        const autoReloadStatus = document.getElementById("auto-reload-status");
+        if (data.auto_reload_enabled && data.auto_reload_threshold_usd && data.auto_reload_amount_usd) {
+          autoReloadStatus.textContent = `Auto-reload is on: add $${data.auto_reload_amount_usd.toFixed(2)} when balance drops below $${data.auto_reload_threshold_usd.toFixed(2)}.`;
+        } else {
+          autoReloadStatus.textContent = "Auto-reload is off.";
+        }
+
         // Style plan badge
         const badge = document.getElementById("plan-badge");
         if (data.plan === "prepaid") {
@@ -395,8 +427,38 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     }
 
     // Add funds button
-    document.getElementById("add-funds-btn")?.addEventListener("click", () => {
-      window.location.href = "/pricing";
+    document.getElementById("add-funds-btn")?.addEventListener("click", async () => {
+      const rawAmount = window.prompt("How much balance should we add?", "25");
+      if (!rawAmount) return;
+
+      const amount = Number(rawAmount);
+      if (!Number.isFinite(amount) || amount < 5 || amount > 5000) {
+        window.alert("Enter an amount between $5 and $5000.");
+        return;
+      }
+
+      const button = document.getElementById("add-funds-btn");
+      const originalText = button?.textContent;
+      if (button) button.textContent = "Opening checkout…";
+
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/billing/checkout`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount_usd: amount }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.checkout_url) {
+          throw new Error(data.detail || "Unable to create checkout session");
+        }
+
+        window.location.href = data.checkout_url;
+      } catch (e) {
+        window.alert(`Failed to open checkout: ${e.message}`);
+        if (button && originalText) button.textContent = originalText;
+      }
     });
 
     init();

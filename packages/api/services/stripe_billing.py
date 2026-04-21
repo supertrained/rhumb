@@ -119,6 +119,7 @@ async def create_checkout_session(
             "quantity": 1,
         }],
         metadata={"org_id": org_id, "amount_cents": str(amount_cents)},
+        payment_intent_data={"setup_future_usage": "off_session"},
         success_url=success_url,
         cancel_url=cancel_url,
     )
@@ -131,6 +132,34 @@ async def create_checkout_session(
     )
 
     return {"checkout_url": session.url, "session_id": session.id}
+
+
+async def _lookup_payment_method_id(payment_intent_id: str | None) -> str | None:
+    """Resolve the saved payment method used for a checkout, if available."""
+    if not payment_intent_id:
+        return None
+
+    try:
+        stripe.api_key = settings.stripe_secret_key
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        payment_method = getattr(intent, "payment_method", None)
+        if payment_method is None and isinstance(intent, dict):
+            payment_method = intent.get("payment_method")
+
+        if isinstance(payment_method, dict):
+            return payment_method.get("id")
+        if hasattr(payment_method, "id"):
+            return getattr(payment_method, "id")
+        if isinstance(payment_method, str) and payment_method:
+            return payment_method
+    except Exception as exc:
+        logger.warning(
+            "Unable to resolve Stripe payment method for intent %s: %s",
+            payment_intent_id,
+            exc,
+        )
+
+    return None
 
 
 # ── Off-session PaymentIntent (auto-reload) ──────────────────────────
@@ -180,6 +209,7 @@ async def handle_checkout_completed(session: dict[str, Any]) -> bool:
     org_id = metadata.get("org_id")
     amount_cents = int(metadata.get("amount_cents", 0))
     payment_intent_id = session.get("payment_intent")
+    payment_method_id = await _lookup_payment_method_id(payment_intent_id)
 
     if not org_id or amount_cents <= 0:
         logger.warning("Checkout session %s missing org_id or amount_cents", session_id)
@@ -205,7 +235,11 @@ async def handle_checkout_completed(session: dict[str, Any]) -> bool:
     new_balance = current_balance + amount_cents
 
     # Update balance
-    ok = await _sb_patch(f"org_credits?org_id=eq.{org_id}", {"balance_usd_cents": new_balance})
+    patch_payload: dict[str, Any] = {"balance_usd_cents": new_balance}
+    if payment_method_id:
+        patch_payload["stripe_payment_method_id"] = payment_method_id
+
+    ok = await _sb_patch(f"org_credits?org_id=eq.{org_id}", patch_payload)
     if not ok:
         logger.error("Failed to update org_credits for %s", org_id)
         return False

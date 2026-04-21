@@ -277,6 +277,38 @@ async def test_get_or_create_customer_creates_new() -> None:
 
 
 @pytest.mark.anyio
+async def test_create_checkout_session_saves_payment_method_for_future_reloads() -> None:
+    mock_session = MagicMock()
+    mock_session.id = "cs_checkout_123"
+    mock_session.url = "https://checkout.stripe.com/pay/cs_checkout_123"
+
+    with (
+        patch("services.stripe_billing.ensure_org_billing_bootstrap", new_callable=AsyncMock),
+        patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get,
+        patch("services.stripe_billing.get_or_create_stripe_customer", new_callable=AsyncMock) as mock_customer,
+        patch("stripe.checkout.Session.create", return_value=mock_session) as mock_checkout,
+    ):
+        mock_get.return_value = [{"email": "billing@example.com"}]
+        mock_customer.return_value = "cus_saved_card"
+
+        from services.stripe_billing import create_checkout_session
+        result = await create_checkout_session(
+            org_id="org_checkout",
+            amount_cents=2500,
+            success_url="https://rhumb.dev/dashboard?checkout=success",
+            cancel_url="https://rhumb.dev/dashboard?checkout=cancel",
+        )
+
+    assert result == {
+        "checkout_url": "https://checkout.stripe.com/pay/cs_checkout_123",
+        "session_id": "cs_checkout_123",
+    }
+    assert mock_checkout.call_args.kwargs["payment_intent_data"] == {
+        "setup_future_usage": "off_session"
+    }
+
+
+@pytest.mark.anyio
 async def test_handle_checkout_completed_credits_org() -> None:
     """Should add credits and write ledger entry."""
     session = {
@@ -312,6 +344,34 @@ async def test_handle_checkout_completed_credits_org() -> None:
     assert ledger_payload["amount_usd_cents"] == 5000
     assert ledger_payload["balance_after_usd_cents"] == 6000
     assert ledger_payload["stripe_checkout_session_id"] == "cs_test_credit_1"
+
+
+@pytest.mark.anyio
+async def test_handle_checkout_completed_persists_payment_method() -> None:
+    session = {
+        "id": "cs_test_credit_pm",
+        "payment_intent": "pi_saved_card_1",
+        "metadata": {"org_id": "org_credit_pm", "amount_cents": "2500"},
+    }
+
+    payment_intent = MagicMock()
+    payment_intent.payment_method = "pm_saved_123"
+
+    with (
+        patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get,
+        patch("services.stripe_billing._sb_post", new_callable=AsyncMock) as mock_post,
+        patch("services.stripe_billing._sb_patch", new_callable=AsyncMock) as mock_patch,
+        patch("stripe.PaymentIntent.retrieve", return_value=payment_intent),
+    ):
+        mock_get.side_effect = [[], [{"balance_usd_cents": 0}]]
+        mock_patch.return_value = True
+        mock_post.return_value = [{}]
+
+        from services.stripe_billing import handle_checkout_completed
+        result = await handle_checkout_completed(session)
+
+    assert result is True
+    assert mock_patch.call_args[0][1]["stripe_payment_method_id"] == "pm_saved_123"
 
 
 @pytest.mark.anyio

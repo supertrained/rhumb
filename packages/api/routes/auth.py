@@ -25,6 +25,7 @@ import httpx
 import jwt  # PyJWT
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
 
 from config import settings
 from schemas.agent_identity import api_key_prefix, get_agent_identity_store
@@ -47,10 +48,18 @@ from services.email_otp import (
     get_email_otp_service,
 )
 from services.service_slugs import public_service_slug
+from services.stripe_billing import create_checkout_session
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+MIN_CHECKOUT_AMOUNT_USD = 5.0
+MAX_CHECKOUT_AMOUNT_USD = 5000.0
+
+
+class DashboardCheckoutRequest(BaseModel):
+    amount_usd: float = Field(..., description="Amount in USD to add to the org balance")
 
 
 def _public_usage_service(service_slug: Any) -> str:
@@ -689,6 +698,49 @@ async def rotate_key(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
     return JSONResponse({"api_key": new_key, "message": "Save this key — it won't be shown again."})
 
 
+def _dashboard_checkout_url(kind: str) -> str:
+    frontend = (settings.auth_frontend_url or "https://rhumb.dev").rstrip("/")
+    if kind == "success":
+        return f"{frontend}/dashboard?checkout=success"
+    return f"{frontend}/dashboard?checkout=cancel"
+
+
+@router.post("/me/billing/checkout")
+async def me_billing_checkout(
+    body: DashboardCheckoutRequest,
+    rhumb_session: Optional[str] = Cookie(default=None),
+) -> JSONResponse:
+    """Create a Stripe Checkout Session for the logged-in user's org."""
+    claims = await _require_session(rhumb_session)
+
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization associated with this user")
+
+    if body.amount_usd < MIN_CHECKOUT_AMOUNT_USD or body.amount_usd > MAX_CHECKOUT_AMOUNT_USD:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
+                f"and {MAX_CHECKOUT_AMOUNT_USD:.0f}"
+            ),
+        )
+
+    amount_cents = int(round(body.amount_usd * 100))
+    result = await create_checkout_session(
+        org_id=org_id,
+        amount_cents=amount_cents,
+        success_url=_dashboard_checkout_url("success"),
+        cancel_url=_dashboard_checkout_url("cancel"),
+    )
+    return JSONResponse(result)
+
+
 # ── Dashboard Data Endpoints ─────────────────────────────────────────
 
 
@@ -804,7 +856,8 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
         rows = await supabase_fetch(
             f"org_credits?org_id=eq.{org_id}"
             f"&select=balance_usd_cents,reserved_usd_cents,"
-            f"auto_reload_enabled"
+            f"auto_reload_enabled,auto_reload_threshold_cents,auto_reload_amount_cents,"
+            f"stripe_payment_method_id"
             f"&limit=1"
         )
 
@@ -812,25 +865,31 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
             row = rows[0]
             balance_cents = row.get("balance_usd_cents", 0)
             balance_usd = balance_cents / 100
-            has_payment = row.get("auto_reload_enabled", False)
+            has_payment = bool(row.get("stripe_payment_method_id"))
+            auto_reload_enabled = bool(row.get("auto_reload_enabled", False))
+            auto_reload_threshold_cents = row.get("auto_reload_threshold_cents")
+            auto_reload_amount_cents = row.get("auto_reload_amount_cents")
         else:
             balance_usd = 0.0
             has_payment = False
+            auto_reload_enabled = False
+            auto_reload_threshold_cents = None
+            auto_reload_amount_cents = None
 
         # Determine plan
         plan = "prepaid" if balance_usd > 0 else "free"
 
         # Fetch recent ledger entries
         ledger_rows = await supabase_fetch(
-            f"billing_ledger?org_id=eq.{org_id}"
-            f"&select=event_type,amount_cents,description,created_at"
+            f"credit_ledger?org_id=eq.{org_id}"
+            f"&select=event_type,amount_usd_cents,description,created_at"
             f"&order=created_at.desc&limit=5"
         )
 
         recent_transactions = [
             {
                 "type": entry.get("event_type", "unknown"),
-                "amount_usd": entry.get("amount_cents", 0) / 100,
+                "amount_usd": entry.get("amount_usd_cents", 0) / 100,
                 "description": entry.get("description", ""),
                 "timestamp": entry.get("created_at", ""),
             }
@@ -841,6 +900,17 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
             "balance_usd": balance_usd,
             "plan": plan,
             "has_payment_method": has_payment,
+            "auto_reload_enabled": auto_reload_enabled,
+            "auto_reload_threshold_usd": (
+                auto_reload_threshold_cents / 100
+                if auto_reload_threshold_cents is not None
+                else None
+            ),
+            "auto_reload_amount_usd": (
+                auto_reload_amount_cents / 100
+                if auto_reload_amount_cents is not None
+                else None
+            ),
             "recent_transactions": recent_transactions,
         })
     except Exception as exc:
@@ -849,6 +919,9 @@ async def me_billing(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
             "balance_usd": 0.0,
             "plan": "free",
             "has_payment_method": False,
+            "auto_reload_enabled": False,
+            "auto_reload_threshold_usd": None,
+            "auto_reload_amount_usd": None,
             "recent_transactions": [],
         })
 
