@@ -152,6 +152,47 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
               <p class="text-slate-400" id="payment-method-status">No saved payment method yet.</p>
               <p class="text-slate-500" id="auto-reload-status">Auto-reload is off.</p>
             </div>
+
+            <div id="auto-reload-controls" class="border-t border-slate-700/40 pt-3 mt-3">
+              <div class="flex items-center justify-between gap-3">
+                <label class="flex items-center gap-2 text-xs text-slate-300">
+                  <input id="auto-reload-enabled" type="checkbox" class="accent-score-native" />
+                  Enable auto-reload
+                </label>
+                <button
+                  id="auto-reload-save-btn"
+                  class="px-3 py-1.5 rounded bg-slate-700 text-slate-200 text-xs hover:bg-slate-600 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <label class="text-xs text-slate-400">
+                  Threshold ($)
+                  <input
+                    id="auto-reload-threshold"
+                    type="number"
+                    min="1"
+                    step="1"
+                    class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+                  />
+                </label>
+                <label class="text-xs text-slate-400">
+                  Reload amount ($)
+                  <input
+                    id="auto-reload-amount"
+                    type="number"
+                    min="5"
+                    step="1"
+                    class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+                  />
+                </label>
+              </div>
+
+              <p id="auto-reload-help" class="mt-2 text-xs text-slate-500"></p>
+            </div>
+
             <div id="transactions-list" class="hidden">
               <p class="text-xs text-slate-500 mb-2">Recent activity</p>
               <div id="transactions" class="space-y-1.5"></div>
@@ -219,9 +260,84 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     const dashboard = document.getElementById("dashboard");
     const emailCreditPolicyCard = document.getElementById("email-credit-policy-card");
 
+    const autoReloadEnabledEl = document.getElementById("auto-reload-enabled");
+    const autoReloadThresholdEl = document.getElementById("auto-reload-threshold");
+    const autoReloadAmountEl = document.getElementById("auto-reload-amount");
+    const autoReloadSaveBtn = document.getElementById("auto-reload-save-btn");
+    const autoReloadHelpEl = document.getElementById("auto-reload-help");
+
     function isEmailOtpUser(user) {
       return user?.signup_method === "email_otp" || user?.credit_policy === "email_no_trial";
     }
+
+    function setAutoReloadInputsEnabled(enabled) {
+      if (autoReloadThresholdEl) autoReloadThresholdEl.disabled = !enabled;
+      if (autoReloadAmountEl) autoReloadAmountEl.disabled = !enabled;
+    }
+
+    function hydrateAutoReloadControls(data) {
+      if (!autoReloadEnabledEl || !autoReloadThresholdEl || !autoReloadAmountEl || !autoReloadHelpEl) return;
+
+      const hasPaymentMethod = !!data?.has_payment_method;
+      const enabled = !!data?.auto_reload_enabled;
+
+      autoReloadEnabledEl.checked = enabled;
+      autoReloadEnabledEl.disabled = !hasPaymentMethod;
+
+      autoReloadThresholdEl.value = (data?.auto_reload_threshold_usd ?? 10).toString();
+      autoReloadAmountEl.value = (data?.auto_reload_amount_usd ?? 50).toString();
+
+      if (!hasPaymentMethod) {
+        autoReloadHelpEl.textContent = "Add funds once to save a payment method before enabling auto-reload.";
+        setAutoReloadInputsEnabled(false);
+        return;
+      }
+
+      autoReloadHelpEl.textContent = "";
+      setAutoReloadInputsEnabled(enabled);
+    }
+
+    autoReloadEnabledEl?.addEventListener("change", () => {
+      if (!autoReloadEnabledEl) return;
+      setAutoReloadInputsEnabled(!!autoReloadEnabledEl.checked);
+    });
+
+    autoReloadSaveBtn?.addEventListener("click", async () => {
+      if (!autoReloadEnabledEl || !autoReloadThresholdEl || !autoReloadAmountEl) return;
+
+      const enabled = !!autoReloadEnabledEl.checked;
+      const threshold = Number(autoReloadThresholdEl.value);
+      const amount = Number(autoReloadAmountEl.value);
+
+      const originalText = autoReloadSaveBtn.textContent;
+      autoReloadSaveBtn.textContent = "Saving…";
+      autoReloadSaveBtn.disabled = true;
+
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/billing/auto-reload`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enabled,
+            threshold_usd: enabled ? threshold : null,
+            amount_usd: enabled ? amount : null,
+          }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || "Unable to save auto-reload settings");
+        }
+
+        await loadBilling();
+      } catch (e) {
+        window.alert(`Failed to save auto-reload: ${e.message}`);
+      } finally {
+        autoReloadSaveBtn.textContent = originalText;
+        autoReloadSaveBtn.disabled = false;
+      }
+    });
 
     async function init() {
       // Check for new signup API key in URL fragment
@@ -395,6 +511,8 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         } else {
           autoReloadStatus.textContent = "Auto-reload is off.";
         }
+
+        hydrateAutoReloadControls(data);
 
         // Style plan badge
         const badge = document.getElementById("plan-badge");

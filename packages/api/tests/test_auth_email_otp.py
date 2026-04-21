@@ -780,3 +780,82 @@ def test_me_billing_checkout_creates_dashboard_checkout_session() -> None:
     assert mock_checkout.await_args.kwargs["amount_cents"] == 2500
     assert mock_checkout.await_args.kwargs["success_url"].endswith("/dashboard?checkout=success")
     assert mock_checkout.await_args.kwargs["cancel_url"].endswith("/dashboard?checkout=cancel")
+
+
+def test_me_billing_auto_reload_requires_saved_payment_method() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "autoreload-missing@example.com"},
+            headers={"x-forwarded-for": "203.0.113.24"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "autoreload-missing@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.24"},
+        )
+
+        with patch(
+            "routes._supabase.supabase_fetch",
+            new_callable=AsyncMock,
+            return_value=[{"stripe_payment_method_id": None}],
+        ):
+            response = env.client.put(
+                "/v1/auth/me/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 10.0, "amount_usd": 50.0},
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert response.status_code == 400
+    assert "saved payment method" in response.json()["detail"]
+
+
+def test_me_billing_auto_reload_updates_org_credit_config() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "autoreload@example.com"},
+            headers={"x-forwarded-for": "203.0.113.25"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "autoreload@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.25"},
+        )
+
+        with patch(
+            "routes._supabase.supabase_fetch",
+            new_callable=AsyncMock,
+            return_value=[{"stripe_payment_method_id": "pm_saved_123"}],
+        ) as mock_fetch, patch(
+            "routes._supabase.supabase_patch",
+            new_callable=AsyncMock,
+            return_value=[
+                {
+                    "auto_reload_enabled": True,
+                    "auto_reload_threshold_cents": 1500,
+                    "auto_reload_amount_cents": 5000,
+                }
+            ],
+        ) as mock_patch:
+            response = env.client.put(
+                "/v1/auth/me/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 15.0, "amount_usd": 50.0},
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "auto_reload_enabled": True,
+        "auto_reload_threshold_usd": 15.0,
+        "auto_reload_amount_usd": 50.0,
+    }
+    assert "org_credits?org_id=eq." in mock_fetch.call_args.args[0]
+    assert mock_patch.call_args.args[0].startswith("org_credits?org_id=eq.")
+    assert mock_patch.call_args.args[1] == {
+        "auto_reload_enabled": True,
+        "auto_reload_threshold_cents": 1500,
+        "auto_reload_amount_cents": 5000,
+    }

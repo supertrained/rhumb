@@ -62,6 +62,12 @@ class DashboardCheckoutRequest(BaseModel):
     amount_usd: float = Field(..., description="Amount in USD to add to the org balance")
 
 
+class DashboardAutoReloadRequest(BaseModel):
+    enabled: bool
+    threshold_usd: float | None = None
+    amount_usd: float | None = None
+
+
 def _public_usage_service(service_slug: Any) -> str:
     canonical = public_service_slug(service_slug)
     if canonical is not None:
@@ -739,6 +745,81 @@ async def me_billing_checkout(
         cancel_url=_dashboard_checkout_url("cancel"),
     )
     return JSONResponse(result)
+
+
+@router.put("/me/billing/auto-reload")
+async def me_billing_auto_reload(
+    body: DashboardAutoReloadRequest,
+    rhumb_session: Optional[str] = Cookie(default=None),
+) -> JSONResponse:
+    """Update auto-reload settings for the logged-in user's org."""
+    claims = await _require_session(rhumb_session)
+
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization associated with this user")
+
+    if body.enabled:
+        if body.threshold_usd is None or body.threshold_usd <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="threshold_usd must be > 0 when auto-reload is enabled",
+            )
+        if body.amount_usd is None or body.amount_usd < MIN_CHECKOUT_AMOUNT_USD or body.amount_usd > MAX_CHECKOUT_AMOUNT_USD:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
+                    f"and {MAX_CHECKOUT_AMOUNT_USD:.0f} when auto-reload is enabled"
+                ),
+            )
+
+        from routes._supabase import supabase_fetch
+
+        rows = await supabase_fetch(
+            f"org_credits?org_id=eq.{org_id}&select=stripe_payment_method_id&limit=1"
+        )
+        payment_method_id = rows[0].get("stripe_payment_method_id") if rows else None
+        if not payment_method_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Auto-reload requires a saved payment method. Add funds once to save a card.",
+            )
+
+    from routes._supabase import supabase_patch
+
+    payload: dict[str, Any] = {
+        "auto_reload_enabled": body.enabled,
+        "auto_reload_threshold_cents": (
+            int(round(body.threshold_usd * 100)) if body.threshold_usd is not None else None
+        ),
+        "auto_reload_amount_cents": (
+            int(round(body.amount_usd * 100)) if body.amount_usd is not None else None
+        ),
+    }
+
+    result = await supabase_patch(f"org_credits?org_id=eq.{org_id}", payload)
+    if not result:
+        raise HTTPException(status_code=404, detail="Org credits not found")
+
+    row = result[0] if isinstance(result, list) else result
+    threshold_cents = row.get("auto_reload_threshold_cents")
+    amount_cents = row.get("auto_reload_amount_cents")
+
+    return JSONResponse({
+        "auto_reload_enabled": bool(row.get("auto_reload_enabled", False)),
+        "auto_reload_threshold_usd": (
+            threshold_cents / 100 if threshold_cents is not None else None
+        ),
+        "auto_reload_amount_usd": (
+            amount_cents / 100 if amount_cents is not None else None
+        ),
+    })
 
 
 # ── Dashboard Data Endpoints ─────────────────────────────────────────
