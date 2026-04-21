@@ -768,6 +768,10 @@ def _artifact_path_for_profile(profile_name: str) -> Path:
     return _artifact_root() / f"resolve-v2-dogfood-{profile_name}-admin-latest.json"
 
 
+def _fleet_status_artifact_path() -> Path:
+    return _artifact_root() / "resolve-v2-dogfood-fleet-status-latest.json"
+
+
 def _write_payload_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{json.dumps(payload, indent=2, sort_keys=True)}\n", encoding="utf-8")
@@ -950,7 +954,7 @@ def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict
                 for profile_name in profile_names
             }
 
-    return {
+    payload = {
         "ok": all(payload.get("ok") for payload in results.values()),
         "mode": "fleet_status",
         "profiles": results,
@@ -961,6 +965,9 @@ def run_fleet_status(args: argparse.Namespace, profile_names: list[str]) -> dict
         "refreshed_profiles": refreshed_profiles,
         "summary": _build_fleet_status_summary(results, args.fleet_status_max_age_minutes),
     }
+
+    _write_payload_json(_fleet_status_artifact_path(), payload)
+    return payload
 
 
 def run_batch(args: argparse.Namespace, profile_names: list[str]) -> dict[str, Any]:

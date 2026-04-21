@@ -610,6 +610,12 @@ def test_run_fleet_status_refreshes_only_non_ok_profiles_and_recomputes_status(t
     assert payload["profiles"]["helm"]["ok"] is True
     assert payload["profiles"]["beacon"]["ok"] is True
 
+    fleet_status_payload = json.loads(
+        (artifact_root / "resolve-v2-dogfood-fleet-status-latest.json").read_text(encoding="utf-8")
+    )
+    assert fleet_status_payload["ok"] is True
+    assert fleet_status_payload["refreshed_profiles"] == ["keel", "beacon"]
+
     refreshed_keel = json.loads((artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8"))
     refreshed_beacon = json.loads((artifact_root / "resolve-v2-dogfood-beacon-admin-latest.json").read_text(encoding="utf-8"))
     assert refreshed_keel["summary"] == "refreshed keel"
