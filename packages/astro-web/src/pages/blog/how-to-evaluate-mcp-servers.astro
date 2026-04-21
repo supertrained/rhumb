@@ -76,6 +76,11 @@ const CHECKLIST = [
 
 const RELATED_READING = [
   {
+    href: "/blog/mcp-security-model",
+    title: "MCP Has a Security Model: Scope, Principals, and Evidence",
+    description: "A shorter way to judge whether a server preserves narrow authority when the model is wrong.",
+  },
+  {
     href: "/blog/read-only-mcp-trust-class",
     title: "Read-Only MCP as a Trust Class",
     description: "Why inspect-only boundaries matter, and when they are real versus marketing language.",
@@ -262,6 +267,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 That same logic shows up in <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:text-amber-200 transition-colors">governed capability surfaces</a>. Safer agent interfaces usually win by making authority clearer, not by making everything accessible at once.
+              </p>
+              <p>
+                In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
             </div>
           </section>

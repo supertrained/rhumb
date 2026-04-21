@@ -69,6 +69,11 @@ const FAILURE_CLASSES = [
 
 const RELATED_READING = [
   {
+    href: "/blog/mcp-security-model",
+    title: "MCP Has a Security Model: Scope, Principals, and Evidence",
+    description: "The concise production frame for remote MCP trust: bound scope, scoped principals, and post-call evidence.",
+  },
+  {
     href: "/blog/agent-fleet-rate-limit-design",
     title: "Designing Agent Fleets That Survive Rate Limits",
     description: "What production governors, retry budgets, and recovery discipline look like once multiple agents are live.",
@@ -240,6 +245,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution.
+              </p>
+              <p>
+                That becomes much easier to evaluate when you use the plain production frame from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: scope is the boundary, principals define whose authority is active, and evidence determines whether the operator can verify the outcome.
               </p>
             </div>
           </section>
