@@ -20,6 +20,7 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -38,6 +39,11 @@ class IssueResult:
     organization_id: str
     api_key: str
     budget: dict[str, Any]
+    smoke_execute: dict[str, Any] | None = None
+
+
+def _sha8(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:8]
 
 
 def _env(*names: str) -> str:
@@ -113,6 +119,16 @@ def main() -> int:
     ap.add_argument("--hard-limit", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--alert-threshold-pct", type=int, default=80)
     ap.add_argument("--tags", default="friend,external")
+    ap.add_argument(
+        "--no-print-key",
+        action="store_true",
+        help="Do not print the full API key (for operator smoke tests).",
+    )
+    ap.add_argument(
+        "--smoke-execute",
+        action="store_true",
+        help="After creating the key and budget, run one simple execute call to verify it works.",
+    )
     ap.add_argument("--json", action="store_true", help="Print machine-readable JSON only")
     args = ap.parse_args()
 
@@ -180,6 +196,25 @@ def main() -> int:
             else {}
         )
 
+    smoke_execute: dict[str, Any] | None = None
+    if args.smoke_execute:
+        with httpx.Client(timeout=45) as client:
+            exec_url = f"{api_base}/v1/capabilities/search.query/execute"
+            exec_body = {"query": "ping"}
+            exec_resp = _http(
+                client,
+                "POST",
+                exec_url,
+                headers={
+                    "X-Rhumb-Key": api_key,
+                    "Content-Type": "application/json",
+                },
+                json_body=exec_body,
+            )
+            smoke_execute = {
+                "http_status": exec_resp.status_code,
+            }
+
     result = IssueResult(
         api_base=api_base,
         agent_id=str(agent_id),
@@ -187,22 +222,25 @@ def main() -> int:
         organization_id=str(org_id),
         api_key=str(api_key),
         budget=budget,
+        smoke_execute=smoke_execute,
     )
 
     if args.json:
+        payload: dict[str, Any] = {
+            "ok": True,
+            "api_base": result.api_base,
+            "organization_id": result.organization_id,
+            "agent_id": result.agent_id,
+            "agent_name": result.agent_name,
+            "api_key_prefix": (result.api_key.split("_", 1)[0] + "_") if "_" in result.api_key else "",
+            "api_key_sha256_8": _sha8(result.api_key),
+            "budget": result.budget,
+            "smoke_execute": result.smoke_execute,
+        }
+        if not args.no_print_key:
+            payload["api_key"] = result.api_key
         print(
-            json.dumps(
-                {
-                    "ok": True,
-                    "api_base": result.api_base,
-                    "organization_id": result.organization_id,
-                    "agent_id": result.agent_id,
-                    "agent_name": result.agent_name,
-                    "api_key": result.api_key,
-                    "budget": result.budget,
-                },
-                indent=2,
-            )
+            json.dumps(payload, indent=2)
         )
         return 0
 
@@ -211,8 +249,18 @@ def main() -> int:
     print("- agent_name:", result.agent_name)
     print("- agent_id:", result.agent_id)
     print("- organization_id:", result.organization_id)
-    print("- api_key_prefix:", result.api_key.split("_", 1)[0] + "_…" if "_" in result.api_key else result.api_key[:6] + "…")
+    print(
+        "- api_key_prefix:",
+        result.api_key.split("_", 1)[0] + "_…" if "_" in result.api_key else result.api_key[:6] + "…",
+    )
+    print("- api_key_sha256_8:", _sha8(result.api_key))
     print("- budget:", f"${args.budget_usd:g} {args.budget_period} (hard_limit={bool(args.hard_limit)})")
+    if result.smoke_execute is not None:
+        print("- smoke_execute_http_status:", result.smoke_execute.get("http_status"))
+
+    if args.no_print_key:
+        print("\n(API key withheld due to --no-print-key)")
+        return 0
 
     print("\nCopy/paste snippet:")
     print(f"export RHUMB_API_KEY=\"{result.api_key}\"")
