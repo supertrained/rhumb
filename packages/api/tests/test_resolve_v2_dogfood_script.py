@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -358,6 +358,33 @@ def test_resolve_fleet_status_profiles_defaults_to_core_operator_fleet():
         "helm",
         "beacon",
     ]
+
+
+def test_artifact_root_uses_git_common_dir_parent_when_available():
+    resolve_v2_dogfood._shared_repo_root.cache_clear()
+    try:
+        with patch.object(
+            resolve_v2_dogfood.subprocess,
+            "run",
+            return_value=Mock(returncode=0, stdout="/tmp/shared-rhumb/.git\n"),
+        ):
+            assert resolve_v2_dogfood._artifact_root() == Path("/tmp/shared-rhumb/artifacts")
+    finally:
+        resolve_v2_dogfood._shared_repo_root.cache_clear()
+
+
+def test_artifact_root_falls_back_to_local_repo_when_git_common_dir_lookup_fails():
+    resolve_v2_dogfood._shared_repo_root.cache_clear()
+    try:
+        with patch.object(
+            resolve_v2_dogfood.subprocess,
+            "run",
+            return_value=Mock(returncode=1, stdout=""),
+        ):
+            expected = Path(resolve_v2_dogfood.__file__).resolve().parents[1] / "artifacts"
+            assert resolve_v2_dogfood._artifact_root() == expected
+    finally:
+        resolve_v2_dogfood._shared_repo_root.cache_clear()
 
 
 def test_main_creates_parent_directories_for_json_out(tmp_path, capsys):

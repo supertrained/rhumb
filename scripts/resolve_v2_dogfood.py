@@ -43,6 +43,7 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -739,8 +740,38 @@ def _build_batch_summary(results: dict[str, dict[str, Any]]) -> str:
     return "; ".join(parts)
 
 
+@lru_cache(maxsize=1)
+def _shared_repo_root() -> Path:
+    repo_root = Path(__file__).resolve().parents[1]
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return repo_root
+
+    if result.returncode != 0:
+        return repo_root
+
+    common_dir_raw = result.stdout.strip()
+    if not common_dir_raw:
+        return repo_root
+
+    common_dir = Path(common_dir_raw)
+    if not common_dir.is_absolute():
+        common_dir = (repo_root / common_dir).resolve()
+    if common_dir.name != ".git":
+        return repo_root
+    return common_dir.parent
+
+
 def _artifact_root() -> Path:
-    return Path(__file__).resolve().parents[1] / "artifacts"
+    return _shared_repo_root() / "artifacts"
 
 
 def _default_fleet_status_profiles() -> list[str]:
