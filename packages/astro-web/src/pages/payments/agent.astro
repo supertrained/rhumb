@@ -45,7 +45,7 @@ const WALLET_STEPS = [
   {
     title: "Fund it with USDC on Base",
     detail:
-      "The current public rail is fixed: USDC on Base. Other assets and networks are intentionally not advertised as public options yet.",
+      "The current public rail is fixed: USDC on Base. Always confirm the deposit address, token (USDC), and network (Base) before sending funds.",
   },
   {
     title: "Store the wallet secret like production credentials",
@@ -511,6 +511,22 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
                 <p class="mt-2 text-sm leading-6 text-slate-400">{item.detail}</p>
               </div>
             ))}
+
+            <div
+              class="rounded-xl border border-amber/30 bg-amber/5 p-4"
+              data-wallet-warning="funding"
+              role="note"
+              aria-label="Wallet funding warnings"
+            >
+              <h3 class="font-display text-lg font-semibold text-slate-100">Funding warnings (read before you transfer)</h3>
+              <ul class="mt-2 space-y-2 text-sm leading-6 text-slate-300">
+                <li><span class="font-semibold">Confirm the exact address</span> you are sending to (copy/paste, don’t retype).</li>
+                <li><span class="font-semibold">Confirm the exact asset</span>: USDC (not ETH, not USDT, not a bridged/wrapped lookalike).</li>
+                <li><span class="font-semibold">Confirm the exact network</span>: Base (not Ethereum mainnet, not Polygon, not Arbitrum).</li>
+                <li><span class="font-semibold">Test small first</span> before you send a larger amount.</li>
+                <li><span class="font-semibold">Wrong asset or wrong network may be unrecoverable</span> — treat every transfer as production.</li>
+              </ul>
+            </div>
           </div>
         </div>
 

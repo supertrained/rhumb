@@ -165,6 +165,17 @@ describe("public authority pricing contract", () => {
     expect(astroLeaderboardHub).not.toContain('11 categories');
   });
 
+  it("keeps the agent payments funding warnings explicit", () => {
+    expect(astroPaymentsAgent).toContain("Funding warnings (read before you transfer)");
+    expect(astroPaymentsAgent).toContain("Confirm the exact address");
+    expect(astroPaymentsAgent).toContain("Confirm the exact asset");
+    expect(astroPaymentsAgent).toContain("Confirm the exact network");
+    expect(astroPaymentsAgent).toContain("Test small first");
+    expect(astroPaymentsAgent).toContain("Wrong asset or wrong network may be unrecoverable");
+
+    expect(astroPaymentsAgent).not.toContain("Other assets and networks are intentionally not advertised as public options yet");
+  });
+
   it("keeps high-visibility astro blog authority surfaces pinned to current public truth", () => {
     expect(astroHowToEvaluate).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroHowToEvaluate).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
@@ -182,10 +193,10 @@ describe("public authority pricing contract", () => {
     expect(astroBlogPayments).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
     expect(astroBlogPayments).not.toContain('We\'ve scored 50+ developer tools across 10 categories.');
 
-    expect(astroBlogSelfScore).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
-    expect(astroBlogSelfScore).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
-    expect(astroBlogSelfScore).toContain('const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;');
-    expect(astroBlogSelfScore).not.toContain('We\'ve scored 53 developer tools across 10 categories.');
+    expect(astroBlogSelfScore).toContain("Historical baseline");
+    expect(astroBlogSelfScore).not.toContain("We\'ve scored 53 developer tools across 10 categories.");
+    expect(astroBlogSelfScore).not.toContain("665+ scored services");
+    expect(astroBlogSelfScore).not.toContain("600+ developer tools across 90+ categories");
 
     expect(astroMultiProviderMcp).toContain('import { PUBLIC_TRUTH } from "../../lib/public-truth";');
     expect(astroMultiProviderMcp).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
