@@ -178,6 +178,9 @@ const ARTICLE_JSON_LD = {
         <p class="text-slate-400 leading-relaxed mb-4">
           Put more simply, this is the production <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP security model</a>: scope is the boundary, principals decide whose authority is in play, and evidence proves what happened after the call.
         </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Remote auth does not cancel that problem. A server can prove who connected while still exposing the wrong tool set or binding execution to a backend authority the caller should never inherit, which is why <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber-200 transition-colors">identity versus authority</a> is the next useful operator question once authentication appears to work.
+        </p>
 
         <div class="mt-8 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Minimal audit</div>
@@ -222,12 +225,16 @@ const ARTICLE_JSON_LD = {
         <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Production follow-through</div>
           <p class="text-slate-300 leading-relaxed mb-5">
-            If this article is the threat model, these pages turn it into an operator playbook: the security model itself, how to evaluate MCP surfaces honestly, how to shape governed capabilities, and what a real remote-readiness checklist looks like.
+            If this article is the threat model, these pages turn it into an operator playbook: the security model itself, the auth-versus-authority split, how to evaluate MCP surfaces honestly, how to shape governed capabilities, and what a real remote-readiness checklist looks like.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">The shortest honest frame for production trust is scope, principals, and evidence.</p>
+            </a>
+            <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Identity vs Authority</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Useful when auth succeeds but the sharper question is still which tools stay visible and whose backend authority really survives the handshake.</p>
             </a>
             <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
