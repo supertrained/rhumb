@@ -60,7 +60,7 @@ DEFAULT_API_KEY_ITEMS = (
 )
 DEFAULT_ADMIN_KEY_ITEM = "Rhumb Admin Secret (Railway)"
 DEFAULT_API_KEY_VAULT = "OpenClaw Agents"
-DEFAULT_API_KEY_PROBE_PATH = "/v1/capabilities?limit=1"
+DEFAULT_GOVERNED_API_KEY_PROBE_PATH = "/v2/policy"
 DEFAULT_BOOTSTRAP_ORG_ID = "org_aud3_verifier"
 DEFAULT_BOOTSTRAP_AGENT_NAME = "Pedro AUD-3 Verifier"
 DEFAULT_TIMEOUT = 30.0
@@ -185,7 +185,7 @@ def _api_key_probe_ok(
     base_url: str = DEFAULT_BASE_URL,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> bool:
-    probe_url = f"{base_url.rstrip('/')}{DEFAULT_API_KEY_PROBE_PATH}"
+    probe_url = f"{base_url.rstrip('/')}{DEFAULT_GOVERNED_API_KEY_PROBE_PATH}"
     request = Request(
         probe_url,
         headers={
@@ -254,17 +254,21 @@ def _get_api_key(
     base_url: str = DEFAULT_BASE_URL,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> str:
-    value = os.environ.get(env_name, "").strip()
-    if value:
-        return value
+    env_value = os.environ.get(env_name, "").strip()
+    if env_value and _api_key_probe_ok(env_value, base_url=base_url, timeout=timeout):
+        return env_value
 
     value = _load_first_working_api_key_from_sop(base_url=base_url, timeout=timeout)
     if value:
         return value
 
     item_list = ", ".join(repr(item) for item in DEFAULT_API_KEY_ITEMS)
+    if env_value:
+        raise RuntimeError(
+            f"Configured {env_name} did not pass the governed API probe, and no live fallback key was available in 1Password under: {item_list}."
+        )
     raise RuntimeError(
-        f"Missing working API key. Set the {env_name} environment variable or store a live key in 1Password under one of: {item_list}."
+        f"Missing working API key. Set the {env_name} environment variable to a governed key that passes {DEFAULT_GOVERNED_API_KEY_PROBE_PATH} or store a live key in 1Password under one of: {item_list}."
     )
 
 

@@ -105,9 +105,18 @@ def test_extract_provider_used_reads_top_level_provider():
     assert resolve_v2_dogfood.extract_provider_used(None) is None
 
 
-def test_get_api_key_uses_env_first():
-    with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True):
+def test_get_api_key_uses_env_first_when_the_governed_probe_passes():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True),
+        patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=True) as mock_probe,
+    ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_env_key"
+
+    mock_probe.assert_called_once_with(
+        "rhumb_env_key",
+        base_url=resolve_v2_dogfood.DEFAULT_BASE_URL,
+        timeout=resolve_v2_dogfood.DEFAULT_TIMEOUT,
+    )
 
 
 def test_get_api_key_falls_back_to_sop_when_env_missing():
@@ -116,6 +125,21 @@ def test_get_api_key_falls_back_to_sop_when_env_missing():
         patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"),
     ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
+
+
+def test_get_api_key_falls_back_to_sop_when_env_key_fails_governed_probe():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"}, clear=True),
+        patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=False) as mock_probe,
+        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"),
+    ):
+        assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
+
+    mock_probe.assert_called_once_with(
+        "rhumb_stale_env_key",
+        base_url=resolve_v2_dogfood.DEFAULT_BASE_URL,
+        timeout=resolve_v2_dogfood.DEFAULT_TIMEOUT,
+    )
 
 
 def test_get_api_key_skips_stale_candidate_and_uses_next_working_item():
@@ -161,10 +185,28 @@ def test_get_api_key_raises_when_no_candidate_is_live():
             resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY")
         except RuntimeError as exc:
             assert "Missing working API key" in str(exc)
+            assert str(resolve_v2_dogfood.DEFAULT_GOVERNED_API_KEY_PROBE_PATH) in str(exc)
             assert "Rhumb API Key - pedro-dogfood" in str(exc)
             assert "Rhumb API Key - atlas@supertrained.ai" in str(exc)
         else:
             raise AssertionError("Expected RuntimeError when no live API key is available")
+
+
+
+def test_get_api_key_raises_when_stale_env_key_has_no_live_fallback():
+    with (
+        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"}, clear=True),
+        patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=False),
+        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value=None),
+    ):
+        try:
+            resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY")
+        except RuntimeError as exc:
+            assert "Configured RHUMB_DOGFOOD_API_KEY did not pass the governed API probe" in str(exc)
+            assert "Rhumb API Key - pedro-dogfood" in str(exc)
+            assert "Rhumb API Key - atlas@supertrained.ai" in str(exc)
+        else:
+            raise AssertionError("Expected RuntimeError when stale env key has no live fallback")
 
 
 def test_get_admin_key_uses_primary_env_first():
