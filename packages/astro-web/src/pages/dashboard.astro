@@ -105,6 +105,94 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           </div>
         </div>
 
+        <!-- New secondary key banner -->
+        <div id="new-secondary-key-banner" class="hidden mb-6 p-4 rounded-lg bg-slate-900 border border-slate-700">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            <h2 class="text-sm font-semibold text-white">New agent key</h2>
+          </div>
+          <p class="text-xs text-slate-400 mb-3">Save this key — it won't be shown again.</p>
+          <div class="flex items-center gap-2">
+            <code id="secondary-api-key-value" class="flex-1 px-3 py-2 rounded bg-midnight text-sm text-white font-mono break-all"></code>
+            <button
+              id="copy-secondary-key-btn"
+              class="px-3 py-2 rounded bg-slate-700 text-slate-300 text-xs hover:bg-slate-600 transition-colors"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Agent keys -->
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-semibold text-white">Agent keys</h2>
+            <span class="text-xs text-slate-500">Create a capped key for a friend/agent</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <label class="text-xs text-slate-400">
+              Name
+              <input
+                id="secondary-agent-name"
+                type="text"
+                placeholder="Friend Agent"
+                class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+              />
+            </label>
+            <label class="text-xs text-slate-400">
+              Monthly budget ($)
+              <input
+                id="secondary-agent-budget"
+                type="number"
+                min="1"
+                step="0.5"
+                value="10"
+                class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+              />
+            </label>
+            <label class="text-xs text-slate-400">
+              QPM limit
+              <input
+                id="secondary-agent-qpm"
+                type="number"
+                min="1"
+                step="1"
+                value="20"
+                class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+              />
+            </label>
+            <label class="text-xs text-slate-400">
+              Notes (optional)
+              <input
+                id="secondary-agent-description"
+                type="text"
+                placeholder="What is this key for?"
+                class="mt-1 w-full rounded bg-midnight border border-slate-700 px-2 py-1.5 text-xs text-white"
+              />
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between gap-3 mt-3">
+            <p class="text-xs text-slate-500" id="secondary-agent-help"></p>
+            <button
+              id="create-secondary-agent-btn"
+              class="px-3 py-2 rounded bg-score-native text-midnight text-xs font-semibold hover:bg-score-native/90 transition-colors"
+            >
+              Create key
+            </button>
+          </div>
+
+          <div class="border-t border-slate-700/40 pt-3 mt-3">
+            <p class="text-xs text-slate-500 mb-2">Existing agent keys</p>
+            <div id="agent-keys-loading" class="text-xs text-slate-500">Loading agent keys...</div>
+            <div id="agent-keys-empty" class="hidden text-xs text-slate-500">No additional agent keys yet.</div>
+            <div id="agent-keys-list" class="hidden space-y-2"></div>
+          </div>
+        </div>
+
         <!-- Usage card -->
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
           <h2 class="text-sm font-semibold text-white mb-3">Usage</h2>
@@ -266,6 +354,21 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     const autoReloadSaveBtn = document.getElementById("auto-reload-save-btn");
     const autoReloadHelpEl = document.getElementById("auto-reload-help");
 
+    const newSecondaryKeyBanner = document.getElementById("new-secondary-key-banner");
+    const secondaryApiKeyValue = document.getElementById("secondary-api-key-value");
+    const copySecondaryKeyBtn = document.getElementById("copy-secondary-key-btn");
+
+    const secondaryAgentNameEl = document.getElementById("secondary-agent-name");
+    const secondaryAgentBudgetEl = document.getElementById("secondary-agent-budget");
+    const secondaryAgentQpmEl = document.getElementById("secondary-agent-qpm");
+    const secondaryAgentDescriptionEl = document.getElementById("secondary-agent-description");
+    const secondaryAgentHelpEl = document.getElementById("secondary-agent-help");
+    const createSecondaryAgentBtn = document.getElementById("create-secondary-agent-btn");
+
+    const agentKeysLoadingEl = document.getElementById("agent-keys-loading");
+    const agentKeysEmptyEl = document.getElementById("agent-keys-empty");
+    const agentKeysListEl = document.getElementById("agent-keys-list");
+
     function isEmailOtpUser(user) {
       return user?.signup_method === "email_otp" || user?.credit_policy === "email_no_trial";
     }
@@ -385,6 +488,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         // Load usage + billing in parallel (non-blocking)
         loadUsage();
         loadBilling();
+        loadAgentKeys();
       } catch (e) {
         console.error("Dashboard init error:", e);
         loading.classList.add("hidden");
@@ -400,6 +504,15 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         const btn = document.getElementById("copy-key-btn");
         btn.textContent = "Copied!";
         setTimeout(() => (btn.textContent = "Copy"), 2000);
+      }
+    });
+
+    copySecondaryKeyBtn?.addEventListener("click", () => {
+      const key = secondaryApiKeyValue?.textContent;
+      if (key) {
+        navigator.clipboard.writeText(key);
+        copySecondaryKeyBtn.textContent = "Copied!";
+        setTimeout(() => (copySecondaryKeyBtn.textContent = "Copy"), 2000);
       }
     });
 
@@ -423,6 +536,62 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       }
     });
 
+    createSecondaryAgentBtn?.addEventListener("click", async () => {
+      if (!secondaryAgentNameEl || !secondaryAgentBudgetEl || !secondaryAgentQpmEl) return;
+
+      const name = secondaryAgentNameEl.value.trim();
+      const budget = Number(secondaryAgentBudgetEl.value);
+      const qpm = Number(secondaryAgentQpmEl.value);
+      const description = secondaryAgentDescriptionEl?.value?.trim() || "";
+
+      if (!name) {
+        secondaryAgentHelpEl.textContent = "Pick a short agent name.";
+        return;
+      }
+
+      secondaryAgentHelpEl.textContent = "";
+
+      const originalText = createSecondaryAgentBtn.textContent;
+      createSecondaryAgentBtn.textContent = "Creating…";
+      createSecondaryAgentBtn.disabled = true;
+
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/agents`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            description: description || null,
+            budget_usd: budget,
+            period: "monthly",
+            hard_limit: true,
+            rate_limit_qpm: qpm,
+          }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || "Unable to create agent key");
+        }
+
+        if (secondaryApiKeyValue && newSecondaryKeyBanner) {
+          secondaryApiKeyValue.textContent = data.api_key;
+          newSecondaryKeyBanner.classList.remove("hidden");
+        }
+
+        secondaryAgentNameEl.value = "";
+        if (secondaryAgentDescriptionEl) secondaryAgentDescriptionEl.value = "";
+
+        await loadAgentKeys();
+      } catch (e) {
+        window.alert(`Failed to create agent key: ${e.message}`);
+      } finally {
+        createSecondaryAgentBtn.textContent = originalText;
+        createSecondaryAgentBtn.disabled = false;
+      }
+    });
+
     // Logout button
     document.getElementById("logout-btn")?.addEventListener("click", async () => {
       await fetch(`${API_URL}/v1/auth/logout`, {
@@ -433,6 +602,71 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     });
 
     // ── Usage + Billing loaders ────────────────────────────────────
+
+    function escapeHtml(input) {
+      return (input || "")
+        .toString()
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderAgentKeys(agents) {
+      if (!agentKeysLoadingEl || !agentKeysEmptyEl || !agentKeysListEl) return;
+
+      agentKeysLoadingEl.classList.add("hidden");
+
+      const secondaryAgents = (agents || []).filter((a) => !a.is_default);
+      if (secondaryAgents.length === 0) {
+        agentKeysEmptyEl.classList.remove("hidden");
+        agentKeysListEl.classList.add("hidden");
+        agentKeysListEl.innerHTML = "";
+        return;
+      }
+
+      agentKeysEmptyEl.classList.add("hidden");
+      agentKeysListEl.classList.remove("hidden");
+      agentKeysListEl.innerHTML = secondaryAgents
+        .map((agent) => {
+          const budget = agent.budget;
+          const budgetLine = budget
+            ? `Budget: $${Number(budget.budget_usd).toFixed(2)} (${escapeHtml(budget.period)}) — remaining $${Number(budget.remaining_usd ?? 0).toFixed(2)}`
+            : "No budget cap configured";
+
+          return `<div class="rounded border border-slate-700/60 bg-midnight px-3 py-2">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold text-white">${escapeHtml(agent.name)}</p>
+                <p class="text-xs text-slate-500 font-mono">${escapeHtml(agent.api_key_prefix)}••••••••</p>
+                <p class="text-xs text-slate-500 mt-1">${budgetLine}</p>
+                <p class="text-xs text-slate-500">Rate limit: ${Number(agent.rate_limit_qpm || 0)} qpm</p>
+              </div>
+              <span class="text-[10px] uppercase tracking-widest text-slate-500">${escapeHtml(agent.status)}</span>
+            </div>
+          </div>`;
+        })
+        .join("");
+    }
+
+    async function loadAgentKeys() {
+      if (!agentKeysLoadingEl || !agentKeysEmptyEl || !agentKeysListEl) return;
+
+      agentKeysLoadingEl.textContent = "Loading agent keys...";
+      agentKeysLoadingEl.classList.remove("hidden");
+      agentKeysEmptyEl.classList.add("hidden");
+      agentKeysListEl.classList.add("hidden");
+
+      try {
+        const resp = await fetch(`${API_URL}/v1/auth/me/agents`, { credentials: "include" });
+        if (!resp.ok) throw new Error("fetch failed");
+        const data = await resp.json();
+        renderAgentKeys(data.agents || []);
+      } catch (e) {
+        agentKeysLoadingEl.textContent = "Unable to load agent keys";
+      }
+    }
 
     async function loadUsage() {
       try {

@@ -68,6 +68,22 @@ class DashboardAutoReloadRequest(BaseModel):
     amount_usd: float | None = None
 
 
+class DashboardCreateAgentKeyRequest(BaseModel):
+    """Create a secondary governed API key (new agent) for the current org."""
+
+    name: str = Field(..., min_length=1, max_length=64, description="Agent display name")
+    description: str | None = Field(default=None, max_length=240)
+    budget_usd: float = Field(
+        ..., gt=0, le=MAX_CHECKOUT_AMOUNT_USD, description="Budget cap in USD"
+    )
+    period: str = Field(
+        default="monthly",
+        description="Budget reset period: daily | weekly | monthly | total",
+    )
+    hard_limit: bool = Field(default=True, description="Block calls when budget is exhausted")
+    rate_limit_qpm: int = Field(default=20, ge=1, le=1000, description="Global QPM limit")
+
+
 def _public_usage_service(service_slug: Any) -> str:
     canonical = public_service_slug(service_slug)
     if canonical is not None:
@@ -702,6 +718,160 @@ async def rotate_key(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
         raise HTTPException(status_code=404, detail="Agent not found")
 
     return JSONResponse({"api_key": new_key, "message": "Save this key — it won't be shown again."})
+
+
+def _normalize_budget_period(period: str) -> str:
+    normalized = str(period or "").strip().lower()
+    if normalized in {"daily", "weekly", "monthly", "total"}:
+        return normalized
+    raise HTTPException(
+        status_code=400,
+        detail="period must be one of: daily, weekly, monthly, total",
+    )
+
+
+@router.get("/me/agents")
+async def me_agents(
+    rhumb_session: Optional[str] = Cookie(default=None),
+) -> JSONResponse:
+    """List governed API keys (agents) for the logged-in user's org."""
+    claims = await _require_session(rhumb_session)
+
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization associated with this user")
+
+    identity_store = get_agent_identity_store()
+    agents = await identity_store.list_agents(organization_id=org_id)
+
+    from routes._supabase import supabase_fetch
+
+    results: list[dict[str, Any]] = []
+    for agent in agents:
+        budget_row = None
+        rows = await supabase_fetch(
+            f"agent_budgets?agent_id=eq.{agent.agent_id}&select=budget_usd,spent_usd,period,hard_limit,alert_threshold_pct,alert_fired&limit=1"
+        )
+        if isinstance(rows, list) and rows:
+            budget_row = rows[0]
+
+        budget_usd = float(budget_row["budget_usd"]) if budget_row and budget_row.get("budget_usd") is not None else None
+        spent_usd = float(budget_row["spent_usd"]) if budget_row and budget_row.get("spent_usd") is not None else None
+        remaining_usd = (budget_usd - spent_usd) if (budget_usd is not None and spent_usd is not None) else None
+
+        results.append({
+            "agent_id": agent.agent_id,
+            "name": agent.name,
+            "description": agent.description,
+            "status": agent.status,
+            "api_key_prefix": agent.api_key_prefix,
+            "rate_limit_qpm": agent.rate_limit_qpm,
+            "is_default": agent.agent_id == user.default_agent_id,
+            "created_at": agent.created_at.isoformat() if hasattr(agent.created_at, "isoformat") else str(agent.created_at),
+            "budget": (
+                {
+                    "budget_usd": budget_usd,
+                    "spent_usd": spent_usd,
+                    "remaining_usd": remaining_usd,
+                    "period": budget_row.get("period") if budget_row else None,
+                    "hard_limit": budget_row.get("hard_limit") if budget_row else None,
+                    "alert_threshold_pct": budget_row.get("alert_threshold_pct") if budget_row else None,
+                    "alert_fired": budget_row.get("alert_fired") if budget_row else None,
+                }
+                if budget_row
+                else None
+            ),
+        })
+
+    results.sort(key=lambda item: (not item.get("is_default", False), item.get("created_at") or ""))
+
+    return JSONResponse({"agents": results})
+
+
+@router.post("/me/agents")
+async def me_create_agent_key(
+    body: DashboardCreateAgentKeyRequest,
+    rhumb_session: Optional[str] = Cookie(default=None),
+) -> JSONResponse:
+    """Create a capped secondary governed key for the logged-in user's org."""
+    claims = await _require_session(rhumb_session)
+
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    if not has_verified_email(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Verify your email before creating additional agent keys",
+        )
+
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization associated with this user")
+
+    identity_store = get_agent_identity_store()
+    existing = await identity_store.list_agents(organization_id=org_id)
+    if len(existing) >= 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Too many agent keys for this organization (limit 10).",
+        )
+
+    period = _normalize_budget_period(body.period)
+
+    agent_id, api_key = await identity_store.register_agent(
+        name=body.name.strip(),
+        organization_id=org_id,
+        rate_limit_qpm=body.rate_limit_qpm,
+        description=(body.description.strip() if body.description else f"Secondary agent key created from dashboard for {user.email}"),
+        tags=["secondary"],
+    )
+
+    from routes._supabase import supabase_insert_returning
+
+    budget_row = await supabase_insert_returning(
+        "agent_budgets",
+        {
+            "agent_id": agent_id,
+            "budget_usd": float(body.budget_usd),
+            "period": period,
+            "hard_limit": bool(body.hard_limit),
+            "alert_threshold_pct": 80,
+        },
+    )
+
+    if not budget_row:
+        # Fail closed: do not leave an uncapped key active.
+        try:
+            await identity_store.disable_agent(agent_id)
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to persist agent budget. Please try again.",
+        )
+
+    return JSONResponse(
+        {
+            "agent_id": agent_id,
+            "api_key": api_key,
+            "api_key_prefix": api_key_prefix(api_key),
+            "rate_limit_qpm": body.rate_limit_qpm,
+            "budget": {
+                "budget_usd": float(budget_row.get("budget_usd")) if budget_row.get("budget_usd") is not None else float(body.budget_usd),
+                "spent_usd": float(budget_row.get("spent_usd")) if budget_row.get("spent_usd") is not None else 0.0,
+                "period": budget_row.get("period") or period,
+                "hard_limit": bool(budget_row.get("hard_limit")) if budget_row.get("hard_limit") is not None else bool(body.hard_limit),
+            },
+            "message": "Save this key — it won't be shown again.",
+        }
+    )
 
 
 def _dashboard_checkout_url(kind: str) -> str:

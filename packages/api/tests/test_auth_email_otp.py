@@ -859,3 +859,90 @@ def test_me_billing_auto_reload_updates_org_credit_config() -> None:
         "auto_reload_threshold_cents": 1500,
         "auto_reload_amount_cents": 5000,
     }
+
+
+def test_me_agents_can_create_and_list_capped_secondary_keys() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "agents@example.com"},
+            headers={"x-forwarded-for": "203.0.113.26"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "agents@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.26"},
+        )
+
+        created_user = _run(env.user_store.find_by_email("agents@example.com"))
+        assert created_user is not None
+
+        with patch(
+            "routes._supabase.supabase_insert_returning",
+            new_callable=AsyncMock,
+            return_value={
+                "agent_id": "agent-secondary",
+                "budget_usd": 12.5,
+                "spent_usd": 0,
+                "period": "monthly",
+                "hard_limit": True,
+            },
+        ) as mock_insert:
+            create_response = env.client.post(
+                "/v1/auth/me/agents",
+                json={
+                    "name": "Friend Agent",
+                    "description": "Key for a friend",
+                    "budget_usd": 12.5,
+                    "period": "monthly",
+                    "hard_limit": True,
+                    "rate_limit_qpm": 15,
+                },
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+        assert create_response.status_code == 200
+        created = create_response.json()
+        assert created["agent_id"]
+        assert created["api_key"].startswith("rhumb_")
+        assert created["rate_limit_qpm"] == 15
+        assert created["budget"]["budget_usd"] == 12.5
+        assert created["budget"]["period"] == "monthly"
+        assert mock_insert.await_args.args[0] == "agent_budgets"
+        assert mock_insert.await_args.args[1]["budget_usd"] == 12.5
+
+        secondary_agent = _run(env.identity_store.get_agent(created["agent_id"]))
+        assert secondary_agent is not None
+        assert secondary_agent.organization_id == created_user.organization_id
+        assert secondary_agent.rate_limit_qpm == 15
+        assert "secondary" in (secondary_agent.tags or [])
+
+        async def _budget_side_effect(path: str):
+            if path.startswith("agent_budgets?agent_id=eq.") and created["agent_id"] in path:
+                return [
+                    {
+                        "budget_usd": 12.5,
+                        "spent_usd": 0,
+                        "period": "monthly",
+                        "hard_limit": True,
+                        "alert_threshold_pct": 80,
+                        "alert_fired": False,
+                    }
+                ]
+            return []
+
+        with patch(
+            "routes._supabase.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_budget_side_effect,
+        ):
+            list_response = env.client.get(
+                "/v1/auth/me/agents",
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert list_response.status_code == 200
+    payload = list_response.json()
+    assert "agents" in payload
+    assert any(item["agent_id"] == created["agent_id"] for item in payload["agents"])
