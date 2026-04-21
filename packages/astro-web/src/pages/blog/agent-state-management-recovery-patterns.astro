@@ -349,9 +349,9 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this page is the recovery frame, these three pages carry the same problem into live operator surfaces: what breaks in multi-step loops, how APIs fail under unattended use, and what to inspect before trusting a provider at all.
+              If this page is the recovery frame, these four pages carry the same problem into live operator surfaces: what breaks in multi-step loops, how APIs fail under unattended use, what scope and principal still define the safe lane, and what to inspect before trusting a provider at all.
             </p>
-            <div class="grid gap-3 sm:grid-cols-3">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">What actually breaks once retries, backoff, and multi-step execution are live.</p>
@@ -359,6 +359,10 @@ const ARTICLE_JSON_LD = {
               <a href="/blog/api-failure-modes-engineering" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">How APIs Fail When Agents Use Them</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Failure engineering is mostly about making bad states visible early enough to contain them.</p>
+              </a>
+              <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Recovery only stays safe when scope, acting principal, and evidence remain legible after the first failed step.</p>
               </a>
               <a href="/blog/api-reliability-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">Before Your Agent Calls an API at 3am</div>
