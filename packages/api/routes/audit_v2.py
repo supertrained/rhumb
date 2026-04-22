@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.audit_trail import (
@@ -41,17 +42,76 @@ def _get_identity_store() -> AgentIdentityStore:
 
 
 async def _require_org(api_key: str | None) -> str:
-    """Validate API key and return org_id."""
+    raise NotImplementedError("_require_org now requires a Request; call _require_org_or_401")
+
+
+def _auth_handoff(*, reason: str, retry_url: str) -> dict[str, Any]:
+    return {
+        "reason": reason,
+        "recommended_path": "governed_api_key",
+        "retry_url": retry_url,
+        "docs_url": "/docs#resolve-mental-model",
+        "paths": [
+            {
+                "kind": "governed_api_key",
+                "recommended": True,
+                "setup_url": "/auth/login",
+                "retry_header": "X-Rhumb-Key",
+                "summary": "Default for dashboards and most repeat agent traffic.",
+                "requires_human_setup": True,
+                "automatic_after_setup": True,
+            }
+        ],
+    }
+
+
+def _missing_governed_key_response(raw_request: Request) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    detail = "Missing X-Rhumb-Key header"
+    retry_url = str(raw_request.url.path)
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": detail,
+            "error": "missing_api_key",
+            "message": detail,
+            "resolution": "Provide a funded governed API key via /auth/login, then retry.",
+            "request_id": request_id,
+            "auth_handoff": _auth_handoff(reason="missing_api_key", retry_url=retry_url),
+        },
+    )
+
+
+def _invalid_governed_key_response(raw_request: Request) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    detail = "Invalid or expired API key"
+    retry_url = str(raw_request.url.path)
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": detail,
+            "error": "invalid_api_key",
+            "message": detail,
+            "resolution": "Create or use a funded governed API key via /auth/login, then retry.",
+            "request_id": request_id,
+            "auth_handoff": _auth_handoff(reason="invalid_api_key", retry_url=retry_url),
+        },
+    )
+
+
+async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
+    """Validate governed API key and return org_id, or a structured 401 response."""
     if not api_key:
-        raise HTTPException(status_code=401, detail="Missing X-Rhumb-Key header")
+        return _missing_governed_key_response(raw_request)
     agent = await _get_identity_store().verify_api_key_with_agent(api_key)
     if agent is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired API key")
+        return _invalid_governed_key_response(raw_request)
     return agent.organization_id
 
 
 @router.get("/events")
 async def list_audit_events(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     event_type: str | None = Query(None, description="Filter by event type"),
     severity: str | None = Query(None, description="Filter by severity: info, warning, critical"),
@@ -67,7 +127,9 @@ async def list_audit_events(
 
     Returns events newest-first. Use offset/limit for pagination.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     trail = get_audit_trail()
 
     # Parse enum filters
@@ -136,10 +198,13 @@ async def list_audit_events(
 @router.get("/events/{event_id}")
 async def get_audit_event(
     event_id: str,
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Get a specific audit event by ID."""
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     trail = get_audit_trail()
 
     # Search for the event
@@ -156,6 +221,7 @@ async def get_audit_event(
 
 @router.get("/status")
 async def audit_status(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Audit chain health and org-scoped statistics.
@@ -163,7 +229,9 @@ async def audit_status(
     Returns chain integrity status plus the authenticated org's visible event
     counts and latest visible chain head metadata.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     trail = get_audit_trail()
     chain_status = trail.status(org_id=org_id)
 
@@ -193,6 +261,7 @@ async def audit_status(
 
 @router.post("/export")
 async def export_audit_trail(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     format: str = Query("json", description="Export format: json or csv"),
     event_type: str | None = Query(None),
@@ -208,7 +277,9 @@ async def export_audit_trail(
     For SOC2 compliance — exports include chain verification status
     and all chain-hash fields for independent verification.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     trail = get_audit_trail()
 
     if format not in ("json", "csv"):
@@ -269,6 +340,7 @@ async def export_audit_trail(
 
 @router.get("/verify")
 async def verify_audit_chain(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Verify audit trail integrity without leaking other orgs' head metadata.
@@ -276,7 +348,9 @@ async def verify_audit_chain(
     Returns the underlying chain verification result plus only the authenticated
     org's visible event count and latest visible chain head metadata.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     trail = get_audit_trail()
     chain_status = trail.status(org_id=org_id)
 
