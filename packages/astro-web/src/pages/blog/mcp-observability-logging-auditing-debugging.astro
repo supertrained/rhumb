@@ -341,7 +341,30 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              5. Partial failure recovery depends on checkpoints and reversibility classes
+              5. Token burn starts with output shape, not just provider pricing
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A lot of quota incidents do not start at the provider limit. They start earlier, when one tool returns an oversized blob, the loop replays that blob back into planning, and the session keeps paying to carry evidence that should have been summarized, truncated, or referenced out-of-band.
+              </p>
+              <p>
+                That makes output discipline an observability job. The trace should show which tool returned the bulky payload, how large it was, whether the runtime summarized or trimmed it, and which session kept paying for the same context to circulate. Without that evidence, token burn looks like a vague model-cost problem instead of a fixable tool-contract problem.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">What the trace should reveal</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                <li>raw output size or token estimate per tool call</li>
+                <li>whether the runtime returned full payload, summary, or reference</li>
+                <li>which retries or planner turns re-consumed the same payload</li>
+                <li>which session or lane burned the shared budget first</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -364,7 +387,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. The production bar is not “we have logs somewhere”
+              7. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
