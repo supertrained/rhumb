@@ -190,8 +190,10 @@ def main() -> int:
     has_payment = bool(billing_data.get("has_payment_method"))
     balance = float(billing_data.get("balance_usd") or 0.0)
 
-    # 4) Checkout (interactive)
-    if not args.skip_checkout and not has_payment:
+    # 4) Checkout (interactive) — saved card truth is not enough; the smoke still
+    # needs a funded balance before claiming "funded first call".
+    needs_funding = balance <= 0
+    if not args.skip_checkout and needs_funding:
         with httpx.Client(timeout=timeout, cookies=cookies) as client:
             checkout = client.post(
                 f"{api_base}/v1/auth/me/billing/checkout",
@@ -215,9 +217,14 @@ def main() -> int:
                 billing_data = billing.json()
                 has_payment = bool(billing_data.get("has_payment_method"))
                 balance = float(billing_data.get("balance_usd") or 0.0)
-                if has_payment and balance > 0:
+                if balance > 0:
                     break
             time.sleep(float(args.poll_interval))
+
+        if balance <= 0:
+            raise SystemExit(
+                "Checkout completed but billing is still unfunded; refusing to continue a funded-first-call smoke."
+            )
 
     # 5) Enable auto-reload
     auto_reload_enabled: bool | None = None
