@@ -220,14 +220,40 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
         <!-- Billing card -->
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-white">Billing</h2>
-            <button
-              id="add-funds-btn"
-              class="text-xs text-score-native hover:text-score-native/80 transition-colors"
-            >
-              Add funds →
-            </button>
+          <div class="flex flex-col gap-3 mb-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 class="text-sm font-semibold text-white">Billing</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                Top up through secure Stripe checkout. Your first successful top-up also saves a payment method for future reloads.
+              </p>
+            </div>
+
+            <div class="sm:text-right">
+              <div class="flex items-center gap-2 justify-start sm:justify-end">
+                <label for="add-funds-amount" class="sr-only">Add funds amount in USD</label>
+                <input
+                  id="add-funds-amount"
+                  type="number"
+                  min="5"
+                  max="5000"
+                  step="1"
+                  value="10"
+                  class="w-24 rounded bg-midnight border border-slate-700 px-3 py-2 text-xs text-white"
+                />
+                <button
+                  id="add-funds-btn"
+                  class="px-3 py-2 rounded bg-score-native text-midnight text-xs font-semibold hover:bg-score-native/90 transition-colors"
+                >
+                  Add funds
+                </button>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-2 justify-start sm:justify-end">
+                <button type="button" data-add-funds-preset="5" class="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white transition-colors">$5</button>
+                <button type="button" data-add-funds-preset="25" class="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white transition-colors">$25</button>
+                <button type="button" data-add-funds-preset="100" class="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white transition-colors">$100</button>
+              </div>
+              <p id="add-funds-help" class="mt-2 text-xs text-slate-500">Minimum top-up: $5.</p>
+            </div>
           </div>
           <div id="billing-loading" class="text-xs text-slate-500">Loading billing...</div>
           <div id="billing-content" class="hidden">
@@ -288,10 +314,14 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           </div>
         </div>
 
-        <!-- Quick Start checklist -->
+        <!-- Quick Start -->
         <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-5 mb-4">
-          <h2 class="text-sm font-semibold text-white mb-4">Quick Start</h2>
-          <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-sm font-semibold text-white">Quick Start</h2>
+            <a href="/quickstart" class="text-xs text-score-native hover:text-score-native/80 transition-colors">Full guide →</a>
+          </div>
+
+          <div class="space-y-3 mb-4">
             <div class="flex items-start gap-3">
               <div class="w-5 h-5 rounded-full border-2 border-score-native bg-score-native/20 flex items-center justify-center mt-0.5">
                 <svg class="w-3 h-3 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -299,31 +329,52 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
                 </svg>
               </div>
               <div>
-                <p class="text-sm text-white">Create account</p>
-                <p class="text-xs text-slate-500">Done!</p>
+                <p class="text-sm text-white">Account + governed key active</p>
+                <p class="text-xs text-slate-500">You can use free reads immediately.</p>
               </div>
             </div>
+
             <div class="flex items-start gap-3">
-              <div id="step2-circle" class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
+              <div id="step-funding-circle" class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
               <div>
-                <p class="text-sm text-white">Copy your governed API key</p>
-                <p class="text-xs text-slate-500">Use the key above in your requests.</p>
+                <p id="step-funding-title" class="text-sm text-white">Fund balance to unlock managed execution</p>
+                <p id="step-funding-detail" class="text-xs text-slate-500">Add at least $5 above to start paid Layer 2 calls on X-Rhumb-Key.</p>
               </div>
             </div>
+
             <div class="flex items-start gap-3">
-              <div class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
+              <div id="step-usage-circle" class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
               <div>
-                <p class="text-sm text-white">Make your first API call</p>
-                <pre class="mt-1 text-xs text-slate-400 bg-midnight rounded px-2 py-1.5 overflow-x-auto"><code>curl https://api.rhumb.dev/v1/services/stripe/score \
-  -H "X-Rhumb-Key: YOUR_KEY"</code></pre>
+                <p id="step-usage-title" class="text-sm text-white">Make your first managed call</p>
+                <p id="step-usage-detail" class="text-xs text-slate-500">Use the managed snippet below after funding. Usage will light up here after the first execution.</p>
               </div>
             </div>
-            <div class="flex items-start gap-3">
-              <div class="w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5"></div>
-              <div>
-                <p class="text-sm text-white">Try the MCP server</p>
-                <pre class="mt-1 text-xs text-slate-400 bg-midnight rounded px-2 py-1.5 overflow-x-auto"><code>npx rhumb-mcp@latest</code></pre>
+          </div>
+
+          <div class="space-y-3">
+            <div class="rounded-lg border border-slate-700/50 bg-midnight p-3">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Free read right now</p>
+                <button data-copy-target="free-read-snippet" class="text-xs text-slate-400 hover:text-white transition-colors">Copy</button>
               </div>
+              <pre class="text-xs text-slate-300 overflow-x-auto"><code id="free-read-snippet"></code></pre>
+            </div>
+
+            <div class="rounded-lg border border-amber/20 bg-amber/5 p-3">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-amber">Managed execution after funding</p>
+                <button data-copy-target="managed-call-snippet" class="text-xs text-slate-400 hover:text-white transition-colors">Copy</button>
+              </div>
+              <pre class="text-xs text-slate-300 overflow-x-auto"><code id="managed-call-snippet"></code></pre>
+            </div>
+
+            <div class="rounded-lg border border-slate-700/50 bg-midnight p-3">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">MCP install</p>
+                <button data-copy-target="mcp-snippet" class="text-xs text-slate-400 hover:text-white transition-colors">Copy</button>
+              </div>
+              <pre class="text-xs text-slate-300 overflow-x-auto"><code id="mcp-snippet"></code></pre>
+              <p class="mt-2 text-xs text-slate-500">Discovery tools work without funding. Managed execution tools need a funded governed key.</p>
             </div>
           </div>
         </div>
@@ -354,6 +405,10 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     const autoReloadSaveBtn = document.getElementById("auto-reload-save-btn");
     const autoReloadHelpEl = document.getElementById("auto-reload-help");
 
+    const addFundsAmountEl = document.getElementById("add-funds-amount");
+    const addFundsHelpEl = document.getElementById("add-funds-help");
+    const addFundsPresetEls = Array.from(document.querySelectorAll("[data-add-funds-preset]"));
+
     const newSecondaryKeyBanner = document.getElementById("new-secondary-key-banner");
     const secondaryApiKeyValue = document.getElementById("secondary-api-key-value");
     const copySecondaryKeyBtn = document.getElementById("copy-secondary-key-btn");
@@ -368,6 +423,118 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
     const agentKeysLoadingEl = document.getElementById("agent-keys-loading");
     const agentKeysEmptyEl = document.getElementById("agent-keys-empty");
     const agentKeysListEl = document.getElementById("agent-keys-list");
+
+    const stepFundingCircle = document.getElementById("step-funding-circle");
+    const stepFundingTitle = document.getElementById("step-funding-title");
+    const stepFundingDetail = document.getElementById("step-funding-detail");
+    const stepUsageCircle = document.getElementById("step-usage-circle");
+    const stepUsageTitle = document.getElementById("step-usage-title");
+    const stepUsageDetail = document.getElementById("step-usage-detail");
+    const freeReadSnippetEl = document.getElementById("free-read-snippet");
+    const managedCallSnippetEl = document.getElementById("managed-call-snippet");
+    const mcpSnippetEl = document.getElementById("mcp-snippet");
+    const copySnippetButtons = Array.from(document.querySelectorAll("[data-copy-target]"));
+
+    const FETCH_TIMEOUT_MS = 20000;
+    const DEFAULT_API_KEY_PLACEHOLDER = "YOUR_RHUMB_API_KEY";
+    const dashboardState = {
+      apiKey: DEFAULT_API_KEY_PLACEHOLDER,
+      balanceUsd: 0,
+      totalCalls: 0,
+      hasPaymentMethod: false,
+    };
+
+    function normalizeApiKeyForSnippet(apiKey) {
+      return apiKey && apiKey.startsWith("rhumb_") ? apiKey : DEFAULT_API_KEY_PLACEHOLDER;
+    }
+
+    function buildFreeReadSnippet() {
+      return `curl ${API_URL}/v1/services/stripe/score`;
+    }
+
+    function buildManagedCallSnippet(apiKey) {
+      const key = normalizeApiKeyForSnippet(apiKey);
+      return `curl -X POST ${API_URL}/v1/capabilities/search.query/execute \\
+  -H "X-Rhumb-Key: ${key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"body":{"query":"best CRM for seed-stage B2B SaaS","max_results":5}}'`;
+    }
+
+    function buildMcpSnippet(apiKey) {
+      const key = normalizeApiKeyForSnippet(apiKey);
+      return `RHUMB_API_KEY="${key}" npx rhumb-mcp@latest`;
+    }
+
+    function setStepCircle(circleEl, completed) {
+      if (!circleEl) return;
+
+      circleEl.className = completed
+        ? "w-5 h-5 rounded-full border-2 border-score-native bg-score-native/20 flex items-center justify-center mt-0.5"
+        : "w-5 h-5 rounded-full border-2 border-slate-600 mt-0.5";
+      circleEl.innerHTML = completed
+        ? '<svg class="w-3 h-3 text-score-native" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>'
+        : "";
+    }
+
+    function renderQuickStart() {
+      const apiKey = normalizeApiKeyForSnippet(dashboardState.apiKey);
+      if (freeReadSnippetEl) freeReadSnippetEl.textContent = buildFreeReadSnippet();
+      if (managedCallSnippetEl) managedCallSnippetEl.textContent = buildManagedCallSnippet(apiKey);
+      if (mcpSnippetEl) mcpSnippetEl.textContent = buildMcpSnippet(apiKey);
+
+      const hasBalance = Number(dashboardState.balanceUsd || 0) > 0;
+      const hasUsage = Number(dashboardState.totalCalls || 0) > 0;
+
+      setStepCircle(stepFundingCircle, hasBalance);
+      if (stepFundingTitle) {
+        stepFundingTitle.textContent = hasBalance
+          ? "Managed balance is ready"
+          : "Fund balance to unlock managed execution";
+      }
+      if (stepFundingDetail) {
+        stepFundingDetail.textContent = hasBalance
+          ? `Current balance: $${Number(dashboardState.balanceUsd).toFixed(2)}. You can run managed calls on X-Rhumb-Key now.`
+          : dashboardState.hasPaymentMethod
+            ? "Your card is saved. Top up above any time to keep managed execution ready."
+            : "Add at least $5 above to start paid Layer 2 calls on X-Rhumb-Key.";
+      }
+
+      setStepCircle(stepUsageCircle, hasUsage);
+      if (stepUsageTitle) {
+        stepUsageTitle.textContent = hasUsage
+          ? "First managed call complete"
+          : hasBalance
+            ? "Run your first managed call"
+            : "Make your first call after funding";
+      }
+      if (stepUsageDetail) {
+        stepUsageDetail.textContent = hasUsage
+          ? `Usage detected: ${Number(dashboardState.totalCalls).toLocaleString()} call${dashboardState.totalCalls === 1 ? "" : "s"} so far.`
+          : hasBalance
+            ? "Use the managed snippet below. This card updates after your first successful execution."
+            : "Free reads work immediately. Managed execution begins once your balance is funded.";
+      }
+    }
+
+    async function fetchJson(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        const payload = await response.json().catch(() => null);
+        return { response, payload };
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error("Request timed out. Please try again.");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
+    renderQuickStart();
 
     function isEmailOtpUser(user) {
       return user?.signup_method === "email_otp" || user?.credit_policy === "email_no_trial";
@@ -417,7 +584,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       autoReloadSaveBtn.disabled = true;
 
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/billing/auto-reload`, {
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/billing/auto-reload`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -427,8 +594,6 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
             amount_usd: enabled ? amount : null,
           }),
         });
-
-        const data = await resp.json();
         if (!resp.ok) {
           throw new Error(data.detail || "Unable to save auto-reload settings");
         }
@@ -448,7 +613,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       const isNew = new URLSearchParams(window.location.search).get("new") === "1";
 
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me`, {
+        const { response: resp, payload: user } = await fetchJson(`${API_URL}/v1/auth/me`, {
           credentials: "include",
         });
 
@@ -457,9 +622,6 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           notAuth.classList.remove("hidden");
           return;
         }
-
-        const user = await resp.json();
-
         // Populate dashboard
         document.getElementById("welcome-name").textContent =
           user.name ? `Welcome, ${user.name}` : "Dashboard";
@@ -477,6 +639,8 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           const keyValue = document.getElementById("api-key-value");
           keyBanner.classList.remove("hidden");
           keyValue.textContent = apiKey;
+          dashboardState.apiKey = apiKey;
+          renderQuickStart();
 
           // Clean URL (remove hash + new param) without reload
           history.replaceState(null, "", "/dashboard");
@@ -485,11 +649,13 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         loading.classList.add("hidden");
         dashboard.classList.remove("hidden");
 
-        // Load usage + billing in parallel (non-blocking)
+        // Load dashboard data without letting checkout confirmation block the rest.
         loadUsage();
-        await confirmCheckoutFromQuery();
         loadBilling();
         loadAgentKeys();
+        confirmCheckoutFromQuery().then((confirmed) => {
+          if (confirmed) loadBilling();
+        });
       } catch (e) {
         console.error("Dashboard init error:", e);
         loading.classList.add("hidden");
@@ -517,21 +683,46 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       }
     });
 
+    copySnippetButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        const targetId = button.getAttribute("data-copy-target");
+        const target = targetId ? document.getElementById(targetId) : null;
+        const text = target?.textContent || "";
+        if (!text) return;
+
+        await navigator.clipboard.writeText(text);
+        const original = button.textContent;
+        button.textContent = "Copied!";
+        setTimeout(() => {
+          button.textContent = original;
+        }, 2000);
+      });
+    });
+
+    addFundsPresetEls.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!addFundsAmountEl) return;
+        addFundsAmountEl.value = button.getAttribute("data-add-funds-preset") || addFundsAmountEl.value;
+        addFundsAmountEl.focus();
+      });
+    });
+
     // Rotate key button
     document.getElementById("rotate-btn")?.addEventListener("click", async () => {
       if (!confirm("Rotate your governed API key? The old key will stop working immediately.")) return;
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/rotate-key`, {
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/rotate-key`, {
           method: "POST",
           credentials: "include",
         });
         if (!resp.ok) throw new Error("Rotation failed");
-        const data = await resp.json();
         const keyBanner = document.getElementById("new-key-banner");
         const keyValue = document.getElementById("api-key-value");
         keyBanner.classList.remove("hidden");
         keyValue.textContent = data.api_key;
         document.getElementById("key-prefix").textContent = data.api_key.substring(0, 12) + "••••••••";
+        dashboardState.apiKey = data.api_key;
+        renderQuickStart();
       } catch (e) {
         alert("Failed to rotate key: " + e.message);
       }
@@ -557,7 +748,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       createSecondaryAgentBtn.disabled = true;
 
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/agents`, {
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/agents`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -570,8 +761,6 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
             rate_limit_qpm: qpm,
           }),
         });
-
-        const data = await resp.json();
         if (!resp.ok) {
           throw new Error(data.detail || "Unable to create agent key");
         }
@@ -660,9 +849,8 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
       agentKeysListEl.classList.add("hidden");
 
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/agents`, { credentials: "include" });
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/agents`, { credentials: "include" });
         if (!resp.ok) throw new Error("fetch failed");
-        const data = await resp.json();
         renderAgentKeys(data.agents || []);
       } catch (e) {
         agentKeysLoadingEl.textContent = "Unable to load agent keys";
@@ -671,17 +859,21 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
     async function loadUsage() {
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/usage`, { credentials: "include" });
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/usage`, { credentials: "include" });
         if (!resp.ok) throw new Error("fetch failed");
-        const data = await resp.json();
+
+        dashboardState.totalCalls = Number(data.total_calls || 0);
+        renderQuickStart();
 
         document.getElementById("usage-loading").classList.add("hidden");
 
         if (data.total_calls === 0 && data.calls_this_month === 0) {
+          document.getElementById("usage-content").classList.add("hidden");
           document.getElementById("usage-empty").classList.remove("hidden");
           return;
         }
 
+        document.getElementById("usage-empty").classList.add("hidden");
         document.getElementById("usage-content").classList.remove("hidden");
         document.getElementById("calls-month").textContent = data.calls_this_month.toLocaleString();
         document.getElementById("calls-today").textContent = data.calls_today.toLocaleString();
@@ -711,9 +903,12 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
     async function loadBilling() {
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/billing`, { credentials: "include" });
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/billing`, { credentials: "include" });
         if (!resp.ok) throw new Error("fetch failed");
-        const data = await resp.json();
+
+        dashboardState.balanceUsd = Number(data.balance_usd || 0);
+        dashboardState.hasPaymentMethod = !!data.has_payment_method;
+        renderQuickStart();
 
         document.getElementById("billing-loading").classList.add("hidden");
         document.getElementById("billing-content").classList.remove("hidden");
@@ -749,6 +944,12 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
         hydrateAutoReloadControls(data);
 
+        if (addFundsHelpEl) {
+          addFundsHelpEl.textContent = data.has_payment_method
+            ? "Saved card on file. Top up any amount from $5 to $5000."
+            : "Minimum top-up: $5. Your first successful top-up also saves a payment method.";
+        }
+
         // Style plan badge
         const badge = document.getElementById("plan-badge");
         if (data.plan === "prepaid") {
@@ -762,17 +963,20 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
           document.getElementById("transactions-list").classList.remove("hidden");
           const txnEl = document.getElementById("transactions");
           txnEl.innerHTML = txns.map(t => {
-            const sign = t.type === "deposit" || t.type === "credit" ? "+" : "-";
+            const amount = Number(t.amount_usd || 0);
+            const sign = amount >= 0 ? "+" : "-";
             const color = sign === "+" ? "text-green-400" : "text-red-400";
             const date = t.timestamp ? new Date(t.timestamp).toLocaleDateString() : "";
             return `<div class="flex items-center justify-between text-xs">
               <span class="text-slate-400">${t.description || t.type}</span>
               <div class="flex items-center gap-2">
-                <span class="${color}">${sign}$${Math.abs(t.amount_usd).toFixed(2)}</span>
+                <span class="${color}">${sign}$${Math.abs(amount).toFixed(2)}</span>
                 <span class="text-slate-600">${date}</span>
               </div>
             </div>`;
           }).join("");
+        } else {
+          document.getElementById("transactions-list").classList.add("hidden");
         }
       } catch (e) {
         document.getElementById("billing-loading").textContent = "Unable to load billing";
@@ -781,48 +985,51 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
     async function confirmCheckoutFromQuery() {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("checkout") !== "success") return;
+      if (params.get("checkout") !== "success") return false;
 
       const sessionId = params.get("session_id");
-      if (!sessionId) return;
+      if (!sessionId) return false;
 
       try {
-        await fetch(`${API_URL}/v1/auth/me/billing/checkout/confirm`, {
+        const { response } = await fetchJson(`${API_URL}/v1/auth/me/billing/checkout/confirm`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ session_id: sessionId }),
         });
+        return response.ok;
       } catch (e) {
         // Non-fatal: billing will still load and show the current state.
         console.warn("Checkout confirm failed", e);
+        return false;
       }
     }
 
     // Add funds button
     document.getElementById("add-funds-btn")?.addEventListener("click", async () => {
-      const rawAmount = window.prompt("How much balance should we add?", "25");
-      if (!rawAmount) return;
-
-      const amount = Number(rawAmount);
+      const amount = Number(addFundsAmountEl?.value);
       if (!Number.isFinite(amount) || amount < 5 || amount > 5000) {
         window.alert("Enter an amount between $5 and $5000.");
+        addFundsAmountEl?.focus();
         return;
       }
 
       const button = document.getElementById("add-funds-btn");
       const originalText = button?.textContent;
-      if (button) button.textContent = "Opening checkout…";
+      if (button) {
+        button.textContent = "Opening checkout…";
+        button.disabled = true;
+      }
+      if (addFundsAmountEl) addFundsAmountEl.disabled = true;
+      if (addFundsHelpEl) addFundsHelpEl.textContent = `Opening secure Stripe checkout for $${amount.toFixed(2)}...`;
 
       try {
-        const resp = await fetch(`${API_URL}/v1/auth/me/billing/checkout`, {
+        const { response: resp, payload: data } = await fetchJson(`${API_URL}/v1/auth/me/billing/checkout`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount_usd: amount }),
         });
-
-        const data = await resp.json();
         if (!resp.ok || !data.checkout_url) {
           throw new Error(data.detail || "Unable to create checkout session");
         }
@@ -830,7 +1037,12 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         window.location.href = data.checkout_url;
       } catch (e) {
         window.alert(`Failed to open checkout: ${e.message}`);
-        if (button && originalText) button.textContent = originalText;
+        if (button && originalText) {
+          button.textContent = originalText;
+          button.disabled = false;
+        }
+        if (addFundsAmountEl) addFundsAmountEl.disabled = false;
+        if (addFundsHelpEl) addFundsHelpEl.textContent = "Minimum top-up: $5.";
       }
     });
 

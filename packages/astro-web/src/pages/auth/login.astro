@@ -236,6 +236,8 @@ const LOGIN_JSON_LD = {
     const verifyEmailLabel = document.getElementById("verify-email-label");
     const editEmailButton = document.getElementById("edit-email-btn");
 
+    const REQUEST_TIMEOUT_MS = 20000;
+
     function setFeedback(element, message, tone) {
       element.textContent = message;
       element.classList.remove(
@@ -277,8 +279,26 @@ const LOGIN_JSON_LD = {
       window.requestAnimationFrame(() => codeInput.focus());
     }
 
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        const payload = await response.json().catch(() => null);
+        return { response, payload };
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error("Rhumb took too long to respond. Please try again.");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
     async function requestCode(email) {
-      const response = await fetch(`${API_URL}/v1/auth/email/request-code`, {
+      const { response, payload } = await fetchJsonWithTimeout(`${API_URL}/v1/auth/email/request-code`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -286,8 +306,6 @@ const LOGIN_JSON_LD = {
         },
         body: JSON.stringify({ email }),
       });
-
-      const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
         if (response.status === 400) {
@@ -300,7 +318,7 @@ const LOGIN_JSON_LD = {
     }
 
     async function verifyCode({ email, code, deviceLabel }) {
-      const response = await fetch(`${API_URL}/v1/auth/email/verify-code`, {
+      const { response, payload } = await fetchJsonWithTimeout(`${API_URL}/v1/auth/email/verify-code`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -312,8 +330,6 @@ const LOGIN_JSON_LD = {
           device_label: deviceLabel,
         }),
       });
-
-      const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
         if (response.status === 400) {
