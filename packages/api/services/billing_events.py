@@ -59,6 +59,41 @@ _PROVIDER_TEXT_FIELDS = {
     "reason",
 }
 
+_PERIOD_FILTER_RE = re.compile(r"^\d{4}-\d{2}(?:-\d{2})?$")
+
+
+def normalize_period_filter(period: str | None) -> str | None:
+    """Validate and normalize public billing/trust period filters.
+
+    Accepted formats are ``YYYY-MM`` and ``YYYY-MM-DD``.
+    """
+    if period is None:
+        return None
+
+    normalized = str(period).strip()
+    if not normalized or not _PERIOD_FILTER_RE.fullmatch(normalized):
+        raise ValueError("Period must use YYYY-MM or YYYY-MM-DD.")
+
+    try:
+        if len(normalized) == 7:
+            datetime.strptime(normalized, "%Y-%m")
+        else:
+            datetime.strptime(normalized, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("Period must use YYYY-MM or YYYY-MM-DD.") from exc
+
+    return normalized
+
+
+def period_matches_timestamp(timestamp: datetime, period: str | None) -> bool:
+    normalized = normalize_period_filter(period)
+    if normalized is None:
+        return True
+
+    return timestamp.strftime("%Y-%m").startswith(normalized[:7]) and (
+        len(normalized) <= 7 or timestamp.strftime("%Y-%m-%d") == normalized
+    )
+
 
 def _canonicalize_provider_value(value: Any) -> Any:
     if isinstance(value, str):
@@ -409,10 +444,13 @@ class BillingEventStream:
         ``period`` can be "2026-03" (month) or "2026-03-31" (day).
         """
         events = self.query(org_id=org_id, limit=100_000)
+        normalized_period = normalize_period_filter(period)
 
-        if period:
-            events = [e for e in events if e.timestamp.strftime("%Y-%m").startswith(period[:7])
-                       and (len(period) <= 7 or e.timestamp.strftime("%Y-%m-%d") == period)]
+        if normalized_period:
+            events = [
+                e for e in events
+                if period_matches_timestamp(e.timestamp, normalized_period)
+            ]
 
         total_charged = 0
         total_credited = 0
@@ -449,7 +487,7 @@ class BillingEventStream:
 
         return BillingEventSummary(
             org_id=org_id,
-            period=period or "all",
+            period=normalized_period or "all",
             total_charged_usd_cents=total_charged,
             total_credited_usd_cents=total_credited,
             execution_count=execution_count,

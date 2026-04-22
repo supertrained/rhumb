@@ -20,11 +20,13 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.error_envelope import RhumbError
 from services.billing_events import (
     BillingEvent,
     BillingEventSummary,
     BillingEventType,
     get_billing_event_stream,
+    normalize_period_filter,
 )
 from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
@@ -123,6 +125,17 @@ def _invalid_governed_key_response(raw_request: Request) -> JSONResponse:
             "auth_handoff": _auth_handoff(reason="invalid_api_key", retry_url=retry_url),
         },
     )
+
+
+def _validated_period_filter(period: str | None) -> str | None:
+    try:
+        return normalize_period_filter(period)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'period' filter.",
+            detail="Use YYYY-MM or YYYY-MM-DD (for example 2026-04 or 2026-04-22).",
+        ) from exc
 
 
 async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
@@ -376,8 +389,9 @@ async def billing_summary(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
+    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
-    summary = stream.summarize(org_id=org_id, period=period)
+    summary = stream.summarize(org_id=org_id, period=normalized_period)
 
     return {
         "data": _summary_to_response(summary),

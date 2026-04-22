@@ -20,7 +20,13 @@ from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
-from services.billing_events import BillingEventType, get_billing_event_stream
+from services.billing_events import (
+    BillingEventType,
+    get_billing_event_stream,
+    normalize_period_filter,
+    period_matches_timestamp,
+)
+from services.error_envelope import RhumbError
 from services.score_cache import get_score_cache
 from services.service_slugs import public_service_slug, public_service_slug_candidates
 
@@ -96,6 +102,17 @@ def _invalid_governed_key_response(raw_request: Request) -> JSONResponse:
     )
 
 
+def _validated_period_filter(period: str | None) -> str | None:
+    try:
+        return normalize_period_filter(period)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'period' filter.",
+            detail="Use YYYY-MM or YYYY-MM-DD (for example 2026-04 or 2026-04-22).",
+        ) from exc
+
+
 async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
     """Validate governed API key and return org_id, or a structured 401 response."""
     if not api_key:
@@ -130,16 +147,16 @@ async def trust_summary(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
+    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
-    summary = stream.summarize(org_id=org_id, period=period)
+    summary = stream.summarize(org_id=org_id, period=normalized_period)
 
     # Compute success metrics from events
     all_events = stream.query(org_id=org_id, limit=100_000)
-    if period:
+    if normalized_period:
         all_events = [
             e for e in all_events
-            if e.timestamp.strftime("%Y-%m").startswith(period[:7])
-            and (len(period) <= 7 or e.timestamp.strftime("%Y-%m-%d") == period)
+            if period_matches_timestamp(e.timestamp, normalized_period)
         ]
 
     execution_events = [
@@ -168,7 +185,7 @@ async def trust_summary(
     return {
         "data": {
             "org_id": org_id,
-            "period": period or "all",
+            "period": normalized_period or "all",
             "total_executions": total_executions,
             "successful_executions": successful,
             "failed_executions": total_executions - successful,
@@ -201,15 +218,15 @@ async def trust_providers(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
+    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
     cache = get_score_cache()
 
     all_events = stream.query(org_id=org_id, limit=100_000)
-    if period:
+    if normalized_period:
         all_events = [
             e for e in all_events
-            if e.timestamp.strftime("%Y-%m").startswith(period[:7])
-            and (len(period) <= 7 or e.timestamp.strftime("%Y-%m-%d") == period)
+            if period_matches_timestamp(e.timestamp, normalized_period)
         ]
 
     execution_events = [
@@ -261,7 +278,7 @@ async def trust_providers(
     return {
         "data": {
             "org_id": org_id,
-            "period": period or "all",
+            "period": normalized_period or "all",
             "providers": provider_list,
             "total_providers": len(provider_list),
         },
@@ -282,15 +299,16 @@ async def trust_costs(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
+    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
-    summary = stream.summarize(org_id=org_id, period=period)
+    summary = stream.summarize(org_id=org_id, period=normalized_period)
 
     public_by_provider = _public_provider_totals(summary.by_provider)
 
     return {
         "data": {
             "org_id": org_id,
-            "period": period or "all",
+            "period": normalized_period or "all",
             "total_charged_usd_cents": summary.total_charged_usd_cents,
             "total_charged_usd": summary.total_charged_usd_cents / 100,
             "total_credited_usd_cents": summary.total_credited_usd_cents,
@@ -351,14 +369,14 @@ async def trust_reliability(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
+    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
 
     all_events = stream.query(org_id=org_id, limit=100_000)
-    if period:
+    if normalized_period:
         all_events = [
             e for e in all_events
-            if e.timestamp.strftime("%Y-%m").startswith(period[:7])
-            and (len(period) <= 7 or e.timestamp.strftime("%Y-%m-%d") == period)
+            if period_matches_timestamp(e.timestamp, normalized_period)
         ]
 
     execution_events = [
@@ -434,7 +452,7 @@ async def trust_reliability(
     return {
         "data": {
             "org_id": org_id,
-            "period": period or "all",
+            "period": normalized_period or "all",
             "overall": {
                 "total_executions": total_executions,
                 "successes": total_success,

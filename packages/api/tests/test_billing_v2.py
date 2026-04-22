@@ -50,3 +50,20 @@ class TestBillingV2Auth:
         assert body["error"] == "invalid_api_key"
         assert body["auth_handoff"]["reason"] == "invalid_api_key"
         assert body["auth_handoff"]["retry_url"] == "/v2/billing/events"
+
+
+def test_summary_invalid_period_uses_explicit_invalid_parameters():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    with patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/summary?period=2026-99",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'period' filter."
+    assert "YYYY-MM" in body["error"]["detail"]
