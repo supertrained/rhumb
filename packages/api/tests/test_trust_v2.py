@@ -36,6 +36,11 @@ class TestTrustV2Auth:
     def test_summary_requires_auth(self, client):
         resp = client.get("/v2/trust/summary")
         assert resp.status_code == 401
+        body = resp.json()
+        assert body["detail"] == "Missing X-Rhumb-Key header"
+        assert body["error"] == "missing_api_key"
+        assert body["auth_handoff"]["reason"] == "missing_api_key"
+        assert body["auth_handoff"]["retry_url"] == "/v2/trust/summary"
 
     def test_providers_requires_auth(self, client):
         resp = client.get("/v2/trust/providers")
@@ -187,7 +192,7 @@ class TestTrustV2Endpoints:
         )
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/trust/summary", headers={"X-Rhumb-Key": "test_key"})
@@ -215,7 +220,7 @@ class TestTrustV2Endpoints:
         cache._populate([_make_score("brave-search", 8.8, tier="L4")])
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
             patch("routes.trust_v2.get_score_cache", return_value=cache),
         ):
@@ -260,7 +265,7 @@ class TestTrustV2Endpoints:
         )
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
         ):
             costs_resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
@@ -310,7 +315,7 @@ class TestTrustV2Endpoints:
         )
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=stream),
         ):
             costs_resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
@@ -354,7 +359,7 @@ class TestTrustV2Endpoints:
                 )
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
         ):
             resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
@@ -387,7 +392,7 @@ class TestTrustV2Endpoints:
                 )
 
         with (
-            patch("routes.trust_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.trust_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.trust_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
         ):
             resp = client.get("/v2/trust/costs", headers={"X-Rhumb-Key": "test_key"})
