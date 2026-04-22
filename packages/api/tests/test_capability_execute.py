@@ -4156,6 +4156,7 @@ async def test_direct_execute_get_requires_api_key_handoff(app, capability_id, m
     body = resp.json()
     assert body["error"] == "authentication_required"
     assert body["message"] == message
+    assert body["execute_url"] == f"/v1/capabilities/{capability_id}/execute"
     assert body["auth_handoff"]["reason"] == "auth_required"
     assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
     auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
