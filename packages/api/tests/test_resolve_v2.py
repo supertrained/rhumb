@@ -762,6 +762,45 @@ async def test_v2_credential_modes_direct_capability_ignores_stale_catalog_mappi
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_success_payload(app):
+    resolve_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "error": None,
+            "data": {
+                "capability_id": "search.query",
+                "providers": [
+                    {
+                        "service_slug": "brave-search",
+                        "auth_method": "api_key",
+                        "configured": False,
+                        "setup_hint": "Configure brave-search before falling back to pdl.",
+                    }
+                ],
+                "execute_hint": {
+                    "preferred_provider": "brave-search",
+                    "fallback_providers": ["pdl"],
+                    "setup_hint": "Use brave-search before switching to pdl.",
+                },
+            },
+        },
+    )
+    resolve_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=resolve_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/search.query/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["setup_hint"] == "Configure brave-search-api before falling back to people-data-labs."
+    assert data["execute_hint"]["preferred_provider"] == "brave-search-api"
+    assert data["execute_hint"]["fallback_providers"] == ["people-data-labs"]
+    assert data["execute_hint"]["setup_hint"] == "Use brave-search-api before switching to people-data-labs."
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_failure_payload(app):
     resolve_resp = MagicMock(spec=httpx.Response)
     resolve_resp.status_code = 503
@@ -788,6 +827,44 @@ async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_failure_
     assert error["preferred_provider"] == "brave-search-api"
     assert error["supported_provider_slugs"] == ["brave-search-api", "people-data-labs"]
     assert error["not_execute_ready_provider_slugs"] == ["brave-search-api"]
+
+
+@pytest.mark.anyio
+async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_success_payload(app):
+    modes_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "error": None,
+            "data": {
+                "capability_id": "search.query",
+                "providers": [
+                    {
+                        "service_slug": "brave-search",
+                        "auth_method": "api_key",
+                        "modes": [
+                            {
+                                "mode": "byok",
+                                "available": True,
+                                "configured": False,
+                                "setup_hint": "Set brave-search before falling back to pdl.",
+                            }
+                        ],
+                        "any_configured": False,
+                    }
+                ],
+            },
+        },
+    )
+    modes_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=modes_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/search.query/credential-modes")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["service_slug"] == "brave-search-api"
+    assert data["providers"][0]["modes"][0]["setup_hint"] == "Set brave-search-api before falling back to people-data-labs."
 
 
 @pytest.mark.anyio

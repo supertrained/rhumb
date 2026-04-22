@@ -115,6 +115,14 @@ _PUBLIC_PROVIDER_LIST_KEYS = {
     "not_execute_ready_provider_slugs",
     "policy_candidates",
 }
+_PUBLIC_PROVIDER_TEXT_KEYS = {
+    "message",
+    "detail",
+    "error_message",
+}
+_PUBLIC_PROVIDER_ALIAS_TEXT_KEYS = {
+    "setup_hint",
+}
 
 _v2_budget_enforcer = BudgetEnforcer()
 
@@ -592,6 +600,7 @@ def _canonicalize_execute_body_provider_text(
     text: Any,
     *,
     provider_slugs: set[str],
+    alias_only: bool = False,
 ) -> str | None:
     if text is None:
         return None
@@ -601,6 +610,8 @@ def _canonicalize_execute_body_provider_text(
     for provider_slug in provider_slugs:
         canonical = _public_provider_slug(provider_slug)
         if not canonical:
+            continue
+        if alias_only and str(provider_slug).strip().lower() == canonical.lower():
             continue
         for candidate in public_service_slug_candidates(canonical):
             cleaned = str(candidate or "").strip()
@@ -631,10 +642,16 @@ def _canonicalize_execute_body_provider_payload(
         for key, item in value.items():
             if key in _PUBLIC_PROVIDER_FIELD_KEYS:
                 canonicalized[key] = _canonicalize_execute_body_provider_value(item)
-            elif key in {"message", "detail", "error_message"}:
+            elif key in _PUBLIC_PROVIDER_TEXT_KEYS:
                 canonicalized[key] = _canonicalize_execute_body_provider_text(
                     item,
                     provider_slugs=provider_slugs,
+                )
+            elif key in _PUBLIC_PROVIDER_ALIAS_TEXT_KEYS:
+                canonicalized[key] = _canonicalize_execute_body_provider_text(
+                    item,
+                    provider_slugs=provider_slugs,
+                    alias_only=True,
                 )
             elif key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
                 canonicalized[key] = [
