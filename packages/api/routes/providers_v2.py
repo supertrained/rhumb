@@ -78,6 +78,15 @@ _RESPONSE_HEADER_NAMES = [
     "X-Rhumb-Rate-Remaining",
 ]
 
+_V2_NAVIGATION_URL_KEYS = {
+    "search_url",
+    "resolve_url",
+    "estimate_url",
+    "credential_modes_url",
+    "retry_url",
+    "execute_url",
+}
+
 
 # ---------------------------------------------------------------------------
 # Request / response models
@@ -199,6 +208,39 @@ def _parse_endpoint_pattern(endpoint_pattern: str | None) -> tuple[str | None, s
         return None, None
     method, path = endpoint_pattern.strip().split(" ", 1)
     return method.upper(), path.strip()
+
+
+def _rewrite_v1_capabilities_url(url: str) -> str:
+    if not url.startswith("/v1/capabilities"):
+        return url
+    return f"/v2{url[3:]}"
+
+
+def _rewrite_endpoint_pattern(endpoint_pattern: str) -> str:
+    method, path = _parse_endpoint_pattern(endpoint_pattern)
+    if method is None or path is None:
+        return endpoint_pattern
+    rewritten_path = _rewrite_v1_capabilities_url(path)
+    if rewritten_path == path:
+        return endpoint_pattern
+    return f"{method} {rewritten_path}"
+
+
+def _rewrite_navigation_urls(payload: Any) -> Any:
+    """Rewrite any v1 capability navigation URLs returned through the v2 Layer 1 surface."""
+    if isinstance(payload, dict):
+        rewritten: dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in _V2_NAVIGATION_URL_KEYS and isinstance(value, str):
+                rewritten[key] = _rewrite_v1_capabilities_url(value)
+            elif key == "endpoint_pattern" and isinstance(value, str):
+                rewritten[key] = _rewrite_endpoint_pattern(value)
+            else:
+                rewritten[key] = _rewrite_navigation_urls(value)
+        return rewritten
+    if isinstance(payload, list):
+        return [_rewrite_navigation_urls(item) for item in payload]
+    return payload
 
 
 def _layer1_cost(provider_cost_usd: float) -> dict[str, float]:
@@ -949,6 +991,7 @@ async def execute_on_provider(
         estimate_response.json(),
         provider_id=provider_public_slug,
     )
+    estimate_body = _rewrite_navigation_urls(estimate_body)
     if estimate_response.status_code != 200:
         return JSONResponse(
             status_code=estimate_response.status_code,
@@ -1014,6 +1057,7 @@ async def execute_on_provider(
         execute_response.json(),
         provider_id=provider_public_slug,
     )
+    body = _rewrite_navigation_urls(body)
 
     t_total_ms = int((time.monotonic() - t_start) * 1000)
 
