@@ -769,7 +769,18 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
             suggestedCapabilities
           };
         }
-        throw new Error(`API returned ${res.status}`);
+        const errBody = await res.text();
+        try {
+          const parsed: unknown = JSON.parse(errBody);
+          if (isRecord(parsed)) {
+            throw new Error(`Resolve failed (${res.status}): ${formatStructuredError(parsed)}`);
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.startsWith("Resolve failed")) {
+            throw err;
+          }
+        }
+        throw new Error(`Resolve failed (${res.status}): ${errBody}`);
       }
 
       const payload: unknown = await res.json();

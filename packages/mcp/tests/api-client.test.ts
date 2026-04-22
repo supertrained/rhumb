@@ -288,6 +288,46 @@ describe("Rhumb MCP API client resolveCapability", () => {
     });
   });
 
+  it("surfaces auth handoff details when /resolve returns structured 401", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () =>
+        JSON.stringify({
+          error: "authentication_required",
+          message: "X-Rhumb-Key required",
+          resolution: "Create a governed key and retry",
+          request_id: "req_test",
+          resolve_url: "/v1/capabilities/crm.object.describe/resolve",
+          credential_modes_url: "/v1/capabilities/crm.object.describe/credential-modes",
+          auth_handoff: {
+            reason: "auth_required",
+            recommended_path: "governed_api_key",
+            retry_url: "/v1/capabilities/crm.object.describe/execute",
+            docs_url: "/docs#resolve-mental-model",
+            paths: [
+              {
+                kind: "governed_api_key",
+                recommended: true,
+                setup_url: "/auth/login",
+                retry_header: "X-Rhumb-Key",
+              },
+            ],
+          },
+        }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+
+    await expect(client.resolveCapability("crm.object.describe")).rejects.toThrow(
+      /setup_url=\/auth\/login/
+    );
+    await expect(client.resolveCapability("crm.object.describe")).rejects.toThrow(
+      /retry_header=X-Rhumb-Key/
+    );
+  });
+
   it("canonicalizes legacy byo values across resolve response surfaces", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
