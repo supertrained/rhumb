@@ -67,3 +67,37 @@ def test_summary_invalid_period_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'period' filter."
     assert "YYYY-MM" in body["error"]["detail"]
+
+
+def test_events_invalid_event_type_uses_explicit_invalid_parameters():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    with patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?event_type=not-real",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'event_type' filter."
+    assert "execution.charged" in body["error"]["detail"]
+
+
+def test_events_invalid_since_uses_explicit_invalid_parameters():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    with patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?since=definitely-not-iso",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'since' filter."
+    assert "ISO 8601" in body["error"]["detail"]

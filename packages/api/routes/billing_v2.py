@@ -16,7 +16,7 @@ import re
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
@@ -136,6 +136,39 @@ def _validated_period_filter(period: str | None) -> str | None:
             message="Invalid 'period' filter.",
             detail="Use YYYY-MM or YYYY-MM-DD (for example 2026-04 or 2026-04-22).",
         ) from exc
+
+
+def _validated_event_type(event_type: str | None) -> BillingEventType | None:
+    if event_type is None:
+        return None
+
+    try:
+        return BillingEventType(event_type)
+    except ValueError as exc:
+        valid_types = ", ".join(t.value for t in BillingEventType)
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail=f"Use one of: {valid_types}.",
+        ) from exc
+
+
+def _validated_since_timestamp(since: str | None) -> datetime | None:
+    if since is None:
+        return None
+
+    try:
+        parsed_since = datetime.fromisoformat(since)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'since' filter.",
+            detail="Use an ISO 8601 timestamp (for example 2026-04-22T12:34:56+00:00).",
+        ) from exc
+
+    if parsed_since.tzinfo is None:
+        parsed_since = parsed_since.replace(tzinfo=timezone.utc)
+    return parsed_since
 
 
 async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
@@ -331,32 +364,8 @@ async def query_billing_events(
     stream = get_billing_event_stream()
 
     # Parse filters
-    parsed_type: BillingEventType | None = None
-    if event_type:
-        try:
-            parsed_type = BillingEventType(event_type)
-        except ValueError:
-            valid_types = [t.value for t in BillingEventType]
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "INVALID_EVENT_TYPE",
-                    "message": f"Unknown event type: {event_type}",
-                    "valid_types": valid_types,
-                },
-            )
-
-    parsed_since: datetime | None = None
-    if since:
-        try:
-            parsed_since = datetime.fromisoformat(since)
-            if parsed_since.tzinfo is None:
-                parsed_since = parsed_since.replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid 'since' timestamp. Use ISO format.",
-            )
+    parsed_type = _validated_event_type(event_type)
+    parsed_since = _validated_since_timestamp(since)
 
     events = stream.query(
         org_id=org_id,
