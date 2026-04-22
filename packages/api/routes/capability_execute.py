@@ -417,6 +417,39 @@ def _direct_execute_get_not_supported_response(
     )
 
 
+def _invalid_governed_api_key_response(
+    raw_request: Request,
+    *,
+    capability_id: str,
+) -> JSONResponse:
+    """Return a structured 401 that preserves the legacy FastAPI `detail` field.
+
+    Some clients key off the default `{detail: ...}` shape. We keep that key
+    while also returning the richer auth-handoff envelope used elsewhere.
+    """
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
+    detail = "Invalid or expired governed API key"
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": detail,
+            "error": "invalid_api_key",
+            "message": detail,
+            "resolution": "Create or use a funded governed API key at /auth/login, then retry.",
+            "request_id": request_id,
+            "execute_url": execute_url,
+            "resolve_url": _capability_resolve_url(capability_id),
+            "credential_modes_url": _capability_credential_modes_url(capability_id),
+            "auth_handoff": _execute_auth_handoff(
+                capability_id,
+                supported_paths=("governed_api_key",),
+                reason="invalid_api_key",
+            ),
+        },
+    )
+
+
 def _direct_execute_estimate_readiness(capability_id: str) -> dict[str, Any] | None:
     """Return auth guidance when estimate is anonymous but execute still needs an API key."""
     detail = _direct_execute_auth_detail(capability_id)
@@ -1848,7 +1881,7 @@ async def discover_execute_capability(
             )
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
+            return _invalid_governed_api_key_response(raw_request, capability_id=capability_id)
         return _direct_execute_get_not_supported_response(
             raw_request,
             capability_id=capability_id,
@@ -1936,7 +1969,7 @@ async def execute_capability(
             )
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
+            return _invalid_governed_api_key_response(raw_request, capability_id=capability_id)
         if capability_id in CRM_CAPABILITY_IDS:
             from routes.crm_execute import handle_crm_execute
 
@@ -2034,7 +2067,7 @@ async def execute_capability(
         # Path 1: Registered agent with API key (existing flow)
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
+            return _invalid_governed_api_key_response(raw_request, capability_id=capability_id)
         agent_id = agent.agent_id
         org_id = agent.organization_id
     elif x_payment and x_payment != "required":
@@ -3863,7 +3896,7 @@ async def estimate_capability(
     if x_rhumb_key:
         agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
         if agent is None:
-            raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
+            return _invalid_governed_api_key_response(raw_request, capability_id=capability_id)
         agent_id = agent.agent_id
     else:
         is_anonymous_estimate = True

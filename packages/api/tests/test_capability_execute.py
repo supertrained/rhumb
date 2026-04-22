@@ -4227,6 +4227,35 @@ async def test_execute_invalid_key_uses_governed_language(app, _mock_identity_st
 
 
 @pytest.mark.anyio
+async def test_execute_invalid_key_surfaces_structured_handoff(app, _mock_identity_store):
+    """Invalid governed keys should still include machine-readable next steps."""
+    _mock_identity_store.verify_api_key_with_agent.return_value = None
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_with_managed_option,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "method": "POST",
+                    "path": "/emails",
+                    "body": {"to": "test@example.com"},
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 401
+    body = resp.json()
+    assert body["detail"] == "Invalid or expired governed API key"
+    assert body["error"] == "invalid_api_key"
+    assert body["execute_url"] == "/v1/capabilities/email.send/execute"
+    assert body["auth_handoff"]["reason"] == "invalid_api_key"
+
+
+@pytest.mark.anyio
 async def test_direct_execute_with_payment_header_still_requires_api_key(app):
     """Direct AUD-18 execute rails should not reinterpret payment headers as x402 auth."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
