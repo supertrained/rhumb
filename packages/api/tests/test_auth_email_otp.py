@@ -803,9 +803,9 @@ def test_me_billing_checkout_confirm_calls_stripe_confirm_service() -> None:
         org_id = user.organization_id
 
         with patch(
-            "routes.auth.confirm_checkout_session",
+            "routes.auth.confirm_checkout_session_detailed",
             new_callable=AsyncMock,
-            return_value=True,
+            return_value={"processed": True, "reason": "credited"},
         ) as mock_confirm:
             resp = env.client.post(
                 "/v1/auth/me/billing/checkout/confirm",
@@ -814,7 +814,7 @@ def test_me_billing_checkout_confirm_calls_stripe_confirm_service() -> None:
             )
 
     assert resp.status_code == 200
-    assert resp.json() == {"processed": True}
+    assert resp.json()["processed"] is True
     assert mock_confirm.await_args.kwargs["expected_org_id"] == org_id
 
 

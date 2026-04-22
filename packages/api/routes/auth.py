@@ -48,7 +48,7 @@ from services.email_otp import (
     get_email_otp_service,
 )
 from services.service_slugs import public_service_slug
-from services.stripe_billing import confirm_checkout_session, create_checkout_session
+from services.stripe_billing import confirm_checkout_session_detailed, create_checkout_session
 
 logger = logging.getLogger(__name__)
 
@@ -946,8 +946,8 @@ async def me_billing_checkout_confirm(
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required")
 
-    processed = await confirm_checkout_session(session_id, expected_org_id=org_id)
-    return JSONResponse({"processed": bool(processed)})
+    result = await confirm_checkout_session_detailed(session_id, expected_org_id=org_id)
+    return JSONResponse(result)
 
 
 @router.put("/me/billing/auto-reload")

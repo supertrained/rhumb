@@ -458,11 +458,12 @@ async def test_confirm_checkout_session_rejects_mismatched_org() -> None:
         patch("stripe.checkout.Session.retrieve", return_value=mock_session),
         patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock) as mock_handle,
     ):
-        from services.stripe_billing import confirm_checkout_session
+        from services.stripe_billing import confirm_checkout_session_detailed
 
-        result = await confirm_checkout_session("cs_test_confirm", expected_org_id="org_expected")
+        result = await confirm_checkout_session_detailed("cs_test_confirm", expected_org_id="org_expected")
 
-    assert result is False
+    assert result["processed"] is False
+    assert result["reason"] == "org_mismatch"
     mock_handle.assert_not_called()
 
 
@@ -483,11 +484,12 @@ async def test_confirm_checkout_session_applies_checkout_when_paid() -> None:
         patch("stripe.checkout.Session.retrieve", return_value=mock_session),
         patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock, return_value=True) as mock_handle,
     ):
-        from services.stripe_billing import confirm_checkout_session
+        from services.stripe_billing import confirm_checkout_session_detailed
 
-        result = await confirm_checkout_session("cs_test_confirm_ok", expected_org_id="org_expected")
+        result = await confirm_checkout_session_detailed("cs_test_confirm_ok", expected_org_id="org_expected")
 
-    assert result is True
+    assert result["processed"] is True
+    assert result["reason"] == "credited"
     called_session = mock_handle.await_args.args[0]
     assert called_session["id"] == "cs_test_confirm_ok"
     assert called_session["payment_intent"] == "pi_test_ok"
