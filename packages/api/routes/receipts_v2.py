@@ -30,7 +30,7 @@ async def get_receipt(receipt_id: str) -> dict[str, Any]:
     receipt = await service.get_receipt(receipt_id)
     if receipt is None:
         raise RhumbError(
-            "CAPABILITY_NOT_FOUND",
+            "RECEIPT_NOT_FOUND",
             message=f"No receipt found with id '{receipt_id}'",
             detail="Check the receipt_id from an execution response, or query receipts at GET /v2/receipts",
         )
@@ -48,7 +48,7 @@ async def get_receipt_explanation(receipt_id: str) -> dict[str, Any]:
     receipt = await service.get_receipt(receipt_id)
     if receipt is None:
         raise RhumbError(
-            "CAPABILITY_NOT_FOUND",
+            "RECEIPT_NOT_FOUND",
             message=f"No receipt found with id '{receipt_id}'",
             detail="Check the receipt_id from an execution response.",
         )

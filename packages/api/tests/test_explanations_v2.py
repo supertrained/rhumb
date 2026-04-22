@@ -93,3 +93,20 @@ def test_get_explanation_canonicalizes_same_provider_alias_text_when_persisted_i
         "Brave Search (brave-search-api) selected over people-data-labs."
     )
     assert "brave-search-api-api" not in body["data"]["human_summary"]
+
+
+def test_get_explanation_not_found_uses_explanation_code():
+    from app import create_app
+
+    client = TestClient(create_app())
+
+    with (
+        patch("routes.explanations_v2.get_explanation", return_value=None),
+        patch("routes.explanations_v2.get_persisted_explanation", new_callable=AsyncMock, return_value=None),
+    ):
+        resp = client.get("/v2/explanations/rexp_missing")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"]["code"] == "EXPLANATION_NOT_FOUND"
+    assert "rexp_missing" in body["error"]["message"]
