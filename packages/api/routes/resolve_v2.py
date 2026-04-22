@@ -960,6 +960,10 @@ async def execute_capability_v2(
     )
 
     estimate_body = _rewrite_navigation_urls(estimate_response.json())
+    estimate_body = _canonicalize_execute_body_provider_fields(
+        estimate_body,
+        provider_slug=preferred_provider,
+    )
     if estimate_response.status_code != 200:
         return JSONResponse(
             status_code=estimate_response.status_code,

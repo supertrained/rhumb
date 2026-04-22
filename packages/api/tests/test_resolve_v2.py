@@ -1022,6 +1022,56 @@ async def test_v2_estimate_canonicalizes_alias_backed_provider_fields_in_failure
 
 
 @pytest.mark.anyio
+async def test_v2_execute_canonicalizes_alias_backed_estimate_failure_payload(app):
+    estimate_resp = MagicMock(spec=httpx.Response)
+    estimate_resp.status_code = 503
+    estimate_resp.json.return_value = {
+        "error": {
+            "code": "NO_PROVIDER_AVAILABLE",
+            "message": "brave-search estimate unavailable",
+            "detail": "Retry brave-search or choose pdl",
+            "requested_provider": "brave-search",
+            "available_providers": ["brave-search", "pdl"],
+            "fallback_provider": "brave-search",
+        }
+    }
+    estimate_resp.headers = {}
+
+    policy_eval = SimpleNamespace(
+        decision=SimpleNamespace(
+            selected_provider="brave-search",
+            selected_reason="policy_pin",
+            candidate_providers=["brave-search"],
+            policy_summary={"pin": "brave-search"},
+        ),
+        all_mappings=[],
+        eligible_mappings=[],
+    )
+
+    with (
+        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byo",
+                    "interface": "rest",
+                },
+            )
+
+    assert resp.status_code == 503
+    error = resp.json()["error"]
+    assert error["message"] == "brave-search-api estimate unavailable"
+    assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
+    assert error["requested_provider"] == "brave-search-api"
+    assert error["available_providers"] == ["brave-search-api", "people-data-labs"]
+    assert error["fallback_provider"] == "brave-search-api"
+
+
+@pytest.mark.anyio
 async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(app):
     estimate_resp = MagicMock(spec=httpx.Response)
     estimate_resp.status_code = 200
