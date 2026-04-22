@@ -10,9 +10,12 @@ Goal: exercise the user-facing onboarding control-plane without admin/operator h
 - first successful execute call using the new key
 
 This is an interactive script (prompts for OTP code + asks you to complete Checkout).
+Use `--preflight-only` to stop after the billing snapshot / checkout-session creation so
+an automated loop can verify the public path up to the true human funding step.
 
 Usage:
   python3 scripts/onboarding_self_serve_smoke.py --email you@example.com
+  python3 scripts/onboarding_self_serve_smoke.py --email you@example.com --preflight-only
 
 Environment:
   RHUMB_API_BASE (optional) defaults to https://api.rhumb.dev
@@ -46,6 +49,8 @@ class SmokeResult:
     email: str
     has_payment_method: bool
     balance_usd: float
+    checkout_url: str | None = None
+    preflight_only: bool = False
     auto_reload_enabled: bool | None = None
     secondary_agent_id: str | None = None
     secondary_api_key_prefix: str | None = None
@@ -120,6 +125,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--otp", help="OTP code (if omitted, you'll be prompted)")
     ap.add_argument("--checkout-amount-usd", type=float, default=DEFAULT_CHECKOUT_AMOUNT_USD)
     ap.add_argument("--skip-checkout", action="store_true", help="Do not create a Stripe Checkout session")
+    ap.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Stop after billing snapshot / checkout session creation instead of waiting for manual funding",
+    )
     ap.add_argument("--poll-seconds", type=int, default=90)
     ap.add_argument("--poll-interval", type=float, default=3.0)
 
@@ -193,6 +203,7 @@ def main() -> int:
     # 4) Checkout (interactive) — saved card truth is not enough; the smoke still
     # needs a funded balance before claiming "funded first call".
     needs_funding = balance <= 0
+    checkout_url: str | None = None
     if not args.skip_checkout and needs_funding:
         with httpx.Client(timeout=timeout, cookies=cookies) as client:
             checkout = client.post(
@@ -207,6 +218,23 @@ def main() -> int:
         checkout_payload = checkout.json() if checkout.headers.get("content-type", "").startswith("application/json") else {}
         checkout_url = checkout_payload.get("checkout_url")
         sys.stdout.write(f"\nOpen Stripe Checkout and complete payment:\n{checkout_url}\n\n")
+
+        if args.preflight_only:
+            result = SmokeResult(
+                api_base=api_base,
+                email=email,
+                has_payment_method=has_payment,
+                balance_usd=balance,
+                checkout_url=checkout_url,
+                preflight_only=True,
+            )
+            if args.json:
+                _print_json(result.__dict__)
+            else:
+                sys.stdout.write("\nSummary:\n")
+                _print_json(result.__dict__)
+            return 0
+
         input("Press Enter after you complete Checkout and return to the dashboard... ")
 
         deadline = time.time() + int(args.poll_seconds)
@@ -225,6 +253,22 @@ def main() -> int:
             raise SystemExit(
                 "Checkout completed but billing is still unfunded; refusing to continue a funded-first-call smoke."
             )
+
+    if args.preflight_only:
+        result = SmokeResult(
+            api_base=api_base,
+            email=email,
+            has_payment_method=has_payment,
+            balance_usd=balance,
+            checkout_url=checkout_url,
+            preflight_only=True,
+        )
+        if args.json:
+            _print_json(result.__dict__)
+        else:
+            sys.stdout.write("\nSummary:\n")
+            _print_json(result.__dict__)
+        return 0
 
     # 5) Enable auto-reload
     auto_reload_enabled: bool | None = None
@@ -322,6 +366,8 @@ def main() -> int:
         email=email,
         has_payment_method=has_payment,
         balance_usd=balance,
+        checkout_url=checkout_url,
+        preflight_only=bool(args.preflight_only),
         auto_reload_enabled=auto_reload_enabled,
         secondary_agent_id=secondary_agent_id,
         secondary_api_key_prefix=secondary_prefix,

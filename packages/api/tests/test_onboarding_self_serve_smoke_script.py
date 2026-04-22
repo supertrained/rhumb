@@ -161,6 +161,41 @@ def test_main_runs_checkout_even_when_saved_card_exists_but_balance_is_zero(monk
     assert execute_call["json"]["body"] == {"query": "Rhumb onboarding smoke test"}
 
 
+def test_main_preflight_only_stops_after_checkout_session_creation(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    factory = FakeClientFactory(
+        [
+            FakeResponse(200, {"data": {"status": "ok"}}),
+            FakeResponse(200, {"data": {"session_token": "sess_test"}}),
+            FakeResponse(200, {"balance_usd": 0.0, "has_payment_method": False}),
+            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test_preflight"}),
+        ]
+    )
+
+    monkeypatch.setattr(onboarding_self_serve_smoke.httpx, "Client", factory)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "onboarding_self_serve_smoke.py",
+            "--email",
+            "journey@example.com",
+            "--otp",
+            "123456",
+            "--preflight-only",
+            "--json",
+        ],
+    )
+
+    assert onboarding_self_serve_smoke.main() == 0
+
+    captured = capsys.readouterr().out
+    assert '"checkout_url": "https://checkout.stripe.com/pay/cs_test_preflight"' in captured
+    assert '"preflight_only": true' in captured
+    assert not any(call["url"].endswith("/v1/auth/me/billing/auto-reload") for call in factory.calls)
+    assert not any(call["url"].endswith("/v1/auth/me/agents") for call in factory.calls)
+    assert not any(call["url"].endswith("/v1/capabilities/search.query/execute") for call in factory.calls)
+
+
 def test_main_refuses_to_continue_when_checkout_does_not_fund_balance(monkeypatch: pytest.MonkeyPatch) -> None:
     factory = FakeClientFactory(
         [
