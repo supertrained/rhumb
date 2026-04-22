@@ -1347,6 +1347,39 @@ class TestExecuteOnProvider:
 
         assert resp.status_code == 402  # BUDGET_EXCEEDED
 
+    def test_execute_rewrites_v1_navigation_urls_in_estimate_failure(self, client):
+        """Layer 1 v2 surface should not leak v1 capability navigation URLs."""
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
+            with patch("routes.providers_v2._forward_internal") as mock_forward:
+                estimate_resp = MagicMock()
+                estimate_resp.status_code = 401
+                estimate_resp.json.return_value = {
+                    "detail": "Invalid or expired governed API key",
+                    "execute_url": f"/v1/capabilities/{_TEST_CAPABILITY}/execute",
+                    "resolve_url": f"/v1/capabilities/{_TEST_CAPABILITY}/resolve",
+                    "credential_modes_url": f"/v1/capabilities/{_TEST_CAPABILITY}/credential-modes",
+                    "auth_handoff": {
+                        "reason": "invalid_api_key",
+                        "retry_url": f"/v1/capabilities/{_TEST_CAPABILITY}/execute",
+                        "paths": [{"kind": "governed_api_key", "setup_url": "/auth/login"}],
+                    },
+                }
+                estimate_resp.headers = {}
+                mock_forward.return_value = estimate_resp
+
+                resp = client.post(
+                    f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute",
+                    json={"capability": _TEST_CAPABILITY, "parameters": {}},
+                )
+
+        assert resp.status_code == 401
+        body = resp.json()
+        assert body["execute_url"] == f"/v2/capabilities/{_TEST_CAPABILITY}/execute"
+        assert body["resolve_url"] == f"/v2/capabilities/{_TEST_CAPABILITY}/resolve"
+        assert body["credential_modes_url"] == f"/v2/capabilities/{_TEST_CAPABILITY}/credential-modes"
+        assert body["auth_handoff"]["retry_url"] == f"/v2/capabilities/{_TEST_CAPABILITY}/execute"
+        assert body["auth_handoff"]["paths"][0]["setup_url"] == "/auth/login"
+
 
 # ---------------------------------------------------------------------------
 # Layer 1 cost calculation
