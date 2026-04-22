@@ -1,8 +1,8 @@
 export const PUBLIC_TRUTH = {
-  services: 1038,
-  servicesLabel: "1,038",
-  capabilities: 415,
-  capabilitiesLabel: "415",
+  services: 999,
+  servicesLabel: "999",
+  capabilities: 435,
+  capabilitiesLabel: "435",
   categories: 92,
   categoriesLabel: "92",
   callableProviders: 16,
@@ -28,7 +28,7 @@ export const PUBLIC_TRUTH = {
   privateDisputeMailto: "mailto:providers@supertrained.ai?subject=Score%20Dispute",
   disputeResponseSlaBusinessDays: 5,
   catalogRealitySummary:
-    "Discovery breadth: 1,038 scored services and 415 capability definitions. Current execution-ready surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
+    "Discovery breadth: 999 scored services and 435 capability definitions. Current execution-ready surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
   callableRealitySummary:
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
   resolveMentalModel: {

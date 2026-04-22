@@ -8,11 +8,19 @@ import type {
   ServiceScoreViewModel,
 } from "./types";
 
-// Supabase direct mode (production) vs Python API mode (local dev)
-// Support both Astro (PUBLIC_*) and legacy Next.js (NEXT_PUBLIC_*) env vars
+// Supabase direct mode (production) vs Python API mode (fallback / local dev)
+// Support both Astro (PUBLIC_*) and legacy Next.js (NEXT_PUBLIC_*) env vars.
 const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL ?? import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
+const RAW_API_BASE =
+  import.meta.env.PUBLIC_API_BASE_URL
+  ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL
+  ?? import.meta.env.PUBLIC_API_URL
+  ?? import.meta.env.NEXT_PUBLIC_API_URL
+  ?? "https://api.rhumb.dev";
+const API_BASE = RAW_API_BASE.endsWith("/v1")
+  ? RAW_API_BASE
+  : `${RAW_API_BASE.replace(/\/$/, "")}/v1`;
 
 const useSupabase = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -381,6 +389,54 @@ async function getServicesFromAPI(): Promise<Service[]> {
   return parseServicesResponse(payload);
 }
 
+async function getServiceCountFromAPI(): Promise<number> {
+  const payload = await fetchPayload("/services?limit=1");
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return 0;
+  }
+
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return 0;
+  }
+
+  const total = (data as { total?: unknown }).total;
+  if (typeof total === "number" && Number.isFinite(total)) {
+    return total;
+  }
+
+  const items = (data as { items?: unknown }).items;
+  return Array.isArray(items) ? items.length : 0;
+}
+
+async function getCategoriesFromAPI(): Promise<CategorySummary[]> {
+  const payload = await fetchPayload("/leaderboard?limit=1");
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return [];
+  }
+
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object" || !("categories" in data)) {
+    return [];
+  }
+
+  const categories = (data as { categories?: unknown }).categories;
+  if (!Array.isArray(categories)) {
+    return [];
+  }
+
+  return categories
+    .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
+    .map((row) => {
+      const slug = typeof row.slug === "string" ? row.slug : null;
+      const rawCount = row.service_count ?? row.serviceCount ?? row.count;
+      const serviceCount = typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : null;
+      if (!slug || serviceCount === null) return null;
+      return { slug, serviceCount };
+    })
+    .filter((row): row is CategorySummary => row !== null);
+}
+
 async function getLeaderboardFromAPI(
   category: string,
   options?: { limit?: number }
@@ -468,13 +524,7 @@ export async function getServiceReviews(
 /** Fetch all categories with service counts. */
 export async function getCategories(): Promise<CategorySummary[]> {
   if (useSupabase) return getCategoriesFromSupabase();
-  // In API mode, derive from services list
-  const services = await getServicesFromAPI();
-  const counts: Record<string, number> = {};
-  for (const s of services) {
-    counts[s.category] = (counts[s.category] ?? 0) + 1;
-  }
-  return Object.entries(counts).map(([slug, serviceCount]) => ({ slug, serviceCount }));
+  return getCategoriesFromAPI();
 }
 
 /** Fetch total number of scored services (services with a score row). */
@@ -486,8 +536,7 @@ export async function getServiceCount(): Promise<number> {
     if (!data) return 0;
     return new Set(data.map((r) => r.service_slug)).size;
   }
-  const services = await getServicesFromAPI();
-  return services.length;
+  return getServiceCountFromAPI();
 }
 
 /** Fetch launch dashboard data from the admin API. */

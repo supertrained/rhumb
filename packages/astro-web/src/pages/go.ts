@@ -1,6 +1,14 @@
 import type { APIRoute } from 'astro';
 
-const API_BASE = import.meta.env.PUBLIC_API_BASE_URL ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/v1";
+const RAW_API_BASE =
+  import.meta.env.PUBLIC_API_BASE_URL
+  ?? import.meta.env.NEXT_PUBLIC_API_BASE_URL
+  ?? import.meta.env.PUBLIC_API_URL
+  ?? import.meta.env.NEXT_PUBLIC_API_URL
+  ?? "https://api.rhumb.dev";
+const API_BASE = RAW_API_BASE.endsWith('/v1')
+  ? RAW_API_BASE
+  : `${RAW_API_BASE.replace(/\/$/, '')}/v1`;
 const TRACKING_TIMEOUT_MS = 800;
 const ALLOWED_EVENTS = new Set([
   "provider_click",

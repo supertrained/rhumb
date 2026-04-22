@@ -22,6 +22,22 @@ function asNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const parsed = asString(value);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
+function firstNumber(...values: unknown[]): number | null {
+  for (const value of values) {
+    const parsed = asNumber(value);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
 function asItems(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) {
     return [];
@@ -69,7 +85,7 @@ export function parseServicesResponse(payload: unknown): Service[] {
 }
 
 function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | null {
-  const serviceSlug = asString(item.service_slug);
+  const serviceSlug = firstString(item.service_slug, item.slug);
   if (!serviceSlug) {
     return null;
   }
@@ -77,16 +93,16 @@ function parseLeaderboardItem(item: Record<string, unknown>): LeaderboardItem | 
   return {
     serviceSlug,
     name: asString(item.name) ?? serviceSlug,
-    aggregateRecommendationScore: asNumber(item.aggregate_recommendation_score),
+    aggregateRecommendationScore: firstNumber(item.aggregate_recommendation_score, item.an_score, item.score),
     executionScore: asNumber(item.execution_score),
-    accessReadinessScore: asNumber(item.access_readiness_score),
-    freshness: asString(item.probe_freshness) ?? asString(item.freshness),
+    accessReadinessScore: firstNumber(item.access_readiness_score, item.access_score),
+    freshness: firstString(item.probe_freshness, item.freshness),
     calculatedAt: asString(item.calculated_at),
     tier: asString(item.tier),
     confidence: asNumber(item.confidence),
-    p1Score: asNumber(item.p1_score),
-    g1Score: asNumber(item.g1_score),
-    w1Score: asNumber(item.w1_score),
+    p1Score: firstNumber(item.p1_score, item.payment_autonomy),
+    g1Score: firstNumber(item.g1_score, item.governance_readiness),
+    w1Score: firstNumber(item.w1_score, item.web_accessibility),
     evidenceTier: (asString(item.evidence_tier) as EvidenceTier) ?? "assessed",
     evidenceCount: asNumber(item.evidence_count) ?? 0,
   };
@@ -106,14 +122,20 @@ export function parseLeaderboardResponse(payload: unknown): LeaderboardViewModel
 }
 
 function parseFailureMode(item: Record<string, unknown>): ServiceFailureMode | null {
-  const summary = asString(item.summary);
+  const summary = firstString(item.summary, item.pattern, item.title);
   if (!summary) {
     return null;
   }
 
   return {
     id: asString(item.id),
-    summary
+    summary,
+    description: firstString(item.description, item.impact),
+    severity: asString(item.severity),
+    frequency: asString(item.frequency),
+    agentImpact: asString(item.agent_impact) ?? asString(item.impact),
+    workaround: asString(item.workaround),
+    category: asString(item.category),
   };
 }
 
@@ -129,11 +151,16 @@ function parseAlternative(item: Record<string, unknown>): ServiceAlternative | n
   };
 }
 
-function parseEvidenceFreshness(snapshot: Record<string, unknown>): string | null {
+function parseEvidenceFreshness(snapshot: Record<string, unknown>, payload?: Record<string, unknown>): string | null {
   return (
-    asString(snapshot.probe_freshness) ??
-    asString(snapshot.freshness) ??
-    asString(snapshot.evidence_freshness)
+    firstString(
+      snapshot.probe_freshness,
+      snapshot.freshness,
+      snapshot.evidence_freshness,
+      payload?.probe_freshness,
+      payload?.freshness,
+      payload?.evidence_freshness,
+    )
   );
 }
 
@@ -171,33 +198,46 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
   }
 
   const snapshot = isRecord(payload.dimension_snapshot) ? payload.dimension_snapshot : {};
-  const activeFailures = asItems(snapshot.active_failures)
+  const failureSource = asItems(snapshot.active_failures).length > 0
+    ? snapshot.active_failures
+    : payload.failure_modes;
+  const activeFailures = asItems(failureSource)
     .map((item) => parseFailureMode(item))
     .filter((item): item is ServiceFailureMode => item !== null);
-  const alternatives = asItems(snapshot.alternatives)
+  const alternatives = asItems(snapshot.alternatives ?? payload.alternatives)
     .map((item) => parseAlternative(item))
     .filter((item): item is ServiceAlternative => item !== null);
 
+  const autonomyTier = firstString(payload.autonomy_tier)
+    ?? (() => {
+      const autonomyScore = firstNumber(payload.autonomy_score, snapshot.autonomy_score);
+      if (autonomyScore === null) return null;
+      if (autonomyScore >= 7.5) return "L4";
+      if (autonomyScore >= 6.0) return "L3";
+      if (autonomyScore >= 5.0) return "L2";
+      return "L1";
+    })();
+
   return {
     serviceSlug,
-    aggregateRecommendationScore: asNumber(payload.aggregate_recommendation_score),
+    aggregateRecommendationScore: firstNumber(payload.aggregate_recommendation_score, payload.an_score, payload.score),
     executionScore: asNumber(payload.execution_score),
-    accessReadinessScore: asNumber(payload.access_readiness_score),
+    accessReadinessScore: firstNumber(payload.access_readiness_score, payload.access_score),
     confidence: asNumber(payload.confidence),
     tier: asString(payload.tier),
     tierLabel: asString(payload.tier_label),
     explanation: asString(payload.explanation),
     calculatedAt: asString(payload.calculated_at),
-    evidenceFreshness: parseEvidenceFreshness(snapshot) ?? asString(payload.probe_freshness),
+    evidenceFreshness: parseEvidenceFreshness(snapshot, payload),
     activeFailures,
     alternatives,
-    p1Score: asNumber(payload.p1_score),
-    g1Score: asNumber(payload.g1_score),
-    w1Score: asNumber(payload.w1_score),
-    p1Rationale: asString(payload.p1_rationale),
-    g1Rationale: asString(payload.g1_rationale),
-    w1Rationale: asString(payload.w1_rationale),
-    autonomyTier: asString(payload.autonomy_tier),
+    p1Score: firstNumber(payload.p1_score, payload.payment_autonomy),
+    g1Score: firstNumber(payload.g1_score, payload.governance_readiness),
+    w1Score: firstNumber(payload.w1_score, payload.web_accessibility),
+    p1Rationale: firstString(payload.p1_rationale, isRecord(payload.autonomy) ? payload.autonomy.p1_rationale : null),
+    g1Rationale: firstString(payload.g1_rationale, isRecord(payload.autonomy) ? payload.autonomy.g1_rationale : null),
+    w1Rationale: firstString(payload.w1_rationale, isRecord(payload.autonomy) ? payload.autonomy.w1_rationale : null),
+    autonomyTier,
     baseUrl: asString(payload.base_url),
     docsUrl: asString(payload.docs_url),
     openapiUrl: asString(payload.openapi_url),
@@ -205,7 +245,7 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     evidenceTier: (asString(payload.evidence_tier) as EvidenceTier) ?? "assessed",
     evidenceTierLabel: asString(payload.evidence_tier_label) ?? "Assessed",
     evidenceCount: asNumber(payload.evidence_count) ?? 0,
-    lastEvaluated: asString(payload.last_evaluated) ?? asString(payload.calculated_at),
+    lastEvaluated: firstString(payload.last_evaluated, payload.calculated_at),
   };
 }
 
