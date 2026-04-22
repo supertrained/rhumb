@@ -118,11 +118,19 @@ def _build_search_query_body(query: str, *, provider: str) -> dict[str, Any]:
     return {"q": query}
 
 
+def _confirm(prompt: str, *, assume_yes: bool) -> bool:
+    if assume_yes:
+        return True
+    answer = input(f"{prompt} [y/N]: ").strip().lower()
+    return answer in {"y", "yes"}
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--api-base", default=_env("RHUMB_API_BASE", DEFAULT_API_BASE))
     ap.add_argument("--email", required=True)
     ap.add_argument("--otp", help="OTP code (if omitted, you'll be prompted)")
+    ap.add_argument("--yes", action="store_true", help="Assume yes for confirmation prompts")
     ap.add_argument("--checkout-amount-usd", type=float, default=DEFAULT_CHECKOUT_AMOUNT_USD)
     ap.add_argument("--skip-checkout", action="store_true", help="Do not create a Stripe Checkout session")
     ap.add_argument(
@@ -200,41 +208,39 @@ def main() -> int:
     has_payment = bool(billing_data.get("has_payment_method"))
     balance = float(billing_data.get("balance_usd") or 0.0)
 
-    # 4) Checkout (interactive) — saved card truth is not enough; the smoke still
-    # needs a funded balance before claiming "funded first call".
+    # 4) Checkout (interactive) — for the funded-first-call smoke we require a funded balance.
     needs_funding = balance <= 0
     checkout_url: str | None = None
+
     if not args.skip_checkout and needs_funding:
-        with httpx.Client(timeout=timeout, cookies=cookies) as client:
-            checkout = client.post(
-                f"{api_base}/v1/auth/me/billing/checkout",
-                json={"amount_usd": float(args.checkout_amount_usd)},
-            )
-        if checkout.status_code != 200:
-            raise SystemExit(
-                f"/v1/auth/me/billing/checkout failed: HTTP {checkout.status_code}: {checkout.text[:300]}"
-            )
+        if _confirm(
+            f"Create a Stripe Checkout session for ${float(args.checkout_amount_usd):.2f}?",
+            assume_yes=bool(args.yes),
+        ):
+            with httpx.Client(timeout=timeout, cookies=cookies) as client:
+                checkout = client.post(
+                    f"{api_base}/v1/auth/me/billing/checkout",
+                    json={"amount_usd": float(args.checkout_amount_usd)},
+                )
+            if checkout.status_code != 200:
+                raise SystemExit(
+                    f"/v1/auth/me/billing/checkout failed: HTTP {checkout.status_code}: {checkout.text[:300]}"
+                )
 
-        checkout_payload = checkout.json() if checkout.headers.get("content-type", "").startswith("application/json") else {}
-        checkout_url = checkout_payload.get("checkout_url")
-        sys.stdout.write(f"\nOpen Stripe Checkout and complete payment:\n{checkout_url}\n\n")
-
-        if args.preflight_only:
-            result = SmokeResult(
-                api_base=api_base,
-                email=email,
-                has_payment_method=has_payment,
-                balance_usd=balance,
-                checkout_url=checkout_url,
-                preflight_only=True,
+            checkout_payload = (
+                checkout.json()
+                if checkout.headers.get("content-type", "").startswith("application/json")
+                else {}
             )
-            if args.json:
-                _print_json(result.__dict__)
-            else:
-                sys.stdout.write("\nSummary:\n")
-                _print_json(result.__dict__)
-            return 0
+            checkout_url = checkout_payload.get("checkout_url")
+            sys.stdout.write(f"\nOpen Stripe Checkout and complete payment:\n{checkout_url}\n\n")
+        else:
+            args.skip_checkout = True
 
+    if needs_funding and not args.preflight_only and not checkout_url:
+        raise SystemExit("Billing is unfunded; run again with checkout enabled to fund before first call.")
+
+    if needs_funding and not args.preflight_only and checkout_url:
         input("Press Enter after you complete Checkout and return to the dashboard... ")
 
         deadline = time.time() + int(args.poll_seconds)
@@ -273,27 +279,44 @@ def main() -> int:
     # 5) Enable auto-reload
     auto_reload_enabled: bool | None = None
     if args.enable_auto_reload:
-        with httpx.Client(timeout=timeout, cookies=cookies) as client:
-            resp = client.put(
-                f"{api_base}/v1/auth/me/billing/auto-reload",
-                json={
-                    "enabled": True,
-                    "threshold_usd": float(args.auto_reload_threshold_usd),
-                    "amount_usd": float(args.auto_reload_amount_usd),
-                },
-            )
-        if resp.status_code != 200:
-            raise SystemExit(
-                f"/v1/auth/me/billing/auto-reload failed: HTTP {resp.status_code}: {resp.text[:300]}"
-            )
-        auto_reload_enabled = bool(resp.json().get("auto_reload_enabled"))
+        if not has_payment:
+            sys.stdout.write("Skipping auto-reload (no saved payment method yet).\n")
+        elif _confirm(
+            (
+                "Enable auto-reload "
+                f"(threshold ${float(args.auto_reload_threshold_usd):.2f}, "
+                f"amount ${float(args.auto_reload_amount_usd):.2f})?"
+            ),
+            assume_yes=bool(args.yes),
+        ):
+            with httpx.Client(timeout=timeout, cookies=cookies) as client:
+                resp = client.put(
+                    f"{api_base}/v1/auth/me/billing/auto-reload",
+                    json={
+                        "enabled": True,
+                        "threshold_usd": float(args.auto_reload_threshold_usd),
+                        "amount_usd": float(args.auto_reload_amount_usd),
+                    },
+                )
+            if resp.status_code != 200:
+                raise SystemExit(
+                    f"/v1/auth/me/billing/auto-reload failed: HTTP {resp.status_code}: {resp.text[:300]}"
+                )
+            auto_reload_enabled = bool(resp.json().get("auto_reload_enabled"))
 
     secondary_agent_id: str | None = None
     secondary_key: str | None = None
     secondary_prefix: str | None = None
 
     # 6) Create a secondary agent key
-    if args.create_secondary:
+    if args.create_secondary and _confirm(
+        (
+            "Create a secondary agent key "
+            f"(budget ${float(args.secondary_budget_usd):.2f}/month, "
+            f"rate limit {int(args.secondary_rate_limit_qpm)} qpm)?"
+        ),
+        assume_yes=bool(args.yes),
+    ):
         with httpx.Client(timeout=timeout, cookies=cookies) as client:
             resp = client.post(
                 f"{api_base}/v1/auth/me/agents",
@@ -324,7 +347,10 @@ def main() -> int:
 
     # 7) First successful call
     first_call_ok: bool | None = None
-    if args.first_call and secondary_key:
+    if args.first_call and secondary_key and _confirm(
+        "Run a first paid execute call using the new key?",
+        assume_yes=bool(args.yes),
+    ):
         capability = str(args.first_call_capability)
 
         with httpx.Client(timeout=timeout) as client:

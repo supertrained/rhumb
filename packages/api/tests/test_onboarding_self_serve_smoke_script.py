@@ -93,6 +93,10 @@ def test_pick_preferred_provider_falls_back_to_first_provider() -> None:
     assert onboarding_self_serve_smoke._pick_preferred_provider(payload) == "brave-search-api"
 
 
+def test_confirm_assume_yes_short_circuits() -> None:
+    assert onboarding_self_serve_smoke._confirm("anything", assume_yes=True) is True
+
+
 def test_build_search_query_body_defaults_to_q() -> None:
     body = onboarding_self_serve_smoke._build_search_query_body("hello", provider="unknown")
     assert body == {"q": "hello"}
@@ -143,6 +147,7 @@ def test_main_runs_checkout_even_when_saved_card_exists_but_balance_is_zero(monk
             "journey@example.com",
             "--otp",
             "123456",
+            "--yes",
             "--json",
         ],
     )
@@ -181,6 +186,7 @@ def test_main_preflight_only_stops_after_checkout_session_creation(monkeypatch: 
             "journey@example.com",
             "--otp",
             "123456",
+            "--yes",
             "--preflight-only",
             "--json",
         ],
@@ -222,6 +228,7 @@ def test_main_refuses_to_continue_when_checkout_does_not_fund_balance(monkeypatc
             "journey@example.com",
             "--otp",
             "123456",
+            "--yes",
             "--poll-seconds",
             "1",
             "--poll-interval",
