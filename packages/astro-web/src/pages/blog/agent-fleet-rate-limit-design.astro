@@ -238,6 +238,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="runtime-budget-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Runtime budget follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Quota discipline only works when token burn is visible and authority stays narrow
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            A 429 storm usually starts earlier: oversized tool output, repeated intermediate chatter, or a loop that can see more authority than the task actually needs. These follow-on pages keep the rate-limit story anchored to spend attribution, session evidence, and tighter tool boundaries.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">MCP Observability</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why token burn, side effects, and retry safety only become governable once the trace shows who spent what and where the loop degraded.</p>
+            </a>
+            <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Shared budget incidents get smaller when one noisy workflow cannot inherit a broader tool surface than it needs.</p>
+            </a>
+            <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Identity vs Authority</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Quota failures are easier to contain when the trace can separate who authenticated from which tenant-scoped authority actually acted.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">
