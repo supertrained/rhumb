@@ -4178,6 +4178,10 @@ async def test_direct_execute_get_with_api_key_returns_post_only_guidance(app):
     assert body["execute_url"] == "/v1/capabilities/crm.object.describe/execute"
     assert body["resolve_url"] == "/v1/capabilities/crm.object.describe/resolve"
     assert body["credential_modes_url"] == "/v1/capabilities/crm.object.describe/credential-modes"
+    assert body["auth_handoff"]["reason"] == "post_required"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
 
 
 @pytest.mark.anyio

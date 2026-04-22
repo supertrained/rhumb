@@ -405,6 +405,11 @@ def _direct_execute_get_not_supported_response(
             "execute_url": execute_url,
             "resolve_url": _capability_resolve_url(capability_id),
             "credential_modes_url": _capability_credential_modes_url(capability_id),
+            "auth_handoff": _execute_auth_handoff(
+                capability_id,
+                supported_paths=("governed_api_key",),
+                reason="post_required",
+            ),
         },
     )
 
