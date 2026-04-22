@@ -362,6 +362,7 @@ def _direct_execute_auth_required_response(
 ) -> JSONResponse:
     """Return a structured auth handoff for direct execute rails that require API keys."""
     request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
     return JSONResponse(
         status_code=401,
         content={
@@ -373,6 +374,7 @@ def _direct_execute_auth_required_response(
                 "to inspect the current preferred rail."
             ),
             "request_id": request_id,
+            "execute_url": execute_url,
             "resolve_url": _capability_resolve_url(capability_id),
             "credential_modes_url": _capability_credential_modes_url(capability_id),
             "auth_handoff": _execute_auth_handoff(
@@ -394,6 +396,7 @@ def _direct_execute_get_not_supported_response(
     execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
     return JSONResponse(
         status_code=405,
+        headers={"Allow": "POST"},
         content={
             "error": "method_not_allowed",
             "message": "Direct capability execute discovery is POST-only after API-key auth.",
@@ -405,6 +408,11 @@ def _direct_execute_get_not_supported_response(
             "execute_url": execute_url,
             "resolve_url": _capability_resolve_url(capability_id),
             "credential_modes_url": _capability_credential_modes_url(capability_id),
+            "auth_handoff": _execute_auth_handoff(
+                capability_id,
+                supported_paths=("governed_api_key",),
+                reason="post_required",
+            ),
         },
     )
 
@@ -414,6 +422,7 @@ def _direct_execute_estimate_readiness(capability_id: str) -> dict[str, Any] | N
     detail = _direct_execute_auth_detail(capability_id)
     if detail is None:
         return None
+    execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
     return {
         "status": "auth_required",
         "message": detail,
@@ -422,6 +431,7 @@ def _direct_execute_estimate_readiness(capability_id: str) -> dict[str, Any] | N
             "this execute call with X-Rhumb-Key. Use resolve first if you need "
             "to inspect the current preferred rail."
         ),
+        "execute_url": execute_url,
         "resolve_url": _capability_resolve_url(capability_id),
         "credential_modes_url": _capability_credential_modes_url(capability_id),
         "auth_handoff": _execute_auth_handoff(

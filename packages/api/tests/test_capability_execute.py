@@ -4156,6 +4156,7 @@ async def test_direct_execute_get_requires_api_key_handoff(app, capability_id, m
     body = resp.json()
     assert body["error"] == "authentication_required"
     assert body["message"] == message
+    assert body["execute_url"] == f"/v1/capabilities/{capability_id}/execute"
     assert body["auth_handoff"]["reason"] == "auth_required"
     assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
     auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
@@ -4173,11 +4174,16 @@ async def test_direct_execute_get_with_api_key_returns_post_only_guidance(app):
 
     assert resp.status_code == 405
     assert "x-payment" not in resp.headers
+    assert resp.headers.get("allow") == "POST"
     body = resp.json()
     assert body["error"] == "method_not_allowed"
     assert body["execute_url"] == "/v1/capabilities/crm.object.describe/execute"
     assert body["resolve_url"] == "/v1/capabilities/crm.object.describe/resolve"
     assert body["credential_modes_url"] == "/v1/capabilities/crm.object.describe/credential-modes"
+    assert body["auth_handoff"]["reason"] == "post_required"
+    assert body["auth_handoff"]["recommended_path"] == "governed_api_key"
+    auth_paths = {item["kind"]: item for item in body["auth_handoff"]["paths"]}
+    assert set(auth_paths) == {"governed_api_key"}
 
 
 @pytest.mark.anyio
