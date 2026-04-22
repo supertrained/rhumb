@@ -10,6 +10,7 @@ from typing import Any, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import stripe
 from fastapi.testclient import TestClient
 
 from app import app as _shared_app
@@ -427,6 +428,35 @@ async def test_handle_checkout_completed_persists_payment_method() -> None:
 
     assert result is True
     assert mock_patch.call_args[0][1]["stripe_payment_method_id"] == "pm_saved_123"
+
+
+@pytest.mark.anyio
+async def test_handle_checkout_completed_accepts_stripe_object() -> None:
+    """Should accept Stripe SDK objects from real webhook events."""
+    session = stripe.checkout.Session.construct_from({
+        "id": "cs_test_obj_1",
+        "payment_intent": "pi_test_obj_1",
+        "metadata": {"org_id": "org_obj", "amount_cents": "500"},
+    }, key="sk_test_123")
+
+    with (
+        patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get,
+        patch("services.stripe_billing._sb_post", new_callable=AsyncMock) as mock_post,
+        patch("services.stripe_billing._sb_patch", new_callable=AsyncMock) as mock_patch,
+        patch("services.stripe_billing._lookup_payment_method_id", new_callable=AsyncMock) as mock_lookup,
+    ):
+        mock_get.side_effect = [[], [{"balance_usd_cents": 0}]]
+        mock_patch.return_value = True
+        mock_post.return_value = [{}]
+        mock_lookup.return_value = None
+
+        from services.stripe_billing import handle_checkout_completed
+        result = await handle_checkout_completed(session)
+
+    assert result is True
+    ledger_payload = mock_post.call_args[0][1]
+    assert ledger_payload["stripe_checkout_session_id"] == "cs_test_obj_1"
+    assert ledger_payload["amount_usd_cents"] == 500
 
 
 @pytest.mark.anyio

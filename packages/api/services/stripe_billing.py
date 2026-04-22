@@ -370,16 +370,17 @@ async def create_payment_intent(
 # ── Webhook handler ──────────────────────────────────────────────────
 
 
-async def handle_checkout_completed(session: dict[str, Any]) -> bool:
+async def handle_checkout_completed(session: dict[str, Any] | Any) -> bool:
     """Process a completed checkout: credit the org and write a ledger entry.
 
     Returns True if credits were applied, False if skipped (idempotent).
     """
-    session_id = session.get("id", "")
-    metadata = session.get("metadata", {})
+    session_data = _stripe_to_dict(session)
+    session_id = session_data.get("id", "")
+    metadata = _stripe_to_dict(session_data.get("metadata"))
     org_id = metadata.get("org_id")
     amount_cents = int(metadata.get("amount_cents", 0))
-    payment_intent_id = session.get("payment_intent")
+    payment_intent_id = session_data.get("payment_intent")
     payment_method_id = await _lookup_payment_method_id(payment_intent_id)
 
     if not org_id or amount_cents <= 0:
