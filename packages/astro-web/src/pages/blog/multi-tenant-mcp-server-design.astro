@@ -62,7 +62,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-22T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure.",
@@ -191,7 +191,7 @@ const ARTICLE_JSON_LD = {
               <div>
                 <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">Tool-level authorization</h3>
                 <p>
-                  Not every tenant should see every tool. A tenant-specific manifest makes blast radius explicit and removes authority the model should never be able to discover through planning, hallucination, or prompt injection.
+                  Not every tenant should see every tool. A tenant-specific manifest makes blast radius explicit and removes authority the model should never be able to discover through planning, hallucination, or prompt injection. That is the same boundary described in <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a>: the safest shared tool is the one the wrong tenant never sees.
                 </p>
               </div>
               <div>

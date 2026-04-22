@@ -51,7 +51,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-21T00:00:00Z",
+  dateModified: "2026-04-22T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -140,7 +140,7 @@ const ARTICLE_JSON_LD = {
           A safe server needs scoped identity per caller or per tenant, then scoped credentials that match the smallest intended lane.
         </p>
         <p class="text-slate-400 leading-relaxed mb-4">
-          If a low-trust research agent can inherit the same authority as a deploy workflow, you do not have a principal model. You have a single shared blast radius.
+          If a low-trust research agent can inherit the same authority as a deploy workflow, you do not have a principal model. You have a single shared blast radius. In shared runtimes, that same mistake becomes a <a href="/blog/multi-tenant-mcp-server-design" class="text-amber hover:text-amber-200 transition-colors">multi-tenant containment problem</a>, because one caller can now inherit another tenant's effective authority.
         </p>
 
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">3. Evidence turns policy into control</h2>
@@ -215,7 +215,7 @@ const ARTICLE_JSON_LD = {
           <p class="text-slate-300 leading-relaxed mb-5">
             If you want the longer operator playbook, start with these.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Auth, scope constraints, tenant isolation, governors, recovery, and auditability in one operator checklist.</p>
@@ -223,6 +223,10 @@ const ARTICLE_JSON_LD = {
             <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Identity vs Authority</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Why remote auth proves who connected, but not which tools and backend credentials should stay in scope.</p>
+            </a>
+            <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Servers</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Where principals, credentials, tool visibility, and session state either hold tenant boundaries or collapse them.</p>
             </a>
             <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Governed Capability Surfaces</div>

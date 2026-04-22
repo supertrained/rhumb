@@ -79,6 +79,16 @@ const RELATED_READING = [
     description: "Why auth is only the front door, and why real readiness depends on discovery scope, backend authority, and typed denials after the remote hop.",
   },
   {
+    href: "/blog/tool-level-permission-scoping-mcp",
+    title: "Tool-Level Permission Scoping in MCP",
+    description: "Why authenticated should not mean every tool, and why discovery-layer least privilege is part of remote readiness.",
+  },
+  {
+    href: "/blog/multi-tenant-mcp-server-design",
+    title: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
+    description: "How tenant-scoped credentials, manifests, quotas, and session state decide whether shared remote MCP is containable.",
+  },
+  {
     href: "/blog/agent-fleet-rate-limit-design",
     title: "Designing Agent Fleets That Survive Rate Limits",
     description: "What production governors, retry budgets, and recovery discipline look like once multiple agents are live.",
@@ -125,7 +135,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-22T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -229,7 +239,7 @@ const ARTICLE_JSON_LD = {
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
-                “Supports auth” is not enough. The questions that matter are whether each caller maps cleanly to a principal, whether scopes are narrow enough to reason about, whether credentials can be provisioned and rotated without human glue, and whether auth failures are machine-readable.
+                “Supports auth” is not enough. The questions that matter are whether each caller maps cleanly to a principal, whether scopes are narrow enough to reason about, whether credentials can be provisioned and rotated without human glue, and whether auth failures are machine-readable. That is also why <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber-200 transition-colors">identity and authority have to stay separate after the handshake</a>, not just look clean at login time.
               </p>
               <p>
                 A surprising amount of remote tooling still treats authentication like packaging instead of infrastructure. That is how you end up with one shared API key, vague 401s, and no way for an agent to distinguish expiry, revocation, and insufficient scope safely.
@@ -249,7 +259,7 @@ const ARTICLE_JSON_LD = {
                 When people describe prompt injection or indirect instruction risk in remote MCP, the root problem is often not mystical model behavior. It is that the tool surface is too permissive. Broad, underspecified string inputs can turn the wrong plan into filesystem writes, repo changes, browser navigation, or hidden egress with very little friction.
               </p>
               <p>
-                A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution.
+                A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution. In practice, that is a <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a> problem as much as a schema-design problem.
               </p>
               <p>
                 That becomes much easier to evaluate when you use the plain production frame from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: scope is the boundary, principals define whose authority is active, and evidence determines whether the operator can verify the outcome.
@@ -266,7 +276,7 @@ const ARTICLE_JSON_LD = {
                 The moment remote MCP is used by teams, platforms, or customer-facing agents, multi-tenancy stops being an edge case. The real questions become whose data this agent can see, whether one tenant can affect another tenant's rate budget or failure mode, and whether audit trails stay principal-aware.
               </p>
               <p>
-                “One server per tenant” can be a reasonable safety tactic, but if that is the whole story, you do not have a mature shared-runtime model yet. You have deployment sprawl standing in for authorization design.
+                “One server per tenant” can be a reasonable safety tactic, but if that is the whole story, you do not have a mature shared-runtime model yet. You have deployment sprawl standing in for authorization design. The harder production question is whether <a href="/blog/multi-tenant-mcp-server-design" class="text-amber hover:text-amber-200 transition-colors">credentials, manifests, resources, and session state stay tenant-aware</a> once many agents share the same runtime.
               </p>
             </div>
           </section>
