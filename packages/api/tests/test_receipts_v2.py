@@ -25,8 +25,8 @@ def test_get_receipt_not_found(client):
         resp = client.get("/v2/receipts/rcpt_nonexistent")
         assert resp.status_code == 404
         body = resp.json()
-        # FastAPI serializes HTTPException detail — check for the error message
-        assert "rcpt_nonexistent" in str(body)
+        assert body["error"]["code"] == "RECEIPT_NOT_FOUND"
+        assert "rcpt_nonexistent" in body["error"]["message"]
 
 
 def test_get_receipt_found(client):

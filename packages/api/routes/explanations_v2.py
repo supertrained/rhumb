@@ -28,7 +28,7 @@ async def get_route_explanation(explanation_id: str) -> dict[str, Any]:
         explanation = await get_persisted_explanation(explanation_id)
     if explanation is None:
         raise RhumbError(
-            "CAPABILITY_NOT_FOUND",
+            "EXPLANATION_NOT_FOUND",
             message=f"Explanation '{explanation_id}' not found.",
             detail=(
                 "Explanations are stored in-memory and may expire. "

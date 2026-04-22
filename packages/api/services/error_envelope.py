@@ -85,6 +85,20 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         retryable=False,
         description="Recipe ID does not exist",
     ),
+    "RECEIPT_NOT_FOUND": ErrorCodeDef(
+        code="RECEIPT_NOT_FOUND",
+        category=ErrorCategory.CLIENT,
+        http_status=404,
+        retryable=False,
+        description="Receipt ID does not exist",
+    ),
+    "EXPLANATION_NOT_FOUND": ErrorCodeDef(
+        code="EXPLANATION_NOT_FOUND",
+        category=ErrorCategory.CLIENT,
+        http_status=404,
+        retryable=False,
+        description="Explanation ID does not exist",
+    ),
     "CREDENTIAL_INVALID": ErrorCodeDef(
         code="CREDENTIAL_INVALID",
         category=ErrorCategory.AUTH,
