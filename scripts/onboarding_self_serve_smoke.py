@@ -50,6 +50,7 @@ class SmokeResult:
     has_payment_method: bool
     balance_usd: float
     checkout_url: str | None = None
+    checkout_session_id: str | None = None
     preflight_only: bool = False
     auto_reload_enabled: bool | None = None
     secondary_agent_id: str | None = None
@@ -211,6 +212,7 @@ def main() -> int:
     # 4) Checkout (interactive) — for the funded-first-call smoke we require a funded balance.
     needs_funding = balance <= 0
     checkout_url: str | None = None
+    checkout_session_id: str | None = None
 
     if not args.skip_checkout and needs_funding:
         if _confirm(
@@ -233,6 +235,7 @@ def main() -> int:
                 else {}
             )
             checkout_url = checkout_payload.get("checkout_url")
+            checkout_session_id = checkout_payload.get("session_id")
             sys.stdout.write(f"\nOpen Stripe Checkout and complete payment:\n{checkout_url}\n\n")
         else:
             args.skip_checkout = True
@@ -242,6 +245,17 @@ def main() -> int:
 
     if needs_funding and not args.preflight_only and checkout_url:
         input("Press Enter after you complete Checkout and return to the dashboard... ")
+
+        if checkout_session_id:
+            with httpx.Client(timeout=timeout, cookies=cookies) as client:
+                confirm = client.post(
+                    f"{api_base}/v1/auth/me/billing/checkout/confirm",
+                    json={"session_id": checkout_session_id},
+                )
+            if confirm.status_code != 200:
+                sys.stdout.write(
+                    "Checkout confirmation call did not succeed; continuing to poll billing truth.\n"
+                )
 
         deadline = time.time() + int(args.poll_seconds)
         while time.time() < deadline:
@@ -267,6 +281,7 @@ def main() -> int:
             has_payment_method=has_payment,
             balance_usd=balance,
             checkout_url=checkout_url,
+            checkout_session_id=checkout_session_id,
             preflight_only=True,
         )
         if args.json:
@@ -393,6 +408,7 @@ def main() -> int:
         has_payment_method=has_payment,
         balance_usd=balance,
         checkout_url=checkout_url,
+        checkout_session_id=checkout_session_id,
         preflight_only=bool(args.preflight_only),
         auto_reload_enabled=auto_reload_enabled,
         secondary_agent_id=secondary_agent_id,

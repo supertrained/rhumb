@@ -778,8 +778,44 @@ def test_me_billing_checkout_creates_dashboard_checkout_session() -> None:
     assert checkout_response.status_code == 200
     assert checkout_response.json()["session_id"] == "cs_test_dashboard"
     assert mock_checkout.await_args.kwargs["amount_cents"] == 2500
-    assert mock_checkout.await_args.kwargs["success_url"].endswith("/dashboard?checkout=success")
+    assert mock_checkout.await_args.kwargs["success_url"].endswith(
+        "/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+    )
     assert mock_checkout.await_args.kwargs["cancel_url"].endswith("/dashboard?checkout=cancel")
+
+
+def test_me_billing_checkout_confirm_calls_stripe_confirm_service() -> None:
+    with _auth_email_harness() as env:
+        env.client.post(
+            "/v1/auth/email/request-code",
+            json={"email": "checkout-confirm@example.com"},
+            headers={"x-forwarded-for": "203.0.113.23"},
+        )
+        code = str(env.sender.calls[-1]["code"])
+        verify_response = env.client.post(
+            "/v1/auth/email/verify-code",
+            json={"email": "checkout-confirm@example.com", "code": code},
+            headers={"x-forwarded-for": "203.0.113.23"},
+        )
+
+        user = _run(env.user_store.find_by_email("checkout-confirm@example.com"))
+        assert user is not None
+        org_id = user.organization_id
+
+        with patch(
+            "routes.auth.confirm_checkout_session",
+            new_callable=AsyncMock,
+            return_value=True,
+        ) as mock_confirm:
+            resp = env.client.post(
+                "/v1/auth/me/billing/checkout/confirm",
+                json={"session_id": "cs_test_confirm"},
+                cookies={"rhumb_session": verify_response.json()["data"]["session_token"]},
+            )
+
+    assert resp.status_code == 200
+    assert resp.json() == {"processed": True}
+    assert mock_confirm.await_args.kwargs["expected_org_id"] == org_id
 
 
 def test_me_billing_auto_reload_requires_saved_payment_method() -> None:

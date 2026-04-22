@@ -118,7 +118,8 @@ def test_main_runs_checkout_even_when_saved_card_exists_but_balance_is_zero(monk
             FakeResponse(200, {"data": {"status": "ok"}}),
             FakeResponse(200, {"data": {"session_token": "sess_test"}}),
             FakeResponse(200, {"balance_usd": 0.0, "has_payment_method": True}),
-            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test"}),
+            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test", "session_id": "cs_test"}),
+            FakeResponse(200, {"processed": True}),
             FakeResponse(200, {"balance_usd": 25.0, "has_payment_method": True}),
             FakeResponse(200, {"auto_reload_enabled": True}),
             FakeResponse(
@@ -159,6 +160,11 @@ def test_main_runs_checkout_even_when_saved_card_exists_but_balance_is_zero(monk
     ]
     assert len(checkout_calls) == 1
 
+    confirm_calls = [
+        call for call in factory.calls if call["url"].endswith("/v1/auth/me/billing/checkout/confirm")
+    ]
+    assert len(confirm_calls) == 1
+
     execute_call = next(
         call for call in factory.calls if call["url"].endswith("/v1/capabilities/search.query/execute")
     )
@@ -172,7 +178,13 @@ def test_main_preflight_only_stops_after_checkout_session_creation(monkeypatch: 
             FakeResponse(200, {"data": {"status": "ok"}}),
             FakeResponse(200, {"data": {"session_token": "sess_test"}}),
             FakeResponse(200, {"balance_usd": 0.0, "has_payment_method": False}),
-            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test_preflight"}),
+            FakeResponse(
+                200,
+                {
+                    "checkout_url": "https://checkout.stripe.com/pay/cs_test_preflight",
+                    "session_id": "cs_test_preflight",
+                },
+            ),
         ]
     )
 
@@ -196,6 +208,7 @@ def test_main_preflight_only_stops_after_checkout_session_creation(monkeypatch: 
 
     captured = capsys.readouterr().out
     assert '"checkout_url": "https://checkout.stripe.com/pay/cs_test_preflight"' in captured
+    assert '"checkout_session_id": "cs_test_preflight"' in captured
     assert '"preflight_only": true' in captured
     assert not any(call["url"].endswith("/v1/auth/me/billing/auto-reload") for call in factory.calls)
     assert not any(call["url"].endswith("/v1/auth/me/agents") for call in factory.calls)
@@ -208,7 +221,8 @@ def test_main_refuses_to_continue_when_checkout_does_not_fund_balance(monkeypatc
             FakeResponse(200, {"data": {"status": "ok"}}),
             FakeResponse(200, {"data": {"session_token": "sess_test"}}),
             FakeResponse(200, {"balance_usd": 0.0, "has_payment_method": True}),
-            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test"}),
+            FakeResponse(200, {"checkout_url": "https://checkout.stripe.com/pay/cs_test", "session_id": "cs_test"}),
+            FakeResponse(200, {"processed": False}),
             FakeResponse(200, {"balance_usd": 0.0, "has_payment_method": True}),
         ]
     )

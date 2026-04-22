@@ -487,6 +487,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
         // Load usage + billing in parallel (non-blocking)
         loadUsage();
+        await confirmCheckoutFromQuery();
         loadBilling();
         loadAgentKeys();
       } catch (e) {
@@ -775,6 +776,26 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
         }
       } catch (e) {
         document.getElementById("billing-loading").textContent = "Unable to load billing";
+      }
+    }
+
+    async function confirmCheckoutFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("checkout") !== "success") return;
+
+      const sessionId = params.get("session_id");
+      if (!sessionId) return;
+
+      try {
+        await fetch(`${API_URL}/v1/auth/me/billing/checkout/confirm`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+      } catch (e) {
+        // Non-fatal: billing will still load and show the current state.
+        console.warn("Checkout confirm failed", e);
       }
     }
 

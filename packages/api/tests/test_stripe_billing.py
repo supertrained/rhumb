@@ -439,3 +439,55 @@ async def test_handle_checkout_auto_creates_org_credits() -> None:
     first_post = mock_post.call_args_list[0]
     assert first_post[0][0] == "org_credits"
     assert first_post[0][1]["balance_usd_cents"] == 0
+
+
+@pytest.mark.anyio
+async def test_confirm_checkout_session_rejects_mismatched_org() -> None:
+    session_payload = {
+        "id": "cs_test_confirm",
+        "status": "complete",
+        "payment_status": "paid",
+        "payment_intent": "pi_test",
+        "metadata": {"org_id": "org_other", "amount_cents": "2500"},
+    }
+
+    mock_session = MagicMock()
+    mock_session.to_dict_recursive.return_value = session_payload
+
+    with (
+        patch("stripe.checkout.Session.retrieve", return_value=mock_session),
+        patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock) as mock_handle,
+    ):
+        from services.stripe_billing import confirm_checkout_session
+
+        result = await confirm_checkout_session("cs_test_confirm", expected_org_id="org_expected")
+
+    assert result is False
+    mock_handle.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_confirm_checkout_session_applies_checkout_when_paid() -> None:
+    session_payload = {
+        "id": "cs_test_confirm_ok",
+        "status": "complete",
+        "payment_status": "paid",
+        "payment_intent": {"id": "pi_test_ok"},
+        "metadata": {"org_id": "org_expected", "amount_cents": "2500"},
+    }
+
+    mock_session = MagicMock()
+    mock_session.to_dict_recursive.return_value = session_payload
+
+    with (
+        patch("stripe.checkout.Session.retrieve", return_value=mock_session),
+        patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock, return_value=True) as mock_handle,
+    ):
+        from services.stripe_billing import confirm_checkout_session
+
+        result = await confirm_checkout_session("cs_test_confirm_ok", expected_org_id="org_expected")
+
+    assert result is True
+    called_session = mock_handle.await_args.args[0]
+    assert called_session["id"] == "cs_test_confirm_ok"
+    assert called_session["payment_intent"] == "pi_test_ok"

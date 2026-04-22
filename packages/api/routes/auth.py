@@ -48,7 +48,7 @@ from services.email_otp import (
     get_email_otp_service,
 )
 from services.service_slugs import public_service_slug
-from services.stripe_billing import create_checkout_session
+from services.stripe_billing import confirm_checkout_session, create_checkout_session
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,10 @@ MAX_CHECKOUT_AMOUNT_USD = 5000.0
 
 class DashboardCheckoutRequest(BaseModel):
     amount_usd: float = Field(..., description="Amount in USD to add to the org balance")
+
+
+class DashboardCheckoutConfirmRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, description="Stripe Checkout Session id")
 
 
 class DashboardAutoReloadRequest(BaseModel):
@@ -877,7 +881,7 @@ async def me_create_agent_key(
 def _dashboard_checkout_url(kind: str) -> str:
     frontend = (settings.auth_frontend_url or "https://rhumb.dev").rstrip("/")
     if kind == "success":
-        return f"{frontend}/dashboard?checkout=success"
+        return f"{frontend}/dashboard?checkout=success&session_id={{CHECKOUT_SESSION_ID}}"
     return f"{frontend}/dashboard?checkout=cancel"
 
 
@@ -915,6 +919,35 @@ async def me_billing_checkout(
         cancel_url=_dashboard_checkout_url("cancel"),
     )
     return JSONResponse(result)
+
+
+@router.post("/me/billing/checkout/confirm")
+async def me_billing_checkout_confirm(
+    body: DashboardCheckoutConfirmRequest,
+    rhumb_session: Optional[str] = Cookie(default=None),
+) -> JSONResponse:
+    """Confirm a Stripe Checkout session and apply credits if webhooks are delayed.
+
+    This provides a self-serve fallback path when webhook delivery is misconfigured
+    or delayed. The session must belong to the caller's organization.
+    """
+    claims = await _require_session(rhumb_session)
+
+    user_store = get_user_store()
+    user = await user_store.get_user(claims["sub"])
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    org_id = user.organization_id
+    if not org_id:
+        raise HTTPException(status_code=400, detail="No organization associated with this user")
+
+    session_id = (body.session_id or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    processed = await confirm_checkout_session(session_id, expected_org_id=org_id)
+    return JSONResponse({"processed": bool(processed)})
 
 
 @router.put("/me/billing/auto-reload")

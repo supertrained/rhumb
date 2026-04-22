@@ -19,6 +19,19 @@ from services.payment_metrics import log_payment_event
 logger = logging.getLogger(__name__)
 
 
+def _stripe_to_dict(obj: Any) -> dict[str, Any]:
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return obj
+    if hasattr(obj, "to_dict_recursive"):
+        try:
+            return obj.to_dict_recursive()
+        except Exception:
+            return {}
+    return {}
+
+
 def _sb_headers() -> dict[str, str]:
     """Supabase REST headers (service_role)."""
     return {
@@ -132,6 +145,71 @@ async def create_checkout_session(
     )
 
     return {"checkout_url": session.url, "session_id": session.id}
+
+
+async def retrieve_checkout_session(session_id: str) -> dict[str, Any] | None:
+    """Fetch a Stripe Checkout Session by id.
+
+    Used as a fallback confirmation path when webhooks are delayed or misconfigured.
+    """
+    if not session_id:
+        return None
+
+    try:
+        stripe.api_key = settings.stripe_secret_key
+        session = stripe.checkout.Session.retrieve(
+            session_id,
+            expand=["payment_intent"],
+        )
+    except Exception as exc:
+        logger.warning("Unable to retrieve Stripe checkout session %s: %s", session_id, exc)
+        return None
+
+    payload = _stripe_to_dict(session)
+    return payload or None
+
+
+async def confirm_checkout_session(
+    session_id: str,
+    *,
+    expected_org_id: str,
+) -> bool:
+    """Confirm a completed checkout session and apply credits if needed.
+
+    Returns True if credits were applied (or already applied), False if unpaid,
+    mismatched, or not applicable.
+    """
+    session = await retrieve_checkout_session(session_id)
+    if session is None:
+        return False
+
+    metadata = session.get("metadata") or {}
+    org_id = metadata.get("org_id")
+    if not org_id or org_id != expected_org_id:
+        logger.warning(
+            "Checkout confirm rejected for %s (metadata org_id=%s expected_org_id=%s)",
+            session_id,
+            org_id,
+            expected_org_id,
+        )
+        return False
+
+    payment_status = str(session.get("payment_status") or "").lower()
+    status = str(session.get("status") or "").lower()
+    if payment_status not in {"paid"} and status not in {"complete"}:
+        logger.info(
+            "Checkout session %s not yet paid/complete (payment_status=%s status=%s)",
+            session_id,
+            payment_status,
+            status,
+        )
+        return False
+
+    payment_intent = session.get("payment_intent")
+    if isinstance(payment_intent, dict):
+        session["payment_intent"] = payment_intent.get("id")
+
+    return await handle_checkout_completed(session)
 
 
 async def _lookup_payment_method_id(payment_intent_id: str | None) -> str | None:
