@@ -91,14 +91,39 @@ async def _sb_patch(path: str, payload: dict[str, Any]) -> bool:
 
 
 async def get_or_create_stripe_customer(org_id: str, email: str) -> str:
-    """Return the Stripe customer ID for an org, creating one if needed."""
+    """Return the Stripe customer ID for an org, creating one if needed.
+
+    If a stored customer belongs to the opposite Stripe mode (for example a
+    lingering test-mode customer after prod switches to live keys), repair the
+    mapping by creating a fresh customer in the active mode.
+    """
+    stripe.api_key = settings.stripe_secret_key
+
     # Check stripe_customers table first
     rows = await _sb_get(f"stripe_customers?org_id=eq.{org_id}&select=stripe_customer_id&limit=1")
     if rows:
-        return rows[0]["stripe_customer_id"]
+        customer_id = rows[0]["stripe_customer_id"]
+        try:
+            stripe.Customer.retrieve(customer_id)
+            return customer_id
+        except stripe.InvalidRequestError as exc:
+            message = str(exc)
+            if "a similar object exists in test mode" not in message and "No such customer" not in message:
+                raise
+
+            logger.warning(
+                "Stored Stripe customer %s for org %s is invalid for the active key; recreating",
+                customer_id,
+                org_id,
+            )
+            customer = stripe.Customer.create(email=email, metadata={"org_id": org_id})
+            await _sb_patch(
+                f"stripe_customers?org_id=eq.{org_id}",
+                {"stripe_customer_id": customer.id},
+            )
+            return customer.id
 
     # Create in Stripe
-    stripe.api_key = settings.stripe_secret_key
     customer = stripe.Customer.create(email=email, metadata={"org_id": org_id})
 
     # Persist mapping

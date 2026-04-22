@@ -261,7 +261,10 @@ def test_webhook_processes_checkout_completed(
 @pytest.mark.anyio
 async def test_get_or_create_customer_reuses_existing() -> None:
     """Should return existing customer without calling Stripe."""
-    with patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get:
+    with (
+        patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get,
+        patch("stripe.Customer.retrieve", return_value=MagicMock(id="cus_existing_123")) as mock_retrieve,
+    ):
         mock_get.return_value = [{"stripe_customer_id": "cus_existing_123"}]
 
         from services.stripe_billing import get_or_create_stripe_customer
@@ -269,6 +272,7 @@ async def test_get_or_create_customer_reuses_existing() -> None:
 
     assert result == "cus_existing_123"
     mock_get.assert_called_once()
+    mock_retrieve.assert_called_once_with("cus_existing_123")
 
 
 @pytest.mark.anyio
@@ -291,6 +295,40 @@ async def test_get_or_create_customer_creates_new() -> None:
     assert result == "cus_new_456"
     mock_stripe.assert_called_once_with(email="new@example.com", metadata={"org_id": "org_2"})
     mock_post.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_get_or_create_customer_repairs_test_mode_customer_mapping() -> None:
+    """Should replace a stale test-mode customer when prod switches to live keys."""
+    from stripe._error import InvalidRequestError
+
+    stale_exc = InvalidRequestError(
+        message="Request req_123: No such customer: 'cus_test_old'; a similar object exists in test mode, but a live mode key was used to make this request.",
+        param="customer",
+    )
+
+    mock_customer = MagicMock()
+    mock_customer.id = "cus_live_456"
+
+    with (
+        patch("services.stripe_billing._sb_get", new_callable=AsyncMock) as mock_get,
+        patch("services.stripe_billing._sb_patch", new_callable=AsyncMock) as mock_patch,
+        patch("stripe.Customer.retrieve", side_effect=stale_exc) as mock_retrieve,
+        patch("stripe.Customer.create", return_value=mock_customer) as mock_create,
+    ):
+        mock_get.return_value = [{"stripe_customer_id": "cus_test_old"}]
+        mock_patch.return_value = True
+
+        from services.stripe_billing import get_or_create_stripe_customer
+        result = await get_or_create_stripe_customer("org_live", "live@example.com")
+
+    assert result == "cus_live_456"
+    mock_retrieve.assert_called_once_with("cus_test_old")
+    mock_create.assert_called_once_with(email="live@example.com", metadata={"org_id": "org_live"})
+    mock_patch.assert_called_once_with(
+        "stripe_customers?org_id=eq.org_live",
+        {"stripe_customer_id": "cus_live_456"},
+    )
 
 
 @pytest.mark.anyio
