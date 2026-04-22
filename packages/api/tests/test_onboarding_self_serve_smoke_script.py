@@ -35,6 +35,16 @@ def test_pick_preferred_provider_falls_back_to_first_provider() -> None:
     assert onboarding_self_serve_smoke._pick_preferred_provider(payload) == "brave-search-api"
 
 
-def test_build_search_query_body_is_minimal() -> None:
-    body = onboarding_self_serve_smoke._build_search_query_body("hello")
+def test_build_search_query_body_defaults_to_q() -> None:
+    body = onboarding_self_serve_smoke._build_search_query_body("hello", provider="unknown")
     assert body == {"q": "hello"}
+
+
+def test_build_search_query_body_uses_query_for_tavily_and_exa() -> None:
+    assert onboarding_self_serve_smoke._build_search_query_body("hello", provider="tavily") == {"query": "hello"}
+    assert onboarding_self_serve_smoke._build_search_query_body("hello", provider="exa") == {"query": "hello"}
+
+
+def test_build_search_query_body_uses_q_for_brave() -> None:
+    assert onboarding_self_serve_smoke._build_search_query_body("hello", provider="brave-search") == {"q": "hello"}
+    assert onboarding_self_serve_smoke._build_search_query_body("hello", provider="brave-search-api") == {"q": "hello"}

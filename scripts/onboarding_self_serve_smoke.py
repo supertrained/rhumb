@@ -90,8 +90,26 @@ def _pick_preferred_provider(resolve_payload: Any) -> str | None:
     return None
 
 
-def _build_search_query_body(query: str) -> dict[str, Any]:
-    # Kept intentionally minimal; API examples + tests show nested {"body": {...}}.
+def _build_search_query_body(query: str, *, provider: str) -> dict[str, Any]:
+    """Build the minimal `body` payload for search.query.
+
+    Different upstream providers use different parameter names.
+    - Tavily / Exa: POST /search expects `query`
+    - Brave Search: GET .../search expects `q`
+
+    We keep this minimal on purpose so the smoke has fewer moving parts.
+    """
+
+    normalized = (provider or "").strip().lower()
+    if normalized in {"tavily", "exa"}:
+        return {"query": query}
+
+    # Canonical + legacy ids for Brave Search.
+    if normalized in {"brave-search-api", "brave-search"}:
+        return {"q": query}
+
+    # Default to Brave-style `q` since it's accepted by several search providers and
+    # matches most of our existing examples/tests.
     return {"q": query}
 
 
@@ -278,7 +296,10 @@ def main() -> int:
                 json={
                     "provider": preferred_provider,
                     "credential_mode": DEFAULT_FIRST_CALL_CREDENTIAL_MODE,
-                    "body": _build_search_query_body(str(args.first_call_query)),
+                    "body": _build_search_query_body(
+                        str(args.first_call_query),
+                        provider=preferred_provider,
+                    ),
                     "interface": "onboarding_smoke",
                 },
             )
