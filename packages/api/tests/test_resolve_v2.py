@@ -825,6 +825,8 @@ async def test_v2_resolve_not_found_rewrites_search_url(app):
 
     assert resp.status_code == 404
     body = resp.json()
+    assert "/v1/capabilities" not in body["resolution"]
+    assert "/v2/capabilities" in body["resolution"]
     assert body["search_url"] == "/v2/capabilities?search=nonexistent"
 
 
