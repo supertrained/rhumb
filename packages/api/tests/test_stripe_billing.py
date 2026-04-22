@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import app as _shared_app
+from services.stripe_billing import _stripe_to_dict
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -96,6 +97,22 @@ def test_checkout_custom_urls(
     call_kwargs = mock_checkout.call_args
     assert call_kwargs.kwargs["success_url"] == "https://myapp.com/success"
     assert call_kwargs.kwargs["cancel_url"] == "https://myapp.com/cancel"
+
+
+def test_stripe_to_dict_supports_to_dict_recursive() -> None:
+    class LegacyStripeObject:
+        def to_dict_recursive(self) -> dict[str, Any]:
+            return {"id": "cs_legacy"}
+
+    assert _stripe_to_dict(LegacyStripeObject()) == {"id": "cs_legacy"}
+
+
+def test_stripe_to_dict_supports_to_dict_only() -> None:
+    class ModernStripeObject:
+        def to_dict(self) -> dict[str, Any]:
+            return {"id": "cs_modern"}
+
+    assert _stripe_to_dict(ModernStripeObject()) == {"id": "cs_modern"}
 
 
 # ── Balance endpoint tests ───────────────────────────────────────────

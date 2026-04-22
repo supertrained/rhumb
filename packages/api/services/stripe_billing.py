@@ -24,11 +24,25 @@ def _stripe_to_dict(obj: Any) -> dict[str, Any]:
         return {}
     if isinstance(obj, dict):
         return obj
-    if hasattr(obj, "to_dict_recursive"):
+
+    to_dict_recursive = getattr(obj, "to_dict_recursive", None)
+    if callable(to_dict_recursive):
         try:
-            return obj.to_dict_recursive()
+            payload = to_dict_recursive()
+            if isinstance(payload, dict):
+                return payload
         except Exception:
-            return {}
+            pass
+
+    to_dict = getattr(obj, "to_dict", None)
+    if callable(to_dict):
+        try:
+            payload = to_dict()
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            pass
+
     return {}
 
 
