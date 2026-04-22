@@ -197,6 +197,17 @@ async def confirm_checkout_session(
     return bool(result.get("processed"))
 
 
+async def _checkout_credit_exists(session_id: str) -> bool:
+    """Return whether this checkout session already has a credit ledger entry."""
+    if not session_id:
+        return False
+
+    existing = await _sb_get(
+        f"credit_ledger?stripe_checkout_session_id=eq.{session_id}&select=id&limit=1"
+    )
+    return bool(existing)
+
+
 async def confirm_checkout_session_detailed(
     session_id: str,
     *,
@@ -249,9 +260,23 @@ async def confirm_checkout_session_detailed(
     else:
         out["stripe_payment_intent_id"] = payment_intent
 
+    if await _checkout_credit_exists(session_id):
+        out["processed"] = True
+        out["reason"] = "already_credited"
+        return out
+
     applied = await handle_checkout_completed(session)
-    out["processed"] = bool(applied)
-    out["reason"] = "credited" if applied else "apply_failed"
+    if applied:
+        out["processed"] = True
+        out["reason"] = "credited"
+        return out
+
+    if await _checkout_credit_exists(session_id):
+        out["processed"] = True
+        out["reason"] = "already_credited"
+        return out
+
+    out["reason"] = "apply_failed"
     return out
 
 

@@ -499,6 +499,7 @@ async def test_confirm_checkout_session_applies_checkout_when_paid() -> None:
 
     with (
         patch("stripe.checkout.Session.retrieve", return_value=mock_session),
+        patch("services.stripe_billing._checkout_credit_exists", new_callable=AsyncMock, side_effect=[False, False]),
         patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock, return_value=True) as mock_handle,
     ):
         from services.stripe_billing import confirm_checkout_session_detailed
@@ -510,3 +511,61 @@ async def test_confirm_checkout_session_applies_checkout_when_paid() -> None:
     called_session = mock_handle.await_args.args[0]
     assert called_session["id"] == "cs_test_confirm_ok"
     assert called_session["payment_intent"] == "pi_test_ok"
+
+
+@pytest.mark.anyio
+async def test_confirm_checkout_session_reports_already_credited_before_apply() -> None:
+    session_payload = {
+        "id": "cs_test_confirm_existing",
+        "status": "complete",
+        "payment_status": "paid",
+        "payment_intent": "pi_test_existing",
+        "metadata": {"org_id": "org_expected", "amount_cents": "2500"},
+    }
+
+    mock_session = MagicMock()
+    mock_session.to_dict_recursive.return_value = session_payload
+
+    with (
+        patch("stripe.checkout.Session.retrieve", return_value=mock_session),
+        patch("services.stripe_billing._checkout_credit_exists", new_callable=AsyncMock, return_value=True),
+        patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock) as mock_handle,
+    ):
+        from services.stripe_billing import confirm_checkout_session_detailed
+
+        result = await confirm_checkout_session_detailed(
+            "cs_test_confirm_existing", expected_org_id="org_expected"
+        )
+
+    assert result["processed"] is True
+    assert result["reason"] == "already_credited"
+    mock_handle.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_confirm_checkout_session_reports_already_credited_after_apply_race() -> None:
+    session_payload = {
+        "id": "cs_test_confirm_race",
+        "status": "complete",
+        "payment_status": "paid",
+        "payment_intent": "pi_test_race",
+        "metadata": {"org_id": "org_expected", "amount_cents": "2500"},
+    }
+
+    mock_session = MagicMock()
+    mock_session.to_dict_recursive.return_value = session_payload
+
+    with (
+        patch("stripe.checkout.Session.retrieve", return_value=mock_session),
+        patch("services.stripe_billing._checkout_credit_exists", new_callable=AsyncMock, side_effect=[False, True]),
+        patch("services.stripe_billing.handle_checkout_completed", new_callable=AsyncMock, return_value=False) as mock_handle,
+    ):
+        from services.stripe_billing import confirm_checkout_session_detailed
+
+        result = await confirm_checkout_session_detailed(
+            "cs_test_confirm_race", expected_org_id="org_expected"
+        )
+
+    assert result["processed"] is True
+    assert result["reason"] == "already_credited"
+    mock_handle.assert_awaited_once()
