@@ -326,16 +326,23 @@ const ARTICLE_JSON_LD = {
 
           <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Use the score with these pages</div>
-            <div class="space-y-3 text-sm leading-relaxed text-slate-400">
-              <p>
-                <a href="/blog/how-to-evaluate-mcp-servers" class="text-amber transition-colors hover:text-amber-200">How to Evaluate MCP Servers</a> adds workflow fit and trust class.
-              </p>
-              <p>
-                <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber transition-colors hover:text-amber-200">Static MCP Scores Are a Baseline</a> explains why live runtime evidence still matters after the score.
-              </p>
-              <p>
-                <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber transition-colors hover:text-amber-200">Remote MCP Production Readiness Checklist</a> turns the theory into an operator review before shared or unattended use.
-              </p>
+            <div class="grid gap-3 text-sm leading-relaxed text-slate-400">
+              <a href="/blog/how-to-evaluate-mcp-servers" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">How to Evaluate MCP Servers</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Add workflow fit and trust class before treating a structural score like a production answer.</p>
+              </a>
+              <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Turn the shortlist into scope, principals, and evidence instead of a generic popularity ranking.</p>
+              </a>
+              <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Identity vs Authority</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">A score cannot tell you whether remote auth preserves the right principal at the actual tool boundary.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Use one operator review to test whether auth, scope, tenant isolation, recovery, and auditability actually hold.</p>
+              </a>
             </div>
           </div>
         </aside>
@@ -358,6 +365,36 @@ const ARTICLE_JSON_LD = {
             <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=mcp-scoring-methodology-direct" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/30">
               <div class="text-sm font-semibold text-slate-100">Inspect the managed execution path</div>
               <p class="mt-2 text-sm text-slate-400">See the current launchable scope, the fit boundary, and where Rhumb-managed capability surfaces are the honest default today.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="production-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            A shortlist gets real only when it survives scope pressure, remote auth, tenant boundaries, and audit needs.
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            The score narrows the field. These pages answer the operator questions that still decide whether a candidate is safe enough for remote or shared use.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Check whether tool visibility, write reach, and parameter bounds stay narrow after selection.</p>
+            </a>
+            <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">MCP Observability</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">A structurally good surface still fails if operators cannot trace, debug, and audit real tool calls.</p>
+            </a>
+            <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Run the whole operator review before shared rollout instead of treating liveness as readiness.</p>
+            </a>
+            <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Selection gets harder when the same server must preserve scope and evidence across several tenants.</p>
             </a>
           </div>
         </div>
