@@ -384,6 +384,32 @@ const htmlContent = markdownToHtml(content);
         </div>
       </section>
 
+      <section class="mt-12" data-section="runtime-discipline-follow-through">
+        <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Runtime discipline follow-through</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            Good loop behavior still needs quota evidence and narrow authority
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            The loop does not stay healthy just because the model retries cleanly. Operators still need traces that attribute spend and oversized tool output to the right session, plus permission boundaries that stop one noisy workflow from inheriting a broader surface than it needs.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">MCP Observability</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why token burn, side effects, and retry safety only become governable once the trace shows who spent what and where the loop degraded.</p>
+            </a>
+            <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How one chatty loop becomes a shared-budget incident unless the whole fleet slows down together.</p>
+            </a>
+            <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why quota discipline gets easier when the loop only sees the tools and authority classes it actually needs.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section class="mt-12">
         <h2 class="font-display font-semibold text-lg text-slate-100 mb-4">Related</h2>
         <div class="space-y-4">
