@@ -4173,6 +4173,7 @@ async def test_direct_execute_get_with_api_key_returns_post_only_guidance(app):
 
     assert resp.status_code == 405
     assert "x-payment" not in resp.headers
+    assert resp.headers.get("allow") == "POST"
     body = resp.json()
     assert body["error"] == "method_not_allowed"
     assert body["execute_url"] == "/v1/capabilities/crm.object.describe/execute"

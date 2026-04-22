@@ -394,6 +394,7 @@ def _direct_execute_get_not_supported_response(
     execute_url = f"/v1/capabilities/{quote(capability_id, safe='')}/execute"
     return JSONResponse(
         status_code=405,
+        headers={"Allow": "POST"},
         content={
             "error": "method_not_allowed",
             "message": "Direct capability execute discovery is POST-only after API-key auth.",
