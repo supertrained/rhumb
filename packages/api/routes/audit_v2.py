@@ -22,6 +22,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.error_envelope import RhumbError
 from services.audit_trail import (
     AuditEventType,
     AuditSeverity,
@@ -216,7 +217,11 @@ async def get_audit_event(
                 "error": None,
             }
 
-    raise HTTPException(status_code=404, detail=f"Audit event {event_id} not found")
+    raise RhumbError(
+        "AUDIT_EVENT_NOT_FOUND",
+        message=f"Audit event '{event_id}' not found.",
+        detail="Check the audit event id from GET /v2/audit/events, then retry.",
+    )
 
 
 @router.get("/status")

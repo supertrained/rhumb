@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -50,3 +51,24 @@ class TestAuditV2Auth:
         assert body["error"] == "invalid_api_key"
         assert body["auth_handoff"]["reason"] == "invalid_api_key"
         assert body["auth_handoff"]["retry_url"] == "/v2/audit/events"
+
+
+def test_get_audit_event_not_found_uses_explicit_error_code():
+    from app import create_app
+
+    trail = MagicMock()
+    trail.query.return_value = []
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events/aevt_missing",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert body["error"]["code"] == "AUDIT_EVENT_NOT_FOUND"
+    assert "aevt_missing" in body["error"]["message"]

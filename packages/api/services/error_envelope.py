@@ -99,6 +99,13 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         retryable=False,
         description="Explanation ID does not exist",
     ),
+    "AUDIT_EVENT_NOT_FOUND": ErrorCodeDef(
+        code="AUDIT_EVENT_NOT_FOUND",
+        category=ErrorCategory.CLIENT,
+        http_status=404,
+        retryable=False,
+        description="Audit event ID does not exist",
+    ),
     "CREDENTIAL_INVALID": ErrorCodeDef(
         code="CREDENTIAL_INVALID",
         category=ErrorCategory.AUTH,
