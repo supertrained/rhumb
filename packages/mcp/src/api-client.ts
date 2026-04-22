@@ -456,6 +456,60 @@ function canonicalizeCredentialMode(mode: string | null): string | null {
   return mode === "byo" ? "byok" : mode;
 }
 
+function formatStructuredError(raw: Record<string, unknown>): string {
+  // FastAPI default errors often come through as {"detail": "..."}.
+  if (!raw.error && !raw.message && typeof raw.detail === "string") {
+    return raw.detail;
+  }
+
+  const parts: string[] = [];
+  const error = asString(raw.error);
+  const message = asString(raw.message) ?? asString(raw.detail);
+  const resolution = asString(raw.resolution);
+
+  if (error) {
+    parts.push(message ? `${error}: ${message}` : error);
+  } else if (message) {
+    parts.push(message);
+  }
+
+  if (resolution) parts.push(`resolution=${resolution}`);
+
+  const executeUrl = asString(raw.execute_url);
+  const resolveUrl = asString(raw.resolve_url);
+  const credentialModesUrl = asString(raw.credential_modes_url);
+  const searchUrl = asString(raw.search_url);
+  const requestId = asString(raw.request_id);
+
+  if (executeUrl) parts.push(`execute_url=${executeUrl}`);
+  if (resolveUrl) parts.push(`resolve_url=${resolveUrl}`);
+  if (credentialModesUrl) parts.push(`credential_modes_url=${credentialModesUrl}`);
+  if (searchUrl) parts.push(`search_url=${searchUrl}`);
+  if (requestId) parts.push(`request_id=${requestId}`);
+
+  const rawHandoff = isRecord(raw.auth_handoff) ? raw.auth_handoff : null;
+  if (rawHandoff) {
+    const handoffReason = asString(rawHandoff.reason);
+    const recommendedPath = asString(rawHandoff.recommended_path);
+    const rawPaths = Array.isArray(rawHandoff.paths)
+      ? rawHandoff.paths.filter((path): path is Record<string, unknown> => isRecord(path))
+      : [];
+
+    if (handoffReason) parts.push(`auth_handoff.reason=${handoffReason}`);
+    if (recommendedPath) parts.push(`auth_handoff.recommended_path=${recommendedPath}`);
+
+    const recommended = recommendedPath
+      ? rawPaths.find((path) => asString(path.kind) === recommendedPath)
+      : null;
+    const setupUrl = recommended ? asString(recommended.setup_url) : null;
+    const retryHeader = recommended ? asString(recommended.retry_header) : null;
+    if (setupUrl) parts.push(`setup_url=${setupUrl}`);
+    if (retryHeader) parts.push(`retry_header=${retryHeader}`);
+  }
+
+  return parts.length > 0 ? parts.join(" | ") : JSON.stringify(raw);
+}
+
 function asCredentialMode(v: unknown): string | null {
   return canonicalizeCredentialMode(asString(v));
 }
@@ -903,6 +957,17 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
       if (!res.ok) {
         const errBody = await res.text();
+        try {
+          const parsed: unknown = JSON.parse(errBody);
+          if (isRecord(parsed)) {
+            throw new Error(`Execute failed (${res.status}): ${formatStructuredError(parsed)}`);
+          }
+        } catch (err) {
+          // JSON.parse threw, or formatStructuredError threw — fall back to raw text.
+          if (err instanceof Error && err.message.startsWith("Execute failed")) {
+            throw err;
+          }
+        }
         throw new Error(`Execute failed (${res.status}): ${errBody}`);
       }
 
@@ -947,6 +1012,16 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
 
       if (!res.ok) {
         const errBody = await res.text();
+        try {
+          const parsed: unknown = JSON.parse(errBody);
+          if (isRecord(parsed)) {
+            throw new Error(`Estimate failed (${res.status}): ${formatStructuredError(parsed)}`);
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.startsWith("Estimate failed")) {
+            throw err;
+          }
+        }
         throw new Error(`Estimate failed (${res.status}): ${errBody}`);
       }
 

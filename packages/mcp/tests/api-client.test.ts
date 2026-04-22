@@ -591,3 +591,50 @@ describe("Rhumb MCP API client credential readiness", () => {
     });
   });
 });
+
+describe("Rhumb MCP API client error formatting", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("surfaces auth handoff details when execute returns structured 401", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({
+        error: "authentication_required",
+        message: "X-Rhumb-Key header required for CRM capability execution",
+        resolution: "Create or use a funded governed API key at /auth/login, then retry",
+        request_id: "req_test",
+        resolve_url: "/v1/capabilities/crm.object.describe/resolve",
+        credential_modes_url: "/v1/capabilities/crm.object.describe/credential-modes",
+        auth_handoff: {
+          reason: "auth_required",
+          recommended_path: "governed_api_key",
+          retry_url: "/v1/capabilities/crm.object.describe/execute",
+          docs_url: "/docs#resolve-mental-model",
+          paths: [
+            {
+              kind: "governed_api_key",
+              recommended: true,
+              setup_url: "/auth/login",
+              retry_header: "X-Rhumb-Key",
+            }
+          ]
+        }
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.example.com/v1");
+
+    await expect(
+      client.executeCapability("crm.object.describe", { method: "POST", path: "/crm" })
+    ).rejects.toThrow(/setup_url=\/auth\/login/);
+    await expect(
+      client.executeCapability("crm.object.describe", { method: "POST", path: "/crm" })
+    ).rejects.toThrow(/retry_header=X-Rhumb-Key/);
+  });
+});
