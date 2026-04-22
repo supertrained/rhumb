@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
@@ -110,6 +110,64 @@ async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str 
     return agent.organization_id
 
 
+def _validated_event_type(event_type: str | None) -> AuditEventType | None:
+    if event_type is None:
+        return None
+
+    try:
+        return AuditEventType(event_type)
+    except ValueError as exc:
+        valid_types = ", ".join(t.value for t in AuditEventType)
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail=f"Use one of: {valid_types}.",
+        ) from exc
+
+
+def _validated_severity(severity: str | None) -> AuditSeverity | None:
+    if severity is None:
+        return None
+
+    try:
+        return AuditSeverity(severity)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'severity' filter.",
+            detail="Use one of: info, warning, critical.",
+        ) from exc
+
+
+def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
+    if ts is None:
+        return None
+
+    try:
+        dt = datetime.fromisoformat(ts)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Use an ISO 8601 timestamp (for example 2026-04-22T12:34:56+00:00).",
+        ) from exc
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _validated_export_format(format: str) -> str:
+    if format in ("json", "csv"):
+        return format
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'format' filter.",
+        detail="Use one of: json, csv.",
+    )
+
+
 @router.get("/events")
 async def list_audit_events(
     raw_request: Request,
@@ -133,30 +191,10 @@ async def list_audit_events(
         return org_id
     trail = get_audit_trail()
 
-    # Parse enum filters
-    parsed_type = None
-    if event_type:
-        try:
-            parsed_type = AuditEventType(event_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid event_type: {event_type}. Valid types: {[t.value for t in AuditEventType]}",
-            )
-
-    parsed_severity = None
-    if severity:
-        try:
-            parsed_severity = AuditSeverity(severity)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid severity: {severity}. Valid: info, warning, critical",
-            )
-
-    # Parse timestamps
-    parsed_since = _parse_timestamp(since) if since else None
-    parsed_until = _parse_timestamp(until) if until else None
+    parsed_type = _validated_event_type(event_type)
+    parsed_severity = _validated_severity(severity)
+    parsed_since = _validated_timestamp(since, field_name="since")
+    parsed_until = _validated_timestamp(until, field_name="until")
 
     events = trail.query(
         org_id=org_id,
@@ -287,26 +325,11 @@ async def export_audit_trail(
         return org_id
     trail = get_audit_trail()
 
-    if format not in ("json", "csv"):
-        raise HTTPException(status_code=400, detail="Format must be 'json' or 'csv'")
-
-    # Parse filters
-    parsed_type = None
-    if event_type:
-        try:
-            parsed_type = AuditEventType(event_type)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid event_type: {event_type}")
-
-    parsed_severity = None
-    if severity:
-        try:
-            parsed_severity = AuditSeverity(severity)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid severity: {severity}")
-
-    parsed_since = _parse_timestamp(since) if since else None
-    parsed_until = _parse_timestamp(until) if until else None
+    format = _validated_export_format(format)
+    parsed_type = _validated_event_type(event_type)
+    parsed_severity = _validated_severity(severity)
+    parsed_since = _validated_timestamp(since, field_name="since")
+    parsed_until = _validated_timestamp(until, field_name="until")
 
     result = trail.export(
         format=format,
@@ -405,17 +428,3 @@ def _event_response(event: Any) -> dict[str, Any]:
         "chain_sequence": serialized["chain_sequence"],
         "chain_hash": serialized["chain_hash"],
     }
-
-
-def _parse_timestamp(ts: str) -> datetime:
-    """Parse ISO 8601 timestamp string."""
-    try:
-        dt = datetime.fromisoformat(ts)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid timestamp format: {ts}. Use ISO 8601.",
-        )

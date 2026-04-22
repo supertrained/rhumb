@@ -72,3 +72,51 @@ def test_get_audit_event_not_found_uses_explicit_error_code():
     body = resp.json()
     assert body["error"]["code"] == "AUDIT_EVENT_NOT_FOUND"
     assert "aevt_missing" in body["error"]["message"]
+
+
+def test_list_audit_events_invalid_event_type_uses_explicit_invalid_parameters():
+    from app import create_app
+
+    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?event_type=not-real",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'event_type' filter."
+    assert "execution.started" in body["error"]["detail"]
+
+
+def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
+    from app import create_app
+
+    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?since=definitely-not-iso",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'since' filter."
+    assert "ISO 8601" in body["error"]["detail"]
+
+
+def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
+    from app import create_app
+
+    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?format=xml",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'format' filter."
+    assert "json, csv" in body["error"]["detail"]
