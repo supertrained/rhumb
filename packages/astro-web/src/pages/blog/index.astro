@@ -1277,10 +1277,10 @@ const BLOG_JSON_LD = {
         <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current production signal</div>
           <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
-            The live MCP conversation is still about blast radius, security model, auth shape, tenant isolation, recovery, remote ops, shared-budget control, and runtime evidence
+            The live MCP conversation is still about blast radius, security model, auth shape, tenant isolation, recovery, remote ops, shared-budget control, loop discipline, and runtime evidence
           </h2>
           <p class="mb-5 max-w-3xl leading-relaxed text-slate-300">
-            The freshest production signal keeps clustering around scope constraints, principals, evidence, credential model, reliability or crash handling, tenant isolation, remote-hosted MCP operations, and rate-limit pressure. If you are here because MCP has to survive real operators instead of a demo, start with the ten pages below.
+            The freshest production signal keeps clustering around scope constraints, principals, evidence, credential model, reliability or crash handling, tenant isolation, remote-hosted MCP operations, rate-limit pressure, and token-burn discipline inside live loops. If you are here because MCP has to survive real operators instead of a demo, start with the twelve pages below.
           </p>
           <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
@@ -1319,9 +1319,17 @@ const BLOG_JSON_LD = {
               <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
               <p class="mt-2 text-sm leading-relaxed text-slate-400">What changes when one retry storm becomes a shared-budget problem across the whole fleet.</p>
             </a>
+            <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Why token burn, fallback churn, and repeated tool chatter usually surface before the visible 429 storm.</p>
+            </a>
             <a href="/blog/mcp-credential-lifecycle-token-rotation" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
               <div class="text-sm font-semibold text-slate-100">MCP Credential Lifecycle in Production</div>
               <p class="mt-2 text-sm leading-relaxed text-slate-400">Why expiry, rotation, and revocation need explicit operator handling before a broken tool call becomes the first alert.</p>
+            </a>
+            <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+              <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">How credential reuse, scope drift, and shared-key rotation turn one auth incident into a fleet-wide outage.</p>
             </a>
           </div>
         </div>
