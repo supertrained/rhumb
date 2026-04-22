@@ -387,6 +387,27 @@ const ARTICLE_JSON_LD = {
             </div>
 
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Authority follow-through</div>
+              <p class="text-slate-300 leading-relaxed mb-5">
+                Remote readiness usually stays fuzzy when "supports auth" is treated as the whole answer. These pages sharpen the harder production questions: who the principal really is, which tools stay visible, and what evidence survives once the server is live.
+              </p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">Remote MCP Auth: Identity vs Authority</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">The sharper read on why login state is not the same thing as bounded backend authority.</p>
+                </a>
+                <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping in MCP</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">See where remote servers still need per-tool visibility and tighter write boundaries after auth succeeds.</p>
+                </a>
+                <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                  <div class="text-sm font-semibold text-slate-100">MCP Observability: Logging, Auditing, and Debugging</div>
+                  <p class="mt-2 text-sm text-slate-400 leading-relaxed">Carry the checklist into runtime evidence before retries, quota pain, and hidden failures blur the trust story.</p>
+                </a>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Fleet follow-through</div>
               <p class="text-slate-300 leading-relaxed mb-5">
                 Remote MCP usually stops looking safe when one agent turns into many. The same containment story has to hold across shared rate budgets, credential expiry, and retries that now happen while nobody is watching.

@@ -258,24 +258,28 @@ const ARTICLE_JSON_LD = {
           </section>
 
           <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
-            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Related reading</div>
-            <ul class="space-y-3 text-slate-300">
-              <li>
-                <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber/80 underline underline-offset-4">
-                  Remote MCP Uptime Is Not Production Readiness
-                </a>
-              </li>
-              <li>
-                <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:text-amber/80 underline underline-offset-4">
-                  Governed Capabilities Are Becoming the Real Control Plane
-                </a>
-              </li>
-              <li>
-                <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber hover:text-amber/80 underline underline-offset-4">
-                  How to Evaluate APIs for AI Agents
-                </a>
-              </li>
-            </ul>
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Authority and runtime follow-through</div>
+            <p class="text-slate-300 leading-relaxed mb-5">
+              Static scores get more useful when they route into the harder runtime questions now surfacing in the MCP ecosystem: authority shape, visible tool boundaries, and operators staying ahead of quota burn instead of finding out after the budget is gone.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Auth: Identity vs Authority</div>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Use the runtime overlay to verify whether login state actually narrows authority enough for unattended use.</p>
+              </a>
+              <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                <div class="text-sm font-semibold text-slate-100">MCP Observability: Logging, Auditing, and Debugging</div>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Overlay confidence only compounds when operators can still see drift, denials, and degraded execution in runtime evidence.</p>
+              </a>
+              <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Translate static-plus-runtime signal into one concrete decision about whether the server is still demo-grade or infrastructure-grade.</p>
+              </a>
+              <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Bring the latest token-burn signal into the overlay model before concurrent retries turn a trustworthy score into a runaway fleet bill.</p>
+              </a>
+            </div>
           </section>
 
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
