@@ -16,8 +16,9 @@ import re
 from datetime import timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from services.error_envelope import RhumbError
 from services.score_cache import (
     CachedScore,
     ScoreAuditEntry,
@@ -161,13 +162,13 @@ async def get_provider_score(provider_id: str) -> dict[str, Any]:
 
     if entry is None:
         public_provider_id = _public_provider_slug(provider_id)
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "SCORE_NOT_FOUND",
-                "message": f"No cached AN Score for provider '{public_provider_id}'.",
-                "hint": "Score may not be computed yet, or cache may need a refresh.",
-            },
+        raise RhumbError(
+            "SCORE_NOT_FOUND",
+            message=f"No cached AN Score for provider '{public_provider_id}'.",
+            detail=(
+                "Check GET /v2/scores/cache/status to confirm the score cache is warm, "
+                "or retry with a provider_id returned by the provider catalog."
+            ),
         )
 
     return {"data": _score_to_response(entry), "error": None}

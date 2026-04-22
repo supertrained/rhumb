@@ -106,6 +106,13 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         retryable=False,
         description="Audit event ID does not exist",
     ),
+    "SCORE_NOT_FOUND": ErrorCodeDef(
+        code="SCORE_NOT_FOUND",
+        category=ErrorCategory.CLIENT,
+        http_status=404,
+        retryable=False,
+        description="Score provider ID does not exist in the score cache",
+    ),
     "CREDENTIAL_INVALID": ErrorCodeDef(
         code="CREDENTIAL_INVALID",
         category=ErrorCategory.AUTH,
