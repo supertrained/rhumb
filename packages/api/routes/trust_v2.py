@@ -13,9 +13,11 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, Query, Request
+from fastapi.responses import JSONResponse
 
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.billing_events import BillingEventType, get_billing_event_stream
@@ -37,11 +39,70 @@ def _get_identity_store() -> AgentIdentityStore:
 
 async def _require_org(api_key: str | None) -> str:
     """Validate API key and return org_id."""
+    raise NotImplementedError("_require_org now requires a Request; call _require_org_or_401")
+
+
+def _auth_handoff(*, reason: str, retry_url: str) -> dict[str, Any]:
+    return {
+        "reason": reason,
+        "recommended_path": "governed_api_key",
+        "retry_url": retry_url,
+        "docs_url": "/docs#resolve-mental-model",
+        "paths": [
+            {
+                "kind": "governed_api_key",
+                "recommended": True,
+                "setup_url": "/auth/login",
+                "retry_header": "X-Rhumb-Key",
+                "summary": "Default for dashboards and most repeat agent traffic.",
+                "requires_human_setup": True,
+                "automatic_after_setup": True,
+            }
+        ],
+    }
+
+
+def _missing_governed_key_response(raw_request: Request) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    detail = "Missing X-Rhumb-Key header"
+    retry_url = str(raw_request.url.path)
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": detail,
+            "error": "missing_api_key",
+            "message": detail,
+            "resolution": "Provide a funded governed API key via /auth/login, then retry.",
+            "request_id": request_id,
+            "auth_handoff": _auth_handoff(reason="missing_api_key", retry_url=retry_url),
+        },
+    )
+
+
+def _invalid_governed_key_response(raw_request: Request) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or str(uuid.uuid4())
+    detail = "Invalid or expired governed API key"
+    retry_url = str(raw_request.url.path)
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": detail,
+            "error": "invalid_api_key",
+            "message": detail,
+            "resolution": "Create or use a funded governed API key via /auth/login, then retry.",
+            "request_id": request_id,
+            "auth_handoff": _auth_handoff(reason="invalid_api_key", retry_url=retry_url),
+        },
+    )
+
+
+async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
+    """Validate governed API key and return org_id, or a structured 401 response."""
     if not api_key:
-        raise HTTPException(status_code=401, detail="Missing X-Rhumb-Key header")
+        return _missing_governed_key_response(raw_request)
     agent = await _get_identity_store().verify_api_key_with_agent(api_key)
     if agent is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired API key")
+        return _invalid_governed_key_response(raw_request)
     return agent.organization_id
 
 
@@ -57,6 +118,7 @@ def _public_provider_totals(by_provider: dict[str, int]) -> dict[str, int]:
 
 @router.get("/summary")
 async def trust_summary(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     period: str | None = Query(None, description="Period filter: YYYY-MM or YYYY-MM-DD"),
 ) -> dict[str, Any]:
@@ -65,7 +127,9 @@ async def trust_summary(
     Aggregates execution count, success rate, total spend, provider
     diversity, and trust posture for the authenticated org.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=period)
 
@@ -125,6 +189,7 @@ async def trust_summary(
 
 @router.get("/providers")
 async def trust_providers(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     period: str | None = Query(None, description="Period filter"),
 ) -> dict[str, Any]:
@@ -133,7 +198,9 @@ async def trust_providers(
     Shows which providers were used, their execution counts,
     success rates, and current AN Scores.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     stream = get_billing_event_stream()
     cache = get_score_cache()
 
@@ -204,6 +271,7 @@ async def trust_providers(
 
 @router.get("/costs")
 async def trust_costs(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     period: str | None = Query(None, description="Period filter"),
 ) -> dict[str, Any]:
@@ -211,7 +279,9 @@ async def trust_costs(
 
     Shows where money is going — aggregated by provider and by capability.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=period)
 
@@ -269,6 +339,7 @@ async def trust_costs(
 
 @router.get("/reliability")
 async def trust_reliability(
+    raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     period: str | None = Query(None, description="Period filter"),
 ) -> dict[str, Any]:
@@ -277,7 +348,9 @@ async def trust_reliability(
     Helps agents understand which providers are reliable and which
     are causing failures.
     """
-    org_id = await _require_org(x_rhumb_key)
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
     stream = get_billing_event_stream()
 
     all_events = stream.query(org_id=org_id, limit=100_000)
