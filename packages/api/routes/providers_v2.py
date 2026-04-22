@@ -240,6 +240,10 @@ def _rewrite_navigation_urls(payload: Any) -> Any:
         return rewritten
     if isinstance(payload, list):
         return [_rewrite_navigation_urls(item) for item in payload]
+    if isinstance(payload, str) and "/v1/capabilities" in payload:
+        # Only rewrite the v1 capabilities namespace when it appears inside
+        # human-readable error messages (e.g. resolution strings).
+        return payload.replace("/v1/capabilities", "/v2/capabilities")
     return payload
 
 

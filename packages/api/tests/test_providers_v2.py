@@ -1380,6 +1380,55 @@ class TestExecuteOnProvider:
         assert body["auth_handoff"]["retry_url"] == f"/v2/capabilities/{_TEST_CAPABILITY}/execute"
         assert body["auth_handoff"]["paths"][0]["setup_url"] == "/auth/login"
 
+    def test_execute_rewrites_embedded_v1_capability_references(self, client):
+        """Layer 1 v2 surface should not return resolution copy that points at /v1/capabilities."""
+        def _mock_supabase_fetch_with_stale_mapping(query: str):
+            # Minimal provider detail support
+            if query.startswith("services?"):
+                if f"slug=eq.{_TEST_PROVIDER_SLUG}" in query:
+                    return [_MOCK_SERVICE_DETAIL]
+                if "slug=in." in query:
+                    return [_MOCK_SERVICE_DETAIL]
+                return []
+
+            # Claim the provider supports the missing capability (stale mapping)
+            if query.startswith("capability_services?") and f"service_slug=eq.{_TEST_PROVIDER_SLUG}" in query:
+                return [{
+                    "capability_id": "missing",
+                    "service_slug": _TEST_PROVIDER_SLUG,
+                    "credential_modes": "byo",
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "POST /v1/chat/completions",
+                    "cost_per_call": 0.0,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 0,
+                }]
+            return _mock_supabase_fetch(query)
+
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_mapping):
+            with patch("routes.providers_v2._forward_internal") as mock_forward:
+                estimate_resp = MagicMock()
+                estimate_resp.status_code = 404
+                estimate_resp.json.return_value = {
+                    "error": "capability_not_found",
+                    "message": "No capability found",
+                    "resolution": "Check available capabilities at GET /v1/capabilities or /v1/capabilities?search=...",
+                    "search_url": "/v1/capabilities?search=missing",
+                }
+                estimate_resp.headers = {}
+                mock_forward.return_value = estimate_resp
+
+                resp = client.post(
+                    f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute",
+                    json={"capability": "missing", "parameters": {}},
+                )
+
+        assert resp.status_code == 404
+        body = resp.json()
+        assert "/v1/capabilities" not in body["resolution"]
+        assert "/v2/capabilities" in body["resolution"]
+        assert body["search_url"] == "/v2/capabilities?search=missing"
+
 
 # ---------------------------------------------------------------------------
 # Layer 1 cost calculation
