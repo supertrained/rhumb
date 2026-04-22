@@ -762,6 +762,62 @@ async def test_v2_credential_modes_direct_capability_ignores_stale_catalog_mappi
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_failure_payload(app):
+    resolve_resp = MagicMock(spec=httpx.Response)
+    resolve_resp.status_code = 503
+    resolve_resp.json.return_value = {
+        "error": {
+            "code": "NO_PROVIDER_AVAILABLE",
+            "message": "brave-search resolve unavailable",
+            "detail": "Retry brave-search or choose pdl",
+            "preferred_provider": "brave-search",
+            "supported_provider_slugs": ["brave-search", "pdl"],
+            "not_execute_ready_provider_slugs": ["brave-search"],
+        }
+    }
+    resolve_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=resolve_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/search.query/resolve")
+
+    assert resp.status_code == 503
+    error = resp.json()["error"]
+    assert error["message"] == "brave-search-api resolve unavailable"
+    assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
+    assert error["preferred_provider"] == "brave-search-api"
+    assert error["supported_provider_slugs"] == ["brave-search-api", "people-data-labs"]
+    assert error["not_execute_ready_provider_slugs"] == ["brave-search-api"]
+
+
+@pytest.mark.anyio
+async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_failure_payload(app):
+    modes_resp = MagicMock(spec=httpx.Response)
+    modes_resp.status_code = 503
+    modes_resp.json.return_value = {
+        "error": {
+            "code": "NO_PROVIDER_AVAILABLE",
+            "message": "brave-search credential modes unavailable",
+            "detail": "Retry brave-search or choose pdl",
+            "service_slug": "brave-search",
+            "supported_provider_slugs": ["brave-search", "pdl"],
+        }
+    }
+    modes_resp.headers = {}
+
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=modes_resp)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/search.query/credential-modes")
+
+    assert resp.status_code == 503
+    error = resp.json()["error"]
+    assert error["message"] == "brave-search-api credential modes unavailable"
+    assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
+    assert error["service_slug"] == "brave-search-api"
+    assert error["supported_provider_slugs"] == ["brave-search-api", "people-data-labs"]
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_not_found_rewrites_search_url(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, return_value=[]):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

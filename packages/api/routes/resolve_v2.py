@@ -100,9 +100,11 @@ _PUBLIC_PROVIDER_FIELD_KEYS = {
     "provider_used",
     "provider_id",
     "provider_slug",
+    "preferred_provider",
     "selected_provider",
     "requested_provider",
     "fallback_provider",
+    "service_slug",
 }
 _PUBLIC_PROVIDER_LIST_KEYS = {
     "available_providers",
@@ -775,6 +777,7 @@ async def resolve_capability_v2(
     )
 
     body = _rewrite_navigation_urls(resolve_response.json())
+    body = _canonicalize_execute_body_provider_fields(body, provider_slug=None)
     if resolve_response.status_code == 200 and isinstance(body.get("data"), dict):
         body = _annotate_v2_body(body)
 
@@ -797,6 +800,7 @@ async def get_credential_modes_v2(
     )
 
     body = _rewrite_navigation_urls(modes_response.json())
+    body = _canonicalize_execute_body_provider_fields(body, provider_slug=None)
     if modes_response.status_code == 200 and isinstance(body.get("data"), dict):
         body = _annotate_v2_body(body)
 
