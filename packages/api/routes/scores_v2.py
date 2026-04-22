@@ -186,6 +186,18 @@ async def get_provider_score_history(
     safe_limit = max(1, min(limit, 200))
     chain = get_audit_chain()
     entries = chain.history(service_slug=public_service_slug_candidates(provider_id), limit=safe_limit)
+    cached_score = _cached_score_for_provider_id(provider_id)
+
+    if cached_score is None and not entries:
+        public_provider_id = _public_provider_slug(provider_id)
+        raise RhumbError(
+            "SCORE_NOT_FOUND",
+            message=f"No cached AN Score for provider '{public_provider_id}'.",
+            detail=(
+                "Check GET /v2/scores/cache/status to confirm the score cache is warm, "
+                "or retry with a provider_id returned by the provider catalog."
+            ),
+        )
 
     return {
         "data": {
