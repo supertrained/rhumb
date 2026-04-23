@@ -76,6 +76,13 @@ const OBSERVABILITY_CHECKLIST = [
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
 ];
 
+const GATEWAY_DRILL_CHECKS = [
+  "Does each principal actually see a filtered tool surface before execution, not just a denial after it was already discovered?",
+  "When a tool is blocked, does the trace emit a typed denial tied to tenant, policy, and requested capability?",
+  "If one lane burns shared quota, can the operator attribute the spend and quarantine only that lane?",
+  "Can you rehearse credential expiry, rate-limit exhaustion, and kill-switch recovery without losing who caused what?",
+];
+
 const TOOL_CALL_LOG_SAMPLE = `{
   "event": "tool_call",
   "tool": "create_file",
@@ -159,7 +166,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-20T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -341,7 +348,32 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              5. Partial failure recovery depends on checkpoints and reversibility classes
+              5. A gateway with RBAC still needs a blast-radius drill
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Gateway language sounds reassuring: RBAC, policy layers, control planes, chaos tooling. The production test is still more concrete. Under load, can the operator prove which principal saw which tools, which typed denial fired, which tenant burned the shared budget, and whether one bad lane can be frozen without blacking out everyone else?
+              </p>
+              <p>
+                That is the same runtime boundary described in <a href="/blog/multi-tenant-mcp-server-design" class="text-amber hover:text-amber-200 transition-colors">multi-tenant MCP design</a>, <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">fleet rate-limit design</a>, and the <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:text-amber-200 transition-colors">remote readiness checklist</a>: discovery scope has to stay narrow, budget damage needs an owner, and recovery has to isolate the one broken lane instead of the whole surface.
+              </p>
+              <p>
+                Useful chaos engineering for MCP is not random outage theater. It is rehearsing the exact failures you are claiming to contain: manifest drift, credential expiry, rate-limit exhaustion, broad backend fallback, and kill-switch recovery. If the exercise ends with generic 403s and finance surprise after the fact, the gateway improved packaging more than operations.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Gateway drill questions</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {GATEWAY_DRILL_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -364,7 +396,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. The production bar is not “we have logs somewhere”
+              7. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
