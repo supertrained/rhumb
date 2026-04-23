@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any, Generator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -883,6 +884,40 @@ class TestAdminRoutes:
         assert resp.status_code == 200
         agents = resp.json()
         assert len(agents) == 2
+
+    def test_list_agents_route_normalizes_status_filter(
+        self, admin_client: TestClient
+    ) -> None:
+        """GET /v1/admin/agents trims and lowercases valid status filters."""
+        mock_store = AsyncMock()
+        mock_store.list_agents = AsyncMock(return_value=[])
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.get("/v1/admin/agents?status=%20DiSaBlEd%20")
+
+        assert resp.status_code == 200
+        assert resp.json() == []
+        mock_store.list_agents.assert_awaited_once_with(
+            organization_id=None,
+            status="disabled",
+        )
+
+    def test_list_agents_route_rejects_invalid_status_filter(
+        self, admin_client: TestClient
+    ) -> None:
+        """GET /v1/admin/agents fails explicitly on unsupported status values."""
+        mock_store = AsyncMock()
+        mock_store.list_agents = AsyncMock(return_value=[])
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.get("/v1/admin/agents?status=offline")
+
+        assert resp.status_code == 400
+        assert (
+            resp.json()["detail"]
+            == "Invalid status: use one of active, disabled, deleted"
+        )
+        mock_store.list_agents.assert_not_awaited()
 
     def test_get_agent_details_route(self, admin_client: TestClient) -> None:
         """GET /v1/admin/agents/{id} returns full details."""

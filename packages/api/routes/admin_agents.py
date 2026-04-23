@@ -26,6 +26,23 @@ from services.service_slugs import public_service_slug
 
 router = APIRouter(tags=["admin-agents"])
 
+_AGENT_STATUSES = {"active", "disabled", "deleted"}
+
+
+def _validated_agent_status(status: Optional[str]) -> Optional[str]:
+    """Normalize and validate the public admin agent-status filter."""
+    if status is None:
+        return None
+    normalized = str(status).strip().lower()
+    if not normalized:
+        return None
+    if normalized not in _AGENT_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid status: use one of active, disabled, deleted",
+        )
+    return normalized
+
 
 def _public_service_label(service: str) -> str:
     """Normalize admin-facing service ids onto canonical public slugs."""
@@ -261,10 +278,11 @@ async def list_agents(
     status: Optional[str] = Query(default=None),
 ) -> List[AgentListItem]:
     """List all agents with optional org/status filters."""
+    normalized_status = _validated_agent_status(status)
     store = _get_identity_store()
     agents = await store.list_agents(
         organization_id=organization_id,
-        status=status,
+        status=normalized_status,
     )
 
     items: List[AgentListItem] = []
