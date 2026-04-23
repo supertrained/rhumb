@@ -70,6 +70,7 @@ const CHECKLIST = [
   "Which trust class does it belong to: read-mostly, reversible write, high-side-effect, or shared remote?",
   "Does the capability surface narrow authority around the job, or mostly mirror a broad upstream API?",
   "Can the intended caller authenticate cleanly, with the right principal and scope?",
+  "If the server advertises a permission manifest or governance layer, does that declared boundary match the tools this caller can actually see and invoke?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
 ];
@@ -127,7 +128,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -308,6 +309,9 @@ const ARTICLE_JSON_LD = {
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
                 Structural evaluation tells you what kind of surface you are letting into the loop. Runtime evidence tells you whether it is still behaving like that surface now.
+              </p>
+              <p>
+                Recent ecosystem work on permission manifests and policy toolkits is useful because it makes the intended boundary inspectable. But treat that as a floor, not a verdict. The operator test is whether the manifest actually narrows discovery for the real caller, whether out-of-scope calls fail with typed denials, and whether shared quota or headroom incidents still stay attributable once several agents lean on the same lane.
               </p>
               <p>
                 The useful live questions are not just reachability or socket success. They are whether the intended caller can still authenticate, whether failures stay typed and recoverable, and whether the server still behaves like the trust class it claimed to belong to.

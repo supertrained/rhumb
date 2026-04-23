@@ -56,7 +56,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
   datePublished: "2026-04-04T00:00:00Z",
-  dateModified: "2026-04-04T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
@@ -255,7 +255,10 @@ const ARTICLE_JSON_LD = {
                 Production MCP wants the opposite order. Define the caller class, decide which tools it may see, enforce policy at invocation, and log the policy decision as part of the normal control plane. Tool-level scoping is not a nice-to-have after authentication. It is the layer that keeps one successful connection from becoming broad authority by accident.
               </p>
               <p>
-                A generated permission manifest can help expose the intended boundary, but it does not create one. The operator test is still whether the wrong caller sees fewer tools, gets typed denials, and leaves an audit trail when it reaches beyond policy.
+                A generated permission manifest or governance toolkit can help expose the intended boundary, but it does not create one. The operator test is still whether the wrong caller sees fewer tools, gets typed denials, and leaves an audit trail when it reaches beyond policy.
+              </p>
+              <p>
+                That is the part many teams skip. If the manifest says a lane is narrow but discovery still reveals write-capable tools, or if the policy layer cannot explain which caller burned the shared quota after a noisy loop, you documented the boundary without enforcing it. Real scoping survives discovery, execution, and budget attribution together.
               </p>
             </div>
           </section>
