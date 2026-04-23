@@ -243,6 +243,52 @@ class TestGetLedger:
         for path in captured_paths:
             assert "event_type=eq.credit_added" in path
 
+    def test_event_type_filter_trims_valid_whitespace(self, client: TestClient) -> None:
+        captured_paths: list[str] = []
+
+        async def _capture_fetch(path: str):
+            captured_paths.append(path)
+            return [_ledger_entry(event_type="credit_added", amount_cents=5000, balance_after=5000)]
+
+        with (
+            patch("routes.billing.supabase_fetch", side_effect=_capture_fetch),
+            patch("routes.billing.supabase_count", new_callable=AsyncMock, return_value=1),
+        ):
+            resp = client.get(
+                "/v1/billing/ledger",
+                params={"event_type": " credit_added "},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 200
+        for path in captured_paths:
+            assert "event_type=eq.credit_added" in path
+            assert "event_type=eq.%20credit_added%20" not in path
+
+    def test_invalid_event_type_rejected_before_supabase_reads(self, client: TestClient) -> None:
+        fetch_mock = AsyncMock()
+        count_mock = AsyncMock()
+
+        with (
+            patch("routes.billing.supabase_fetch", fetch_mock),
+            patch("routes.billing.supabase_count", count_mock),
+        ):
+            resp = client.get(
+                "/v1/billing/ledger",
+                params={"event_type": "drop table"},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"] == "bad_request"
+        assert payload["detail"] == (
+            "Invalid event_type: use one of auto_reload_triggered, credit_added, debit, "
+            "reservation_released, wallet_topup, wallet_topup_added, x402_payment"
+        )
+        fetch_mock.assert_not_awaited()
+        count_mock.assert_not_awaited()
+
     def test_limit_validation_max(self, client: TestClient) -> None:
         resp = client.get(
             "/v1/billing/ledger",

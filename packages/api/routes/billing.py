@@ -48,6 +48,16 @@ MAX_WALLET_TOPUP_USD_CENTS = int(MAX_AMOUNT_USD * 100)
 DEFAULT_SUCCESS_URL = "https://rhumb.dev/billing/success"
 DEFAULT_CANCEL_URL = "https://rhumb.dev/billing/cancel"
 
+VALID_LEDGER_EVENT_TYPES = (
+    "auto_reload_triggered",
+    "credit_added",
+    "debit",
+    "reservation_released",
+    "wallet_topup",
+    "wallet_topup_added",
+    "x402_payment",
+)
+
 _identity_store: Optional[AgentIdentityStore] = None
 _payment_requests = PaymentRequestService()
 _x402_settlement = X402SettlementService()
@@ -102,6 +112,24 @@ async def _require_org(api_key: str | None) -> str:
 def _wallet_topup_resource_url() -> str:
     api_base = os.environ.get("API_BASE_URL", "https://api.rhumb.dev")
     return f"{api_base}/v1/billing/x402/topup/verify"
+
+
+def _validated_ledger_event_type(event_type: str | None) -> str | None:
+    if event_type is None:
+        return None
+
+    normalized = event_type.strip()
+    if not normalized:
+        return None
+
+    if normalized not in VALID_LEDGER_EVENT_TYPES:
+        valid_types = ", ".join(VALID_LEDGER_EVENT_TYPES)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid event_type: use one of {valid_types}",
+        )
+
+    return normalized
 
 
 async def _load_wallet_topup(
@@ -663,10 +691,11 @@ async def get_ledger(
 ) -> dict:
     """Return paginated, optionally filtered ledger entries for the org."""
     org_id = await _require_org(x_rhumb_key)
+    normalized_event_type = _validated_ledger_event_type(event_type)
 
     base_filter = f"credit_ledger?org_id=eq.{org_id}"
-    if event_type:
-        base_filter += f"&event_type=eq.{event_type}"
+    if normalized_event_type:
+        base_filter += f"&event_type=eq.{normalized_event_type}"
 
     # Fetch paginated entries (never expose stripe_payment_intent_id)
     entries = await supabase_fetch(
