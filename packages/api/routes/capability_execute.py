@@ -184,6 +184,7 @@ DIRECT_EXECUTE_CAPABILITY_IDS = frozenset(
     | STORAGE_CAPABILITY_IDS
     | SUPPORT_CAPABILITY_IDS
 )
+_VALID_EXECUTE_CREDENTIAL_MODES = frozenset({"auto", "byok", "rhumb_managed", "agent_vault"})
 
 
 def _direct_execute_auth_detail(capability_id: str) -> str | None:
@@ -3889,6 +3890,20 @@ async def estimate_capability(
     provider, cost, and circuit state but omits budget-specific fields.
     This lets x402 agents discover pricing before paying.
     """
+    normalized_credential_mode = _canonicalize_credential_mode(credential_mode)
+    if (
+        normalized_credential_mode is None
+        and str(credential_mode or "").strip()
+    ) or normalized_credential_mode not in _VALID_EXECUTE_CREDENTIAL_MODES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid 'credential_mode' parameter. Use one of: auto, byok, rhumb_managed, agent_vault. "
+                "Legacy 'byo' is accepted as 'byok'."
+            ),
+        )
+    credential_mode = normalized_credential_mode or "auto"
+
     # Authenticate if API key provided; otherwise allow anonymous estimate
     agent_id: Optional[str] = None
     is_anonymous_estimate = False
@@ -3913,7 +3928,6 @@ async def estimate_capability(
             detail=f"No providers configured for capability '{capability_id}'",
         )
 
-    credential_mode = _canonicalize_credential_mode(credential_mode) or "auto"
     requested_credential_mode = credential_mode
     credential_mode, managed_mapping = await _resolve_auto_credential_mode(
         capability_id=capability_id,
