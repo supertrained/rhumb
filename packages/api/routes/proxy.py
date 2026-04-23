@@ -396,6 +396,29 @@ def _public_proxy_service_name(service: str | None) -> str | None:
     return canonicalize_service_slug(str(service).strip()) if service else None
 
 
+_SCHEMA_ALERT_SEVERITIES = ("advisory", "non_breaking", "breaking")
+_SCHEMA_ALERT_SEVERITY_SET = set(_SCHEMA_ALERT_SEVERITIES)
+
+
+def _validated_schema_alert_severity(severity: str | None) -> str | None:
+    """Normalize and validate the public admin schema-alert severity filter."""
+    if severity is None:
+        return None
+
+    normalized = severity.strip().lower()
+    if not normalized:
+        return None
+
+    if normalized not in _SCHEMA_ALERT_SEVERITY_SET:
+        valid_severities = ", ".join(_SCHEMA_ALERT_SEVERITIES)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid severity: use one of {valid_severities}",
+        )
+
+    return normalized
+
+
 def _canonicalize_scoped_service_key(key: str) -> str:
     """Normalize ``service:agent`` proxy metric keys onto public service ids."""
     service, sep, rest = key.partition(":")
@@ -1090,7 +1113,12 @@ async def list_schema_alerts(
     """Query recent schema alerts (in-app channel)."""
     dispatcher = get_schema_alert_dispatcher()
     proxy_service = _normalize_proxy_service_name(service) if service else None
-    alerts = dispatcher.query_alerts(service=proxy_service, severity=severity, limit=limit)
+    normalized_severity = _validated_schema_alert_severity(severity)
+    alerts = dispatcher.query_alerts(
+        service=proxy_service,
+        severity=normalized_severity,
+        limit=limit,
+    )
 
     return {
         "data": {

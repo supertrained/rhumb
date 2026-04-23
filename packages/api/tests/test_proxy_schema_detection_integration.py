@@ -361,3 +361,48 @@ class TestProxySchemaIntegration:
         data = response.json()["data"]
         assert data["count"] >= 1
         assert all(alert["service"] == "stripe" for alert in data["alerts"])
+
+    def test_admin_schema_alerts_normalize_valid_severity_filter(
+        self, client: TestClient, httpx_mock
+    ) -> None:
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/filter-alerts-normalized",
+            json={"id": "1", "email": "a@example.com"},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/filter-alerts-normalized",
+            json={"id": "1"},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        client.post(
+            "/v1/proxy/",
+            json={"service": "stripe", "method": "GET", "path": "/filter-alerts-normalized"},
+        )
+        client.post(
+            "/v1/proxy/",
+            json={"service": "stripe", "method": "GET", "path": "/filter-alerts-normalized"},
+        )
+
+        response = client.get("/v1/admin/schema-alerts?service=stripe&severity=%20BrEaKiNg%20")
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["count"] >= 1
+        assert all(alert["severity"] == "breaking" for alert in data["alerts"])
+
+    def test_admin_schema_alerts_reject_invalid_severity_filter(
+        self, client: TestClient
+    ) -> None:
+        response = client.get("/v1/admin/schema-alerts?severity=offline")
+
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Invalid severity: use one of advisory, non_breaking, breaking"
+        )
