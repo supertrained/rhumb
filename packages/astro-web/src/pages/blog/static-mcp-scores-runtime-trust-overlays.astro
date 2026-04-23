@@ -54,6 +54,7 @@ const REGISTRY_FIELDS = [
   "auth viability instead of raw responsiveness alone",
   "separate reachability, handshake, and post-auth usability",
   "trust-class-aware runtime evidence",
+  "manifest and gateway-policy drift when caller-visible scope no longer matches the baseline claim",
   "drift alerts when current behavior diverges from the baseline model",
 ];
 
@@ -62,7 +63,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
@@ -218,6 +219,9 @@ const ARTICLE_JSON_LD = {
               <p>
                 The baseline gives the first-pass readiness model. The overlay updates current conditions. Drift tells you when the map and the road no longer match. That is a better operator system than either one alone.
               </p>
+              <p>
+                That drift test now needs to include manifest and governance claims too. Generated permission manifests, gateway RBAC layers, and policy toolkits belong in the baseline as inspectable intent; the overlay then asks whether live callers actually see narrower discovery, receive typed denials, and leave evidence of which shared budget or backend authority executed the work.
+              </p>
             </div>
           </section>
 
@@ -260,12 +264,16 @@ const ARTICLE_JSON_LD = {
           <section class="rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Authority and runtime follow-through</div>
             <p class="text-slate-300 leading-relaxed mb-5">
-              Static scores get more useful when they route into the harder runtime questions now surfacing in the MCP ecosystem: authority shape, visible tool boundaries, and operators staying ahead of quota burn instead of finding out after the budget is gone.
+              Static scores get more useful when they route into the harder runtime questions now surfacing in the MCP ecosystem: whether manifest and gateway claims survive caller-visible discovery, whether denials stay typed, and whether operators stay ahead of quota burn instead of finding out after the budget is gone.
             </p>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <a href="/blog/remote-mcp-auth-identity-vs-authority" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
                 <div class="text-sm font-semibold text-slate-100">Remote MCP Auth: Identity vs Authority</div>
                 <p class="mt-2 text-sm text-slate-400 leading-relaxed">Use the runtime overlay to verify whether login state actually narrows authority enough for unattended use.</p>
+              </a>
+              <a href="/blog/tool-level-permission-scoping-mcp" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+                <div class="text-sm font-semibold text-slate-100">Tool-Level Permission Scoping in MCP</div>
+                <p class="mt-2 text-sm text-slate-400 leading-relaxed">Treat permission manifests as inspectable intent, then use the overlay to verify whether the wrong caller actually sees fewer tools and clearer denials.</p>
               </a>
               <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
                 <div class="text-sm font-semibold text-slate-100">MCP Observability: Logging, Auditing, and Debugging</div>

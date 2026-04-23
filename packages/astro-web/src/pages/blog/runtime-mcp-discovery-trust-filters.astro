@@ -63,7 +63,7 @@ const TRUST_FILTERS = [
   },
   {
     title: "Caller-visible scope",
-    body: "The runtime should expose what this principal can actually see now, not what exists globally in some other tenant or environment.",
+    body: "Generated manifests and gateway policy layers only count when the runtime actually hides what this principal should not see now. Discovery truth is caller-visible scope, not global inventory plus a promise.",
   },
   {
     title: "Freshness and viability",
@@ -84,7 +84,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-04-12T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -281,10 +281,13 @@ const ARTICLE_JSON_LD = {
                 The strongest evaluation questions are whether the system exposes caller-specific visibility, whether trust class and side-effect class are visible before selection, whether auth shape is legible, whether stale entries are suppressed, and whether the runtime bounds the pool before semantic ranking begins.
               </p>
               <p>
+                That now includes a harder discovery-truth test: do generated manifests or gateway policy layers actually narrow the live candidate set for this caller, does an out-of-scope choice yield a typed denial instead of a vague failure, and can the runtime still explain which lane consumed shared quota or backend authority after the remote hop.
+              </p>
+              <p>
                 Those questions separate search quality from control quality. For agent systems, that separation is not optional.
               </p>
               <p>
-                The fast production shortcut is the same one from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: filter first by reachable scope, acting principal, and surviving evidence, then let relevance rank the smaller safe set.
+                The fast production shortcut is the same one from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: filter first by caller-visible scope, acting principal, and surviving evidence, then let relevance rank the smaller safe set.
               </p>
             </div>
           </section>
@@ -310,7 +313,7 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this article reframes discovery as mediation, these pages sharpen the operator model: the core security model, the auth-versus-authority split, workflow fit versus trust class, governed capability surfaces, and the checklist for real remote readiness.
+              If this article reframes discovery as mediation, these pages sharpen the operator model around the current manifest-and-governance signal too: the core security model, the auth-versus-authority split, workflow fit versus trust class, governed capability surfaces, and the checklist for real remote readiness.
             </p>
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
