@@ -1342,6 +1342,21 @@ async def test_resolve_capability_accepts_byok_alias_for_byo_mappings(app):
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_rejects_invalid_credential_mode_filter(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "offline"},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert "credential_mode" in body.get("detail", "")
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_empty_filter_keeps_resolve_contract(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

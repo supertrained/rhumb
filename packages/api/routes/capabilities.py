@@ -90,6 +90,8 @@ _INTERCOM_SUPPORT_DIRECT_PROVIDER_NAME = "Intercom"
 _SUPPORT_DIRECT_PROVIDER_CATEGORY = "support"
 _SUPPORT_DIRECT_CREDENTIAL_MODES = ["byok"]
 
+_VALID_RESOLVE_CREDENTIAL_MODES = frozenset({"byok", "rhumb_managed", "agent_vault"})
+
 
 def _effective_auth_method(service_slug: str, auth_method: str) -> str:
     """Prefer hardcoded proxy auth defaults without overriding direct bundle refs."""
@@ -3330,6 +3332,20 @@ async def resolve_capability(
     Returns providers ranked by AN score with cost, health, and recommendation data.
     Includes circuit breaker state and execute_hint for direct execution.
     """
+    normalized_credential_mode = _canonicalize_credential_mode(credential_mode)
+    if (
+        normalized_credential_mode is not None
+        and normalized_credential_mode not in _VALID_RESOLVE_CREDENTIAL_MODES
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Invalid 'credential_mode' filter. Use one of: byok, rhumb_managed, agent_vault. "
+                "Legacy 'byo' is accepted as 'byok'."
+            ),
+        )
+    credential_mode = normalized_credential_mode
+
     agent_id = x_rhumb_key or "anonymous"
     # Verify capability exists
     caps = await _cached_fetch(
