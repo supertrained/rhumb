@@ -8,6 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Generator
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -635,6 +636,55 @@ def test_get_usage_report_recanonicalizes_mixed_service_summary_at_route_boundar
     assert payload["by_agent"] == {
         "agent_test": {"total_calls": 3, "cost_estimate": 0.003},
     }
+
+
+def test_get_usage_report_rejects_invalid_month_before_usage_meter_reads(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_usage_meter = SimpleNamespace(get_org_monthly_usage=AsyncMock())
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/usage",
+        params={"organization_id": "org_route_usage_alias", "month": "2026-99"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid month: use YYYY-MM"
+    assert payload["error"] == "bad_request"
+    fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
+
+
+def test_get_usage_report_normalizes_surrounding_whitespace_in_month_filter(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_usage_meter = SimpleNamespace(
+        get_org_monthly_usage=AsyncMock(
+            return_value=SimpleNamespace(
+                organization_id="org_route_usage_alias",
+                month="2026-04",
+                total_calls=2,
+                cost_estimate=0.002,
+                by_service={},
+                by_agent={},
+            )
+        )
+    )
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/usage",
+        params={"organization_id": "org_route_usage_alias", "month": " 2026-04 "},
+    )
+
+    assert response.status_code == 200
+    fake_usage_meter.get_org_monthly_usage.assert_awaited_once_with("org_route_usage_alias", "2026-04")
+    assert response.json()["month"] == "2026-04"
 
 
 def test_generate_invoice_recanonicalizes_mixed_service_line_items_at_route_boundary(

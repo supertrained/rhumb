@@ -60,6 +60,16 @@ def _get_stripe_manager() -> StripeIntegrationManager:
     return _test_stripe_manager or get_stripe_integration_manager()
 
 
+def _normalize_billing_month(month: str) -> str:
+    """Validate and normalize public admin billing month filters."""
+    normalized = str(month).strip()
+    try:
+        datetime.strptime(normalized, "%Y-%m")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid month: use YYYY-MM") from exc
+    return normalized
+
+
 def _public_billing_service(service: Any) -> str:
     cleaned = str(service or "").strip().lower()
     if not cleaned:
@@ -135,7 +145,8 @@ async def get_usage_report(
 ) -> Dict[str, Any]:
     """Return organization monthly usage report."""
     usage_meter = _get_usage_meter()
-    usage = await usage_meter.get_org_monthly_usage(organization_id, month)
+    normalized_month = _normalize_billing_month(month)
+    usage = await usage_meter.get_org_monthly_usage(organization_id, normalized_month)
 
     return {
         "organization_id": usage.organization_id,
