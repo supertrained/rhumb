@@ -167,6 +167,18 @@ def test_query_receipts_with_results(client):
         assert body["data"]["count"] == 2
 
 
+def test_query_receipts_invalid_status_uses_explicit_invalid_parameters(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get("/v2/receipts?status=not-real")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'status' filter."
+    assert "success, failure, timeout, rejected" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
+
+
 def test_query_receipts_canonicalizes_alias_backed_provider_ids(client):
     receipts = [{"receipt_id": "rcpt_1", "provider_id": "brave-search"}]
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
@@ -298,3 +310,16 @@ def test_verify_chain_endpoint(client):
         body = resp.json()
         assert body["data"]["chain_intact"] is True
         assert body["data"]["verified"] == 2
+
+
+def test_verify_chain_invalid_range_uses_explicit_invalid_parameters(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get("/v2/receipts/chain/verify?start_sequence=10&end_sequence=2")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid receipt chain range."
+    assert "start_sequence" in body["error"]["detail"]
+    assert "end_sequence" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0

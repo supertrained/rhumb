@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from services.error_envelope import RhumbError
 from services.receipt_service import get_receipt_service
@@ -21,6 +21,44 @@ from services.route_explanation import (
 )
 
 router = APIRouter()
+
+_VALID_RECEIPT_STATUSES = frozenset({"success", "failure", "timeout", "rejected"})
+
+
+def _validated_receipt_status(status: str | None) -> str | None:
+    if status is None:
+        return None
+
+    normalized = status.strip().lower()
+    if normalized in _VALID_RECEIPT_STATUSES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'status' filter.",
+        detail="Use one of: success, failure, timeout, rejected.",
+    )
+
+
+def _validate_chain_range(start_sequence: int | None, end_sequence: int | None) -> None:
+    if start_sequence is not None and start_sequence < 1:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'start_sequence' filter.",
+            detail="Use a positive chain sequence number.",
+        )
+    if end_sequence is not None and end_sequence < 1:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'end_sequence' filter.",
+            detail="Use a positive chain sequence number.",
+        )
+    if start_sequence is not None and end_sequence is not None and start_sequence > end_sequence:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid receipt chain range.",
+            detail="'start_sequence' must be less than or equal to 'end_sequence'.",
+        )
 
 
 @router.get("/receipts/{receipt_id}")
@@ -104,6 +142,7 @@ async def query_receipts(
     offset: int = Query(default=0, ge=0, description="Pagination offset"),
 ) -> dict[str, Any]:
     """Query execution receipts with optional filters."""
+    status = _validated_receipt_status(status)
     service = get_receipt_service()
     receipts = await service.query_receipts(
         agent_id=agent_id,
@@ -137,6 +176,7 @@ async def verify_chain(
     preceding receipt's receipt_hash. Returns verification results
     including any broken chain links detected.
     """
+    _validate_chain_range(start_sequence, end_sequence)
     service = get_receipt_service()
     result = await service.verify_chain(
         start_sequence=start_sequence,
