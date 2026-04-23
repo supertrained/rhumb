@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from routes._supabase import cached_query, supabase_fetch
 from services.service_slugs import (
@@ -46,6 +46,16 @@ _SOURCE_TYPE_BREAKDOWN_KEYS = (
     "probe_generated",
     "manual_operator",
 )
+_VALID_EVIDENCE_KINDS = (
+    "failure_mode",
+    "latency_snapshot",
+    "circuit_state",
+    "schema_change",
+    "credential_lifecycle",
+    "support_state",
+    "usage_summary",
+)
+_VALID_EVIDENCE_KIND_SET = frozenset(_VALID_EVIDENCE_KINDS)
 
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
@@ -105,6 +115,24 @@ def _review_type_bucket(review_type: str | None) -> str:
     if review_type in {"docs", "manual", "tester"}:
         return review_type
     return "automated"
+
+
+def _validated_evidence_kind(kind: str | None) -> str | None:
+    if kind is None:
+        return None
+
+    normalized = kind.strip().lower()
+    if not normalized:
+        return None
+
+    if normalized not in _VALID_EVIDENCE_KIND_SET:
+        valid_kinds = ", ".join(_VALID_EVIDENCE_KINDS)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid kind: use one of {valid_kinds}",
+        )
+
+    return normalized
 
 
 def _fallback_review_source_type(review_type: str | None) -> str | None:
@@ -371,6 +399,7 @@ async def get_service_evidence(
     slug: str, kind: str | None = Query(default=None)
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
+    normalized_kind = _validated_evidence_kind(kind)
     canonical_slug = public_service_slug(slug) or slug
     slug_candidates = public_service_slug_candidates(slug)
     path = (
@@ -380,8 +409,8 @@ async def get_service_evidence(
         "&select=id,service_slug,evidence_kind,source_type,title,summary,observed_at,fresh_until,"
         "confidence,source_ref"
     )
-    if kind:
-        path += f"&evidence_kind=eq.{quote(kind)}"
+    if normalized_kind:
+        path += f"&evidence_kind=eq.{quote(normalized_kind)}"
 
     evidence_rows = (await _cached_fetch("evidence_records", path)) or []
     return {

@@ -283,6 +283,32 @@ def test_get_service_reviews_runtime_backed_pct_uses_review_level_ratio(
     assert payload["trust_summary"]["freshest_evidence_at"] == "2026-03-10T10:05:00Z"
 
 
+def test_get_service_evidence_rejects_invalid_kind_before_query(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid evidence kinds should fail honestly instead of returning an empty 200."""
+
+    async def _unexpected_fetch(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("_cached_fetch should not run for invalid evidence kind filters")
+
+    monkeypatch.setattr(reviews_module, "_cached_fetch", _unexpected_fetch)
+
+    response = client.get("/v1/services/stripe/evidence?kind=not-a-real-kind")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["status"] == 400
+    assert payload["error"] == "bad_request"
+    assert payload["detail"] == (
+        "Invalid kind: use one of failure_mode, latency_snapshot, circuit_state, "
+        "schema_change, credential_lifecycle, support_state, usage_summary"
+    )
+    assert payload["resolution"] == "Check the request parameters and try again."
+    assert payload.get("request_id")
+
+
+
 def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(
     client: TestClient,
     fake_supabase: dict[str, list[dict[str, Any]]],
@@ -335,7 +361,7 @@ def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(
         lambda: datetime(2026, 3, 13, 23, 30, tzinfo=UTC),
     )
 
-    response = client.get("/v1/services/stripe/evidence?kind=failure_mode")
+    response = client.get("/v1/services/stripe/evidence", params={"kind": " Failure_Mode "})
 
     assert response.status_code == 200
     payload = response.json()
