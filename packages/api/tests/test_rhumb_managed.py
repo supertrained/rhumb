@@ -1394,6 +1394,108 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_perplexity_uses_bearer_auth_and_chat_completions_path(
+    monkeypatch,
+):
+    """Perplexity managed execution should use Bearer auth on the OpenAI-compatible path."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_PERPLEXITY_API_KEY", "pplx_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1001,
+                    "capability_id": "ai.generate_text",
+                    "service_slug": "perplexity",
+                    "description": "Managed Perplexity text generation",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_PERPLEXITY_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/chat/completions",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
+        if "services?slug=eq.perplexity" in path:
+            return [{"api_domain": "api.perplexity.ai"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "id": "cmpl_perplexity_123",
+                "model": "sonar",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "Hello from Perplexity."},
+                        "finish_reason": "stop",
+                    }
+                ],
+            }
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="ai.generate_text",
+            agent_id="agent_perplexity_test",
+            body={
+                "model": "sonar",
+                "messages": [{"role": "user", "content": "Say hi"}],
+                "max_tokens": 32,
+            },
+            service_slug="perplexity",
+        )
+
+    assert result["provider_used"] == "perplexity"
+    assert captured["base_url"] == "https://api.perplexity.ai"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/chat/completions"
+    assert captured["params"] == {}
+    assert captured["headers"]["Authorization"] == "Bearer pplx_test_secret"
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert captured["json"] == {
+        "model": "sonar",
+        "messages": [{"role": "user", "content": "Say hi"}],
+        "max_tokens": 32,
+    }
+
+
+@pytest.mark.anyio
 async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_param_from_body(
     monkeypatch,
 ):
