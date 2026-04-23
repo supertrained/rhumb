@@ -27,6 +27,13 @@ const CHANGE_SURFACES = [
   "typed runtime errors when stale assumptions are no longer safe",
 ];
 
+const LIVE_RETIREMENT_DRILL = [
+  "Pinned model IDs, enum names, and capability flags in env vars, framework defaults, tests, and dashboards are part of the production dependency graph.",
+  "A retirement should fail as a typed deterministic boundary, which means the correct response is migration or fallback rather than blind retries.",
+  "Replacement models often change parameter rules, stop reasons, tool formatting, rate limits, and price, so the upgrade is a contract migration, not a string swap.",
+  "The safe surface is machine-readable availability, retirement dates, replacement targets, and preflight checks that let the caller fail closed before side effects.",
+];
+
 const GOOD_PROPERTIES = [
   {
     title: "Structured, not buried",
@@ -66,6 +73,11 @@ const RELATED_READING = [
     description: "The broader readiness lens for whether an API actually works for unattended systems.",
   },
   {
+    href: "/blog/llm-apis-agent-loops",
+    title: "LLM APIs in Agent Loops: What Actually Breaks at Scale",
+    description: "Why rate limits, tool-use recovery, and retired model IDs are operator problems, not just model-choice trivia.",
+  },
+  {
     href: "/blog/capability-first-agent-onboarding",
     title: "Capability-First Agent Onboarding: Managed Superpowers First",
     description: "Why simpler first-run surfaces only stay honest when the later bridge into customer systems can communicate drift before damage.",
@@ -92,7 +104,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
@@ -228,6 +240,17 @@ const ARTICLE_JSON_LD = {
               <p>
                 The exact implementation matters less than the outcome. A good change surface helps the caller answer five questions quickly: did the contract change, what changed, how risky is it, when does the old behavior stop being safe, and should the system keep running or fail closed.
               </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Live drift test: retired model IDs</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                When a provider retires a pinned model ID, the break usually surfaces first as an operator incident, not a docs improvement. The old identifier fails closed, the replacement may carry different parameter rules, price, or limit envelopes, and the wrapper owner has to distinguish deterministic retirement from flaky infrastructure.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_RETIREMENT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 
