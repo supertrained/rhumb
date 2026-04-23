@@ -179,6 +179,56 @@ async def test_list_recipes_returns_only_published_rows(app):
 
 
 @pytest.mark.anyio
+async def test_list_recipes_rejects_invalid_stability_filter_before_query(app):
+    with patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes?stability=experimental")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'stability' filter."
+    assert body["error"]["detail"] == "Use one of: stable, beta, all."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_list_recipes_normalizes_stability_filter_casing_and_whitespace(app):
+    queries: list[str] = []
+
+    async def _capturing_fetch(query: str):
+        queries.append(query)
+        return [RECIPE_ROW]
+
+    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params={"stability": "  BeTa  "})
+
+    assert response.status_code == 200
+    assert queries == [
+        "recipes?select=recipe_id,name,version,category,stability,tier,step_count,max_total_cost_usd,published,updated_at&published=eq.true&order=updated_at.desc.nullslast,recipe_id.asc&limit=50&offset=0&stability=eq.beta"
+    ]
+
+
+@pytest.mark.anyio
+async def test_list_recipes_treats_all_stability_filter_as_unfiltered_list(app):
+    queries: list[str] = []
+
+    async def _capturing_fetch(query: str):
+        queries.append(query)
+        return [RECIPE_ROW]
+
+    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params={"stability": "ALL"})
+
+    assert response.status_code == 200
+    assert queries == [
+        "recipes?select=recipe_id,name,version,category,stability,tier,step_count,max_total_cost_usd,published,updated_at&published=eq.true&order=updated_at.desc.nullslast,recipe_id.asc&limit=50&offset=0"
+    ]
+
+
+@pytest.mark.anyio
 async def test_get_recipe_returns_compiled_definition(app):
     with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

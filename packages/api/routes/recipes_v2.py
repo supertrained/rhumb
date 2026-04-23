@@ -55,6 +55,9 @@ _RECIPE_FANOUT_ORG_LIMIT = 500
 _RECIPE_FANOUT_GLOBAL_LIMIT = 2000
 _RECIPE_FANOUT_WINDOW_SECONDS = 60
 
+_RECIPE_STABILITY_FILTERS = ("stable", "beta", "all")
+_RECIPE_STABILITY_FILTER_SET = set(_RECIPE_STABILITY_FILTERS)
+
 
 class RecipeExecuteRequest(BaseModel):
     inputs: dict[str, Any] = Field(default_factory=dict)
@@ -113,6 +116,23 @@ def _iso(dt) -> str | None:
     if dt is None:
         return None
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _validated_recipe_stability_filter(stability: str | None) -> str | None:
+    if stability is None:
+        return None
+
+    normalized = stability.strip().lower()
+    if normalized == "all":
+        return None
+    if normalized in _RECIPE_STABILITY_FILTER_SET:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'stability' filter.",
+        detail="Use one of: stable, beta, all.",
+    )
 
 
 def _normalize_recipe_summary(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -857,10 +877,12 @@ async def _persist_execution(
 @router.get("/recipes")
 async def list_recipes(
     category: str | None = Query(default=None, description="Filter by recipe category"),
-    stability: str | None = Query(default=None, description="Filter by recipe stability"),
+    stability: str | None = Query(default=None, description="Filter by recipe stability (stable, beta, all)"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> JSONResponse:
+    normalized_stability = _validated_recipe_stability_filter(stability)
+
     query = (
         "recipes"
         "?select=recipe_id,name,version,category,stability,tier,step_count,max_total_cost_usd,published,updated_at"
@@ -870,8 +892,8 @@ async def list_recipes(
     )
     if category:
         query += f"&category=eq.{quote(category)}"
-    if stability:
-        query += f"&stability=eq.{quote(stability)}"
+    if normalized_stability:
+        query += f"&stability=eq.{quote(normalized_stability)}"
 
     rows = await supabase_fetch(query) or []
     return _json_response(
