@@ -411,6 +411,26 @@ async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_rejects_invalid_credential_mode_filter_before_forward(app):
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/resolve",
+                params={"credential_mode": "offline"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' filter."
+    assert body["error"]["detail"] == (
+        "Use one of: byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'."
+    )
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -934,6 +954,26 @@ async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
         "credential_mode": "byok",
         "provider": "sendgrid",
     }
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_rejects_invalid_credential_mode_before_forward(app):
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "offline", "provider": "sendgrid"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' parameter."
+    assert body["error"]["detail"] == (
+        "Use one of: auto, byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'."
+    )
+    mock_forward.assert_not_awaited()
 
 
 @pytest.mark.anyio

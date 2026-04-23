@@ -66,6 +66,8 @@ _SUPPORTED_POLICY_FIELDS = [
     "allow_only",
     "max_cost_usd",
 ]
+_VALID_RESOLVE_CREDENTIAL_MODES = frozenset({"byok", "rhumb_managed", "agent_vault"})
+_VALID_ESTIMATE_CREDENTIAL_MODES = frozenset({"auto", *_VALID_RESOLVE_CREDENTIAL_MODES})
 _POLICY_LIST_FIELDS = [
     "provider_preference",
     "provider_deny",
@@ -220,6 +222,35 @@ def _compat_headers() -> dict[str, str]:
 def _canonicalize_credential_mode(credential_mode: str | None) -> str:
     """Normalize legacy credential-mode aliases for the compat surface."""
     return v1_execute._canonicalize_credential_mode(credential_mode) or "auto"
+
+
+def _validated_credential_mode_filter(credential_mode: str | None) -> str | None:
+    if credential_mode is None:
+        return None
+
+    raw_value = str(credential_mode).strip()
+    normalized = v1_execute._canonicalize_credential_mode(raw_value)
+    if normalized in _VALID_RESOLVE_CREDENTIAL_MODES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'credential_mode' filter.",
+        detail="Use one of: byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'.",
+    )
+
+
+def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
+    raw_value = str(credential_mode or "").strip()
+    normalized = v1_execute._canonicalize_credential_mode(raw_value) or "auto"
+    if normalized in _VALID_ESTIMATE_CREDENTIAL_MODES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'credential_mode' parameter.",
+        detail="Use one of: auto, byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'.",
+    )
 
 
 def _compat_meta() -> dict[str, Any]:
@@ -781,11 +812,7 @@ async def resolve_capability_v2(
         description="Filter by credential mode (byok, rhumb_managed, agent_vault; legacy byo accepted).",
     ),
 ) -> JSONResponse:
-    canonical_credential_mode = (
-        _canonicalize_credential_mode(credential_mode)
-        if credential_mode is not None
-        else None
-    )
+    canonical_credential_mode = _validated_credential_mode_filter(credential_mode)
     resolve_response = await _forward_internal(
         raw_request,
         method="GET",
@@ -905,7 +932,7 @@ async def estimate_capability_v2(
     ),
     provider: str | None = Query(default=None),
 ) -> JSONResponse:
-    canonical_credential_mode = _canonicalize_credential_mode(credential_mode)
+    canonical_credential_mode = _validated_estimate_credential_mode(credential_mode)
     estimate_response = await _forward_internal(
         raw_request,
         method="GET",
