@@ -51,7 +51,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-22T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -147,6 +147,18 @@ const ARTICLE_JSON_LD = {
         <p class="text-slate-400 leading-relaxed mb-4">
           Production operators need more than logs that say "error". They need structured records that answer who acted, what they attempted, what was denied, and why.
           Evidence is what makes containment verifiable.
+        </p>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">4. Policy language is only useful if the boundary survives runtime</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Generated permission manifests, gateway RBAC layers, and governance toolkits are useful because they expose intended boundaries.
+          They are not the boundary itself.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The operator test is still runtime reality: does the wrong caller see fewer tools, get a typed denial instead of a vague failure, and leave evidence of which lane consumed the shared quota or backend authority after the remote hop.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          If the manifest reads narrow but discovery still reveals write-capable tools, or a gateway claims RBAC but cannot explain which principal burned the shared budget during a noisy loop, you documented intent without creating control.
         </p>
 
         <div class="mt-10 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
