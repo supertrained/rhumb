@@ -57,12 +57,19 @@ const OPERATOR_CHECKLIST = [
   "If a prompt is malicious, what prevents it from crossing tenant boundaries through broad parameters or hidden tools?",
 ];
 
+const GATEWAY_CONTAINMENT_CHECKS = [
+  "Does the gateway filter each tenant's visible tool surface before planning, not just deny a call after the tool was already discoverable?",
+  "When policy blocks an action, can the trace show the tenant, requested capability, governing policy, and backend principal involved?",
+  "If one tenant burns shared quota or triggers a retry storm, can the operator quarantine only that tenant's lane?",
+  "Can you rehearse manifest drift, credential expiry, and kill-switch recovery without losing tenant attribution?",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-22T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure.",
@@ -242,7 +249,32 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. Multi-tenant MCP is policy design, not deployment sprawl
+              6. Gateway RBAC only counts if the tenant boundary survives the hop
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Gateways sound like a shortcut to maturity: one control plane, one RBAC layer, one place to hang policy. They help, but a shared gateway can still hide the exact failure multi-tenant operators care about most: a broad backend principal, one shared quota bucket, or one global manifest sitting behind nicer packaging.
+              </p>
+              <p>
+                The honest test is boring. After the remote hop, can you still prove which tools each tenant could see, which typed denial fired, which tenant burned the shared budget, and whether one tenant can be frozen without blacking out everyone else? If not, the system has improved presentation more than containment.
+              </p>
+              <p>
+                That is why gateway claims only become trustworthy when they stay aligned with <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:text-amber-200 transition-colors">remote readiness</a>, <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">principal-aware observability</a>, and <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">shared-budget containment</a>. Tenant isolation is not a box on the control plane. It is the thing that still holds after retries, policy denials, and quota pressure show up together.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Gateway containment audit</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {GATEWAY_CONTAINMENT_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. Multi-tenant MCP is policy design, not deployment sprawl
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
