@@ -2,12 +2,19 @@
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 
+const LIVE_AUDIT_CLUSTER = [
+  "Unconstrained string parameters mean the prompt is still doing policy work the server should have enforced.",
+  "Filesystem tools need path normalization plus explicit allowlisted prefixes, not just a `path` field that looks typed.",
+  "Browser and fetch-style tools need domain and egress guards so indirect prompt injection cannot quietly become SSRF or sandbox escape.",
+  "The useful denial is a typed refusal with preserved context, not a vague runtime error that hides whether scope control actually fired.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -77,6 +84,15 @@ const ARTICLE_JSON_LD = {
         </p>
       </div>
 
+      <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6 mb-10">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">What the live audit cluster is actually saying</div>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+          {LIVE_AUDIT_CLUSTER.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+
       <div class="max-w-3xl">
         <p class="text-slate-400 leading-relaxed mb-4">
           The official MCP servers issue tracker has developed a recurring shape: security advisories tied to unconstrained parameters, prompt-injection-driven file reads, SSRF, sandbox bypasses, and weak write boundaries.
@@ -141,7 +157,8 @@ const ARTICLE_JSON_LD = {
         <h3 class="font-display font-semibold text-xl text-slate-100 mt-8 mb-3 tracking-tight">Parameter layer</h3>
         <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
           <li class="leading-relaxed">Filesystem paths restricted to explicit allowlisted prefixes</li>
-          <li class="leading-relaxed">Structured strings validated against expected shape before execution</li>
+          <li class="leading-relaxed">Structured strings validated against expected shape before execution, not merely hinted at in the tool schema</li>
+          <li class="leading-relaxed">URLs and browser targets restricted to explicit domains or egress policy before navigation runs</li>
           <li class="leading-relaxed">Numeric inputs bounded to documented ranges</li>
         </ul>
 
@@ -186,9 +203,9 @@ const ARTICLE_JSON_LD = {
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Minimal audit</div>
           <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             <li>Check whether the server validates tool parameters in server-side code, not only in the exposed schema.</li>
-            <li>Look for explicit prefix or allowlist guards on files, repos, URLs, and write targets.</li>
+            <li>Look for explicit normalization plus allowlist guards on files, repos, URLs, browser targets, and write paths.</li>
             <li>Confirm the runtime can use scoped credentials rather than one broad backend identity.</li>
-            <li>Inspect whether tool calls are logged with caller, parameters, result, and policy context.</li>
+            <li>Inspect whether tool calls preserve caller, parameters, result, policy context, and typed denials instead of collapsing everything into generic failure.</li>
             <li>Ask what happens to other tenants or sessions if one agent is compromised. The honest answer should be "nothing material."</li>
           </ol>
         </div>

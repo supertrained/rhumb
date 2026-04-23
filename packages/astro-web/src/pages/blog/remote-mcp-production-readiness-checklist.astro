@@ -41,11 +41,18 @@ const DEMO_FLAGS = [
 const CHECKLIST = [
   "Trust class: is this local convenience or remote production infrastructure?",
   "Auth model: who is the principal and how is scope enforced?",
-  "Parameter boundaries: what can the tool actually touch, and what constrains that?",
+  "Execution-time boundaries: which paths, URLs, repos, and write targets stay reachable after normalization and runtime validation?",
   "Tenant model: how are identities, quotas, and data segmented?",
   "Governors: what stops runaway spend, writes, or token burn?",
   "Recovery: after partial failure, how does the caller re-verify state?",
-  "Auditability: can actions be traced back to a principal, tool, and scope?",
+  "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
+];
+
+const PROMPT_INJECTION_DRILL = [
+  "Can filesystem and repo tools prove path normalization plus explicit allowlisted prefixes before any write runs?",
+  "Can browser, fetch, or crawl tools restrict domains and egress so indirect prompt injection does not quietly become SSRF?",
+  "If a boundary blocks the action, does the caller get a typed denial instead of a vague runtime error?",
+  "Can one blocked or compromised lane be quarantined without widening blast radius to other tenants or shared budgets?",
 ];
 
 const FAILURE_CLASSES = [
@@ -135,7 +142,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-22T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -259,11 +266,25 @@ const ARTICLE_JSON_LD = {
                 When people describe prompt injection or indirect instruction risk in remote MCP, the root problem is often not mystical model behavior. It is that the tool surface is too permissive. Broad, underspecified string inputs can turn the wrong plan into filesystem writes, repo changes, browser navigation, or hidden egress with very little friction.
               </p>
               <p>
+                The live issue cluster keeps making that concrete: unconstrained string parameters across official servers, filesystem path traversal, and browser-style tools that can turn indirect instructions into SSRF or sandbox bypass when navigation and egress stay too open. Those are not separate bugs. They are one containment failure showing up in different costumes.
+              </p>
+              <p>
                 A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution. In practice, that is a <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a> problem as much as a schema-design problem.
               </p>
               <p>
                 That becomes much easier to evaluate when you use the plain production frame from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: scope is the boundary, principals define whose authority is active, and evidence determines whether the operator can verify the outcome.
               </p>
+              <p>
+                If you want the deeper threat model, the prompt-injection path is the clearest read: <a href="/blog/mcp-prompt-injection-scope-constraints" class="text-amber hover:text-amber-200 transition-colors">the server has to constrain paths, URLs, browser targets, and write scope at execution time</a>, not only advertise a neat schema upstream.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Prompt-injection containment drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {PROMPT_INJECTION_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 
