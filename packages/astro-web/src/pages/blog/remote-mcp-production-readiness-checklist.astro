@@ -293,7 +293,7 @@ const ARTICLE_JSON_LD = {
                 Repeated repo writes, runaway browser automation, duplicate tickets, repeated model calls that burn budget, or partial failures that cause the same expensive action to be retried are not exotic edge cases. They are normal automation failure patterns.
               </p>
               <p>
-                Production readiness means asking what caps spend, call volume, write volume, and retry fan-out before the system gets weird at 2 a.m.
+                Production readiness means asking what caps spend, call volume, write volume, and retry fan-out before the system gets weird at 2 a.m. In practice that is the same control path as <a href="/blog/llm-apis-agent-loops" class="text-amber hover:text-amber-200 transition-colors">LLM APIs in Agent Loops</a>, <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">Designing Agent Fleets That Survive Rate Limits</a>, and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP Observability</a>: keep tool output small enough to govern, make quota burn attributable, and slow the whole lane down before one noisy workflow becomes a shared incident.
               </p>
             </div>
           </section>

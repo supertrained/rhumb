@@ -332,6 +332,30 @@ const htmlContent = markdownToHtml(content);
     <article class="max-w-3xl mx-auto px-6 pt-12 pb-24">
       <div class="prose-rhumb" set:html={htmlContent} />
 
+      <section class="mt-12 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Loop budget follow-through</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          The budget leak usually starts before the obvious error
+        </h2>
+        <p class="mb-5 leading-relaxed text-slate-300">
+          Fresh operator signal keeps collapsing around the same quiet failures: oversized tool output, repeated intermediate chatter, and auth drift that looks like model instability until the quota is already burned. These three pages carry the loop story into spend evidence, shared-budget governors, and credential containment.
+        </p>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <a href="/blog/mcp-observability-logging-auditing-debugging" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">MCP Observability</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Track which session burned tokens, which tool lane expanded output, and whether retrying is safe before the bill becomes the first alert.</p>
+          </a>
+          <a href="/blog/agent-fleet-rate-limit-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">See how one chatty loop turns into a shared-budget incident unless the whole fleet slows down together.</p>
+          </a>
+          <a href="/blog/api-credentials-agent-fleets" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+            <div class="text-sm font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Credential drift and quota pain usually compound together once the same loops keep retrying behind one shared auth surface.</p>
+          </a>
+        </div>
+      </section>
+
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
