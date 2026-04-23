@@ -7,6 +7,7 @@ GET  /v1/agent/spend            — spend breakdown
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
@@ -18,6 +19,23 @@ from services.service_slugs import public_service_slug
 router = APIRouter(prefix="/v1/agent", tags=["routing"])
 
 _engine = RoutingEngine()
+
+
+def _normalize_spend_period(period: str | None) -> str | None:
+    """Validate and normalize the public spend period filter."""
+    if period is None:
+        return None
+
+    normalized = str(period).strip()
+    if not normalized:
+        return None
+
+    try:
+        datetime.strptime(normalized, "%Y-%m")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid period: use YYYY-MM") from exc
+
+    return normalized
 
 
 async def _extract_agent_id(api_key: str | None) -> str:
@@ -136,7 +154,8 @@ async def get_spend(
 ):
     """Get spend breakdown for the authenticated agent."""
     agent_id = await _extract_agent_id(x_rhumb_key)
-    summary = await _engine.get_spend_summary(agent_id, period)
+    normalized_period = _normalize_spend_period(period)
+    summary = await _engine.get_spend_summary(agent_id, normalized_period)
     return SpendResponse(
         **{
             **summary,

@@ -343,3 +343,35 @@ class TestRoutingRoutes:
             {"provider": "brave-search-api", "spend_usd": 0.04, "executions": 2},
             {"provider": "people-data-labs", "spend_usd": 0.02, "executions": 1},
         ]
+
+    def test_get_spend_rejects_invalid_period_filter(self):
+        with patch("routes.routing._engine") as mock_engine:
+            mock_engine.get_spend_summary = AsyncMock()
+            resp = self.client.get(
+                "/v1/agent/spend",
+                params={"period": "2026-99"},
+                headers={"X-Rhumb-Key": "test_key"},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
+        mock_engine.get_spend_summary.assert_not_awaited()
+
+    def test_get_spend_normalizes_valid_period_before_querying_engine(self):
+        with patch("routes.routing._engine") as mock_engine:
+            mock_engine.get_spend_summary = AsyncMock(return_value={
+                "agent_id": "agent_test",
+                "period": "2026-03",
+                "total_spend_usd": 0.0,
+                "total_executions": 0,
+                "by_capability": [],
+                "by_provider": [],
+            })
+            resp = self.client.get(
+                "/v1/agent/spend",
+                params={"period": " 2026-03 "},
+                headers={"X-Rhumb-Key": "test_key"},
+            )
+
+        assert resp.status_code == 200
+        mock_engine.get_spend_summary.assert_awaited_once_with("agent_test123", "2026-03")
