@@ -87,6 +87,8 @@ _V2_NAVIGATION_URL_KEYS = {
     "execute_url",
 }
 
+_VALID_PROVIDER_LIST_STATUSES = frozenset({"callable", "listed", "scored"})
+
 
 # ---------------------------------------------------------------------------
 # Request / response models
@@ -258,6 +260,21 @@ def _layer1_cost(provider_cost_usd: float) -> dict[str, float]:
         "markup_rate": _LAYER1_MARKUP_RATE,
         "markup_floor_usd": _LAYER1_MARKUP_FLOOR,
     }
+
+
+def _validated_provider_list_status(status_filter: str | None) -> str | None:
+    if status_filter is None:
+        return None
+
+    normalized = status_filter.strip().lower()
+    if normalized in _VALID_PROVIDER_LIST_STATUSES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'status' filter.",
+        detail="Use one of: callable, listed, scored.",
+    )
 
 
 def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
@@ -753,6 +770,8 @@ async def list_providers(
     full scored catalog. Provider metadata lives in ``services`` while AN
     score/tier lives in ``scores``.
     """
+    status_filter = _validated_provider_list_status(status_filter)
+
     direct_mappings = _all_direct_provider_mappings()
     direct_mappings_by_provider: dict[str, list[dict[str, Any]]] = {}
     for mapping in direct_mappings:
