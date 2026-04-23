@@ -406,6 +406,12 @@ _EVENT_METADATA: dict[AuditEventType, dict[str, Any]] = {
     },
 }
 
+AUDIT_EVENT_CATEGORIES = frozenset(
+    str(meta.get("category"))
+    for meta in _EVENT_METADATA.values()
+    if meta.get("category")
+)
+
 
 # ── Data structures ──────────────────────────────────────────────────
 

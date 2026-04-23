@@ -106,6 +106,55 @@ def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
     assert "ISO 8601" in body["error"]["detail"]
 
 
+def test_list_audit_events_invalid_category_uses_explicit_invalid_parameters():
+    from app import create_app
+
+    trail = MagicMock()
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?category=totally-made-up",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'category' filter."
+    assert "admin" in body["error"]["detail"]
+    trail.query.assert_not_called()
+    trail.count.assert_not_called()
+
+
+def test_export_audit_valid_category_normalizes_whitespace_and_case():
+    from app import create_app
+
+    trail = MagicMock()
+    trail.export.return_value = MagicMock(
+        format="json",
+        event_count=0,
+        chain_verified=True,
+        exported_at=MagicMock(isoformat=lambda: "2026-04-23T16:53:00+00:00"),
+        data="[]",
+    )
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?category=%20Auth%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    trail.export.assert_called_once()
+    assert trail.export.call_args.kwargs["category"] == "auth"
+
+
 def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
     from app import create_app
 

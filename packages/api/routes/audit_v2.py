@@ -24,6 +24,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from services.error_envelope import RhumbError
 from services.audit_trail import (
+    AUDIT_EVENT_CATEGORIES,
     AuditEventType,
     AuditSeverity,
     get_audit_trail,
@@ -139,6 +140,26 @@ def _validated_severity(severity: str | None) -> AuditSeverity | None:
         ) from exc
 
 
+def _validated_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip()
+    if not normalized:
+        return None
+
+    lowered = normalized.lower()
+    if lowered not in AUDIT_EVENT_CATEGORIES:
+        valid_categories = ", ".join(sorted(AUDIT_EVENT_CATEGORIES))
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'category' filter.",
+            detail=f"Use one of: {valid_categories}.",
+        )
+
+    return lowered
+
+
 def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
     if ts is None:
         return None
@@ -174,7 +195,7 @@ async def list_audit_events(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     event_type: str | None = Query(None, description="Filter by event type"),
     severity: str | None = Query(None, description="Filter by severity: info, warning, critical"),
-    category: str | None = Query(None, description="Filter by category: execution, security, governance, billing, trust, identity"),
+    category: str | None = Query(None, description="Filter by category: admin, auth, billing, config, credential, execution, governance, identity, security, trust"),
     resource_type: str | None = Query(None, description="Filter by resource type"),
     resource_id: str | None = Query(None, description="Filter by resource ID"),
     since: str | None = Query(None, description="ISO 8601 timestamp — events after this time"),
@@ -193,6 +214,7 @@ async def list_audit_events(
 
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
+    parsed_category = _validated_category(category)
     parsed_since = _validated_timestamp(since, field_name="since")
     parsed_until = _validated_timestamp(until, field_name="until")
 
@@ -200,7 +222,7 @@ async def list_audit_events(
         org_id=org_id,
         event_type=parsed_type,
         severity=parsed_severity,
-        category=category,
+        category=parsed_category,
         resource_type=resource_type,
         resource_id=resource_id,
         since=parsed_since,
@@ -213,7 +235,7 @@ async def list_audit_events(
         org_id=org_id,
         event_type=parsed_type,
         severity=parsed_severity,
-        category=category,
+        category=parsed_category,
         resource_type=resource_type,
         resource_id=resource_id,
         since=parsed_since,
@@ -328,6 +350,7 @@ async def export_audit_trail(
     format = _validated_export_format(format)
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
+    parsed_category = _validated_category(category)
     parsed_since = _validated_timestamp(since, field_name="since")
     parsed_until = _validated_timestamp(until, field_name="until")
 
@@ -336,7 +359,7 @@ async def export_audit_trail(
         org_id=org_id,
         event_type=parsed_type,
         severity=parsed_severity,
-        category=category,
+        category=parsed_category,
         resource_type=resource_type,
         resource_id=resource_id,
         since=parsed_since,
