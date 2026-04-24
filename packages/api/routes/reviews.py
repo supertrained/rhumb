@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_fetch
 from services.service_slugs import (
@@ -60,6 +61,39 @@ _VALID_EVIDENCE_KIND_SET = frozenset(_VALID_EVIDENCE_KINDS)
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS) -> Any | None:
     return await cached_query(table, lambda: supabase_fetch(path), cache_key=path, ttl=ttl)
+
+
+def _public_service_input_slug(service_slug: str | None) -> str:
+    return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
+
+
+async def _service_exists(service_slug: str) -> bool:
+    service_rows = await _cached_fetch(
+        "services",
+        "services"
+        f"?slug=in.({_postgrest_in(public_service_slug_candidates(service_slug))})"
+        "&select=slug",
+    )
+    if not service_rows:
+        return False
+    return any(
+        (public_service_slug(row.get("slug")) or str(row.get("slug") or "").strip().lower())
+        == service_slug
+        for row in service_rows
+    )
+
+
+def _not_found_response(raw_request: Request, canonical_slug: str) -> JSONResponse:
+    request_id = getattr(raw_request.state, "request_id", None) or "unknown"
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "service_not_found",
+            "message": f"No service found with slug '{canonical_slug}'",
+            "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+            "request_id": request_id,
+        },
+    )
 
 
 def trust_label(source_type: str | None) -> str:
@@ -317,9 +351,9 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 
 
 @router.get("/services/{slug}/reviews")
-async def get_service_reviews(slug: str) -> dict[str, Any]:
+async def get_service_reviews(slug: str, raw_request: Request) -> dict[str, Any]:
     """Return published reviews for one service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
     slug_candidates = public_service_slug_candidates(slug)
     reviews = await _cached_fetch(
         "service_reviews",
@@ -331,6 +365,9 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
         "confidence,evidence_count,highest_trust_source"
     )
     review_rows = reviews or []
+    if not review_rows and not await _service_exists(canonical_slug):
+        return _not_found_response(raw_request, canonical_slug)
+
     review_ids = [str(row["id"]) for row in review_rows if row.get("id") is not None]
     source_types_by_review, linked_evidence = await _fetch_review_evidence(review_ids)
 
@@ -396,11 +433,11 @@ async def get_service_reviews(slug: str) -> dict[str, Any]:
 
 @router.get("/services/{slug}/evidence")
 async def get_service_evidence(
-    slug: str, kind: str | None = Query(default=None)
+    slug: str, raw_request: Request, kind: str | None = Query(default=None)
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
     normalized_kind = _validated_evidence_kind(kind)
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
     slug_candidates = public_service_slug_candidates(slug)
     path = (
         "evidence_records"
@@ -413,6 +450,9 @@ async def get_service_evidence(
         path += f"&evidence_kind=eq.{quote(normalized_kind)}"
 
     evidence_rows = (await _cached_fetch("evidence_records", path)) or []
+    if not evidence_rows and not await _service_exists(canonical_slug):
+        return _not_found_response(raw_request, canonical_slug)
+
     return {
         "service_slug": canonical_slug,
         "evidence": [

@@ -39,6 +39,7 @@ def test_canonicalize_service_text_canonicalizes_same_service_alias_text_for_can
 def fake_supabase(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[dict[str, Any]]]:
     """Provide fixture-backed Supabase responses for review route tests."""
     tables: dict[str, list[dict[str, Any]]] = {
+        "services": [],
         "service_reviews": [],
         "review_evidence_links": [],
         "evidence_records": [],
@@ -68,6 +69,19 @@ def fake_supabase(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[dict[str, A
                     for row in rows
                 ]
             return sorted(rows, key=lambda row: row.get("reviewed_at", ""), reverse=True)
+
+        if path.startswith("services?"):
+            rows = list(tables["services"])
+            if "slug" in params:
+                slug_filter = params["slug"][0]
+                if slug_filter.startswith("eq."):
+                    slug = unquote(slug_filter.removeprefix("eq."))
+                    rows = [row for row in rows if row.get("slug") == slug]
+                elif slug_filter.startswith("in.("):
+                    raw = slug_filter.removeprefix("in.(").removesuffix(")")
+                    slugs = {unquote(value) for value in raw.split(",") if value}
+                    rows = [row for row in rows if row.get("slug") in slugs]
+            return rows
 
         if path.startswith("review_evidence_links?"):
             if "review_id" not in params:
@@ -821,10 +835,31 @@ def test_get_service_evidence_canonicalizes_alternate_service_alias_mentions_in_
     assert payload["evidence"][0]["source_ref"] == "usage_events:brave-search-api:2026-03-26"
 
 
-def test_get_service_reviews_returns_empty_list_for_unknown_service(
+def test_get_service_reviews_returns_empty_list_for_known_service_without_reviews(
     client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
 ) -> None:
-    """Unknown services return an empty reviews slice rather than 404."""
+    """Known services with no published reviews should keep the honest empty state."""
+    fake_supabase["services"].append({"slug": "stripe"})
+
+    response = client.get("/v1/services/stripe/reviews")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "service_slug": "stripe",
+        "reviews": [],
+        "total_reviews": 0,
+        "trust_summary": {
+            "highest_source_type": None,
+            "runtime_backed_pct": 0.0,
+            "freshest_evidence_at": None,
+        },
+    }
+
+
+def test_get_service_reviews_returns_canonical_404_for_unknown_service(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Unknown review slugs should not collapse into misleading empty-success payloads."""
     fake_supabase["service_reviews"].append(
         {
             "id": "review-other",
@@ -840,18 +875,66 @@ def test_get_service_reviews_returns_empty_list_for_unknown_service(
         }
     )
 
-    response = client.get("/v1/services/nonexistent/reviews")
+    response = client.get(
+        "/v1/services/Brave-Search/reviews",
+        headers={"X-Request-ID": "req-reviews-404"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'brave-search-api'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-reviews-404",
+    }
+
+
+def test_get_service_evidence_returns_empty_list_for_known_service_without_evidence(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Known services with no evidence should keep the honest empty state."""
+    fake_supabase["services"].append({"slug": "stripe"})
+
+    response = client.get("/v1/services/stripe/evidence")
 
     assert response.status_code == 200
     assert response.json() == {
-        "service_slug": "nonexistent",
-        "reviews": [],
-        "total_reviews": 0,
-        "trust_summary": {
-            "highest_source_type": None,
-            "runtime_backed_pct": 0.0,
-            "freshest_evidence_at": None,
-        },
+        "service_slug": "stripe",
+        "evidence": [],
+        "total_evidence": 0,
+    }
+
+
+def test_get_service_evidence_returns_canonical_404_for_unknown_service(
+    client: TestClient, fake_supabase: dict[str, list[dict[str, Any]]]
+) -> None:
+    """Unknown evidence slugs should return the canonical missing-service envelope."""
+    fake_supabase["evidence_records"].append(
+        {
+            "id": "evidence-other",
+            "service_slug": "github",
+            "source_type": "docs_derived",
+            "evidence_kind": "failure_mode",
+            "title": "GitHub evidence",
+            "summary": "Not stripe",
+            "observed_at": "2026-03-01T00:00:00Z",
+            "fresh_until": "2026-04-01T00:00:00Z",
+            "confidence": 0.7,
+            "source_ref": "facts/github",
+        }
+    )
+
+    response = client.get(
+        "/v1/services/pdl/evidence",
+        headers={"X-Request-ID": "req-evidence-404"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'people-data-labs'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-evidence-404",
     }
 
 
