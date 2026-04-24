@@ -70,6 +70,19 @@ def _normalize_billing_month(month: str) -> str:
     return normalized
 
 
+def _normalize_settlement_batch_date(batch_date: str | None) -> str | None:
+    """Validate and normalize public admin settlement batch dates."""
+    if batch_date is None:
+        return None
+
+    normalized = str(batch_date).strip()
+    try:
+        datetime.strptime(normalized, "%Y-%m-%d")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid batch_date: use YYYY-MM-DD") from exc
+    return normalized
+
+
 def _public_billing_service(service: Any) -> str:
     cleaned = str(service or "").strip().lower()
     if not cleaned:
@@ -262,7 +275,8 @@ async def run_settlement(
     batch_date: str | None = Query(default=None, description="Date in YYYY-MM-DD (default: yesterday)"),
 ) -> Dict[str, Any]:
     """Trigger daily settlement batch creation. Admin only."""
-    result = await create_daily_settlement_batch(batch_date)
+    normalized_batch_date = _normalize_settlement_batch_date(batch_date)
+    result = await create_daily_settlement_batch(normalized_batch_date)
     if result is None:
         return {"status": "skipped", "reason": "no_receipts_or_already_exists"}
     return {"status": "created", **result}

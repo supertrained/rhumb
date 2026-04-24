@@ -390,6 +390,43 @@ class TestSettlementAdminRoutes:
         assert data["batch_date"] == BATCH_DATE
         assert data["receipt_count"] == 2
 
+    def test_run_settlement_rejects_invalid_batch_date(self, client: TestClient) -> None:
+        with patch(
+            "routes.admin_billing.create_daily_settlement_batch",
+            new_callable=AsyncMock,
+        ) as mock_create:
+            resp = client.post(
+                "/v1/admin/settlement/run",
+                params={"batch_date": "2026-99-16"},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid batch_date: use YYYY-MM-DD"
+        mock_create.assert_not_awaited()
+
+    def test_run_settlement_normalizes_batch_date_whitespace(self, client: TestClient) -> None:
+        mock_result = {
+            "batch_id": BATCH_ID,
+            "batch_date": BATCH_DATE,
+            "total_usdc_atomic": "300000",
+            "receipt_count": 2,
+        }
+        with patch(
+            "routes.admin_billing.create_daily_settlement_batch",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_create:
+            resp = client.post(
+                "/v1/admin/settlement/run",
+                params={"batch_date": f"  {BATCH_DATE}  "},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "created"
+        mock_create.assert_awaited_once_with(BATCH_DATE)
+
     def test_run_settlement_skipped(self, client: TestClient) -> None:
         with patch(
             "routes.admin_billing.create_daily_settlement_batch",
