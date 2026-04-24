@@ -7,7 +7,10 @@ from urllib.parse import parse_qs
 from urllib.parse import unquote
 from unittest.mock import AsyncMock, patch
 
-from routes.services import _canonicalize_service_rows
+import pytest
+
+from routes.services import _canonicalize_service_rows, _validated_service_history_limit
+from services.error_envelope import RhumbError
 
 
 ALL_SERVICES = [
@@ -1286,6 +1289,29 @@ def test_service_history_preserves_empty_state_for_known_services(client) -> Non
     payload = resp.json()
     assert payload["error"] is None
     assert payload["data"] == {"slug": "service-no-history", "history": []}
+
+
+def test_service_history_rejects_invalid_limit_directly() -> None:
+    with pytest.raises(RhumbError) as exc_info:
+        _validated_service_history_limit(101)
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'limit' filter."
+    assert exc_info.value.detail == "Provide an integer between 1 and 100."
+
+
+def test_service_history_http_rejects_invalid_limit_with_canonical_envelope(client) -> None:
+    mock_fetch = AsyncMock(side_effect=_mock_alias_supabase_fetch)
+
+    with patch("routes.services.supabase_fetch", mock_fetch):
+        resp = client.get("/v1/services/brave-search-api/history", params={"limit": 101})
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Provide an integer between 1 and 100."
+    assert mock_fetch.await_count == 0
 
 
 def test_service_score_reads_alias_backed_failure_modes(client) -> None:

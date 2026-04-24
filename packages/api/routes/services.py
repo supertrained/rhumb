@@ -108,6 +108,17 @@ def _validated_service_list_limit(limit: int) -> int:
     )
 
 
+def _validated_service_history_limit(limit: int) -> int:
+    if 1 <= limit <= 100:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 100.",
+    )
+
+
 def _public_service_input_slug(service_slug: str | None) -> str:
     return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
 
@@ -788,14 +799,15 @@ async def get_failures(slug: str, raw_request: Request):
 
 
 @router.get("/services/{slug}/history")
-async def get_history(slug: str, raw_request: Request, limit: int = Query(default=20, ge=1, le=100)):
+async def get_history(slug: str, raw_request: Request, limit: int = Query(default=20)):
     """Fetch historical AN score entries for a service."""
     canonical_slug = _public_service_input_slug(slug)
+    effective_limit = _validated_service_history_limit(limit)
     score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
         f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
-        f"&order=calculated_at.desc&limit={limit}"
+        f"&order=calculated_at.desc&limit={effective_limit}"
         f"&select=aggregate_recommendation_score,execution_score,access_readiness_score,"
         f"confidence,tier,tier_label,calculated_at"
     )
