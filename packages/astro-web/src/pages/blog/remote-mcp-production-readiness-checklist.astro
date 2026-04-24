@@ -7,7 +7,7 @@ const READINESS_RAILS = [
     label: "Principal",
     accent: "text-sky-400",
     className: "border-sky-500/20 bg-sky-500/5",
-    description: "The caller should map to a real identity with scopes software can reason about, rotate, and revoke cleanly.",
+    description: "The caller should map to a real identity with scopes software can reason about, rotate, revoke cleanly, and attribute shared budget or quota against.",
   },
   {
     label: "Scope",
@@ -41,7 +41,7 @@ const DEMO_FLAGS = [
 
 const CHECKLIST = [
   "Trust class: is this local convenience or remote production infrastructure?",
-  "Auth model: who is the principal and how is scope enforced?",
+  "Auth model: who is the principal, which tools stay visible, and whose budget or quota does the call spend?",
   "Execution-time boundaries: which paths, URLs, repos, and write targets stay reachable after normalization and runtime validation?",
   "Tenant model: how are identities, quotas, and data segmented?",
   "Governors: what stops runaway spend, writes, or token burn?",
@@ -156,7 +156,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -266,6 +266,9 @@ const ARTICLE_JSON_LD = {
                 A surprising amount of remote tooling still treats authentication like packaging instead of infrastructure. That is how you end up with one shared API key, vague 401s, and no way for an agent to distinguish expiry, revocation, and insufficient scope safely.
               </p>
               <p>
+                The live auth cluster also makes the missing production question obvious: which tools stay hidden until the right principal exists, whose quota or budget burns when several agents share one upstream account, and whether one lane can be revoked without freezing the rest of the runtime.
+              </p>
+              <p>
                 For unattended systems, vague auth is not cosmetic friction. It is a recovery blocker.
               </p>
             </div>
@@ -329,6 +332,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Production readiness means asking what caps spend, call volume, write volume, and retry fan-out before the system gets weird at 2 a.m. In practice that is the same control path as <a href="/blog/llm-apis-agent-loops" class="text-amber hover:text-amber-200 transition-colors">LLM APIs in Agent Loops</a>, <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">Designing Agent Fleets That Survive Rate Limits</a>, and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP Observability</a>: keep tool output small enough to govern, make quota burn attributable, and slow the whole lane down before one noisy workflow becomes a shared incident.
+              </p>
+              <p>
+                If several agents share one upstream identity, the governor layer also has to keep attribution intact. Otherwise quota exhaustion, auth failures, and abuse detection all collapse into the same blurry incident instead of telling you which lane burned the budget.
               </p>
             </div>
           </section>

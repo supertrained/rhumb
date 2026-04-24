@@ -56,6 +56,19 @@ The weakest surfaces force you into long-lived master keys, ambiguous errors, ma
 
 That is manageable for a human operator. It is dangerous for a fleet.
 
+## Fresh operator signal: auth model is also a budget and tenancy model
+
+The current MCP issue cluster keeps landing on the same mistake: teams talk about credential management as if the hard part were hiding a string.
+
+In production, the harder question is what that credential *means* once several agents, tenants, or workflows share it.
+
+- Which principal is this call really running as?
+- Which tools stay hidden until that principal exists?
+- Whose quota or budget burns when three agents share one upstream account?
+- Can one lane be revoked without freezing every other workflow on the same key?
+
+If those answers are blurry, the fleet does not have a credential model yet. It has a secret-distribution habit.
+
 ## Pattern 1, credential store plus watch layer
 
 The cleanest production pattern is simple.
