@@ -819,14 +819,30 @@ async def get_history(slug: str, raw_request: Request, limit: int = Query(defaul
 
 
 @router.get("/services/{slug}/schema")
-async def get_schema(slug: str) -> dict:
+async def get_schema(slug: str, raw_request: Request) -> dict:
     """Fetch the latest schema snapshot for a service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
+    if not await _service_exists(canonical_slug):
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
+
     return {"data": {"slug": canonical_slug, "schema": None}, "error": None}
 
 
 @router.post("/services/{slug}/report")
-async def report_failure(slug: str) -> dict:
+async def report_failure(slug: str, raw_request: Request) -> dict:
     """Submit a failure report for a service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
+    if not await _service_exists(canonical_slug):
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
+
     return {"data": {"slug": canonical_slug, "accepted": True}, "error": None}

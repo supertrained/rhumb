@@ -1564,11 +1564,52 @@ def test_service_failures_preserve_empty_state_for_known_services(client) -> Non
 
 
 
+def test_service_schema_and_report_preserve_known_service_empty_states(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        schema_resp = client.get("/v1/services/stripe/schema")
+        report_resp = client.post("/v1/services/stripe/report")
+
+    assert schema_resp.status_code == 200
+    assert schema_resp.json()["error"] is None
+    assert schema_resp.json()["data"] == {"slug": "stripe", "schema": None}
+    assert report_resp.status_code == 200
+    assert report_resp.json()["error"] is None
+    assert report_resp.json()["data"] == {"slug": "stripe", "accepted": True}
+
+
+
 def test_service_schema_and_report_normalize_mixed_case_alias_inputs(client) -> None:
-    schema_resp = client.get("/v1/services/Brave-Search-Api/schema")
-    report_resp = client.post("/v1/services/PDL/report")
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        schema_resp = client.get("/v1/services/Brave-Search-Api/schema")
+        report_resp = client.post("/v1/services/PDL/report")
 
     assert schema_resp.status_code == 200
     assert schema_resp.json()["data"]["slug"] == "brave-search-api"
     assert report_resp.status_code == 200
     assert report_resp.json()["data"]["slug"] == "people-data-labs"
+
+
+
+def test_service_schema_and_report_return_not_found_for_unknown_services(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        schema_resp = client.get("/v1/services/unknown-service/schema")
+        report_resp = client.post("/v1/services/unknown-service/report")
+
+    assert schema_resp.status_code == 404
+    assert schema_resp.json()["error"] == "service_not_found"
+    assert schema_resp.json()["message"] == "No service found with slug 'unknown-service'"
+    assert report_resp.status_code == 404
+    assert report_resp.json()["error"] == "service_not_found"
+    assert report_resp.json()["message"] == "No service found with slug 'unknown-service'"
