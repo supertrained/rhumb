@@ -318,6 +318,17 @@ def _validated_provider_list_capability_query(capability: str | None) -> str | N
     )
 
 
+def _validated_provider_list_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 def _raise_invalid_provider_list_capability_filter() -> None:
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -811,7 +822,7 @@ async def list_providers(
         description="Filter by status (callable, scored, listed)",
     ),
     limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0),
 ) -> dict[str, Any]:
     """List available providers with optional filters.
 
@@ -821,6 +832,7 @@ async def list_providers(
     """
     status_filter = _validated_provider_list_status(status_filter)
     capability = _validated_provider_list_capability_query(capability)
+    effective_offset = _validated_provider_list_offset(offset)
 
     direct_mappings = _all_direct_provider_mappings()
     direct_mappings_by_provider: dict[str, list[dict[str, Any]]] = {}
@@ -876,7 +888,7 @@ async def list_providers(
                 "providers": [],
                 "total": 0,
                 "limit": limit,
-                "offset": offset,
+                "offset": effective_offset,
                 "_rhumb_v2": {
                     "api_version": "v2-alpha",
                     "layer": _LAYER,
@@ -967,7 +979,7 @@ async def list_providers(
         )
     )
     total = len(providers)
-    page = providers[offset : offset + limit]
+    page = providers[effective_offset : effective_offset + limit]
 
     return {
         "error": None,
@@ -975,7 +987,7 @@ async def list_providers(
             "providers": page,
             "total": total,
             "limit": limit,
-            "offset": offset,
+            "offset": effective_offset,
             "_rhumb_v2": {
                 "api_version": "v2-alpha",
                 "layer": _LAYER,
