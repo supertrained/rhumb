@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
+from services.error_envelope import RhumbError
 from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
@@ -57,6 +58,32 @@ async def _cached_count(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECO
 def _build_in_filter(values: set[str]) -> str:
     """Build a PostgREST `in.(...)` filter from a set of string identifiers."""
     return ",".join(f'"{value}"' for value in sorted(values))
+
+
+def _canonicalize_service_list_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    return normalized or None
+
+
+def _validated_service_list_category(
+    category: str | None,
+    *,
+    available_categories: set[str],
+) -> str | None:
+    normalized = _canonicalize_service_list_category(category)
+    if normalized is None:
+        return None
+    if not available_categories or normalized in available_categories:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail=f"Use one of: {', '.join(sorted(available_categories))}.",
+    )
 
 
 def _public_service_input_slug(service_slug: str | None) -> str:
@@ -370,8 +397,6 @@ async def list_services(
         "services?select=slug,name,category,description"
         f"&slug=in.({_build_in_filter(query_slugs)})"
     )
-    if category:
-        path += f"&category=eq.{quote(category)}"
 
     data = await _cached_fetch("services", path)
     if data is None:
@@ -381,6 +406,25 @@ async def list_services(
         }
 
     items = _canonicalize_service_rows(data)
+    normalized_category = _validated_service_list_category(
+        category,
+        available_categories={
+            normalized_category
+            for item in items
+            if (
+                normalized_category := _canonicalize_service_list_category(
+                    item.get("category")
+                )
+            )
+        },
+    )
+    if normalized_category:
+        items = [
+            item
+            for item in items
+            if _canonicalize_service_list_category(item.get("category")) == normalized_category
+        ]
+
     items.sort(key=lambda item: str(item.get("name") or item.get("slug") or "").lower())
     paginated_items = items[offset : offset + effective_limit]
 

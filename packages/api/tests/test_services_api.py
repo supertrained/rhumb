@@ -896,6 +896,51 @@ def test_services_limit_above_max_is_capped(client) -> None:
     )
 
 
+def test_services_rejects_invalid_category_filter(client) -> None:
+    with (
+        patch(
+            "routes.services.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_fetch,
+        ),
+        patch(
+            "routes.services.supabase_count",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_count,
+        ),
+    ):
+        resp = client.get("/v1/services", params={"category": "search"})
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'category' filter."
+    assert payload["error"]["detail"] == "Use one of: email, payments."
+
+
+def test_services_normalizes_category_filter_casing_and_whitespace(client) -> None:
+    with (
+        patch(
+            "routes.services.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_fetch,
+        ),
+        patch(
+            "routes.services.supabase_count",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_count,
+        ),
+    ):
+        resp = client.get("/v1/services", params={"category": " Payments  "})
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["total"] == 300
+    assert all(item["category"] == "payments" for item in payload["data"]["items"])
+    assert payload["data"]["items"][0]["slug"] == "service-0000"
+
+
 def test_services_endpoint_keeps_alias_backed_services_visible(client) -> None:
     with (
         patch(
