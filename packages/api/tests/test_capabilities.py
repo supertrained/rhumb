@@ -275,6 +275,24 @@ WAREHOUSE_DIRECT_CAPABILITY = {
     "outcome": "Query results with dry-run validation metadata",
 }
 
+DEPLOYMENT_DIRECT_CAPABILITY = {
+    "id": "deployment.list",
+    "domain": "deployment",
+    "action": "list",
+    "description": "List recent deployments from a bounded Vercel project scope",
+    "input_hint": "deployment_ref, limit (optional), target (optional)",
+    "outcome": "Deployment summaries for the allowed Vercel projects",
+}
+
+ACTIONS_DIRECT_CAPABILITY = {
+    "id": "workflow_run.list",
+    "domain": "actions",
+    "action": "list",
+    "description": "List recent workflow runs from a bounded GitHub repository scope",
+    "input_hint": "actions_ref, repository, workflow_id (optional), status (optional)",
+    "outcome": "Workflow run summaries for the allowed repositories",
+}
+
 OBJECT_STORAGE_DIRECT_CAPABILITIES = [
     {
         "id": "object.list",
@@ -374,6 +392,38 @@ def _mock_warehouse_direct_supabase(path: str):
         if "id=eq.warehouse.query.read" in path:
             return [WAREHOUSE_DIRECT_CAPABILITY]
         return [WAREHOUSE_DIRECT_CAPABILITY]
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
+def _mock_deployment_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.deployment.list" in path:
+            return [DEPLOYMENT_DIRECT_CAPABILITY]
+        return [DEPLOYMENT_DIRECT_CAPABILITY]
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
+def _mock_actions_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.workflow_run.list" in path:
+            return [ACTIONS_DIRECT_CAPABILITY]
+        return [ACTIONS_DIRECT_CAPABILITY]
     if path.startswith("capability_services?"):
         return []
     if path.startswith("scores?"):
@@ -3337,6 +3387,180 @@ async def test_warehouse_direct_capability_ignores_catalog_mapping_rows(app):
     provider = mode_data["providers"][0]
     assert provider["service_slug"] == "bigquery"
     assert provider["auth_method"] == "warehouse_ref"
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
+
+
+@pytest.mark.anyio
+async def test_deployment_direct_capability_surfaces_synthetic_provider(app):
+    """Vercel direct capabilities should expose a truthful synthetic provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_deployment_direct_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/deployment.list")
+            resolve_resp = await client.get("/v1/capabilities/deployment.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/deployment.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "vercel"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "vercel"
+    assert get_data["providers"][0]["auth_method"] == "deployment_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "vercel"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "vercel"
+    assert resolve_data["execute_hint"]["auth_method"] == "deployment_ref"
+    assert resolve_data["execute_hint"]["configured"] is False
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert "RHUMB_DEPLOYMENT_<REF>" in resolve_data["execute_hint"]["setup_hint"]
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "vercel"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "RHUMB_DEPLOYMENT_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_deployment_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [DEPLOYMENT_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "deployment.list",
+                "service_slug": "stale-deployment-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-deployment",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/deployment.list")
+            resolve_resp = await client.get("/v1/capabilities/deployment.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/deployment.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "vercel"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "vercel"
+    assert get_data["providers"][0]["auth_method"] == "deployment_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "vercel"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "deployment_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "vercel"
+    assert provider["auth_method"] == "deployment_ref"
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
+
+
+@pytest.mark.anyio
+async def test_actions_direct_capability_surfaces_synthetic_provider(app):
+    """GitHub Actions direct capabilities should expose a truthful synthetic provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_actions_direct_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/workflow_run.list")
+            resolve_resp = await client.get("/v1/capabilities/workflow_run.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/workflow_run.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "github"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "github"
+    assert get_data["providers"][0]["auth_method"] == "actions_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "github"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "github"
+    assert resolve_data["execute_hint"]["auth_method"] == "actions_ref"
+    assert resolve_data["execute_hint"]["configured"] is False
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert "RHUMB_ACTIONS_<REF>" in resolve_data["execute_hint"]["setup_hint"]
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "github"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "RHUMB_ACTIONS_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_actions_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [ACTIONS_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "workflow_run.list",
+                "service_slug": "stale-actions-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-actions",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/workflow_run.list")
+            resolve_resp = await client.get("/v1/capabilities/workflow_run.list/resolve")
+            modes_resp = await client.get("/v1/capabilities/workflow_run.list/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "github"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "github"
+    assert get_data["providers"][0]["auth_method"] == "actions_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "github"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "actions_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "github"
+    assert provider["auth_method"] == "actions_ref"
     assert len(provider["modes"]) == 1
     assert provider["modes"][0]["mode"] == "byok"
 
