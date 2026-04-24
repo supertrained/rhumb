@@ -595,7 +595,7 @@ async def get_service_score(slug: str, raw_request: Request):
 
         try:
             return await score_routes.get_score(canonical_slug)
-        except HTTPException:
+        except (HTTPException, RhumbError):
             return _not_found_response(
                 raw_request,
                 error="service_not_found",

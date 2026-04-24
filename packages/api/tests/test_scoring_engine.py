@@ -448,6 +448,31 @@ def test_get_service_score_fixture_fallback_exposes_dual_scores(
     assert body["score"] == body["an_score"]
 
 
+@pytest.mark.asyncio
+async def test_get_score_raises_canonical_score_not_found_for_unknown_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Direct score reads should raise the canonical score-not-found envelope for unknown slugs."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+    monkeypatch.setattr(
+        score_routes,
+        "get_scoring_service",
+        lambda: ScoringService(repository=InMemoryScoreRepository()),
+    )
+
+    with pytest.raises(RhumbError) as exc_info:
+        await score_routes.get_score("Unknown-Service")
+
+    assert exc_info.value.code == "SCORE_NOT_FOUND"
+    assert exc_info.value.message == "No AN score found for service 'unknown-service'."
+    assert exc_info.value.detail == (
+        "Check GET /v1/services or /v1/search?q=... to confirm the service slug, "
+        "or retry after the first score is published."
+    )
+
+
 def test_compare_route_exposes_dual_score_fields(
     client,
     monkeypatch: pytest.MonkeyPatch,

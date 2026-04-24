@@ -498,7 +498,14 @@ async def get_score(slug: str) -> ANScoreSchema:
             calculated_at=result.calculated_at.isoformat(),
         )
 
-    raise HTTPException(status_code=404, detail=f"No AN score found for service '{canonical_slug}'")
+    raise RhumbError(
+        "SCORE_NOT_FOUND",
+        message=f"No AN score found for service '{canonical_slug}'.",
+        detail=(
+            "Check GET /v1/services or /v1/search?q=... to confirm the service slug, "
+            "or retry after the first score is published."
+        ),
+    )
 
 
 def _validated_compare_service_slugs(services: str) -> list[str]:
