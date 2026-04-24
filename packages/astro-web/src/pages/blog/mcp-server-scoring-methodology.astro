@@ -28,12 +28,19 @@ const FALSE_PROXIES = [
   },
   {
     title: "Flat top-server lists",
-    body: "A local coding helper, a read-mostly lookup surface, and a write-capable remote integration should not compete on one undifferentiated leaderboard.",
+    body: "A local coding helper, a read-mostly lookup surface, and a write-capable remote integration should not compete on one undifferentiated leaderboard, even when a curated registry made the first browse feel cleaner.",
   },
   {
     title: "Demo friendliness",
     body: "A server can look magical in a supervised demo and still be the wrong choice for unattended or shared production use.",
   },
+];
+
+const REGISTRY_HONESTY_DRILL = [
+  "A curated registry can improve discovery quality without proving current auth viability, caller-safe scope, or runtime freshness.",
+  "Keep structural score, editorial inclusion, and live runtime trust as three separate layers so one signal does not counterfeit the other two.",
+  "If registry inclusion is why a server made the shortlist, re-check the claims that justified the listing before promotion into a real lane.",
+  "The production question is still whether this caller can use the server safely now, not whether an editor or launch-week review found it promising.",
 ];
 
 const DIMENSION_GROUPS = [
@@ -99,6 +106,11 @@ const RELATED_READING = [
     description: "Use workflow fit, trust class, capability shape, and runtime reality before any flat leaderboard instinct takes over.",
   },
   {
+    href: "/blog/runtime-mcp-discovery-trust-filters",
+    title: "Runtime MCP Discovery Needs Trust Filters",
+    description: "Why curated catalogs and search quality only help after caller-safe visibility narrows the pool.",
+  },
+  {
     href: "/blog/mcp-security-model",
     title: "MCP Has a Security Model",
     description: "Why selection still depends on scope, acting principal, and whether evidence survives the runtime you are about to trust.",
@@ -125,7 +137,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents",
   datePublished: "2026-04-19T00:00:00Z",
-  dateModified: "2026-04-19T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence.",
@@ -157,7 +169,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">MCP Methodology</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">April 19, 2026</span>
+          <span class="text-slate-500">Updated April 24, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -269,6 +281,20 @@ const ARTICLE_JSON_LD = {
           </section>
 
           <section>
+            <div class="mb-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Fresh operator signal</div>
+              <h3 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                Curated registry notes are still editorial confidence, not runtime proof
+              </h3>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Fresh launch notes from a curated MCP registry make the useful part clearer, not smaller: editorial filtering can improve the first browse and remove obvious dead ends. It still does not prove that the current caller can authenticate cleanly, see the right candidate set, or trust the listed server in a real lane.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {REGISTRY_HONESTY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
               4. Five questions before you trust a server in production
             </h2>

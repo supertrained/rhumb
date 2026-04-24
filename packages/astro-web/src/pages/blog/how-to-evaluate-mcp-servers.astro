@@ -83,6 +83,13 @@ const REALITY_CHECKS = [
   "If the claim fails validation, treat that as runtime drift or truth-surface weakness even when the demo still looked clean.",
 ];
 
+const REGISTRY_TRUTH_DRILL = [
+  "Treat registry inclusion as discovery inventory, not proof that the current caller can authenticate, see the right tools, or survive failure cleanly.",
+  "Keep editorial curation, structural evaluation, and live runtime checks as separate layers so one badge does not stand in for the other two.",
+  "If a registry entry was the reason the server made the shortlist, re-test the risky claims that justified the listing before promotion into a real lane.",
+  "Promotion should depend on caller-safe visibility and current behavior, not on whether the launch-week write-up sounded organized and credible.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/mcp-security-model",
@@ -288,6 +295,20 @@ const ARTICLE_JSON_LD = {
               <p>
                 The same caution applies to curated registries. A curated MCP registry is a better starting pool than a raw pile of launch links, but registry inclusion is still editorial confidence, not caller-safe availability. Before a server makes the shortlist, the operator still needs workflow fit, trust class, auth viability, and a quick reality check on the claims that made the registry entry look trustworthy in the first place.
               </p>
+              <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Fresh operator signal</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  Curated registries lower browse pain. They do not close the trust decision.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  Fresh curated-registry launch notes sharpen the same boundary: editorial filtering can remove obvious junk and make the first browse less chaotic, but it still does not tell the runtime which tools this caller should see now or whether the shortlisted server belongs in a real production lane.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {REGISTRY_TRUTH_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
               <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
