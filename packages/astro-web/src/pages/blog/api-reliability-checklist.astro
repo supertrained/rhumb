@@ -4,12 +4,19 @@ import Layout from "../../layouts/Layout.astro";
 import fs from "node:fs";
 import path from "node:path";
 
+const RETIRED_DEPENDENCY_GUARDRAILS = [
+  "Inventory pinned model IDs, version enums, and fallback defaults across env vars, framework wrappers, credential tests, and dashboards.",
+  "Check availability before execution and classify not-found or retirement errors as deterministic migration work, not retry noise.",
+  "Treat the replacement as a new operating profile: parameters, stop reasons, tool behavior, rate limits, and price can all shift together.",
+  "Fail closed when the workflow cannot prove compatibility yet, especially in auth checks and health checks that otherwise burn time before the real call even starts.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-18T00:00:00Z",
+  dateModified: "2026-04-23T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -38,6 +45,12 @@ const RELATED_READING = [
     label: "Guide",
     title: "The Complete Guide to API Selection for AI Agents",
     description: "The broader selection map once you move past a single checklist.",
+  },
+  {
+    href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
+    label: "Change Discipline",
+    title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
+    description: "Why retired model IDs and shifting parameter rules belong in the same operator checklist as retries, idempotency, and error quality.",
   },
   {
     href: "/blog/remote-mcp-production-readiness-checklist",
@@ -210,7 +223,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 18, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated April 23, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -234,6 +247,24 @@ const htmlContent = markdownToHtml(content);
 
     <article class="max-w-3xl mx-auto px-6 pt-12 pb-24">
       <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Fresh operator signal</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Reliability failures also start when a hard dependency quietly retires
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          A workflow can be perfectly healthy one day and fail closed the next because a pinned model ID, version enum, or credential-test default no longer exists. That is still a reliability problem. Nothing in your code changed, but the boundary became deterministic overnight and the system needs migration logic, not blind retries.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {RETIRED_DEPENDENCY_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This is where <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-parseable change communication</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">loop-reliability design</a> stop being separate topics and become part of the same pre-flight checklist.
+        </p>
+      </section>
 
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
