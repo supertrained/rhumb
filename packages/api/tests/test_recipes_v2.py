@@ -193,6 +193,45 @@ async def test_list_recipes_rejects_invalid_stability_filter_before_query(app):
 
 
 @pytest.mark.anyio
+async def test_list_recipes_rejects_invalid_category_filter_before_list_query(app):
+    with patch(
+        "routes.recipes_v2.supabase_fetch",
+        new=AsyncMock(return_value=[{"category": "productivity"}]),
+    ) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes?category=messaging")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'category' filter."
+    assert body["error"]["detail"] == "Use one of: productivity."
+    assert mock_fetch.await_count == 1
+    assert mock_fetch.await_args.args == ("recipes?select=category&published=eq.true",)
+
+
+@pytest.mark.anyio
+async def test_list_recipes_normalizes_category_filter_casing_and_whitespace(app):
+    queries: list[str] = []
+
+    async def _capturing_fetch(query: str):
+        queries.append(query)
+        if query == "recipes?select=category&published=eq.true":
+            return [{"category": "productivity"}]
+        return [RECIPE_ROW]
+
+    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params={"category": "  PrOdUcTiViTy  "})
+
+    assert response.status_code == 200
+    assert queries == [
+        "recipes?select=category&published=eq.true",
+        "recipes?select=recipe_id,name,version,category,stability,tier,step_count,max_total_cost_usd,published,updated_at&published=eq.true&order=updated_at.desc.nullslast,recipe_id.asc&limit=50&offset=0&category=eq.productivity",
+    ]
+
+
+@pytest.mark.anyio
 async def test_list_recipes_normalizes_stability_filter_casing_and_whitespace(app):
     queries: list[str] = []
 

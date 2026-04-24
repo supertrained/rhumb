@@ -135,6 +135,41 @@ def _validated_recipe_stability_filter(stability: str | None) -> str | None:
     )
 
 
+def _canonicalize_recipe_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    return normalized or None
+
+
+async def _available_recipe_categories() -> set[str]:
+    rows = await supabase_fetch("recipes?select=category&published=eq.true") or []
+    return {
+        str(row.get("category")).strip().lower()
+        for row in rows
+        if str(row.get("category") or "").strip()
+    }
+
+
+def _validated_recipe_category(
+    category: str | None,
+    *,
+    available_categories: set[str],
+) -> str | None:
+    normalized = _canonicalize_recipe_category(category)
+    if normalized is None:
+        return None
+    if not available_categories or normalized in available_categories:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail=f"Use one of: {', '.join(sorted(available_categories))}.",
+    )
+
+
 def _normalize_recipe_summary(row: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "recipe_id": row.get("recipe_id"),
@@ -882,6 +917,12 @@ async def list_recipes(
     offset: int = Query(default=0, ge=0),
 ) -> JSONResponse:
     normalized_stability = _validated_recipe_stability_filter(stability)
+    normalized_category = None
+    if category is not None:
+        normalized_category = _validated_recipe_category(
+            category,
+            available_categories=await _available_recipe_categories(),
+        )
 
     query = (
         "recipes"
@@ -890,8 +931,8 @@ async def list_recipes(
         "&order=updated_at.desc.nullslast,recipe_id.asc"
         f"&limit={limit}&offset={offset}"
     )
-    if category:
-        query += f"&category=eq.{quote(category)}"
+    if normalized_category:
+        query += f"&category=eq.{quote(normalized_category)}"
     if normalized_stability:
         query += f"&stability=eq.{quote(normalized_stability)}"
 
