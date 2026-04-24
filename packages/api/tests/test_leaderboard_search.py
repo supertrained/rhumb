@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.parse import unquote
 from unittest.mock import AsyncMock, patch
 
+from fastapi.testclient import TestClient
+
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -688,10 +690,32 @@ async def test_search_by_category(mock_catalog_supabase):
 
 
 @pytest.mark.asyncio
-async def test_search_empty_query(mock_catalog_supabase):
-    """Test search with empty query returns error."""
-    result = await search_services("")
-    assert result["error"] is not None
+async def test_search_empty_query_raises_invalid_parameters():
+    """Blank search queries should fail fast with the canonical invalid-parameters error."""
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        with pytest.raises(RhumbError) as exc_info:
+            await search_services("   ")
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'q' filter."
+    assert exc_info.value.detail == "Provide a non-empty search query."
+    cached_fetch.assert_not_awaited()
+
+
+def test_search_http_rejects_blank_query_with_canonical_envelope():
+    """HTTP callers should get a canonical 400 envelope for blank queries."""
+    from app import create_app
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "   "})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'q' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty search query."
+    cached_fetch.assert_not_awaited()
 
 
 @pytest.mark.asyncio

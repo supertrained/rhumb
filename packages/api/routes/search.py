@@ -9,6 +9,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
+from services.error_envelope import RhumbError
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     public_service_slug,
@@ -155,6 +156,18 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[s
     return list(canonical_rows.values())
 
 
+def _validated_search_query(query: str) -> str:
+    normalized = query.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'q' filter.",
+        detail="Provide a non-empty search query.",
+    )
+
+
 @router.get("/search")
 async def search_services(
     q: str,
@@ -173,13 +186,7 @@ async def search_services(
     # value instead of an integer — extract .default in that case.
     if not isinstance(limit, int):
         limit = getattr(limit, "default", 10)
-    query_lower = q.strip()
-
-    if not query_lower:
-        return {
-            "data": {"query": q, "limit": limit, "results": []},
-            "error": "Query cannot be empty",
-        }
+    query_lower = _validated_search_query(q)
 
     # Use Supabase PostgREST ilike filter for text search
     encoded = quote(f"*{query_lower}*")
